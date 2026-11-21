@@ -281,9 +281,9 @@ const runLoadedPacks = async (
     level: ReturnType<typeof fakeLevel>,
     http: ScriptHttpInputs
 ): Promise<string[]> => {
-    // The void dimensions the packs registered, which the level has from then on, as a level does.
-    const registered: string[] = [];
-    let started = false;
+    // The void dimensions the packs registered. As a level does, a reload adds a new one and
+    // drops one it no longer registers.
+    let registered: string[] = [];
     const scripts = await LevelScripts.load({
         packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
         configDirectory: scenarioConfigDirectory(scenario),
@@ -293,10 +293,11 @@ const runLoadedPacks = async (
                 ...registered
             ],
             registerCustomDimension: (typeId) => {
-                if (registered.includes(typeId)) return 'registered';
-                if (started) return 'new-after-reload';
-                registered.push(typeId);
+                if (!registered.includes(typeId)) registered.push(typeId);
                 return 'registered';
+            },
+            settleCustomDimensions: (run) => {
+                registered = registered.filter((typeId) => run.includes(typeId));
             },
             players: () => client?.players() ?? [],
             access: {
@@ -331,7 +332,6 @@ const runLoadedPacks = async (
     if (scripts === undefined) throw new Error(`The script host did not load scenario ${scenario.id}'s packs.`);
     try {
         scripts.start({ setScriptPhase: () => {} });
-        started = true;
         const ended = (): boolean =>
             loadedPacks(scenario).every(
                 (pack) =>

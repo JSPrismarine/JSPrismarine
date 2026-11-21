@@ -545,6 +545,7 @@ export class WorldScripts {
                 this.registering = undefined;
             }
         });
+        this.options.world.settleCustomDimensions?.(this.custom.dimensionList());
         this.commitCommands();
     }
 

@@ -3086,6 +3086,11 @@
     },
     "scripting.net": {},
     "scripting.world": {
+        "bds-record:custom-dimensions": {
+            "kind": "intentional",
+            "reason": "second dimension id: JSPrismarine drops a dimension the /reload no longer registers, where BDS keeps it until a restart. register a dimension new after the reload: JSPrismarine adds a dimension a /reload registers, where BDS asks the player to rejoin. dimension new after the reload: JSPrismarine adds a dimension a /reload registers, where BDS asks the player to rejoin.",
+            "reference": "docs/adr/0030-a-reload-adds-and-drops-script-dimensions.md"
+        },
         "bds-record:script-event-console": {
             "kind": "defect",
             "reason": "The console trims the end of a line it runs, so /scriptevent jsp:last  two  spaces  gives the message \"two  spaces\" where BDS keeps \"two  spaces \". Every other id, message and source matches BDS.",

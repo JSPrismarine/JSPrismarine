@@ -114,11 +114,15 @@ const intendedDifferences = (golden: ScenarioRecord, scenario: ScriptScenario) =
 export const expectedOnJsp = (golden: ScenarioRecord, scenario: ScriptScenario): ScenarioRecord => {
     const differs = scenario.jsprismarineDiffers;
     if (differs === undefined) return golden;
+    const seen = new Map<string, number>();
     return {
         ...golden,
         observations: golden.observations.map((observation) => {
+            const occurrence = (seen.get(observation.event) ?? 0) + 1;
+            seen.set(observation.event, occurrence);
             const instead = differs[observation.event];
             if (instead === undefined) return observation;
+            if (instead.occurrence !== undefined && instead.occurrence !== occurrence) return observation;
             if ('fields' in instead) {
                 // A value that is no object keeps the golden's, so the row reports the difference.
                 return isRecord(observation.value) && !Array.isArray(observation.value)

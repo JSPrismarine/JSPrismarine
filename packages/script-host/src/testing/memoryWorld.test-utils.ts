@@ -517,6 +517,11 @@ export class MemoryWorld implements ScriptWorld {
         if (!this.customDimensions.includes(typeId)) this.customDimensions.push(typeId);
         return 'registered';
     }
+    /** What each run's `startup` registered, as the runtime reported it after the event. */
+    public readonly settledDimensions: (readonly string[])[] = [];
+    public settleCustomDimensions(registered: readonly string[]): void {
+        this.settledDimensions.push(registered);
+    }
     public dimensions(): readonly string[] {
         return ['minecraft:overworld', 'minecraft:nether', 'minecraft:the_end', ...this.customDimensions];
     }

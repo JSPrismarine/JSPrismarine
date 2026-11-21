@@ -202,8 +202,10 @@ export class Level {
      * each time the level opens, and their types are in no datapack the next start reads.
      */
     private readonly scriptStems = new Set<string>();
-    /** Whether the level's first scripts have started, after which no script adds a dimension. */
-    private scriptDimensionsSealed = false;
+    /** The script dimensions added since the last {@link Level.settleScriptDimensions}. */
+    private readonly addedScriptStems = new Set<string>();
+    /** The worlds of script dimensions a reload dropped, by type id, until they have saved and closed. */
+    private readonly retiring = new Map<string, Promise<void>>();
     private readonly load: ReadonlyMap<string, DimensionLoad>;
     private readonly factories: GeneratorFactories;
     private readonly worldgen: () => JavaWorldgenRegistries;
@@ -409,21 +411,22 @@ export class Level {
      *
      * A dimension the level already has, from the config or an earlier registration, is
      * registered again and keeps its definition: on BDS a pack's `dimension/*.json` takes priority
-     * over a script's registration. Once the level's first scripts have started, a reload cannot
-     * add one, which BDS refuses with "Please exit and rejoin your world".
+     * over a script's registration. Unlike BDS, which refuses a dimension that only a reload
+     * registers with "Please exit and rejoin your world", the level adds it, and the caller tells
+     * the clients already in the level about it.
      *
      * @param typeId - The dimension's namespaced id, which the script host has checked.
-     * @returns Whether the level has the dimension now.
+     * @returns Whether the level has the dimension now, which it always has.
      */
-    public registerScriptDimension(typeId: string): 'registered' | 'new-after-reload' {
+    public registerScriptDimension(typeId: string): 'registered' {
         if ([...this.stems.values()].some((stem) => stem.type === typeId)) return 'registered';
-        if (this.scriptDimensionsSealed) return 'new-after-reload';
         this.dimensionTypes.set(
             typeId,
             dimensionTypeOf(Dimensions.Overworld.java, typeId, this.dimensionNumbers.numberOf(typeId))
         );
         this.stems.set(typeId, voidStem(typeId));
         this.scriptStems.add(typeId);
+        this.addedScriptStems.add(typeId);
         return 'registered';
     }
 
@@ -432,9 +435,57 @@ export class Level {
         return this.dimensionNumbers.isChanged();
     }
 
-    /** Ends the registration of script dimensions, once the level's first scripts have started. */
-    public sealScriptDimensions(): void {
-        this.scriptDimensionsSealed = true;
+    /**
+     * Ends one run's registrations, after its `startup`: the first run's or a reload's. A script
+     * dimension this run did not register is dropped, and its world, once built, is saved and
+     * closed. One that players are still in stays until a later run drops it while it is empty.
+     *
+     * @param registered - Every dimension the run registered.
+     * @returns The dimensions added since the last call, which clients already in the level have
+     * not heard of, the ones dropped, and the ones kept for their players.
+     */
+    public settleScriptDimensions(registered: readonly string[]): {
+        readonly added: readonly string[];
+        readonly removed: readonly string[];
+        readonly kept: readonly string[];
+    } {
+        const wanted = new Set(registered);
+        const added = [...this.addedScriptStems].filter((typeId) => this.scriptStems.has(typeId));
+        this.addedScriptStems.clear();
+        const removed: string[] = [];
+        const kept: string[] = [];
+        for (const typeId of [...this.scriptStems]) {
+            if (wanted.has(typeId)) continue;
+            const entry = this.built.get(typeId);
+            if (entry !== undefined && entry.world.getViewers().length > 0) {
+                kept.push(typeId);
+                continue;
+            }
+            this.stems.delete(typeId);
+            this.dimensionTypes.delete(typeId);
+            this.scriptStems.delete(typeId);
+            if (entry !== undefined) this.retiring.set(typeId, this.retire(typeId, entry));
+            removed.push(typeId);
+        }
+        return { added, removed, kept };
+    }
+
+    /**
+     * Saves and closes the world of a dropped script dimension. It stays among the built worlds
+     * until its save has written it, since the save reads each dimension's entities from there.
+     */
+    private async retire(typeId: string, entry: BuiltWorld): Promise<void> {
+        try {
+            await entry.world.stop();
+            await this.saves.save([entry.world]);
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save the ${typeId} dimension of level ${this.name}`);
+            this.server.getLogger().error(error);
+        } finally {
+            if (this.built.get(typeId) === entry) this.built.delete(typeId);
+            this.readyByType.clear();
+            this.retiring.delete(typeId);
+        }
     }
 
     /** The level's folder name, which is what the tick loop and the logs call it. */
@@ -505,6 +556,14 @@ export class Level {
      *   generator cannot be built or the world cannot be enabled.
      */
     public async world(dimensionId: string): Promise<World> {
+        // A dimension a reload dropped and a later one registered again is built anew once the
+        // old world has saved and closed. Only then: the check and the build below run in one
+        // step, so two first calls share one build and the world is built the moment it is asked for.
+        const retiring = this.retiring.get(dimensionId);
+        if (retiring !== undefined) {
+            await retiring;
+            return this.world(dimensionId);
+        }
         const existing = this.built.get(dimensionId);
         if (existing !== undefined) {
             await existing.ready;

@@ -99,7 +99,8 @@ export interface ScriptScenario {
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
      * records instead of the golden's value or error, or the fields of the golden's object value it
      * records differently, why, and the decision record that says so. The scenario's row reports
-     * each as an intentional difference.
+     * each as an intentional difference. `occurrence` limits one to the nth observation of its
+     * event, counted from 1, for an event a scenario records in each of its runs.
      */
     readonly jsprismarineDiffers?: Readonly<
         Record<
@@ -108,6 +109,7 @@ export interface ScriptScenario {
                 | { readonly observed: Pick<Observation, 'value' | 'error'> }
                 | { readonly fields: Readonly<Record<string, ObservedValue>> }
             ) & {
+                readonly occurrence?: number;
                 readonly because: string;
                 readonly reference: string;
             }
@@ -890,7 +892,26 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         packs: ['dimensions'],
         runs: 2,
         reloadAfter: 'ready for /reload',
-        needs: 'world'
+        needs: 'world',
+        jsprismarineDiffers: {
+            'register a dimension new after the reload': {
+                observed: {},
+                because: 'JSPrismarine adds a dimension a /reload registers, where BDS asks the player to rejoin',
+                reference: 'docs/adr/0030-a-reload-adds-and-drops-script-dimensions.md'
+            },
+            'dimension new after the reload': {
+                observed: { value: 'jsp:reloaded' },
+                because: 'JSPrismarine adds a dimension a /reload registers, where BDS asks the player to rejoin',
+                reference: 'docs/adr/0030-a-reload-adds-and-drops-script-dimensions.md'
+            },
+            'second dimension id': {
+                occurrence: 2,
+                observed: { error: "Error: Dimension 'jsp:second' is invalid." },
+                because:
+                    'JSPrismarine drops a dimension the /reload no longer registers, where BDS keeps it until a restart',
+                reference: 'docs/adr/0030-a-reload-adds-and-drops-script-dimensions.md'
+            }
+        }
     },
     {
         id: 'world-event-gaps',

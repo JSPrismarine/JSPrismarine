@@ -276,6 +276,11 @@ export class CustomContent<Owner> {
         };
     }
 
+    /** The custom dimensions this run registered, in the order it registered them. */
+    public dimensionList(): readonly string[] {
+        return [...this.dimensions];
+    }
+
     /** The commands and enums registered so far, in the order they were registered. */
     public commandList(): {
         readonly commands: readonly ScriptCustomCommand[];
