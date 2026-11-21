@@ -14,6 +14,7 @@ import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/be
 import SubChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/SubChunkRequestPacket';
 import { Dimensions } from '../world/DimensionType';
 import Chunk from '../world/chunk/Chunk';
+import type { Generator } from '../world/Generator';
 import type { World } from '../world/World';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import { Position } from '../world/Position';
@@ -271,6 +272,23 @@ describe('network', () => {
 
             expect(session.sender.has(50, 50)).toBe(true);
             expect(session.sender.has(0, 0)).toBe(false);
+        });
+
+        it('says whether a chunk it has not loaded comes from a generator that builds it inline', () => {
+            const playerWithWorld = stub<SessionPlayer>({
+                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 })
+            });
+            const answerFor = (generatesInline: boolean | undefined) =>
+                sessionFor(server, stub<ClientConnection>({ codec: Codec2225 }), playerWithWorld, {
+                    world: stub<World>({
+                        getLoadedChunk: () => null,
+                        getGenerator: () => stub<Generator>(generatesInline === undefined ? {} : { generatesInline })
+                    }),
+                    joined: true
+                }).tryDeliverLoaded(1, 2);
+
+            expect(answerFor(true)).toEqual({ kind: 'not-loaded', inline: true });
+            expect(answerFor(undefined)).toEqual({ kind: 'not-loaded', inline: false });
         });
 
         it('limits resident chunk payload bytes for one connection', () => {
