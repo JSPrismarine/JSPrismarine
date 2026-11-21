@@ -43,8 +43,14 @@ permissions:
 # master commit's site is ever live, so a build of an older one is work thrown away. Cloudflare
 # Pages makes a deployment live only once its upload completes, so a publish cut short leaves the
 # site as it was.
+#
+# A manual run gets a group of its own, so no push and no other manual run cancels it, and it
+# cancels none of theirs. It publishes only while its commit is still master's head; see 🚀 Publish Docs.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: >-
+        ${{ github.workflow }}-${{ github.event.pull_request.number ||
+        (github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id)) ||
+        github.ref }}
     cancel-in-progress: true
 
 jobs:
@@ -204,10 +210,28 @@ jobs:
                   name: docs-site
                   path: docs-site
 
+            # A push to master doesn't cancel a manual run, so the manual run can finish after the
+            # push's run and replace its newer site. It publishes only while its commit is still
+            # master's head; once master moves on, that push's run publishes instead.
+            - name: 🔎 Check that this commit is still master's head
+              id: head
+              if: github.event_name == 'workflow_dispatch'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  head="$(gh api "repos/$GITHUB_REPOSITORY/commits/master" --jq .sha)"
+                  if [ "$head" = "$GITHUB_SHA" ]; then
+                      echo "current=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "current=false" >> "$GITHUB_OUTPUT"
+                      echo "::notice::master moved on to $head, whose own run publishes the site; this run publishes nothing."
+                  fi
+
             # Uploaded from here rather than built by Cloudflare, so a deployment Cloudflare refuses,
             # such as one of more than 20,000 files or with a file over 25 MiB, fails this job and the
             # run of the master commit it came from. An upload also uses none of the account's builds.
             - name: 🚀 Upload the site
+              if: steps.head.outputs.current != 'false'
               uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
