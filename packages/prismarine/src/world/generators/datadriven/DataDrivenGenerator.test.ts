@@ -722,6 +722,46 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         });
     });
 
+    describe('the holders kept around a generated block', () => {
+        const side = 7;
+        const builds = new Map<string, number>();
+        let retained = 0;
+
+        // Generating the block is the slow part and the only thing the assertions wait on.
+        beforeAll(
+            async () => {
+                const generator = new DataDrivenGenerator({
+                    registries,
+                    carve: false,
+                    structures: false,
+                    onTerrainTileBuild: (_dimension, _seed, cx, cz) =>
+                        builds.set(`${cx},${cz}`, (builds.get(`${cx},${cz}`) ?? 0) + 1)
+                });
+                for (let x = 0; x < side; x++) {
+                    for (let z = 0; z < side; z++) await generator.generateChunk(x, z, SEED);
+                }
+                // The pipeline is private; its retained set is the count this test is about.
+                const pipelines: unknown = Reflect.get(generator, 'pipelines');
+                if (!(pipelines instanceof Map)) throw new Error('the generator keeps no pipelines');
+                for (const pipeline of pipelines.values()) {
+                    const held: unknown = Reflect.get(pipeline, 'retained');
+                    if (held instanceof Map) retained += held.size;
+                }
+                generator.stopGenerating();
+            },
+            CHUNK_TIMEOUT * side * side
+        );
+
+        it('lets go of every holder whose readers have all finished, and builds no tile twice', () => {
+            // A chunk reads the terrain of the chunks within two of it, so the block keeps holders
+            // over an 11 by 11 square. Only the inner 3 by 3 have every reader inside the block.
+            const acquired = (side + 4) * (side + 4);
+            const settled = (side - 4) * (side - 4);
+            expect(retained).toBe(acquired - settled);
+            expect([...builds.values()].filter((count) => count > 1)).toEqual([]);
+        });
+    });
+
     it(
         'refuses a request made after the shutdown, for a world it had never been asked about',
         async () => {
