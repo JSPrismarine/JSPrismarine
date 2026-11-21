@@ -108,7 +108,9 @@ interface User {
 Resolution walks the user's nodes, then each group the user holds directly ordered by weight. A
 group's nodes are its own nodes followed by its parents' depth first, and an inherited node takes
 the weight of the direct group that inherits it, so a light parent of a heavy group still decides
-before a lighter direct group. The first node that decides the query wins, where a specific node
+before a lighter direct group. The walk keeps a set of the groups it has visited and never enters
+one twice, so it ends even on a file that names a cycle; `parent add` and the file loader refuse a
+parent that would make a group its own ancestor. The first node that decides the query wins, where a specific node
 decides before a wildcard at the same tier, and a negation decides before a grant at the same
 specificity. Expired nodes and memberships are skipped and pruned on the next write. The primary
 group is the heaviest group the user holds directly.
@@ -196,7 +198,7 @@ command syntax only and never appears in a file or an API.
 | `revokeFromGroup(group, node)`      | Removes it.                                           |
 | `addToGroup(player, group, expires?)` | Adds a membership.                                  |
 | `removeFromGroup(player, group)`    | Removes it.                                           |
-| `afterEvents.permissionsChange`     | Fires after any write, with the subject it touched.   |
+| `afterEvents.permissionsChange`     | Fires after any write, with a `target` that is `{ group }` for a group write or `{ name, player? }` for a user write, where `player` is set while that user is online. |
 
 Writes persist like a command's do. A member that touches a user takes a `Player`, and one that
 touches a group takes the group's name. No member exposes a subject key; a pack that needs one has
@@ -207,8 +209,9 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
 
 ## Verification
 
-- Unit tests for resolution: user over group, weight order, parent depth, wildcard against
-  specific, negation ties, expiry, and `level` against operator status.
+- Unit tests for resolution: user over group, weight order, parent depth, a parent cycle that the
+  loader refuses and one that a hand-edited file slips past the check, wildcard against specific,
+  negation ties, expiry, and `level` against operator status.
 - Unit tests for the migration of each of the three files, including a `players` entry claimed at
   login and one never claimed.
 - Command tests for every `/perms` subcommand, the ambiguous name refusal and the qualified form.

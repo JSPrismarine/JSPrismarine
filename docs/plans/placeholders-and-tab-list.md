@@ -245,9 +245,10 @@ Other packs send script events with a JSON message:
 A `template` in a message is a shorthand string or a tree. `player` names an online player; a
 message for a player who is not online is dropped with a console warning. `Player.id` is not used,
 since on this server it is the entity id of one login. A player template set over the API is for
-the session unless `persist` is true, in which case it lives in a dynamic property on the player,
-and the host keys that to the player across logins and restarts. So an AFK or vanish addon can set
-and clear without leaving residue, and a ranks addon can set once and keep it.
+the session unless `persist` is true, in which case it lives in a dynamic property on the player.
+Today the player save drops those properties, so a persisted template, and a template set with
+`/tablist player`, would be lost at logout; slice 8 fixes the save first. With it, an AFK or vanish
+addon can set and clear without leaving residue, and a ranks addon can set once and keep it.
 
 ## Verification
 
@@ -281,8 +282,11 @@ and clear without leaving residue, and a ranks addon can set once and keep it.
        condition grammar and the next-change tick.
 7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
        guide.
+8. [ ] [#3405](https://github.com/JSPrismarine/JSPrismarine/issues/3405) **Player dynamic properties survive logout.** The player record carries the actor's
+       `persistentNbt`, so a property a script set is there at the next login and after a restart,
+       as on BDS. A parity scenario covers it.
 
-Slice 3 needs 2. Slices 6 and 7 need 2. Slice 5 needs 4, 6 and 7, and reads `perms` when
+Slice 3 needs 2. Slices 6 and 7 need 2. Slice 5 needs 4, 6, 7 and 8, and reads `perms` when
 permissions slice 5 exists. Slices 2 and 4 are independent, so two branches carry them in
 parallel.
 
