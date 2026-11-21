@@ -252,6 +252,20 @@ export class SampleContext {
         return undefined;
     }
 
+    /** The node's cell buffer when it holds the cell whose origin is given, or undefined. */
+    public filledInterpolationBuffer(id: number, x: number, y: number, z: number): Float64Array | undefined {
+        const origin = id * 3;
+        if (
+            this.interpolationBufferFilled[id] === 1 &&
+            this.interpolationBufferOrigins[origin] === x &&
+            this.interpolationBufferOrigins[origin + 1] === y &&
+            this.interpolationBufferOrigins[origin + 2] === z
+        ) {
+            return this.interpolationCellBuffers[id];
+        }
+        return undefined;
+    }
+
     /** Returns a reusable cell output buffer, allocating it on the node's first cell. */
     public interpolationBuffer(id: number, valueCount: number): Float64Array {
         if (id >= this.interpolationCellBuffers.length) this.growInterpolation(id);

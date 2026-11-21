@@ -1,3 +1,4 @@
+import type { CellProgram } from '../density/cellProgram';
 import type { DensitySampler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { SampleContext } from '../density/SampleContext';
@@ -103,6 +104,9 @@ export class ChunkSampler {
     private aquiferCallsSkipped = 0;
     private noiseAquifer: Aquifer | undefined;
     private walkingCell = false;
+    /** Final density over one whole cell at a time, when the cell is the interpolation cell. */
+    private readonly cellProgram: CellProgram | undefined;
+    private readonly cellDensities: Float64Array | undefined;
 
     public constructor(
         private readonly randomState: RandomState,
@@ -150,6 +154,9 @@ export class ChunkSampler {
         this.cellsY = this.cellSpan(this.volume.minBlockY, this.volume.maxBlockY, this.cellSizeY);
         this.cellsZ = this.cellSpan(this.volume.minBlockZ, this.volume.maxBlockZ, this.cellSizeXz);
         this.cellCount = this.cellsX * this.cellsY * this.cellsZ;
+        this.cellProgram =
+            cell === undefined ? undefined : randomState.cellProgram(settings.noiseRouter.finalDensity, cell);
+        this.cellDensities = this.cellProgram && new Float64Array(this.cellProgram.size);
     }
 
     /**
@@ -324,10 +331,17 @@ export class ChunkSampler {
         const walkingCellBefore = this.walkingCell;
         this.walkingCell = true;
         try {
+            const densities = this.fillCellDensities(firstX, lastX, firstY, lastY, firstZ, lastZ);
+            const strideX = this.cellSizeXz * this.cellSizeY;
             for (let x = firstX; x <= lastX; x++) {
                 for (let z = firstZ; z <= lastZ; z++) {
                     for (let y = lastY; y >= firstY; y--) {
-                        const substance = aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+                        const density =
+                            densities === undefined
+                                ? this.density(x, y, z)
+                                : (densities[(x - firstX) * strideX + (z - firstZ) * this.cellSizeY + (y - firstY)] ??
+                                  0);
+                        const substance = aquifer.computeSubstance(x, y, z, density);
                         visit(
                             x,
                             y,
@@ -341,6 +355,46 @@ export class ChunkSampler {
         } finally {
             this.walkingCell = walkingCellBefore;
         }
+    }
+
+    /**
+     * Final density over a whole interpolation cell through the cell program, or undefined when the
+     * block range is not one whole cell and the walk samples block by block instead.
+     *
+     * Buffers stay on for the fill, as {@link ChunkSampler.density} turns them on in a cell walk,
+     * so a node the program runs per position reads the same cell buffers the walk would.
+     */
+    private fillCellDensities(
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number
+    ): Float64Array | undefined {
+        const program = this.cellProgram;
+        const densities = this.cellDensities;
+        if (
+            program === undefined ||
+            densities === undefined ||
+            lastX - firstX + 1 !== this.cellSizeXz ||
+            lastY - firstY + 1 !== this.cellSizeY ||
+            lastZ - firstZ + 1 !== this.cellSizeXz ||
+            firstX % this.cellSizeXz !== 0 ||
+            firstY % this.cellSizeY !== 0 ||
+            firstZ % this.cellSizeXz !== 0
+        ) {
+            return undefined;
+        }
+
+        const bufferingBeforeFill = this.context.interpolationBuffersEnabled;
+        this.context.interpolationBuffersEnabled = true;
+        try {
+            program.fill(this.context, firstX, firstY, firstZ, densities);
+        } finally {
+            this.context.interpolationBuffersEnabled = bufferingBeforeFill;
+        }
+        return densities;
     }
 
     private isGlobalFluidOnlyCell(aquifer: Aquifer, firstY: number): boolean {
