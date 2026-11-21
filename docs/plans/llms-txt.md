@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 and the first part of phase 4 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 and the first two parts of phase 4 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -173,8 +173,11 @@ by a function in `tools/docs/llmsPages.mts` that `buildEnd` passes to the writer
 
 - Packages: each package by its area, with its version, description, API reference and npm page, from
   `loadProject()` and `packageAreas`.
-- Addon pages and the marketplace: the addon's README text and its install command, from
-  `buildMarket`'s output.
+- Addon pages and the marketplace: each addon's install command, version, publisher and README,
+  and the marketplace's addons grouped as JSPrismarine's and the community's. `buildMarket` keeps
+  each README as Markdown beside the HTML the page shows, with its links resolved the same way, and
+  `assemble.mts` writes the copies to `site/addons/markdown-copies.json` for `buildEnd` to publish. A
+  community addon's copy says it is listed without review and that its README is the author's text.
 - Releases: the newest releases' changes by level, from the changelog that `changelog.mts` parses
   for the Releases page too.
 - Parity and Benchmarks: their headline numbers and a link to the page. The tracker's case data and
@@ -232,8 +235,7 @@ the built site.
 3. Done: `/llms-full.txt` with its byte budget.
 4. Markdown bodies for the component pages, in three pull requests:
    1. Done: Packages and Releases.
-   2. The addon pages and the marketplace. The build keeps a README only as HTML, so `buildMarket`
-      has to keep its Markdown too.
+   2. Done: the addon pages and the marketplace.
    3. Parity and Benchmarks.
 5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
 6. The `<link rel="alternate">` head entry.
