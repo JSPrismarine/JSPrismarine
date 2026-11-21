@@ -2318,8 +2318,21 @@ const EQUIVALENT_GOALS: Readonly<Record<string, readonly string[]>> = {
     melee_box_attack: ['melee_attack', 'stomp_attack', 'delayed_attack'],
     nearest_attackable_target: ['nearest_prioritized_attackable_target'],
     random_look_around: ['random_look_around_and_sit'],
-    random_stroll: ['random_fly']
+    random_stroll: ['random_fly', 'silverfish_merge_with_stone'],
+    // A fox's `SeekShelterGoal` is its `FleeSunGoal`, and its pounce is its leap.
+    flee_sun: ['find_cover'],
+    leap_at_target: ['stalk_and_pounce_on_target']
 };
+
+/**
+ * The horses Java registers a `BreedGoal` for whose `canMate` is always false, so the goal never
+ * runs and a server that leaves it out differs in nothing a player sees.
+ */
+const NEVER_MATES: ReadonlySet<string> = new Set([
+    'minecraft:mule',
+    'minecraft:skeleton_horse',
+    'minecraft:zombie_horse'
+]);
 
 /** The Bedrock goals a comparison pairs with a Java goal, by the Java classes each one names. */
 const pairedComponents = (goal: JavaGoal): readonly string[] =>
@@ -2375,7 +2388,13 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => `${subject.javaId}/${subject.tag ?? ''}`,
         covers: (subject) => subject.javaId,
         aspects: (subject) => [`java-goal:${subject.tag ?? ''}`],
-        classify: goalGap("Every goal a Java mob's class registers runs on the server."),
+        classify: (subject, difference) =>
+            subject.tag === 'BreedGoal' && NEVER_MATES.has(subject.javaId)
+                ? {
+                      kind: 'intentional',
+                      reason: 'Java registers a BreedGoal for this horse, but its canMate is always false, so the goal never runs and leaving it out changes nothing.'
+                  }
+                : goalGap("Every goal a Java mob's class registers runs on the server.")(subject, difference),
         run: (subject) => {
             const goal = javaGoals(subject.javaId).find((candidate) => candidate.goal === subject.tag);
             if (goal === undefined) return `Java's ${subject.javaId} registers no ${subject.tag ?? ''}`;

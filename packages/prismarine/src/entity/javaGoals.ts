@@ -353,6 +353,43 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         })
     },
     {
+        // Java `Blaze.registerGoals` adds `MoveTowardsRestrictionGoal(this, 1.0)` at 5, which walks
+        // a blaze that a fortress spawner placed back toward it.
+        entity: 'minecraft:blaze',
+        component: 'minecraft:behavior.random_look_around',
+        java: beside('minecraft:behavior.random_look_around', {
+            'minecraft:behavior.move_towards_home_restriction': { priority: 5, speed_multiplier: 1 }
+        })
+    },
+    {
+        // Java `AbstractHorse.registerGoals` adds `RunAroundLikeCrazyGoal(this, 1.2)` at 1, which
+        // bucks an untamed rider off a skeleton horse too.
+        entity: 'minecraft:skeleton_horse',
+        component: PHYSICS,
+        java: beside(PHYSICS, { 'minecraft:behavior.run_around_like_crazy': { priority: 1, speed_multiplier: 1.2 } })
+    },
+    {
+        // Java `AbstractSkeleton.registerGoals` flees wolves with `AvoidEntityGoal(this, Wolf.class,
+        // 6.0F, 1.0, 1.2)` and the sun with `FleeSunGoal(this, 1.0)`, both at 3, for a wither
+        // skeleton too.
+        entity: 'minecraft:wither_skeleton',
+        component: PHYSICS,
+        java: beside(PHYSICS, {
+            'minecraft:behavior.avoid_mob_type': {
+                priority: 3,
+                entity_types: [
+                    {
+                        filters: { test: 'is_family', subject: 'other', value: 'wolf' },
+                        max_dist: 6,
+                        walk_speed_multiplier: 1,
+                        sprint_speed_multiplier: 1.2
+                    }
+                ]
+            },
+            'minecraft:behavior.flee_sun': { priority: 3, speed_multiplier: 1 }
+        })
+    },
+    {
         // Java `Wolf.registerGoals` adds `RandomLookAroundGoal` at 10.
         entity: 'minecraft:wolf',
         component: PHYSICS,
