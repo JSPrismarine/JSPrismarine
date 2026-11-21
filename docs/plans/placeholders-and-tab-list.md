@@ -129,7 +129,10 @@ build step to write JSX for QuickJS.
 
 The node kinds are `text`, `placeholder`, `if` with `then` and `else`, `animate` with `frames`
 and an `interval` in ticks, `gradient` with a color list over its children, and rawtext's own
-`translate`, `score` and `selector`, which the renderer passes through to the client. A condition
+`translate`, `score` and `selector`. `render` gives plain text, which is all a player list entry
+can carry, so `translate` renders as its key, `score` as the scoreboard value and `selector` as the
+matching names. A consumer that can send rawtext to the client, such as a chat format, gets a
+rawtext-producing render when one is needed. A condition
 is a small expression over placeholders and literals: `==`, `!=`, `<`, `<=`, `>`, `>=`,
 `contains` and `startsWith`, joined by `&&` and `||`, with parentheses. Two sides that both parse
 as numbers compare as numbers, otherwise as text.
@@ -190,8 +193,9 @@ the addon skips that tier and says so once on the console.
 
 The addon renders each online player's template through `placeholders.render` every `interval`
 ticks, 20 by default, and again at the `nextChangeTick` an animation reports, and calls
-`setDisplayName` only when the rendered name differs from the last one it sent. Until an owner
-sets a template, the list is untouched.
+`setDisplayName` only when the rendered name differs from the last one it sent. A template that
+renders to an empty string resets that player's entry to the login name, so the addon never passes
+an empty name. Until an owner sets a template, the list is untouched.
 
 The global and group templates and the interval live in `addons/tab-list.config.json`, read
 through the config member, so an owner can write trees in an editor and `/tablist` writes the
@@ -217,7 +221,7 @@ Commands, all operator level:
 
 ```text
 /tablist format [template]      show or set the global template
-/tablist reset                  clear it and restore every name
+/tablist reset                  clear the global template; group and player templates stay
 /tablist group <group> <template>
 /tablist group <group> remove
 /tablist player <target> <template>
@@ -235,13 +239,15 @@ Other packs send script events with a JSON message:
 | `jsp_tablist:set_global`  | `{ "template": "..." }`                       |
 | `jsp_tablist:set_group`   | `{ "group": "vip", "template": "..." }`       |
 | `jsp_tablist:clear_group` | `{ "group": "vip" }`                          |
-| `jsp_tablist:set_player`  | `{ "playerId": "...", "template": "...", "persist": false }` |
-| `jsp_tablist:clear_player`| `{ "playerId": "..." }`                       |
+| `jsp_tablist:set_player`  | `{ "player": "<name>", "template": "...", "persist": false }` |
+| `jsp_tablist:clear_player`| `{ "player": "<name>" }`                     |
 
-A `template` in a message is a shorthand string or a tree. `playerId` is `Player.id`, which is
-stable across sessions. A player template set over the API is
-for the session unless `persist` is true, so an AFK or vanish addon can set and clear without
-leaving residue, and a ranks addon can set once and keep it.
+A `template` in a message is a shorthand string or a tree. `player` names an online player; a
+message for a player who is not online is dropped with a console warning. `Player.id` is not used,
+since on this server it is the entity id of one login. A player template set over the API is for
+the session unless `persist` is true, in which case it lives in a dynamic property on the player,
+and the host keys that to the player across logins and restarts. So an AFK or vanish addon can set
+and clear without leaving residue, and a ranks addon can set once and keep it.
 
 ## Verification
 
