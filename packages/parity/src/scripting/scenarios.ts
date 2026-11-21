@@ -549,6 +549,18 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         client: { answers: [] }
     },
     {
+        id: 'input-permission-events',
+        family: 'scripting.events',
+        description:
+            'Player.inputPermissions.setPermissionCategory raises world.afterEvents.playerInputPermissionCategoryChange ' +
+            'with the category, whether it is enabled and the player.',
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3295',
+        packs: ['inputs'],
+        experiments: ['gametest'],
+        needs: 'world',
+        client: { answers: [] }
+    },
+    {
         id: 'world-basics',
         family: 'scripting.world',
         description:

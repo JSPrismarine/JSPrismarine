@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario input-permission-events inputs",
+        "description": "Changes the scenario client's input permissions and records the events they raise. Written for packages/parity.",
+        "uuid": "5306a659-2196-4e6f-b0cd-ea45ffe0393b",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "9d77f0ab-edfb-40d2-b952-22b0a004ac88",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}
