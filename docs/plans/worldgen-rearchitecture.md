@@ -102,10 +102,15 @@ are independent of one another and can run beside 1 and 2.
 Before any runtime changes, pin what the redesign must reproduce and give CI the counts to hold it
 to.
 
-- Capture a density-bits vector from Java 26.3's `sampleVolume` for whole chunks through the jar
-  oracle (`DumpWorldgenVectors.java`), for all seven noise settings. It settles the open question
-  whether our `lerp3` cell order matches `fillCell` at every block, and becomes the test every
-  later phase runs. Read `InterpolatedFunction$Sampler.sampleVolume` and
+- Done in #3474: `vectors/26.3/density-volume.json` holds per-section hashes of `final_density`'s
+  float bits over 14 whole chunks (two per noise settings) from Java's `sampleVolume`, the path
+  `doFill` builds terrain from, and from its per-block `sampleValue`. **Java's two paths disagree
+  in the last bits**: a probe over 12 chunks found 16% to 53% of floats differ, by at most 1.5e-7,
+  with no sign change and no differing block. Our generator matches `sampleValue` in every section
+  of every captured chunk, so it follows Java's per-block path, not the one terrain is built from.
+  The `worldgen.terrain` parity family pins both: a regression from `sampleValue` fails, and the
+  chunks that differ from `sampleVolume` are deferred rows that fail as stale once phase 1 matches.
+- Still to do: read `InterpolatedFunction$Sampler.sampleVolume` and
   `RangeChoiceFunction$Sampler.sampleVolume` in the jar to record whether Java computes corners for
   every interpolated node (the 6,125 figure) or skips the noodle nodes.
 - Add the deterministic proxies as tests in `packages/worldgen`: closure or indirect calls per block
@@ -130,13 +135,19 @@ Replace the closure compiler as the default evaluator in `packages/worldgen/src/
 - `ChunkSampler.fill` asks for the whole chunk volume once, then walks blocks from the buffers with
   `skipProvenCells` deciding which cells to read. The aquifer and the fluid picker read from the
   buffers.
-- The closure compiler stays as the test oracle (every vector runs through both until the bits match
-  on the whole corpus), then leaves.
+- The bit oracle is the Java capture, not the closure compiler: the closure compiler's bits are
+  Java's `sampleValue`, and phase 1's target is `sampleVolume`. Each call site keeps the path Java
+  uses there, volume where Java calls `sampleVolume` and value where it calls `sampleValue` (the
+  aquifer's own noises, the surface pass's `chunk_surface_level`, structure height probes); phase 1
+  lists those call sites from the jar before it moves any of them. The closure compiler leaves once
+  nothing calls the value path through it.
 
 Counts the phase must reach, checked in CI: indirect calls per block sample at most 1 (the walk) for
 the vanilla overworld; node dispatches per chunk at most nodes times volumes (212 times the cells
 of the chunk at most, and far fewer with plane broadcast); `fround` calls outside the Perlin kernel
-per tile under 100,000; output bits equal to the phase 0 vectors and the `b7740abd…c0b8` digest.
+per tile under 100,000; every section equal to the `sampleVolume` hashes, which turns the deferred
+parity rows stale. The `b7740abd…c0b8` bench digest covers blocks, not density bits, so it stays
+unless a block sits within the last bits of zero; if it moves, the parity rows say where.
 
 ### Phase 2: noise over volumes
 
@@ -226,9 +237,10 @@ Counts: boundary crossings per chunk at most 1 per status; output bits unchanged
 
 ## Risks
 
-- **Fill order.** If `fillCell`'s order gives different bits from our `lerp3` order at some block,
-  phase 1 changes output. Phase 0 finds out before any runtime changes; if they differ, the volume
-  runtime adopts Java's order and the vectors move with it, since Java is the reference.
+- **Fill order.** Settled by phase 0: Java's volume path gives different last bits from its per-block
+  path, which is what we reproduce today. Phase 1 adopts the volume path's order and moves our
+  density bits to Java's terrain bits. No block differed in the 12 chunks probed, but a block whose
+  density sits within about 1e-7 of zero can change, and that change is toward Java.
 - **Custom datapacks.** The program interpreter must stay general. No phase generates code for the
   vanilla graph alone; the fused-expression speedup comes from batching, which applies to any graph.
 - **Memory.** Volume buffers per chunk are a few megabytes per worker; the pool bounds them and the
@@ -240,7 +252,7 @@ Counts: boundary crossings per chunk at most 1 per status; output bits unchanged
 
 ## Order of work
 
-Phase 0 first; nothing else starts until the vector exists. Then phase 1, with phase 3 and phase 5's
+Phase 0 first; the vector exists (#3474), and the proxies and the benchmark column come next. Then phase 1, with phase 3 and phase 5's
 registry snapshot beside it. Phase 2 after 1. Phase 4 after 3. Phase 6 is decided, not scheduled.
 Each phase lands as pull requests of one validated slice with a Changeset, as the earlier
 performance rounds did.
