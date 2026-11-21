@@ -19,24 +19,23 @@ import CameraShakePacket, {
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
-import { TextPacketType } from '@jsprismarine/protocol';
+import type { MessageKind } from '../../network/presenter/SessionPresenter';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
- * How the client renders each of the four message kinds a command sends.
+ * How the client shows each of the four message kinds a command sends.
  *
  * `raw` is the `rawtext` object `/tellraw` takes, which the client parses
- * itself - `TextObject` is the type that tells it to. `emote` has no type of
- * its own on Bedrock, so `/me` goes out as plain text, which is what the
- * client shows for it anyway.
+ * itself. `emote` has no kind of its own, so `/me` goes out as plain text,
+ * which is what the client shows for it anyway.
  */
-const MESSAGE_TYPES: Readonly<Record<'chat' | 'whisper' | 'emote' | 'raw', TextPacketType>> = {
-    chat: TextPacketType.Chat,
-    whisper: TextPacketType.Whisper,
-    emote: TextPacketType.Raw,
-    raw: TextPacketType.TextObject
+const MESSAGE_KINDS: Readonly<Record<'chat' | 'whisper' | 'emote' | 'raw', MessageKind>> = {
+    chat: 'chat',
+    whisper: 'whisper',
+    emote: 'raw',
+    raw: 'rawText'
 };
 
 /**
@@ -202,7 +201,7 @@ export const serverSideCommandHost = (
             // what the game sent; whispers remain private to their recipients.
             if (kind !== 'whisper') server.getLogger().info(text);
             for (const session of sessionsOf(server, targets)) {
-                carryOut(session.sendMessage({ message: text, type: MESSAGE_TYPES[kind] }), undefined);
+                carryOut(session.sendMessage({ message: text, kind: MESSAGE_KINDS[kind] }), undefined);
             }
         },
 

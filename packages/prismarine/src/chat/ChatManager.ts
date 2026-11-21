@@ -1,16 +1,17 @@
-import { CHAT_TEXT_TYPE, ChatType } from './Chat';
+import { CHAT_MESSAGE_KIND, ChatType } from './Chat';
 import type { Chat } from './Chat';
 import type { CommandExecutor } from '../command/CommandExecutor';
 import ChatEvent from '../events/chat/ChatEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
 import type { Subject } from '../identity/Subject';
+import type { MessageKind } from '../network/presenter/SessionPresenter';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
 
-/** One chat line as a player's client receives it: the fields of a `Text` packet. */
+/** One chat line as a player's client receives it. */
 export interface ChatDelivery {
     readonly message: string;
-    readonly type: (typeof CHAT_TEXT_TYPE)[ChatType];
+    readonly kind: MessageKind;
     readonly parameters: string[];
     readonly needsTranslation: boolean;
     /** The author's name, for a player's own chat only. */
@@ -230,7 +231,7 @@ export class ChatManager {
 
         await recipient.receive({
             message: chat.getMessage(),
-            type: CHAT_TEXT_TYPE[chat.getType()],
+            kind: CHAT_MESSAGE_KIND[chat.getType()],
             parameters: chat.getParameters(),
             needsTranslation: chat.isNeedsTranslation(),
             ...author

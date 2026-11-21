@@ -33,7 +33,6 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { isRespawnBlock, respawnBlockWorksIn } from '../world/RespawnPoint';
-import { TextPacketType } from '@jsprismarine/protocol';
 import { fillContainerLoot } from '../inventory/containerLoot';
 import { openContainerContents, restorePlacedContents } from '../inventory/containerStore';
 import type { ContentPosition } from '../content/world/adapter';
@@ -515,7 +514,7 @@ const claimRespawnBlock = (interaction: BlockInteraction, block: HookBlock): boo
     if (!moved) return true;
 
     void player
-        .sendMessage({ message: 'tile.bed.respawnSet', type: TextPacketType.Translate, needsTranslation: true })
+        .sendMessage({ message: 'tile.bed.respawnSet', kind: 'translation', needsTranslation: true })
         .catch((error: unknown) => player.getServer().getLogger().error(error));
 
     return true;

@@ -284,7 +284,7 @@ const scene = (english: ReadonlyMap<string, string> = new Map()) => {
             addFood: () => {},
             sendMessage: async (delivery) => {
                 if (typeof delivery !== 'string')
-                    announced.push({ key: delivery.message, parameters: delivery.parameters ?? [] });
+                    announced.push({ key: delivery.message, parameters: [...(delivery.parameters ?? [])] });
             }
         },
         {

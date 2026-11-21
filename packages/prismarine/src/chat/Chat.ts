@@ -1,8 +1,9 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
-import { TextPacketType } from '@jsprismarine/protocol';
+import type { MessageKind } from '../network/presenter/SessionPresenter';
 
 /**
- * How a chat is shown. The values are the `TextPacketType` numbers the client reads.
+ * How a chat is shown. The values are the Bedrock `TextPacketType` numbers each kind went out as
+ * when the enum was written, and stay so code that stored or compared them keeps working.
  *
  * `RAW` is a line the server has already formatted. `CHAT` is a player's own message: the
  * client draws `<name>` in front of it from the author the packet names, and offers to mute
@@ -16,15 +17,13 @@ export enum ChatType {
     ANNOUNCEMENT = 8
 }
 
-/**
- * The text packet type that carries each kind of chat to the client.
- */
-export const CHAT_TEXT_TYPE: Record<ChatType, TextPacketType> = {
-    [ChatType.RAW]: TextPacketType.Raw,
-    [ChatType.CHAT]: TextPacketType.Chat,
-    [ChatType.TRANSLATION]: TextPacketType.Translate,
-    [ChatType.SYSTEM]: TextPacketType.SystemMessage,
-    [ChatType.ANNOUNCEMENT]: TextPacketType.Announcement
+/** The message kind each kind of chat is shown as. */
+export const CHAT_MESSAGE_KIND: Readonly<Record<ChatType, MessageKind>> = {
+    [ChatType.RAW]: 'raw',
+    [ChatType.CHAT]: 'chat',
+    [ChatType.TRANSLATION]: 'translation',
+    [ChatType.SYSTEM]: 'system',
+    [ChatType.ANNOUNCEMENT]: 'announcement'
 };
 
 /**

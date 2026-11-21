@@ -1,11 +1,26 @@
 import type { Gametype } from '@jsprismarine/minecraft';
-import { SetTimePacket } from '@jsprismarine/protocol';
+import { SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 
 import type ClientConnection from '../ClientConnection';
-import type { SessionPresenter } from './SessionPresenter';
+import type { MessageKind, SessionPresenter, ShownMessage } from './SessionPresenter';
+
+/**
+ * The `Text` type that shows each kind of message. `rawText` is `TextObject`, the one type whose
+ * message the client parses as a JSON text object.
+ */
+const TEXT_TYPE: Readonly<Record<MessageKind, TextPacketType>> = {
+    raw: TextPacketType.Raw,
+    chat: TextPacketType.Chat,
+    translation: TextPacketType.Translate,
+    system: TextPacketType.SystemMessage,
+    announcement: TextPacketType.Announcement,
+    whisper: TextPacketType.Whisper,
+    rawText: TextPacketType.TextObject
+};
 
 /** The part of a connection a presenter sends through. */
 export type PresenterConnection = Pick<ClientConnection, 'sendDataPacket'>;
@@ -49,5 +64,32 @@ export class BedrockPresenter implements SessionPresenter {
         pk.containerType = clientContainerType;
         pk.serverInitiatedClose = false;
         await this.connection.sendDataPacket(pk);
+    }
+
+    /**
+     * Sends `Text`, with `Filtered Message` empty: it is the text after chat filtering, which a
+     * dedicated server leaves empty for its own messages. Repeating the message there doubled
+     * the payload.
+     */
+    public async sendMessage({
+        message,
+        kind,
+        parameters,
+        needsTranslation,
+        sourceName,
+        xuid
+    }: ShownMessage): Promise<void> {
+        await this.connection.sendDataPacket(
+            new TextPacket({
+                type: TEXT_TYPE[kind],
+                needsTranslation,
+                sourceName,
+                message,
+                parameters: [...parameters],
+                xuid,
+                platformChatId: '',
+                filtered: ''
+            })
+        );
     }
 }

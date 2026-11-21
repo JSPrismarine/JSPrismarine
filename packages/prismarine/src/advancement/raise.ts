@@ -17,17 +17,17 @@
 import type { TriggerEvents, TriggerName } from '@jsprismarine/advancements';
 
 import type Server from '../Server';
-import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
 import { isRecord } from '../utils/isRecord';
 import type { KeyedPlayerHolder } from '../keyedPlayer';
 import type { JavaEnglish } from './javaEnglish';
+import type { MessageKind } from '../network/presenter/SessionPresenter';
 
 /** A player who hears an announcement: its session. */
 interface AnnouncementRecipient {
     sendMessage(delivery: {
         message: string;
-        type: TextPacketType;
+        kind: MessageKind;
         parameters: string[];
         needsTranslation: boolean;
     }): Promise<void>;
@@ -95,7 +95,7 @@ const announce = async (player: RaisingPlayer, server: Server, id: string): Prom
             .map((recipient) =>
                 recipient.sendMessage({
                     message: 'chat.type.achievement',
-                    type: TextPacketType.Translate,
+                    kind: 'translation',
                     parameters: [player.getName(), name],
                     needsTranslation: true
                 })

@@ -6,6 +6,7 @@ import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import PlayerSession from './PlayerSession';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -18,6 +19,7 @@ const sessionWithRecorder = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
+        presenter: new BedrockPresenter(connection),
         ...sessionPlayerFields(stub<SessionPlayer>())
     });
 
@@ -33,7 +35,7 @@ describe('network', () => {
                 // the payload and told the client the text had been through a filter.
                 const { session, sent } = sessionWithRecorder();
 
-                await session.sendMessage({ message: 'hello', sourceName: 'Server', type: TextPacketType.Chat });
+                await session.sendMessage({ message: 'hello', sourceName: 'Server', kind: 'chat' });
 
                 expect(sent).toHaveLength(1);
                 const [packet] = sent;

@@ -21,7 +21,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Done, [#3418](https://github.com/JSPrismarine/JSPrismarine/pull/3418). |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | Interaction, session settings and block interfaces done ([#3421](https://github.com/JSPrismarine/JSPrismarine/pull/3421), [#3429](https://github.com/JSPrismarine/JSPrismarine/pull/3429), [#3431](https://github.com/JSPrismarine/JSPrismarine/pull/3431)). Movement and inventory wait for their slices. |
-| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), in review. |
+| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, in review. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Not started |
@@ -172,6 +172,11 @@ close reply and the default game mode, beside time and game mode, so `src/input/
 packet. Two intent handlers still put Bedrock codes into world occurrences: the animation's
 action code and the eating event's `FEED`. The occurrences take edition-neutral names with the
 replicator encoders in PR 6, since replication is what reads them.
+
+PR 5b moves chat and system messages. A message names its kind in the contract's terms (`raw`,
+`chat`, `translation`, `system`, `announcement`, `whisper`, or `rawText` for a JSON text object),
+and the Bedrock presenter picks the `Text` type for it, so chat, the command host and the
+advancement announcement no longer name a Bedrock type.
 
 The order the first milestone needs is chunks, position and look, chat and system messages, time,
 game mode and abilities, the player list, and keep-alive. Entities, windows, inventories, block

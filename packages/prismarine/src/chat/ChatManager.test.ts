@@ -1,5 +1,4 @@
 import { KernelEventBus } from '@jsprismarine/kernel';
-import { TextPacketType } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import type { CommandExecutor } from '../command/CommandExecutor';
@@ -59,7 +58,7 @@ describe('ChatManager', () => {
 
         const line = {
             message: '%multiplayer.player.joined',
-            type: TextPacketType.Translate,
+            kind: 'translation',
             parameters: ['Steve'],
             needsTranslation: true
         };
@@ -79,7 +78,7 @@ describe('ChatManager', () => {
         expect(alex.lines).toEqual([
             {
                 message: 'hi',
-                type: TextPacketType.Chat,
+                kind: 'chat',
                 parameters: [],
                 needsTranslation: false,
                 sourceName: 'Steve',
@@ -87,7 +86,7 @@ describe('ChatManager', () => {
             },
             {
                 message: 'from the consoleSender',
-                type: TextPacketType.Chat,
+                kind: 'chat',
                 parameters: [],
                 needsTranslation: false,
                 sourceName: 'CONSOLE',

@@ -137,18 +137,16 @@ import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActor
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from './presenter/BedrockPresenter';
-import type { SessionPresenter } from './presenter/SessionPresenter';
+import type { SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
-import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import ChunkSender from './ChunkSender';
 import ChunkBatchCache from './ChunkBatchCache';
 import { ClientBlobCache } from './ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
-import { TextPacketType } from '@jsprismarine/protocol';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
@@ -371,6 +369,9 @@ const insideView = (view: PublishedView | null, x: number, z: number): boolean =
 
 /** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
 export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
+
+/** A message for {@link PlayerSession.sendMessage}: the text, and what to show it as where it is not a raw line. */
+export type SessionMessage = Pick<ShownMessage, 'message'> & Partial<Omit<ShownMessage, 'message'>>;
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -3099,53 +3100,22 @@ export default class PlayerSession {
      * Send a chat message to the client.
      *
      * A bare string is a raw line, which is how a command answers the player that ran it.
-     * @param {string | object} delivery - The message, or the options for it.
-     * @param {string} delivery.message - The message to send.
-     * @param {string} [delivery.sourceName=''] - The source of the message.
-     * @param {string} [delivery.xuid=''] - The XUID of the player.
-     * @param {string} [delivery.platformChatId=''] - The platform chat ID.
-     * @param {string[]} [delivery.parameters=[]] - The parameters for the message.
-     * @param {boolean} [delivery.needsTranslation=false] - Whether the message needs translation.
-     * @param {TextPacketType} [delivery.type=TextPacketType.Raw] - The type of the message.
-     * @returns {Promise<void>} A promise that resolves when the message is sent.
+     * @param delivery - The message, or the message with what to show it as. The kind defaults
+     *   to `raw`, the parameters to none, and the author's name and XUID to empty.
+     * @returns A promise that resolves when the message is sent.
      */
-    public async sendMessage(
-        delivery:
-            | string
-            | {
-                  message: string;
-                  sourceName?: string;
-                  xuid?: string;
-                  platformChatId?: string;
-                  parameters?: string[];
-                  needsTranslation?: boolean;
-                  type?: TextPacketType;
-              }
-    ): Promise<void> {
+    public async sendMessage(delivery: string | SessionMessage): Promise<void> {
         const {
             message,
-            sourceName = '',
-            xuid = '',
-            platformChatId = '',
+            kind = 'raw',
             parameters = [],
             needsTranslation = false,
-            type = TextPacketType.Raw
+            sourceName = '',
+            xuid = ''
         } = typeof delivery === 'string' ? { message: delivery } : delivery;
         if (!message) throw new PrismarineNetworkErrors.EmptyMessage();
 
-        // `Filtered Message` is the text after chat filtering. A dedicated server leaves it
-        // empty for its own messages; repeating the message there doubled the payload.
-        const pk = new TextPacket({
-            type,
-            needsTranslation,
-            sourceName,
-            message,
-            parameters,
-            xuid,
-            platformChatId,
-            filtered: ''
-        });
-        await this.connection.sendDataPacket(pk);
+        await this.presenter.sendMessage({ message, kind, parameters, needsTranslation, sourceName, xuid });
     }
 
     /**
@@ -4043,7 +4013,7 @@ export default class PlayerSession {
         this.released(
             this.sendMessage({
                 message: 'tile.bed.notValid',
-                type: TextPacketType.Translate,
+                kind: 'translation',
                 needsTranslation: true
             })
         );

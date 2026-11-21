@@ -14,6 +14,29 @@
  */
 import type { Gametype } from '@jsprismarine/minecraft';
 
+/**
+ * How a message is shown.
+ *
+ * `raw` is a line the server already formatted. `chat` is a player's own message, which the client
+ * draws with its author. `translation` is a key the client looks up. `rawText` is a JSON text object
+ * the client renders itself, the one `/tellraw` takes.
+ */
+export type MessageKind = 'raw' | 'chat' | 'translation' | 'system' | 'announcement' | 'whisper' | 'rawText';
+
+/** One message for a session's client. */
+export interface ShownMessage {
+    /** The text, or the translation key when `needsTranslation` is set. */
+    readonly message: string;
+    readonly kind: MessageKind;
+    /** What the client substitutes into a translated message. */
+    readonly parameters: readonly string[];
+    readonly needsTranslation: boolean;
+    /** The author's name, for a player's own chat, and empty otherwise. */
+    readonly sourceName: string;
+    /** The author's XUID, for a player's own chat, and empty without one. */
+    readonly xuid: string;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -48,4 +71,11 @@ export interface SessionPresenter {
      *   edition that echoes it puts in the answer.
      */
     containerClosed(window: number, clientContainerType: number): Promise<void>;
+
+    /**
+     * Shows the client a chat line or a system message.
+     *
+     * @param message - The message, which the session has checked is not empty.
+     */
+    sendMessage(message: ShownMessage): Promise<void>;
 }
