@@ -247,6 +247,13 @@ export interface WorldActions {
     hasSturdyTopFace?(block: HookBlock): boolean;
     /** Whether this block fills its cell with a full cube collision shape. */
     isFullCube?(block: HookBlock): boolean;
+    /**
+     * Whether two neighboring blocks' collision shapes together close the face between them, Java's
+     * `Shapes.mergedFaceOccludes`, which decides where a fluid may pass. `face` is the side of
+     * `block` that `neighbor` is on. A host without it lets a fluid pass any pair of blocks
+     * neither of which is a full cube.
+     */
+    faceOccludes?(block: HookBlock, neighbor: HookBlock, face: BlockFace): boolean;
     /** Whether infinite sources form for a fluid kind; defaults to vanilla game-rule values. */
     fluidSourceConversion?(kind: 'water' | 'lava'): boolean;
     /** Drops an item stack as an entity at a position. */

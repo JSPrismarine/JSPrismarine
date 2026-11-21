@@ -13,7 +13,8 @@ import {
     collisionShapeOf,
     FULL_CUBE_SHAPE,
     isFullCubeShape,
-    isWashedAway
+    isWashedAway,
+    mergedFaceOccludes
 } from './geometry';
 import { BlockPalette } from './state';
 import { resolveBlocks } from './types';
@@ -168,5 +169,33 @@ describe('isFullCubeShape', () => {
                 [0.5, 0, 0, 1, 0.5, 1]
             ])
         ).toBe(false);
+    });
+});
+
+describe('mergedFaceOccludes', () => {
+    const BOTTOM_SLAB = [[0, 0, 0, 1, 0.5, 1]] as const;
+    const TOP_SLAB = [[0, 0.5, 0, 1, 1, 1]] as const;
+    const WEST_HALF = [[0, 0, 0, 0.5, 1, 1]] as const;
+    const EAST_HALF = [[0.5, 0, 0, 1, 1, 1]] as const;
+
+    it("closes a bottom slab's floor, and leaves its open top and sides open", () => {
+        expect(mergedFaceOccludes(BOTTOM_SLAB, [], 'down')).toBe(true);
+        expect(mergedFaceOccludes(BOTTOM_SLAB, [], 'up')).toBe(false);
+        expect(mergedFaceOccludes(BOTTOM_SLAB, [], 'east')).toBe(false);
+    });
+
+    it("counts the neighbor's boxes on the shared face too", () => {
+        // A top slab below fills the face above it; a bottom slab below does not reach it.
+        expect(mergedFaceOccludes([], TOP_SLAB, 'down')).toBe(true);
+        expect(mergedFaceOccludes([], BOTTOM_SLAB, 'down')).toBe(false);
+        expect(mergedFaceOccludes([], BOTTOM_SLAB, 'up')).toBe(true);
+        // Two halves that together cover the face between two cells.
+        expect(mergedFaceOccludes(WEST_HALF, [], 'west')).toBe(true);
+        expect(mergedFaceOccludes(WEST_HALF, EAST_HALF, 'east')).toBe(false);
+        expect(mergedFaceOccludes(EAST_HALF, WEST_HALF, 'east')).toBe(true);
+    });
+
+    it('leaves the face between two empty shapes open', () => {
+        expect(mergedFaceOccludes([], [], 'north')).toBe(false);
     });
 });

@@ -17,6 +17,7 @@ import type {
 } from '@jsprismarine/block-behaviors';
 import { DEFAULT_LIGHT_DAMPENING, blockProperties, flammable } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
+import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
 import {
     AIR,
     hasSturdyTopFace as engineHasSturdyTopFace,
@@ -238,6 +239,7 @@ const blockActionsOf = (
             liquidReactionOf(content(), block, adapter.level.fluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT),
         hasSturdyTopFace: (block) => engineHasSturdyTopFace(engineWorld.getBlock(block.position)),
         isFullCube: (block) => engineIsFullCube(engineWorld.getBlock(block.position)),
+        faceOccludes: (block, neighbor, face) => faceOccludesIn(content().blocks.types, block, neighbor, face),
         fluidSourceConversion: (kind) => {
             const value = adapter.level.gameRule(kind === 'water' ? WATER_SOURCE_CONVERSION : LAVA_SOURCE_CONVERSION);
             return typeof value === 'boolean' ? value : kind === 'water';

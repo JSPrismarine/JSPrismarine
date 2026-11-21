@@ -231,6 +231,22 @@ describe('water held by a waterlogged block', () => {
         expect(world.identifierAt(source)).toBe(SLAB);
     });
 
+    it("keeps its water from the air below when the host closes the slab's floor", () => {
+        const world = Object.assign(slabWorld(), {
+            faceOccludes: (block: { identifier: string }, _neighbor: unknown, face: string) =>
+                block.identifier === SLAB && face === 'down'
+        });
+        const below = { x: 0, y: 1, z: 0 };
+        world.set(below, 'minecraft:air');
+        const raised = { x: 0, y: 2, z: 0 };
+        world.set(raised, SLAB);
+        world.setLiquid(raised, 'minecraft:water');
+
+        spreadLiquid(world, { ...world.block(raised), identifier: 'minecraft:water', states: {} });
+
+        expect(world.identifierAt(below)).toBe('minecraft:air');
+    });
+
     it('is not entered or replaced by flowing water beside it', () => {
         const world = slabWorld();
         world.set(source, 'minecraft:water');
