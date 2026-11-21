@@ -166,25 +166,45 @@ describe('Server', () => {
         expect(errors).toEqual([broken]);
     });
 
-    it('reports each startup step to an attached console before it says it is running', async () => {
+    // `packages/console/src/testing/stubServer.test-utils.ts` replays this order to test the
+    // console without a server. Change the stub's `STARTUP` script when this test changes.
+    it('greets, steps through startup and reports running, answering a command list request at any point', async () => {
         const server = new Server({ logger: new Logger(), config: debugConfig('test-world-boot') });
         const [serverEnd, consoleEnd] = memoryLinkPair<ConsoleMessage, ServerMessage>();
         const received: ServerMessage[] = [];
-        consoleEnd.onMessage((message) => received.push(message));
+        const answers: (readonly string[])[] = [];
+        consoleEnd.onMessage((message) => {
+            received.push(message);
+            // The console asks for the command list as soon as the server says hello.
+            if (message.type === 'hello') consoleEnd.send({ type: 'commands', v: 1, id: 'early' });
+            if (message.type === 'commands.result') answers.push(message.commands.map(({ name }) => name));
+        });
         server.attachRemoteConsole(new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd)));
 
         await server.bootstrap('127.0.0.1', 0);
+        consoleEnd.send({ type: 'commands', v: 1, id: 'late' });
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
         await server.shutdown({ stayAlive: true });
 
+        const order = received
+            .filter((message) => message.type !== 'log' && message.type !== 'status')
+            .map((message) => (message.type === 'lifecycle' ? `lifecycle ${message.state}` : message.type));
+        const running = order.indexOf('lifecycle running');
+        expect(order.slice(0, 2)).toEqual(['hello', 'lifecycle starting']);
+        expect(order.slice(2, running).every((type) => type === 'boot' || type === 'commands.result')).toBe(true);
+        expect(order.slice(running + 1, running + 2)).toEqual(['commands.result']);
+        // Every step that begins finishes, and the next one starts only after.
         const steps = received.flatMap((message) => (message.type === 'boot' ? [message] : []));
-        const running = received.findIndex((message) => message.type === 'lifecycle' && message.state === 'running');
         expect(steps.length).toBeGreaterThan(0);
-        // Every step that begins finishes, the next one starts only after, and all before running.
         for (let index = 0; index < steps.length; index += 2) {
             expect(steps[index]).toMatchObject({ state: 'starting' });
             expect(steps[index + 1]).toMatchObject({ step: steps[index]?.step, state: 'started' });
         }
-        expect(running).toBeGreaterThan(received.lastIndexOf(steps.at(-1)!));
+        // Both requests get an answer. Over a real process channel the early one can arrive
+        // long after it was sent, since startup keeps the event loop busy, so the console must
+        // not take its absence to mean the server has no commands.
+        expect(answers).toHaveLength(2);
+        expect(answers[1]).toContain('stop');
     });
 
     it('starts and stops without crashing, starting and stopping an embedder stats provider', async () => {
