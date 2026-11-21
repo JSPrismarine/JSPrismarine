@@ -48,6 +48,7 @@ import {
     dynamicPropertiesToNbt,
     withPropertyWrites
 } from '../world/dynamicProperties';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { blockContainerAt } from '../command/host/containers';
 import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
@@ -394,6 +395,13 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const world = worldOf(dimension);
             if (world === undefined || world.getLoadedChunk(x >> 4, z >> 4) === null) return undefined;
             return world.loadedLiquidAt(x, y, z) !== undefined;
+        },
+        setWaterlogged: (dimension, { x, y, z }, waterlogged) => {
+            // A still water source, as BDS puts into the liquid layer; air takes it out.
+            const runtimeId = waterlogged
+                ? BlockRuntimeIds.tryGetByState('minecraft:water', { liquid_depth: 0 })
+                : BlockRuntimeIds.getByName('minecraft:air');
+            if (runtimeId !== null) worldOf(dimension)?.setLoadedLiquidRuntimeId(x, y, z, runtimeId);
         },
         itemType: (typeId) => {
             const content = server.getContent();

@@ -96,6 +96,7 @@ export type ScriptLevelAccess = Pick<
     | 'catalog'
     | 'blockLight'
     | 'waterlogged'
+    | 'setWaterlogged'
     | 'worldSystem'
 >;
 
@@ -308,6 +309,8 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly blockLight: ScriptWorld['blockLight'];
     /** Whether a block holds water in its liquid layer, when the server keeps one. */
     public readonly waterlogged: ScriptWorld['waterlogged'];
+    /** Puts water into a block's liquid layer or takes it out, when the server keeps one. */
+    public readonly setWaterlogged: ScriptWorld['setWaterlogged'];
     /** The level's clock, spawn, difficulty, game rules and music. */
     public readonly worldSystem: ScriptWorld['worldSystem'];
     /**
@@ -357,6 +360,7 @@ export class LevelScriptWorld implements ScriptWorld {
         this.catalog = this.access.catalog;
         this.blockLight = this.access.blockLight;
         this.waterlogged = this.access.waterlogged;
+        this.setWaterlogged = this.access.setWaterlogged;
         this.worldSystem = this.access.worldSystem;
         this.http = sources.http;
         this.entitySystems = sources.entitySystems;
