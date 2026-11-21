@@ -125,9 +125,8 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
 
         switch (action) {
             case PlayerActionType.Respawn: {
-                // The respawn search reads chunks that may not be loaded, so the respawn is a
-                // request that the input step with the search's answer applies.
-                session.requestRespawn();
+                const pressed = services.intents.handle({ kind: 'pressRespawn' }, context);
+                if (pressed instanceof Promise) step.output(pressed);
                 return;
             }
 
