@@ -740,6 +740,11 @@
                 "import": "./dist/enchantment/anvil.js",
                 "module": "./dist/enchantment/anvil.js"
             },
+            "./enchantment/enchantingTable": {
+                "types": "./dist/enchantment/enchantingTable.d.ts",
+                "import": "./dist/enchantment/enchantingTable.js",
+                "module": "./dist/enchantment/enchantingTable.js"
+            },
             "./world/physics/BlockRules": {
                 "types": "./dist/world/physics/BlockRules.d.ts",
                 "import": "./dist/world/physics/BlockRules.js",
@@ -2388,6 +2393,10 @@
         "./enchantment/anvil": {
             "jsprismarine:dist": "./dist/enchantment/anvil.js",
             "default": "./src/enchantment/anvil.ts"
+        },
+        "./enchantment/enchantingTable": {
+            "jsprismarine:dist": "./dist/enchantment/enchantingTable.js",
+            "default": "./src/enchantment/enchantingTable.ts"
         },
         "./world/physics/BlockRules": {
             "jsprismarine:dist": "./dist/world/physics/BlockRules.js",

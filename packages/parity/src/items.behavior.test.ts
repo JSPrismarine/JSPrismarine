@@ -30,6 +30,7 @@ import { holderSetIncludes } from '@jsprismarine/prismarine/item/holderSets';
 import { blocksTable, itemsTable } from '@jsprismarine/mapping/tables';
 import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
 import { anvilPreview } from '@jsprismarine/prismarine/enchantment/anvil';
+import { enchantingRows } from '@jsprismarine/prismarine/enchantment/enchantingTable';
 import { Item } from '@jsprismarine/prismarine/item/Item';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
@@ -259,6 +260,22 @@ const javaItemsIn = (set: unknown): readonly string[] => {
 };
 
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
+    {
+        name: 'enchanting-table-offers',
+        aspects: () => ['minecraft:enchantable'],
+        java: 'An enchanting table with fifteen bookshelves offers an enchantable item three priced rows, each drawing at least one enchantment.',
+        reference: 'Java EnchantmentMenu.slotsChanged and EnchantmentHelper.selectEnchantment',
+        subjects: () => withComponent('minecraft:enchantable'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const rows = enchantingRows(content.enchantments, new Item({ name: subject.bedrock, content }), 12_345, 15);
+            const empty = rows.findIndex((row) => row.cost <= 0 || row.picks.length === 0);
+            return empty === -1
+                ? undefined
+                : `row ${empty + 1} offers ${rows[empty]?.cost ?? 0} levels and ${rows[empty]?.picks.length ?? 0} enchantments`;
+        }
+    },
     {
         name: 'anvil-repairs',
         aspects: () => ['minecraft:repairable'],
