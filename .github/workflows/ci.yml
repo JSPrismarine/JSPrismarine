@@ -1,0 +1,1553 @@
+name: CI
+
+# One workflow for everything a pull request push, a push to master or a merge group has to pass:
+# commit messages, lint, docs validation, typecheck, the Vitest shards, the real-data shards, the
+# Bedrock Dedicated Server suites, the parity dashboard and the client e2e scenarios. One planning
+# job does every lookup and check that needs no runner of its own, so the jobs that do start
+# right after it, and one `✅ CI` job at the end is the check branch rules require.
+#
+# Tiers by event. A pull request runs lint, typecheck and the suites and scenarios its diff reaches,
+# on the newest protocol over RakNet. A push to master runs what the merged pull request did not
+# already pass on the same tree, with `--changed` against the last master commit whose run passed,
+# and plays every pin. A merge group runs everything in full. The nightly run tests every Vitest
+# suite, and a manual run tests everything and plays the scenarios it names.
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+    merge_group:
+    schedule:
+        - cron: '41 3 * * *'
+    workflow_dispatch:
+        inputs:
+            scenarios:
+                description: Space-separated client e2e scenario names; empty runs them all
+                default: ''
+            latest_only:
+                description: Play only the latest supported protocol
+                type: boolean
+                default: false
+
+env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
+    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+# A newer pull request push supersedes the old run. A push to master always finishes: its caches
+# are the ones pull requests restore, its artifacts are what pull requests compare with, and the
+# cinnabar build takes about an hour cold. A merge group's ref is its own.
+concurrency:
+    group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    # Everything that decides what the other jobs do, and every check that needs no runner of its
+    # own: commit messages, lint, docs validation and typecheck. Those four never fail this job, so
+    # the tests still run and report; `✅ CI` fails on their outcomes.
+    #
+    # A change that touches no package code or dependencies (docs, the docs site, other workflows)
+    # starts no test job, and a skipped job passes `✅ CI`. A push to master also skips the four
+    # checks when the merged pull request already passed `✅ CI` on the same tree.
+    #
+    # `since` is the commit the Vitest jobs pass to `--changed`, so they run only the suites the
+    # changes since then reach. A pull request compares with its base. A push compares with the
+    # last master commit whose run passed, which covers every commit since, a failed one included.
+    # When there is none, in a merge group, and on the nightly and manual runs, `since` is empty
+    # and every suite runs.
+    #
+    # The release pull request runs the four checks alone. Changesets rewrites it after every push
+    # to master, and it changes only versions, changelogs and consumed changesets, on top of code
+    # master already tested. Its merge is a push to master, which runs everything.
+    plan:
+        name: 🧭 Plan
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        permissions:
+            # Finding the merged pull request's run, downloading recorded times and listing the
+            # cached client builds.
+            actions: read
+            contents: read
+            pull-requests: read
+        outputs:
+            code: ${{ steps.filter.outputs.code }}
+            tests: ${{ steps.filter.outputs.tests }}
+            # The Windows and macOS generation host jobs. A pull request runs them only when it
+            # changes the chunk generation package they test; every other run does.
+            host: ${{ steps.filter.outputs.host }}
+            passed: ${{ steps.reuse.outputs.passed || '[]' }}
+            run-id: ${{ steps.reuse.outputs.run-id }}
+            since: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || steps.since.outputs.sha || '' }}
+            # The four checks, `success`, `failure` or `skipped`, for `✅ CI`.
+            commitlint: ${{ steps.commitlint.outcome }}
+            lint: ${{ steps.lint.outcome }}
+            docs: ${{ steps.docs.outcome }}
+            typecheck: ${{ steps.typecheck.outcome }}
+            # The Vitest shards: the shard numbers of each suite and the files each shard runs.
+            unit: ${{ steps.size.outputs.unit || '[1,2,3,4]' }}
+            unit_files: ${{ steps.size.outputs.unit_files }}
+            real_data: ${{ steps.size.outputs.real_data || '[1,2,3,4]' }}
+            real_data_files: ${{ steps.size.outputs.real_data_files }}
+            bedrock_server: ${{ steps.size.outputs.bedrock_server || 'true' }}
+            # The cache entry with the fetched and generated real data, prepared here on a miss.
+            real_data_key: ${{ steps.real_data_key.outputs.key }}
+            # The client e2e jobs. A push leaves out the pins the merged pull request passed.
+            e2e: ${{ steps.e2e_run.outputs.e2e_run == 'true' }}
+            pins: ${{ steps.matrix.outputs.pins }}
+            e2e_shards: ${{ steps.matrix.outputs.shards }}
+            shard-total: ${{ steps.matrix.outputs.shard-total }}
+            build: ${{ steps.builds.outputs.build }}
+            latest: ${{ steps.matrix.outputs.latest }}
+            pinned-keys: ${{ steps.matrix.outputs.pinned-keys }}
+            scenarios: ${{ steps.matrix.outputs.scenarios }}
+            e2e_reused: ${{ steps.matrix.outputs.reused == 'true' }}
+            reused-any: ${{ steps.matrix.outputs.reused-any == 'true' }}
+            suite-times: ${{ steps.times.outputs.suite-times }}
+        steps:
+            # `--changed` diffs against the merge base, so the history has to reach it.
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+                  # No old file contents, which are nearly all of the repository's 2 GB.
+                  # Git fetches a blob a command needs on demand.
+                  filter: blob:none
+
+            # A failed lookup reuses nothing, so every job runs.
+            - name: Find the jobs the merged pull request passed
+              id: reuse
+              if: ${{ github.event_name == 'push' }}
+              continue-on-error: true
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: node .github/scripts/pr-job-results.mjs
+
+            # The newest successful push run, if master's history still leads from it to this
+            # commit. A failed lookup leaves `sha` empty, and every suite runs.
+            - name: Find the last master commit whose tests passed
+              id: since
+              if: ${{ github.event_name == 'push' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  sha="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=master&event=push&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // empty')"
+                  if [ -z "$sha" ]; then echo 'No passing run on master; running every suite.'; exit 0; fi
+                  status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${sha}...${GITHUB_SHA}" --jq .status)"
+                  if [ "$status" != ahead ] && [ "$status" != identical ]; then
+                      echo "${sha} is not an ancestor of ${GITHUB_SHA} (${status}); running every suite."
+                      exit 0
+                  fi
+                  echo "Running the suites the changes since ${sha} reach."
+                  echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+            # Which parts of the repository the changes reach. A merge group, the nightly and a
+            # manual run reach everything, so the filter does not run and the step after it says so.
+            - name: Filter changed paths
+              id: paths
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  predicate-quantifier: some-with-excludes
+                  filters: |
+                      code:
+                          - '.github/workflows/ci.yml'
+                          - '.github/common/**'
+                          - '.github/scripts/pr-job-results.mjs'
+                          - '.test/**'
+                          - 'packages/**'
+                          - 'tools/client-e2e/**'
+                          - 'scripts/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - '.npmrc'
+                          - '.nvmrc'
+                          - 'tsconfig*.json'
+                          - 'turbo.json'
+                          - 'vite.config.ts'
+                          - 'vitest.config.ts'
+                          # The parity conformance suites check these pages against the code.
+                          - 'docs/data-driven/parity.md'
+                          - 'docs/plans/data-driven-vanilla.md'
+                          - 'docs/research/edition-behavior-differences.md'
+                      host:
+                          - '.github/workflows/ci.yml'
+                          - '.github/common/**'
+                          - 'packages/chunkgen/**'
+                          - 'pnpm-lock.yaml'
+                          - '.nvmrc'
+                      e2e:
+                          - '.github/workflows/ci.yml'
+                          - '.github/common/**'
+                          - '.github/scripts/pr-job-results.mjs'
+                          - 'tools/client-e2e/**'
+                          - 'packages/**'
+                          - 'addons/**'
+                          - 'scripts/check-client-e2e-coverage.mts'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - '.npmrc'
+                          - '.nvmrc'
+                          - '.c8rc.json'
+                          - 'tsconfig*.json'
+                          - 'turbo.json'
+                          - '!**/*.md'
+
+            # The filter's answers, with the events that run everything folded in. `tests` is `code`
+            # without the release pull request, `host` runs the Windows and macOS jobs, and `e2e`
+            # is whether the client e2e scenarios are considered at all; the selection below can
+            # still find none to play.
+            - name: Decide what runs
+              id: filter
+              env:
+                  FULL: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' }}
+                  PLAYS: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' }}
+                  CODE: ${{ steps.paths.outputs.code }}
+                  HOST: ${{ steps.paths.outputs.host }}
+                  E2E: ${{ steps.paths.outputs.e2e }}
+                  RELEASE: ${{ github.head_ref == 'changeset-release/master' }}
+              run: |
+                  code=false; tests=false; host=false; e2e=false
+                  if [ "$FULL" = true ] || [ "$CODE" = true ]; then code=true; fi
+                  if [ "$code" = true ] && [ "$RELEASE" != true ]; then tests=true; fi
+                  if [ "$GITHUB_EVENT_NAME" != pull_request ] || [ "$HOST" = true ]; then host=true; fi
+                  # The scheduled run tests every suite but plays no scenario.
+                  if [ "$PLAYS" = true ] || { [ "$E2E" = true ] && [ "$RELEASE" != true ]; }; then e2e=true; fi
+                  {
+                      echo "code=$code"
+                      echo "tests=$tests"
+                      echo "host=$host"
+                      echo "e2e=$e2e"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "code=$code tests=$tests host=$host e2e=$e2e"
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # The four checks. Each reports its outcome and lets the job go on, so a lint failure
+            # still shows the test results beside it. A push whose merged pull request passed
+            # `✅ CI` on the same tree skips them: this job passes even when a check fails, so
+            # only the gate says the four passed.
+            - name: 📝 Lint commit messages
+              id: commitlint
+              if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && !contains(fromJSON(steps.reuse.outputs.passed || '[]'), '✅ CI') }}
+              continue-on-error: true
+              env:
+                  FROM: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+                  TO: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+              run: |
+                  if [ "$GITHUB_EVENT_NAME" = push ]; then
+                      pnpm exec commitlint --last --verbose
+                  else
+                      pnpm exec commitlint --from "$FROM" --to "$TO" --verbose
+                  fi
+
+            - name: 📃 Lint
+              id: lint
+              if: ${{ !contains(fromJSON(steps.reuse.outputs.passed || '[]'), '✅ CI') }}
+              continue-on-error: true
+              # Every file, not only the ones the pull request changed: `pnpm run lint` checks those.
+              run: pnpm run lint:all
+
+            - name: 📖 Validate docs
+              id: docs
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+              continue-on-error: true
+              run: pnpm run check:docs
+
+            - name: 📃 Typecheck
+              id: typecheck
+              if: ${{ steps.filter.outputs.code == 'true' && !contains(fromJSON(steps.reuse.outputs.passed || '[]'), '✅ CI') }}
+              continue-on-error: true
+              run: pnpm run typecheck
+
+            # The JUnit reports of the newest successful nightly run, which tests every file, or of
+            # the newest successful push when there is none yet.
+            - name: Find the recorded test times
+              if: ${{ steps.filter.outputs.tests == 'true' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  runs="repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=master&status=success&per_page=1"
+                  run="$(gh api "${runs}&event=schedule" --jq '.workflow_runs[0].id // empty')"
+                  if [ -z "$run" ]; then run="$(gh api "${runs}&event=push" --jq '.workflow_runs[0].id // empty')"; fi
+                  if [ -z "$run" ]; then echo 'No recorded times; every file weighs the same.'; exit 0; fi
+                  for suite in unit real-data; do
+                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern "vitest-junit-${suite}-*" \
+                          --dir "$RUNNER_TEMP/durations/${suite}" || echo "No recorded ${suite} times in run ${run}."
+                  done
+
+            # `--filesOnly` reads no test file, so it ignores the tag filters and lists every file
+            # `--changed` selects. That over-counts each suite by the other's files, which can only
+            # add a shard.
+            - name: Plan the files each shard runs
+              id: size
+              if: ${{ steps.filter.outputs.tests == 'true' }}
+              continue-on-error: true
+              env:
+                  BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || steps.since.outputs.sha || '' }}
+              run: |
+                  changed=()
+                  if [ -n "$BASE" ]; then changed=(--changed="$BASE"); fi
+                  # plan <list> <files per shard> <suite>: the shard numbers and each shard's files.
+                  plan() {
+                      local files total
+                      files=$(wc -l < "$1")
+                      total=$(( (files + $2 - 1) / $2 ))
+                      total=$(( total < 1 ? 1 : total > 4 ? 4 : total ))
+                      echo "$3: $files files, $total shards" >&2
+                      echo "${3//-/_}=$(jq -cn --argjson total "$total" '[range(1; $total + 1)]')"
+                      echo "${3//-/_}_files=$(node scripts/vitest-shards.mts --shards "$total" --junit "$RUNNER_TEMP/durations/$3" < "$1")"
+                  }
+                  pnpm exec vitest list --filesOnly "${changed[@]}" > "$RUNNER_TEMP/unit.txt"
+                  mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
+                  pnpm exec vitest list --filesOnly "${changed[@]}" "${files[@]}" > "$RUNNER_TEMP/real-data.txt"
+                  {
+                      plan "$RUNNER_TEMP/unit.txt" 300 unit
+                      plan "$RUNNER_TEMP/real-data.txt" 15 real-data
+                  } >> "$GITHUB_OUTPUT"
+                  # The Bedrock Dedicated Server suite runs when the changes reach it, LevelDB
+                  # included, and on a run of every file.
+                  mapfile -t bds < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
+                  bds_files=$(pnpm exec vitest list --filesOnly "${changed[@]}" "${bds[@]}" | wc -l)
+                  echo "bedrock_server=$([ "$bds_files" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+            # The real data the real-data shards, the Bedrock Dedicated Server suites and the parity
+            # dashboard restore: the fetched sources and the generated Java data, in one cache entry.
+            # The Java goldens are in the key: `dump:java` checks them against the jar, so a change
+            # to them has to run it again. A miss prepares the entry here, before the jobs that read
+            # it start, instead of in a job of its own they would wait for.
+            - name: Resolve the real-data cache key
+              id: real_data_key
+              if: ${{ steps.filter.outputs.tests == 'true' }}
+              run: echo "key=${RUNNER_OS}-jsp-real-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json', 'packages/bedrock-data/utils/fetch/**', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**', 'packages/bedrock-data/src/jsp/java/**') }}" >> "$GITHUB_OUTPUT"
+
+            - name: Look for the prepared data
+              id: prepared
+              if: ${{ steps.filter.outputs.tests == 'true' }}
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ steps.real_data_key.outputs.key }}
+                  lookup-only: true
+
+            # The Java data generator and the property dumper need a JDK of the jar's class file
+            # version. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
+            - name: ☕ Setup JDK
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            # The pinned Java server jar the unit shards also read, keyed on the file that pins it.
+            - name: Cache the Java server jar
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine/java-server
+                  key: ${{ runner.os }}-jsp-java-server-${{ hashFiles('packages/bedrock-data/sources.json') }}
+
+            # A pin change misses the prepared entry; these restore what still matches, so only the
+            # changed source downloads again.
+            - name: Cache the fetched sources
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            # These outputs are derived from the pinned Java source jar and the repository's
+            # generator. Restore them before extraction and datagen:java on repeat runs.
+            - name: Cache generated Java data
+              id: java_data_cache
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            # The fetched-source cache predates the separate generated-data key. On a miss,
+            # discard its old generated outputs so datagen cannot mistake them for this key.
+            - name: Discard uncached Java data
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' && steps.java_data_cache.outputs.cache-hit != 'true' }}
+              run: |
+                  rm -rf node_modules/.cache/jsprismarine/java-reports
+                  rm -rf node_modules/.cache/jsprismarine/java-structures
+                  rm -rf node_modules/.cache/jsprismarine/vanilla-datapack
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-classes
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-out
+
+            - name: ⬇️ Fetch the pinned sources
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            - name: 🏭 Run the Java data generator
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
+
+            # Unpacks the bundler's inner jar, which the worldgen vectors read their registries
+            # out of, and rewrites the two Java goldens from the jar.
+            - name: 🏭 Run the Java property dumper
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:java
+
+            - name: 🔎 Check the Java goldens still match the jar
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              run: git diff --exit-code -- packages/bedrock-data/src/jsp/java
+
+            # Fails when a path is missing rather than saving a cache a suite would skip itself on.
+            - name: 🔑 Check the real-data environment
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              run: node scripts/real-data-env.mts
+
+            - name: Save the prepared data
+              if: ${{ steps.filter.outputs.tests == 'true' && steps.prepared.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ steps.real_data_key.outputs.key }}
+
+            # The client e2e scenarios: which ones the pull request reaches, which pins play them, in
+            # how many shards, with which recorded suite times, and which clients still have to be
+            # built.
+            # Which server functions each scenario ran on the base commit, merged from the maps its
+            # push run kept (see tools/client-e2e/src/scenario-coverage.mts). Only a map with all
+            # four shards of a full run of the pin a pull request plays is used, since a missing
+            # shard would leave its scenarios out of every selection. Without one, `map` stays
+            # empty and the selection below goes by package.
+            #
+            # The base commit's own run is often still going when a pull request is rebased onto
+            # it, or was cancelled while pending behind another push, so the search walks back
+            # master's history to the newest commit that kept a complete map. An ancestor's map
+            # describes the server as it was then: which scenario reached which function, by the
+            # lines the functions had. A commit between the ancestor and the base that changes
+            # anything a running server loads can change both, so the map is used only when
+            # select.mts finds nothing of that kind in the span, the same test that lets a pull
+            # request skip the scenarios.
+            - name: Find the base commit's scenario coverage
+              id: coverage
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.e2e == 'true' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BASE: ${{ github.event.pull_request.base.sha }}
+                  # How far back to look: about two days of merges.
+                  DEPTH: '20'
+              run: |
+                  set -o pipefail
+                  pin="$(node tools/client-e2e/src/pin-matrix.mts --latest-only | jq -r 'map(select(.transport == "raknet"))[0].name')"
+                  for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
+                      for run in $runs; do
+                          dir="$RUNNER_TEMP/scenario-coverage/$run"
+                          gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'scenario-coverage-*' --dir "$dir" 2> /dev/null || continue
+                          complete=true
+                          for shard in 1 2 3 4; do
+                              if [ -z "$(find "$dir" -path "*/scenario-coverage-${pin}-shard-${shard}/scenario-coverage.json" -print -quit)" ]; then
+                                  complete=false
+                              fi
+                          done
+                          if [ "$complete" != true ]; then continue; fi
+                          if [ "$commit" != "$BASE" ]; then
+                              # The files that changed between the ancestor and the base. The compare
+                              # lists at most 300 files, so a larger span is treated as changing everything.
+                              compared="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${commit}...${BASE}" --jq '.files')"
+                              if [ "$(jq 'length' <<< "$compared")" -ge 300 ]; then
+                                  echo "More than 300 files changed between ${commit} and ${BASE}; selecting by package."
+                                  exit 0
+                              fi
+                              span="$RUNNER_TEMP/span-selection"
+                              jq -r '.[] | .filename, (.previous_filename // empty)' <<< "$compared" |
+                                  GITHUB_OUTPUT="$span" node tools/client-e2e/src/select.mts
+                              if [ "$(grep -m1 '^mode=' "$span" | cut -d= -f2)" != none ]; then
+                                  echo "A commit between ${commit} and ${BASE} changed what a running server loads; selecting by package."
+                                  exit 0
+                              fi
+                              echo "No complete map for ${BASE} yet; using the map of run $run for its ancestor ${commit}, which has the same server code."
+                          fi
+                          mapfile -t maps < <(find "$dir" -name scenario-coverage.json)
+                          node tools/client-e2e/src/scenario-coverage-map.mts "$RUNNER_TEMP/scenario-coverage.json" "${maps[@]}"
+                          echo "map=$RUNNER_TEMP/scenario-coverage.json" >> "$GITHUB_OUTPUT"
+                          exit 0
+                      done
+                  done
+                  echo "No complete scenario coverage for ${BASE} or its last ${DEPTH} ancestors; selecting by package."
+
+            # Every scenario boots the whole server, so without a coverage map most changes run them
+            # all. A pull request that changes only files a running server never loads (tests,
+            # benchmarks, packages the server does not depend on) runs none, and one that changes
+            # only scenario files runs those scenarios. With the base commit's map, a change to
+            # server source runs the scenarios that ran the functions it touches, and all of them
+            # when it touches code that runs outside every scenario. A push and a manual run keep
+            # every scenario, and a failure here leaves the outputs empty, which also runs them all.
+            - name: Select the scenarios the pull request affects
+              id: select
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.e2e == 'true' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  NUMBER: ${{ github.event.pull_request.number }}
+                  MAP: ${{ steps.coverage.outputs.map }}
+              run: |
+                  set -o pipefail
+                  map=()
+                  if [ -n "$MAP" ]; then map=(--coverage-map "$MAP"); fi
+                  gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$NUMBER/files" \
+                      --jq '.[] | {filename, previous_filename, patch, changes} | @json' |
+                      node tools/client-e2e/src/select.mts "${map[@]}"
+
+            # A pull request whose selection found no scenario plays none; every other event plays
+            # what `e2e` above allows.
+            - name: Decide whether the scenarios run
+              id: e2e_run
+              env:
+                  E2E: ${{ steps.filter.outputs.e2e }}
+                  MODE: ${{ steps.select.outputs.mode }}
+              run: |
+                  run=false
+                  if [ "$E2E" = true ] && [ "$MODE" != none ]; then run=true; fi
+                  echo "e2e_run=$run" >> "$GITHUB_OUTPUT"
+                  echo "e2e_run=$run"
+
+            # What the jobs below run: the pins, the ones whose client has no cached build, and the
+            # scenarios. They are read here, not in a job of their own, which would wait for a
+            # second runner before the first build or scenario could start.
+            #
+            # One entry per declared transport of a served protocol:
+            # { protocol, transport, commit, name, build, cacheKey }, where `name` labels the run
+            # (v2225, v2225-nethernet), `build` is the commit's cache directory, shared by its runs,
+            # and `cacheKey` names its saved build after `runner.os`. The key carries the build
+            # format, so a harness that needs more from a build replaces the entries saved before it.
+            #
+            # A pull request plays the newest protocol over RakNet; a push and a manual run play
+            # every pin. Each pin is played in four shards, a share of the suites each (see
+            # tools/client-e2e/src/shard.mts), or in one when only some scenarios run. A push leaves
+            # out a pin the merged pull request passed in every shard, and the builds below still
+            # cover every pin, since a pull request's cache entries are invisible to master.
+            - name: Set matrix from the cinnabar pins
+              id: matrix
+              if: ${{ steps.e2e_run.outputs.e2e_run == 'true' }}
+              env:
+                  LATEST_ONLY: ${{ inputs.latest_only || github.event_name == 'pull_request' }}
+                  RAKNET_ONLY: ${{ github.event_name == 'pull_request' }}
+                  SCENARIOS: ${{ inputs.scenarios || steps.select.outputs.scenarios || '' }}
+                  PASSED: ${{ steps.reuse.outputs.passed || '[]' }}
+              run: |
+                  latest=()
+                  if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
+                  pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
+                  if [ "$RAKNET_ONLY" = true ]; then pins="$(jq -c 'map(select(.transport == "raknet"))' <<< "$pins")"; fi
+                  # Four shards for a full run, or for a selection too large for one runner.
+                  total=4
+                  if [ -n "$SCENARIOS" ] && [ "$(wc -w <<< "$SCENARIOS")" -le 15 ]; then total=1; fi
+                  # The pins still to play: a pin is left out when the merged pull request passed
+                  # every one of its shards under the names client-e2e gives them.
+                  remaining="$(jq -c --argjson passed "$PASSED" --argjson total "$total" '
+                      map(. as $pin
+                          | [range(1; $total + 1)
+                              | "🎮 Client E2E (protocol \($pin.protocol)\(if $pin.transport == "nethernet" then ", NetherNet" else "" end), shard \(.)/\($total))"]
+                          | select(all(.[]; . as $name | $passed | index($name)) | not)
+                          | $pin)' <<< "$pins")"
+                  {
+                      echo "all-pins=$pins"
+                      echo "pins=$remaining"
+                      echo "shards=$(jq -cn --argjson total "$total" '[range(1; $total + 1)]')"
+                      echo "shard-total=$total"
+                      echo "reused=$(jq -r 'length == 0' <<< "$remaining")"
+                      echo "reused-any=$(jq -r --argjson remaining "$remaining" 'length > ($remaining | length)' <<< "$pins")"
+                      echo "pinned-keys=$(node tools/client-e2e/src/pin-matrix.mts --pinned-keys)"
+                      # The build that keeps cinnabar's compiled dependencies: the newest protocol's.
+                      echo "latest=$(jq -r 'max_by(.protocol).build' <<< "$pins")"
+                      echo "scenarios=$SCENARIOS"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Playing $(jq -r 'map(.name) | join(", ")' <<< "$remaining") in $total shard(s) each."
+
+            # How long each suite took on the newest master run that kept the times, every pin and
+            # shard merged with the longest kept (see tools/client-e2e/src/shard.mts). A suite with
+            # no time counts as the median; with no times at all, the split goes by scenario count.
+            - name: Find the suite times
+              id: times
+              if: ${{ steps.matrix.outcome == 'success' && steps.matrix.outputs.shard-total != '1' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  for run in $(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=master&event=push&status=success&per_page=5" --jq '.workflow_runs[].id'); do
+                      dir="$RUNNER_TEMP/suite-times/$run"
+                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'e2e-suite-times-*' --dir "$dir" 2> /dev/null || continue
+                      mapfile -t files < <(find "$dir" -name suite-times.json)
+                      if [ "${#files[@]}" -eq 0 ]; then continue; fi
+                      times="$(jq -c -s 'reduce (.[] | to_entries[]) as $entry ({}; .[$entry.key] = ([.[$entry.key] // 0, $entry.value] | max))' "${files[@]}")"
+                      echo "suite-times=$times" >> "$GITHUB_OUTPUT"
+                      echo "Splitting the suites by the times of run $run: $times"
+                      exit 0
+                  done
+                  echo 'No suite times on master; splitting the suites by scenario count.'
+
+            # A run can restore entries saved on its own ref or on master. The key matches the one
+            # cinnabar-build writes, whose `runner.os` is `Linux`.
+            - name: Find the builds without a cache entry
+              id: builds
+              if: ${{ steps.e2e_run.outputs.e2e_run == 'true' }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PINS: ${{ steps.matrix.outputs.all-pins }}
+              run: |
+                  missing=()
+                  while read -r name cache_key; do
+                      key="Linux-${cache_key}"
+                      found=false
+                      for ref in "$GITHUB_REF" refs/heads/master; do
+                          if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
+                              jq -e --arg key "$key" 'any(.actions_caches[]; .key == $key)' > /dev/null; then
+                              found=true
+                              break
+                          fi
+                      done
+                      echo "$name ($key): cached=$found"
+                      if [ "$found" = false ]; then missing+=("$name"); fi
+                  done < <(jq -r 'unique_by(.build)[] | "\(.build) \(.cacheKey)"' <<< "$PINS")
+                  # One entry per build: the first run that uses it, which `ensure` builds for.
+                  echo "build=$(jq -c --args '$ARGS.positional as $missing | unique_by(.build) | map(select(.build | IN($missing[])))' "${missing[@]}" <<< "$PINS")" >> "$GITHUB_OUTPUT"
+
+    # The unit suite runs in up to four shards, each on its own runner with the files the plan gave
+    # it. Each shard annotates its own failures and uploads its coverage and JUnit file to Codecov,
+    # which combines the shards' uploads of a commit by flag, and keeps its JUnit file for the next
+    # plan's times. Every file used to report in about seven minutes on one runner, and a Vitest
+    # that stopped there held the runner for two hours, so a shard now fails after 15 minutes.
+    tests-shard:
+        name: 🧪 Tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+        needs: plan
+        if: ${{ needs.plan.outputs.tests == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: ${{ fromJSON(needs.plan.outputs.unit) }}
+        steps:
+            # `--changed` diffs against the merge base, so the history has to reach it.
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+                  # No old file contents, which are nearly all of the repository's 2 GB.
+                  # Git fetches a blob a command needs on demand.
+                  filter: blob:none
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # The pinned Java server jar both Vitest jobs read, keyed on the file that pins it, so the
+            # unit shards and the real-data job share one download instead of each fetching their own.
+            - name: Cache the Java server jar
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine/java-server
+                  key: ${{ runner.os }}-jsp-java-server-${{ hashFiles('packages/bedrock-data/sources.json') }}
+
+            # Vitest's transformed modules, one cache per shard: a shard restores and saves only what
+            # its own quarter of the files loads, instead of every module any test ever loaded. An
+            # entry is keyed on the file's content, so a restored one is only used while it matches.
+            - name: Cache Vitest module transforms
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/vitest
+                  key: ${{ runner.os }}-vitest-shard-${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-vitest-shard-${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
+
+            # The files the plan gave this shard, or without a plan, this shard's share of the suites
+            # `since` reaches.
+            - name: 🧪 Test
+              env:
+                  FILES: ${{ needs.plan.outputs.unit_files }}
+                  SHARD: ${{ matrix.shard }}
+                  CHANGED: ${{ needs.plan.outputs.since != '' && format('--changed={0}', needs.plan.outputs.since) || '' }}
+                  # Labels the progress lines; see `.test/progressReporter.ts`.
+                  VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+              # The jar check is folded away, so the step opens on what Vitest reports.
+              run: |
+                  echo "::group::Java server jar"
+                  pnpm --filter @jsprismarine/bedrock-data run ensure:java-server
+                  echo "::endgroup::"
+                  # The plan's files for this shard; an empty list means the changes reach no file, since
+                  # files on the command line filter the run and none would run them all.
+                  if [ -n "$FILES" ]; then
+                      mapfile -t files < <(jq -r --argjson shard "$SHARD" '.[$shard - 1][]' <<< "$FILES")
+                      if [ "${#files[@]}" -eq 0 ]; then echo 'No test file for this shard.'; exit 0; fi
+                      pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' "${files[@]}"
+                  else
+                      pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+                  fi
+
+            # Named files only: a search also picked up other reports. A run with a `since` commit
+            # covers only the suites it ran, so it uploads under `unit-changed` and Codecov carries
+            # the last full `unit` report forward beside it; see `codecov.yml`.
+            - name: 🦺 Codecov Coverage Reports
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/lcov.info
+                  disable_search: true
+                  flags: ${{ needs.plan.outputs.since != '' && 'unit-changed' || 'unit' }}
+
+            - name: 🦺 Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  report_type: test_results
+                  files: junit.xml
+                  disable_search: true
+                  flags: ${{ needs.plan.outputs.since != '' && 'unit-changed' || 'unit' }}
+
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            - name: 📤 Keep the test times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-junit-unit-${{ matrix.shard }}
+                  path: junit.xml
+                  if-no-files-found: ignore
+                  retention-days: 14
+
+    # The generation host is a forked process with a lowered operating system priority, and
+    # forking, priorities and signals differ by platform. Linux runs these in the job above. The
+    # Windows and macOS pools hold five runners each for the whole organization, so a pull request
+    # starts these two jobs only when it changes the package they test.
+    generation-host:
+        name: 🧵 Generation host (${{ matrix.os }})
+        needs: plan
+        if: ${{ needs.plan.outputs.tests == 'true' && needs.plan.outputs.host == 'true' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [windows-latest, macos-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+                  # No old file contents, which are nearly all of the repository's 2 GB.
+                  # Git fetches a blob a command needs on demand.
+                  filter: blob:none
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 🧪 Test
+              shell: bash
+              env:
+                  CHANGED: ${{ needs.plan.outputs.since != '' && format('--changed={0}', needs.plan.outputs.since) || '' }}
+              run: pnpm --filter @jsprismarine/chunkgen exec vitest run src/HostedGenerationPool.test.ts src/hostLifetime.test.ts src/ConcurrencyGovernor.test.ts $CHANGED
+
+    # Four shards, each with a quarter of the files that declare a `real-data` test, laid out like
+    # the unit shards: the same progress lines, failures annotated in place, and coverage and test
+    # results uploaded to Codecov under the `real-data` flags.
+    real-data-shard:
+        name: 🗃️ Real data (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+        needs: plan
+        if: ${{ needs.plan.outputs.tests == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: ${{ fromJSON(needs.plan.outputs.real_data) }}
+        steps:
+            # `--changed` diffs against the merge base, so the history has to reach it.
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+                  # No old file contents, which are nearly all of the repository's 2 GB.
+                  # Git fetches a blob a command needs on demand.
+                  filter: blob:none
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.plan.outputs.real_data_key }}
+                  fail-on-cache-miss: true
+
+            # Fails when a path is missing rather than letting a suite skip itself silently,
+            # which is how these suites went unrun for as long as they did.
+            - name: 🔑 Resolve the real-data environment
+              run: node scripts/real-data-env.mts --github-env
+
+            # Only the files that declare a `real-data` test are handed to Vitest, rather than every
+            # test file for it to import and then skip. A tag is set in the test file's own options,
+            # so the files that name it are every file that can have one.
+            - name: 🧪 Test
+              env:
+                  FILES: ${{ needs.plan.outputs.real_data_files }}
+                  SHARD: ${{ matrix.shard }}
+                  CHANGED: ${{ needs.plan.outputs.since != '' && format('--changed={0}', needs.plan.outputs.since) || '' }}
+                  # Labels the progress lines; see `.test/progressReporter.ts`.
+                  VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+              run: |
+                  if [ -n "$FILES" ]; then
+                      mapfile -t files < <(jq -r --argjson shard "$SHARD" '.[$shard - 1][]' <<< "$FILES")
+                      if [ "${#files[@]}" -eq 0 ]; then echo 'No test file for this shard.'; exit 0; fi
+                      pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' "${files[@]}"
+                  else
+                      mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
+                      echo "${#files[@]} files declare a real-data test"
+                      pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${files[@]}"
+                  fi
+
+            # Named files only: a search also picked up other reports. A run with a `since` commit
+            # covers only the suites it ran, so it uploads under `real-data-changed` and Codecov
+            # carries the last full `real-data` report forward beside it; see `codecov.yml`.
+            - name: 🦺 Codecov Coverage Reports
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/lcov.info
+                  disable_search: true
+                  flags: ${{ needs.plan.outputs.since != '' && 'real-data-changed' || 'real-data' }}
+
+            - name: 🦺 Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  report_type: test_results
+                  files: junit.xml
+                  disable_search: true
+                  flags: ${{ needs.plan.outputs.since != '' && 'real-data-changed' || 'real-data' }}
+
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            - name: 📤 Keep the test times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-junit-real-data-${{ matrix.shard }}
+                  path: junit.xml
+                  if-no-files-found: ignore
+                  retention-days: 14
+
+    # Suites tagged `bedrock-server` boot the pinned Bedrock Dedicated Server and check what we
+    # read and write against what it reads and writes, LevelDB first. They take minutes, so they
+    # run in this job of their own rather than in a real-data shard, on the same prepared data,
+    # whenever a pull request's diff reaches them and on every push to master.
+    bedrock-server:
+        name: 🧱 Bedrock Dedicated Server suites
+        needs: plan
+        if: ${{ needs.plan.outputs.tests == 'true' && needs.plan.outputs.bedrock_server == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.plan.outputs.real_data_key }}
+                  fail-on-cache-miss: true
+
+            # Sets JSP_BDS_PATH, and fails when the server is missing rather than letting the suite
+            # skip.
+            - name: 🔑 Resolve the real-data environment
+              run: node scripts/real-data-env.mts --github-env
+
+            - name: 🧪 Test
+              env:
+                  JSP_BEDROCK_SERVER_TESTS: '1'
+              run: |
+                  mapfile -t files < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
+                  pnpm exec vitest run --tagsFilter='bedrock-server' "${files[@]}"
+
+    # The dashboard runs the whole parity package, the untagged suites as well as the real-data
+    # ones, because its report has to name every family's tests. It runs beside the shards rather
+    # than after them, on the same prepared data.
+    #
+    # A push to master keeps its report as an artifact. A pull request compares itself with its base
+    # commit's report, downloaded from that commit's run, and builds the base and runs its dashboard
+    # only when there is none, such as while the base's own run is still going.
+    parity-dashboard:
+        name: 📊 Parity dashboard
+        needs: plan
+        if: ${{ needs.plan.outputs.tests == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        permissions:
+            # Downloading the base commit's report from its run.
+            actions: read
+            contents: read
+            pull-requests: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.plan.outputs.real_data_key }}
+                  fail-on-cache-miss: true
+
+            - name: 🔑 Resolve the real-data environment
+              id: real_data_env
+              run: node scripts/real-data-env.mts --github-env
+
+            - name: 📊 Publish the parity dashboard
+              id: parity_dashboard
+              run: pnpm --filter @jsprismarine/parity run dashboard
+
+            # Kept for the pull requests based on this commit, as long as one could still be open.
+            - name: 📤 Keep this commit's parity report
+              if: ${{ steps.parity_dashboard.outcome == 'success' && github.event_name == 'push' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: parity-report
+                  path: |
+                      packages/parity/dist/tracker.json
+                      packages/parity/dist/dashboard.md
+                  retention-days: 90
+
+            # Any completed push run of the base commit that kept a report will do. The base
+            # commit's own run is often still going when a pull request is rebased onto it, or was
+            # cancelled while pending behind another push, so the search walks back master's
+            # history to the newest commit that kept one. Finding none leaves `found` false, and
+            # the steps below build the base instead.
+            - name: ⬇️ Find the pull request base's parity report
+              id: parity_base_report
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BASE: ${{ github.event.pull_request.base.sha }}
+                  # How far back to look: about two days of merges.
+                  DEPTH: '20'
+              run: |
+                  found=false
+                  for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=10" --jq '.workflow_runs[].id')"
+                      for run in $runs; do
+                          if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name parity-report --dir "$RUNNER_TEMP/parity-base" 2> /dev/null \
+                              && [ -f "$RUNNER_TEMP/parity-base/tracker.json" ]; then
+                              cp "$RUNNER_TEMP/parity-base/tracker.json" "$RUNNER_TEMP/parity-base-report"
+                              if [ "$commit" = "$BASE" ]; then
+                                  echo "Using the parity report of run $run for ${BASE}."
+                              else
+                                  echo "No report for ${BASE} yet; using the parity report of run $run for its ancestor ${commit}."
+                              fi
+                              found=true
+                              break 2
+                          fi
+                      done
+                  done
+                  if [ "$found" = false ]; then echo "No parity report for ${BASE} or its last ${DEPTH} ancestors; building the base instead."; fi
+                  echo "found=$found" >> "$GITHUB_OUTPUT"
+
+            - name: Check out the pull request base
+              id: parity_base_checkout
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.real_data_env.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && steps.parity_base_report.outputs.found != 'true' }}
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+                  path: parity-baseline
+
+            - name: 📦 Install pull request base dependencies
+              id: parity_base_install
+              if: ${{ !cancelled() && steps.parity_base_checkout.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm install --frozen-lockfile
+
+            - name: Share fetched data with the pull request base
+              id: parity_base_cache
+              if: ${{ !cancelled() && steps.parity_base_install.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: |
+                  mkdir -p node_modules/.cache
+                  if [ -e node_modules/.cache/jsprismarine ] || [ -L node_modules/.cache/jsprismarine ]; then
+                    rm -rf node_modules/.cache/jsprismarine
+                  fi
+                  ln -s "$GITHUB_WORKSPACE/node_modules/.cache/jsprismarine" node_modules/.cache/jsprismarine
+
+            - name: ⬇️ Fetch sources for the pull request base
+              id: parity_base_sources
+              if: ${{ !cancelled() && steps.parity_base_cache.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            - name: 🏭 Prepare Java data for the pull request base
+              id: parity_base_data
+              if: ${{ !cancelled() && steps.parity_base_sources.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: |
+                  pnpm --filter @jsprismarine/bedrock-data run datagen:java
+                  pnpm --filter @jsprismarine/bedrock-data run dump:java
+                  git diff --exit-code -- packages/bedrock-data/src/jsp/java
+                  node scripts/real-data-env.mts --github-env
+
+            - name: 🔨 Build the pull request base
+              id: parity_base_build
+              if: ${{ !cancelled() && steps.parity_base_data.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm run build
+
+            - name: 📊 Generate the pull request base dashboard
+              id: parity_baseline
+              if: ${{ !cancelled() && steps.parity_base_build.outcome == 'success' }}
+              working-directory: parity-baseline
+              env:
+                  GITHUB_STEP_SUMMARY: ''
+              run: pnpm --filter @jsprismarine/parity run dashboard
+
+            - name: Save the pull request base parity report
+              if: ${{ !cancelled() && steps.parity_baseline.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: |
+                  if [ -f packages/parity/dist/tracker.json ]; then
+                    cp packages/parity/dist/tracker.json "$RUNNER_TEMP/parity-base-report"
+                  else
+                    cp packages/parity/dist/dashboard.md "$RUNNER_TEMP/parity-base-report"
+                  fi
+
+            - name: 💬 Comment on parity changes
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && (steps.parity_baseline.outcome == 'success' || steps.parity_base_report.outputs.found == 'true') && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PARITY_BASELINE_REPORT_PATH: ${{ runner.temp }}/parity-base-report
+              run: pnpm --filter @jsprismarine/parity run comment:pr
+
+    cinnabar-build:
+        name: 🔨 Build cinnabar client (${{ matrix.pin.build }})
+        needs: plan
+        if: ${{ needs.plan.outputs.e2e == 'true' && needs.plan.outputs.build != '[]' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                pin: ${{ fromJSON(needs.plan.outputs.build) }}
+        runs-on: ubuntu-latest
+        # A cold build on the four cores `ubuntu-latest` has takes longer than it did on six.
+        timeout-minutes: 180
+        permissions:
+            contents: read
+            # Lets the last step delete the builds of commits no protocol pins any more.
+            actions: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # One entry per commit, so bumping one protocol's pin leaves the others cached, and every
+            # protocol and transport that pins a commit shares its entry. The compiled dependencies
+            # are keyed by protocol and commit in an entry of their own, so a bump restores its
+            # protocol's previous ones first.
+            - name: Resolve the cache key
+              id: pin
+              env:
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  COMMIT: ${{ matrix.pin.commit }}
+                  CACHE_KEY: ${{ matrix.pin.cacheKey }}
+              run: |
+                  echo "key=${RUNNER_OS}-${CACHE_KEY}" >> "$GITHUB_OUTPUT"
+                  echo "deps-key=${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-${COMMIT}" >> "$GITHUB_OUTPUT"
+
+            # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
+            # The `changes` job already found none, so this guards against a build saved since.
+            - name: Look for an existing build
+              id: cinnabar-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
+                  key: ${{ steps.pin.outputs.key }}
+                  lookup-only: true
+
+            # Cargo's intermediate directory from the closest earlier build: every third-party crate
+            # compiled, which is most of a cold build. Cargo checks registry and git crates by hash,
+            # so a pin that keeps a crate's version reuses it and compiles only what changed.
+            # Another protocol's entry still holds most of the same crates. Nothing restores the
+            # previous build itself, whose directory is named by another commit: these entries are
+            # what carry its work forward.
+            - name: Restore the compiled dependencies
+              id: deps
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  key: ${{ steps.pin.outputs.deps-key }}
+                  restore-keys: |
+                      ${{ runner.os }}-cinnabar-deps-v${{ matrix.pin.protocol }}-
+                      ${{ runner.os }}-cinnabar-deps-
+
+            # A cache restores only to the path it was saved from, and the build directory's path
+            # names the commit, so the entry lives at one path and moves into place for the build.
+            - name: Put the compiled dependencies in place
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              env:
+                  DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/build
+              run: |
+                  if [ -d "$DEPS" ] && [ ! -e "$BUILD" ]; then
+                      mkdir -p "$(dirname "$BUILD")"
+                      mv "$DEPS" "$BUILD"
+                      du -sh "$BUILD"
+                  else
+                      echo 'No compiled dependencies to reuse; this build compiles every crate.'
+                  fi
+
+            # Cargo's intermediates reach about 14 GB, more than the runner has free. Its preinstalled
+            # Android SDK, .NET, Haskell and CodeQL toolchains are nothing this job uses.
+            - name: Free disk space for the build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: |
+                  df -h /
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            # The headers cinnabar's own Linux CI builds against: Wayland and X11 windows, keyboard
+            # layouts, ALSA audio and udev gamepads.
+            - name: Install the client's build dependencies
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev mold
+
+            - name: 📦 Install
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: ./.github/common/install
+
+            - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              with:
+                  go-version: 'stable'
+                  cache: false
+
+            # Cargo draws its progress bar into the pipe too, and cargo-progress.mjs turns it into a
+            # `[cinnabar] 35% · 196/560 units` line at every 5% of the build.
+            - name: 🔨 Build the pinned cinnabar client
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: |
+                  set -o pipefail
+                  pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL" --transport "$TRANSPORT" 2>&1 |
+                      node .github/scripts/cargo-progress.mjs cinnabar
+              env:
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  TRANSPORT: ${{ matrix.pin.transport }}
+                  # Incremental state only helps the next compile on the same machine, and it
+                  # would grow the compiled dependencies' cache entry for nothing.
+                  CARGO_INCREMENTAL: '0'
+                  # mold links the client's large Bevy binary in a fraction of the default linker's
+                  # time. cinnabar's own cargo config sets no rustflags for this one to replace.
+                  CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=-fuse-ld=mold
+                  CARGO_TERM_PROGRESS_WHEN: always
+                  CARGO_TERM_PROGRESS_WIDTH: '120'
+
+            # Only a compile reads cargo's intermediate directory: the e2e jobs need the checkout, the
+            # stamp and the three binaries under `target/`, which `ensureBuilt` accepts without it.
+            # It moves out of the build's own entry and is saved as the compiled dependencies.
+            - name: Move the compiled dependencies out of the build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              env:
+                  DEPS: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  BUILD: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/build
+              run: |
+                  rm -rf "$DEPS"
+                  mv "$BUILD" "$DEPS"
+                  du -sh "$DEPS"
+
+            # Saved only when this build had no entry of its own, so an exact hit is not uploaded
+            # again, and only for the latest protocol's build on master. An entry is 1.8 GB that only the next
+            # build reads. Another protocol's build restores the latest one's, which holds most of
+            # the same crates, and a pull request's copy would be visible to that pull request
+            # alone while pushing master's entries out of the repository's 10 GB of cache.
+            - name: Save the compiled dependencies
+              if: >-
+                  ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' && steps.deps.outputs.cache-hit != 'true'
+                  && github.event_name != 'pull_request' && matrix.pin.build == needs.plan.outputs.latest }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar-deps
+                  key: ${{ steps.pin.outputs.deps-key }}
+
+            # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
+            # e2e jobs below; master's entries are what other PRs fall back to. A pull request builds
+            # only when it changes a pin, or when master's entry is gone.
+            - name: Save the build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
+                  key: ${{ steps.pin.outputs.key }}
+
+            # A bumped pin leaves its predecessor's build and compiled dependencies behind, and enough
+            # of those push the repository over its cache limit, which evicts whichever entry was
+            # used least recently. Only master prunes: a pull request that dropped them would take
+            # away what other pull requests fall back to. A build stays while any protocol pins its
+            # commit, read from cinnabar.json rather than this run's matrix, which a latest-only run
+            # narrows, and while its key carries the current build format.
+            - name: Delete the builds of replaced pins
+              if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  # Only the latest protocol's build keeps compiled dependencies, so another deletes its own.
+                  DEPS_KEY: ${{ matrix.pin.build == needs.plan.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
+                  PINNED_KEYS: ${{ needs.plan.outputs.pinned-keys }}
+              run: |
+                  delete() { while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done; }
+                  prefix="${RUNNER_OS}-cinnabar-build-"
+                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
+                      jq -r --arg os "$RUNNER_OS-" --argjson pinned "$PINNED_KEYS" \
+                          '.[] | select($pinned | index(.key | ltrimstr($os)) | not) | .id' |
+                      delete
+                  # Only a key that is the prefix and a commit belongs to this protocol.
+                  prefix="${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-"
+                  gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
+                      jq -r --arg prefix "$prefix" --arg keep "$DEPS_KEY" \
+                          '.[] | select(.key != $keep and (.key | ltrimstr($prefix) | test("^[0-9a-f]{40}$"))) | .id' |
+                      delete
+
+    # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
+    # cache entries are invisible to master, so this is where a new pin's build reaches master.
+    client-e2e:
+        name: >-
+            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet' || '' }}, shard ${{ matrix.shard }}/${{ needs.plan.outputs.shard-total }})
+        needs: [plan, cinnabar-build]
+        # A skipped cinnabar-build means every build was already cached.
+        if: >-
+            ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.e2e == 'true'
+            && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
+            && needs.plan.outputs.e2e_reused != 'true' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                pin: ${{ fromJSON(needs.plan.outputs.pins) }}
+                shard: ${{ fromJSON(needs.plan.outputs.e2e_shards) }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # The client's shared libraries, plus what lets it draw without a GPU or a screen:
+            # lavapipe, Mesa's software Vulkan driver, and Xvfb, a virtual X display.
+            - name: Install the client's runtime dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes libwayland-dev libxkbcommon-dev libxkbcommon-x11-0 libasound2-dev libudev-dev \
+                      libx11-xcb1 libxcursor1 libxi6 libxrandr2 libvulkan1 mesa-vulkan-drivers vulkan-tools xvfb
+
+            # The adapters the client can choose from; lavapipe should be the one listed.
+            - name: List the Vulkan adapters
+              run: vulkaninfo --summary
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+              with:
+                  go-version: 'stable'
+                  cache: false
+
+            # The pinned downloads the steps below fetch, shared with other runs. The cinnabar
+            # build uses a separate cache outside the workspace.
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            # The server reads the vanilla datapack (recipes, entities, loot, worldgen) from the
+            # data generator's output. Without it the scenarios that need a smelting recipe, a
+            # cow or a hoe's farmland run against 0 recipes and 4 entities and fail, and the
+            # `worldgen-spawn` suite cannot boot.
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache generated Java data
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            - name: 🏭 Prepare the Java data
+              run: pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
+
+            # The `changes` job found this entry or cinnabar-build saved it, so a miss is a workflow
+            # bug, not a reason to compile.
+            - name: Restore the cinnabar build
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
+                  key: ${{ runner.os }}-${{ matrix.pin.cacheKey }}
+                  fail-on-cache-miss: true
+
+            # A suite is one server and one client, and with no GPU the client renders on the CPU, so
+            # each takes about two cores and up to 4 GB (the heap cap below). The runner's own cores
+            # and memory decide how many suites start at once; run.mts never runs more than it has.
+            - name: Size the suites to the runner
+              id: size
+              run: |
+                  cores="$(nproc)"
+                  memory_gb="$(awk '/MemTotal/ { print int($2 / 1048576) }' /proc/meminfo)"
+                  suites=$(( cores / 2 < memory_gb / 4 ? cores / 2 : memory_gb / 4 ))
+                  suites=$(( suites < 1 ? 1 : suites ))
+                  echo "suites=$suites" >> "$GITHUB_OUTPUT"
+                  echo "::notice title=Client E2E::$suites suites at once on $cores cores and $memory_gb GB"
+
+            - name: 🎮 Run the client e2e scenarios
+              env:
+                  # Expands unquoted below: empty vanishes, and scenarios word-split by design.
+                  # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  SCENARIOS: ${{ inputs.scenarios || needs.plan.outputs.scenarios }}
+                  PROTOCOL: ${{ matrix.pin.protocol }}
+                  TRANSPORT: ${{ matrix.pin.transport }}
+                  SUITES: ${{ steps.size.outputs.suites }}
+                  SHARD: ${{ matrix.shard }}/${{ needs.plan.outputs.shard-total }}
+                  SUITE_TIMES: ${{ needs.plan.outputs.suite-times }}
+                  NODE_OPTIONS: --max-old-space-size=4096
+                  # A client that panics before its control endpoint is up names only its log, so
+                  # the panic carries its backtrace there.
+                  RUST_BACKTRACE: '1'
+              run: |
+                  # The clients open their hidden windows on the virtual display xvfb-run starts.
+                  # `--retry` runs a failed scenario once more on a fresh server and client, so one
+                  # flaky scenario does not cost a rerun of every protocol. It is reported as a
+                  # warning and in the summary when it passes the second time.
+                  times=()
+                  if [ -n "$SUITE_TIMES" ]; then
+                      printf '%s\n' "$SUITE_TIMES" > "$RUNNER_TEMP/suite-times.json"
+                      times=(--suite-times "$RUNNER_TEMP/suite-times.json")
+                  fi
+                  # shellcheck disable=SC2086
+                  xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
+                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --shard "$SHARD" --concurrency "$SUITES" "${times[@]}" $SCENARIOS
+
+            # A selection's shard can get no suite, and then there is nothing to cover.
+            - name: 🔎 Verify client e2e coverage
+              id: client-e2e-coverage
+              run: |
+                  if [ -f "$RUNNER_TEMP/client-e2e/empty-shard" ]; then
+                      echo 'This shard had no suite to play.'
+                      exit 0
+                  fi
+                  node scripts/check-client-e2e-coverage.mts
+
+            # A run of some scenarios covers less than the full run, so it uploads nothing and
+            # Codecov carries the last full report forward.
+            - name: 🦺 Upload client e2e coverage to Codecov
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && needs.plan.outputs.scenarios == '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/client-e2e/lcov.info
+                  disable_search: true
+                  # One flag for every protocol, so carryforward keeps one set of e2e coverage on
+                  # commits this path-filtered workflow skips; the upload name tells them apart.
+                  flags: client-e2e
+                  name: client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+
+            # The push to master that merges this pull request skips this job and uploads it.
+            - name: 📤 Keep the coverage for the merge
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.plan.outputs.scenarios == '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: codecov-client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  path: coverage/client-e2e/lcov.info
+                  retention-days: 30
+
+            # Which server functions each scenario ran (see tools/client-e2e/src/scenario-coverage.mts),
+            # kept only from a run of every scenario, for choosing what a later change has to run.
+            - name: 📤 Keep the scenario coverage map
+              if: ${{ !cancelled() && needs.plan.outputs.scenarios == '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: scenario-coverage-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  path: ${{ runner.temp }}/client-e2e/scenario-coverage.json
+                  if-no-files-found: ignore
+                  retention-days: 30
+
+            # How long each suite took, which the next run's `changes` job splits the suites by.
+            # Only a full run on master: a selection plays some of a suite, and times from a pull
+            # request's branch are not what master's lookup reads.
+            - name: 📤 Keep the suite times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.plan.outputs.scenarios == '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: e2e-suite-times-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  path: ${{ runner.temp }}/client-e2e/suite-times.json
+                  if-no-files-found: ignore
+                  retention-days: 14
+
+            # A client that exits before its control endpoint is up reports only a log path, inside
+            # the cinnabar checkout. This prints each log's end here, where the failure is read.
+            - name: 🔎 Show the client logs
+              if: ${{ failure() }}
+              run: |
+                  for log in "$RUNNER_TEMP"/jsprismarine/cinnabar/"$BUILD"/repo/.local/developer-control/logs/*.log; do
+                      [ -f "$log" ] || continue
+                      echo "::group::$(basename "$log")"
+                      tail -n 80 "$log"
+                      echo "::endgroup::"
+                  done
+              env:
+                  BUILD: ${{ matrix.pin.build }}
+
+            - name: 📤 Upload evidence
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: client-e2e-evidence-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  path: |
+                      ${{ runner.temp }}/client-e2e
+                      ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/repo/.local/developer-control/logs
+                  if-no-files-found: warn
+
+    # Codecov has no e2e report for a push that skipped the scenarios as already passed, and
+    # carryforward would keep the previous master commit's. Upload the pull request run's here.
+    reused-coverage:
+        name: 🦺 Reuse pull request coverage
+        needs: plan
+        if: ${{ needs.plan.outputs.reused-any == 'true' }}
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+            contents: read
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # An expired artifact leaves Codecov carrying the flag forward, which is no worse than
+            # before this job existed.
+            - name: ⬇️ Download the pull request coverage
+              continue-on-error: true
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: codecov-client-e2e-*
+                  path: ${{ runner.temp }}/reused
+                  run-id: ${{ needs.plan.outputs.run-id }}
+                  github-token: ${{ github.token }}
+
+            # The pins this push skipped ran on the pull request, so their maps come from there too, and
+            # a pull request based on this commit finds every pin's map under this run.
+            - name: ⬇️ Download the pull request's scenario coverage maps
+              continue-on-error: true
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: scenario-coverage-*
+                  path: ${{ runner.temp }}/scenario-coverage
+                  run-id: ${{ needs.plan.outputs.run-id }}
+                  github-token: ${{ github.token }}
+
+            - name: 📤 Keep them for this commit
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: scenario-coverage-reused
+                  path: ${{ runner.temp }}/scenario-coverage
+                  if-no-files-found: ignore
+                  retention-days: 30
+
+            - name: List the reports
+              id: reports
+              run: |
+                  files="$(find "$RUNNER_TEMP/reused" -name lcov.info 2> /dev/null | sort | paste -sd, -)"
+                  echo "files=$files" >> "$GITHUB_OUTPUT"
+
+            - name: 🦺 Upload client e2e coverage to Codecov
+              if: ${{ steps.reports.outputs.files != '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: ${{ steps.reports.outputs.files }}
+                  disable_search: true
+                  flags: client-e2e
+                  name: client-e2e-reused
+
+    # The one check branch rules require. A matrix job's name depends on its shards or pins, and a
+    # skipped job reports under its unexpanded name, so none can be required directly. Every job
+    # above is listed, so a job that skipped because one it needs failed is caught by that job's
+    # own failure. The four checks the plan ran report through its outputs.
+    ci-passed:
+        name: ✅ CI
+        needs:
+            - plan
+            - tests-shard
+            - generation-host
+            - real-data-shard
+            - bedrock-server
+            - parity-dashboard
+            - cinnabar-build
+            - client-e2e
+            - reused-coverage
+        if: ${{ always() }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check the results
+              env:
+                  NEEDS: ${{ toJSON(needs) }}
+              run: |
+                  jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+                  if [ "$(jq -r '.plan.result' <<< "$NEEDS")" != 'success' ]; then
+                      echo 'The plan job did not finish, so nothing below it can be trusted.' >&2
+                      exit 1
+                  fi
+                  jq -r '.plan.outputs | "commitlint: \(.commitlint), lint: \(.lint), docs: \(.docs), typecheck: \(.typecheck)"' <<< "$NEEDS"
+                  # The four checks. Skipped is a push that reuses the merged pull request's, a
+                  # scheduled or manual run, or a change with no code to typecheck.
+                  jq -e '.plan.outputs | [.commitlint, .lint, .docs, .typecheck] | all(. == "success" or . == "skipped")' <<< "$NEEDS" > /dev/null
+                  # Skips are on purpose: a change no test reaches, the release pull request, every
+                  # cinnabar build cached, a push that reuses the merged pull request's scenarios,
+                  # no Bedrock Dedicated Server suite in reach, or a selection with no scenario.
+                  jq -e '(.plan.outputs.e2e_reused == "true") as $reused
+                      | (.plan.outputs.build == "[]") as $cached
+                      | (.plan.outputs.e2e == "true") as $e2e
+                      | to_entries
+                      | all(.value.result == "success"
+                          or (.key != "cinnabar-build" and .key != "client-e2e" and .value.result == "skipped")
+                          or (.key == "cinnabar-build" and .value.result == "skipped" and ($cached or ($e2e | not)))
+                          or (.key == "client-e2e" and .value.result == "skipped" and ($reused or ($e2e | not))))' \
+                      <<< "$NEEDS" > /dev/null

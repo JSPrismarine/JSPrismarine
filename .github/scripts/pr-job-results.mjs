@@ -18,7 +18,7 @@ if (!repository || !sha || !token || !workflowRef) {
     throw new Error('GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_TOKEN and GITHUB_WORKFLOW_REF are required');
 }
 
-// `owner/repo/.github/workflows/test.yml@refs/heads/master`
+// `owner/repo/.github/workflows/ci.yml@refs/heads/master`
 const workflowFile = workflowRef.split('@')[0].split('/').at(-1);
 
 const api = async (path) => {

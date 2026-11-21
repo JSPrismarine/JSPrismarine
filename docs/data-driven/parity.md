@@ -174,8 +174,8 @@ declared family: its status, and its passed, failed, not-measured, accepted-gap 
 counts. A family nobody has written a comparison for still gets a row, reading `no tests`. The
 script prints the table to stdout, writes it to `packages/parity/dist/dashboard.md`, and appends
 it to `$GITHUB_STEP_SUMMARY` when CI provides one. It exits 0 even when tests fail, because its
-job is to report the failures; the test run gates CI separately. The real-data job in
-`.github/workflows/test.yml` is where CI publishes it, because that job has the fetched sources
+job is to report the failures; the test run gates CI separately. The parity dashboard job in
+`.github/workflows/ci.yml` is where CI publishes it, because that job has the fetched sources
 the measured rows need. For same-repository pull requests, CI also runs the dashboard at the
 exact base commit and compares the current dashboard with it in one comment. Later runs update
 that comment while keeping the base commit as the comparison point.
