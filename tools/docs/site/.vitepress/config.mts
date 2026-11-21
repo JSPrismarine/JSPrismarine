@@ -8,6 +8,7 @@ import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
+import { markdownHeaders, writeMarkdownPages } from '../../llms.mts';
 import { isStagedPage, pageSource, pageUrl, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
@@ -112,6 +113,13 @@ export default defineConfig({
         console.log(
             `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes, linked from ${linking} pages.`
         );
+        const markdownPages = writeMarkdownPages({
+            srcDir: siteConfig.srcDir,
+            outDir: siteConfig.outDir,
+            pages: siteConfig.pages,
+            siteUrl
+        });
+        console.log(`Markdown copies: ${markdownPages} pages.`);
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.
         writeFileSync(
@@ -130,7 +138,8 @@ export default defineConfig({
                 '',
                 'https://:deployment.:project.pages.dev/*',
                 '  X-Robots-Tag: noindex',
-                ''
+                '',
+                ...markdownHeaders
             ].join('\n')
         );
     },
