@@ -78,81 +78,32 @@ describe('the overworld golden chunks', () => {
         }
     );
 
-    it.each(GOLDEN_CHUNKS.slice(0, 1))(
-        'reproduces chunk $chunkX,$chunkZ with the opt-in volume density path',
-        { timeout: 120_000 },
-        ({ chunkX, chunkZ, sha256 }) => {
-            expect(
-                hashChunk(
-                    new ChunkSampler(state, {
-                        chunkX,
-                        chunkZ,
-                        skipProvenCells: false,
-                        useVolumeDensity: true
-                    })
-                )
-            ).toBe(sha256);
-        }
-    );
-
-    it.each(GOLDEN_CHUNKS)(
-        'keeps chunk $chunkX,$chunkZ identical between scalar and volume cell walks',
-        { timeout: 120_000 },
-        ({ chunkX, chunkZ }) => {
-            const scalar = new ChunkSampler(
-                new RandomState(data, SEED, data.settings('minecraft:overworld')),
-                // Visit every density and aquifer sample so both evaluators do the same work.
-                { chunkX, chunkZ, skipProvenCells: false }
-            );
-            const volume = new ChunkSampler(new RandomState(data, SEED, data.settings('minecraft:overworld')), {
-                chunkX,
-                chunkZ,
-                skipProvenCells: false,
-                useVolumeDensity: true
-            });
-
-            expect(hashCellWalk(volume)).toBe(hashCellWalk(scalar));
-        }
-    );
-
-    it('matches every pinned Java chunk-corpus column through scalar and volume cell walks', () => {
-        const chunkData = (useVolumeDensity: boolean): string => {
-            const sampler = new ChunkSampler(
-                new RandomState(data, BigInt(chunkVectors.seed), data.settings(chunkVectors.settings)),
-                {
-                    chunkX: chunkVectors.chunkX,
-                    chunkZ: chunkVectors.chunkZ,
-                    // Cell skipping bypasses the evaluator for known-open cells, so disable it for this parity pass.
-                    skipProvenCells: false,
-                    useVolumeDensity
-                }
-            );
-            const columns = new Map(
-                chunkVectors.columns.map(({ x, z }) => [
-                    `${x},${z}`,
-                    new Array<string | undefined>(chunkVectors.height)
-                ])
-            );
-            const digest = hashCellWalk(sampler, (x, y, z, state) => {
-                const column = columns.get(`${x},${z}`);
-                if (column !== undefined) column[y - chunkVectors.minY] = state;
-            });
-
-            for (const expected of chunkVectors.columns) {
-                const actual = columns.get(`${expected.x},${expected.z}`);
-                if (actual === undefined) throw new Error(`Missing Java chunk column ${expected.x},${expected.z}`);
-                const expectedStates = expected.runs.flatMap(({ block, count }) =>
-                    Array.from({ length: count }, () => block)
-                );
-                expect(actual, `Java chunk column ${expected.x},${expected.z}`).toEqual(expectedStates);
+    it('matches every pinned Java chunk-corpus column through the cell walk', () => {
+        const sampler = new ChunkSampler(
+            new RandomState(data, BigInt(chunkVectors.seed), data.settings(chunkVectors.settings)),
+            {
+                chunkX: chunkVectors.chunkX,
+                chunkZ: chunkVectors.chunkZ,
+                // Cell skipping bypasses the evaluator for known-open cells, so disable it for this parity pass.
+                skipProvenCells: false
             }
+        );
+        const columns = new Map(
+            chunkVectors.columns.map(({ x, z }) => [`${x},${z}`, new Array<string | undefined>(chunkVectors.height)])
+        );
+        hashCellWalk(sampler, (x, y, z, state) => {
+            const column = columns.get(`${x},${z}`);
+            if (column !== undefined) column[y - chunkVectors.minY] = state;
+        });
 
-            return digest;
-        };
-
-        const scalar = chunkData(false);
-        const volume = chunkData(true);
-        expect(volume).toBe(scalar);
+        for (const expected of chunkVectors.columns) {
+            const actual = columns.get(`${expected.x},${expected.z}`);
+            if (actual === undefined) throw new Error(`Missing Java chunk column ${expected.x},${expected.z}`);
+            const expectedStates = expected.runs.flatMap(({ block, count }) =>
+                Array.from({ length: count }, () => block)
+            );
+            expect(actual, `Java chunk column ${expected.x},${expected.z}`).toEqual(expectedStates);
+        }
     });
 
     it.each(GOLDEN_CHUNKS.slice(0, 2))(

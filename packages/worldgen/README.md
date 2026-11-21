@@ -239,83 +239,15 @@ Two details follow Java exactly even though they look odd:
 
 ## Known gaps
 
-- The scalar sampler remains the default. The opt-in volume evaluator and its current measurements
-  are described in [Volume density prototype](#volume-density-prototype); it is slower on the
-  measured overworld graph and only handles a subset of node types. A chunk's fill reads nothing
-  outside itself, so a server can also raise throughput by generating several chunks at once.
+- Density functions are evaluated one block at a time. A typed-array volume evaluator was
+  prototyped and removed: it handled only arithmetic nodes, ran slower on the measured overworld
+  graph, and is recorded in [#2773](https://github.com/JSPrismarine/JSPrismarine/issues/2773). A
+  chunk's fill reads nothing outside itself, so a server can raise throughput by generating several
+  chunks at once.
 - The random sources use `BigInt` for their 64-bit state. That is exact and slow, and it is the
   reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
 - Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,
   which is what `@jsprismarine/packs` produces.
-
-## Volume density prototype
-
-`ChunkSampler` can evaluate final density into typed arrays one interpolation cell at a time:
-
-```ts
-const sampler = new ChunkSampler(state, {
-    chunkX: 3,
-    chunkZ: -5,
-    useVolumeDensity: true
-});
-```
-
-The option affects `forEachCellBlock`, which is the chunk-fill path. It defaults to `false`, so
-`fill`, `column` and other callers keep using the scalar evaluator. The volume evaluator writes
-`Float64Array` results in x-fastest, then z, then y order. A sampler reuses its output and
-intermediate buffers across cells.
-
-The volume compiler evaluates constants, unary arithmetic, `add`, `sub`, `min`, `max`, and
-`clamp` over arrays. It also handles `mul` and `div` when either operand is constant. All other
-node types, including noise, gradient, cache, interpolation, spline, rounding, `pow`, `slice`,
-and selection nodes, use the existing scalar compiler. Dynamic-by-dynamic `mul` and `div` also
-stay scalar because they can skip their right operand when the left value is zero.
-
-`RandomState` caches each compiled volume plan for that state. Every call to `volumeSampler`, and
-every `ChunkSampler` using `useVolumeDensity`, gets its own mutable workspace. Keep each evaluator
-and `SampleContext` exclusive to one active chunk at a time. The scalar `SampleContext` caches
-remain per chunk; the volume workspace stores intermediate values for one cell and retains its
-largest capacity until that sampler is discarded. Cells larger than 4,096 blocks use the scalar
-path to cap per-evaluator memory.
-
-Run `pnpm --filter @jsprismarine/worldgen run bench:density-volume` to compare the overworld
-`final_density` graph and a whole chunk fill. It checks scalar and volume digests, then runs the
-complete checked-in Java chunk corpus through `forEachCellBlock`: one overworld chunk with nine
-captured columns, each 384 blocks tall. Every captured state is compared with the Java vector, and
-the full 98,304-block digest is compared between scalar and volume evaluation. It repeats that
-chunk independently with 0, 1, 2, and 4 worker threads and fails if any digest changes. The worker
-runs check evaluator isolation and deterministic output; they do not measure chunk-pool throughput.
-The report includes the 1-, 5-, and 15-minute load averages at the start and end, and marks the run
-quiet only when the 1-minute load at both points is at most one quarter of the logical CPU count,
-with a minimum limit of one. On Windows, where Node does not report load averages, both the
-availability and quiet flags are false.
-
-Both chunk-fill arms disable proven-cell skipping so every density and aquifer call is exercised.
-The allocation pass runs five fresh child processes per arm with `--expose-gc`. It warms the
-sampler, forces collection before the baseline, samples V8 heap allocations at 1,024-byte
-intervals for one fill, then records `process.memoryUsage()` before and after a forced collection
-while the sampler remains live. The V8 heap figure is a sampled allocation estimate, not an exact
-allocation count. The post-GC ArrayBuffer delta measures backing storage retained by one live
-sampler; the post-fill snapshot may also include temporary buffers not yet collected.
-
-On Node 26.12.1, Darwin arm64, the latest run reported `host.quiet: false`: the 1-minute load
-average was 10.43 at the start and 9.84 at the end, above the limit of 2 for this 8-CPU host.
-Treat these timings and allocation samples as exploratory, and rerun the command when it reports
-`host.quiet: true`. The best-of-three density timings were 18.43 ms scalar and 23.45 ms volume for
-98,304 samples, or 5.33 million versus 4.19 million samples per second. Full chunk fills took
-24.88 ms scalar and 31.18 ms volume. The volume plan used six instructions, three scalar fallbacks,
-one workspace growth, 6,144 bytes of retained intermediate arrays, and a 1,024-byte cell output
-buffer. Both arms produced full-chunk digest `7c1ff94d`; all nine Java columns matched, with corpus
-digest `2be57e2e`, at worker counts 0, 1, 2, and 4.
-
-Across five memory runs, sampled JavaScript heap allocation had a median of 200,912 bytes for
-scalar (range 189,840–208,816) and 199,040 bytes for volume (range 174,656–207,744). Live
-ArrayBuffer growth after collection was 690,407 bytes scalar and 697,575 bytes volume, including
-the volume evaluator's additional 7,168 retained bytes. Heap used after collection grew by
-113,400 bytes scalar and 103,136 bytes volume. The noisy run does not establish a performance or
-allocation advantage; the volume path remains opt-in, and the scalar sampler remains the default.
-The checked-in Java chunk corpus is limited to one chunk; the six additional full-chunk goldens
-extend scalar-volume digest coverage but are not additional Java captures.
 
 ## The surface pass, the biomes and the carvers
 

@@ -3,7 +3,6 @@ import type {
     DensityBoundSampler,
     DensityFunctionCompilerOptions,
     DensitySampler,
-    DensityVolumeEvaluator,
     InterpolationCellSize
 } from './density/compile';
 import { DensityFunctionCompiler } from './density/compile';
@@ -105,16 +104,6 @@ export class RandomState {
      */
     public boundSampler(node: DensityFunctionNode): DensityBoundSampler {
         return this.compiler.boundSampler(node);
-    }
-
-    /**
-     * Compiles an opt-in volume evaluator for one density function tree.
-     *
-     * The plan is cached by this state, but each returned evaluator owns a separate mutable
-     * workspace and must not serve overlapping calls.
-     */
-    public volumeSampler(node: DensityFunctionNode): DensityVolumeEvaluator {
-        return this.compiler.compileVolume(node);
     }
 
     /** Whether a density tree's proven input axes exclude y. */
