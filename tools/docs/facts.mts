@@ -22,6 +22,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { parse } from 'yaml';
+
 import {
     ADDON_INDEX_FILE,
     ADDON_INDEX_SCHEMA_VERSION,
@@ -42,6 +44,7 @@ import {
 } from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
 import { USAGE as ADDON_TOOLS_USAGE } from '../../packages/addon-tools/src/command.ts';
+import { deprecationWarning } from '../../packages/prismarine/src/addons/AddonManager.ts';
 import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/addons/addonFiles.ts';
 import { SUBJECT_KINDS } from '../../packages/prismarine/src/identity/Subject.ts';
 import {
@@ -106,6 +109,8 @@ import { cardStyles } from './site/.vitepress/og/cardImage.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import { addonCatalog, loadAddons, releaseWorkflow, releaseWorkflowInputs } from './addons.mts';
+import { isRecord } from '../../scripts/isRecord.mts';
+import { listingsFile, listingsLockFile, MISSING_DAYS_BEFORE_DEPRECATION } from './listings.mts';
 import type { ErrorData, ErrorDomainData } from './code-data.mts';
 import {
     errorCount,
@@ -1121,6 +1126,18 @@ export const addonNames = () =>
         .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
         .map((entry) => entry.name);
 
+/** When the daily refresh of the listings snapshot runs, from its workflow's schedule, such as `05:41 UTC`. */
+const listingsRefreshTime = (): string => {
+    const workflow: unknown = parse(readFileSync(path.join(repoRoot, '.github/workflows/addons-listings.yml'), 'utf8'));
+    const on = isRecord(workflow) ? workflow.on : undefined;
+    const schedule = isRecord(on) && Array.isArray(on.schedule) ? on.schedule[0] : undefined;
+    const cron = isRecord(schedule) && typeof schedule.cron === 'string' ? schedule.cron : '';
+    const [minute, hour, day, month, weekday] = cron.split(' ');
+    if ([day, month, weekday].some((field) => field !== '*') || !/^\d+$/.test(`${minute}${hour}`))
+        throw new Error('The listings refresh no longer runs at one time each day; update its docs fact.');
+    return `${hour!.padStart(2, '0')}:${minute!.padStart(2, '0')} UTC`;
+};
+
 /** A sample pack's entry in an index, its URL on the source's release as the build writes it. */
 const sampleIndexEntry = (source: string, name: string, version: string, minServer: string) => ({
     name,
@@ -1219,6 +1236,20 @@ async function addonFacts() {
         'addons.cli': inlineCode(cli ?? ''),
         'addons.cliUsage': ADDON_TOOLS_USAGE.trimEnd(),
         'addons.workflowPath': inlineCode(releaseWorkflow),
+        'addons.listingsFile': inlineCode(path.relative(repoRoot, listingsFile).split(path.sep).join('/')),
+        'addons.listingsLockFile': inlineCode(path.relative(repoRoot, listingsLockFile).split(path.sep).join('/')),
+        'addons.listingsMissingDays': String(MISSING_DAYS_BEFORE_DEPRECATION),
+        'addons.deprecationWarning':
+            deprecationWarning('warps', {
+                source: otherSource,
+                name: 'warps',
+                version: '2.0.0',
+                url: `${releaseDownloadUrl(otherSource)}/${packFileName('warps', '2.0.0')}`,
+                sha256: "<the pack's SHA-256>",
+                deprecated: 'Use warps-plus instead.',
+                replacedBy: `${otherSource}/warps-plus`
+            }) ?? '',
+        'addons.listingsRefreshTime': listingsRefreshTime(),
         // A repository of addons calling the reusable workflow. GitHub reads `uses` as a literal,
         // so the example names the commit to pin instead of a value.
         'addons.callerExample': [
