@@ -4,7 +4,7 @@ import type { ItemStack, Predicate, PredicateContextOptions } from '@jsprismarin
 import { declarationOf } from './components';
 import type { ChargingSounds, EffectComponentType, EnchantmentTarget } from './components';
 import type { ResolvedEffect } from './effects';
-import { componentItemView, enchantmentsOf, stackMatches } from './item';
+import { componentItemView, enchantmentsOf, repairsWithIn, stackMatches } from './item';
 import type { ItemView } from './item';
 import { MIN_ENCHANTMENT_LEVEL } from './definition';
 import type { EnchantmentDefinition } from './definition';
@@ -113,7 +113,10 @@ export class EnchantmentRegistry {
         this.tags = new Map(
             [...(options.tags ?? new Map())].map(([id, values]) => [namespaced(id.replace(/^#/, '')), values])
         );
-        this.items = { ...componentItemView, ...options.items };
+        const items: ItemView = { ...componentItemView, ...options.items };
+        // The component view's repair check knows no tags; the merged view's does, and every vanilla
+        // repair material is named by a tag.
+        this.items = { ...items, repairsWith: options.items?.repairsWith ?? repairsWithIn(items) };
     }
 
     /** Every enchantment id the registry holds, in load order. */

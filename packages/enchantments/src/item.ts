@@ -115,9 +115,18 @@ export const componentItemView: ItemView = {
     enchantmentValue: (stack) => componentNumber(stack, ENCHANTABLE_COMPONENT) || undefined,
     maxDamage: (stack) => componentNumber(stack, MAX_DAMAGE_COMPONENT),
     damage: (stack) => componentNumber(stack, DAMAGE_COMPONENT),
-    repairsWith: (stack, material) =>
-        matchesSelector(material.id, member(stack.components.get(REPAIRABLE_COMPONENT), 'items'), componentItemView)
+    repairsWith: (stack, material) => repairsWithIn(componentItemView)(stack, material)
 };
+
+/**
+ * `repairsWith` read from a stack's `minecraft:repairable`, with the tags a fuller view knows, so
+ * `#minecraft:repairs_iron_armor` matches the iron ingot once a host supplies the item tags.
+ * @param view - The view whose `tagsOf` resolves a tag-named repair material.
+ */
+export const repairsWithIn =
+    (view: ItemView) =>
+    (stack: ItemStack, material: ItemStack): boolean =>
+        matchesSelector(material.id, member(stack.components.get(REPAIRABLE_COMPONENT), 'items'), view);
 
 /**
  * Whether a stack is in a set that an enchantment's `supported_items`,

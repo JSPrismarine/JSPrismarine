@@ -95,6 +95,30 @@ describe('repairing with a material', () => {
         expect(result.output?.components.get('minecraft:damage')).toBe(200 - 62 * 3);
     });
 
+    it("reads a tag-named repairable through the host's item tags, as every vanilla material is named", () => {
+        // No repairsWith of the host's own: the registry's comes from the stack's component.
+        const tagged = new EnchantmentRegistry({
+            definitions: vanillaDefinitions(),
+            tags: VANILLA_ENCHANTMENT_TAGS,
+            items: {
+                tagsOf: (itemId) => (itemId === 'minecraft:iron_ingot' ? ['minecraft:repairs_iron_armor'] : []),
+                maxDamage: (stack) => (stack.id === 'minecraft:iron_helmet' ? 165 : 0)
+            }
+        });
+        const helmet: ItemStack = {
+            id: 'minecraft:iron_helmet',
+            count: 1,
+            components: new Map<string, unknown>([
+                ['minecraft:damage', 100],
+                ['minecraft:repairable', { items: '#minecraft:repairs_iron_armor' }]
+            ])
+        };
+
+        const result = combineInAnvil(tagged, { base: helmet, addition: stack('minecraft:iron_ingot') });
+
+        expect(result.output?.components.get('minecraft:damage')).toBe(100 - 41);
+    });
+
     it('stops at the damage the item actually has', () => {
         const result = combineInAnvil(registry(), {
             base: stack('minecraft:iron_pickaxe', { damage: 30 }),

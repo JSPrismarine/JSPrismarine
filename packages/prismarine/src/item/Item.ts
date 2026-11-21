@@ -3,6 +3,7 @@ import {
     attributeModifiers,
     damageResistant,
     enchantable,
+    repairable,
     equippable,
     maxDamage,
     maxStackSize,
@@ -674,6 +675,15 @@ export class Item {
 
         const enchantability = this.type()?.params(enchantable)?.value;
         if (enchantability !== undefined) components.set('minecraft:enchantable', { value: enchantability });
+
+        // What repairs it on an anvil, written back as the holder set the datapack spells, which
+        // is what the anvil rule reads.
+        const repairs = this.type()?.params(repairable)?.items;
+        if (repairs !== undefined) {
+            components.set('minecraft:repairable', {
+                items: repairs.kind === 'tag' ? `#${repairs.tag}` : [...repairs.entries]
+            });
+        }
 
         const limit = this.getMaxDurability();
         if (limit > 0) {
