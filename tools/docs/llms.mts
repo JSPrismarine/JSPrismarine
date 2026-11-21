@@ -2,8 +2,9 @@
  * The site's pages as plain Markdown for language models and the tools built on them, as
  * `docs/plans/llms-txt.md` plans. Each page staged from the repository gets a copy at its route with
  * `.md` appended, so `/guide/running` is also `/guide/running.md` and `/guide/` is `/guide/index.md`,
- * `/llms.txt` lists the site's pages in the format https://llmstxt.org/ describes, and
- * `/llms-full.txt` holds the text of the documentation it lists outside `Optional` in one file.
+ * `/llms.txt` lists the site's pages in the format https://llmstxt.org/ describes,
+ * `/llms-full.txt` holds the text of the documentation it lists outside `Optional` in one file, and
+ * `/api/llms.txt` lists the API reference's packages.
  *
  * The copies start from the staged Markdown, which already has its docs facts filled in and its
  * relative links pointed at site routes (see `assemble.mts`). This module only takes off what a model
@@ -16,7 +17,7 @@ import path from 'node:path';
 import { parse } from 'yaml';
 
 import { isRecord } from '../../scripts/isRecord.mts';
-import type { ProjectData } from './project.mts';
+import { packageScope, type ProjectData } from './project.mts';
 import {
     type DocSection,
     fenceLines,
@@ -45,10 +46,14 @@ export interface MarkdownPageOptions {
 
 /**
  * The pages that get a Markdown copy: those staged from the repository, whose source is Markdown
- * written to be read, and the pages the build writes a copy of from data, such as Packages.
+ * written to be read, the API reference's, which TypeDoc writes as Markdown, and the pages the build
+ * writes a copy of from data, such as Packages.
  */
 export const markdownPages = ({ pages, generated }: Pick<MarkdownSite, 'pages' | 'generated'>) =>
-    new Set(pages.filter((page) => isStagedPage(page) || generated?.has(page)));
+    new Set(pages.filter((page) => isStagedPage(page) || page.startsWith('api/') || generated?.has(page)));
+
+/** The API reference's own index for language models, which `/llms.txt` links in place of the reference's page. */
+export const API_INDEX = '/api/llms.txt';
 
 /** The Markdown a page's copy is made from: the copy the build wrote from data, or else the page's own source. */
 const copySource = ({ srcDir, generated }: Pick<MarkdownSite, 'srcDir' | 'generated'>, page: string) =>
@@ -296,7 +301,7 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
     const rest = source.pages
         .filter((page) => page !== 'index.md' && !page.startsWith('api/'))
         .map((page) => `/${pageRoute(page)}`);
-    optional.unshift(...pageLink('/api/'));
+    optional.unshift(...pageLink('/api/').map((link) => ({ ...link, link: API_INDEX })));
     optional.push(...rest.flatMap((link) => pageLink(link)));
 
     const { project } = source;
@@ -348,13 +353,31 @@ export function llmsFullText(index: LlmsIndex, site: Omit<MarkdownSite, 'outDir'
  */
 export const FULL_TEXT_BUDGET = 800_000;
 
-/** Writes `/llms.txt` and `/llms-full.txt` into the built site, and returns what each holds. */
+/**
+ * `/api/llms.txt`: the API reference's packages by area, in the package directory's order, each at its
+ * reference's Markdown copy, which lists the package's classes, functions and types.
+ */
+export function apiIndex(source: Pick<IndexSource, 'srcDir' | 'pages' | 'generated' | 'project'>): LlmsIndex {
+    const { packages } = source.project;
+    const intro = source.pages.includes('api/index.md') ? pageSummary(copySource(source, 'api/index.md')) : '';
+    return {
+        name: 'JSPrismarine API reference',
+        summary: intro,
+        details: [`Every package is published under the \`${packageScope(packages)}\` scope.`],
+        sections: groupPackages(packages).map(({ title, packages: inArea }) => ({
+            title,
+            links: inArea.map((pkg) => ({ title: pkg.name, link: pkg.reference, note: pkg.description }))
+        }))
+    };
+}
+
+/** Writes `/llms.txt`, `/llms-full.txt` and `/api/llms.txt` into the built site, and returns what they hold. */
 export function writeLlmsFiles(source: IndexSource & { outDir: string }) {
     const index = llmsIndex(source);
-    writeFileSync(
-        path.join(source.outDir, 'llms.txt'),
-        llmsText(index, { siteUrl: source.siteUrl, markdownPages: markdownPages(source) })
-    );
+    const options = { siteUrl: source.siteUrl, markdownPages: markdownPages(source) };
+    writeFileSync(path.join(source.outDir, 'llms.txt'), llmsText(index, options));
+    mkdirSync(path.join(source.outDir, path.dirname(API_INDEX)), { recursive: true });
+    writeFileSync(path.join(source.outDir, API_INDEX), llmsText(apiIndex(source), options));
     const full = llmsFullText(index, source);
     const bytes = Buffer.byteLength(full);
     if (bytes > FULL_TEXT_BUDGET)

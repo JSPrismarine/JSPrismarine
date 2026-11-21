@@ -4,6 +4,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+    API_INDEX,
+    apiIndex,
     FULL_TEXT_BUDGET,
     type IndexSource,
     llmsFullText,
@@ -16,6 +18,7 @@ import {
 } from './llms.mts';
 import { loadProject } from './project.mts';
 import type { DocSection } from './sections.mts';
+import { packageAreas } from './site/.vitepress/theme/packageAreas.ts';
 
 const siteUrl = 'https://docs.example/';
 const options = (page: string, pages = ['guide/index.md', 'guide/running.md', 'errors/index.md']) => ({
@@ -103,11 +106,11 @@ describe('pageMarkdown', () => {
 });
 
 describe('markdownPages', () => {
-    it('takes the pages staged from the repository, not those written for the site or by TypeDoc', () => {
+    it("takes the pages staged from the repository and TypeDoc's, not those written for the site", () => {
         const pages = markdownPages({
             pages: ['guide/running.md', 'contributing.md', 'packages.md', 'api/index.md', 'index.md']
         });
-        expect([...pages]).toEqual(['guide/running.md', 'contributing.md']);
+        expect([...pages]).toEqual(['guide/running.md', 'contributing.md', 'api/index.md']);
     });
 
     it('takes a page written for the site when the build writes its copy from data', () => {
@@ -279,7 +282,7 @@ describe('llmsIndex', () => {
             '/data-driven/',
             '/errors/',
             '/errors/nbt',
-            '/api/',
+            API_INDEX,
             '/adr/0001-stats',
             '/plans/dated',
             '/plans/undated',
@@ -309,6 +312,31 @@ describe('llmsIndex', () => {
                 page: 'data-driven/molang.md'
             }
         ]);
+    });
+
+    it("links the API reference's own index, titled and described by the reference's page", () => {
+        const optional = llmsIndex(source()).sections.at(-1);
+        expect(optional?.links[0]).toEqual({
+            title: 'API reference',
+            link: API_INDEX,
+            note: 'Generated from the packages.',
+            page: 'api/index.md'
+        });
+    });
+
+    it("lists the API reference's packages by area in its own index", () => {
+        const project = loadProject();
+        const index = apiIndex(source());
+        expect(index.summary).toBe('Generated from the packages.');
+        expect(index.sections.map(({ title }) => title)).toEqual(packageAreas.map(({ title }) => title));
+        expect(index.sections.flatMap(({ links }) => links.map(({ title }) => title)).toSorted()).toEqual(
+            project.packages.map(({ name }) => name).toSorted()
+        );
+        expect(index.sections.flatMap(({ links }) => links)).toContainEqual({
+            title: '@jsprismarine/nbt',
+            link: '/api/@jsprismarine/nbt/',
+            note: project.packages.find(({ name }) => name === '@jsprismarine/nbt')?.description
+        });
     });
 
     it('lists each published package at its API reference', () => {
