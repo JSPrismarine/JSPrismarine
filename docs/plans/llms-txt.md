@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 4 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 5 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -79,7 +79,11 @@ Publish four kinds of file, all at the site's root or beside the page they mirro
 | `/api/llms.txt`           | An index of the API reference by package, linking each package's TypeDoc Markdown.                |
 
 The API reference gets its own index because it is large and only someone writing code against a
-package needs it. `/llms.txt` links it from its `Optional` section.
+package needs it. `/llms.txt` links it from its `Optional` section. It lists the packages by area,
+as the package directory does, each at its package page's Markdown copy, which lists the package's
+classes, functions and types. TypeDoc writes the reference as Markdown, so every API page gets a
+copy as a staged page does: 1,303 pages and about 19 MB on 2026-11-21, the largest the protocol
+package's index at 806 kB.
 
 ### What `/llms.txt` contains
 
@@ -240,7 +244,7 @@ the built site.
    1. Done: Packages and Releases.
    2. Done: the addon pages and the marketplace.
    3. Done: Parity and Benchmarks.
-5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
+5. Done: `/api/llms.txt` from the package areas, and a Markdown copy of every API page.
 6. The `<link rel="alternate">` head entry.
 
 Each phase is one pull request, and each leaves the site working with what it adds.
