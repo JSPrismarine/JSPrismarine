@@ -6,6 +6,10 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { TransportNames } from '../network/transport/Transport';
+import { framed, TcpFrameReader } from '../network/transport/tcpFrames';
+import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
+import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import { StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -82,7 +86,8 @@ describe('modules/network', () => {
                     getMaxPlayers: () => 1,
                     getMotd: () => 'test server',
                     getEnableRakNet: () => false,
-                    getEnableNetherNet: () => false
+                    getEnableNetherNet: () => false,
+                    getJavaEnabled: () => false
                 })
         });
         const networking = new ServerNetworking(server);
@@ -112,6 +117,7 @@ describe('modules/network', () => {
                     getMotd: () => 'test server',
                     getEnableRakNet: () => false,
                     getEnableNetherNet: () => true,
+                    getJavaEnabled: () => false,
                     getEnableQuery: () => false,
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
                     getEnableLanVisibility: () => false,
@@ -238,6 +244,7 @@ describe('modules/network', () => {
                     getMotd: () => 'test server',
                     getEnableRakNet: () => false,
                     getEnableNetherNet: () => true,
+                    getJavaEnabled: () => false,
                     getServerUdpPorts: () => 'ports',
                     getServerPublicIp: () => ''
                 }),
@@ -262,6 +269,7 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
+                    getJavaEnabled: () => false,
                     getUseRakNetWorker: () => worker,
                     getServerPortV6: () => portV6
                 }),
@@ -292,6 +300,77 @@ describe('modules/network', () => {
             networking.kill();
         }
         expect(networking.getStartedTransports()).toEqual([]);
+    });
+
+    /** {@link rakNetServer} with the Java Edition listener on `javaPort`. */
+    const javaServer = (javaPort: number) => {
+        const server = rakNetServer(0);
+        const config = server.getConfig();
+        return stub<Server>({
+            ...server,
+            getConfig: () =>
+                Object.assign(Object.create(config), { getJavaEnabled: () => true, getJavaPort: () => javaPort })
+        });
+    };
+
+    it('answers a Java server list ping with the name and counts the RakNet pong shows', async () => {
+        const holder = net.createServer();
+        holder.listen(0, '127.0.0.1');
+        await once(holder, 'listening');
+        const address = holder.address();
+        const port = typeof address === 'object' && address !== null ? address.port : 0;
+        holder.close();
+        await once(holder, 'close');
+        const networking = new ServerNetworking(javaServer(port));
+
+        try {
+            await networking.start('127.0.0.1', 0);
+            expect(networking.getStartedTransports()).toEqual([TransportNames.raknet, TransportNames.tcp]);
+
+            const socket = net.connect(port, '127.0.0.1');
+            await once(socket, 'connect');
+            socket.write(
+                framed(
+                    encodeJavaPacket(Intention, {
+                        protocolVersion: 777,
+                        serverAddress: 'localhost',
+                        serverPort: port,
+                        intent: ClientIntent.Status
+                    })
+                )
+            );
+            socket.write(framed(encodeJavaPacket(StatusRequest, {})));
+            const [chunk] = await once(socket, 'data');
+            socket.destroy();
+            const read = new TcpFrameReader().push(chunk);
+            if (!('frames' in read) || read.frames[0] === undefined) throw new Error('expected a status frame');
+            const { body } = readJavaPacketId(read.frames[0]);
+
+            expect(JSON.parse(decodeJavaPacket(StatusResponse, body).json)).toMatchObject({
+                players: { max: 1, online: 0 },
+                description: { text: 'test server' }
+            });
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('stops the start and names the port when the Java TCP port is taken', async () => {
+        const holder = net.createServer();
+        holder.listen(0, '127.0.0.1');
+        await once(holder, 'listening');
+        const address = holder.address();
+        const taken = typeof address === 'object' && address !== null ? address.port : 0;
+        const networking = new ServerNetworking(javaServer(taken));
+
+        try {
+            await expect(networking.start('127.0.0.1', 0)).rejects.toThrow(
+                `Java Edition cannot listen on TCP port ${taken}: listen EADDRINUSE`
+            );
+        } finally {
+            networking.kill();
+            holder.close();
+        }
     });
 
     it('listens on IPv6 beside a wildcard IPv4 bind and advertises both ports', async () => {
@@ -505,6 +584,7 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
+                    getJavaEnabled: () => false,
                     getUseRakNetWorker: () => false
                 }),
             getLogger: () =>
@@ -640,6 +720,7 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
+                    getJavaEnabled: () => false,
                     getUseRakNetWorker: () => false
                 }),
             getLogger: () =>
@@ -696,6 +777,7 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => rakNet,
                     getEnableNetherNet: () => true,
+                    getJavaEnabled: () => false,
                     getUseRakNetWorker: () => worker,
                     getEnableQuery: () => query,
                     // Unset, query-port follows server-port.

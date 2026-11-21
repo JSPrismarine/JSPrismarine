@@ -177,6 +177,10 @@ export interface ConfigFile {
     'use-raknet-worker'?: boolean;
     /** Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to. */
     'enable-nethernet'?: boolean;
+    /** Whether to answer Java Edition clients on `java-port`. */
+    'java-enabled'?: boolean;
+    /** The TCP port Java Edition clients connect to. */
+    'java-port'?: number;
     /** The UDP ports NetherNet players use, as Bedrock Dedicated Server's `server-udp-ports`: a port or a range, each optionally a `public:local` mapping. */
     'server-udp-ports'?: string;
     /** The address NetherNet advertises, as Bedrock Dedicated Server's `server-public-ip`: a raw IPv4, a raw or bracketed IPv6, or empty. */
@@ -289,6 +293,8 @@ export const CONFIG_KEY_ORDER = [
     'enable-raknet',
     'use-raknet-worker',
     'enable-nethernet',
+    'java-enabled',
+    'java-port',
     'server-udp-ports',
     'server-public-ip',
     'enable-server-public-ip-lookup',

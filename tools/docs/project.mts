@@ -79,6 +79,8 @@ export const demoServer: DemoServer = {
 export interface ProjectData {
     /** The port a fresh server listens on. */
     defaultPort: number;
+    /** The TCP port a server with Java Edition on listens on for Java clients. */
+    javaPort: number;
     demo: DemoServer;
     engines: { node: string; pnpm: string };
     /** The SPDX license expression the workspace is released under, such as `(MIT OR MPL-2.0)`. */
@@ -181,6 +183,12 @@ export function loadProject(): ProjectData {
         'the default port'
     );
 
+    const [, javaPort] = fromSource(
+        path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
+        /^\s+'java-port': (\d+),$/m,
+        'the default Java Edition port'
+    );
+
     const netherNetDefaults = path.join(
         packagesDir,
         'prismarine',
@@ -226,6 +234,7 @@ export function loadProject(): ProjectData {
         netherNetLanPort: Number(netherNetLanPort),
         netherNetIdentityFile,
         defaultPort: Number(port),
+        javaPort: Number(javaPort),
         demo: demoServer,
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         license: root.license ?? '',

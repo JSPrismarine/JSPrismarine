@@ -392,5 +392,10 @@ export const PrismarineNetworkErrors = defineErrors('prismarine', {
      * that changes vanilla blocks is the usual cause.
      */
     ContentPaletteMismatch:
-        "the content block palette disagrees with the client's in {count} place(s), first: {block} {detail}"
+        "the content block palette disagrees with the client's in {count} place(s), first: {block} {detail}",
+    /**
+     * A Java Edition client sent a packet its connection's phase has no place for. The server
+     * closes the connection; a client of another release, or a modified one, is the usual cause.
+     */
+    UnexpectedJavaPacket: 'Packet {packetId} has no place in the {phase} phase'
 });

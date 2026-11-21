@@ -42,6 +42,8 @@ import NetherNetTransport from '../network/transport/NetherNetTransport';
 import RakNetTransport from '../network/transport/RakNetTransport';
 import type { Transport, TransportConnection, TransportName } from '../network/transport/Transport';
 import { TransportNames } from '../network/transport/Transport';
+import { TcpTransport } from '../network/transport/TcpTransport';
+import { JavaHandshakes } from '../network/java/JavaHandshakes';
 import { about } from '../about';
 import { softwareLabel } from '../version';
 import type Server from '../Server';
@@ -133,6 +135,8 @@ export class ServerNetworking implements Networking {
     private signaling: HttpSignaling | undefined;
     /** Stops the public address lookup; set while NetherNet looks one up. */
     private publicIpLookup: AbortController | undefined;
+    /** The Java Edition listener and what answers on it; set while `java-enabled` is on. */
+    private java: { readonly transport: TcpTransport; readonly handshakes: JavaHandshakes } | undefined;
     /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
     private querySocket: QuerySocket | undefined;
     /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
@@ -227,9 +231,15 @@ export class ServerNetworking implements Networking {
                 if (transports.length === 0) {
                     throw new PrismarineServerErrors.NoTransportEnabled();
                 }
+                // Not among the transports returned: Java frames are not Bedrock batches, so the
+                // Bedrock dispatcher never sees them. It shares the connection IDs all the same.
+                if (config.getJavaEnabled()) {
+                    this.java = this.startJava(address, config.getJavaPort(), serverName, ids, listening);
+                }
                 this.startedTransports = [
                     ...(rakNet.length > 0 ? [TransportNames.raknet] : []),
-                    ...(driver !== undefined ? [TransportNames.nethernet] : [])
+                    ...(driver !== undefined ? [TransportNames.nethernet] : []),
+                    ...(this.java !== undefined ? [TransportNames.tcp] : [])
                 ];
                 return transports;
             });
@@ -306,6 +316,8 @@ export class ServerNetworking implements Networking {
         this.signaling = undefined;
         this.querySocket?.close();
         this.querySocket = undefined;
+        this.java?.transport.close();
+        this.java = undefined;
         this.transport?.close();
         this.startedTransports = [];
     }
@@ -347,6 +359,28 @@ export class ServerNetworking implements Networking {
             if (raknet instanceof WorkerServerSocket) delivered += raknet.pollInbound();
         }
         return delivered;
+    }
+
+    /**
+     * Binds the Java Edition listener, which answers a server list ping with the same name and
+     * counts the RakNet pong shows, and refuses a join.
+     */
+    private startJava(
+        address: string,
+        port: number,
+        serverName: ServerName,
+        ids: ConnectionIds,
+        listening: Promise<void>[]
+    ): { transport: TcpTransport; handshakes: JavaHandshakes } {
+        const logger = this.server.getLogger();
+        const transport = new TcpTransport(ids, logger);
+        const handshakes = new JavaHandshakes(transport, serverName, logger);
+        listening.push(
+            transport.listen(address, port).catch((cause: Error) => {
+                throw new PrismarineServerErrors.JavaPortNotBound({ port, reason: cause.message }, { cause });
+            })
+        );
+        return { transport, handshakes };
     }
 
     /** Binds the RakNet listener, on a worker thread when the config says so. */

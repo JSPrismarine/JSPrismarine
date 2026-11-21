@@ -2226,6 +2226,15 @@ Thrown as `PrismarineNetworkErrors.TraceOutOfOrder`, which extends `Error`.
 
 A packet trace was recorded out of order, so it is damaged.
 
+### `PRISMARINE_UNEXPECTED_JAVA_PACKET`
+
+`Packet {packetId} has no place in the {phase} phase`
+
+Thrown as `PrismarineNetworkErrors.UnexpectedJavaPacket`, which extends `Error`.
+
+A Java Edition client sent a packet its connection's phase has no place for. The server
+closes the connection; a client of another release, or a modified one, is the usual cause.
+
 ### `PRISMARINE_UNKNOWN_HELD_BLOCK`
 
 `No block named {name}, held at {x} {y} {z}`
@@ -2477,6 +2486,16 @@ Thrown as `PrismarineServerErrors.InvalidServerReplayRandomState`, which extends
 
 A replay's saved server random state does not have the shape the server writes, so the save
 or the replay that holds it is damaged.
+
+### `PRISMARINE_JAVA_PORT_NOT_BOUND`
+
+`Java Edition cannot listen on TCP port {port}: {reason}`
+
+Thrown as `PrismarineServerErrors.JavaPortNotBound`, which extends `Error`.
+
+The Java Edition listener could not bind its TCP port, usually because another server, such
+as a Java Edition server, holds it. Stop the other server, change `java-port` in
+`config.json`, or set `java-enabled` to `false`.
 
 ### `PRISMARINE_LISTENERS_FAILED_TO_START`
 

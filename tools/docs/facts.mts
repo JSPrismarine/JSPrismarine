@@ -1334,6 +1334,7 @@ export async function loadFacts(): Promise<Facts> {
         Object.entries({
             'server.version': project.version,
             'server.port': String(project.defaultPort),
+            'server.javaPort': String(project.javaPort),
             'demo.address': project.demo.address,
             'demo.port': String(project.demo.port),
             'demo.sponsor': project.demo.sponsor.name,

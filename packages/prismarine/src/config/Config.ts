@@ -103,6 +103,9 @@ const COMMENTS = {
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'enable-nethernet':
         'Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.',
+    'java-enabled':
+        'Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.',
+    'java-port': 'The TCP port Java Edition clients connect to. They look for 25565.',
     'server-udp-ports':
         "The UDP ports NetherNet players use, as Bedrock Dedicated Server's server-udp-ports. A single port, such as 19489, puts every player on it. A range, such as 19400-19500, spreads players over its ports and reuses a port once every port has a player. Either can be a public:local mapping for a server behind NAT or port forwarding, such as 29489:19489 or 21200-21300:19400-19500, with the same number of ports on each side. Commas join entries whose local ports form one continuous range. Unset or empty, it is server-port, shared with RakNet. A port that is also server-port or server-portv6 is shared with RakNet. Ignored when enable-nethernet is off.",
     'server-public-ip':
@@ -265,6 +268,8 @@ const DEFAULTS = {
     'enable-raknet': true,
     'use-raknet-worker': true,
     'enable-nethernet': true,
+    'java-enabled': false,
+    'java-port': 25565,
     'server-udp-ports': '',
     'server-public-ip': '',
     'enable-server-public-ip-lookup': true,
@@ -410,6 +415,8 @@ export class Config {
     private enableRakNet: boolean = DEFAULTS['enable-raknet'];
     private useRakNetWorker: boolean = DEFAULTS['use-raknet-worker'];
     private enableNetherNet: boolean = DEFAULTS['enable-nethernet'];
+    private javaEnabled: boolean = DEFAULTS['java-enabled'];
+    private javaPort: number = DEFAULTS['java-port'];
     private serverUdpPorts: string = DEFAULTS['server-udp-ports'];
     private serverPublicIp: string = DEFAULTS['server-public-ip'];
     private enableServerPublicIpLookup: boolean = DEFAULTS['enable-server-public-ip-lookup'];
@@ -563,6 +570,8 @@ export class Config {
         this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
+        this.javaEnabled = read('java-enabled', DEFAULTS['java-enabled']);
+        this.javaPort = read('java-port', DEFAULTS['java-port']);
         // Unset, NetherNet's UDP and query follow the server port, as Bedrock Dedicated Server's
         // server-udp-ports does; reading them writes nothing.
         this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
@@ -1072,6 +1081,16 @@ export class Config {
     /** Whether the server accepts clients over NetherNet. */
     public getEnableNetherNet(): boolean {
         return this.enableNetherNet;
+    }
+
+    /** Whether the server answers Java Edition clients on {@link getJavaPort}. */
+    public getJavaEnabled(): boolean {
+        return this.javaEnabled;
+    }
+
+    /** The TCP port Java Edition clients connect to. */
+    public getJavaPort(): number {
+        return this.javaPort;
     }
 
     /** The NetherNet UDP ports setting, unparsed, in Bedrock Dedicated Server's syntax; empty means the server port. */

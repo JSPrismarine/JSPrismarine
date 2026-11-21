@@ -268,6 +268,12 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
      */
     RaknetPortNotBound: 'RakNet cannot listen on UDP port {port}: {reason}',
     /**
+     * The Java Edition listener could not bind its TCP port, usually because another server, such
+     * as a Java Edition server, holds it. Stop the other server, change `java-port` in
+     * `config.json`, or set `java-enabled` to `false`.
+     */
+    JavaPortNotBound: 'Java Edition cannot listen on TCP port {port}: {reason}',
+    /**
      * RakNet could not bind the IPv6 UDP port, usually because another server holds it or the
      * machine has IPv6 turned off. Free the port, or change `server-portv6` in `config.json`.
      */

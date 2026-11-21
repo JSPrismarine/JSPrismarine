@@ -21,9 +21,9 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Done, [#3418](https://github.com/JSPrismarine/JSPrismarine/pull/3418). |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | Interaction, session settings and block interfaces done ([#3421](https://github.com/JSPrismarine/JSPrismarine/pull/3421), [#3429](https://github.com/JSPrismarine/JSPrismarine/pull/3429), [#3431](https://github.com/JSPrismarine/JSPrismarine/pull/3431)). Movement and inventory wait for their slices. |
-| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, in review. |
-| 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
-| 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
+| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
+| 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
+| 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | In review. |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Not started |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
@@ -197,6 +197,13 @@ The order the first milestone needs is chunks, position and look, chat and syste
 game mode and abilities, the player list, and keep-alive. Entities, windows, inventories, block
 changes, forms, trade, maps, books and camera follow in PR 10's slices.
 
+PR 5 closed with every item but chunks and keep-alive. Bedrock's chunk send is Bedrock from top
+to bottom: the publisher view, sub chunk request mode, the client blob cache and a batch cache keyed
+by codec. Where its seam falls depends on what a Java chunk encoder with light needs, so the chunk
+contract is drawn in PR 9 beside that encoder rather than guessed at here. Keep-alive is no
+presenter call: RakNet keeps a Bedrock connection alive itself, and Java's keep-alive belongs to
+the Java connection, also PR 9.
+
 Composition rather than subclassing: a subclass per edition would push edition checks into every
 session method that calls another, and a presenter keeps the edition in one field.
 
@@ -209,6 +216,11 @@ Java 777 sessions is encoded twice. PR 6 introduces the encoder seam with Bedroc
 replica tests assert encode counts per key, as [Measuring performance](../../AGENTS.md#measuring-performance)
 asks. Two replicators, one per edition, would compute the audience twice and were not chosen.
 
+PR 6 comes after PR 9 rather than before PR 7. The first milestone's sends all go to the joining
+player's own session, through its presenter, and the replicator's first Java consumer is PR 10's
+other players and entities. The roster broadcasts PR 5e left building one Bedrock packet move with
+it.
+
 ## 6. The Java transport, login and tables
 
 ### Transport
@@ -219,6 +231,16 @@ encryption response. `TransportConnection` already treats a frame as opaque byte
 transport hands the session layer the frames and a Java `MinecraftSession` counterpart owns the
 compression and cipher, the way the Bedrock one owns the batch and `EncryptionCodec`. The listener
 opens on `java-port`, default 25565, only when `java-enabled` is true.
+
+PR 7 built the transport, `src/java/` with the handshake, status and login disconnect packets, and
+a `JavaHandshakes` responder that answers a server list ping and refuses a join. Those packets have
+the same ids and layouts in every release, so they are declarative definitions read straight off a
+frame, with no codec. The TCP transport shares the server's connection ids but is not one of the
+Bedrock dispatcher's transports, since its frames are not Bedrock batches. Lifting the codec
+interface to the protocol root, and generalizing `NetworkPacket`'s default protocol, move to PR 8,
+where the Java codec first carries per-release packet ids. The layouts were checked by pinging the
+pinned 26.3 vanilla server with them: it read the handshake, status request and ping, and they read
+its status response, pong and login disconnect.
 
 ### Phases
 

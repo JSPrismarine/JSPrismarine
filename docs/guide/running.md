@@ -379,7 +379,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->43<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->45<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -412,6 +412,8 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                                                                                                                                                             |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                                                                                                                                                                  |
 | `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                                                                                                                                                                |
+| `java-enabled`                        | Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.                                                                                                                                                                                                                        |
+| `java-port`                           | The TCP port Java Edition clients connect to. They look for 25565.                                                                                                                                                                                                                                                                                  |
 | `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.                                   |
 | `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                                                                                                                                                                          |
 | `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                                                                                                                                                                 |
@@ -516,6 +518,18 @@ The first time NetherNet starts, the server writes its identity key to
 <!-- fact:nethernet.identityFile -->`nethernet-identity.pem`<!-- /fact --> in its data directory.
 Clients remember the key, and one that meets a different key asks the player to trust the server
 again, so keep the file with your worlds when you move or rebuild the server.
+
+### Java Edition
+
+With `java-enabled` set to `true`, the server also listens for Java Edition clients on TCP
+`java-port`, <!-- fact:server.javaPort -->25565<!-- /fact --> by default. A Java client's server
+list then shows the server with its MOTD, the Java release it speaks and the count of players of
+both editions, the same count a Bedrock client sees. Java Edition players cannot join yet: the server refuses a join with a message that
+says so. [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks the work that opens
+joining.
+
+When another program holds `java-port`, the server does not start, and its error names the port.
+Free it, change `java-port`, or set `java-enabled` to `false`.
 
 ### Query
 
