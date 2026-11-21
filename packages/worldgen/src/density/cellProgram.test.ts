@@ -7,6 +7,7 @@ import type { Noise } from '../noise/GradientNoise';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
+import { CELL_NODE_WORDS, CellOp } from './cellProgram';
 import { DensityFunctionCompiler } from './compile';
 import type { InterpolationCellSize } from './compile';
 import { parseDensityFunction } from './parse';
@@ -104,6 +105,42 @@ describe('the cell program', () => {
             expect(program.fallbackSamples).toBe(0);
         });
     }
+
+    it('lays a shared node out once, as one record a native interpreter can read', () => {
+        // A named density function is one node wherever it is referenced, as in Java.
+        const fail = (id: string): never => {
+            throw new RangeError(`unexpected reference ${id}`);
+        };
+        const shared = parseDensityFunction(
+            {
+                type: 'minecraft:abs',
+                input: { type: 'minecraft:noise', noise: 'minecraft:test', xz_scale: 1, y_scale: 1 }
+            },
+            fail
+        );
+        const tree = parseDensityFunction(
+            {
+                type: 'minecraft:add',
+                left: 'test:shared',
+                right: { type: 'minecraft:mul', left: 'test:shared', right: 2 }
+            },
+            (id) => (id === 'test:shared' ? shared : fail(id))
+        );
+        const compiler = new DensityFunctionCompiler({
+            noise: () => ({ get3: () => 0.5, get2: () => 0.5 }),
+            random: () => new LegacyRandomSource(1n),
+            endIslandRandom: () => new LegacyRandomSource(1n)
+        });
+        const program = compiler.cellProgram(tree, { xz: 4, y: 8 });
+        const ops = Array.from(
+            { length: program.nodes.length / CELL_NODE_WORDS },
+            (_, index) => program.nodes[index * CELL_NODE_WORDS]
+        );
+
+        // add, abs, the noise leaf, mul and the constant 2: the shared abs and its input once each.
+        expect(ops).toEqual([CellOp.add, CellOp.abs, CellOp.fallback, CellOp.mulConstant, CellOp.constant]);
+        expect(program.buffers.length).toBe(ops.length * program.size);
+    });
 
     it('fills every cell the chunk walk does not prove empty, and nothing else', () => {
         const state = new RandomState(vanillaData, 1234n, vanillaData.settings('minecraft:overworld'));
