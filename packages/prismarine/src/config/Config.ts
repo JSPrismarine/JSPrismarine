@@ -121,7 +121,7 @@ const COMMENTS = {
     'server-public-ip':
         "The address NetherNet advertises to players, as Bedrock Dedicated Server's server-public-ip: set it when the server is behind NAT, a firewall or port forwarding. A raw IPv4 or a raw or [bracketed] IPv6, with no port or hostname. Empty advertises the host's own addresses and, to a player joining by address, the address that player typed. Ignored when enable-nethernet is off.",
     'enable-server-public-ip-lookup':
-        'Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.',
+        'Whether NetherNet looks up the public address, by asking a few free web services, once a player reaches none of the addresses it offered, and offers it beside them when that player tries again. It never replaces server-public-ip. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.',
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':

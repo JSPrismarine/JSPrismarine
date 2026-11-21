@@ -438,7 +438,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `java-enabled`                        | Whether Java Edition clients can join on java-port.                                                                                                                                                                                                                                                                                                 |
 | `java-port`                           | The TCP port Java Edition clients connect to. They look for 25565.                                                                                                                                                                                                                                                                                  |
 | `account-linking`                     | Whether a player can link their Java Edition and Xbox accounts with /link, so both play as one player with one record. Off, each account is its own player and links already made are kept but ignored.                                                                                                                                             |
-| `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.                                   |
+| `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address, by asking a few free web services, once a player reaches none of the addresses it offered, and offers it beside them when that player tries again. It never replaces server-public-ip. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.       |
 | `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                                                                                                                                                                          |
 | `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                                                                                                                                                                 |
 | `packet-compression-algorithm`        | The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.                                                                                                                                                                                                       |
@@ -528,10 +528,12 @@ header and resolves a hostname through DNS. Set `server-public-ip` when players 
 through a proxy on another address, and when the log warns that a join was offered no public
 address.
 
-With `server-public-ip` empty, the server looks up its public address when NetherNet starts, by
-asking a few free web services in turn, and logs the address it found. A join whose answer would
-otherwise carry no public address gets that one. When every service fails, the log warns and joins
-are answered as before. Set `enable-server-public-ip-lookup` to `false` to stop the lookup. A server
+When a player reaches none of the addresses an answer offered, the server looks up its public
+address by asking a few free web services in turn, once, and logs the address it found. That
+player's next join gets the address beside the others, never in place of `server-public-ip`, and
+the log warns when the services report another address than the one `server-public-ip` names.
+Players whose joins connect never get it. When every service fails, the log warns and joins are
+answered as before. Set `enable-server-public-ip-lookup` to `false` to stop the lookup. A server
 bound to a loopback address skips it.
 
 NetherNet runs on a native library that the server's package downloads when it is installed. Where
