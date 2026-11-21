@@ -10,7 +10,8 @@ import { OPCODES, pinnedJavaClassFile } from './javaClassFile.ts';
 /**
  * The Java gameplay a player meets outside any one block, item or mob, as rows of the
  * `gameplay.mechanics` family: every game rule's effect, every mob effect, every enchantment's
- * effect, every damage type, every recipe, and the player and world systems Java runs in code.
+ * effect, every damage type, every recipe and advancement, and the player and world systems Java
+ * runs in code.
  *
  * The first four come from Java's own registries, so a Java release that adds an effect or a
  * damage type adds its row. The systems have no registry, so {@link JAVA_MECHANICS} lists them
@@ -200,14 +201,22 @@ export const javaMobEffects = (): readonly string[] => {
 
 /** The entries of one vanilla datapack registry directory, as namespaced ids. */
 export const javaDatapackEntries = (registry: string): readonly string[] =>
-    readdirSync(join(unpackVanillaDatapack(), 'data', 'minecraft', registry))
+    readdirSync(join(unpackVanillaDatapack(), 'data', 'minecraft', registry), { recursive: true })
+        .map(String)
         .filter((file) => file.endsWith('.json'))
-        .map((file) => `minecraft:${file.slice(0, -'.json'.length)}`)
+        .map((file) => `minecraft:${file.slice(0, -'.json'.length).split('\\').join('/')}`)
         .sort();
+
+/**
+ * Java's advancements, but the recipe unlocks under `recipes/`, which only grant a recipe in the
+ * recipe book (the `recipe-book` mechanic) and show the player nothing of their own.
+ */
+const javaAdvancements = (): readonly string[] =>
+    javaDatapackEntries('advancement').filter((id) => !id.startsWith('minecraft:recipes/'));
 
 /** One gameplay row's identifier: the kind of Java gameplay, then its id, such as `mob_effect/minecraft:speed`. */
 export const gameplayId = (
-    kind: 'game_rule' | 'mob_effect' | 'enchantment' | 'damage_type' | 'recipe' | 'mechanic',
+    kind: 'game_rule' | 'mob_effect' | 'enchantment' | 'damage_type' | 'recipe' | 'advancement' | 'mechanic',
     id: string
 ) => `${kind}/${id}`;
 
@@ -218,6 +227,7 @@ export const javaGameplayUniverse = (): readonly string[] => [
     ...javaDatapackEntries('enchantment').map((id) => gameplayId('enchantment', id)),
     ...javaDatapackEntries('damage_type').map((id) => gameplayId('damage_type', id)),
     ...javaDatapackEntries('recipe').map((id) => gameplayId('recipe', id)),
+    ...javaAdvancements().map((id) => gameplayId('advancement', id)),
     ...JAVA_MECHANICS.map((mechanic) => gameplayId('mechanic', mechanic.id))
 ];
 
@@ -229,7 +239,10 @@ const mechanicDescriptions = new Map(JAVA_MECHANICS.map((mechanic) => [mechanic.
  * the one behavior its kind names.
  */
 export const gameplayAspects = (identifier: string): readonly BehaviorAspect[] => {
-    const [kind = '', id = ''] = identifier.split('/');
+    // The id after the kind may hold slashes of its own, as an advancement's does.
+    const slash = identifier.indexOf('/');
+    const kind = identifier.slice(0, slash);
+    const id = identifier.slice(slash + 1);
     switch (kind) {
         case 'game_rule':
             return [
@@ -241,6 +254,13 @@ export const gameplayAspects = (identifier: string): readonly BehaviorAspect[] =
                 {
                     id: 'effect',
                     description: 'what the effect does to an entity that has it, by amplifier, against Java'
+                }
+            ];
+        case 'advancement':
+            return [
+                {
+                    id: 'granted',
+                    description: 'granted, with its toast and its reward, when its criteria are met, against Java'
                 }
             ];
         case 'enchantment':

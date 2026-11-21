@@ -67,7 +67,7 @@ server's real handlers, and returns what differed.
   movement rows are unmeasured.
 - `gameplay.mechanics` lists the gameplay no single block, item or mob owns, from
   [`src/javaGameplay.ts`](src/javaGameplay.ts): each game rule's registration and effect, each mob
-  effect in the pinned jar's `MobEffects`, each enchantment, damage type and recipe in the datapack, and
+  effect in the pinned jar's `MobEffects`, each enchantment, damage type, recipe and advancement in the datapack, and
   the player and world systems Java runs in code, such as hunger, sleeping and brewing.
 - A difference is recorded in [`goldens/behavior-gaps.json`](goldens/behavior-gaps.json) as a
   `defect`, a `deferred` gap or an `intentional` edition difference, each with its reason. The allow
