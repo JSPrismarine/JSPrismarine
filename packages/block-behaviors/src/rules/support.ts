@@ -10,7 +10,8 @@
  */
 import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 
-import { offset } from '../geometry';
+import { CARDINAL_DIRECTIONS, offset, opposite } from '../geometry';
+import { stateNumber, stateString } from '../state';
 import { AIR, isLiquid, isReplaceable } from '../identifiers';
 import type { ItemDrop, WorldActions } from '../world';
 
@@ -89,4 +90,27 @@ export const popWithoutGround = (
     if (supported) return false;
     popBlock(world, block);
     return true;
+};
+
+/**
+ * The face a block with an `attachment` state hangs on: below a standing block, above a hanging
+ * one, and the wall behind one on a side, whose `direction` names the way it faces in cardinal
+ * order. Undefined for an attachment this does not read, such as a bell between two walls.
+ * @param sideHasWall - Whether a `side` attachment reads its wall from `direction`, which a
+ *   grindstone's does and a bell's, with its own direction order, does not.
+ */
+export const attachmentFaceOf = (block: HookBlock, sideHasWall: boolean): BlockFace | undefined => {
+    switch (stateString(block, 'attachment', 'standing')) {
+        case 'standing':
+            return 'down';
+        case 'hanging':
+            return 'up';
+        case 'side': {
+            if (!sideHasWall) return undefined;
+            const facing = CARDINAL_DIRECTIONS[stateNumber(block, 'direction')];
+            return facing === undefined ? undefined : opposite(facing);
+        }
+        default:
+            return undefined;
+    }
 };

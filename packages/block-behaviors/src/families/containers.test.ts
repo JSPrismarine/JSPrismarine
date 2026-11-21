@@ -283,6 +283,18 @@ describe('cauldronFamily', () => {
     });
 });
 
+describe('utilityFamily: grindstone', () => {
+    it('pops off the floor it stood on once the floor goes', () => {
+        const harness = bindFamily(utilityFamily, 'minecraft:grindstone');
+        const at = { x: 0, y: 1, z: 0 };
+        harness.dimension.set(at, 'minecraft:grindstone', { attachment: 'standing', direction: 0 });
+
+        harness.neighborChanged(at, 'down');
+
+        expect(harness.dimension.identifierAt(at)).toBe('minecraft:air');
+    });
+});
+
 describe('utilityFamily: sponge', () => {
     it('soaks up water within six steps and becomes wet', () => {
         const harness = bindFamily(utilityFamily, 'minecraft:sponge');

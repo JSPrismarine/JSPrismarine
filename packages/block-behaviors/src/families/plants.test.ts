@@ -429,6 +429,23 @@ describe('leavesFamily', () => {
     });
 });
 
+describe('cropFamily: cocoa', () => {
+    it('stays on a jungle log in front of it and pops when the log goes', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cocoa');
+        const pod = { x: 0, y: 1, z: 0 };
+        // Direction 2 faces north, toward the log it grows on.
+        harness.dimension.set({ x: 0, y: 1, z: -1 }, 'minecraft:jungle_log');
+        harness.dimension.set(pod, 'minecraft:cocoa', { direction: 2, age: 0 });
+
+        harness.neighborChanged(pod, 'north');
+        expect(harness.dimension.identifierAt(pod)).toBe('minecraft:cocoa');
+
+        harness.dimension.set({ x: 0, y: 1, z: -1 }, 'minecraft:air');
+        harness.neighborChanged(pod, 'north');
+        expect(harness.dimension.identifierAt(pod)).toBe('minecraft:air');
+    });
+});
+
 describe('floraFamily', () => {
     it("keeps a lily pad on water and pops it off anything else, as Java's WaterlilyBlock does", () => {
         const harness = bindFamily(floraFamily, 'minecraft:waterlily');

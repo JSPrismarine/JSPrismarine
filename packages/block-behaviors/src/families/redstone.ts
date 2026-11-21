@@ -11,7 +11,14 @@ import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 import { javaBlockStates } from '@jsprismarine/mapping';
 
 import { defineFamily } from '../family';
-import { faceOfFacingDirection, offset, opposite, rotateClockwise, rotateCounterClockwise } from '../geometry';
+import {
+    CARDINAL_DIRECTIONS,
+    faceOfFacingDirection,
+    offset,
+    opposite,
+    rotateClockwise,
+    rotateCounterClockwise
+} from '../geometry';
 import { AIR } from '../identifiers';
 import { containerSignal } from '../rules/container';
 import { isIgniter } from '../rules/heldItem';
@@ -26,7 +33,7 @@ import {
     wireSignal
 } from '../rules/redstone';
 import { placementFacing } from '../rules/placement';
-import { isSolidSupport, popWithoutSupport } from '../rules/support';
+import { attachmentFaceOf, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
 import type { BlockWorld, WorldActions } from '../world';
 import { cardinalFacing } from './openable';
@@ -568,6 +575,23 @@ export const redstoneFamily = defineFamily(
                     world.notifyNeighbors(block.position);
                 }
                 return;
+            }
+
+            // Java's tripwire hook needs the wall behind the way it faces, and a bell the floor or
+            // ceiling it stands or hangs on.
+            if (name === 'tripwire_hook') {
+                const facing = CARDINAL_DIRECTIONS[stateNumber(block, 'direction')];
+                if (
+                    facing !== undefined &&
+                    event.face === opposite(facing) &&
+                    popWithoutSupport(world, block, opposite(facing))
+                )
+                    return;
+            }
+            if (name === 'bell') {
+                const attached = attachmentFaceOf(block, false);
+                if (attached !== undefined && event.face === attached && popWithoutSupport(world, block, attached))
+                    return;
             }
 
             if (name === 'observer') {

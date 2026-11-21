@@ -53,6 +53,23 @@ describe('redstoneFamily: a comparator', () => {
     });
 });
 
+describe('redstoneFamily: a tripwire hook', () => {
+    it('pops without the wall behind the way it faces', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:tripwire_hook');
+        const hook = { x: 0, y: 1, z: 0 };
+        // Facing north (2), it hangs on the block to its south.
+        harness.dimension.set({ x: 0, y: 1, z: 1 }, 'minecraft:stone');
+        harness.dimension.set(hook, 'minecraft:tripwire_hook', { direction: 2 });
+
+        harness.neighborChanged(hook, 'south');
+        expect(harness.dimension.identifierAt(hook)).toBe('minecraft:tripwire_hook');
+
+        harness.dimension.set({ x: 0, y: 1, z: 1 }, 'minecraft:air');
+        harness.neighborChanged(hook, 'south');
+        expect(harness.dimension.identifierAt(hook)).toBe('minecraft:air');
+    });
+});
+
 describe('redstoneFamily: the bell', () => {
     it('rings for the entities around it when a player strikes it and when power reaches it', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:bell');

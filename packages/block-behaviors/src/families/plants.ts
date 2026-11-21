@@ -5,7 +5,7 @@
 import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { faceOfFacingDirection, offset, opposite } from '../geometry';
+import { CARDINAL_DIRECTIONS, faceOfFacingDirection, offset, opposite } from '../geometry';
 import type { HorizontalFace } from '../geometry';
 import { AIR, isWater } from '../identifiers';
 import type { GrowingPlantHead } from '../rules/growth';
@@ -302,7 +302,20 @@ export const cropFamily = defineFamily(
                 if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
                 return;
             }
-            if (name === 'cocoa' || name === 'nether_wart') return;
+            if (name === 'cocoa') {
+                // Java's CocoaBlock.canSurvive needs `#minecraft:supports_cocoa` (jungle logs) on
+                // the side it faces, which Bedrock's `direction` names in cardinal order.
+                const attached = CARDINAL_DIRECTIONS[stateNumber(event.block, 'direction')] ?? 'south';
+                if (event.face !== attached) return;
+                const log = world.getBlock(offset(event.block.position, attached));
+                const supported =
+                    log !== undefined &&
+                    (world.hasBlockTag?.(log, 'minecraft:supports_cocoa') ??
+                        /jungle_(log|wood)$/.test(bareName(log.identifier)));
+                if (!supported) popBlock(world, event.block);
+                return;
+            }
+            if (name === 'nether_wart') return;
             if (event.face !== 'down') return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
             popWithoutGround(world, event.block, FARMLAND_NAMES, SUPPORTS_CROPS_TAG);

@@ -10,6 +10,7 @@ import { defineFamily } from '../family';
 import { compassDirectionOf, HORIZONTAL_FACES, offset, opposite } from '../geometry';
 import { placementFacing } from '../rules/placement';
 import { isWater } from '../identifiers';
+import { attachmentFaceOf, popWithoutSupport } from '../rules/support';
 import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
 import { bucketContents, bucketOf, isEmptyBucket, isGlassBottle, isIgniter, isWaterBottle } from '../rules/heldItem';
@@ -434,6 +435,12 @@ export const utilityFamily = defineFamily(
                 return;
             }
             absorbWater(world, event.block);
+            if (bareName(event.block.identifier) === 'grindstone') {
+                // Java's grindstone needs the face it is attached to: the floor, the ceiling or a wall.
+                const attached = attachmentFaceOf(event.block, true);
+                if (attached !== undefined && event.face === attached) popWithoutSupport(world, event.block, attached);
+                return;
+            }
             if (bareName(event.block.identifier) !== 'beacon') return;
             world.setBlockData(event.block.position, { levels: beaconLevels(world, event.block.position) });
         },
