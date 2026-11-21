@@ -39,7 +39,10 @@ Each step is its own pull request, proven by the bit comparison against the clos
 2. **Done: the corner trees in C.** Each tree under an `interpolated` node is laid out as a point program, one record per node with every vanilla operation: noise, shifts, blended noise, splines, per-position and per-column caches, `find_top_surface`, `interval_select`, `lerp` and the rest. The C interpreter evaluates one corner per call, and each call takes four double arguments, the shape `node:ffi` called fastest. A cell whose context has a structure or blending hook set keeps its closures. A tree that reaches `pow`, `log`, `end_outer_islands` or a nested `interpolated` node stays in TypeScript whole: V8 and libm do not always round `pow` and `log` alike.
    - Bits: every `interpolated` tree of every vanilla setting matches its closures, and so does a tree per operation.
    - Counts: per overworld chunk, TypeScript noise calls go from 15,683 to 1,079, all of them the aquifer's. A chunk of the nether, caves or floating islands, which have no aquifer, makes none.
-3. **The aquifer**, the TypeScript noise calls left, on the same point program form.
+3. **Done: the aquifer's, surface's and climate's trees in C.** The aquifer, the surface pass's preliminary surface and ore veins, and the biome climate sampler read their trees through `RandomState.densitySampler`, the same point programs with the same hook fallback.
+   - Bits: every router and aquifer tree of every vanilla setting matches its closures, except the nether's two legacy climate noises and the End's islands, which keep their closures.
+   - Counts: an overworld chunk's terrain fill makes 0 noise calls from TypeScript, where it made 1,079. Sampling the climate at 1,536 positions makes 0, where it made 112.
+   - The aquifer's own logic, its pressure and fluid picking, is still TypeScript.
 4. **The per-block cell program in C**, from step 1's records, once the work above it has moved.
 
 ## Risks

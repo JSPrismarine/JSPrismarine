@@ -170,7 +170,7 @@ export class ChunkSampler {
         this.noiseAquifer ??= this.randomState.settings.aquifers
             ? createNoiseAquifer(
                   this.randomState.settings.aquifers,
-                  (node) => this.randomState.sampler(node),
+                  (node) => this.randomState.densitySampler(node),
                   this.context,
                   this.randomState.randomFactory(AQUIFER_SEED),
                   this.volume,

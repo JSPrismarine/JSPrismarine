@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
+import { createClimateSampler } from '../biome/ClimateSampler';
 import { ChunkSampler } from '../chunk/ChunkSampler';
 import { nativeWorldgen, NativeStackNoise } from '../noise/nativeNoise';
 import { RandomState } from '../RandomState';
@@ -33,13 +34,17 @@ const bitsOf = (value: number): number => {
 /** The node types the native interpreter has no operation for. */
 const TYPESCRIPT_ONLY = new Set(['end_outer_islands', 'pow', 'log', 'interpolated']);
 
-/** Whether a tree reaches a node the native interpreter has no operation for. */
+/** The two nether noises Java builds through the pre-1.18 octave chain, which have no kernel. */
+const LEGACY_NOISES = new Set(['minecraft:nether/temperature', 'minecraft:nether/vegetation']);
+
+/** Whether a tree reaches a node the native interpreter has no operation for, or a legacy noise. */
 const reachesTypeScriptOnly = (root: DensityFunctionNode): boolean => {
     const seen = new Set<DensityFunctionNode>();
     const walk = (node: DensityFunctionNode): boolean => {
         if (seen.has(node)) return false;
         seen.add(node);
         if (TYPESCRIPT_ONLY.has(node.type)) return true;
+        if (node.type === 'noise' && LEGACY_NOISES.has(node.noise)) return true;
         return densityInputsOf(node).some(walk);
     };
     return walk(root);
@@ -106,6 +111,23 @@ describe.runIf(available)('density programs in the native library', () => {
 
             expect(native.flatMap((tree) => compare(state, tree, at)).slice(0, 5)).toEqual([]);
             // A tree with a TypeScript-only node keeps its closures rather than half a program.
+            for (const tree of trees.filter(reachesTypeScriptOnly)) expect(state.nativeSampler(tree)).toBeUndefined();
+        });
+    }
+
+    for (const settingsId of vanillaData.noiseSettingsIds) {
+        it(`runs every router and aquifer tree of ${settingsId} that has no TypeScript-only node with the closures' bits`, () => {
+            const settings = vanillaData.settings(settingsId);
+            const state = new RandomState(vanillaData, 1234n, settings);
+            const at = positions(200, settings.noiseSettings.minY, settings.noiseSettings.height);
+            const trees = [...Object.values(settings.noiseRouter), ...Object.values(settings.aquifers ?? {})];
+
+            expect(
+                trees
+                    .filter((tree) => !reachesTypeScriptOnly(tree))
+                    .flatMap((tree) => compare(state, tree, at))
+                    .slice(0, 5)
+            ).toEqual([]);
             for (const tree of trees.filter(reachesTypeScriptOnly)) expect(state.nativeSampler(tree)).toBeUndefined();
         });
     }
@@ -245,19 +267,32 @@ describe.runIf(available)('density programs in the native library', () => {
         }
     });
 
-    // The aquifer still samples its own trees in TypeScript, so the settings here generate none.
-    for (const settingsId of ['minecraft:nether', 'minecraft:floating_islands', 'minecraft:caves']) {
+    // The aquifer's trees run natively too, so a setting with an aquifer makes none either.
+    for (const settingsId of ['minecraft:overworld', 'minecraft:nether', 'minecraft:caves']) {
         it(`fills a chunk of ${settingsId} without one noise sample from TypeScript`, () => {
-            const settings = vanillaData.settings(settingsId);
-            const state = new RandomState(vanillaData, 1234n, settings);
+            const state = new RandomState(vanillaData, 1234n, vanillaData.settings(settingsId));
             const noise = vi.spyOn(NativeStackNoise.prototype, 'get3');
             const sampler = new ChunkSampler(state, { chunkX: 3, chunkZ: -5 });
             for (let index = 0; index < sampler.cellCount; index++) sampler.forEachCellBlock(index, () => {});
             const counted = noise.mock.calls.length;
             noise.mockRestore();
 
-            expect(settings.aquifers).toBeUndefined();
             expect(counted).toBe(0);
         });
     }
+
+    it('samples the climate without one noise sample from TypeScript', () => {
+        const state = new RandomState(vanillaData, 1234n, vanillaData.settings('minecraft:overworld'));
+        const noise = vi.spyOn(NativeStackNoise.prototype, 'get3');
+        const climate = createClimateSampler(state);
+        for (let quartX = 0; quartX < 4; quartX++) {
+            for (let quartZ = 0; quartZ < 4; quartZ++) {
+                for (let quartY = -16; quartY < 80; quartY++) climate.sample(12 + quartX, quartY, quartZ - 20);
+            }
+        }
+        const counted = noise.mock.calls.length;
+        noise.mockRestore();
+
+        expect(counted).toBe(0);
+    });
 });
