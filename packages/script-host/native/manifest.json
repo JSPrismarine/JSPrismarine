@@ -1,7 +1,7 @@
 {
     "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
-    "build": "d98b6cb598ebe3eb",
-    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/script-host-build-d98b6cb598ebe3eb",
+    "build": "8a16f5b67a377557",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/script-host-build-8a16f5b67a377557",
     "platforms": {
         "darwin-arm64": {
             "shared": {
@@ -42,7 +42,7 @@
             "shared": {
                 "file": "win32-x64-libjsp_script_host.dll",
                 "bytes": 1132032,
-                "sha256": "26fa54b7168a05c6140977aa3d73430998a53b7b0049d162974b27337723d966"
+                "sha256": "780e0fe3b2e6f28846fd4d08f0c71b7e2a6dfbd322254474e11ae95f037d8b6d"
             }
         }
     }
