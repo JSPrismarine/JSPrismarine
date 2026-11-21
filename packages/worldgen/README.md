@@ -152,7 +152,9 @@ in vanilla is almost all of them; the blocks and draws stay the same.
 result, for one block, one column or a whole 16 by 16 chunk. `forEachCellBlock` walks the chunk one
 interpolation cell at a time and is what a generator filling a whole chunk should use: it fills
 each cell's densities at once through a `CellProgram`, which evaluates the density tree one node at
-a time over the cell's 128 blocks rather than one closure chain per block, and its `interpolated`
+a time over the cell's 128 blocks rather than one closure chain per block. The program is flat:
+one record of 32-bit words per distinct node in `CellProgram.nodes`, its constants in
+`CellProgram.constants`, the form a native interpreter will read. Its `interpolated`
 nodes fill cells in Java's volume order, the order `doFill` builds terrain in. `density`, `column`
 and `fill` sample one block at a time in the order of Java's per-block `sampleValue`. The two
 orders differ in the last bits of a float, so they can differ at a block whose density sits within
