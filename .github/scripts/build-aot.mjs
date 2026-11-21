@@ -165,6 +165,17 @@ if (scriptHostLibrary === undefined) {
     console.log(`Embedding the script host library (${scriptHostLibrary.byteLength} bytes)`);
 }
 
+// Without it the executable generates terrain with its TypeScript noise, the same bits but slower.
+const nativeWorldgenLibrary =
+    nativePlatforms[target] === undefined
+        ? undefined
+        : await embeddableLibrary('native-worldgen', nativePlatforms[target]);
+if (nativeWorldgenLibrary === undefined) {
+    console.warn(`No native worldgen library for ${target}: the executable generates terrain in TypeScript.`);
+} else {
+    console.log(`Embedding the native worldgen library (${nativeWorldgenLibrary.byteLength} bytes)`);
+}
+
 const checkedInSource = readFileSync(embeddedDataPath, 'utf8');
 const withPayload = checkedInSource
     .replace(
@@ -182,6 +193,10 @@ const withPayload = checkedInSource
     .replace(
         "export const EMBEDDED_SCRIPT_HOST_LIBRARY = '';",
         `export const EMBEDDED_SCRIPT_HOST_LIBRARY = '${scriptHostLibrary === undefined ? '' : Buffer.from(scriptHostLibrary).toString('base64')}';`
+    )
+    .replace(
+        "export const EMBEDDED_NATIVE_WORLDGEN_LIBRARY = '';",
+        `export const EMBEDDED_NATIVE_WORLDGEN_LIBRARY = '${nativeWorldgenLibrary === undefined ? '' : Buffer.from(nativeWorldgenLibrary).toString('base64')}';`
     );
 if (withPayload === checkedInSource) {
     throw new Error(`${embeddedDataPath} no longer holds the empty constants this script fills in`);

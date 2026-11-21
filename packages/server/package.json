@@ -75,6 +75,7 @@
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/native-network": "workspace:*",
+        "@jsprismarine/native-worldgen": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",

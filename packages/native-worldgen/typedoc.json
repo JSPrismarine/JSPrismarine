@@ -1,4 +1,4 @@
 {
-    "entryPoints": ["src/NativeWorldgen.ts", "src/library.ts", "src/install.ts"],
+    "entryPoints": ["src/NativeWorldgen.ts", "src/library.ts", "src/install.ts", "src/embed.ts"],
     "readme": "README.md"
 }

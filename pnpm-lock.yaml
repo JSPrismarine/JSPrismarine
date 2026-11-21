@@ -2006,6 +2006,9 @@ importers:
       '@jsprismarine/native-network':
         specifier: workspace:*
         version: link:../native-network
+      '@jsprismarine/native-worldgen':
+        specifier: workspace:*
+        version: link:../native-worldgen
       '@jsprismarine/packs':
         specifier: workspace:*
         version: link:../packs
