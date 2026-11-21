@@ -45,13 +45,14 @@ const collect = (files: Map<string, Uint8Array>, root: string, prefix: string): 
     }
 };
 
-/** The newest version directory under a cache folder that holds `marker`. */
-const newestVersionWith = (root: string, marker: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-    for (const entry of readdirSync(root).sort().reverse()) {
-        if (existsSync(path.join(root, entry, marker))) return path.join(root, entry);
-    }
-    return undefined;
+/**
+ * A cache folder's directory for one Java release, when it holds `marker`. The server generates
+ * with the release `sources.json` names as its default, so that is the one an executable carries,
+ * whatever newer snapshot the cache also holds for the preview.
+ */
+const versionWith = (root: string, version: string, marker: string): string | undefined => {
+    const directory = path.join(root, version);
+    return existsSync(path.join(directory, marker)) ? directory : undefined;
 };
 
 /** What a checkout must run before either packager can build. */
@@ -68,9 +69,15 @@ export const COLD_CACHE_MESSAGE =
  */
 export const buildPackagedData = (repoRoot: string): PackagedData => {
     const cacheRoot = path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine');
-    const datapack = newestVersionWith(path.join(cacheRoot, 'vanilla-datapack'), 'pack.mcmeta');
-    const reports = newestVersionWith(path.join(cacheRoot, 'java-reports'), path.join('generated', 'reports'));
-    const structures = newestVersionWith(path.join(cacheRoot, 'java-structures'), 'empty.nbt');
+    // Parsed JSON pinned in this repository, cross-checked by the bedrock-data fetch tests.
+    const sources: {
+        bds: { defaultProtocolVersion: number; versions: Record<string, BdsPin> };
+        javaServer: { defaultVersion: string };
+    } = JSON.parse(readFileSync(path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json'), 'utf8'));
+    const java = sources.javaServer.defaultVersion;
+    const datapack = versionWith(path.join(cacheRoot, 'vanilla-datapack'), java, 'pack.mcmeta');
+    const reports = versionWith(path.join(cacheRoot, 'java-reports'), java, path.join('generated', 'reports'));
+    const structures = versionWith(path.join(cacheRoot, 'java-structures'), java, 'empty.nbt');
     if (datapack === undefined || reports === undefined || structures === undefined) {
         throw new Error(COLD_CACHE_MESSAGE);
     }
@@ -97,10 +104,6 @@ export const buildPackagedData = (repoRoot: string): PackagedData => {
 
     const bundle = encodeDataBundle(files);
 
-    // Parsed JSON pinned in this repository, cross-checked by the bedrock-data fetch tests.
-    const sources: { bds: { defaultProtocolVersion: number; versions: Record<string, BdsPin> } } = JSON.parse(
-        readFileSync(path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json'), 'utf8')
-    );
     const pin = sources.bds.versions[String(sources.bds.defaultProtocolVersion)];
     if (pin === undefined)
         throw new Error('sources.json pins no Bedrock Dedicated Server for its default protocol version.');
