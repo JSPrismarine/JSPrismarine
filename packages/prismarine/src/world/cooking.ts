@@ -1,6 +1,13 @@
 /** Server-side cooking for the furnace, blast furnace, and smoker block entities. */
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
-import { burnTimeOf, DEFAULT_PROVIDER_CONTEXT, FAST_COOKING_CONTEXT, itemTypesTable } from '@jsprismarine/items';
+import {
+    burnTimeOf,
+    DEFAULT_PROVIDER_CONTEXT,
+    evaluateNumberProvider,
+    FAST_COOKING_CONTEXT,
+    itemTypesTable,
+    speedMultiplierOf
+} from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
@@ -108,6 +115,9 @@ const hasInputAndFuel = (furnace: Furnace): boolean => {
     return false;
 };
 
+/** The speed multiplier every vanilla fuel names, Java's `minecraft:cooking/speed_default`. */
+const VANILLA_FUEL_SPEED = 'minecraft:cooking/speed_default';
+
 /** One cooker update and the block identifier that represents its resulting burn state. */
 export interface FurnaceTick {
     /** The complete block entity after its timers and inventory advance. */
@@ -202,6 +212,7 @@ export const tickFurnace = (
     const result = matched === undefined ? undefined : outputOf(content, matched.result.id, matched.result.count);
     const canCook = matched !== undefined && result !== undefined && fitsOutput(content, output, result);
 
+    const context = cooker.station === 'smelting' ? DEFAULT_PROVIDER_CONTEXT : FAST_COOKING_CONTEXT;
     let cookTicks = tags.getShort('CookTime', 0);
     let burnDuration = tags.getShort('BurnDuration', 0);
     let inventoryChanged = false;
@@ -209,10 +220,7 @@ export const tickFurnace = (
 
     if (burnTime === 0 && canCook && fuel !== undefined) {
         const fuelType = content.items.types.get(fuel.identifier);
-        const fuelTime =
-            fuelType === undefined
-                ? 0
-                : burnTimeOf(fuelType, cooker.station === 'smelting' ? DEFAULT_PROVIDER_CONTEXT : FAST_COOKING_CONTEXT);
+        const fuelTime = fuelType === undefined ? 0 : burnTimeOf(fuelType, context);
 
         if (fuelTime > 0) {
             burnTime = fuelTime;
@@ -226,7 +234,16 @@ export const tickFurnace = (
     }
 
     if (burnTime > 0 && canCook && matched !== undefined && result !== undefined) {
-        const requiredCookTicks = Math.max(1, matched.cookingTime ?? 200);
+        // Java's `getTotalCookTime`: the recipe's time over the burning fuel's speed multiplier,
+        // which is 2 in a smoker or a blast furnace. An empty fuel slot leaves the vanilla fuels'
+        // multiplier, which every vanilla fuel shares.
+        const fuelType = fuel === undefined ? undefined : content.items.types.get(fuel.identifier);
+        const speed =
+            fuelType === undefined
+                ? evaluateNumberProvider(VANILLA_FUEL_SPEED, context)
+                : speedMultiplierOf(fuelType, context);
+        const cookingTime = matched.cookingTime ?? 200;
+        const requiredCookTicks = Math.max(1, speed > 0 ? Math.ceil(cookingTime / speed) : cookingTime);
         tags.addValue('CookTimeTotal', new Types.ShortVal(requiredCookTicks));
         cookTicks++;
 

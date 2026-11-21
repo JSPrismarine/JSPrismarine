@@ -14,7 +14,14 @@ import {
     testSource
 } from '@jsprismarine/item-behaviors';
 import type { TestWorld, WorldActions } from '@jsprismarine/item-behaviors';
-import { ItemStack, loadItemTypes } from '@jsprismarine/items';
+import {
+    DEFAULT_PROVIDER_CONTEXT,
+    FAST_COOKING_CONTEXT,
+    ItemStack,
+    burnTimeOf,
+    loadItemTypes,
+    speedMultiplierOf
+} from '@jsprismarine/items';
 import type { ItemHooks, ItemRegistry } from '@jsprismarine/items';
 import { itemTypesTable } from '@jsprismarine/items/tables';
 import { javaBlockStateToBedrock, javaEntityTypeToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
@@ -210,7 +217,68 @@ const compostsOn = (subject: ItemSubject, roll: number): boolean => {
     return harness.dimension.stateAt(at, 'composter_fill_level') === 2;
 };
 
+/**
+ * Evaluates a Java cooking provider from the vanilla datapack, as Java's `ContextIntProvider` and
+ * `ContextFloatProvider` do: a number, a reference to another provider file, `minecraft:div`
+ * (an integer `Quotient` for an int provider) and `minecraft:conditional` on
+ * `minecraft:block/fast_cooking`.
+ */
+const javaCookingNumber = (node: unknown, fast: boolean, kind: 'int' | 'float'): number => {
+    if (typeof node === 'number') return node;
+    if (typeof node === 'string') {
+        const file = join(
+            unpackVanillaDatapack(),
+            'data',
+            'minecraft',
+            `context_${kind}_provider`,
+            `${node.replace('minecraft:', '')}.json`
+        );
+        // Parsed JSON boundary: a vanilla provider file.
+        return javaCookingNumber(JSON.parse(readFileSync(file, 'utf-8')), fast, kind);
+    }
+    const type = field(node, 'type');
+    if (type === 'minecraft:div') {
+        const quotient =
+            javaCookingNumber(field(node, 'left'), fast, kind) / javaCookingNumber(field(node, 'right'), fast, kind);
+        return kind === 'int' ? Math.trunc(quotient) : quotient;
+    }
+    if (type === 'minecraft:conditional') {
+        const branch = field(node, 'condition') === 'minecraft:block/fast_cooking' && fast ? 'on_true' : 'on_false';
+        return javaCookingNumber(field(node, branch), fast, kind);
+    }
+    return Number.NaN;
+};
+
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
+    {
+        name: 'fuel-burns',
+        aspects: () => ['minecraft:cooking_fuel'],
+        java: "A fuel burns its provider's ticks in a furnace and in a smoker or blast furnace, and speeds the cooking by its multiplier.",
+        reference:
+            'Java AbstractFurnaceBlockEntity.getBurnDuration and getSpeedMultiplier; data/minecraft/context_int_provider/cooking',
+        subjects: () => withComponent('minecraft:cooking_fuel'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            // The item types the furnace tick reads its fuel from.
+            const type = serverContent().items.types.get(subject.bedrock);
+            if (type === undefined) return `the server has no item ${subject.bedrock}`;
+            const fuel = subject.components['minecraft:cooking_fuel'];
+            const differences: string[] = [];
+            for (const [fast, context, where] of [
+                [false, DEFAULT_PROVIDER_CONTEXT, 'a furnace'],
+                [true, FAST_COOKING_CONTEXT, 'a smoker']
+            ] as const) {
+                const burns = javaCookingNumber(field(fuel, 'burn_time'), fast, 'int');
+                const speed = javaCookingNumber(field(fuel, 'speed_multiplier') ?? 1, fast, 'float');
+                const serverBurns = burnTimeOf(type, context);
+                const serverSpeed = speedMultiplierOf(type, context);
+                if (serverBurns !== burns) differences.push(`it burns ${serverBurns} ticks in ${where}, Java ${burns}`);
+                if (serverSpeed !== speed)
+                    differences.push(`it cooks ${serverSpeed} times as fast in ${where}, Java ${speed}`);
+            }
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
     {
         name: 'composts-at-chance',
         aspects: () => ['minecraft:compostable'],

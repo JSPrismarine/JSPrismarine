@@ -43,7 +43,15 @@ const SMELTING_RECIPE: CookingRecipe = {
     cookingTime: 200
 };
 
-const recipeBook = createRecipeBook([SMELTING_RECIPE]);
+/** Java 26.3's blasting recipes keep the furnace's 200 ticks; the fuel's speed multiplier halves them. */
+const BLASTING_RECIPE: CookingRecipe = {
+    ...SMELTING_RECIPE,
+    id: 'fixture:iron_ore_blasting',
+    type: 'minecraft:blasting',
+    station: 'blasting'
+};
+
+const recipeBook = createRecipeBook([SMELTING_RECIPE, BLASTING_RECIPE]);
 const recipeMatch = vi.fn((input: RecipeInput) => recipeBook.match(input));
 const baseContent = buildServerContent(
     fixtureContentOptions({
@@ -197,6 +205,15 @@ describe('tickFurnace', () => {
             undefined,
             { identifier: 'minecraft:iron_ingot', count: 64 }
         ]);
+    });
+
+    it("cooks in a blast furnace in the recipe's time over the fuel's speed multiplier, as Java does", () => {
+        const furnace = furnaceOf([item('minecraft:iron_ore', 0, 2), item('minecraft:coal', 1)], 2, 0);
+
+        const result = tickFurnace(content, furnace, 'minecraft:lit_blast_furnace');
+
+        // Coal's `minecraft:cooking/speed_default` is 2 where `minecraft:block/fast_cooking` holds.
+        expect(result?.tags.getShort('CookTimeTotal', -1)).toBe(100);
     });
 
     it('consumes fuel and advances cooking together when an unlit furnace can start', () => {

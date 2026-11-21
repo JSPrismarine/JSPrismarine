@@ -6,6 +6,7 @@ import { maxStackSize } from './components/universal';
 import type { ItemType } from './hooks';
 import type { ItemRegistry } from './itemTypes';
 import type { ProviderContext } from './numberProvider';
+import type { NumberSource } from './schema';
 import { DEFAULT_PROVIDER_CONTEXT } from './numberProvider';
 import { evaluateNumberProvider } from './numberProvider';
 import { NumberProviderError } from '@jsprismarine/errors/items';
@@ -20,14 +21,31 @@ import { NumberProviderError } from '@jsprismarine/errors/items';
  * @param context - Which conditions the provider branches on hold.
  */
 export const burnTimeOf = (type: ItemType, context: ProviderContext = DEFAULT_PROVIDER_CONTEXT): number => {
-    const fuel = type.params(cookingFuel);
-    if (fuel?.burn_time === undefined) return 0;
-    const source = fuel.burn_time;
+    const burnTime = fuelNumber(type.params(cookingFuel)?.burn_time, context);
+    // A burn time is a `context_int_provider`, whose `minecraft:div` is Java's integer `Quotient`:
+    // a dried kelp block's 4001 burns 2000 ticks in a smoker, not 2001.
+    return burnTime === undefined ? 0 : Math.trunc(burnTime);
+};
+
+/**
+ * How much faster a cooking block cooks while one item type burns in it, Java's
+ * `AbstractFurnaceBlockEntity.getSpeedMultiplier`, which divides a recipe's cooking time: 2 in a
+ * smoker or a blast furnace for the vanilla fuels, through `minecraft:cooking/speed_default`, and
+ * 1 for an item that names no multiplier.
+ *
+ * @param context - Which conditions the provider branches on hold.
+ */
+export const speedMultiplierOf = (type: ItemType, context: ProviderContext = DEFAULT_PROVIDER_CONTEXT): number =>
+    fuelNumber(type.params(cookingFuel)?.speed_multiplier, context) ?? 1;
+
+/** Evaluates one number of a `minecraft:cooking_fuel` component, or undefined when it is absent or unknown. */
+const fuelNumber = (source: NumberSource | undefined, context: ProviderContext): number | undefined => {
+    if (source === undefined) return undefined;
     const node = source.kind === 'inline' ? source.value : source.kind === 'reference' ? source.id : source.provider;
     try {
-        return Math.round(evaluateNumberProvider(node, context));
+        return evaluateNumberProvider(node, context);
     } catch (error) {
-        if (error instanceof NumberProviderError) return 0;
+        if (error instanceof NumberProviderError) return undefined;
         throw error;
     }
 };
