@@ -232,9 +232,11 @@ Renovate and the release pull request start two in five of all runs.
    `renovate.json`. Keep security updates unscheduled.
 2. Stop rewriting the release pull request after every push. Today `release.yml` runs
    `changesets/action` on every push, which rewrites the branch whenever changesets are pending. A
-   push now runs the action only when no changesets are pending, which publishes and so retries a
-   publish that failed, when no release pull request is open, or when the release branch's last
-   commit is six hours old. A schedule every six hours also refreshes the release pull request,
+   push now publishes when `@jsprismarine/server`'s version is not on npm, or when no changesets
+   are pending, which retries a publish that failed. It sets pending changesets aside while it
+   publishes, since a release commit can carry changesets that landed after the release pull
+   request's last refresh. A push updates the release pull request only when none is open, or
+   when the release branch's last commit is six hours old. A schedule every six hours also refreshes the release pull request,
    with no publish script, so it never publishes. GitHub ran none of those scheduled runs in the
    first day, so a push has to refresh it too. A release
    pull request that falls behind master is still tested against master when it merges, by the
