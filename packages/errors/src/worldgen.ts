@@ -130,38 +130,6 @@ export const WorldgenErrors = defineErrors('worldgen', {
         base: RangeError
     },
     /**
-     * A density volume was sampled at coordinates too large to compute exactly. This is a bug in
-     * world generation; report it with the stack trace.
-     */
-    DensityVolumeTooFar: {
-        message: 'Density volume end coordinates exceed the safe integer range',
-        base: RangeError
-    },
-    /**
-     * A density volume was sampled at a position or size that is not a whole block coordinate. This
-     * is a bug in world generation; report it with the stack trace.
-     */
-    InvalidDensityVolume: {
-        message: 'Density volume origins and sizes must be safe integer block coordinates',
-        base: RangeError
-    },
-    /**
-     * A density volume was given a buffer too small for its samples. This is a bug in world
-     * generation; report it with the stack trace.
-     */
-    DensityVolumeOutputTooSmall: {
-        message: 'Density volume output needs {count} values, got {outputCount}',
-        base: RangeError
-    },
-    /**
-     * A density volume was asked for more samples than can be counted exactly. This is a bug in
-     * world generation; report it with the stack trace.
-     */
-    DensityVolumeTooLarge: {
-        message: 'Density volume sample count exceeds the safe integer range',
-        base: RangeError
-    },
-    /**
      * A world generation file, from a datapack or the generated Java data, defines a world preset
      * that lists the same dimension twice.
      */
@@ -361,26 +329,6 @@ export const WorldgenErrors = defineErrors('worldgen', {
         message: '{path}: min_y + height has to be at most {maxYExclusive}, got {value}',
         base: RangeError
     },
-    /**
-     * The density volume plan reads a buffer it never filled. This is a bug in world generation;
-     * report it with the stack trace.
-     */
-    MissingDensityVolumeInput: 'Missing density volume input {input}',
-    /**
-     * The density volume plan reads buffers it never filled. This is a bug in world generation;
-     * report it with the stack trace.
-     */
-    MissingDensityVolumeInputs: 'Missing density volume inputs {left} and {right}',
-    /**
-     * The density volume plan skips an instruction. This is a bug in world generation; report it
-     * with the stack trace.
-     */
-    MissingDensityVolumeInstruction: 'Missing density volume instruction {instructionIndex}',
-    /**
-     * The density volume plan has no output. This is a bug in world generation; report it with the
-     * stack trace.
-     */
-    MissingDensityVolumeOutput: 'Missing density volume output {outputIndex}',
     /**
      * A spline was built without points. A world generation file, from a datapack or the generated
      * Java data, probably defines one.
@@ -706,10 +654,5 @@ export const WorldgenErrors = defineErrors('worldgen', {
      * The density function compiler met a single-input function it does not know. This is a bug in
      * world generation; report it with the stack trace.
      */
-    UnknownUnaryDensityFunction: { message: 'Unknown unary density function {type}', base: TypeError },
-    /**
-     * Chunk sampling asked for its volume buffers before they were set up. This is a bug in world
-     * generation; report it with the stack trace.
-     */
-    MissingVolumeWorkspace: 'Volume density workspace is missing'
+    UnknownUnaryDensityFunction: { message: 'Unknown unary density function {type}', base: TypeError }
 });
