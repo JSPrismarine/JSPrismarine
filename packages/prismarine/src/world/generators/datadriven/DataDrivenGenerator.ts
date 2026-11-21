@@ -51,6 +51,7 @@ import type {
     BiomeSource,
     BiomeSourceDefinition,
     CarverConfig,
+    CarverStarts,
     DensityFunctionNode,
     LocalBiomes,
     MaterialRuleNode,
@@ -68,6 +69,7 @@ import {
     carveChunk,
     carversFromNoiseBiome,
     coldEnoughToSnow,
+    createCarverStarts,
     createClimateSampler,
     findNoiseSpawnPosition,
     parseBiomeClimate,
@@ -571,6 +573,8 @@ interface SeededPipeline {
     /** The bare terrain the structures were laid out against. */
     readonly level: ReturnType<typeof createNoiseStructureLevel>;
     readonly carversOf: (biome: string) => readonly CarverConfig[];
+    /** Which carvers start in each source chunk, which every chunk within eight sweeps again. */
+    readonly carverStarts: CarverStarts;
     readonly climateOf: (biome: string) => BiomeClimate;
     readonly oracle: BlockOracle;
     readonly translator: JavaStateTranslator;
@@ -2762,7 +2766,8 @@ export class DataDrivenGenerator implements Generator {
             chunkZ: cz,
             carversAt: carversFromNoiseBiome(pipeline.biomeCells, pipeline.carversOf),
             context: pipeline.surface.generationContext,
-            output: mask
+            output: mask,
+            starts: pipeline.carverStarts
         });
 
         const column = {
@@ -3557,6 +3562,7 @@ export class DataDrivenGenerator implements Generator {
         const biomeCellMemo = createBiomeCellMemo(biomeSource.resolver(createClimateSampler(randomState)));
         const resolver = biomeCellMemo.resolve;
         const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(seed));
+        const carversOf = this.carverLookup();
         const oracle = createJavaBlockOracle(registries.blockTags);
         const level = createNoiseStructureLevel({
             randomState,
@@ -3608,7 +3614,8 @@ export class DataDrivenGenerator implements Generator {
                       })
                   }),
             structurePlanBroker: new StructureStartPlanBroker(),
-            carversOf: this.carverLookup(),
+            carversOf,
+            carverStarts: createCarverStarts(seed, carversFromNoiseBiome(resolver, carversOf)),
             climateOf,
             oracle,
             translator: new JavaStateTranslator(),
