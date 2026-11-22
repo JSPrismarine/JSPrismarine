@@ -1,5 +1,5 @@
 import colorParser from '@jsprismarine/color-parser';
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 import type { LogLevel } from './levels';
 import { isAtLeastLevel } from './levels';
@@ -259,7 +259,7 @@ export class Logger {
         }
 
         // A cataloged error ends with its entry in the error reference, which says what it means.
-        const reference = message instanceof JSPrismarineError ? `\nMore about ${message.code}: ${message.docs}` : '';
+        const reference = isJSPrismarineError(message) ? `\nMore about ${message.code}: ${message.docs}` : '';
         if (message.stack) {
             this.emit(
                 'error',

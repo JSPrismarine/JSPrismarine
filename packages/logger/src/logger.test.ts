@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
+import { CommonErrors } from '@jsprismarine/errors/common';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 import type { LogLevel } from './levels';
 import { Logger } from './logger';
@@ -229,15 +230,25 @@ describe('untrusted text in a message', () => {
 });
 
 describe('a cataloged error', () => {
-    const TestErrors = defineErrors('test', { Broken: 'The {thing} broke' });
-
     it('ends with its code and its entry in the error reference', () => {
         const { logger, written } = makeLogger();
 
-        logger.error(new TestErrors.Broken({ thing: 'world' }));
+        logger.error(new CommonErrors.ThrownValue({ value: 'The world broke' }));
 
         expect(written[0]).toContain('The world broke');
-        expect(written[0]).toContain('More about TEST_BROKEN: https://jsprismarine.dev/errors/test#test-broken');
+        expect(written[0]).toContain(
+            'More about COMMON_THROWN_VALUE: https://jsprismarine.dev/errors/common#common-thrown-value'
+        );
+    });
+
+    it('links an error built on RangeError too', () => {
+        const { logger, written } = makeLogger();
+
+        logger.error(new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: -1 }));
+
+        expect(written[0]).toContain(
+            'More about LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE: https://jsprismarine.dev/errors/leveldb#leveldb-block-cache-size-must-be-non-negative'
+        );
     });
 
     it('leaves a plain error as it was', () => {
