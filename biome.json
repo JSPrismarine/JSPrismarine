@@ -8,6 +8,7 @@
     "files": {
         "includes": [
             "packages/*/src/**",
+            "packages/errors/catalog/**",
             "scripts/**",
             "tools/*/src/**",
             "packages/mapping/utils/generate/**",

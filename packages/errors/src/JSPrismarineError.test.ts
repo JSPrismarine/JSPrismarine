@@ -1,102 +1,166 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
-import { codeAnchor, constantCase, defineErrors, isJSPrismarineError, JSPrismarineError } from './JSPrismarineError';
+import { inspect } from 'node:util';
 
-abstract class TestCategoryError extends JSPrismarineError {
-    public override name = 'TestCategoryError';
-}
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { CommonErrors } from './common';
+import {
+    codeAnchor,
+    constantCase,
+    isJSPrismarineError,
+    JSPrismarineError,
+    JSPrismarineRangeError,
+    JSPrismarineReferenceError,
+    JSPrismarineTypeError
+} from './JSPrismarineError';
+import { CorruptionError, LeveldbErrors } from './leveldb';
+import { LoggedFieldError, PrismarineEntityErrors } from './prismarine/entity';
+import { PrismarineWorldErrors } from './prismarine/world';
+import { ScriptHostErrors } from './script-host';
 
-const TestErrors = defineErrors('test-domain', {
-    Plain: 'Nothing to fill in',
-    Filled: 'Corruption in {file}: {reason}',
-    OutOfRange: { message: 'Offset {offset} is out of range', base: RangeError },
-    Categorized: { message: 'Bad {thing}', base: TestCategoryError }
-});
-
-describe('defineErrors', () => {
+describe('a generated catalog error', () => {
     it('fills placeholders the way a template literal does', () => {
-        const error = new TestErrors.Filled({ file: 'CURRENT', reason: 17 });
-        expect(error.message).toBe('Corruption in CURRENT: 17');
-        expect(error.params).toEqual({ file: 'CURRENT', reason: 17 });
+        const error = new LeveldbErrors.UnreadableBlockCompression({ offset: 'CURRENT', type: 17 });
+        expect(error.message).toBe('Block at offset CURRENT has compression type 17');
+        expect(error.params).toEqual({ offset: 'CURRENT', type: 17 });
     });
 
     it('prefixes the code with the domain', () => {
-        expect(new TestErrors.Plain().code).toBe('TEST_DOMAIN_PLAIN');
-        expect(TestErrors.OutOfRange.code).toBe('TEST_DOMAIN_OUT_OF_RANGE');
+        expect(new LeveldbErrors.LogAppendInProgress().code).toBe('LEVELDB_LOG_APPEND_IN_PROGRESS');
+        expect(LeveldbErrors.BlockCacheSizeMustBeNonNegative.code).toBe(
+            'LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE'
+        );
     });
 
     it('links to the entry in the error reference', () => {
-        expect(new TestErrors.Plain().docs).toBe('https://jsprismarine.dev/errors/test-domain#test-domain-plain');
+        expect(new LeveldbErrors.LogAppendInProgress().docs).toBe(
+            'https://jsprismarine.dev/errors/leveldb#leveldb-log-append-in-progress'
+        );
     });
 
     it("links a module's errors to the module's page, with the domain's code", () => {
-        const ModuleErrors = defineErrors('test-domain/world', { Plain: 'Nothing to fill in' });
-        const { code, domain, module } = ModuleErrors.Plain;
-        expect({ code, domain, module }).toEqual({ code: 'TEST_DOMAIN_PLAIN', domain: 'test-domain', module: 'world' });
-        expect(new ModuleErrors.Plain().docs).toBe(
-            'https://jsprismarine.dev/errors/test-domain/world#test-domain-plain'
+        const { code, domain, module } = PrismarineWorldErrors.AirNotRegistered;
+        expect({ code, domain, module }).toEqual({
+            code: 'PRISMARINE_AIR_NOT_REGISTERED',
+            domain: 'prismarine',
+            module: 'world'
+        });
+        expect(new PrismarineWorldErrors.AirNotRegistered().docs).toBe(
+            'https://jsprismarine.dev/errors/prismarine/world#prismarine-air-not-registered'
         );
-        expect(TestErrors.Plain.module).toBeUndefined();
+        expect('module' in LeveldbErrors.LogAppendInProgress).toBe(false);
     });
 
     it('passes the cause through, with or without placeholders', () => {
         const cause = new Error('underneath');
-        expect(new TestErrors.Plain({ cause }).cause).toBe(cause);
-        expect(new TestErrors.Filled({ file: 'a', reason: 'b' }, { cause }).cause).toBe(cause);
+        expect(new LeveldbErrors.LogAppendInProgress({ cause }).cause).toBe(cause);
+        expect(new LeveldbErrors.UnreadableBlockCompression({ offset: 1, type: 2 }, { cause }).cause).toBe(cause);
     });
 
-    it('keeps the base class and the catalog root in the prototype chain', () => {
-        const error = new TestErrors.OutOfRange({ offset: 3 });
-        expect(error).toBeInstanceOf(TestErrors.OutOfRange);
-        expect(error).toBeInstanceOf(RangeError);
-        expect(error).toBeInstanceOf(JSPrismarineError);
-        expect(error.name).toBe('RangeError');
-        expect(new TestErrors.Plain()).not.toBeInstanceOf(TestErrors.Filled);
+    it('is named after its key and keeps the name of the error it extends', () => {
+        expect(LeveldbErrors.LogAppendInProgress.name).toBe('LogAppendInProgress');
+        expect(new LeveldbErrors.LogAppendInProgress().name).toBe('Error');
+        expect(new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: -1 }).name).toBe('RangeError');
+        expect(new LeveldbErrors.UnreadableBlockCompression({ offset: 1, type: 2 }).name).toBe('CorruptionError');
+    });
+
+    it('extends the root of the built-in error it is based on', () => {
+        const range = new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: -1 });
+        expect(range).toBeInstanceOf(LeveldbErrors.BlockCacheSizeMustBeNonNegative);
+        expect(range).toBeInstanceOf(JSPrismarineRangeError);
+        expect(range).toBeInstanceOf(RangeError);
+        expect(range).not.toBeInstanceOf(JSPrismarineError);
+
+        const reference = new ScriptHostErrors.UnknownHostFunction({ id: 3 });
+        expect(reference).toBeInstanceOf(JSPrismarineReferenceError);
+        expect(reference).toBeInstanceOf(ReferenceError);
+
+        expect(new LeveldbErrors.LogAppendInProgress()).toBeInstanceOf(JSPrismarineError);
+        expect(new LeveldbErrors.LogAppendInProgress()).not.toBeInstanceOf(LeveldbErrors.UnreadableBlockCompression);
     });
 
     it('extends a category', () => {
-        const error = new TestErrors.Categorized({ thing: 'input' });
-        expect(error).toBeInstanceOf(TestCategoryError);
+        const error = new LeveldbErrors.UnreadableBlockCompression({ offset: 1, type: 2 });
+        expect(error).toBeInstanceOf(CorruptionError);
         expect(error).toBeInstanceOf(JSPrismarineError);
-        expect(error.name).toBe('TestCategoryError');
-        expect(new TestErrors.Plain()).not.toBeInstanceOf(TestCategoryError);
+        expect(new LeveldbErrors.LogAppendInProgress()).not.toBeInstanceOf(CorruptionError);
+
+        const logged = new PrismarineEntityErrors.InvalidLoggedField({ field: 'a', value: 'b' });
+        expect(logged).toBeInstanceOf(LoggedFieldError);
+        expect(logged).toBeInstanceOf(JSPrismarineTypeError);
+        expect(logged).toBeInstanceOf(TypeError);
     });
 
-    it('does not count a plain error as cataloged', () => {
-        expect(new Error('x')).not.toBeInstanceOf(JSPrismarineError);
-        expect('x').not.toBeInstanceOf(JSPrismarineError);
-    });
-
-    it('shows the code and the docs link when inspected, and keeps the params out', async () => {
-        const { inspect } = await import('node:util');
-        const printed = inspect(new TestErrors.Filled({ file: 'a', reason: 'b' }));
-        expect(printed).toContain("code: 'TEST_DOMAIN_FILLED'");
-        expect(printed).toContain('https://jsprismarine.dev/errors/test-domain#test-domain-filled');
+    it('shows the code and the docs link when inspected, and keeps the params out', () => {
+        const printed = inspect(new LeveldbErrors.UnreadableBlockCompression({ offset: 'a', type: 'b' }));
+        expect(printed).toContain("code: 'LEVELDB_UNREADABLE_BLOCK_COMPRESSION'");
+        expect(printed).toContain('https://jsprismarine.dev/errors/leveldb#leveldb-unreadable-block-compression');
         expect(printed).not.toContain('params');
+        expect(printed).not.toContain('cataloged');
     });
 
     it('types the constructor from the template', () => {
-        expectTypeOf(TestErrors.Plain).constructorParameters.toEqualTypeOf<[options?: ErrorOptions]>();
-        expectTypeOf(TestErrors.Filled).constructorParameters.toEqualTypeOf<
-            [params: { readonly file: unknown; readonly reason: unknown }, options?: ErrorOptions]
+        expectTypeOf(LeveldbErrors.LogAppendInProgress).constructorParameters.toEqualTypeOf<[options?: ErrorOptions]>();
+        expectTypeOf(LeveldbErrors.UnreadableBlockCompression).constructorParameters.toEqualTypeOf<
+            [params: { readonly offset: unknown; readonly type: unknown }, options?: ErrorOptions]
         >();
-        expectTypeOf(new TestErrors.OutOfRange({ offset: 1 })).toExtend<RangeError>();
-        // @ts-expect-error: the template has a `reason` placeholder.
-        new TestErrors.Filled({ file: 'a' });
+        expectTypeOf(new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: 1 })).toExtend<RangeError>();
+        // @ts-expect-error: the template has a `type` placeholder.
+        new LeveldbErrors.UnreadableBlockCompression({ offset: 1 });
+    });
+
+    it('lets params be read by any key, as a record', () => {
+        const error = new LeveldbErrors.UnreadableBlockCompression({ offset: 1, type: 2 });
+        expectTypeOf(error.params.offset).toBeUnknown();
+        expect(Object.keys(error.params).map((key) => error.params[key])).toEqual([1, 2]);
+    });
+
+    it('reads a missing params argument from JavaScript as no values', () => {
+        const cause = new Error('underneath');
+        for (const missing of [undefined, null]) {
+            // Reflect.construct takes its arguments untyped, the way a JavaScript caller passes them.
+            const error: unknown = Reflect.construct(PrismarineEntityErrors.InvalidSavedGameMode, [missing, { cause }]);
+            expect(error).toBeInstanceOf(PrismarineEntityErrors.InvalidSavedGameMode);
+            expect(error).toMatchObject({
+                message: 'abilities.gamemode cannot hold undefined',
+                code: 'PRISMARINE_INVALID_SAVED_GAME_MODE',
+                params: { value: undefined },
+                cause
+            });
+        }
     });
 });
 
 describe('isJSPrismarineError', () => {
     it('holds for a catalog error whichever built-in error it extends', () => {
-        expect(isJSPrismarineError(new TestErrors.Plain())).toBe(true);
-        expect(isJSPrismarineError(new TestErrors.OutOfRange({ offset: 3 }))).toBe(true);
-        expect(isJSPrismarineError(new TestErrors.Categorized({ thing: 'input' }))).toBe(true);
+        expect(isJSPrismarineError(new LeveldbErrors.LogAppendInProgress())).toBe(true);
+        expect(isJSPrismarineError(new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: -1 }))).toBe(true);
+        expect(isJSPrismarineError(new PrismarineEntityErrors.InvalidLoggedField({ field: 'a', value: 'b' }))).toBe(
+            true
+        );
+        expect(isJSPrismarineError(new ScriptHostErrors.UnknownHostFunction({ id: 3 }))).toBe(true);
+        expect(isJSPrismarineError(new CommonErrors.ThrownValue({ value: 'x' }))).toBe(true);
+    });
+
+    it('holds for an error that another copy of the package built', async () => {
+        vi.resetModules();
+        const copy = await import('./leveldb');
+        const error = new copy.LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget: -1 });
+        expect(error).not.toBeInstanceOf(JSPrismarineRangeError);
+        expect(isJSPrismarineError(error)).toBe(true);
+    });
+
+    it('does not hold for a subclass of a category that has no code, docs or params', () => {
+        // @ts-expect-error: a concrete subclass of a category must set code, docs and params.
+        class PluginFieldError extends LoggedFieldError {}
+        const error = new PluginFieldError('bad field');
+        expect(error).toBeInstanceOf(JSPrismarineTypeError);
+        expect(isJSPrismarineError(error)).toBe(false);
     });
 
     it('does not hold for a plain error or another value', () => {
         expect(isJSPrismarineError(new Error('x'))).toBe(false);
         expect(isJSPrismarineError(new RangeError('x'))).toBe(false);
         expect(isJSPrismarineError('x')).toBe(false);
-        expect(isJSPrismarineError(null)).toBe(false);
+        expect(new Error('x')).not.toBeInstanceOf(JSPrismarineError);
     });
 });
 

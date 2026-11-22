@@ -3,9 +3,9 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../.test/reportProgress';
-import { codeAnchor, constantCase, DOCS_URL, JSPrismarineError } from './JSPrismarineError';
+import { codeAnchor, constantCase, DOCS_URL, isJSPrismarineError } from './JSPrismarineError';
 
-/** What `defineErrors` puts on each class it makes. */
+/** The statics every generated catalog class has. */
 interface DefinedClass {
     readonly code: string;
     readonly domain: string;
@@ -18,7 +18,7 @@ interface DefinedClass {
 const isDefinedClass = (value: unknown): value is DefinedClass =>
     typeof value === 'function' && 'code' in value && 'domain' in value && 'template' in value;
 
-/** Every catalog module under `src/`, by its path relative to it, such as `./prismarine/world.ts`. */
+/** Every generated catalog module under `src/`, by its path relative to it, such as `./prismarine/world.ts`. */
 const modules: Record<string, Record<string, unknown>> = {};
 for (const file of readdirSync(import.meta.dirname, { recursive: true, encoding: 'utf8' })) {
     if (!file.endsWith('.ts') || file.includes('.test.') || file === 'JSPrismarineError.ts') continue;
@@ -92,7 +92,7 @@ describe('the error catalog', () => {
         for (const { error } of entries) {
             const params = sampleParams(error.template);
             const built = Object.keys(params).length > 0 ? new error(params) : new error();
-            expect(built).toBeInstanceOf(JSPrismarineError);
+            expect(isJSPrismarineError(built), error.code).toBe(true);
             expect(built.message).not.toMatch(/\{\w+\}/);
             expect(built).toMatchObject({ code: error.code, docs: error.docs });
         }

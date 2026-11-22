@@ -183,7 +183,7 @@ export interface ErrorDomainData {
 export const errorCount = ({ groups }: ErrorDomainData) =>
     groups.reduce((total, { errors }) => total + errors.length, 0);
 
-/** What `defineErrors` puts on each class it makes. */
+/** The statics every generated catalog class has. */
 interface DefinedErrorClass {
     readonly code: string;
     readonly domain: string;
@@ -205,10 +205,25 @@ const jsdocText = (node: import('typescript').Node, ts: typeof import('typescrip
 
 /**
  * Every error the catalog in `@jsprismarine/errors` defines, by domain. The codes, templates and
- * classes come from the modules themselves; the descriptions are their JSDoc, read from the source.
+ * classes come from the generated modules under `src/`; the descriptions are the JSDoc the
+ * generator copies onto each class from its catalog.
  */
 export async function loadErrors(): Promise<ErrorDomainData[]> {
     const { default: ts } = await import('typescript');
+    const { JSPrismarineError, JSPrismarineRangeError, JSPrismarineReferenceError, JSPrismarineTypeError } =
+        await import('../../packages/errors/src/JSPrismarineError.ts');
+    // Each root stands in for the built-in error it extends, which is the base the reference names.
+    const roots = new Set<unknown>([
+        JSPrismarineError,
+        JSPrismarineRangeError,
+        JSPrismarineReferenceError,
+        JSPrismarineTypeError
+    ]);
+    const baseOf = (error: DefinedErrorClass) => {
+        const parent: unknown = Object.getPrototypeOf(error);
+        const shown: unknown = roots.has(parent) ? Object.getPrototypeOf(parent) : parent;
+        return typeof shown === 'function' ? shown.name : '';
+    };
     const catalogDir = path.join(repoRoot, 'packages', 'errors', 'src');
     const files = readdirSync(catalogDir, { recursive: true, encoding: 'utf8' })
         .filter((file) => file.endsWith('.ts') && !file.includes('.test.') && file !== 'JSPrismarineError.ts')
@@ -249,7 +264,7 @@ export async function loadErrors(): Promise<ErrorDomainData[]> {
                     code: error.code,
                     thrownAs: `${exported}.${key}`,
                     template: error.template,
-                    base: Object.getPrototypeOf(error).name,
+                    base: baseOf(error),
                     description: descriptions.get(key) ?? ''
                 });
             }
