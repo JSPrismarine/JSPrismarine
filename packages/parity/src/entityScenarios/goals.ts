@@ -177,6 +177,8 @@ const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
     [3165, /does not pick up an item it stands on/],
     [3166, /targets wither, which/],
     [3518, /runs none of /],
+    // Java's camels run their brain alone: `Camel.registerGoals` is empty.
+    [3657, /Java's minecraft:camel(_husk)? registers no /],
     [
         3130,
         /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|2\.5 blocks away, which Java's leaves|takes no |holds the fish still|walks the fish/
@@ -2334,6 +2336,26 @@ const NEVER_MATES: ReadonlySet<string> = new Set([
     'minecraft:zombie_horse'
 ]);
 
+/**
+ * Bedrock components that do one mob's Java goal's job where no goal does. Java's zombified piglin
+ * targets through `NearestAttackableTargetGoal(Player, 10, true, false, this::isAngryAt)`, which
+ * only ever picks the player it is angry at; Bedrock's `minecraft:angry` holds that player as its
+ * target for the length of the anger and passes it to the piglins around.
+ */
+const SAME_JOB: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
+    'minecraft:zombified_piglin': { NearestAttackableTargetGoal: ['minecraft:angry'] }
+};
+
+/**
+ * The goals Java's `Rabbit.setVariant` adds only when a rabbit becomes The Killer Bunny, its `EVIL`
+ * variant. Bedrock has no such rabbit, so no Bedrock rabbit runs them.
+ */
+const KILLER_BUNNY_GOALS: ReadonlySet<string> = new Set([
+    'HurtByTargetGoal',
+    'MeleeAttackGoal',
+    'NearestAttackableTargetGoal'
+]);
+
 /** The Bedrock goals a comparison pairs with a Java goal, by the Java classes each one names. */
 const pairedComponents = (goal: JavaGoal): readonly string[] =>
     comparisons
@@ -2394,15 +2416,28 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                       kind: 'intentional',
                       reason: 'Java registers a BreedGoal for this horse, but its canMate is always false, so the goal never runs and leaving it out changes nothing.'
                   }
-                : goalGap("Every goal a Java mob's class registers runs on the server.")(subject, difference),
+                : subject.javaId === 'minecraft:rabbit' && KILLER_BUNNY_GOALS.has(subject.tag ?? '')
+                  ? {
+                        kind: 'intentional',
+                        reason: "Java's Rabbit.setVariant adds this goal only to The Killer Bunny, its EVIL variant, which Bedrock does not have."
+                    }
+                  : goalGap("Every goal a Java mob's class registers runs on the server.")(subject, difference),
         run: (subject) => {
-            const goal = javaGoals(subject.javaId).find((candidate) => candidate.goal === subject.tag);
-            if (goal === undefined) return `Java's ${subject.javaId} registers no ${subject.tag ?? ''}`;
-            const components = pairedComponents(goal);
+            // Every goal of the name that pairs with a Bedrock goal: a turtle registers two
+            // MoveToBlockGoals, one to lay eggs and one to go to water, and only the second pairs.
+            const goals = javaGoals(subject.javaId).filter(
+                (candidate) => candidate.goal === subject.tag && pairedComponents(candidate).length > 0
+            );
+            if (goals.length === 0) return `Java's ${subject.javaId} registers no ${subject.tag ?? ''}`;
             const declared = serverContent().entities.registry.get(subject.bedrock)?.declaredComponents ?? [];
-            return components.some((component) => declared.includes(component))
+            const sameJob = (goal: JavaGoal): readonly string[] => [
+                ...pairedComponents(goal),
+                ...(SAME_JOB[subject.javaId]?.[goal.goal] ?? [])
+            ];
+            const missing = goals.find((goal) => !sameJob(goal).some((component) => declared.includes(component)));
+            return missing === undefined
                 ? undefined
-                : `the server's ${subject.bedrock} runs none of ${components.join(', ')} for Java's ${goal.goal}`;
+                : `the server's ${subject.bedrock} runs none of ${sameJob(missing).join(', ')} for Java's ${missing.classes[0] ?? missing.goal}`;
         }
     },
     ...comparisons.map(goalScenario),

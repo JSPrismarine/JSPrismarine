@@ -16,6 +16,14 @@ describe('entity_goals.json', () => {
         expect(look?.params.lookDistance).toBe(8);
     });
 
+    it("credits a mob with no goal of an ancestor's registerGoals that its own override never calls", () => {
+        // `Camel.registerGoals` is empty, so `AbstractHorse.addBehaviourGoals` never runs for a camel,
+        // and `Llama.registerGoals` registers its own panic goal without calling up to the horse's.
+        expect(java_entity_goals['minecraft:camel'] ?? []).toEqual([]);
+        expect(java_entity_goals['minecraft:camel_husk'] ?? []).toEqual([]);
+        expect(java_entity_goals['minecraft:llama']?.filter((row) => row.goal === 'PanicGoal')).toHaveLength(1);
+    });
+
     it.skipIf(!jar.exists)('matches what the pinned jar holds', () => {
         expect(formatCapture(captureFromJar(readFileSync(jar.path)))).toBe(
             readFileSync(capturePath(jar.version), 'utf8')
