@@ -207,6 +207,67 @@ describe('withJavaGoals', () => {
         });
     });
 
+    it('gives the wither its skull attack and a shooter beside its attack flight', () => {
+        const data = withJavaGoals(
+            entityFile('minecraft:wither', {
+                'minecraft:physics': {},
+                'minecraft:behavior.wither_random_attack_pos_goal': { priority: 3 }
+            }),
+            javaGoalRulings()
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                components: {
+                    'minecraft:behavior.ranged_attack': { priority: 2, attack_radius: 20, attack_interval_min: 2 },
+                    'minecraft:shooter': { def: 'minecraft:wither_skull' }
+                }
+            }
+        });
+    });
+
+    it("swaps a wither skeleton's sword attack for a bow attack by what it holds, starting with the sword", () => {
+        const data = withJavaGoals(
+            entityFile('minecraft:wither_skeleton', {
+                'minecraft:physics': {},
+                'minecraft:behavior.melee_box_attack': { priority: 4 }
+            }),
+            javaGoalRulings()
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'jsprismarine:melee_weapon': {
+                        'minecraft:behavior.melee_box_attack': { priority: 4 },
+                        'minecraft:environment_sensor': {
+                            triggers: [
+                                {
+                                    event: 'jsprismarine:ranged_mode',
+                                    filters: { test: 'has_ranged_weapon', value: true }
+                                }
+                            ]
+                        }
+                    },
+                    'jsprismarine:bow_weapon': {
+                        'minecraft:behavior.ranged_attack': { attack_radius: 15 },
+                        'minecraft:shooter': { def: 'minecraft:arrow' }
+                    }
+                },
+                events: {
+                    'minecraft:entity_spawned': { add: { component_groups: ['jsprismarine:melee_weapon'] } },
+                    'jsprismarine:ranged_mode': { add: { component_groups: ['jsprismarine:bow_weapon'] } }
+                }
+            }
+        });
+        expect(data).not.toMatchObject({
+            'minecraft:entity': { components: { 'minecraft:behavior.melee_box_attack': expect.anything() } }
+        });
+        expect(declared(data, 'minecraft:wither_skeleton')).toEqual(
+            expect.arrayContaining(['minecraft:behavior.ranged_attack', 'minecraft:behavior.melee_box_attack'])
+        );
+    });
+
     it('leaves a file no ruling names unchanged', () => {
         const data = entityFile('test:creeper', { 'minecraft:behavior.swell': { start_distance: 2.5 } });
         expect(withJavaGoals(data, javaGoalRulings())).toBe(data);

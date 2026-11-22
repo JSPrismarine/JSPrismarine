@@ -445,6 +445,9 @@ export const createJavaGoalReader = (classBytes: (className: string) => Uint8Arr
 
     const goalCache = new Map<string, readonly JavaGoal[]>();
 
+    /** `Mob.registerGoals`, by name and descriptor. */
+    const REGISTER_GOALS = 'registerGoals()V';
+
     /**
      * Follows a constructed goal through its constructors to `Goal`, collecting each named
      * parameter with the value it ends up holding.
@@ -505,6 +508,49 @@ export const createJavaGoalReader = (classBytes: (className: string) => Uint8Arr
         return false;
     };
 
+    /** The methods a method's code invokes, as `name` plus descriptor, with whether each call is `invokespecial`. */
+    const invokedMethods = (owner: JavaClass, method: JavaCodeMethod): { key: string; special: boolean }[] => {
+        const code = method.code;
+        if (code === undefined) return [];
+        const view = new DataView(code.buffer, code.byteOffset, code.byteLength);
+        const invoked: { key: string; special: boolean }[] = [];
+        for (let pc = 0; pc < code.length; pc += instructionLength(code, pc)) {
+            const opcode = view.getUint8(pc);
+            if (opcode < 0xb6 || opcode > 0xb7) continue;
+            const member = owner.member(view.getUint16(pc + 1));
+            invoked.push({ key: `${member.name}${member.descriptor}`, special: opcode === 0xb7 });
+        }
+        return invoked;
+    };
+
+    /**
+     * The methods no goal can come from because the mob's `registerGoals` never reaches them: when
+     * the nearest `registerGoals` override does not call `super.registerGoals()`, an ancestor's
+     * `registerGoals` and the methods only it calls never run. Java's `Camel` overrides it with an
+     * empty body, so `AbstractHorse.addBehaviourGoals` never adds its panic and tempt goals.
+     *
+     * @returns Name-and-descriptor keys to leave out.
+     */
+    const unreachedGoalMethods = (own: readonly JavaClass[]): ReadonlySet<string> => {
+        const declaration = (owner: JavaClass) =>
+            owner.methods.find((method) => `${method.name}${method.descriptor}` === REGISTER_GOALS);
+        const nearest = own.findIndex((owner) => declaration(owner) !== undefined);
+        const top = nearest < 0 ? undefined : own[nearest];
+        const topMethod = top === undefined ? undefined : declaration(top);
+        if (top === undefined || topMethod === undefined) return new Set();
+        const calledByTop = invokedMethods(top, topMethod);
+        if (calledByTop.some((call) => call.special && call.key === REGISTER_GOALS)) return new Set();
+
+        const reached = new Set(calledByTop.map((call) => call.key));
+        const skipped = new Set<string>();
+        for (const ancestor of own.slice(nearest + 1)) {
+            const method = declaration(ancestor);
+            if (method === undefined) continue;
+            for (const call of invokedMethods(ancestor, method)) if (!reached.has(call.key)) skipped.add(call.key);
+        }
+        return skipped;
+    };
+
     const javaGoalsOf = (entityClass: string): readonly JavaGoal[] => {
         const cached = goalCache.get(entityClass);
         if (cached !== undefined) return cached;
@@ -512,6 +558,7 @@ export const createJavaGoalReader = (classBytes: (className: string) => Uint8Arr
         const chain = javaSuperChain(entityClass);
         const mobIndex = chain.indexOf(MOB);
         const own = (mobIndex < 0 ? chain : chain.slice(0, mobIndex)).flatMap((name) => javaClass(name) ?? []);
+        const unreached = unreachedGoalMethods(own);
 
         const walked = new Set<string>();
         const queue: { readonly owner: JavaClass; readonly method: JavaCodeMethod }[] = [];
@@ -571,7 +618,9 @@ export const createJavaGoalReader = (classBytes: (className: string) => Uint8Arr
         }
         for (const owner of own) {
             for (const method of owner.methods) {
-                if (method.name !== '<init>' && method.name !== '<clinit>') queueDeclaration(method, 0);
+                if (method.name === '<init>' || method.name === '<clinit>') continue;
+                if (unreached.has(`${method.name}${method.descriptor}`)) continue;
+                queueDeclaration(method, 0);
             }
         }
         for (let next = queue.shift(); next !== undefined; next = queue.shift()) {

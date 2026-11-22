@@ -75,6 +75,9 @@ const FISH_PANIC = beside(PHYSICS, {
     'minecraft:behavior.panic': { priority: 1, speed_multiplier: 1.25 }
 });
 
+/** The wither's flight toward its target, which its file declares in its base components. */
+const WITHER_ATTACK_POS = 'minecraft:behavior.wither_random_attack_pos_goal';
+
 /** Takes a goal off, because Java's class registers nothing that does its job. */
 const absent = (): Readonly<Record<string, Record<string, unknown>>> => ({});
 
@@ -400,6 +403,23 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
     { entity: 'minecraft:pufferfish', component: PHYSICS, java: FISH_PANIC },
     { entity: 'minecraft:tropical_fish', component: PHYSICS, java: FISH_PANIC },
     {
+        // Java `WitherBoss.registerGoals` adds `RangedAttackGoal(this, 1.0, 40, 20.0F)`: a skull from
+        // the middle head every 40 ticks at a target within 20 blocks. The vanilla file leaves the
+        // shot to Bedrock's engine and declares no shooter, so both come beside its attack movement.
+        entity: 'minecraft:wither',
+        component: WITHER_ATTACK_POS,
+        java: beside(WITHER_ATTACK_POS, {
+            'minecraft:behavior.ranged_attack': {
+                priority: 2,
+                speed_multiplier: 1,
+                attack_interval_min: 40 / TICKS_PER_SECOND,
+                attack_interval_max: 40 / TICKS_PER_SECOND,
+                attack_radius: 20
+            },
+            'minecraft:shooter': { def: 'minecraft:wither_skull' }
+        })
+    },
+    {
         // Java `WitherBoss.registerGoals` targets with `HurtByTargetGoal`, which takes the last attacker.
         entity: 'minecraft:wither',
         component: 'minecraft:behavior.wither_target_highest_damage',
@@ -432,6 +452,80 @@ export const javaGoalRulings = (): JavaGoalRulings => {
 export const withJavaGoals = (data: unknown, rulings: JavaGoalRulings): unknown => {
     const identifier = entityFileIdentifier(data);
     const own = identifier === undefined ? undefined : rulings.get(identifier);
-    if (own === undefined) return data;
-    return own.reduce((file, ruling) => withComponentReplaced(file, ruling.component, ruling.java), data);
+    const ruled =
+        own === undefined
+            ? data
+            : own.reduce((file, ruling) => withComponentReplaced(file, ruling.component, ruling.java), data);
+    return identifier === WITHER_SKELETON ? withWeaponSwap(ruled, WITHER_SKELETON_BOW) : ruled;
+};
+
+/** The wither skeleton, whose file declares only the melee goal Java swaps for a bow goal. */
+const WITHER_SKELETON = 'minecraft:wither_skeleton';
+
+/**
+ * Java `AbstractSkeleton.reassessWeaponGoal` for the wither skeleton: `RangedBowAttackGoal(this, 1.0,
+ * 20, 15.0F)` with its attack interval set to `getAttackInterval`, 40 ticks, while it holds a bow,
+ * and the melee goal otherwise. Its arrows are set alight by `WitherSkeleton.getArrow`, which the
+ * shooter does not model.
+ */
+const WITHER_SKELETON_BOW: Readonly<Record<string, Record<string, unknown>>> = {
+    'minecraft:behavior.ranged_attack': {
+        priority: 4,
+        speed_multiplier: 1,
+        attack_interval_min: 40 / TICKS_PER_SECOND,
+        attack_interval_max: 40 / TICKS_PER_SECOND,
+        attack_radius: 15
+    },
+    'minecraft:shooter': { def: 'minecraft:arrow', sound: 'bow' }
+};
+
+const MELEE_GOAL = 'minecraft:behavior.melee_box_attack';
+const SWORD_GROUP = 'jsprismarine:melee_weapon';
+const BOW_GROUP = 'jsprismarine:bow_weapon';
+const TO_SWORD = 'jsprismarine:melee_mode';
+const TO_BOW = 'jsprismarine:ranged_mode';
+
+/**
+ * Moves a file's base melee goal into a group of its own beside a bow group, and swaps between them
+ * by the weapon held, as the vanilla skeleton's file does: each group's sensor raises the event that
+ * swaps to the other, so the active group is not added again every tick, which would start its goal
+ * over. The melee group is the one the entity spawns with.
+ */
+const withWeaponSwap = (data: unknown, bow: Readonly<Record<string, Record<string, unknown>>>): unknown => {
+    if (!isRecord(data) || !isRecord(data['minecraft:entity'])) return data;
+    const entity = data['minecraft:entity'];
+    const components = isRecord(entity.components) ? entity.components : {};
+    const melee = components[MELEE_GOAL];
+    if (!isRecord(melee)) return data;
+    const { [MELEE_GOAL]: _melee, ...base } = components;
+    const sensor = (event: string, holdsBow: boolean) => ({
+        'minecraft:environment_sensor': {
+            triggers: [{ event, filters: { test: 'has_ranged_weapon', value: holdsBow } }]
+        }
+    });
+    const events = isRecord(entity.events) ? entity.events : {};
+    const spawned = isRecord(events['minecraft:entity_spawned']) ? events['minecraft:entity_spawned'] : {};
+    const spawnAdd = isRecord(spawned.add) ? spawned.add : {};
+    const spawnGroups = Array.isArray(spawnAdd.component_groups) ? spawnAdd.component_groups : [];
+    return {
+        ...data,
+        'minecraft:entity': {
+            ...entity,
+            components: base,
+            component_groups: {
+                ...(isRecord(entity.component_groups) ? entity.component_groups : {}),
+                [SWORD_GROUP]: { [MELEE_GOAL]: melee, ...sensor(TO_BOW, true) },
+                [BOW_GROUP]: { ...bow, ...sensor(TO_SWORD, false) }
+            },
+            events: {
+                ...events,
+                'minecraft:entity_spawned': {
+                    ...spawned,
+                    add: { ...spawnAdd, component_groups: [...spawnGroups, SWORD_GROUP] }
+                },
+                [TO_BOW]: { add: { component_groups: [BOW_GROUP] }, remove: { component_groups: [SWORD_GROUP] } },
+                [TO_SWORD]: { add: { component_groups: [SWORD_GROUP] }, remove: { component_groups: [BOW_GROUP] } }
+            }
+        }
+    };
 };

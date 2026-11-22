@@ -483,6 +483,23 @@ const activateGroupsDeclaring = (entity: DataEntity, bedrock: string, component:
     entity.instance.restoreComponentGroups([...entity.instance.activeComponentGroups(), ...groups]);
 };
 
+/**
+ * Takes off the active groups that declare any of `components`, as an event that removes them
+ * would, and the groups that switch the mob into them.
+ */
+const deactivateGroupsDeclaring = (entity: DataEntity, bedrock: string, components: readonly string[]): void => {
+    const loaded = serverContent().entities.registry.get(bedrock)?.groups;
+    if (loaded === undefined) return;
+    const dropped = new Set(
+        [...loaded.values()]
+            .filter((group) => group.components.some((bound) => components.includes(bound.name)))
+            .map((group) => group.name)
+    );
+    entity.instance.restoreComponentGroups(
+        entity.instance.activeComponentGroups().filter((group) => !dropped.has(group))
+    );
+};
+
 /** Java's `MobCategory.getDespawnDistance`: 64 for water ambient mobs, 128 for every other category. */
 const JAVA_DESPAWN_DISTANCE: Readonly<Record<string, number>> = { WATER_AMBIENT: 64 };
 
@@ -1342,7 +1359,16 @@ const serverDoorBreak = (subject: EntitySubject, difficulty: 'easy' | 'normal' |
         try {
             const events = world.levelEvents.length;
             const drops = world.drops.length;
+            // A mob that breaks doors walks in to its target. A drowned's spawn event makes it a
+            // trident thrower at random, and one holds its ground within 10 blocks, as Java's
+            // DrownedTridentAttackGoal does; which one spawns comes from a random sequence every
+            // earlier row of the theme draws from, so the door test takes the ranged groups off.
+            deactivateGroupsDeclaring(entity, subject.bedrock, [
+                'minecraft:behavior.ranged_attack',
+                'minecraft:target_nearby_sensor'
+            ]);
             activateGroupsDeclaring(entity, subject.bedrock, BREAK_DOOR);
+            activateGroupsDeclaring(entity, subject.bedrock, 'minecraft:behavior.melee_box_attack');
             entity.body.target = PLAYER_ID;
             let brokeAt: number | undefined;
             for (let tick = 1; tick <= DOOR_BREAK_WATCH && brokeAt === undefined; tick += 1) {

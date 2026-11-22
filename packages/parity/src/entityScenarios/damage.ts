@@ -322,7 +322,12 @@ const JAVA_SHOOTER_PROJECTILES: Readonly<Record<string, readonly [string, string
     'minecraft:snow_golem': ['minecraft:snowball', 'SnowGolem.performRangedAttack'],
     'minecraft:stray': ['minecraft:arrow', 'AbstractSkeleton.performRangedAttack (Stray.getArrow tips it)'],
     'minecraft:trader_llama': ['minecraft:llama_spit', 'Llama.spit'],
-    'minecraft:witch': ['minecraft:splash_potion', 'Witch.performRangedAttack']
+    'minecraft:witch': ['minecraft:splash_potion', 'Witch.performRangedAttack'],
+    'minecraft:wither': ['minecraft:wither_skull', 'WitherBoss.performRangedAttack (WitherSkull)'],
+    'minecraft:wither_skeleton': [
+        'minecraft:arrow',
+        'AbstractSkeleton.performRangedAttack (WitherSkeleton.getArrow sets it alight)'
+    ]
 };
 
 /** What Java's `thunderHit` does to a type a lightning bolt strikes, by the class that overrides it. */
