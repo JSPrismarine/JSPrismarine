@@ -188,6 +188,9 @@ export class RemoteConsole implements Service {
         const sender = this.server.getConsoleSender();
         this.inFlight.add(id);
         try {
+            // The host sends commands from the start, before the worlds load, and a command runs
+            // in a world: one typed meanwhile runs once the entry world is there.
+            await this.server.getWorldManager().whenEntryWorld();
             const ok = await this.server.getCommandManager().dispatchCommand(sender, sender, line);
             // Already answered by `disable` when the id is gone.
             if (!this.inFlight.delete(id)) return;

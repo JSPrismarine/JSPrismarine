@@ -18,6 +18,8 @@ import ChatEvent from '../events/chat/ChatEvent';
 import type SessionManager from '../SessionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
+import type { World } from '../world/World';
+import type WorldManager from '../world/WorldManager';
 import { RemoteConsole } from './RemoteConsole';
 import type { FlushableLink } from './RemoteLogTransport';
 import { RemoteLogTransport } from './RemoteLogTransport';
@@ -25,7 +27,9 @@ import { RemoteLogTransport } from './RemoteLogTransport';
 const v = PROTOCOL_VERSION;
 
 /** A server double exposing what the remote console reads, with spies on what it drives. */
-const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; players?: number } = {}) => {
+const fakeServer = (
+    overrides: { dispatchCommand?: () => Promise<boolean>; players?: number; entryWorld?: Promise<World> } = {}
+) => {
     const dispatchCommand = vi.fn(overrides.dispatchCommand ?? (async () => true));
     const shutdown = vi.fn(async () => true);
     const info = vi.fn();
@@ -45,6 +49,8 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         getTickControl: () => stub<TickControl>({ getTickRate: () => tickRate }),
         getConsole: () => undefined,
         getConsoleSender: () => sender,
+        getWorldManager: () =>
+            stub<WorldManager>({ whenEntryWorld: () => overrides.entryWorld ?? Promise.resolve(stub<World>({})) }),
         getCommandManager: () =>
             stub<CommandManager>({
                 dispatchCommand,
@@ -134,6 +140,25 @@ describe('RemoteConsole', () => {
 
         expect(dispatchCommand).toHaveBeenCalledWith(sender, sender, 'help');
         expect(received.at(-1)).toEqual({ type: 'command.result', v, id: 'c1', ok: true });
+        await remote.disable();
+    });
+
+    it('runs a command sent while the server starts once the entry world is there', async () => {
+        const entryWorld = Promise.withResolvers<World>();
+        const { server, sender, dispatchCommand } = fakeServer({ entryWorld: entryWorld.promise });
+        const { serverEnd, consoleEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+        await remote.enable();
+
+        consoleEnd.send({ type: 'command', v, id: 'early', line: 'stop' });
+        await setImmediate();
+        expect(dispatchCommand).not.toHaveBeenCalled();
+
+        entryWorld.resolve(stub<World>({}));
+        await setImmediate();
+
+        expect(dispatchCommand).toHaveBeenCalledWith(sender, sender, 'stop');
+        expect(received.at(-1)).toEqual({ type: 'command.result', v, id: 'early', ok: true });
         await remote.disable();
     });
 

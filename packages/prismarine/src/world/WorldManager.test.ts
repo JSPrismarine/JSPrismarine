@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 import { load } from '@jsprismarine/packs';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -230,6 +231,18 @@ const buildManager = (
 };
 
 describe('WorldManager', () => {
+    it('refuses the entry world before it loads and hands it to those waiting once it does', async () => {
+        const { manager } = buildManager('main', { main: entryOf() });
+        expect(() => manager.getEntryWorld()).toThrow(PrismarineWorldErrors.EntryWorldNotLoaded);
+        expect(() => manager.getEntryLevel()).toThrow(PrismarineWorldErrors.EntryWorldNotLoaded);
+        const waiting = manager.whenEntryWorld();
+
+        await manager.enable();
+
+        await expect(waiting).resolves.toBe(manager.getEntryWorld());
+        await manager.disable();
+    });
+
     it('forwards configured chunk workers to generator factories', async () => {
         const { manager, workersSeen } = buildManager('main', { main: entryOf() }, testContent(), 2);
         await manager.enable();

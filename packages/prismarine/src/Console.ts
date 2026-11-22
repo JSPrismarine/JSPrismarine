@@ -80,9 +80,12 @@ export default class Console implements CommandExecutor, Service {
         this.cli.on('line', (input: string) => {
             if (input.trim() === '') return;
 
+            // A command runs in a world, and the console reads lines before the worlds load:
+            // a line typed meanwhile runs once the entry world is there.
             this.server
-                .getCommandManager()
-                .dispatchCommand(this, this, input)
+                .getWorldManager()
+                .whenEntryWorld()
+                .then(() => this.server.getCommandManager().dispatchCommand(this, this, input))
                 .catch((error: unknown) => {
                     this.server.getLogger().error(`Command "${input}" failed`);
                     this.server.getLogger().error(error);

@@ -89,10 +89,13 @@ export default class WorldManager implements Service {
     private readonly playerLevels: PlayerLevels;
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
-    /** The `level-name` level, which a joining player enters first. */
-    private entryLevel!: Level;
-    /** The entry level's Overworld. */
-    private entryWorld!: World;
+    /**
+     * The `level-name` level, which a joining player enters first, and its Overworld; unset
+     * until {@link enable} names them, which is later than a console accepts commands.
+     */
+    private entry: { readonly level: Level; readonly world: World } | undefined;
+    /** Settles once {@link entry} is set; {@link whenEntryWorld} hands it out. */
+    private readonly entryNamed = Promise.withResolvers<World>();
     /** The generator kinds, Java worldgen data and terrain cache every level builds from. */
     private readonly worldgen: WorldgenCatalog;
     /** The provider classes a level's entry can name. */
@@ -149,10 +152,8 @@ export default class WorldManager implements Service {
         if (!defaultData) throw new PrismarineWorldErrors.InvalidLevelName();
 
         // Named as the default before it is enabled, not after. Enabling a level generates the
-        // Overworld's start region, which at `preload-radius: 24` is minutes, and until this
-        // assignment `getEntryWorld()` answered `undefined` while its type said `World` - so
-        // a command typed at the console meanwhile threw a `TypeError` out of `CommandManager`
-        // instead of running. Nothing about the world is missing here except its terrain: it
+        // Overworld's start region, which at `preload-radius: 24` is minutes, and a command
+        // typed at the console waits for this assignment to run. Nothing about the world is missing here except its terrain: it
         // has its game rules, its name and its provider, which is what its callers ask it for.
         // `Level.enable` builds its eager worlds before its first await, so the Overworld
         // exists the moment the call returns its promise.
@@ -163,8 +164,8 @@ export default class WorldManager implements Service {
         const world = prepared.level.loadedWorld(OVERWORLD_STEM_ID);
         if (world === undefined)
             throw new PrismarineWorldErrors.LevelWithoutOverworld({ defaultName, overworldStemId: OVERWORLD_STEM_ID });
-        this.entryLevel = prepared.level;
-        this.entryWorld = world;
+        this.entry = { level: prepared.level, world };
+        this.entryNamed.resolve(world);
         this.server.getLogger().info(`Loading ${world.getFormattedName()} as the entry world!`);
         await this.operations.run(() => this.finishLoading(prepared, enabling));
 
@@ -555,7 +556,8 @@ export default class WorldManager implements Service {
             const level = this.getLevel(nameOrId) ?? this.getLevelById(nameOrId);
             if (level === undefined || this.states.get(level.id) !== 'attached')
                 throw new PrismarineWorldErrors.LevelNotAttached({ name: nameOrId });
-            if (level === this.entryLevel) throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
+            if (level === this.getEntryLevel())
+                throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
             if (this.origins.get(level.id) === 'config')
                 throw new PrismarineWorldErrors.ConfigLevelCannotDetach({ name: level.name });
 
@@ -584,7 +586,7 @@ export default class WorldManager implements Service {
         const leaving = inLevel();
         if (leaving.length === 0) return;
         for (const session of leaving) {
-            void this.transfer(this.server, session, this.entryLevel).catch((error: unknown) => {
+            void this.transfer(this.server, session, this.getEntryLevel()).catch((error: unknown) => {
                 this.server.getLogger().error(error);
             });
         }
@@ -646,7 +648,7 @@ export default class WorldManager implements Service {
      * code should reach for it when it has the level of a player, command or block in hand.
      */
     public getEntryLevel(): Level {
-        return this.entryLevel;
+        return this.entryOrThrow().level;
     }
 
     /**
@@ -690,9 +692,9 @@ export default class WorldManager implements Service {
         return wanted;
     }
 
-    /** A level by folder name, or the entry level when none is named. */
+    /** A level by folder name, or the entry level when none is named; none before it loads. */
     private levelOf(level: string | undefined): Level | undefined {
-        return level === undefined ? this.entryLevel : this.getLevel(level);
+        return level === undefined ? this.entry?.level : this.getLevel(level);
     }
 
     /**
@@ -780,7 +782,26 @@ export default class WorldManager implements Service {
      * The entry level's Overworld, which a joining player enters first.
      */
     public getEntryWorld(): World {
-        return this.entryWorld;
+        return this.entryOrThrow().world;
+    }
+
+    /**
+     * The entry world once {@link enable} has named it: at once after that, and before it, when
+     * it does. A console command typed while the server starts waits on this to run.
+     */
+    public whenEntryWorld(): Promise<World> {
+        return this.entryNamed.promise;
+    }
+
+    /**
+     * The entry level and world.
+     * @throws {PrismarineWorldErrors.EntryWorldNotLoaded} Before {@link enable} names them.
+     */
+    private entryOrThrow(): { readonly level: Level; readonly world: World } {
+        // A throw that names the cause, where the definite assignment this replaces let a
+        // console command typed during startup read `undefined` and fail with a `TypeError`.
+        if (this.entry === undefined) throw new PrismarineWorldErrors.EntryWorldNotLoaded();
+        return this.entry;
     }
 
     /** The generator kinds this server can build a dimension with. */

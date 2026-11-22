@@ -5,6 +5,8 @@ import type { Logger } from '@jsprismarine/logger';
 import Console, { completeCommand } from './Console';
 import type Server from './Server';
 import type { CommandManager } from './command/CommandManager';
+import type { World } from './world/World';
+import type WorldManager from './world/WorldManager';
 import { stub } from './testing/stub.test.helper';
 
 /** A server double that records what the console dispatches and subscribes to. */
@@ -17,6 +19,7 @@ const fakeServer = () => {
     const server = stub<Server>({
         on,
         getCommandManager: () => stub<CommandManager>({ dispatchCommand }),
+        getWorldManager: () => stub<WorldManager>({ whenEntryWorld: async () => stub<World>({}) }),
         getLogger: () => stub<Logger>({ setConsole, info: vi.fn(), error: vi.fn() })
     });
     return { server, dispatchCommand, on, setConsole };

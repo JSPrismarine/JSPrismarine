@@ -172,6 +172,15 @@ Thrown as `PrismarineWorldErrors.EntryLevelCannotDetach`, which extends `Error`.
 The level players join first, the one `level-name` names, cannot be detached while the
 server runs. Name another level in `level-name` and restart the server first.
 
+## `PRISMARINE_ENTRY_WORLD_NOT_LOADED`
+
+`The entry world has not loaded yet`
+
+Thrown as `PrismarineWorldErrors.EntryWorldNotLoaded`, which extends `Error`.
+
+Something asked for the entry level or its Overworld before the worlds loaded, while the
+server was still starting. This is a bug in the server; report it with the stack trace.
+
 ## `PRISMARINE_GENERATION_STOPPED`
 
 `Chunk {cx},{cz} was not generated: the generator has stopped`

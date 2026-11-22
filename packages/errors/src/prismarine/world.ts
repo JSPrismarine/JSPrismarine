@@ -203,6 +203,11 @@ export const PrismarineWorldErrors = defineErrors('prismarine/world', {
      */
     InvalidLevelName: 'Invalid level-name',
     /**
+     * Something asked for the entry level or its Overworld before the worlds loaded, while the
+     * server was still starting. This is a bug in the server; report it with the stack trace.
+     */
+    EntryWorldNotLoaded: 'The entry world has not loaded yet',
+    /**
      * A replay's world snapshot does not have the shape the server writes, so the replay is
      * damaged.
      */
