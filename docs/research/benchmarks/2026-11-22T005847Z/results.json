@@ -1,0 +1,2299 @@
+{
+    "schema": 1,
+    "startedAt": "2026-11-22T00:58:47.589Z",
+    "finishedAt": "2026-11-22T01:50:34.159Z",
+    "command": "node tools/server-benchmark/src/run.mts --rounds 5 --servers jsprismarine-nethernet,bds,pumpkin --jsp-executable /home/runner/work/_temp/prismarine --work /home/runner/work/_temp/benchmark --out /home/runner/work/_temp/results/results.json",
+    "environment": {
+        "os": "Ubuntu 26.04.1 LTS",
+        "kernel": "7.0.0-1020-azure",
+        "arch": "x64",
+        "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+        "logicalCpus": 4,
+        "memoryBytes": 16759435264,
+        "node": "v26.13.1",
+        "ci": {
+            "runUrl": "https://github.com/JSPrismarine/JSPrismarine/actions/runs/44969128716",
+            "runner": "GitHub Actions 1000087144 ubuntu26 20261116.202.1"
+        }
+    },
+    "protocol": {
+        "version": 2225,
+        "minecraftVersion": "1.26.60"
+    },
+    "inputs": "a193cb7ea81fdc985061745f01e5e884af7a2592e5b54a1fa2f139adbddc4ba2",
+    "servers": {
+        "jsprismarine-nethernet": {
+            "name": "JSPrismarine over NetherNet",
+            "transport": "nethernet",
+            "version": "0.24.0",
+            "source": "commit bebee44cff690e812c33487e502c7acef5a33aa7",
+            "command": "JSP_DIR=<data dir> JSP_VANILLA_BEHAVIOR_PACK=node_modules/.cache/jsprismarine/bds/v2225/unpacked/behavior_packs /home/runner/work/_temp/prismarine --no-tui",
+            "settings": [
+                {
+                    "key": "online-mode",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "The bots sign their own logins, as a client that is not signed in to Xbox Live does.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "worlds.world.seed",
+                    "value": "1",
+                    "default": "random",
+                    "reason": "The same seed on every server and in every round.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "worlds.world.preset",
+                    "value": "minecraft:flat",
+                    "default": "minecraft:normal",
+                    "reason": "The flat scenario measures ticking and chunk delivery without terrain generation.",
+                    "scenarios": [
+                        "flat"
+                    ]
+                },
+                {
+                    "key": "gamemode",
+                    "value": "creative",
+                    "default": "survival",
+                    "reason": "A bot teleported above the ground falls, and in survival mode it could die between steps.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "enable-server-public-ip-lookup",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "A network call at startup that the benchmark does not need; the bots connect over loopback.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "stats.bstats.enabled",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "A benchmark run should not count in the server project's usage statistics.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                }
+            ]
+        },
+        "bds": {
+            "name": "Bedrock Dedicated Server",
+            "transport": "raknet",
+            "version": "1.26.60.6",
+            "source": "bedrock-server-1.26.60.6.zip, pinned in packages/bedrock-data/sources.json",
+            "command": "LD_LIBRARY_PATH=. <data dir>/bedrock_server",
+            "settings": [
+                {
+                    "key": "transport",
+                    "value": "raknet",
+                    "default": "nethernet",
+                    "reason": "The bots' NetherNet connections to this server fail within seconds (https://github.com/JSPrismarine/JSPrismarine/issues/3437). It is compared with JSPrismarine over RakNet.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "online-mode",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "The bots sign their own logins, as a client that is not signed in to Xbox Live does.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "allow-list",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "The allow list would refuse the bots.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "level-seed",
+                    "value": "1",
+                    "default": "random",
+                    "reason": "The same seed on every server and in every round.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "level-type",
+                    "value": "FLAT",
+                    "default": "DEFAULT",
+                    "reason": "The flat scenario measures ticking and chunk delivery without terrain generation.",
+                    "scenarios": [
+                        "flat"
+                    ]
+                },
+                {
+                    "key": "view-distance",
+                    "value": "10",
+                    "default": "32",
+                    "reason": "The same view distance on every server; the bots ask for it too.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "tick-distance",
+                    "value": "10",
+                    "default": "4",
+                    "reason": "The same simulation distance on every server: JSPrismarine's is fixed at 10 and Pumpkin's default is 10.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "gamemode",
+                    "value": "creative",
+                    "default": "survival",
+                    "reason": "A bot teleported above the ground falls, and in survival mode it could die between steps.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                }
+            ]
+        },
+        "pumpkin": {
+            "name": "Pumpkin",
+            "transport": "nethernet",
+            "version": "0.2.2+26.3-26.60",
+            "source": "pumpkin-X64-Linux from the 0.2.2+26.3-26.60 GitHub release (commit eda69440e6369c5f8a05c3f69fc809c40dab93a6), sha256 3755df414cdece664223388a93421c5c674682f5b9264387416b8a9074cd8d59",
+            "command": "node_modules/.cache/jsprismarine/pumpkin/0.2.2+26.3-26.60/pumpkin-X64-Linux",
+            "settings": [
+                {
+                    "key": "networking.bedrock.online_mode",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "The bots sign their own logins, as a client that is not signed in to Xbox Live does.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "seed",
+                    "value": "1",
+                    "default": "random",
+                    "reason": "The same seed on every server and in every round.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "world_gen_settings.dat overworld generator",
+                    "value": "minecraft:flat",
+                    "default": "minecraft:noise",
+                    "reason": "The flat scenario measures ticking and chunk delivery without terrain generation. Pumpkin has no setting for it: the harness starts the server once to create the world, stops it, and writes the generator into the world before the measured start.",
+                    "scenarios": [
+                        "flat"
+                    ]
+                },
+                {
+                    "key": "networking.bedrock.view_distance",
+                    "value": "10",
+                    "default": "16",
+                    "reason": "The same view distance on every server; the bots ask for it too.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "default_gamemode",
+                    "value": "Creative",
+                    "default": "Survival",
+                    "reason": "A bot teleported above the ground falls, and in survival mode it could die between steps.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "update_checker.enabled",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "A network call at startup that the benchmark does not need; the bots connect over loopback.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                },
+                {
+                    "key": "telemetry.enabled",
+                    "value": "false",
+                    "default": "true",
+                    "reason": "A benchmark run should not count in the server project's usage statistics.",
+                    "scenarios": [
+                        "flat",
+                        "terrain"
+                    ]
+                }
+            ]
+        }
+    },
+    "scenarios": [
+        {
+            "id": "flat",
+            "worlds": {
+                "jsprismarine-nethernet": "minecraft:flat preset",
+                "bds": "level-type=FLAT",
+                "pumpkin": "minecraft:flat generator, classic flat"
+            },
+            "bots": 10,
+            "viewDistance": 10,
+            "simulationDistance": 10,
+            "steps": 6,
+            "stepBlocks": 64,
+            "teleportY": -60,
+            "idleMs": 30000,
+            "stepTimeoutMs": 60000
+        },
+        {
+            "id": "terrain",
+            "worlds": {
+                "jsprismarine-nethernet": "minecraft:normal preset, Java Edition terrain",
+                "bds": "level-type=DEFAULT, Bedrock Edition terrain",
+                "pumpkin": "minecraft:noise generator, Java Edition terrain"
+            },
+            "bots": 3,
+            "viewDistance": 10,
+            "simulationDistance": 10,
+            "steps": 6,
+            "stepBlocks": 64,
+            "teleportY": 200,
+            "idleMs": 30000,
+            "stepTimeoutMs": 300000
+        }
+    ],
+    "quietLoadLimit": 1,
+    "harness": {
+        "cooldownMaxMs": 180000,
+        "settleQuietMs": 3000,
+        "memorySampleMs": 250
+    },
+    "rounds": [
+        {
+            "round": 0,
+            "order": [
+                "jsprismarine-nethernet",
+                "bds",
+                "pumpkin"
+            ],
+            "load": {
+                "start": [
+                    0.93,
+                    1.61,
+                    0.79
+                ],
+                "end": [
+                    0.96,
+                    1.14,
+                    0.88
+                ]
+            },
+            "quiet": true
+        },
+        {
+            "round": 1,
+            "order": [
+                "bds",
+                "pumpkin",
+                "jsprismarine-nethernet"
+            ],
+            "load": {
+                "start": [
+                    0.96,
+                    1.14,
+                    0.88
+                ],
+                "end": [
+                    0.94,
+                    1.16,
+                    0.96
+                ]
+            },
+            "quiet": true
+        },
+        {
+            "round": 2,
+            "order": [
+                "pumpkin",
+                "jsprismarine-nethernet",
+                "bds"
+            ],
+            "load": {
+                "start": [
+                    0.94,
+                    1.16,
+                    0.96
+                ],
+                "end": [
+                    0.71,
+                    0.96,
+                    0.92
+                ]
+            },
+            "quiet": true
+        },
+        {
+            "round": 3,
+            "order": [
+                "jsprismarine-nethernet",
+                "bds",
+                "pumpkin"
+            ],
+            "load": {
+                "start": [
+                    0.71,
+                    0.96,
+                    0.92
+                ],
+                "end": [
+                    0.99,
+                    1.24,
+                    1.15
+                ]
+            },
+            "quiet": true
+        },
+        {
+            "round": 4,
+            "order": [
+                "bds",
+                "pumpkin",
+                "jsprismarine-nethernet"
+            ],
+            "load": {
+                "start": [
+                    0.99,
+                    1.24,
+                    1.15
+                ],
+                "end": [
+                    0.96,
+                    1.18,
+                    1.12
+                ]
+            },
+            "quiet": true
+        }
+    ],
+    "runs": [
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "flat",
+            "round": 0,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T00:58:51.624Z",
+            "load": {
+                "before": [
+                    0.93,
+                    1.61,
+                    0.79
+                ],
+                "after": [
+                    0.61,
+                    1.39,
+                    0.77
+                ]
+            },
+            "startupMs": 1852,
+            "startupCpuMs": 2190,
+            "phases": {
+                "join": {
+                    "wallMs": 10665,
+                    "cpuMs": 3010,
+                    "columns": 3170,
+                    "columnPackets": 3170,
+                    "sections": 3170,
+                    "bytesReceived": 2747071,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 25855,
+                    "cpuMs": 11230,
+                    "columns": 4820,
+                    "columnPackets": 4820,
+                    "sections": 4820,
+                    "bytesReceived": 2003975,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 11510,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 483419,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 582430720,
+            "idleRssBytes": 465346560,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "flat",
+            "round": 0,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:02:17.217Z",
+            "load": {
+                "before": [
+                    0.72,
+                    1.4,
+                    0.78
+                ],
+                "after": [
+                    0.23,
+                    1.08,
+                    0.72
+                ]
+            },
+            "startupMs": 1480,
+            "startupCpuMs": 1820,
+            "phases": {
+                "join": {
+                    "wallMs": 19825,
+                    "cpuMs": 2820,
+                    "columns": 3690,
+                    "columnPackets": 3690,
+                    "sections": 3690,
+                    "bytesReceived": 3494373,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 36843,
+                    "cpuMs": 8590,
+                    "columns": 5801,
+                    "columnPackets": 5801,
+                    "sections": 5801,
+                    "bytesReceived": 923806,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 7990,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 354721,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 533712896,
+            "idleRssBytes": 533319680,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "flat",
+            "round": 0,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:03:46.884Z",
+            "load": {
+                "before": [
+                    0.23,
+                    1.08,
+                    0.72
+                ],
+                "after": [
+                    0.55,
+                    0.97,
+                    0.71
+                ]
+            },
+            "startupMs": 535,
+            "startupCpuMs": 230,
+            "phases": {
+                "join": {
+                    "wallMs": 13390,
+                    "cpuMs": 4460,
+                    "columns": 8050,
+                    "columnPackets": 8050,
+                    "sections": 193200,
+                    "bytesReceived": 3944373,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 22487,
+                    "cpuMs": 18100,
+                    "columns": 5136,
+                    "columnPackets": 5934,
+                    "sections": 142416,
+                    "bytesReceived": 6205040,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 24820,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 6837222,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 454762496,
+            "idleRssBytes": 434184192,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "terrain",
+            "round": 0,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:04:58.514Z",
+            "load": {
+                "before": [
+                    0.55,
+                    0.97,
+                    0.71
+                ],
+                "after": [
+                    1.6,
+                    1.25,
+                    0.85
+                ]
+            },
+            "startupMs": 16747,
+            "startupCpuMs": 43430,
+            "phases": {
+                "join": {
+                    "wallMs": 27897,
+                    "cpuMs": 22590,
+                    "columns": 1725,
+                    "columnPackets": 1725,
+                    "sections": 14298,
+                    "bytesReceived": 7566989,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 73202,
+                    "cpuMs": 130840,
+                    "columns": 1311,
+                    "columnPackets": 1429,
+                    "sections": 11738,
+                    "bytesReceived": 6014376,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 9100,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 61521,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 2042490880,
+            "idleRssBytes": 1768181760,
+            "processes": 2,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "terrain",
+            "round": 0,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:07:26.504Z",
+            "load": {
+                "before": [
+                    0.97,
+                    1.13,
+                    0.82
+                ],
+                "after": [
+                    0.77,
+                    1.08,
+                    0.84
+                ]
+            },
+            "startupMs": 4601,
+            "startupCpuMs": 11230,
+            "phases": {
+                "join": {
+                    "wallMs": 16449,
+                    "cpuMs": 17540,
+                    "columns": 1991,
+                    "columnPackets": 1995,
+                    "sections": 16503,
+                    "bytesReceived": 9177702,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 37746,
+                    "cpuMs": 25830,
+                    "columns": 1447,
+                    "columnPackets": 1583,
+                    "sections": 12978,
+                    "bytesReceived": 6458485,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 4180,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 54921,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 747151360,
+            "idleRssBytes": 747151360,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "terrain",
+            "round": 0,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:09:18.487Z",
+            "load": {
+                "before": [
+                    0.77,
+                    1.08,
+                    0.84
+                ],
+                "after": [
+                    1.13,
+                    1.18,
+                    0.89
+                ]
+            },
+            "startupMs": 1248,
+            "startupCpuMs": 2540,
+            "phases": {
+                "join": {
+                    "wallMs": 14665,
+                    "cpuMs": 22080,
+                    "columns": 2415,
+                    "columnPackets": 2415,
+                    "sections": 57960,
+                    "bytesReceived": 11215062,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 27562,
+                    "cpuMs": 30750,
+                    "columns": 1568,
+                    "columnPackets": 1749,
+                    "sections": 41976,
+                    "bytesReceived": 7290210,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 6380,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 760455,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 607526912,
+            "idleRssBytes": 539750400,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "flat",
+            "round": 1,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:10:38.136Z",
+            "load": {
+                "before": [
+                    0.96,
+                    1.14,
+                    0.88
+                ],
+                "after": [
+                    0.48,
+                    0.92,
+                    0.82
+                ]
+            },
+            "startupMs": 1551,
+            "startupCpuMs": 1840,
+            "phases": {
+                "join": {
+                    "wallMs": 19808,
+                    "cpuMs": 2850,
+                    "columns": 3690,
+                    "columnPackets": 3690,
+                    "sections": 3690,
+                    "bytesReceived": 3499070,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 37067,
+                    "cpuMs": 8350,
+                    "columns": 5801,
+                    "columnPackets": 5801,
+                    "sections": 5801,
+                    "bytesReceived": 987120,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 7330,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 346368,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 535007232,
+            "idleRssBytes": 535007232,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "flat",
+            "round": 1,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:12:06.742Z",
+            "load": {
+                "before": [
+                    0.48,
+                    0.92,
+                    0.82
+                ],
+                "after": [
+                    0.2,
+                    0.74,
+                    0.77
+                ]
+            },
+            "startupMs": 530,
+            "startupCpuMs": 230,
+            "phases": {
+                "join": {
+                    "wallMs": 13408,
+                    "cpuMs": 4370,
+                    "columns": 8050,
+                    "columnPackets": 8050,
+                    "sections": 193200,
+                    "bytesReceived": 3955499,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 22364,
+                    "cpuMs": 16580,
+                    "columns": 5136,
+                    "columnPackets": 5934,
+                    "sections": 142416,
+                    "bytesReceived": 6037378,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 23910,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 6780918,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 455020544,
+            "idleRssBytes": 436539392,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "flat",
+            "round": 1,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:13:18.156Z",
+            "load": {
+                "before": [
+                    0.2,
+                    0.74,
+                    0.77
+                ],
+                "after": [
+                    0.61,
+                    0.76,
+                    0.77
+                ]
+            },
+            "startupMs": 1729,
+            "startupCpuMs": 1960,
+            "phases": {
+                "join": {
+                    "wallMs": 10596,
+                    "cpuMs": 2970,
+                    "columns": 3170,
+                    "columnPackets": 3170,
+                    "sections": 3170,
+                    "bytesReceived": 2787137,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 25926,
+                    "cpuMs": 11170,
+                    "columns": 4820,
+                    "columnPackets": 4820,
+                    "sections": 4820,
+                    "bytesReceived": 2012745,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30004,
+                    "cpuMs": 11420,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 493167,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 627077120,
+            "idleRssBytes": 491675648,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "terrain",
+            "round": 1,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:14:26.744Z",
+            "load": {
+                "before": [
+                    0.61,
+                    0.76,
+                    0.77
+                ],
+                "after": [
+                    0.99,
+                    0.81,
+                    0.79
+                ]
+            },
+            "startupMs": 4570,
+            "startupCpuMs": 11410,
+            "phases": {
+                "join": {
+                    "wallMs": 17720,
+                    "cpuMs": 17060,
+                    "columns": 1999,
+                    "columnPackets": 2003,
+                    "sections": 16568,
+                    "bytesReceived": 9157723,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 38556,
+                    "cpuMs": 27430,
+                    "columns": 1436,
+                    "columnPackets": 1583,
+                    "sections": 12978,
+                    "bytesReceived": 6460605,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 4700,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 52589,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 742756352,
+            "idleRssBytes": 742363136,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "terrain",
+            "round": 1,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:15:54.837Z",
+            "load": {
+                "before": [
+                    0.99,
+                    0.81,
+                    0.79
+                ],
+                "after": [
+                    1.77,
+                    1.03,
+                    0.86
+                ]
+            },
+            "startupMs": 1248,
+            "startupCpuMs": 2550,
+            "phases": {
+                "join": {
+                    "wallMs": 14597,
+                    "cpuMs": 22480,
+                    "columns": 2415,
+                    "columnPackets": 2415,
+                    "sections": 57960,
+                    "bytesReceived": 11226498,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 27760,
+                    "cpuMs": 31620,
+                    "columns": 1568,
+                    "columnPackets": 1749,
+                    "sections": 41976,
+                    "bytesReceived": 7311428,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 5450,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 105961,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 615124992,
+            "idleRssBytes": 540266496,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "terrain",
+            "round": 1,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:17:08.717Z",
+            "load": {
+                "before": [
+                    0.94,
+                    0.91,
+                    0.83
+                ],
+                "after": [
+                    1.31,
+                    1.24,
+                    0.98
+                ]
+            },
+            "startupMs": 17045,
+            "startupCpuMs": 44430,
+            "phases": {
+                "join": {
+                    "wallMs": 28555,
+                    "cpuMs": 23460,
+                    "columns": 1725,
+                    "columnPackets": 1725,
+                    "sections": 14298,
+                    "bytesReceived": 7570472,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 73541,
+                    "cpuMs": 133100,
+                    "columns": 1311,
+                    "columnPackets": 1429,
+                    "sections": 11738,
+                    "bytesReceived": 6017791,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 9750,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 79527,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 2062532608,
+            "idleRssBytes": 1631854592,
+            "processes": 2,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "flat",
+            "round": 2,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:20:48.091Z",
+            "load": {
+                "before": [
+                    0.94,
+                    1.16,
+                    0.96
+                ],
+                "after": [
+                    0.61,
+                    1,
+                    0.92
+                ]
+            },
+            "startupMs": 537,
+            "startupCpuMs": 230,
+            "phases": {
+                "join": {
+                    "wallMs": 13305,
+                    "cpuMs": 4520,
+                    "columns": 8050,
+                    "columnPackets": 8050,
+                    "sections": 193200,
+                    "bytesReceived": 4056886,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 22372,
+                    "cpuMs": 17270,
+                    "columns": 5136,
+                    "columnPackets": 5934,
+                    "sections": 142416,
+                    "bytesReceived": 5968108,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 22790,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 6775314,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 446689280,
+            "idleRssBytes": 433975296,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "flat",
+            "round": 2,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:21:58.631Z",
+            "load": {
+                "before": [
+                    0.61,
+                    1,
+                    0.92
+                ],
+                "after": [
+                    0.6,
+                    0.9,
+                    0.89
+                ]
+            },
+            "startupMs": 1721,
+            "startupCpuMs": 1920,
+            "phases": {
+                "join": {
+                    "wallMs": 10577,
+                    "cpuMs": 2880,
+                    "columns": 3170,
+                    "columnPackets": 3170,
+                    "sections": 3170,
+                    "bytesReceived": 2745684,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 25529,
+                    "cpuMs": 9970,
+                    "columns": 4820,
+                    "columnPackets": 4820,
+                    "sections": 4820,
+                    "bytesReceived": 2004870,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 10630,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 504492,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 639082496,
+            "idleRssBytes": 429645824,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "flat",
+            "round": 2,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:23:06.797Z",
+            "load": {
+                "before": [
+                    0.6,
+                    0.9,
+                    0.89
+                ],
+                "after": [
+                    0.28,
+                    0.74,
+                    0.83
+                ]
+            },
+            "startupMs": 1427,
+            "startupCpuMs": 1740,
+            "phases": {
+                "join": {
+                    "wallMs": 19788,
+                    "cpuMs": 2600,
+                    "columns": 3690,
+                    "columnPackets": 3690,
+                    "sections": 3690,
+                    "bytesReceived": 3491650,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 36967,
+                    "cpuMs": 8290,
+                    "columns": 5801,
+                    "columnPackets": 5801,
+                    "sections": 5801,
+                    "bytesReceived": 926713,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 7470,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 328198,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 534896640,
+            "idleRssBytes": 534896640,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "terrain",
+            "round": 2,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:24:35.172Z",
+            "load": {
+                "before": [
+                    0.28,
+                    0.74,
+                    0.83
+                ],
+                "after": [
+                    0.81,
+                    0.87,
+                    0.87
+                ]
+            },
+            "startupMs": 1247,
+            "startupCpuMs": 2540,
+            "phases": {
+                "join": {
+                    "wallMs": 14688,
+                    "cpuMs": 22360,
+                    "columns": 2415,
+                    "columnPackets": 2415,
+                    "sections": 57960,
+                    "bytesReceived": 11199413,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 27900,
+                    "cpuMs": 31230,
+                    "columns": 1568,
+                    "columnPackets": 1749,
+                    "sections": 41976,
+                    "bytesReceived": 7549806,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 5360,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 122476,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 620285952,
+            "idleRssBytes": 537489408,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "terrain",
+            "round": 2,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:25:52.485Z",
+            "load": {
+                "before": [
+                    0.81,
+                    0.87,
+                    0.87
+                ],
+                "after": [
+                    1.01,
+                    1.03,
+                    0.94
+                ]
+            },
+            "startupMs": 16909,
+            "startupCpuMs": 43630,
+            "phases": {
+                "join": {
+                    "wallMs": 27066,
+                    "cpuMs": 21850,
+                    "columns": 1725,
+                    "columnPackets": 1725,
+                    "sections": 14298,
+                    "bytesReceived": 7556312,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 74003,
+                    "cpuMs": 133070,
+                    "columns": 1311,
+                    "columnPackets": 1429,
+                    "sections": 11738,
+                    "bytesReceived": 6015321,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30001,
+                    "cpuMs": 9590,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 45481,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 2085457920,
+            "idleRssBytes": 1723740160,
+            "processes": 2,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "terrain",
+            "round": 2,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:28:20.564Z",
+            "load": {
+                "before": [
+                    0.93,
+                    1.02,
+                    0.94
+                ],
+                "after": [
+                    0.71,
+                    0.96,
+                    0.92
+                ]
+            },
+            "startupMs": 4677,
+            "startupCpuMs": 11520,
+            "phases": {
+                "join": {
+                    "wallMs": 17918,
+                    "cpuMs": 17980,
+                    "columns": 2041,
+                    "columnPackets": 2045,
+                    "sections": 16977,
+                    "bytesReceived": 9411984,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 37757,
+                    "cpuMs": 26140,
+                    "columns": 1429,
+                    "columnPackets": 1583,
+                    "sections": 12978,
+                    "bytesReceived": 6458702,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 4050,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 57802,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 747495424,
+            "idleRssBytes": 747495424,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "flat",
+            "round": 3,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:29:51.066Z",
+            "load": {
+                "before": [
+                    0.71,
+                    0.96,
+                    0.92
+                ],
+                "after": [
+                    1.03,
+                    0.99,
+                    0.94
+                ]
+            },
+            "startupMs": 1921,
+            "startupCpuMs": 1990,
+            "phases": {
+                "join": {
+                    "wallMs": 10607,
+                    "cpuMs": 2990,
+                    "columns": 3170,
+                    "columnPackets": 3170,
+                    "sections": 3170,
+                    "bytesReceived": 2733500,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 25627,
+                    "cpuMs": 10430,
+                    "columns": 4820,
+                    "columnPackets": 4820,
+                    "sections": 4820,
+                    "bytesReceived": 2002937,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 11880,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 480274,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 589197312,
+            "idleRssBytes": 432304128,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "flat",
+            "round": 3,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:30:59.663Z",
+            "load": {
+                "before": [
+                    0.94,
+                    0.97,
+                    0.93
+                ],
+                "after": [
+                    0.7,
+                    0.93,
+                    0.92
+                ]
+            },
+            "startupMs": 1460,
+            "startupCpuMs": 1770,
+            "phases": {
+                "join": {
+                    "wallMs": 19802,
+                    "cpuMs": 2670,
+                    "columns": 3690,
+                    "columnPackets": 3690,
+                    "sections": 3690,
+                    "bytesReceived": 3492478,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 36956,
+                    "cpuMs": 8550,
+                    "columns": 5801,
+                    "columnPackets": 5801,
+                    "sections": 5801,
+                    "bytesReceived": 896825,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30001,
+                    "cpuMs": 8150,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 321703,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 534032384,
+            "idleRssBytes": 534032384,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "flat",
+            "round": 3,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:32:42.061Z",
+            "load": {
+                "before": [
+                    0.7,
+                    0.93,
+                    0.92
+                ],
+                "after": [
+                    2.29,
+                    1.45,
+                    1.11
+                ]
+            },
+            "startupMs": 536,
+            "startupCpuMs": 240,
+            "phases": {
+                "join": {
+                    "wallMs": 13288,
+                    "cpuMs": 4490,
+                    "columns": 8050,
+                    "columnPackets": 8050,
+                    "sections": 193200,
+                    "bytesReceived": 4015964,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 22437,
+                    "cpuMs": 17200,
+                    "columns": 5136,
+                    "columnPackets": 5934,
+                    "sections": 142416,
+                    "bytesReceived": 6289728,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 24320,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 6785188,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 447152128,
+            "idleRssBytes": 435224576,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "terrain",
+            "round": 3,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:33:48.925Z",
+            "load": {
+                "before": [
+                    0.99,
+                    1.22,
+                    1.05
+                ],
+                "after": [
+                    2.23,
+                    1.7,
+                    1.25
+                ]
+            },
+            "startupMs": 16695,
+            "startupCpuMs": 43630,
+            "phases": {
+                "join": {
+                    "wallMs": 27656,
+                    "cpuMs": 22570,
+                    "columns": 1725,
+                    "columnPackets": 1725,
+                    "sections": 14298,
+                    "bytesReceived": 7550279,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 73231,
+                    "cpuMs": 132300,
+                    "columns": 1311,
+                    "columnPackets": 1429,
+                    "sections": 11738,
+                    "bytesReceived": 6012373,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 9400,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 57968,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 2072973312,
+            "idleRssBytes": 1751486464,
+            "processes": 2,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "terrain",
+            "round": 3,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:37:06.674Z",
+            "load": {
+                "before": [
+                    0.97,
+                    1.43,
+                    1.19
+                ],
+                "after": [
+                    0.64,
+                    1.22,
+                    1.13
+                ]
+            },
+            "startupMs": 4673,
+            "startupCpuMs": 11370,
+            "phases": {
+                "join": {
+                    "wallMs": 18172,
+                    "cpuMs": 17610,
+                    "columns": 2017,
+                    "columnPackets": 2041,
+                    "sections": 16905,
+                    "bytesReceived": 9368699,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 37744,
+                    "cpuMs": 25800,
+                    "columns": 1448,
+                    "columnPackets": 1583,
+                    "sections": 12978,
+                    "bytesReceived": 6458462,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 4210,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 54519,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 745598976,
+            "idleRssBytes": 745598976,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "terrain",
+            "round": 3,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:39:21.462Z",
+            "load": {
+                "before": [
+                    0.64,
+                    1.22,
+                    1.13
+                ],
+                "after": [
+                    0.99,
+                    1.24,
+                    1.15
+                ]
+            },
+            "startupMs": 1047,
+            "startupCpuMs": 2530,
+            "phases": {
+                "join": {
+                    "wallMs": 14371,
+                    "cpuMs": 22020,
+                    "columns": 2415,
+                    "columnPackets": 2415,
+                    "sections": 57960,
+                    "bytesReceived": 11200286,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 27876,
+                    "cpuMs": 31210,
+                    "columns": 1568,
+                    "columnPackets": 1749,
+                    "sections": 41976,
+                    "bytesReceived": 7295046,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 5980,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 802608,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 640200704,
+            "idleRssBytes": 542535680,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "flat",
+            "round": 4,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:40:38.726Z",
+            "load": {
+                "before": [
+                    0.99,
+                    1.24,
+                    1.15
+                ],
+                "after": [
+                    1.12,
+                    1.2,
+                    1.14
+                ]
+            },
+            "startupMs": 1441,
+            "startupCpuMs": 1750,
+            "phases": {
+                "join": {
+                    "wallMs": 19792,
+                    "cpuMs": 2690,
+                    "columns": 3690,
+                    "columnPackets": 3690,
+                    "sections": 3690,
+                    "bytesReceived": 3557053,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 36948,
+                    "cpuMs": 8200,
+                    "columns": 5801,
+                    "columnPackets": 5801,
+                    "sections": 5801,
+                    "bytesReceived": 933856,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 7410,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 328456,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 532807680,
+            "idleRssBytes": 532807680,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "flat",
+            "round": 4,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:42:07.191Z",
+            "load": {
+                "before": [
+                    0.95,
+                    1.16,
+                    1.13
+                ],
+                "after": [
+                    0.57,
+                    1,
+                    1.07
+                ]
+            },
+            "startupMs": 535,
+            "startupCpuMs": 230,
+            "phases": {
+                "join": {
+                    "wallMs": 13326,
+                    "cpuMs": 4250,
+                    "columns": 8050,
+                    "columnPackets": 8050,
+                    "sections": 193200,
+                    "bytesReceived": 3935241,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 22476,
+                    "cpuMs": 16330,
+                    "columns": 5136,
+                    "columnPackets": 5934,
+                    "sections": 142416,
+                    "bytesReceived": 5987100,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30001,
+                    "cpuMs": 23090,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 6888900,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 447197184,
+            "idleRssBytes": 433565696,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "flat",
+            "round": 4,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:43:24.650Z",
+            "load": {
+                "before": [
+                    0.57,
+                    1,
+                    1.07
+                ],
+                "after": [
+                    0.85,
+                    1,
+                    1.07
+                ]
+            },
+            "startupMs": 2046,
+            "startupCpuMs": 2090,
+            "phases": {
+                "join": {
+                    "wallMs": 10602,
+                    "cpuMs": 2720,
+                    "columns": 3170,
+                    "columnPackets": 3170,
+                    "sections": 3170,
+                    "bytesReceived": 2747215,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 26138,
+                    "cpuMs": 10610,
+                    "columns": 4820,
+                    "columnPackets": 4820,
+                    "sections": 4820,
+                    "bytesReceived": 2017020,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 10660,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 518789,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 698531840,
+            "idleRssBytes": 454930432,
+            "processes": 1,
+            "bots": {
+                "requested": 10,
+                "joined": 10,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "bds",
+            "scenario": "terrain",
+            "round": 4,
+            "position": 0,
+            "ok": true,
+            "startedAt": "2026-11-22T01:44:33.858Z",
+            "load": {
+                "before": [
+                    0.85,
+                    1,
+                    1.07
+                ],
+                "after": [
+                    0.52,
+                    0.91,
+                    1.03
+                ]
+            },
+            "startupMs": 4724,
+            "startupCpuMs": 11460,
+            "phases": {
+                "join": {
+                    "wallMs": 17870,
+                    "cpuMs": 17170,
+                    "columns": 2019,
+                    "columnPackets": 2023,
+                    "sections": 16795,
+                    "bytesReceived": 9285755,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 37957,
+                    "cpuMs": 26600,
+                    "columns": 1441,
+                    "columnPackets": 1583,
+                    "sections": 12978,
+                    "bytesReceived": 6458412,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30003,
+                    "cpuMs": 4370,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 55543,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 744144896,
+            "idleRssBytes": 743706624,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "pumpkin",
+            "scenario": "terrain",
+            "round": 4,
+            "position": 1,
+            "ok": true,
+            "startedAt": "2026-11-22T01:46:01.405Z",
+            "load": {
+                "before": [
+                    0.52,
+                    0.91,
+                    1.03
+                ],
+                "after": [
+                    0.55,
+                    0.84,
+                    0.99
+                ]
+            },
+            "startupMs": 1050,
+            "startupCpuMs": 2560,
+            "phases": {
+                "join": {
+                    "wallMs": 14400,
+                    "cpuMs": 22140,
+                    "columns": 2415,
+                    "columnPackets": 2415,
+                    "sections": 57960,
+                    "bytesReceived": 11266953,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 27867,
+                    "cpuMs": 31740,
+                    "columns": 1568,
+                    "columnPackets": 1749,
+                    "sections": 41976,
+                    "bytesReceived": 7873259,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30001,
+                    "cpuMs": 5460,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 333590,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 637595648,
+            "idleRssBytes": 544276480,
+            "processes": 1,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        },
+        {
+            "server": "jsprismarine-nethernet",
+            "scenario": "terrain",
+            "round": 4,
+            "position": 2,
+            "ok": true,
+            "startedAt": "2026-11-22T01:47:18.699Z",
+            "load": {
+                "before": [
+                    0.55,
+                    0.84,
+                    0.99
+                ],
+                "after": [
+                    1.76,
+                    1.34,
+                    1.16
+                ]
+            },
+            "startupMs": 16555,
+            "startupCpuMs": 43090,
+            "phases": {
+                "join": {
+                    "wallMs": 27802,
+                    "cpuMs": 22560,
+                    "columns": 1725,
+                    "columnPackets": 1725,
+                    "sections": 14298,
+                    "bytesReceived": 7561048,
+                    "stepsTimedOut": 0
+                },
+                "travel": {
+                    "wallMs": 73007,
+                    "cpuMs": 131180,
+                    "columns": 1311,
+                    "columnPackets": 1429,
+                    "sections": 11738,
+                    "bytesReceived": 6040696,
+                    "stepsTimedOut": 0
+                },
+                "idle": {
+                    "wallMs": 30002,
+                    "cpuMs": 8630,
+                    "columns": 0,
+                    "columnPackets": 0,
+                    "sections": 0,
+                    "bytesReceived": 47568,
+                    "stepsTimedOut": 0
+                }
+            },
+            "peakRssBytes": 2205958144,
+            "idleRssBytes": 1778200576,
+            "processes": 2,
+            "bots": {
+                "requested": 3,
+                "joined": 3,
+                "grantedRadius": [
+                    8,
+                    10
+                ],
+                "disconnects": []
+            }
+        }
+    ]
+}
