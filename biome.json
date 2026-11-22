@@ -118,7 +118,7 @@
                 "!**/*.test-utils.*",
                 "!**/*.test-d.ts"
             ],
-            "plugins": ["./.biome/no-raw-errors.grit"]
+            "plugins": ["./.biome/no-raw-errors.grit", "./.biome/no-catalog-root-instanceof.grit"]
         },
         {
             "includes": [
