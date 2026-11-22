@@ -13,7 +13,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
  */
 const readVec2 = (stream: BinaryStream): Vec2 => {
     const vector = new Vec2(0, 0);
-    vector.deserialize(stream);
+    vector.read(stream);
     return vector;
 };
 
@@ -24,7 +24,7 @@ const readVec2 = (stream: BinaryStream): Vec2 => {
  */
 const readVec3 = (stream: BinaryStream): Vec3 => {
     const vector = new Vec3(0, 0, 0);
-    vector.deserialize(stream);
+    vector.read(stream);
     return vector;
 };
 
@@ -181,7 +181,7 @@ export default class CameraPreset extends NetworkStructure {
     private static writeAimAssist(stream: BinaryStream, aimAssist: CameraAimAssistDefinition): void {
         writeOptional(stream, aimAssist.presetId, (id) => stringType.write(stream, id));
         writeOptional(stream, aimAssist.targetMode, (mode) => stream.writeByte(mode));
-        writeOptional(stream, aimAssist.viewAngle, (angle) => angle.serialize(stream));
+        writeOptional(stream, aimAssist.viewAngle, (angle) => angle.write(stream));
         writeOptional(stream, aimAssist.distance, (distance) => stream.writeFloatLE(distance));
     }
 
@@ -199,7 +199,7 @@ export default class CameraPreset extends NetworkStructure {
         const preset = this.data;
         const writeFloat = (value: number) => stream.writeFloatLE(value);
         const writeBoolean = (value: boolean) => stream.writeBoolean(value);
-        const writeVector = (value: Vec2) => value.serialize(stream);
+        const writeVector = (value: Vec2) => value.write(stream);
 
         stringType.write(stream, preset.name);
         stringType.write(stream, preset.inheritFrom);

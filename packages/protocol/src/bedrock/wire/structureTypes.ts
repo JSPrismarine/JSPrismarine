@@ -146,10 +146,10 @@ export const commandOriginData: WireType<CommandOriginData> = custom(
 /** `Vec2` as the {@link Vec2} structure class: two little-endian floats, x then y. */
 export const vec2Structure: WireType<Vec2> = custom(
     'Vec2',
-    (stream, value) => value.serialize(stream),
+    (stream, value) => value.write(stream),
     (stream) => {
         const vector = new Vec2(0, 0);
-        vector.deserialize(stream);
+        vector.read(stream);
         return vector;
     }
 );
@@ -157,10 +157,10 @@ export const vec2Structure: WireType<Vec2> = custom(
 /** `Vec3` as the {@link Vec3} structure class: three little-endian floats. */
 export const vec3Structure: WireType<Vec3> = custom(
     'Vec3',
-    (stream, value) => value.serialize(stream),
+    (stream, value) => value.write(stream),
     (stream) => {
         const vector = new Vec3(0, 0, 0);
-        vector.deserialize(stream);
+        vector.read(stream);
         return vector;
     }
 );
@@ -171,10 +171,10 @@ export const vec3Structure: WireType<Vec3> = custom(
  */
 export const blockPosStructure: WireType<BlockPos> = custom(
     'BlockPos',
-    (stream, value) => value.serialize(stream),
+    (stream, value) => value.write(stream),
     (stream) => {
         const position = new BlockPos(0, 0, 0);
-        position.deserialize(stream);
+        position.read(stream);
         return position;
     }
 );

@@ -21,20 +21,20 @@ export default class Vec3 extends Vec2 {
     }
 
     /**
-     * Serializes the vector into a binary stream.
+     * Writes the vector as three little-endian floats, x, y then z.
      * @param stream - The binary stream to write to.
      */
-    public serialize(stream: BinaryStream): void {
+    public override write(stream: BinaryStream): void {
         stream.writeFloatLE(this.x);
         stream.writeFloatLE(this.y);
         stream.writeFloatLE(this.z);
     }
 
     /**
-     * Deserializes the vector from a binary stream.
+     * Reads the vector from three little-endian floats, x, y then z.
      * @param stream - The binary stream to read from.
      */
-    public deserialize(stream: BinaryStream): void {
+    public override read(stream: BinaryStream): void {
         this.x = stream.readFloatLE();
         this.y = stream.readFloatLE();
         this.z = stream.readFloatLE();
