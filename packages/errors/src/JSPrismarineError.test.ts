@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { codeAnchor, constantCase, defineErrors, JSPrismarineError } from './JSPrismarineError';
+import { codeAnchor, constantCase, defineErrors, isJSPrismarineError, JSPrismarineError } from './JSPrismarineError';
 
 abstract class TestCategoryError extends JSPrismarineError {
     public override name = 'TestCategoryError';
@@ -82,6 +82,21 @@ describe('defineErrors', () => {
         expectTypeOf(new TestErrors.OutOfRange({ offset: 1 })).toExtend<RangeError>();
         // @ts-expect-error: the template has a `reason` placeholder.
         new TestErrors.Filled({ file: 'a' });
+    });
+});
+
+describe('isJSPrismarineError', () => {
+    it('holds for a catalog error whichever built-in error it extends', () => {
+        expect(isJSPrismarineError(new TestErrors.Plain())).toBe(true);
+        expect(isJSPrismarineError(new TestErrors.OutOfRange({ offset: 3 }))).toBe(true);
+        expect(isJSPrismarineError(new TestErrors.Categorized({ thing: 'input' }))).toBe(true);
+    });
+
+    it('does not hold for a plain error or another value', () => {
+        expect(isJSPrismarineError(new Error('x'))).toBe(false);
+        expect(isJSPrismarineError(new RangeError('x'))).toBe(false);
+        expect(isJSPrismarineError('x')).toBe(false);
+        expect(isJSPrismarineError(null)).toBe(false);
     });
 });
 

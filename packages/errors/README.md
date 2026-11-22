@@ -30,6 +30,16 @@ link, and the `params` its message was built from. `instanceof JSPrismarineError
 `TypeError` or `RangeError`, as the code threw before the catalog existed, and some extend a group
 class that catches every error of one kind, such as `CorruptionError` in the `leveldb` catalog.
 
+To catch any catalog error, use `isJSPrismarineError` from `@jsprismarine/errors/JSPrismarineError`.
+It also holds for an error that another installed copy of this package built, such as one an addon
+bundles:
+
+```ts
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+
+if (isJSPrismarineError(error)) console.log(error.code, error.docs);
+```
+
 The logger prints the code and the link after the stack trace, and `util.inspect` shows both beside
 the stack, so an uncaught error reaches the console with its link.
 

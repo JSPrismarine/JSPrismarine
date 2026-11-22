@@ -31,6 +31,25 @@ export abstract class JSPrismarineError extends Error {
     }
 }
 
+/**
+ * True for every error the catalog defines, whichever installed copy of this package built it,
+ * since every copy marks its errors with the same `Symbol.for` key. Prefer it to
+ * `instanceof JSPrismarineError`, which depends on a `Symbol.hasInstance` hook an ahead-of-time
+ * compiler cannot lower. A value that carries the mark but no `code`, `docs` and `params` does not
+ * count.
+ */
+export const isJSPrismarineError = (value: unknown): value is JSPrismarineError =>
+    typeof value === 'object' &&
+    value !== null &&
+    cataloged in value &&
+    'code' in value &&
+    typeof value.code === 'string' &&
+    'docs' in value &&
+    typeof value.docs === 'string' &&
+    'params' in value &&
+    typeof value.params === 'object' &&
+    value.params !== null;
+
 /** A class a catalog entry may extend: `Error`, `TypeError`, `RangeError` or a category of the catalog's own. */
 export type ErrorBase = abstract new (message?: string, options?: ErrorOptions) => Error;
 
