@@ -11,6 +11,11 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./families/commandBlock": {
+                "types": "./dist/families/commandBlock.d.ts",
+                "import": "./dist/families/commandBlock.js",
+                "module": "./dist/families/commandBlock.js"
+            },
             "./rules/container": {
                 "types": "./dist/rules/container.d.ts",
                 "import": "./dist/rules/container.js",
@@ -41,6 +46,10 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./families/commandBlock": {
+            "jsprismarine:dist": "./dist/families/commandBlock.js",
+            "default": "./src/families/commandBlock.ts"
         },
         "./rules/container": {
             "jsprismarine:dist": "./dist/rules/container.js",

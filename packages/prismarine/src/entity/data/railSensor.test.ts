@@ -71,6 +71,38 @@ const CARTS = {
             }
         }
     },
+    // The vanilla pack's command block minecart: both groups' sensors run its command on a
+    // powered rail.
+    'minecraft:command_block_minecart': {
+        components: CART,
+        component_groups: {
+            'minecraft:command_block_active': {
+                'minecraft:rail_sensor': {
+                    on_deactivate: { event: 'minecraft:command_block_deactivate' },
+                    eject_on_activate: false,
+                    tick_command_block_on_activate: true
+                }
+            },
+            'minecraft:command_block_inactive': {
+                'minecraft:rail_sensor': {
+                    on_activate: { event: 'minecraft:command_block_activate' },
+                    eject_on_activate: false,
+                    tick_command_block_on_activate: true
+                }
+            }
+        },
+        events: {
+            'minecraft:entity_spawned': { add: { component_groups: ['minecraft:command_block_inactive'] } },
+            'minecraft:command_block_activate': {
+                add: { component_groups: ['minecraft:command_block_active'] },
+                remove: { component_groups: ['minecraft:command_block_inactive'] }
+            },
+            'minecraft:command_block_deactivate': {
+                add: { component_groups: ['minecraft:command_block_inactive'] },
+                remove: { component_groups: ['minecraft:command_block_active'] }
+            }
+        }
+    },
     'minecraft:pig': {
         components: {
             'minecraft:health': { value: 10, max: 10 },
@@ -137,7 +169,7 @@ const railWorld = (tntExplodes: boolean | undefined = true) => {
         if (cart === undefined) throw new Error(`the fixture declares no ${identifier}`);
         return cart;
     };
-    return { runtime, lay, spawn };
+    return { runtime, lay, spawn, world };
 };
 
 describe('a minecart in the runtime', () => {
@@ -219,5 +251,51 @@ describe('a minecart in the runtime', () => {
         expect(cart.instance.componentParams('minecraft:rail_sensor')).toEqual({
             on_activate: { event: 'minecraft:hopper_deactivate' }
         });
+    });
+});
+
+describe('a command block minecart', () => {
+    it('runs its command over a powered activator rail once every four ticks, as the cart and its name', () => {
+        const { runtime, lay, spawn, world } = railWorld();
+        lay('minecraft:activator_rail', true);
+        const cart = spawn('minecraft:command_block_minecart');
+        expect(
+            runtime.setMinecartCommand(cart.id, { command: 'say ride', customName: 'Cart', trackOutput: true })
+        ).toBe(true);
+
+        // Runs on ticks 1, 5 and 9, so the count after each tick climbs only on those.
+        const counts: number[] = [];
+        for (let tick = 1; tick <= 9; tick += 1) {
+            world.advance();
+            runtime.tick(tick);
+            counts.push(world.commands.length);
+        }
+
+        expect(counts).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3]);
+        expect(world.commands[0]).toMatchObject({ command: 'say ride', name: 'Cart', entityId: cart.id });
+    });
+
+    it('runs nothing over an unpowered rail, or without a command', () => {
+        for (const [powered, command] of [
+            [false, 'say ride'],
+            [true, '']
+        ] as const) {
+            const { runtime, lay, spawn, world } = railWorld();
+            lay('minecraft:activator_rail', powered);
+            const cart = spawn('minecraft:command_block_minecart');
+            runtime.setMinecartCommand(cart.id, { command, customName: '', trackOutput: true });
+            for (let tick = 1; tick <= 5; tick += 1) runtime.tick(tick);
+
+            expect(world.commands).toEqual([]);
+        }
+    });
+
+    it('refuses a command for anything but a command block minecart', () => {
+        const { runtime, spawn } = railWorld();
+        const cart = spawn('minecraft:minecart');
+
+        expect(runtime.setMinecartCommand(cart.id, { command: 'say no', customName: '', trackOutput: true })).toBe(
+            false
+        );
     });
 });

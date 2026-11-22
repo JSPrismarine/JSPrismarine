@@ -73,6 +73,9 @@ export const WATER_SOURCE_CONVERSION = idOf('waterSourceConversion');
 /** `minecraft:lava_source_conversion`: whether adjacent lava sources create another source. */
 export const LAVA_SOURCE_CONVERSION = idOf('lavaSourceConversion');
 
+/** Whether command blocks run their commands; Bedrock's `commandblocksenabled`. */
+export const COMMAND_BLOCKS_WORK = idOf('commandBlocksEnabled');
+
 /**
  * The default of {@link FIRE_SPREAD_RADIUS}, in blocks.
  *

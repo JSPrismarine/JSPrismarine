@@ -62,15 +62,16 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
         exact: ['compound_creator', 'element_constructor', 'lab_table', 'material_reducer', 'chemical_heat']
     },
     {
+        behavior: 'jsprismarine:command_block',
+        exact: ['command_block', 'chain_command_block', 'repeating_command_block']
+    },
+    {
         behavior: 'jsprismarine:inert',
         exact: [
             'air',
             'barrier',
             'bedrock',
             'client_request_placeholder_block',
-            'command_block',
-            'chain_command_block',
-            'repeating_command_block',
             'structure_block',
             'structure_void',
             'jigsaw',

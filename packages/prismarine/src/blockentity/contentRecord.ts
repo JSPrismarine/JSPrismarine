@@ -16,6 +16,8 @@
  * compound already carried is left where it is, which is the rule {@link BlockEntity} is built
  * around: a world is full of tags this server does not model.
  */
+import type { CommandBlockState } from '@jsprismarine/block-behaviors/families/commandBlock';
+import { COMMAND_BLOCK_FIELD } from '@jsprismarine/block-behaviors/families/commandBlock';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
@@ -125,6 +127,60 @@ const pistonArmFromNbt = (nbt: NBTTagCompound): NonNullable<BlockEntityData['pis
     };
 };
 
+/** The block entity id Bedrock files every command block's compound under. */
+const COMMAND_BLOCK_ID = 'CommandBlock';
+
+/**
+ * Each field of a command block's state and the Bedrock tag that holds it, as the game writes a
+ * `CommandBlock` compound and the client reads one to fill its command block screen.
+ */
+const COMMAND_BLOCK_TAGS: readonly {
+    readonly field: keyof CommandBlockState;
+    readonly tag: string;
+    readonly width: 'string' | 'byte' | 'int';
+}[] = [
+    { field: 'command', tag: 'Command', width: 'string' },
+    { field: 'customName', tag: 'CustomName', width: 'string' },
+    { field: 'lastOutput', tag: 'LastOutput', width: 'string' },
+    { field: 'trackOutput', tag: 'TrackOutput', width: 'byte' },
+    { field: 'successCount', tag: 'SuccessCount', width: 'int' },
+    { field: 'auto', tag: 'auto', width: 'byte' },
+    { field: 'powered', tag: 'powered', width: 'byte' },
+    { field: 'conditionMet', tag: 'conditionMet', width: 'byte' },
+    { field: 'tickDelay', tag: 'TickDelay', width: 'int' },
+    { field: 'executeOnFirstTick', tag: 'ExecuteOnFirstTick', width: 'byte' }
+];
+
+/**
+ * A command block's state out of its compound's own tags, or undefined for any other compound.
+ * A tag the compound lacks is left out, so the family's defaults fill it.
+ */
+const commandBlockFromNbt = (nbt: NBTTagCompound): Partial<Record<keyof CommandBlockState, unknown>> | undefined => {
+    if (nbt.getString('id', '') !== COMMAND_BLOCK_ID) return undefined;
+    const state: Partial<Record<keyof CommandBlockState, unknown>> = {};
+    for (const { field, tag, width } of COMMAND_BLOCK_TAGS) {
+        if (!nbt.has(tag)) continue;
+        state[field] =
+            width === 'string'
+                ? nbt.getString(tag, '')
+                : width === 'byte'
+                  ? nbt.getByte(tag, 0) !== 0
+                  : nbt.getNumber(tag, 0);
+    }
+    return state;
+};
+
+/** Writes a command block's state under the compound's own tags. */
+const applyCommandBlockToNbt = (nbt: NBTTagCompound, state: unknown): void => {
+    if (typeof state !== 'object' || state === null) return;
+    for (const { field, tag, width } of COMMAND_BLOCK_TAGS) {
+        const value: unknown = Reflect.get(state, field);
+        if (width === 'string' && typeof value === 'string') nbt.addValue(tag, new Types.StringVal(value));
+        else if (width === 'byte' && typeof value === 'boolean') nbt.addValue(tag, new Types.ByteVal(value ? 1 : 0));
+        else if (width === 'int' && typeof value === 'number') nbt.addValue(tag, new Types.NumberVal(value));
+    }
+};
+
 /** The color index a bed or banner compound holds, or undefined for any other compound. */
 const dyeIndexFromNbt = (nbt: NBTTagCompound): number | undefined => {
     const native = DYE_INDEX_TAGS[nbt.getString('id', '')];
@@ -152,8 +208,19 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
     const withPistonArm = pistonArm === undefined ? withPair : { ...withPair, pistonArm };
     const dyeIndex = dyeIndexFromNbt(nbt);
     const withDye = dyeIndex === undefined ? withPistonArm : { ...withPistonArm, [DYE_INDEX_FIELD]: dyeIndex };
+    // A command block's own tags are the state, whoever wrote the compound; the success count is
+    // also what a comparator reads.
+    const commandBlock = commandBlockFromNbt(nbt);
+    const withCommandBlock =
+        commandBlock === undefined
+            ? withDye
+            : {
+                  ...withDye,
+                  [COMMAND_BLOCK_FIELD]: commandBlock,
+                  ...(typeof commandBlock.successCount === 'number' ? { analogOutput: commandBlock.successCount } : {})
+              };
 
-    return items === undefined ? withDye : { ...withDye, items };
+    return items === undefined ? withCommandBlock : { ...withCommandBlock, items };
 };
 
 /**
@@ -175,8 +242,14 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
     applyDyeIndexToNbt(nbt, dyeIndex);
 
     const isPistonArm = nbt.getString('id', '') === 'PistonArm';
-    const recordFields = isPistonArm ? fields : { ...fields, ...(pistonArm === undefined ? {} : { pistonArm }) };
+    const pistonFields = isPistonArm ? fields : { ...fields, ...(pistonArm === undefined ? {} : { pistonArm }) };
     if (isPistonArm) applyPistonArmToNbt(nbt, pistonArm);
+
+    // A command block's state lives in its own tags, so it is not kept a second time as JSON.
+    const isCommandBlock = nbt.getString('id', '') === COMMAND_BLOCK_ID;
+    if (isCommandBlock) applyCommandBlockToNbt(nbt, fields[COMMAND_BLOCK_FIELD]);
+    const { [COMMAND_BLOCK_FIELD]: _commandBlock, analogOutput: _analogOutput, ...withoutCommandBlock } = pistonFields;
+    const recordFields = isCommandBlock ? withoutCommandBlock : pistonFields;
 
     const encoded = JSON.stringify(recordFields);
     if (encoded === undefined || encoded === '{}') {

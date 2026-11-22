@@ -48,7 +48,10 @@ const SCREENS: Readonly<Record<string, WindowTypes>> = {
     smithing_table: WindowTypes.SMITHING_TABLE,
     lectern: WindowTypes.LECTERN,
     crafter: WindowTypes.CRAFTER,
-    decorated_pot: WindowTypes.DECORATED_POT
+    decorated_pot: WindowTypes.DECORATED_POT,
+    command_block: WindowTypes.COMMAND_BLOCK,
+    repeating_command_block: WindowTypes.COMMAND_BLOCK,
+    chain_command_block: WindowTypes.COMMAND_BLOCK
 };
 
 /** What a block's screen is, once it has been resolved. */
@@ -74,7 +77,8 @@ const STORES_NOTHING: ReadonlySet<WindowTypes> = new Set([
     WindowTypes.CARTOGRAPHY,
     WindowTypes.SMITHING_TABLE,
     WindowTypes.LOOM,
-    WindowTypes.BEACON
+    WindowTypes.BEACON,
+    WindowTypes.COMMAND_BLOCK
 ]);
 
 /**
