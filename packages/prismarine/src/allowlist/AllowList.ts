@@ -121,11 +121,23 @@ export default class AllowList {
         return !this.enabled || this.contains(player);
     }
 
-    /** Adds a player, unless the list has them already, and writes the file. */
-    public add(entry: AllowListEntry): void {
-        if (this.contains(entry)) return;
+    /**
+     * Whether a player may join a full server: their entry says it ignores the player limit.
+     * It holds whether or not the list is on, as the entry's own setting.
+     */
+    public ignoresPlayerLimit(player: AllowListPlayer): boolean {
+        return this.entries.some((entry) => entry.ignoresPlayerLimit && matches(entry, player));
+    }
+
+    /**
+     * Adds a player, unless the list has them already, and writes the file.
+     * @returns Whether they were added.
+     */
+    public add(entry: AllowListEntry): boolean {
+        if (this.contains(entry)) return false;
         this.entries = [...this.entries, entry];
         this.save();
+        return true;
     }
 
     /**

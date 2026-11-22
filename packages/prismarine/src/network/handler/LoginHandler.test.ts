@@ -17,6 +17,7 @@ import type BanManager from '../../ban/BanManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
+import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { StorePlayers } from '../../entity/data/storePlayers';
 import { plainCapabilities } from '../../testing/manualTransport.test.helper';
@@ -173,7 +174,7 @@ describe('network', () => {
                 getConfig: config,
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
-                getAllowList: () => stub<AllowList>({ allows: () => true }),
+                getAllowList: () => stub<AllowList>({ allows: () => true, ignoresPlayerLimit: () => false }),
                 getTick: () => 0,
                 // What a session posts `playerConnect` on.
                 getKernel: () => kernel,
@@ -696,15 +697,29 @@ describe('network', () => {
                 );
             });
 
+            /** Two players online, which is a full server at `getMaxPlayers: () => 2`. */
+            const fillServer = (): void => {
+                for (const id of [91, 92])
+                    sessions.add(
+                        id,
+                        stub<ClientConnection>({
+                            getPlayerSession: () =>
+                                stub<PlayerSession>({
+                                    isConnected: () => true,
+                                    identity: identityNamed(`player-${id}`, `00000000-0000-0000-0000-0000000000${id}`)
+                                })
+                        })
+                    );
+            };
+
             it('refuses a login once the server is full', async () => {
                 const pk = loginPacket('late', '11111111-2222-3333-4444-555555555555');
 
                 const sent: NetworkPacket[] = [];
+                fillServer();
                 const fullServer = stub<Server>({
                     ...server,
-                    getSessionManager: () =>
-                        stub<SessionManager>({ getSessions: () => [stub<PlayerSession>(), stub<PlayerSession>()] }),
-                    getConfig: () => stub<Config>({ getMaxPlayers: () => 2 })
+                    getConfig: () => stub<Config>({ ...config(), getMaxPlayers: () => 2 })
                 });
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
@@ -725,6 +740,38 @@ describe('network', () => {
                 expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
                 expect(disconnect).toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
                 expect(connection.attachPlayerSession).not.toHaveBeenCalled();
+            });
+
+            it('lets a player whose allow list entry ignores the player limit into a full server', async () => {
+                const asked: unknown[] = [];
+                fillServer();
+                const fullServer = stub<Server>({
+                    ...server,
+                    getConfig: () => stub<Config>({ ...config(), getMaxPlayers: () => 2 }),
+                    getAllowList: () =>
+                        stub<AllowList>({
+                            allows: () => true,
+                            ignoresPlayerLimit: (player) => {
+                                asked.push(player);
+                                return true;
+                            }
+                        })
+                });
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async () => {},
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(fullServer, connection));
+
+                expect(asked).toEqual([{ name: 'runner' }]);
+                expect(disconnect).not.toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
+                expect(connection.attachPlayerSession).toHaveBeenCalled();
             });
 
             /** The status the client renders as "outdated server", then a disconnect with `OutdatedServer`. */

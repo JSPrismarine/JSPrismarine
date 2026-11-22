@@ -1,4 +1,5 @@
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
+import type { CommandHost } from '@jsprismarine/commands/host';
 import { createCommandSource, registerVanillaCommands } from '@jsprismarine/commands';
 import { testCommandHost } from '@jsprismarine/commands/testing';
 import { bedrockSyntaxError } from '@jsprismarine/commands/syntaxError';
@@ -20,15 +21,17 @@ import { REFERENCES } from './references.ts';
  * console does and compares the answer: a refused line must be refused with the same syntax error,
  * pointing at the same word, and an accepted line must run and report what BDS reported.
  *
- * Row ids are `console-answer:<line>`.
+ * The lines run in the capture's order against one host, as they did on one server, so a line
+ * that depends on an earlier one, such as adding a name to the allow list twice, answers the same.
+ * Row ids are `console-answer:<line>`, with `#<n>` after a line's second and later repeats.
  */
 
 /** What this server answers a console line with, in the shape the capture records. */
-const answerOf = (command: string): Omit<CommandAnswer, 'command'> => {
+const answerOf = (host: CommandHost, command: string): Omit<CommandAnswer, 'command'> => {
     const feedback: string[] = [];
     const errors: string[] = [];
     const source = createCommandSource({
-        host: testCommandHost(),
+        host,
         permissionLevel: 4,
         onFeedback: (message) => feedback.push(message),
         // A command that parsed and then refused to run answers through `sendError`, which the
@@ -47,16 +50,27 @@ const answerOf = (command: string): Omit<CommandAnswer, 'command'> => {
 
 describeFamily(FAMILIES.commandsAnswers, [REFERENCES.bedrockCommandAnswers], () => {
     const { server, answers } = loadCommandAnswers();
+    // Every line's answer, run in order on one host.
+    const host = testCommandHost();
+    const seen = new Map<string, number>();
+    const rows = answers.map((expected) => {
+        const repeat = (seen.get(expected.command) ?? 0) + 1;
+        seen.set(expected.command, repeat);
+        return {
+            id: repeat === 1 ? expected.command : `${expected.command}#${repeat}`,
+            expected,
+            actual: answerOf(host, expected.command)
+        };
+    });
 
-    const consoleAnswer: BehaviorScenario<CommandAnswer> = {
+    const consoleAnswer: BehaviorScenario<(typeof rows)[number]> = {
         name: 'console-answer',
         java: `Bedrock Dedicated Server ${server} answers the line at its console with the captured line.`,
         reference: 'packages/bedrock-data/src/jsp/v<protocol>/command_answers.json; issue #3239',
-        subjects: () => answers,
-        idOf: (answer) => answer.command,
+        subjects: () => rows,
+        idOf: (row) => row.id,
         covers: () => undefined,
-        run: (expected) => {
-            const actual = answerOf(expected.command);
+        run: ({ expected, actual }) => {
             if (actual.level === expected.level && actual.message === expected.message) return undefined;
             return `${actual.level} ${JSON.stringify(actual.message)} where BDS answers ${expected.level} ${JSON.stringify(expected.message)}`;
         }

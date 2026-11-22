@@ -133,6 +133,19 @@ export const serverSideCommandHost = (
     };
 
     return {
+        allowList: {
+            add: (name) => server.getAllowList().add({ name, ignoresPlayerLimit: false }),
+            remove: (name) => server.getAllowList().remove({ name }),
+            entries: () => server.getAllowList().getEntries(),
+            // Bedrock Dedicated Server refuses to turn the list on without online authentication:
+            // a name is all an offline login claims, so anybody could join under a listed one.
+            setEnabled: (enabled) => {
+                if (enabled && !server.getConfig().getOnlineMode()) return false;
+                server.getAllowList().setEnabled(enabled);
+                return true;
+            },
+            reload: () => server.getAllowList().reload()
+        },
         addOperator: (player) => operator(player, true),
         removeOperator: (player) => operator(player, false),
 

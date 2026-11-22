@@ -4,9 +4,12 @@
  *
  * Every method answers the "nothing happened" value for its return type, so a
  * test overrides only the two or three verbs the command under test calls and
- * still gets a fully typed host rather than a cast.
+ * still gets a fully typed host rather than a cast. The allow list is the
+ * exception: it keeps its names, so `/allowlist` answers a run of lines as a
+ * server would.
  */
 import type {
+    AllowListCommandHost,
     CommandHost,
     DataCommandHost,
     EntityCommandHost,
@@ -120,7 +123,28 @@ const data = (): DataCommandHost => ({
     resetRandomSequence: () => false
 });
 
+/**
+ * An allow list held in memory, on a server that does not authenticate players online, as the
+ * console capture's Bedrock Dedicated Server does not.
+ */
+const allowList = (): AllowListCommandHost => {
+    const names: string[] = [];
+    return {
+        add: (name) => !names.includes(name) && names.push(name) > 0,
+        remove: (name) => {
+            const index = names.indexOf(name);
+            if (index < 0) return false;
+            names.splice(index, 1);
+            return true;
+        },
+        entries: () => names.map((name) => ({ name, ignoresPlayerLimit: false })),
+        setEnabled: (enabled) => !enabled,
+        reload: () => {}
+    };
+};
+
 const server = (): ServerCommandHost => ({
+    allowList: allowList(),
     addOperator: () => false,
     removeOperator: () => false,
     kick: () => false,

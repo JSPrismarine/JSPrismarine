@@ -611,8 +611,35 @@ export interface TickCommandHost {
     stopSprint(): boolean;
 }
 
+/** One player on the allow list, as `/allowlist list` prints it. */
+export interface AllowListCommandEntry {
+    readonly name?: string;
+    readonly xuid?: string;
+    /** Whether the player may join a full server. */
+    readonly ignoresPlayerLimit: boolean;
+}
+
+/** What `/allowlist` asks of the server's allow list. */
+export interface AllowListCommandHost {
+    /** @returns False when the name is on the list already. */
+    add(name: string): boolean;
+    /** @returns False when the name is not on the list. */
+    remove(name: string): boolean;
+    entries(): readonly AllowListCommandEntry[];
+    /**
+     * Turns the list on or off.
+     *
+     * @returns False when it cannot be turned on because players are not authenticated online,
+     *   which Bedrock Dedicated Server refuses as well.
+     */
+    setEnabled(enabled: boolean): boolean;
+    /** Reads the list's file again. */
+    reload(): void;
+}
+
 /** The administrative verbs a command needs. */
 export interface ServerCommandHost {
+    readonly allowList: AllowListCommandHost;
     addOperator(player: EntityRef): boolean;
     removeOperator(player: EntityRef): boolean;
     kick(player: EntityRef, reason: string): boolean;
