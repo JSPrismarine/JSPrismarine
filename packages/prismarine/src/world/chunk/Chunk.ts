@@ -881,7 +881,11 @@ export default class Chunk {
             this.subChunkOrder.push(index);
             this.storedSubChunkCount++;
         }
-        if (this.subChunks[offset] !== subChunk) this.subChunkLayoutRevision++;
+        if (this.subChunks[offset] !== subChunk) {
+            this.subChunkLayoutRevision++;
+            // A read that kept the section it last read from must not answer from the old one.
+            BlockStorage.writeEpoch++;
+        }
         this.subChunks[offset] = subChunk;
         subChunk.attachWriteCounter(this.blockWrites);
     }
