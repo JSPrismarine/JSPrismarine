@@ -11,10 +11,10 @@ import type { PayloadOf } from '../../../wire/define';
 /** A `BlockPos` carried as the {@link BlockPos} structure class, so callers keep the class. */
 const blockPosition = t.custom<BlockPos>(
     'BlockPos',
-    (s, v) => v.serialize(s),
+    (s, v) => v.write(s),
     (s) => {
         const position = new BlockPos(0, 0, 0);
-        position.deserialize(s);
+        position.read(s);
         return position;
     }
 );

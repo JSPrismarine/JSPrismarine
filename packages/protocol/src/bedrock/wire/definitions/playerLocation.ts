@@ -50,7 +50,7 @@ const alternative = t.custom<PlayerLocationAlternative>(
     (stream, value) => {
         stream.writeUnsignedVarInt(value.packetType);
         stream.writeVarInt(value.packetType);
-        if (value.packetType === PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES) value.position.serialize(stream);
+        if (value.packetType === PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES) value.position.write(stream);
     },
     (stream) => {
         const selector = stream.readUnsignedVarInt();
@@ -60,7 +60,7 @@ const alternative = t.custom<PlayerLocationAlternative>(
         switch (selector) {
             case PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES: {
                 const position = new Vec3(0, 0, 0);
-                position.deserialize(stream);
+                position.read(stream);
                 return { packetType, position };
             }
             case PlayerLocationPacketType.PLAYER_LOCATION_HIDE:

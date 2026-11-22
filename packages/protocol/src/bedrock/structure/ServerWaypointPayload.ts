@@ -74,7 +74,7 @@ export default class ServerWaypointPayload extends NetworkStructure {
 
     private static readVec3(stream: BinaryStream): Vec3 {
         const position = new Vec3(0, 0, 0);
-        position.deserialize(stream);
+        position.read(stream);
         return position;
     }
 
@@ -83,11 +83,11 @@ export default class ServerWaypointPayload extends NetworkStructure {
         stream.writeUnsignedIntLE(this.updateFlag);
         ServerWaypointPayload.writeOptional(stream, this.isVisible, (value) => stream.writeBoolean(value));
         ServerWaypointPayload.writeOptional(stream, this.worldPosition, (value) => {
-            value.position.serialize(stream);
+            value.position.write(stream);
             stream.writeVarInt(value.dimensionType);
         });
         ServerWaypointPayload.writeOptional(stream, this.texturePath, (value) => stringType.write(stream, value));
-        ServerWaypointPayload.writeOptional(stream, this.iconSize, (value) => value.serialize(stream));
+        ServerWaypointPayload.writeOptional(stream, this.iconSize, (value) => value.write(stream));
         ServerWaypointPayload.writeOptional(stream, this.color, (value) => stream.writeIntLE(value));
         ServerWaypointPayload.writeOptional(stream, this.clientPositionAuthority, (value) =>
             stream.writeBoolean(value)
@@ -106,7 +106,7 @@ export default class ServerWaypointPayload extends NetworkStructure {
         this.texturePath = ServerWaypointPayload.readOptional(stream, () => stringType.read(stream));
         this.iconSize = ServerWaypointPayload.readOptional(stream, () => {
             const size = new Vec2(0, 0);
-            size.deserialize(stream);
+            size.read(stream);
             return size;
         });
         this.color = ServerWaypointPayload.readOptional(stream, () => stream.readIntLE());

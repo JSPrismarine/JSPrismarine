@@ -219,13 +219,13 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
     // The static `deserialize` the vectors inherit takes a `NetworkBinaryStream`; the floats need only a `BinaryStream`.
     private static readVec2(stream: BinaryStream): Vec2 {
         const vector = new Vec2(0, 0);
-        vector.deserialize(stream);
+        vector.read(stream);
         return vector;
     }
 
     private static readVec3(stream: BinaryStream): Vec3 {
         const vector = new Vec3(0, 0, 0);
-        vector.deserialize(stream);
+        vector.read(stream);
         return vector;
     }
 
@@ -236,7 +236,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
             case PrimitiveShapeExtraDataType.None:
                 break;
             case PrimitiveShapeExtraDataType.Arrow:
-                PrimitiveShapeData.writeOptional(stream, data.endLocation, (v) => v.serialize(stream));
+                PrimitiveShapeData.writeOptional(stream, data.endLocation, (v) => v.write(stream));
                 PrimitiveShapeData.writeOptional(stream, data.headLength, (v) => stream.writeFloatLE(v));
                 PrimitiveShapeData.writeOptional(stream, data.headRadius, (v) => stream.writeFloatLE(v));
                 PrimitiveShapeData.writeOptional(stream, data.segments, (v) => stream.writeByte(v));
@@ -251,17 +251,17 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                 stream.writeBoolean(data.showTextBackface);
                 break;
             case PrimitiveShapeExtraDataType.Box:
-                data.bound.serialize(stream);
+                data.bound.write(stream);
                 break;
             case PrimitiveShapeExtraDataType.Line:
-                data.endLocation.serialize(stream);
+                data.endLocation.write(stream);
                 break;
             case PrimitiveShapeExtraDataType.Sphere:
                 stream.writeByte(data.segments);
                 break;
             case PrimitiveShapeExtraDataType.Cylinder:
-                data.radiusX.serialize(stream);
-                data.radiusZ.serialize(stream);
+                data.radiusX.write(stream);
+                data.radiusZ.write(stream);
                 stream.writeFloatLE(data.height);
                 stream.writeByte(data.segments);
                 break;
@@ -271,11 +271,11 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                 stream.writeFloatLE(data.height);
                 break;
             case PrimitiveShapeExtraDataType.Ellipsoid:
-                data.radii.serialize(stream);
+                data.radii.write(stream);
                 stream.writeByte(data.segmentsPerAxis);
                 break;
             case PrimitiveShapeExtraDataType.Cone:
-                data.radii.serialize(stream);
+                data.radii.write(stream);
                 stream.writeFloatLE(data.height);
                 stream.writeByte(data.segments);
                 break;
@@ -349,9 +349,9 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
     public serialize(stream: BinaryStream): void {
         stream.writeUnsignedVarLong(this.networkId);
         PrimitiveShapeData.writeOptional(stream, this.shapeType, (v) => stream.writeByte(v));
-        PrimitiveShapeData.writeOptional(stream, this.location, (v) => v.serialize(stream));
+        PrimitiveShapeData.writeOptional(stream, this.location, (v) => v.write(stream));
         PrimitiveShapeData.writeOptional(stream, this.scale, (v) => stream.writeFloatLE(v));
-        PrimitiveShapeData.writeOptional(stream, this.rotation, (v) => v.serialize(stream));
+        PrimitiveShapeData.writeOptional(stream, this.rotation, (v) => v.write(stream));
         PrimitiveShapeData.writeOptional(stream, this.totalTimeLeft, (v) => stream.writeFloatLE(v));
         PrimitiveShapeData.writeOptional(stream, this.maxRenderDistance, (v) => stream.writeFloatLE(v));
         PrimitiveShapeData.writeOptional(stream, this.color, (v) => stream.writeUnsignedIntLE(v));

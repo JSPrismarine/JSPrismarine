@@ -15,10 +15,10 @@ import type { WireType } from '../../../wire/fieldTypes';
 /** `BlockPos` as the package's {@link BlockPos} class, so payloads keep their class type. */
 const blockPosition: WireType<BlockPos> = t.custom(
     'BlockPos',
-    (stream, value) => value.serialize(stream),
+    (stream, value) => value.write(stream),
     (stream) => {
         const position = new BlockPos(0, 0, 0);
-        position.deserialize(stream);
+        position.read(stream);
         return position;
     }
 );
