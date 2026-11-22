@@ -3,16 +3,64 @@
     "addons": [
         {
             "repository": "JSPrismarine/JSPrismarine",
+            "name": "multiverse",
+            "entry": {
+                "name": "multiverse",
+                "version": "1.0.0",
+                "description": "Creates worlds, each a level of its own, and moves players between them, with per-world game mode and access.",
+                "minServer": "0.25.0",
+                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/multiverse-1.0.0.mcpack",
+                "sha256": "27f9490d38352664c8c7b35740b3cf82875566b95566d0febdd84e0d1007c7f9"
+            },
+            "listing": {
+                "title": "Multiverse",
+                "license": "(MIT OR MPL-2.0)",
+                "tags": [],
+                "authors": [],
+                "readme": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/multiverse-1.0.0.md",
+                    "sha256": "34f55fc3f3e16f1e943aae0ed563560a3e78c7a94953a253f8d339c6c9caa19b"
+                },
+                "screenshots": []
+            },
+            "versions": [
+                {
+                    "version": "1.0.0",
+                    "minServer": "0.25.0",
+                    "sha256": "27f9490d38352664c8c7b35740b3cf82875566b95566d0febdd84e0d1007c7f9",
+                    "published": "2026-11-22"
+                }
+            ]
+        },
+        {
+            "repository": "JSPrismarine/JSPrismarine",
             "name": "standard-placeholders",
             "entry": {
                 "name": "standard-placeholders",
-                "version": "1.0.0",
+                "version": "1.0.1",
                 "description": "Provides the standard player, server and world placeholders, and /placeholders to list and try them.",
                 "minServer": "0.23.0",
-                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/standard-placeholders-1.0.0.mcpack",
-                "sha256": "90dacbb2e0e5bbfc036f065a7d576a87026d6e61e819d1e3455f70a6817ab02c"
+                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/standard-placeholders-1.0.1.mcpack",
+                "sha256": "965c3113fa635d1228185bccd159db33e946c862b49e9d7905de1b4762a9422a"
+            },
+            "listing": {
+                "title": "Standard Placeholders",
+                "license": "(MIT OR MPL-2.0)",
+                "tags": [],
+                "authors": [],
+                "readme": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/standard-placeholders-1.0.1.md",
+                    "sha256": "bf66fa902470123fa3dfb9ee524f0604fdbb136195d329b08ea8b6a87077ab60"
+                },
+                "screenshots": []
             },
             "versions": [
+                {
+                    "version": "1.0.1",
+                    "minServer": "0.23.0",
+                    "sha256": "965c3113fa635d1228185bccd159db33e946c862b49e9d7905de1b4762a9422a",
+                    "published": "2026-11-21"
+                },
                 {
                     "version": "1.0.0",
                     "minServer": "0.23.0",
@@ -26,13 +74,30 @@
             "name": "tab-list",
             "entry": {
                 "name": "tab-list",
-                "version": "1.0.0",
+                "version": "1.0.1",
                 "description": "Renames the entries in the player list from templates: one per player, per group or for everyone.",
                 "minServer": "0.23.0",
-                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tab-list-1.0.0.mcpack",
-                "sha256": "56ba6a47ddb695e64b89659d9cbfc907960fcaa1caa5f90d8de70a3e4428e087"
+                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tab-list-1.0.1.mcpack",
+                "sha256": "e6b7005da3a90d057edfc89809bba25962a4f5530ee5a898740e4ac8bc1cb9db"
+            },
+            "listing": {
+                "title": "Tab List",
+                "license": "(MIT OR MPL-2.0)",
+                "tags": [],
+                "authors": [],
+                "readme": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tab-list-1.0.1.md",
+                    "sha256": "a4fbf1d2d68fa357e4572471ad227ce1b0932c99ecb83e433322780d041b7053"
+                },
+                "screenshots": []
             },
             "versions": [
+                {
+                    "version": "1.0.1",
+                    "minServer": "0.23.0",
+                    "sha256": "e6b7005da3a90d057edfc89809bba25962a4f5530ee5a898740e4ac8bc1cb9db",
+                    "published": "2026-11-21"
+                },
                 {
                     "version": "1.0.0",
                     "minServer": "0.23.0",
@@ -46,13 +111,51 @@
             "name": "tps-bar",
             "entry": {
                 "name": "tps-bar",
-                "version": "1.0.1",
+                "version": "1.0.3",
                 "description": "Shows TPS, MSPT and ping on a boss bar.",
                 "minServer": "0.23.0",
-                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.1.mcpack",
-                "sha256": "71008f306f3904d3752bc02a9339f4a9b32557750246cde7a5d8783c33f47f56"
+                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.3.mcpack",
+                "sha256": "cc028b08b533c5598a0731eac0a42b4dec8391f60deb5110748612cd2a96f654"
+            },
+            "listing": {
+                "title": "TPS Bar",
+                "license": "(MIT OR MPL-2.0)",
+                "tags": [
+                    "performance"
+                ],
+                "authors": [
+                    "JSPrismarine"
+                ],
+                "readme": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.3.md",
+                    "sha256": "38c0e2fd062c5741698ab32d24faf06c82f9b089872ecb3576ccc391337bdda5"
+                },
+                "icon": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.3.png",
+                    "sha256": "8c25eedc395b5baa97c1ecbc2c70c2ec64c91b1a0a09fe385ebc5b1c19eebf1f"
+                },
+                "screenshots": [
+                    {
+                        "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.3-1.png",
+                        "sha256": "104b4b349ee7a405ceea84cf84e2a2e4745a66646f7616f42919f17e632c65ce",
+                        "alt": "The TPS bar three times: green with an idle server, gold at 32 MSPT, and red at 65 MSPT and 15 TPS.",
+                        "file": "media/bar.png"
+                    }
+                ]
             },
             "versions": [
+                {
+                    "version": "1.0.3",
+                    "minServer": "0.23.0",
+                    "sha256": "cc028b08b533c5598a0731eac0a42b4dec8391f60deb5110748612cd2a96f654",
+                    "published": "2026-11-21"
+                },
+                {
+                    "version": "1.0.2",
+                    "minServer": "0.23.0",
+                    "sha256": "b32b7878b3ffa813fe9ce195d296e298151a9a44d73c066b8e2e8d43b0903911",
+                    "published": "2026-11-21"
+                },
                 {
                     "version": "1.0.1",
                     "minServer": "0.23.0",
