@@ -173,6 +173,8 @@ import {
 } from './minecartTrack';
 import type { RailSensorHost } from './railSensor';
 import { activateMinecart } from './railSensor';
+import type { MinecartCommandEdit } from './minecartCommandBlock';
+import { activateMinecartCommand, COMMAND_BLOCK_MINECART, setMinecartCommand } from './minecartCommandBlock';
 import type { FlappingHost } from './flapping';
 import type { MobBlockHost } from './mobBlockRules';
 import { BREAK_BLOCKS_COMPONENT, breakLeaves, leaveTrail } from './mobBlockRules';
@@ -911,7 +913,17 @@ export class EntityRuntime implements EntityScene {
         }
     };
     /** What a minecart's reaction to an activator rail does. */
-    private readonly railSensorHost: RailSensorHost = { ejectRiders: (entity) => this.ejectRiders(entity.body) };
+    private readonly railSensorHost: RailSensorHost = {
+        ejectRiders: (entity) => this.ejectRiders(entity.body),
+        tickCommandBlock: (entity) => {
+            if (entity.identifier !== COMMAND_BLOCK_MINECART) return;
+            // As the cart, from where it stands, as Java's `MinecartCommandBase` source is, so `@s`
+            // is the cart.
+            activateMinecartCommand(entity, this.world.level.gameTime(), (command, name) =>
+                this.world.level.runCommand?.(blockPositionOf(entity.body.position), command, name, entity.id)
+            );
+        }
+    };
     /** What a boat's bubble column step reads and does. */
     private readonly boatBubbleHost: BoatBubbleHost = {
         bubbleColumnAt: (at) => {
@@ -1413,6 +1425,20 @@ export class EntityRuntime implements EntityScene {
     /** How many live entities of one type stand within a radius of a position. */
     public countOfType(identifier: string, at: EntityPosition, radius: number): number {
         return this.near(at, radius).filter((entity) => entity.identifier === identifier).length;
+    }
+
+    /**
+     * Stores the command a player set on a command block minecart's screen.
+     *
+     * @param id - The runtime id.
+     * @param edit - The command, the name it runs as and whether it keeps its output.
+     * @returns Whether the entity is a command block minecart, and took it.
+     */
+    public setMinecartCommand(id: number, edit: MinecartCommandEdit): boolean {
+        const entity = this.byId(id);
+        if (entity?.identifier !== COMMAND_BLOCK_MINECART) return false;
+        setMinecartCommand(entity, edit);
+        return true;
     }
 
     /**

@@ -412,6 +412,9 @@ export class TestEntityWorld {
     /** Every level event played in this world, in the order it was played. */
     public readonly levelEvents: { at: ContentPosition; event: number; data: number }[] = [];
 
+    /** Every command a command block or a command block minecart ran here, in order. */
+    public readonly commands: { at: ContentPosition; command: string; name: string; entityId?: number }[] = [];
+
     /** Every game event the world received, in the order it was emitted. */
     public readonly gameEvents: { event: string; at: ContentPosition; sourceId: number | undefined }[] = [];
 
@@ -541,7 +544,11 @@ export class TestEntityWorld {
                 weather: () => 'clear',
                 isRainingAt: () => false,
                 spawnPosition: () => ({ x: 0, y: FLOOR_Y + 1, z: 0 }),
-                gameRule: (name) => this.gameRuleOf(name)
+                gameRule: (name) => this.gameRuleOf(name),
+                runCommand: (at, command, name, entityId) => {
+                    this.commands.push({ at, command, name, ...(entityId === undefined ? {} : { entityId }) });
+                    return { successCount: 1, output: '' };
+                }
             },
             blocks: {
                 get: (at) => this.blockAt(at),

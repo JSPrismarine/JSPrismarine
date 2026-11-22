@@ -247,7 +247,9 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             return { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
         },
         gameRule: (name) => gameRuleValue(live().getGameRuleManager(), name),
-        fluidReplacement: () => live().getServer().getConfig().getFluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT
+        fluidReplacement: () => live().getServer().getConfig().getFluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT,
+        runCommand: (at, command, name, entityId) =>
+            live().getServer().getCommandManager().runCommandBlock(live(), at, command, name, entityId)
     };
 
     const blocks: WorldBlockGroup = {

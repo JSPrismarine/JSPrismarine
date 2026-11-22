@@ -2,6 +2,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
+import { COMMAND_BLOCK_FIELD } from '@jsprismarine/block-behaviors/families/commandBlock';
+
 import { BlockEntityRegistry } from './BlockEntityRegistry';
 import {
     applyBlockEntityRecord,
@@ -65,6 +67,35 @@ describe('blockEntityIdFor', () => {
 });
 
 describe('block entity records', () => {
+    it("keeps a command block's state under Bedrock's own tags, which the client's screen reads", () => {
+        const state = {
+            command: 'say hi',
+            customName: 'Herald',
+            lastOutput: 'hi',
+            trackOutput: true,
+            successCount: 2,
+            auto: true,
+            powered: false,
+            conditionMet: true,
+            tickDelay: 20,
+            executeOnFirstTick: false
+        };
+        const nbt = blockEntityCompound(null, { x: 4, y: 64, z: 4 }, 'minecraft:repeating_command_block');
+        applyBlockEntityRecord(nbt, { [COMMAND_BLOCK_FIELD]: state, analogOutput: 2 });
+
+        const disk = throughDisk(nbt);
+        const restored = blockEntityRecord(disk);
+
+        expect(disk.getString('id', '')).toBe('CommandBlock');
+        expect(disk.getString('Command', '')).toBe('say hi');
+        expect(disk.getByte('auto', 0)).toBe(1);
+        expect(disk.getNumber('TickDelay', 0)).toBe(20);
+        // Not kept a second time as JSON.
+        expect(disk.has(CONTENT_DATA_TAG)).toBe(false);
+        expect(restored[COMMAND_BLOCK_FIELD]).toEqual(state);
+        expect(restored.analogOutput).toBe(2);
+    });
+
     it('round-trips a container through the compound a chunk saves', () => {
         const nbt = blockEntityCompound(null, { x: 4, y: 64, z: 4 }, 'minecraft:chest');
         applyBlockEntityRecord(nbt, {

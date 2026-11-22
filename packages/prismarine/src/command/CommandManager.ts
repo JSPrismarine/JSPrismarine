@@ -22,6 +22,10 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
+import { COMMAND_BLOCKS_WORK, gameRuleValue } from '../content/world/gameRules';
+import type { ContentPosition } from '../content/world/adapter';
+import type { World } from '../world/World';
+import type { CommandRun } from '@jsprismarine/block-behaviors';
 import Timer from '../utils/Timer';
 import type { CommandExecutor, CommandTarget } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
@@ -59,6 +63,18 @@ export interface PlayerCommandSender extends CommandExecutor, ReferencedEntity {
  * What a sender is told about a syntax exception: BDS's wording when it points into the command
  * line, and the exception's own message when a command's body threw it.
  */
+/**
+ * A dispatched line's result, how many contexts it ran in and how many of them succeeded. A forked
+ * `execute as @e` reports one result per context, which is exactly what `maxCommandForks` counts.
+ * A context that returned a number succeeded, whatever the number: `/time query` succeeds with the
+ * time, and a query of a rule that is off succeeds with 0.
+ */
+const summed = (results: readonly unknown[]): { result: number; forks: number; successes: number } => ({
+    result: results.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0),
+    forks: results.length,
+    successes: results.filter((value) => typeof value === 'number').length
+});
+
 const syntaxErrorMessage = (error: CommandSyntaxException): string => bedrockSyntaxError(error) ?? error.getMessage();
 
 /**
@@ -337,8 +353,19 @@ export class CommandManager implements Service {
      * function. {@link CommandManager.tickFunctions} is the one entry point
      * that opens its own.
      */
-    private runFunctionLine(commandLine: string, source: CommandSource): { result?: number; forks?: number } {
+    private runFunctionLine(
+        commandLine: string,
+        source: CommandSource
+    ): { result?: number; forks?: number; successes?: number } {
         const dispatcher = this.vanillaRegistry().getDispatcher();
+        // A parse holds the permission gate's answers for the source it was built for, and only a
+        // source with no caller gets the same answers every time: `mayUse` lets it run everything.
+        // A player's line is parsed against what they may run now, so a parse built for the
+        // server, or for a player before they were deopped, never runs for them.
+        if (source.caller !== undefined) {
+            const results = dispatcher.execute(dispatcher.parse(commandLine, source));
+            return Array.isArray(results) ? summed(results) : {};
+        }
         let parsed = this.functionParseCache.get(commandLine);
         if (parsed === undefined) {
             parsed = dispatcher.parse(commandLine, source);
@@ -355,12 +382,63 @@ export class CommandManager implements Service {
         // Vanilla argument parsers do not read the source; copy the cached context so each
         // execution and redirect modifier sees its current source, not the source from the miss.
         const results = dispatcher.execute(parsed.copyFor(source));
-        if (!Array.isArray(results)) return {};
+        return Array.isArray(results) ? summed(results) : {};
+    }
 
-        const result = results.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
-        // A forked `execute as @e` reports one result per context, which is
-        // exactly what `maxCommandForks` counts.
-        return { result, forks: results.length };
+    /**
+     * Runs a command block's command, Java's `BaseCommandBlock.performCommand`: from the middle
+     * of the block, in its world, with the game director permission a command block has, and
+     * answering to nobody. The last line it answered with is what the block keeps as its output.
+     *
+     * The line is dispatched as a function line is, so the block learns at once how many times
+     * it succeeded, which a conditional block behind it and a comparator read. What its verbs
+     * park finishes outside the tick, and a failure there is logged.
+     *
+     * @param name - The name the command speaks as, the block's custom name or Bedrock's `!`.
+     * @param entityId - The runtime id of a command block minecart running it, which the command
+     *   runs as and from, as Java's `MinecartCommandBase` source has it, so `@s` is the cart.
+     * @returns What it reported, or undefined while the `commandblocksenabled` game rule is off.
+     */
+    public runCommandBlock(
+        world: World,
+        at: ContentPosition,
+        command: string,
+        name: string,
+        entityId?: number
+    ): CommandRun | undefined {
+        if (gameRuleValue(world.getGameRuleManager(), COMMAND_BLOCKS_WORK) === false) return undefined;
+
+        const actor = entityId === undefined ? null : world.getActor(BigInt(entityId));
+        const entity = actor === null ? undefined : entityRefOf(actor);
+        let output = '';
+        const source = createCommandSource({
+            host: this.getHost(world.getLevel()),
+            name,
+            ...(entity === undefined ? { position: { x: at.x + 0.5, y: at.y + 0.5, z: at.z + 0.5 } } : { entity }),
+            dimension: dimensionIdOf(world),
+            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
+            onFeedback: (message) => {
+                output = message;
+            },
+            onError: (message) => {
+                output = message;
+            }
+        });
+        let successCount = 0;
+        const line = command.trimStart().startsWith('/') ? command.trimStart().slice(1) : command;
+        try {
+            const started = collectAsyncCommands(() => {
+                successCount = this.runFunctionLine(line, source).successes ?? 0;
+            });
+            for (const work of started) void work.catch((error: unknown) => this.server.getLogger().error(error));
+        } catch (error: unknown) {
+            if (!(error instanceof CommandSyntaxException)) {
+                this.server.getLogger().error(error);
+                return { successCount: 0, output: error instanceof Error ? error.message : String(error) };
+            }
+            output = syntaxErrorMessage(error);
+        }
+        return { successCount, output };
     }
 
     /**

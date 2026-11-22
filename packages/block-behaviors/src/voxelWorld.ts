@@ -17,6 +17,7 @@ import type {
     BlockProperties,
     BlockStates,
     BlockWorld,
+    CommandRun,
     ItemDrop,
     WorldActions,
     WorldEntity
@@ -86,6 +87,11 @@ export class VoxelDimension implements WorldActions {
     public readonly entities: RecordedEntity[] = [];
     /** Every position whose neighbors were notified, in order. */
     public readonly notified: BlockPosition[] = [];
+    /** Every command a command block ran, in order. */
+    public readonly commands: { readonly position: BlockPosition; readonly command: string; readonly name: string }[] =
+        [];
+    /** What a command reports; a test replaces it to make one fail. Every command succeeds once by default. */
+    public commandResult: (command: string) => CommandRun = () => ({ successCount: 1, output: '' });
 
     private readonly blocks = new Map<string, StoredBlock>();
     /** The second storage layer, which holds a waterlogged block's water. */
@@ -334,6 +340,12 @@ export class VoxelDimension implements WorldActions {
     /** Replaces the block entity data at a position. */
     public setBlockData(position: BlockPosition, data: BlockEntityData): void {
         this.blockData.set(keyOf(position), data);
+    }
+
+    /** Records a command and answers with {@link VoxelDimension.commandResult}. */
+    public runCommand(position: BlockPosition, command: string, name: string): CommandRun {
+        this.commands.push({ position, command, name });
+        return this.commandResult(command);
     }
 
     /** Records a neighbor notice. */

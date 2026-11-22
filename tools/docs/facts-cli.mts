@@ -23,6 +23,8 @@ const packagePages = [
     'addons/README.md',
     'packages/addon-tools/README.md',
     'packages/bedrock-data/README.md',
+    'packages/block-behaviors/README.md',
+    'packages/blocks/README.md',
     'packages/commands/README.md',
     'packages/leveldb/README.md',
     'packages/native-worldgen/README.md',

@@ -732,6 +732,11 @@ export interface CommandSource {
      * typed the command reads this and not `entity`.
      */
     readonly caller?: EntityRef;
+    /**
+     * The name a source with no entity speaks as, such as a command block's custom name. `/say`
+     * and `/me` fall back to `Server` without one.
+     */
+    readonly name?: string;
     readonly position: Vector3;
     readonly rotation: Rotation;
     readonly dimension: string;
@@ -764,6 +769,7 @@ export interface CommandSource {
 export interface CommandSourceInput {
     readonly host: CommandHost;
     readonly entity?: EntityRef;
+    readonly name?: string;
     /** The player who typed the command; see `CommandSource.caller`. Absent when nobody did. */
     readonly caller?: EntityRef;
     readonly position?: Vector3;
@@ -782,6 +788,7 @@ export interface CommandSourceInput {
 interface SourceState {
     readonly host: CommandHost;
     readonly entity?: EntityRef;
+    readonly name?: string;
     readonly caller?: EntityRef;
     readonly position: Vector3;
     readonly rotation: Rotation;
@@ -811,6 +818,10 @@ class StackCommandSource implements CommandSource {
 
     public get entity(): EntityRef | undefined {
         return this.state.entity;
+    }
+
+    public get name(): string | undefined {
+        return this.state.name;
     }
 
     public get position(): Vector3 {
@@ -900,6 +911,7 @@ export const createCommandSource = (input: CommandSourceInput): CommandSource =>
         host: input.host,
         ...(input.entity === undefined ? {} : { entity: input.entity }),
         ...(input.caller === undefined ? {} : { caller: input.caller }),
+        ...(input.name === undefined ? {} : { name: input.name }),
         position: input.position ?? input.entity?.position ?? ORIGIN,
         rotation: input.rotation ?? input.entity?.rotation ?? FORWARD,
         dimension: input.dimension ?? input.entity?.dimension ?? 'minecraft:overworld',

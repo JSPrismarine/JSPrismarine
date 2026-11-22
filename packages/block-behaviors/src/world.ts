@@ -183,6 +183,14 @@ export type RedstoneActivation =
           readonly source?: string;
       };
 
+/** What one command a command block ran reported back. */
+export interface CommandRun {
+    /** Java's success count: how many times the command succeeded, 0 when it failed or did nothing. */
+    readonly successCount: number;
+    /** The last line the command answered with, which the block keeps as its last output. */
+    readonly output: string;
+}
+
 /**
  * Everything a block does to the world, for one dimension.
  *
@@ -340,6 +348,15 @@ export interface WorldActions {
     getBlockData(position: BlockPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */
     setBlockData(position: BlockPosition, data: BlockEntityData): void;
+    /**
+     * Runs a command as a command block at a position does, Java's `BaseCommandBlock.performCommand`:
+     * from the middle of the block, as the block's name, and with operator permission.
+     *
+     * @param name - Who the command runs as in its feedback, the block's custom name or `@`.
+     * @returns What it reported, or undefined where command blocks do not run, such as a world
+     *   whose host has no command layer or a level that turned them off.
+     */
+    runCommand?(position: BlockPosition, command: string, name: string): CommandRun | undefined;
     /** Tells the six neighbors of a position that it changed. */
     notifyNeighbors(position: BlockPosition): void;
     /** The redstone power reaching a position, 0 to 15. */

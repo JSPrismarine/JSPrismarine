@@ -51,6 +51,7 @@ import {
 } from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
 import { DEFAULT_CREATED_PRESET } from '../../packages/prismarine/src/world/LevelRegistry.ts';
+import { BLOCK_BEHAVIOR_NAMES } from '../../packages/blocks/src/families.ts';
 import { PLAYER_DATA_PARTS } from '../../packages/prismarine/src/world/playerDataGroups.ts';
 import {
     ADDON_SOURCE_ENTRIES,
@@ -1370,6 +1371,38 @@ async function addonFacts() {
     };
 }
 
+/**
+ * How many palette blocks each block behavior family gets, read from the tally the overlay
+ * generator writes, with the names the family rules can produce.
+ */
+function blockBehaviorFacts() {
+    // Parsed JSON is an untyped boundary; only the per-family tally is read.
+    const report: { behaviorCounts: Record<string, number> } = JSON.parse(
+        sourceText('packages', 'blocks', 'vanilla_overlay', 'report.json')
+    );
+    const counts = Object.entries(report.behaviorCounts).map(
+        ([behavior, count]) => [behavior.replace(/^jsprismarine:/, ''), count] as const
+    );
+    if (!counts.length) throw new Error('The docs facts no longer find behaviorCounts in the overlay report.');
+    return {
+        'blockBehaviors.names': String(BLOCK_BEHAVIOR_NAMES.length),
+        'blockBehaviors.families': String(counts.length),
+        'blockBehaviors.blocks': String(counts.reduce((sum, [, count]) => sum + count, 0)),
+        // The largest families, as `name` count pairs, in the order the report lists them.
+        'blockBehaviors.largest': counts
+            .slice(0, 6)
+            .map(([family, count]) => `${inlineCode(family)} ${count}`)
+            .join(', '),
+        // Every name, so a family no palette block reaches, such as `pane`, reads 0.
+        ...Object.fromEntries(
+            BLOCK_BEHAVIOR_NAMES.map((behavior) => [
+                `blockBehaviors.blocks.${behavior.replace(/^jsprismarine:/, '')}`,
+                String(report.behaviorCounts[behavior] ?? 0)
+            ])
+        )
+    };
+}
+
 /** The TPS bar's color thresholds and full bar, read from the module that draws the bar. */
 function tpsBarFacts() {
     const [tpsGreen, tpsGold] = TPS_LEVELS;
@@ -1537,6 +1570,7 @@ export async function loadFacts(): Promise<Facts> {
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...(await addonFacts()),
+            ...blockBehaviorFacts(),
             ...tpsBarFacts(),
             ...standardPlaceholdersFacts(),
             ...tabListFacts(),

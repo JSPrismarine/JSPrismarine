@@ -39,7 +39,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                     current.host.server.sendMessage(
                         current.host.server.listPlayers(),
                         'chat',
-                        `[${current.entity?.name ?? 'Server'}] ${value<string>(context, 'message')}`
+                        `[${current.entity?.name ?? current.name ?? 'Server'}] ${value<string>(context, 'message')}`
                     );
                     return 1;
                 })
@@ -56,7 +56,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                     current.host.server.sendMessage(
                         current.host.server.listPlayers(),
                         'emote',
-                        `${current.entity?.name ?? 'Server'} ${value<string>(context, 'message')}`
+                        `${current.entity?.name ?? current.name ?? 'Server'} ${value<string>(context, 'message')}`
                     );
                     return 1;
                 })

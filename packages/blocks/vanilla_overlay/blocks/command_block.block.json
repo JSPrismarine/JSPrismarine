@@ -16,7 +16,7 @@
                 "movement_type": "immovable"
             },
             "minecraft:display_name": "tile.command_block.name",
-            "jsprismarine:behavior": "jsprismarine:inert",
+            "jsprismarine:behavior": "jsprismarine:command_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": false,

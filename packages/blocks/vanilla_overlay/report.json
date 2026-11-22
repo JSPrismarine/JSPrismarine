@@ -256,7 +256,7 @@
         "minecraft:wooden_pressure_plate"
     ],
     "behaviorCounts": {
-        "jsprismarine:inert": 202,
+        "jsprismarine:inert": 199,
         "jsprismarine:plain_block": 199,
         "jsprismarine:slab": 109,
         "jsprismarine:stairs": 97,
@@ -295,6 +295,7 @@
         "jsprismarine:liquid": 4,
         "jsprismarine:rail": 4,
         "jsprismarine:sculk": 4,
+        "jsprismarine:command_block": 3,
         "jsprismarine:dripleaf": 3,
         "jsprismarine:egg": 3,
         "jsprismarine:snow": 3,

@@ -110,6 +110,85 @@ describe('command', () => {
             };
         };
 
+        describe('a command block', () => {
+            /** A manager over one world whose rules a command block reads, with that world. */
+            const commandBlockWorld = (commandBlocksEnabled = true) => {
+                const rules = new Map<string, GameRuleEntry>([
+                    ['sendcommandfeedback', [true, true]],
+                    ['falldamage', [true, true]],
+                    ['commandblocksenabled', [commandBlocksEnabled, true]]
+                ]);
+                const gameRules = stub<GameRuleManager>({
+                    getGameRule: (name: string) => rules.get(name.toLowerCase()) ?? null,
+                    findGameRule: (name: string) => rules.get(name.toLowerCase()),
+                    setGameRule: (name: string, value: boolean | number, editable: boolean) => {
+                        rules.set(name.toLowerCase(), [value, editable]);
+                    }
+                });
+                const level: Level = stub<Level>({ loadedWorld: () => world, name: 'world' });
+                const worldManager = stub<WorldManager>({ getEntryWorld: () => world, getEntryLevel: () => level });
+                const blockServer = stub<Server>({ ...server, getWorldManager: () => worldManager });
+                const world: World = stub<World>({
+                    getGameRuleManager: () => gameRules,
+                    getLevel: () => level,
+                    getDimension: () => Dimensions.Overworld,
+                    getServer: () => blockServer
+                });
+                return { world, rules, commandManager: new CommandManager(blockServer) };
+            };
+
+            it('runs from the block, counting a success and keeping the last line it answered', async () => {
+                const { world, rules, commandManager } = commandBlockWorld();
+                await commandManager.enable();
+
+                const run = commandManager.runCommandBlock(
+                    world,
+                    { x: 1, y: 2, z: 3 },
+                    '/gamerule fallDamage false',
+                    '!'
+                );
+
+                expect(run?.successCount).toBe(1);
+                expect(run?.output).not.toBe('');
+                expect(rules.get('falldamage')?.[0]).toBe(false);
+            });
+
+            it('counts a command that succeeds with a result of 0 as a success', async () => {
+                const { world, rules, commandManager } = commandBlockWorld();
+                await commandManager.enable();
+                rules.set('falldamage', [false, true]);
+
+                const run = commandManager.runCommandBlock(world, { x: 0, y: 0, z: 0 }, 'gamerule fallDamage', '!');
+
+                expect(run?.successCount).toBe(1);
+            });
+
+            it('counts a line that does not parse as no success, with the syntax error as its output', async () => {
+                const { world, commandManager } = commandBlockWorld();
+                await commandManager.enable();
+
+                const run = commandManager.runCommandBlock(
+                    world,
+                    { x: 0, y: 0, z: 0 },
+                    'gamerule fallDamage maybe',
+                    '!'
+                );
+
+                expect(run?.successCount).toBe(0);
+                expect(run?.output).toMatch(/Syntax error/);
+            });
+
+            it('runs nothing while the commandblocksenabled rule is off', async () => {
+                const { world, rules, commandManager } = commandBlockWorld(false);
+                await commandManager.enable();
+
+                expect(
+                    commandManager.runCommandBlock(world, { x: 0, y: 0, z: 0 }, 'gamerule fallDamage false', '!')
+                ).toBeUndefined();
+                expect(rules.get('falldamage')?.[0]).toBe(true);
+            });
+        });
+
         it('should not consult permissions for a console-issued command', async () => {
             // The console is the process operator, so it is trusted by existing rather than
             // by holding a permission node. That used to be an `isConsole()` bypass inside

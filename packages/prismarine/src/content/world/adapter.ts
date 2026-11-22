@@ -18,7 +18,13 @@
  * import('./notWired').NotWiredError} naming the subsystem that owes it.
  */
 import type { BlockFace, BlockPlacementContext, BlockStateValue } from '@jsprismarine/blocks';
-import type { BlockDestroyOptions, BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
+import type {
+    BlockDestroyOptions,
+    BlockEntityData,
+    BlockProperties,
+    CommandRun,
+    ItemDrop
+} from '@jsprismarine/block-behaviors';
 import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
@@ -323,6 +329,16 @@ export interface ContentLevelFacts {
      * setting. Absent where no server config stands behind the level, which takes the default.
      */
     fluidReplacement?(): FluidReplacement;
+    /**
+     * Runs a command as a command block at a position, from the middle of the block.
+     *
+     * @param name - The name the command runs as.
+     * @param entityId - The runtime id of the entity the command runs as, a command block
+     *   minecart, which also places it; left out for a command block.
+     * @returns What it reported, or undefined where command blocks do not run: no command layer
+     *   stands behind the level, or its `commandblocksenabled` game rule is off.
+     */
+    runCommand?(at: ContentPosition, command: string, name: string, entityId?: number): CommandRun | undefined;
 }
 
 /**

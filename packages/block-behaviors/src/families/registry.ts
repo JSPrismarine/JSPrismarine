@@ -30,6 +30,7 @@ import {
     signFamily,
     torchFamily
 } from './furniture';
+import { commandBlockFamily } from './commandBlock';
 import { concretePowderFamily, dripstoneFamily, iceFamily, snowFamily, soilFamily } from './ground';
 import { doorFamily, fenceGateFamily, trapdoorFamily } from './openable';
 import {
@@ -65,6 +66,7 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
     trapdoorFamily,
     fenceGateFamily,
     redstoneFamily,
+    commandBlockFamily,
     buttonFamily,
     pressurePlateFamily,
     railFamily,

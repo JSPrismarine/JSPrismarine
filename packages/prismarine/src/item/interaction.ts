@@ -29,6 +29,7 @@ import { Gametype, LevelSoundEvent, WindowTypes } from '@jsprismarine/minecraft'
 
 import { advancementBlockUsed, advancementItemUsedOnBlock, advancementPlacedBlock } from '../advancement/triggers';
 import { blockFromContent } from '../block/Block';
+import { mayEditCommandBlocks } from '../command/commandBlockAccess';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
@@ -69,7 +70,10 @@ export interface InteractingPlayer
     extends
         EnchantingPlayer,
         ContainerViewer,
-        Pick<PlayerSession, 'send' | 'sendInventory' | 'sendMessage' | 'getOpenBlockContainer' | 'openBlockContainer'> {
+        Pick<
+            PlayerSession,
+            'send' | 'sendInventory' | 'sendMessage' | 'getOpenBlockContainer' | 'openBlockContainer' | 'isOp'
+        > {
     getRuntimeId(): bigint;
     getServer(): Server;
     getWorld(): World;
@@ -434,6 +438,9 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
     const { player } = interaction;
     const container = blockContainerOf(block.identifier);
     if (container === undefined) return false;
+    // A command block's screen is an operator's in creative, as Java's `canUseGameMasterBlocks`
+    // has it. Anybody else's click passes on, so a block in their hand goes against it.
+    if (container.screen === WindowTypes.COMMAND_BLOCK && !mayEditCommandBlocks(player)) return false;
 
     const at = new Vector3(interaction.position.x, interaction.position.y, interaction.position.z);
     // Before the read, because this is the open that fills a generated chest: a structure
