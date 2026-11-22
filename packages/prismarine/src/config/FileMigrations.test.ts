@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 import { parseConfigDocument } from './ConfigDocument';
@@ -46,7 +46,7 @@ const codeThrownBy = async (run: () => unknown): Promise<string | undefined> => 
     try {
         await run();
     } catch (error: unknown) {
-        return error instanceof JSPrismarineError ? error.code : 'not a catalog error';
+        return isJSPrismarineError(error) ? error.code : 'not a catalog error';
     }
     return undefined;
 };
