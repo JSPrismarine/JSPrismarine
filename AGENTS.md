@@ -113,7 +113,8 @@ commit messages and comments.
   reason the ADR lists, and record it with `node scripts/check-wire-layouts.mts --update --reason
   <reason>`; `pnpm run lint:wire-layouts` fails on an unlisted hand-written body.
 - Throw only errors defined in `@jsprismarine/errors`. Add an entry to the throwing package's
-  catalog there (`packages/errors/src/<package>.ts`) and throw `new <Package>Errors.<Key>({ ... })`;
+  catalog there (`packages/errors/catalog/<package>.ts`), run
+  `pnpm --filter @jsprismarine/errors run generate`, and throw `new <Package>Errors.<Key>({ ... })`;
   its [README](packages/errors/README.md) covers templates, bases and fields. The JSDoc on an entry
   is its text in the error reference, so explain the cause and the fix there. Biome's
   `no-raw-errors` plugin rejects `new Error(...)` and `extends Error` in package source. Run
