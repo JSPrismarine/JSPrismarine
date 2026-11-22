@@ -2,7 +2,7 @@ import { appendFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 
 import { AddonToolsErrors } from '@jsprismarine/errors/addon-tools';
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 import { ADDON_RELEASE_TAG, packFileName } from './addonIndex';
 import { buildAddons, fetchPublishedIndex, releaseDownloadUrl } from './build';
@@ -96,7 +96,7 @@ export const runCommand = async (args: readonly string[], context: CommandContex
             context.stderr(`${error.message}\n`);
             return 2;
         }
-        if (error instanceof JSPrismarineError) {
+        if (isJSPrismarineError(error)) {
             context.stderr(`${error.message}\n${error.code}: ${error.docs}\n`);
             return 1;
         }

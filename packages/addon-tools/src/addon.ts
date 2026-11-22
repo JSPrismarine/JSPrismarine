@@ -3,7 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { AddonToolsErrors } from '@jsprismarine/errors/addon-tools';
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { parseLenientJson } from '@jsprismarine/packs/lenientJson';
 import { parseManifest } from '@jsprismarine/packs/manifest';
 import { writeZip } from '@jsprismarine/packs/zip';
@@ -303,7 +303,7 @@ const checkManifest = (
     try {
         value = parseLenientJson(new TextDecoder().decode(files.get('manifest.json')));
     } catch (cause) {
-        if (cause instanceof JSPrismarineError) throw fail(cause.message);
+        if (isJSPrismarineError(cause)) throw fail(cause.message);
         throw cause;
     }
 
