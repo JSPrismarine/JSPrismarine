@@ -407,8 +407,10 @@ describe.skipIf(!scriptHostAvailable())('a script engine', () => {
         it('stops a script that allocates past the memory limit and counts the refusal', () => {
             const engine = create({ memoryLimit: 4 * 1024 * 1024 });
 
+            // The block scope lets the arrays go once the script stops. A top-level `const` would
+            // stay a global binding and hold them, so the next script would run out of memory too.
             expect(() =>
-                engine.evaluate('const chunks = []; while (true) chunks.push(new Array(1024).fill(0));')
+                engine.evaluate('{ const chunks = []; while (true) chunks.push(new Array(1024).fill(0)); }')
             ).toThrow(ScriptOutOfMemoryError);
             expect(engine.stats().memoryLimitHits).toBeGreaterThan(0);
             expect(engine.evaluate('1 + 1')).toBe(2);
