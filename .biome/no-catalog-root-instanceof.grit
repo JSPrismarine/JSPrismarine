@@ -1,0 +1,11 @@
+language js
+
+// `JSPrismarineError` is the root of the catalog errors built on `Error` only. An entry built on
+// `TypeError`, `RangeError` or `ReferenceError` extends a root of its own, so
+// `instanceof JSPrismarineError` misses it. `isJSPrismarineError` holds for every catalog error.
+`$_ instanceof JSPrismarineError` as $token where {
+    register_diagnostic(
+        span = $token,
+        message = "Use isJSPrismarineError(value) from @jsprismarine/errors/JSPrismarineError: instanceof JSPrismarineError misses the catalog errors built on TypeError, RangeError and ReferenceError."
+    )
+}
