@@ -11,7 +11,7 @@
  * a list of strings that the reader joins back together.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { formatSnbt, parseSnbtCompound } from '@jsprismarine/nbt/snbt';
 
 import type { SavedCommandStorage } from '../../CommandStorage';
@@ -70,7 +70,7 @@ export const commandStorageFromNbt = (root: NBTTagCompound): Map<string, NbtComp
             // Java prints a stored infinity as `Infinityd`, which only this option reads back.
             saved.set(id, parseSnbtCompound(text, { nonFinite: true }));
         } catch (error) {
-            if (!(error instanceof JSPrismarineError)) throw error;
+            if (!isJSPrismarineError(error)) throw error;
         }
     }
     return saved;

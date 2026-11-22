@@ -13,7 +13,7 @@
  * - a string as its contents, with no quotes;
  * - a list, an array or a compound as its SNBT.
  */
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { formatSnbt, parseSnbtCompound } from '@jsprismarine/nbt/snbt';
 import type { NbtTag } from '@jsprismarine/nbt/tag';
 
@@ -113,7 +113,7 @@ export const readMacroArguments = (text: string, stored = false): Record<string,
         const compound = parseSnbtCompound(text, { nonFinite: stored });
         return Object.fromEntries(Object.entries(compound.value).map(([key, tag]) => [key, macroText(tag)]));
     } catch (error) {
-        if (error instanceof JSPrismarineError) return undefined;
+        if (isJSPrismarineError(error)) return undefined;
         throw error;
     }
 };

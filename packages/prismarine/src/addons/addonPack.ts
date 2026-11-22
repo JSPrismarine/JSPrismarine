@@ -9,7 +9,7 @@ import path from 'node:path';
 import { ADDON_MODULE_TYPES, parseAddonMetadata } from '@jsprismarine/addon-tools/addon';
 import { compareAddonVersions, isAddonVersion } from '@jsprismarine/addon-tools/addonIndex';
 import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
-import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { parseLenientJson } from '@jsprismarine/packs/lenientJson';
 import { parseManifest } from '@jsprismarine/packs/manifest';
 import { readZip } from '@jsprismarine/packs/zip';
@@ -113,7 +113,7 @@ export const downloadPack = async (
     try {
         response = await fetcher(url);
     } catch (cause) {
-        if (cause instanceof JSPrismarineError) throw cause;
+        if (isJSPrismarineError(cause)) throw cause;
         throw new PrismarineAddonErrors.AddonDownloadFailed(
             { url, status: `no response: ${messageOf(cause)}` },
             { cause }
@@ -126,7 +126,7 @@ export const downloadPack = async (
     try {
         return await readBounded(url, response, maxBytes);
     } catch (cause) {
-        if (cause instanceof JSPrismarineError) throw cause;
+        if (isJSPrismarineError(cause)) throw cause;
         throw new PrismarineAddonErrors.AddonDownloadFailed(
             { url, status: `the download stopped: ${messageOf(cause)}` },
             { cause }
@@ -147,7 +147,7 @@ export const unpackPack = (key: string, bytes: Uint8Array): Map<string, Uint8Arr
     try {
         entries = readZip(bytes);
     } catch (cause) {
-        if (cause instanceof JSPrismarineError)
+        if (isJSPrismarineError(cause))
             throw new PrismarineAddonErrors.InvalidAddonPack({ key, problem: cause.message }, { cause });
         throw cause;
     }
@@ -205,7 +205,7 @@ const summarize = (
     try {
         value = parseLenientJson(text);
     } catch (cause) {
-        if (cause instanceof JSPrismarineError)
+        if (isJSPrismarineError(cause))
             throw new PrismarineAddonErrors.InvalidAddonPack({ key, problem: cause.message }, { cause });
         throw cause;
     }
