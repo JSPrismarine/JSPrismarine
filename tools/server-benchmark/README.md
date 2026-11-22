@@ -68,9 +68,8 @@ harness or the lockfile, every week, and on demand. `BENCHMARK_MAX_RUNS` and
 a window, so pushes never queue runs back to back; a run past the cap ends without measuring. A
 scheduled or push run also ends without measuring when nothing that can move a figure has changed
 since the newest results file on master, as [What changed](#what-changed) describes. A dispatch
-from the Actions tab always measures and does not count toward the cap. Each run rebuilds the
-branch of one standing pull request on master with its results file, and keeps the results files
-already on that branch that master does not have yet.
+from the Actions tab always measures and does not count toward the cap. Each run commits its
+results file straight to master.
 
 ## The results file
 

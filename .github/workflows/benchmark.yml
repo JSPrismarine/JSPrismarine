@@ -17,8 +17,7 @@ env:
 # so it never runs on pull requests. It runs when master changes something that can move the
 # figures, weekly, and on demand; push and scheduled runs measure no more often than the limit
 # above. A scheduled or push run whose inputs match the newest results file's ends without
-# measuring. The workflow keeps one pull request open with the results files master does not have
-# yet. Bedrock Dedicated Server ships for Linux x86-64 only, which is why this runs on a Linux
+# measuring. The workflow commits each results file straight to master. Bedrock Dedicated Server ships for Linux x86-64 only, which is why this runs on a Linux
 # x86-64 runner, where all three servers run natively.
 on:
     schedule:
@@ -54,7 +53,7 @@ concurrency:
     cancel-in-progress: false
 
 # The benchmark job runs downloaded server binaries, so it gets a read-only token; the publish job
-# holds the write token and runs nothing but Git and the GitHub CLI.
+# holds the write token and runs nothing but Git.
 permissions:
     actions: read
     contents: read
@@ -203,17 +202,15 @@ jobs:
                   if-no-files-found: warn
 
     publish:
-        name: 🔀 Publish the results
+        name: 📝 Publish the results
         needs: benchmark
         if: needs.benchmark.outputs.measured == 'true'
         runs-on: ubuntu-26.04
         permissions:
             contents: write
-            pull-requests: write
         steps:
-            # The machine user's token: the results branch is rebuilt on top of master, so its push
-            # carries every workflow change master made since the last run, which GITHUB_TOKEN may not
-            # push. It also lets the results pull request run the required checks.
+            # The machine user's token: it may push to master past the merge queue, which
+            # GITHUB_TOKEN may not.
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   token: ${{ secrets.MACHINE_USER }}
@@ -224,14 +221,13 @@ jobs:
                   pattern: server-benchmark*
                   path: ${{ runner.temp }}/artifact
 
-            # One standing pull request: each run rebuilds its branch on top of master, so results never
-            # pile up in pull requests nobody merged. The file goes under the time the run started, as
-            # `resultsDirName` in tools/server-benchmark/src/resultsFiles.mts names it, so two runs on
-            # one day each keep a file. Results files the branch added that master does not have yet
-            # carry over, so a run whose pull request was not merged before the next run is kept.
-            - name: 🔀 Update the results pull request
+            # The file goes under the time the run started, as `resultsDirName` in
+            # tools/server-benchmark/src/resultsFiles.mts names it, so two runs on one day each keep a
+            # file. A results file touches nothing a test or the push paths above read, so it goes
+            # straight to master. Master may move while the benchmark runs and between the rebase
+            # and the push; the results file is the only file this touches.
+            - name: 📝 Commit the results to master
               env:
-                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
                   BASE: ${{ github.ref_name }}
                   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
               run: |
@@ -246,24 +242,14 @@ jobs:
                   results="docs/research/benchmarks/$run/results.json"
                   mkdir -p "$(dirname "$results")"
                   cp "$source" "$results"
-                  branch="benchmark/results"
-                  carried=()
-                  if git fetch --depth=1 origin "$branch"; then
-                      mapfile -t carried < <(git diff --name-only --diff-filter=A HEAD FETCH_HEAD -- 'docs/research/benchmarks/*/results.json' | grep -vxF "$results" || true)
-                      if [ "${#carried[@]}" -gt 0 ]; then
-                          git checkout FETCH_HEAD -- "${carried[@]}"
-                      fi
-                  fi
-                  title="docs(benchmarks): record the newest server benchmark"
-                  body="The server benchmark ran in ${RUN_URL} and wrote \`${results}\`. Once this merges, the benchmark page shows it as the newest run and adds it to the history. Check the round count and the quiet label on the page preview before merging. Each run rebuilds this branch on master and keeps the results files on it that master does not have yet."
                   git config user.name 'github-actions[bot]'
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-                  git switch -c "$branch"
-                  git add -- "$results" "${carried[@]}"
-                  git commit -m "$title"
-                  git push --force origin "$branch"
-                  if [ -n "$(gh pr list --head "$branch" --base "$BASE" --state open --json number --jq '.[].number')" ]; then
-                      gh pr edit "$branch" --body "$body"
-                  else
-                      gh pr create --base "$BASE" --head "$branch" --title "$title" --body "$body"
-                  fi
+                  git add -- "$results"
+                  git commit -m "docs(benchmarks): record the newest server benchmark" -m "The server benchmark ran in ${RUN_URL}."
+                  for attempt in 1 2 3 4 5; do
+                      git pull --rebase origin "$BASE"
+                      if git push origin "HEAD:$BASE"; then exit 0; fi
+                      sleep $((attempt * 5))
+                  done
+                  echo "Master kept moving; the results file was not pushed."
+                  exit 1
