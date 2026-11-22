@@ -78,6 +78,8 @@ import type { DimensionType } from '../../DimensionType';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
+import type { EntitySpawn } from '../../EntitySpawn';
+import { entitySpawnOf } from '../../EntitySpawn';
 import { WORLD_EXPERIMENTS } from '../../WorldExperiments';
 import type { LevelDatInputs, StoredChunkReader } from '../Provider';
 import type { ChunkSaveContext, PendingTicksToSave, TickToSave } from '../ChunkSaveContext';
@@ -248,6 +250,36 @@ const knowsDimensionTypes = (level: SaveIdentity): level is SaveIdentity & Pick<
 interface PendingLegacyEntity extends LegacyWorldEntity {
     uniqueId: string;
 }
+
+/**
+ * The tag that tells the two shapes of a pending record apart. The first, from a level record's
+ * legacy entities, has none: a `Data` string holding a type, a position and a unique id per
+ * entity. The second, a fresh chunk's, is {@link PENDING_SPAWNS_VERSION} with a `Spawns` string
+ * holding its generation's mobs as `EntitySpawn`s, with an end crystal's beam target, bottom plate
+ * and invulnerability among them.
+ */
+const PENDING_VERSION_TAG = 'Version';
+const PENDING_SPAWNS_VERSION = 2;
+const PENDING_SPAWNS_TAG = 'Spawns';
+
+/** A fresh chunk's pending record. */
+const writePendingSpawnsNbt = (spawns: readonly EntitySpawn[]): NBTTagCompound => {
+    const root = new NBTTagCompound('');
+    root.addValue(PENDING_VERSION_TAG, new Types.NumberVal(PENDING_SPAWNS_VERSION));
+    root.addValue(PENDING_SPAWNS_TAG, new Types.StringVal(JSON.stringify(spawns)));
+    return root;
+};
+
+/** The spawns a fresh chunk's pending record holds; an entry that does not parse is dropped. */
+const pendingSpawnsOf = (root: NBTTagCompound): EntitySpawn[] => {
+    try {
+        // Parsed JSON: `entitySpawnOf` checks every field it keeps.
+        const parsed: unknown = JSON.parse(root.getString(PENDING_SPAWNS_TAG, '[]'));
+        return Array.isArray(parsed) ? parsed.flatMap((entry) => entitySpawnOf(entry) ?? []) : [];
+    } catch {
+        return [];
+    }
+};
 
 /**
  * The state a fluid tick fires for, as Bedrock records it: the fluid that stands there now, in the
@@ -930,6 +962,31 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
+     * Writes a fresh chunk outside the pass, held for the next one like the unload pass's writes:
+     * its terrain, and its generation's mobs as its pending record (ADR 0018, E1d). Its sub chunks
+     * are encoded in this call, and the chunk counts as saved once the write is held.
+     */
+    public override writeFreshChunk(chunk: Chunk, spawns: readonly EntitySpawn[]): number {
+        const pass = this.savePass(async (batch) => {
+            if (!this.holding) this.chunkWriteBatchBytes += batch.approximateSize;
+            await this.writeOutsidePass(batch);
+        }, new OverlayBatch());
+        const state = chunk.persistedStateNow();
+        pass.cutChunk(chunk, this.createSaveContext(chunk.getDimension()), spawns);
+        // The encodes and the hold happen before the commit's first await, so the count is whole
+        // here; what is left settles the chunk's saved state.
+        pass.commit({ sync: false }).catch((error: unknown) => {
+            pass.abandon();
+            this.getServer().getLogger().error(`Failed to write fresh chunk ${chunk.getX()},${chunk.getZ()}`);
+            this.getServer().getLogger().error(error);
+        });
+        // A held write is part of the next commit already, so the chunk is saved as of now: a cut
+        // in this same turn, before the commit's continuation runs, leaves it out.
+        if (this.holding) chunk.markSavedAs(state);
+        return pass.stats.subChunkEncodes;
+    }
+
+    /**
      * Starts a save pass whose writes go to the database as one batch (ADR 0018).
      *
      * A chunk's actor records, digest, block entities and the deletions it needs are encoded when
@@ -1009,9 +1066,9 @@ export default class LevelDB extends BaseProvider {
         };
 
         return {
-            cutChunk: (chunk, context) => {
+            cutChunk: (chunk, context, fresh) => {
                 if (!open) throw new PrismarineWorldErrors.SavePassCommitted();
-                const cut = this.cutChunk(batch, chunk, context, { encoded, bypassed });
+                const cut = this.cutChunk(batch, chunk, context, { encoded, bypassed }, fresh);
                 pending += cut.pending;
                 cuts.push(cut);
                 const cutsOfChunk = this.unsettled.get(chunk) ?? new Set();
@@ -1108,7 +1165,8 @@ export default class LevelDB extends BaseProvider {
         batch: OverlayBatch,
         chunk: Chunk,
         context: ChunkSaveContext,
-        report: ChunkCutReport
+        report: ChunkCutReport,
+        fresh?: readonly EntitySpawn[]
     ): LevelDBChunkCut {
         // A pass still holding part of this chunk encodes it first. This cut takes the chunk's
         // hook, after which a write would no longer tell the older pass, and it reads what the
@@ -1164,8 +1222,12 @@ export default class LevelDB extends BaseProvider {
         if (!this.holds(inhabitedKey, inhabited)) staged.put(inhabitedKey, inhabited);
         const blendingKey = key(ChunkTag.BlendingData);
         if (!this.holds(blendingKey, BEDROCK_BLENDING_DATA)) staged.put(blendingKey, BEDROCK_BLENDING_DATA);
+        // A cut writes the chunk's mobs as actor records, so the pending record they came from
+        // goes. A fresh chunk's mobs are not live yet: they are its pending record.
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
-        if (this.mayHold(pendingEntitiesKey)) staged.del(pendingEntitiesKey);
+        if (fresh !== undefined && fresh.length > 0)
+            staged.put(pendingEntitiesKey, this.writeActorNbt(writePendingSpawnsNbt(fresh)));
+        else if (this.mayHold(pendingEntitiesKey)) staged.del(pendingEntitiesKey);
 
         if (changes.blockEntities) {
             const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
@@ -1177,9 +1239,10 @@ export default class LevelDB extends BaseProvider {
             }
         }
 
-        this.writeEntities(staged, chunk, key, context);
+        // A fresh chunk has no actor records or digest to write, and no ticks a cut has not seen.
+        if (fresh === undefined) this.writeEntities(staged, chunk, key, context);
         const storedTicks =
-            context.pendingTicks === undefined
+            fresh !== undefined || context.pendingTicks === undefined
                 ? undefined
                 : this.writePendingTicks(staged, chunk, key(ChunkTag.PendingTicks), context.pendingTicks);
 
@@ -1445,7 +1508,9 @@ export default class LevelDB extends BaseProvider {
     private readPendingEntityRecords(value: Buffer | null): PendingLegacyEntity[] {
         if (value === null) return [];
 
-        const encoded = this.readActorNbt(value).getString('Data', '');
+        const root = this.readActorNbt(value);
+        if (root.getNumber(PENDING_VERSION_TAG, 0) === PENDING_SPAWNS_VERSION) return [];
+        const encoded = root.getString('Data', '');
         if (encoded.length === 0) return [];
         const parsed: unknown = JSON.parse(encoded);
         if (!Array.isArray(parsed)) throw new PrismarineWorldErrors.InvalidActorMigration();
@@ -1469,6 +1534,16 @@ export default class LevelDB extends BaseProvider {
     }
 
     private readPendingEntities(value: Buffer | null, chunk: Chunk): boolean {
+        // A fresh chunk's write keeps its generation's mobs as spawns, which become live mobs the
+        // way a newly generated chunk's do when it enters the world.
+        if (value !== null) {
+            const root = this.readActorNbt(value);
+            if (root.getNumber(PENDING_VERSION_TAG, 0) === PENDING_SPAWNS_VERSION) {
+                const spawns = pendingSpawnsOf(root);
+                chunk.getEntitySpawns().push(...spawns);
+                return spawns.length > 0;
+            }
+        }
         const pending = this.readPendingEntityRecords(value);
         for (const entity of pending) chunk.addStoredEntity(this.legacyActorNbt(entity));
 

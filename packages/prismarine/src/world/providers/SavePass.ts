@@ -1,4 +1,5 @@
 import type { WorldPlayerData } from '../../config/JsonConfigTypes';
+import type { EntitySpawn } from '../EntitySpawn';
 import type Chunk from '../chunk/Chunk';
 import type { DynamicProperties } from '../dynamicProperties';
 import type { SavedCommandStorage } from '../CommandStorage';
@@ -55,8 +56,11 @@ export interface ProviderSavePass {
     /**
      * Plans a chunk's write as the chunk is now. The chunk then reports writes to the pass until
      * the pass has encoded it.
+     * @param fresh - For a chunk generated since the last pass and untouched by gameplay (ADR
+     *   0018), the mobs its generation left: they are written as the chunk's pending record in
+     *   place of actor records and a digest, which a chunk whose mobs are not live yet has none of.
      */
-    cutChunk(chunk: Chunk, context: ChunkSaveContext): void;
+    cutChunk(chunk: Chunk, context: ChunkSaveContext, fresh?: readonly EntitySpawn[]): void;
     /**
      * Holds a player record.
      * @returns False when the provider keeps no player records, and the level writes it elsewhere.

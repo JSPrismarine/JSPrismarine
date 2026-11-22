@@ -27,7 +27,7 @@ import type { Generator } from './Generator';
 import type { Level } from './Level';
 import { AUTO_SAVE_INTERVAL_TICKS, HELD_WRITE_LIMIT, LevelSave, SAVE_ENCODE_BUDGET } from './LevelSave';
 import { DimensionTravel } from './portal/DimensionTravel';
-import { decodeChunkKey, encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
+import { ChunkTag, decodeChunkKey, encodeChunkKey, encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
 import LevelDB from './providers/leveldb/LevelDB';
 import BaseProvider from './providers/BaseProvider';
 import type { ProviderSavePass } from './providers/SavePass';
@@ -385,6 +385,68 @@ const changeAndUnload = async (overworld: World, x: number): Promise<void> => {
     await overworld['unloadChunks']([overworld.getLoadedChunk(x, 0)!]);
     if (overworld.getLoadedChunk(x, 0) !== null) throw new Error(`chunk ${x},0 did not leave`);
 };
+
+describe('a chunk generated since the last pass', () => {
+    /** Ticks the level until its fresh chunks are written, as the ticks between autosaves would. */
+    const writeFresh = (level: Level, from = 1): number => {
+        let tick = from;
+        for (; tick < from + CHUNKS * 4; tick++) level.update(tick);
+        return tick;
+    };
+
+    it('is written on its own, so the pass after the region holds only what gameplay changed', async () => {
+        const { level, provider, folder, server } = await harness('fresh-outside');
+        const passes = watchPasses(provider);
+
+        writeFresh(level);
+        // Written and held for the next commit, a budget a tick, with no pass of their own.
+        expect(passes).toEqual([]);
+        expect(provider.heldWriteBytes()).toBeGreaterThan(0);
+        let tick = cutAutosave(level);
+        const pass = passes[0]!;
+        while (pass.pendingEncodes > 0) level.update(++tick);
+        await level.pendingSave();
+
+        // The cut took no chunk of the region: every section reached the commit as a held write.
+        expect(pass.stats.subChunkEncodes).toBe(0);
+        expect(pass.stats.heldWrites).toBeGreaterThan(0);
+        reportProgress(
+            `A pass after ${CHUNKS * 2} fresh chunks written on their own: ${pass.stats.keys} keys, ${pass.stats.bytes} bytes, ${pass.stats.heldWrites} of them held`,
+            'Save pass bytes'
+        );
+        await level.disable();
+        const saved = await savedChunk(folder, server, Dimensions.Overworld, CHUNKS - 1);
+        expect(blocksOf(saved).every((block) => block === stone)).toBe(true);
+    });
+
+    it('moves into the cut whole when gameplay touches it before its turn, and is written once', async () => {
+        const { level, overworld, provider } = await harness('fresh-touched');
+        const written = watchDatabase(provider);
+        const passes = watchPasses(provider);
+        const touched = overworld.getLoadedChunk(CHUNKS - 1, 0)!;
+        touched.setBlockRuntimeId(5, 0, 5, gold);
+
+        writeFresh(level);
+        let tick = cutAutosave(level);
+        const pass = passes[0]!;
+        while (pass.pendingEncodes > 0) level.update(++tick);
+        await level.pendingSave();
+
+        // Every section of the touched chunk is the cut's, and its sections reach the database once.
+        expect(pass.stats.subChunkEncodes).toBe(subChunkCount(Dimensions.Overworld));
+        const section = encodeChunkKey({
+            x: CHUNKS - 1,
+            z: 0,
+            dimension: Dimensions.Overworld.bedrockId,
+            tag: ChunkTag.SubChunkPrefix,
+            subChunk: 0
+        });
+        expect(written.flatMap(({ keys }) => keys).filter((key) => key.equals(section))).toHaveLength(1);
+        const saved = await readSaved(provider, Dimensions.Overworld, CHUNKS - 1);
+        expect(saved.getBlockRuntimeId(5, 0, 5)).toBe(gold);
+        await level.disable();
+    });
+});
 
 describe('a write outside a pass', () => {
     it('lands in the commit after the one whose cut it followed, which is still one batch', async () => {
