@@ -2321,6 +2321,35 @@ export class World implements Service {
     }
 
     /**
+     * A sound a block makes, such as the one it makes as it is placed, to the players near it.
+     *
+     * A level sound event rather than a named sound: the client picks the sound of whatever
+     * the block is made of from its runtime id, so stone, wool and glass each sound like
+     * themselves. A block nobody has loaded, or air, makes none.
+     * @param position - The block.
+     * @param sound - The event, such as `PLACE` or `HIT`.
+     * @param [except] - A player who should not hear it, because their client plays it itself.
+     */
+    public playBlockSound(position: Vector3, sound: LevelSoundEvent, except?: Pick<ShownActor, 'getRuntimeId'>): void {
+        const state = this.loadedBlockAt(position.getX(), position.getY(), position.getZ());
+        const runtimeId = this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ());
+        if (state === undefined || runtimeId === undefined || state.name === 'minecraft:air') return;
+        if (!this.isHere(position)) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'block-sound',
+            data: {
+                x: position.getX(),
+                y: position.getY(),
+                z: position.getZ(),
+                sound,
+                block: runtimeId,
+                except: except === undefined ? null : except.getRuntimeId()
+            }
+        });
+    }
+
+    /**
      * One swing against a block: the sound of the hit and the chips that come off it.
      *
      * Struck, not broken. `START_BLOCK_CRACKING` was the only thing sent while mining, and
@@ -2344,19 +2373,7 @@ export class World implements Service {
         const runtimeId = this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ());
         if (state === undefined || runtimeId === undefined || state.name === 'minecraft:air') return;
 
-        if (this.isHere(position))
-            this.occurred({
-                kind: 'occurrence',
-                occurrence: 'block-sound',
-                data: {
-                    x: position.getX(),
-                    y: position.getY(),
-                    z: position.getZ(),
-                    sound: LevelSoundEvent.HIT,
-                    block: runtimeId,
-                    except: striker === undefined ? null : striker.getRuntimeId()
-                }
-            });
+        this.playBlockSound(position, LevelSoundEvent.HIT, striker);
 
         const particles = CRACK_PARTICLES[face];
         if (particles !== undefined) this.sendWorldEvent(position, particles, runtimeId);

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype, LevelSoundEventName } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -215,6 +215,11 @@ const liveWorld = (
         tickSealed: ({ entries }) => {
             for (const entry of entries) {
                 if (entry.kind === 'occurrence' && entry.occurrence === 'named-sound') heard.push(entry.data.name);
+                // A block's own sound by its event and block, such as `place minecraft:stone`.
+                if (entry.kind === 'occurrence' && entry.occurrence === 'block-sound') {
+                    const block = BlockRuntimeIds.getState(entry.data.block)?.name;
+                    heard.push(`${LevelSoundEventName[entry.data.sound]} ${block}`);
+                }
                 const block =
                     entry.kind === 'field' && entry.field === 'block'
                         ? { ...entry.address, block: entry.after }
@@ -233,7 +238,7 @@ const liveWorld = (
         store.beginTick();
         return shown;
     };
-    /** The named sounds clients were told about so far, which seals the open tick and opens the next. */
+    /** The sounds clients were told about so far, which seals the open tick and opens the next. */
     const sounds = (): string[] => {
         store.sealTick();
         store.beginTick();
@@ -883,7 +888,7 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(4, 63, 4)?.name).toBe('minecraft:stone');
             expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:crafting_table');
-            expect(sounds()).toContain('place');
+            expect(sounds()).toEqual(['place minecraft:crafting_table']);
         });
 
         it('orients stairs from the interaction rotation and click face', () => {

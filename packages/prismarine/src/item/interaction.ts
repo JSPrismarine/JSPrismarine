@@ -25,7 +25,7 @@ import { consumable, food } from '@jsprismarine/items';
 import type { ItemSource } from '@jsprismarine/items';
 import { bedrockBlockStates, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype, WindowTypes } from '@jsprismarine/minecraft';
+import { Gametype, LevelSoundEvent, WindowTypes } from '@jsprismarine/minecraft';
 
 import { advancementBlockUsed, advancementItemUsedOnBlock, advancementPlacedBlock } from '../advancement/triggers';
 import { blockFromContent } from '../block/Block';
@@ -362,7 +362,9 @@ const placeBlock = (
     // After the hook, which gave a container an empty record: a shulker box put back down
     // holds what it was carrying rather than what a fresh one holds.
     restorePlacedContents(blocks, target, identifier, placed);
-    blocks.playSound(target, 'place');
+    // The placer hears it too: a Bedrock client plays no sound for a block it placed until the
+    // server says so. A named sound `place` played nothing, as no client has a sound by that name.
+    world.playBlockSound(new Vector3(target.x, target.y, target.z), LevelSoundEvent.PLACE);
     events.post('playerBlockPlaced', new PlayerBlockPlacedEvent(player.getRuntimeId(), world, placing));
     return target;
 };
