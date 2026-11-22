@@ -139,6 +139,11 @@ once so the server can read the vanilla behavior pack. Without it the server log
 with no mobs, no `/summon` and no dragon. Run it by hand with
 `pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack`.
 
+It then runs `ensure:native`, which downloads the NetherNet library build that
+`packages/native-network/native/manifest.json` pins when the installed one is missing or older, as
+after a `git pull` that moved the pin. Run it by hand with
+`pnpm --filter @jsprismarine/native-network run ensure:native`.
+
 ### 2. Install dependencies
 
 ```bash
