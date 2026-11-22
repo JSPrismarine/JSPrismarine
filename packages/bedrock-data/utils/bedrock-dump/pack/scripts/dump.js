@@ -324,16 +324,23 @@ const FLOW_DIRECTIONS = [
 ];
 
 /**
+ * How many blocks the liquid flow pass places in one tick. Each takes its own spot of the 900, so
+ * a spot is placed in again only after 900 / 30 = 30 ticks.
+ */
+const FLOW_PER_TICK = 30;
+
+/**
  * The directions water cannot flow into a placed block from, for each permutation of a block type
  * that can hold water and stops it from some direction. `liquidCanFlowFromDirection` is a
  * `Block` member, so each permutation asked is placed in the air of the ticking area.
  *
  * The pinned server crashes after a few hundred blocks are placed and replaced in one spot, so
- * the pass moves to a new spot for each placement and places at most one a tick. It asks a type's
- * other permutations only when its default permutation stops water from some direction, which
- * holds for the slabs, stairs and sculk sensors the `block-liquid-flow` scenario found. A permutation that
- * cannot hold water is not asked: stone, glass, a double slab and a snow layer let water in from
- * every direction there. A type with no stopping permutation writes no row.
+ * the pass moves to a new spot for each placement and places at most {@link FLOW_PER_TICK} a tick.
+ * At one a tick the pass ran for thousands of ticks, past the 15 minutes a CI run gives the dump.
+ * It asks a type's other permutations only when its default permutation stops water from some
+ * direction, which holds for the slabs, stairs and sculk sensors the `block-liquid-flow` scenario
+ * found. A permutation that cannot hold water is not asked: stone, glass, a double slab and a
+ * snow layer let water in from every direction there. A type with no stopping permutation writes no row.
  */
 function* blockLiquidFlow(dimension) {
     const air = BlockPermutation.resolve('minecraft:air');
@@ -360,9 +367,19 @@ function* blockLiquidFlow(dimension) {
         block.setPermutation(air);
         return { states, stops };
     };
-    /** Yields until the next tick, so the next placement lands in it. */
-    function* nextTick() {
-        const tick = system.currentTick;
+    /** The tick the last placements landed in, and how many landed in it. */
+    let tick = -1;
+    let inTick = 0;
+    /** Yields, and once this tick holds {@link FLOW_PER_TICK} placements, until the next tick. */
+    function* afterPlacement() {
+        if (system.currentTick !== tick) {
+            tick = system.currentTick;
+            inTick = 0;
+        }
+        if (++inTick < FLOW_PER_TICK) {
+            yield;
+            return;
+        }
         while (system.currentTick === tick) yield;
     }
     for (const type of BlockTypes.getAll()) {
@@ -375,7 +392,7 @@ function* blockLiquidFlow(dimension) {
                 continue;
             }
             const { stops } = flowOf(base);
-            yield* nextTick();
+            yield* afterPlacement();
             if (stops.length === 0) continue;
         } catch (error) {
             failed('block-liquid-flow', type.id, error);
@@ -391,7 +408,7 @@ function* blockLiquidFlow(dimension) {
             } catch (error) {
                 failed('block-liquid-flow', `${type.id} ${JSON.stringify(states)}`, error);
             }
-            yield* nextTick();
+            yield* afterPlacement();
         }
         if (stopping.size > 0) emit('block-liquid-flow', { id: type.id, permutations: [...stopping.values()] });
     }
