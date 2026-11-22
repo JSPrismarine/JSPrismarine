@@ -31,6 +31,11 @@ const layout = () => layoutAt(cameraPresetsPacket, protocolVersion);
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-presets-packet/}
  */
 export default class CameraPresetsPacket extends NetworkPacket<CameraPresetsPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraPresetsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_PRESETS;
     }

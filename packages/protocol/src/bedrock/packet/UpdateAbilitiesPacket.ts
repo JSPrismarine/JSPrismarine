@@ -110,6 +110,11 @@ export class AbilityLayer {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-abilities-packet/
  */
 export default class UpdateAbilitiesPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateAbilitiesPacket';
+    }
+
     public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;
     public playerPermission: PlayerPermissionLevel = PlayerPermissionLevel.VISITOR;
     public targetActorUniqueId = 0n;

@@ -12,6 +12,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see `docs/research/protocol-2259-delta.md`
  */
 export default class PlayerToggleArmorVisibilityRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerToggleArmorVisibilityRequestPacket';
+    }
+
     /** `Hide Armor`. */
     public hideArmor: boolean = false;
 

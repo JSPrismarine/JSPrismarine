@@ -26,6 +26,11 @@ export type ServerboundDataDrivenScreenClosed = ServerboundDataDrivenScreenClose
  * @throws When the `CloseReason` string is not a member the schema lists.
  */
 export default class ServerboundDataDrivenScreenClosedPacket extends NetworkPacket<ServerboundDataDrivenScreenClosed> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundDataDrivenScreenClosedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVERBOUND_DATA_DRIVEN_SCREEN_CLOSED;
     }

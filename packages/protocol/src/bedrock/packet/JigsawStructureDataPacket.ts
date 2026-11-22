@@ -25,6 +25,11 @@ import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/jigsaw-structure-data-packet/
  */
 export default class JigsawStructureDataPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'JigsawStructureDataPacket';
+    }
+
     /** The rules as network NBT, or `null` to use the connection's captured bytes. */
     public structureData: Buffer | null = null;
 

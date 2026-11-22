@@ -20,6 +20,11 @@ export type LocatorBar = LocatorBarPayload;
  * `ActionFlag` as one byte.
  */
 export default class LocatorBarPacket extends NetworkPacket<LocatorBar> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LocatorBarPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LOCATOR_BAR;
     }

@@ -24,6 +24,11 @@ export interface GuiDataPickItem {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/gui-data-pick-item-packet/
  */
 export default class GuiDataPickItemPacket extends NetworkPacket<GuiDataPickItem> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'GuiDataPickItemPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.GUI_DATA_PICK_ITEM;
     }

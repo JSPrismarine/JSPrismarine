@@ -21,6 +21,11 @@ export type UpdateBlockSynced = UpdateBlockSyncedPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-block-synced-packet/
  */
 export default class UpdateBlockSyncedPacket extends NetworkPacket<UpdateBlockSynced> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateBlockSyncedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_BLOCK_SYNCED;
     }

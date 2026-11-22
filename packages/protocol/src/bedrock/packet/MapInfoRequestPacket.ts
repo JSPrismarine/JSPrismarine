@@ -17,6 +17,11 @@ export type { MapClientPixel };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/map-info-request-packet/
  */
 export default class MapInfoRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MapInfoRequestPacket';
+    }
+
     /** The map's unique id, which is the id in the map item's NBT. */
     public mapUniqueId = 0n;
 

@@ -16,6 +16,11 @@ import type { MobEquipmentPayload } from '../wire/definitions/containers';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-equipment-packet/
  */
 export default class MobEquipmentPacket extends NetworkPacket<MobEquipmentPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MobEquipmentPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: MobEquipmentPayload | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

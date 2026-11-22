@@ -19,6 +19,11 @@ export type UpdateTrade = UpdateTradePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-trade-packet/
  */
 export default class UpdateTradePacket extends NetworkPacket<UpdateTrade> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateTradePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_TRADE;
     }

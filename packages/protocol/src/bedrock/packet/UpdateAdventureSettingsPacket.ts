@@ -18,6 +18,11 @@ export type UpdateAdventureSettingsPayload = PayloadOf<typeof updateAdventureSet
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-adventure-settings-packet/
  */
 export default class UpdateAdventureSettingsPacket extends NetworkPacket<UpdateAdventureSettingsPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateAdventureSettingsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_ADVENTURE_SETTINGS;
     }

@@ -14,6 +14,11 @@ export type ClientboundCloseForm = Record<string, never>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-close-form-packet/
  */
 export default class ClientboundCloseFormPacket extends NetworkPacket<ClientboundCloseForm> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundCloseFormPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_CLOSE_FORM;
     }

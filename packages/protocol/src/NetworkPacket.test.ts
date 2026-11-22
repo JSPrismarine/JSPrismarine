@@ -3,8 +3,14 @@ import { describe, expect, it } from 'vitest';
 import NetworkBinaryStream from './NetworkBinaryStream';
 import NetworkPacket from './NetworkPacket';
 import { BatchCodec } from './bedrock/BatchCodec';
+import { isProtocolPacketClass, type ProtocolPacketClass } from './bedrock/ProtocolCodec';
+import * as Packets from './bedrock/packet';
 
 class PayloadPacket extends NetworkPacket<number> {
+    public getName(): string {
+        return 'PayloadPacket';
+    }
+
     public constructor(value: number) {
         super(value);
         this.setNetId(0x21);
@@ -44,5 +50,18 @@ describe('NetworkPacket transient encoding', () => {
         packet.encode();
         expect(transient).toStrictEqual(cachedBytes);
         expect(batch).toStrictEqual(BatchCodec.uncompressed().encode([cachedBytes, Buffer.from([0x21, 0x63])]));
+    });
+});
+
+describe('NetworkPacket names', () => {
+    const packetClasses: [string, ProtocolPacketClass][] = Object.entries(Packets).flatMap(
+        ([name, value]: [string, unknown]): [string, ProtocolPacketClass][] =>
+            isProtocolPacketClass(value) ? [[name, value]] : []
+    );
+
+    it.each(packetClasses)('%s returns the name the packet module exports it under', (name, Packet) => {
+        // A codec looks a class's wire id up by its export name, and a packet looks its own id
+        // up by `getName()`, so the two must agree.
+        expect(new Packet().getName()).toBe(name);
     });
 });

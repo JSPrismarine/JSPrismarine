@@ -18,6 +18,11 @@ import type { ItemStackDescriptorData } from '../wire/structures/ItemStackDescri
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-slot-packet/
  */
 export default class InventorySlotPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'InventorySlotPacket';
+    }
+
     /** `Container Id`; the player's own crafting grid is 124. */
     public windowId!: number;
 

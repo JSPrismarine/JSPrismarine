@@ -18,6 +18,11 @@ export { ShowStoreOfferRedirectType };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/show-store-offer-packet/
  */
 export default class ShowStoreOfferPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ShowStoreOfferPacket';
+    }
+
     /** The offer to look up on the page the redirect type chooses. */
     public offerId: UUID = new UUID();
 

@@ -22,6 +22,11 @@ export type MovementEffect = MovementEffectPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/movement-effect-packet/
  */
 export default class MovementEffectPacket extends NetworkPacket<MovementEffect> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MovementEffectPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.MOVEMENT_EFFECT;
     }

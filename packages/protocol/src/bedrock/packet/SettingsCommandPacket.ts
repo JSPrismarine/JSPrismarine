@@ -22,6 +22,11 @@ export interface SettingsCommand {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/settings-command-packet/
  */
 export default class SettingsCommandPacket extends NetworkPacket<SettingsCommand> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SettingsCommandPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SETTINGS_COMMAND;
     }

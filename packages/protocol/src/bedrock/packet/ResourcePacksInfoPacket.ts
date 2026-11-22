@@ -60,6 +60,11 @@ export type ResourcePacksInfo = PayloadOf<typeof resourcePacksInfoPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-packs-info-packet/
  */
 export default class ResourcePacksInfoPacket extends NetworkPacket<ResourcePacksInfo> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ResourcePacksInfoPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACKS_INFO;
     }

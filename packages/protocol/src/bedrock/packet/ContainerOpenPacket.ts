@@ -20,6 +20,11 @@ import { containerOpenPacket } from '../wire/definitions/containers';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/container-open-packet/
  */
 export default class ContainerOpenPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ContainerOpenPacket';
+    }
+
     /** `Container Id`: the window the client should file this container under. */
     public windowId!: number;
 

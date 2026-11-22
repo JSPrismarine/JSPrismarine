@@ -20,6 +20,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/spawn-particle-effect-packet/
  */
 export default class SpawnParticleEffectPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SpawnParticleEffectPacket';
+    }
+
     /** Dimension the effect belongs to. */
     public dimensionId = 0;
 

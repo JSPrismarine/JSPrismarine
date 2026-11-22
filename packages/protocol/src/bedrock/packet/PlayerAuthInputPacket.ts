@@ -18,6 +18,11 @@ import type { PlayerAuthInput } from '../wire/structures/PlayerAuthInput';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-auth-input-packet/
  */
 export default class PlayerAuthInputPacket extends NetworkPacket<PlayerAuthInput> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerAuthInputPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_AUTH_INPUT;
     }

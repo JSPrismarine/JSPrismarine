@@ -30,6 +30,11 @@ export interface DimensionData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/dimension-data-packet/
  */
 export default class DimensionDataPacket extends NetworkPacket<DimensionData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'DimensionDataPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.DIMENSION_DATA;
     }

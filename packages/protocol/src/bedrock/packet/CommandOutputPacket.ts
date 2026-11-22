@@ -21,6 +21,11 @@ import type { CommandOutputPayload } from '../wire/definitions/commands';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-output-packet/
  */
 export default class CommandOutputPacket extends NetworkPacket<CommandOutputPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CommandOutputPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: CommandOutputPayload | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

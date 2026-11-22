@@ -26,6 +26,11 @@ import type { Vector3 } from '@jsprismarine/math';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/actor-event-packet/
  */
 export default class ActorEventPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ActorEventPacket';
+    }
+
     public runtimeEntityId!: bigint;
 
     /**

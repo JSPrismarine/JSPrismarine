@@ -114,6 +114,11 @@ const attributeValuesOf = (data: ClientboundAttributeLayerSync['data']): Attribu
  * @throws when the payload carries the structures of the other protocol layout than the one stamped on the packet.
  */
 export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<ClientboundAttributeLayerSync> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundAttributeLayerSyncPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_ATTRIBUTE_LAYER_SYNC;
     }

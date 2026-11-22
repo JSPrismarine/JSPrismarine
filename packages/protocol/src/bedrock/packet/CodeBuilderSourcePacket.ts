@@ -62,6 +62,11 @@ export interface CodeBuilderSource {
  * packet is EDU exclusive and comes from `getInterface()` of the `WebviewSystem`.
  */
 export default class CodeBuilderSourcePacket extends NetworkPacket<CodeBuilderSource> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CodeBuilderSourcePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CODE_BUILDER_SOURCE;
     }

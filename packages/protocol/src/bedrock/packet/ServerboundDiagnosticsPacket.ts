@@ -30,6 +30,11 @@ export type WhiskerScopeDataSummary = ServerboundDiagnosticsPayload['whiskerScop
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-diagnostics-packet/
  */
 export default class ServerboundDiagnosticsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundDiagnosticsPacket';
+    }
+
     public avgFps = 0;
     public avgServerSimTickTimeMs = 0;
     public avgClientSimTickTimeMs = 0;

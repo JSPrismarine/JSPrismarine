@@ -12,6 +12,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/actor-pick-request-packet/
  */
 export default class ActorPickRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ActorPickRequestPacket';
+    }
+
     /** Unique id of the picked actor. */
     public actorId = 0n;
 

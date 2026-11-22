@@ -23,6 +23,11 @@ export interface ToastRequest {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/toast-request-packet/
  */
 export default class ToastRequestPacket extends NetworkPacket<ToastRequest> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ToastRequestPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.TOAST_REQUEST;
     }

@@ -18,6 +18,11 @@ export { PhotoType };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/photo-transfer-packet/
  */
 export default class PhotoTransferPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PhotoTransferPacket';
+    }
+
     /** File name the photo is stored under. */
     public photoName = '';
 

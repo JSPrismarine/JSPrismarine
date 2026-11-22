@@ -26,6 +26,11 @@ export enum CameraShakeAction {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-shake-packet/
  */
 export default class CameraShakePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraShakePacket';
+    }
+
     /** Intensity of the shake, clamped to 4 by the client. */
     public intensity = 0;
 

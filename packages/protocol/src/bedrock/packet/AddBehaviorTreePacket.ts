@@ -20,6 +20,11 @@ export interface AddBehaviorTree {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-behavior-tree-packet/
  */
 export default class AddBehaviorTreePacket extends NetworkPacket<AddBehaviorTree> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddBehaviorTreePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.ADD_BEHAVIOR_TREE;
     }

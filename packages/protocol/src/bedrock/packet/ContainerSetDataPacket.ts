@@ -22,6 +22,11 @@ import { containerSetDataPacket } from '../wire/definitions/containers';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/container-set-data-packet/
  */
 export default class ContainerSetDataPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ContainerSetDataPacket';
+    }
+
     /** Container ID, the window the client has open. Nothing happens if it has no such window. */
     public containerId = 0;
 

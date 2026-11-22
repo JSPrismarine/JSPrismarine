@@ -19,6 +19,11 @@ import type { Metadata } from '../wire/structures/Metadata';
  * @see {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-data-packet/}
  */
 export default class SetActorDataPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetActorDataPacket';
+    }
+
     /** Target Runtime ID of the entity whose data changed. */
     public runtimeEntityId!: bigint;
     /** Actor Data: the metadata entries to send. Only the entries present in the map are written. */

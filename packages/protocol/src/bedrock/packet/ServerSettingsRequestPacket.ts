@@ -16,6 +16,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-settings-request-packet/
  */
 export default class ServerSettingsRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerSettingsRequestPacket';
+    }
+
     /** Reads the empty payload, which consumes no bytes. */
     public decodePayload(): void {
         layoutAt(serverSettingsRequestPacket, this.codecProtocol).decode(this);

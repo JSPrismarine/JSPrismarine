@@ -40,6 +40,11 @@ export enum PackType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-data-info-packet/
  */
 export default class ResourcePackDataInfoPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ResourcePackDataInfoPacket';
+    }
+
     /** The pack id and version joined by an underscore, as `ResourcePacksInfoPacket` gave them. */
     public resourceName = '';
 

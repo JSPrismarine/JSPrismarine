@@ -26,6 +26,11 @@ export interface ScriptMessage {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/script-message-packet/
  */
 export default class ScriptMessagePacket extends NetworkPacket<ScriptMessage> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ScriptMessagePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SCRIPT_MESSAGE;
     }

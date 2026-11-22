@@ -49,6 +49,11 @@ export enum PacketViolationSeverity {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/packet-violation-warning-packet/
  */
 export default class PacketViolationWarningPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PacketViolationWarningPacket';
+    }
+
     /** Violation Type: what kind of problem the client found. */
     public type: PacketViolationType = PacketViolationType.Unknown;
 

@@ -28,6 +28,11 @@ export type ServerPresenceInfo = ServerPresenceInfoPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-presence-info-packet/
  */
 export default class ServerPresenceInfoPacket extends NetworkPacket<ServerPresenceInfo> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerPresenceInfoPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVER_PRESENCE_INFO;
     }

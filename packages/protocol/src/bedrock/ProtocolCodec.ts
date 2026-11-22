@@ -57,7 +57,8 @@ export interface ProtocolCodecOptions {
     readonly context: ProtocolContext;
 }
 
-const isProtocolPacketClass = (value: unknown): value is ProtocolPacketClass =>
+/** Whether `value` is a packet class, as opposed to another export of the packet module. */
+export const isProtocolPacketClass = (value: unknown): value is ProtocolPacketClass =>
     typeof value === 'function' && value.prototype instanceof NetworkPacket;
 
 /**

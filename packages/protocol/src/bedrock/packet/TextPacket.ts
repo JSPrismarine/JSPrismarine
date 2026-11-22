@@ -48,6 +48,11 @@ export interface Text {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/text-packet/
  */
 export default class TextPacket extends NetworkPacket<Text> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'TextPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.TEXT;
     }

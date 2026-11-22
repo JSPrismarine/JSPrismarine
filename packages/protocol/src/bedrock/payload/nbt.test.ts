@@ -1,4 +1,5 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
+import { Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -50,6 +51,25 @@ describe('the NBT builder', () => {
             list: ['string:x', 'string:y'],
             nested: { deep: 'byte:3' }
         });
+    });
+
+    it('prefixes every scalar tag with its own type', () => {
+        expect(
+            [
+                new Types.ByteVal(1),
+                new Types.ShortVal(2),
+                new Types.NumberVal(3),
+                new Types.LongVal(4n),
+                new Types.FloatVal(0.1),
+                new Types.DoubleVal(0.1),
+                new Types.StringVal('s')
+            ].map(nbtToPlain)
+        ).toEqual(['byte:1', 'short:2', 'int:3', 'long:4', `float:${Math.fround(0.1)}`, 'double:0.1', 'string:s']);
+    });
+
+    it('refuses null and plain objects, which are not tags', () => {
+        expect(() => nbtToPlain(null)).toThrow(TypeError);
+        expect(() => nbtToPlain({ getValue: () => 1 })).toThrow(TypeError);
     });
 
     it('refuses a raw JavaScript value, which would otherwise pick a tag type by accident', () => {

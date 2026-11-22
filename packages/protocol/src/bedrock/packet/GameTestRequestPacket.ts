@@ -47,6 +47,11 @@ export type GameTestRequest = GameTestRequestPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-test-request-packet/
  */
 export default class GameTestRequestPacket extends NetworkPacket<GameTestRequest> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'GameTestRequestPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.GAME_TEST_REQUEST;
     }

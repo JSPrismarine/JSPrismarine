@@ -29,6 +29,11 @@ export type Disconnect = DisconnectPayload;
  * decodes as garbage.
  */
 export default class DisconnectPacket extends NetworkPacket<Disconnect> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'DisconnectPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.DISCONNECT;
     }

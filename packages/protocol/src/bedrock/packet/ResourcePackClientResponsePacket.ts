@@ -47,6 +47,11 @@ export interface ResourcePackResponse {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-client-response-packet/
  */
 export default class ResourcePackClientResponsePacket extends NetworkPacket<ResourcePackResponse> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ResourcePackClientResponsePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE;
     }

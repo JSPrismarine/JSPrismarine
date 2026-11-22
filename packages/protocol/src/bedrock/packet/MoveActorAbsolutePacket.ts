@@ -20,6 +20,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-actor-absolute-packet/
  */
 export default class MoveActorAbsolutePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MoveActorAbsolutePacket';
+    }
+
     /** The entity is standing on something, rather than falling. */
     public static readonly FLAG_ON_GROUND = 0x01;
 

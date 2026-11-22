@@ -28,6 +28,11 @@ export type { PlayerListData } from '../wire/structures/PlayerListEntry';
  * - and so where the PlayFab id sits - is the layout's decision, not this file's.
  */
 export default class PlayerListPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerListPacket';
+    }
+
     public entries: PlayerListEntry[] = [];
     public type!: number;
 

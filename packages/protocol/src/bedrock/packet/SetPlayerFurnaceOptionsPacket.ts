@@ -47,6 +47,11 @@ export type SetPlayerFurnaceOptions = SetPlayerFurnaceOptionsPayload;
  * `Filtering` as one byte, then `Layout` as a ZigZag varint32 ({@link FurnaceLayout}).
  */
 export default class SetPlayerFurnaceOptionsPacket extends NetworkPacket<SetPlayerFurnaceOptions> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetPlayerFurnaceOptionsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_PLAYER_FURNACE_OPTIONS;
     }

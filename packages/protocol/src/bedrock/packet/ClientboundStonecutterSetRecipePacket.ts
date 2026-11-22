@@ -13,6 +13,11 @@ import { clientboundStonecutterSetRecipePacket } from '../wire/definitions/added
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ClientboundStonecutterSetRecipePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundStonecutterSetRecipePacket';
+    }
+
     /** `Player Id`, an `ActorUniqueID` (ZigZag varint64). */
     public playerId: bigint = 0n;
 

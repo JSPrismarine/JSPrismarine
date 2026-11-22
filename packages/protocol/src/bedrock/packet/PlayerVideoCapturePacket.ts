@@ -26,6 +26,11 @@ export type { PlayerVideoCapture };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-video-capture-packet/
  */
 export default class PlayerVideoCapturePacket extends NetworkPacket<PlayerVideoCapture> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerVideoCapturePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_VIDEO_CAPTURE;
     }

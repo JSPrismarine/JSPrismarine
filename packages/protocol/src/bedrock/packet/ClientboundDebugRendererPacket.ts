@@ -29,6 +29,11 @@ export type DebugMarkerData = NonNullable<ClientboundDebugRendererPayload['debug
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-debug-renderer-packet/
  */
 export default class ClientboundDebugRendererPacket extends NetworkPacket<ClientboundDebugRendererPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundDebugRendererPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_DEBUG_RENDERER;
     }

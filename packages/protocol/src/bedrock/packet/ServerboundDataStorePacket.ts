@@ -23,6 +23,11 @@ export type { ServerboundDataStore } from '../wire/definitions/serverboundDataSt
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-data-store-packet/
  */
 export default class ServerboundDataStorePacket extends NetworkPacket<ServerboundDataStore> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundDataStorePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVERBOUND_DATA_STORE;
     }

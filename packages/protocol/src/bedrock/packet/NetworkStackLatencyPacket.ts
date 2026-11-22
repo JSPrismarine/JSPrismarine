@@ -11,6 +11,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-stack-latency-packet/
  */
 export default class NetworkStackLatencyPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'NetworkStackLatencyPacket';
+    }
+
     /** The sender's clock when it built the packet, in its own units. */
     public creationTime = 0n;
 

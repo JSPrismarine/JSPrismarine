@@ -37,6 +37,11 @@ export type NetworkChunkPublisherUpdatePayload = Omit<WirePayload, 'savedChunks'
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-chunk-publisher-update-packet/
  */
 export default class NetworkChunkPublisherUpdatePacket extends NetworkPacket<NetworkChunkPublisherUpdatePayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'NetworkChunkPublisherUpdatePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE;
     }

@@ -19,6 +19,11 @@ export type CameraSplines = CameraSplinePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-spline-packet/
  */
 export default class CameraSplinePacket extends NetworkPacket<CameraSplines> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraSplinePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_SPLINE;
     }

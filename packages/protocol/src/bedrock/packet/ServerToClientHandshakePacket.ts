@@ -38,6 +38,11 @@ const layout = () => layoutAt(serverToClientHandshakePacket, protocolVersion);
  * that never sends this packet gets no answer and the session stays in plaintext.
  */
 export default class ServerToClientHandshakePacket extends NetworkPacket<ServerToClientHandshake> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerToClientHandshakePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE;
     }

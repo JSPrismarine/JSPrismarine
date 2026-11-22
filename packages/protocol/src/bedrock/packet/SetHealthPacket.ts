@@ -19,6 +19,11 @@ export type SetHealthPayload = PayloadOf<typeof setHealthPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-health-packet/
  */
 export default class SetHealthPacket extends NetworkPacket<SetHealthPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetHealthPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_HEALTH;
     }

@@ -33,6 +33,11 @@ export interface AnimateEntity {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/animate-entity-packet/
  */
 export default class AnimateEntityPacket extends NetworkPacket<AnimateEntity> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AnimateEntityPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.ANIMATE_ENTITY;
     }

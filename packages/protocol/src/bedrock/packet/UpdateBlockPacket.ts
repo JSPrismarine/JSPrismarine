@@ -48,6 +48,11 @@ export enum UpdateBlockFlagsType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-block-packet/
  */
 export default class UpdateBlockPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateBlockPacket';
+    }
+
     public x = 0;
     public y = 0;
     public z = 0;

@@ -38,6 +38,11 @@ export interface ServerboundLoadingScreen {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-loading-screen-packet/
  */
 export default class ServerboundLoadingScreenPacket extends NetworkPacket<ServerboundLoadingScreen> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundLoadingScreenPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVERBOUND_LOADING_SCREEN;
     }

@@ -37,6 +37,11 @@ export type EnchantmentInstance = ItemEnchants['equipActivatedEnchants'][number]
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/item-enchants/
  */
 export default class PlayerEnchantOptionsPacket extends NetworkPacket<PlayerEnchantOptions> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerEnchantOptionsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_ENCHANT_OPTIONS;
     }

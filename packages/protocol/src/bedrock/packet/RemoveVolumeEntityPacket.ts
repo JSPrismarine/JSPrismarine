@@ -25,6 +25,11 @@ export interface RemoveVolumeEntity {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/remove-volume-entity-packet/
  */
 export default class RemoveVolumeEntityPacket extends NetworkPacket<RemoveVolumeEntity> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RemoveVolumeEntityPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.REMOVE_VOLUME_ENTITY;
     }

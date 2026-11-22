@@ -27,6 +27,11 @@ export enum ModalFormCancelReason {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/modal-form-response-packet/
  */
 export default class ModalFormResponsePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ModalFormResponsePacket';
+    }
+
     /** The id the server chose when it sent the form. */
     public formId = 0;
 

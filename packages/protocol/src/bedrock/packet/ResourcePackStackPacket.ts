@@ -39,6 +39,11 @@ export type ResourcePackStack = PayloadOf<typeof resourcePackStackPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-stack-packet/
  */
 export default class ResourcePackStackPacket extends NetworkPacket<ResourcePackStack> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ResourcePackStackPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACK_STACK;
     }

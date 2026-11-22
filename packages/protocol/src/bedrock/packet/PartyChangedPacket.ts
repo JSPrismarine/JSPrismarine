@@ -19,6 +19,11 @@ export type PartyChanged = PartyChangedPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/party-changed-packet/
  */
 export default class PartyChangedPacket extends NetworkPacket<PartyChanged> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PartyChangedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PARTY_CHANGED;
     }

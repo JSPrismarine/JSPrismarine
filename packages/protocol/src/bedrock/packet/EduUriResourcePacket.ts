@@ -20,6 +20,11 @@ export type EduUriResource = EduUriResourcePayload;
  * `Link Uri`, both strings (a varuint32 byte length followed by UTF-8).
  */
 export default class EduUriResourcePacket extends NetworkPacket<EduUriResource> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'EduUriResourcePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.EDU_URI_RESOURCE;
     }

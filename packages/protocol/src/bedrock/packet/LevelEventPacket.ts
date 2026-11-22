@@ -17,6 +17,11 @@ export type { LevelEvent };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-event-packet/
  */
 export default class LevelEventPacket extends NetworkPacket<LevelEvent> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LevelEventPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LEVEL_EVENT;
     }

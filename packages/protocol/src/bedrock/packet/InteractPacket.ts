@@ -30,6 +30,11 @@ export enum InteractAction {
  * an optional Vec3: a presence byte, followed by three little-endian floats when it is 0x01.
  */
 export default class InteractPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'InteractPacket';
+    }
+
     public action!: number;
     public target!: bigint;
 

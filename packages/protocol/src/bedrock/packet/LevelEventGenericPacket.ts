@@ -21,6 +21,11 @@ import { levelEventGenericPacket } from '../wire/definitions/levelEventGeneric';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-event-generic-packet/
  */
 export default class LevelEventGenericPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LevelEventGenericPacket';
+    }
+
     /** Which event this is, and so what the data holds. */
     public eventId = 0;
 

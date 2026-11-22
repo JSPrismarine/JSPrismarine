@@ -29,6 +29,11 @@ export interface ItemRegistry extends ItemRegistryPayload {
  * little endian).
  */
 export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ItemRegistryPacket';
+    }
+
     /** Creates a registry packet, defaulting to the connection's injected vanilla item table. */
     public constructor(packetData?: ItemRegistry) {
         super(packetData ?? { items: [], useContextItemData: true });

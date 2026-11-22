@@ -20,6 +20,11 @@ export type ClientboundControlSchemeSet = ClientboundControlSchemeSetPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-control-scheme-set-packet/
  */
 export default class ClientboundControlSchemeSetPacket extends NetworkPacket<ClientboundControlSchemeSet> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundControlSchemeSetPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_CONTROL_SCHEME_SET;
     }

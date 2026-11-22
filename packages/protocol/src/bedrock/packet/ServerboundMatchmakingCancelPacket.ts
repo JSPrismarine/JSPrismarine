@@ -13,6 +13,11 @@ import { serverboundMatchmakingCancelPacket } from '../wire/definitions/added222
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ServerboundMatchmakingCancelPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundMatchmakingCancelPacket';
+    }
+
     /** Writes the fields in layout order. */
     public encodePayload(): void {
         layoutAt(serverboundMatchmakingCancelPacket, this.codecProtocol).encode(this, {});

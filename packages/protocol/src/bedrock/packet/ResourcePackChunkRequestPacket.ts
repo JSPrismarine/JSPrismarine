@@ -11,6 +11,11 @@ import { resourcePackChunkRequestPacket } from '../wire/definitions/resourcePack
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-chunk-request-packet/
  */
 export default class ResourcePackChunkRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ResourcePackChunkRequestPacket';
+    }
+
     /** The pack id and version the server announced, joined by an underscore. */
     public resourceName = '';
 

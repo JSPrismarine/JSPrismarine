@@ -19,6 +19,11 @@ export type BlockEvent = BlockEventPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/block-event-packet/
  */
 export default class BlockEventPacket extends NetworkPacket<BlockEvent> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BlockEventPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.BLOCK_EVENT;
     }

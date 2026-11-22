@@ -115,6 +115,11 @@ export type AwardAchievement = AwardAchievementPayload;
  * nothing visible on a client that joined over LAN or a server list entry.
  */
 export default class AwardAchievementPacket extends NetworkPacket<AwardAchievementPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AwardAchievementPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.AWARD_ACHIEVEMENT;
     }

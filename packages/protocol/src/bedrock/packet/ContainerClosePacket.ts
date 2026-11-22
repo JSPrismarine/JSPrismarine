@@ -12,6 +12,11 @@ import { containerClosePacket } from '../wire/definitions/containers';
  * `Server Initiated Close` (boolean).
  */
 export default class ContainerClosePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ContainerClosePacket';
+    }
+
     /** `Container Id`: the window being closed. */
     public containerId!: number;
 

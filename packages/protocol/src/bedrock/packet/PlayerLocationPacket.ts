@@ -25,6 +25,11 @@ export type PlayerLocation = PlayerLocationAlternative & {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-location-packet/
  */
 export default class PlayerLocationPacket extends NetworkPacket<PlayerLocation> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerLocationPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_LOCATION;
     }

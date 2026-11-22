@@ -78,6 +78,11 @@ export enum SoundName {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-sound-packet/
  */
 export default class PlaySoundPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlaySoundPacket';
+    }
+
     public name: SoundName | string = '';
     /**
      * Where the sound plays.

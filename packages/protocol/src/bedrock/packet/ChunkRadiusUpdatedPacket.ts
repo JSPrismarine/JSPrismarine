@@ -19,6 +19,11 @@ export interface ChunkRadiusUpdated {
  * `LevelChunkPacket` it is sent.
  */
 export default class ChunkRadiusUpdatedPacket extends NetworkPacket<ChunkRadiusUpdated> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ChunkRadiusUpdatedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CHUNK_RADIUS_UPDATED;
     }

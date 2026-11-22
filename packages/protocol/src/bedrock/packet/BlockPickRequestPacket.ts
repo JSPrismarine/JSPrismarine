@@ -18,6 +18,11 @@ export type BlockPickRequest = BlockPickRequestPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/block-pick-request-packet/
  */
 export default class BlockPickRequestPacket extends NetworkPacket<BlockPickRequest> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BlockPickRequestPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.BLOCK_PICK_REQUEST;
     }

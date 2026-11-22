@@ -16,6 +16,11 @@ export type { LecternUpdate };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/lectern-update-packet/
  */
 export default class LecternUpdatePacket extends NetworkPacket<LecternUpdate> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LecternUpdatePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LECTERN_UPDATE;
     }

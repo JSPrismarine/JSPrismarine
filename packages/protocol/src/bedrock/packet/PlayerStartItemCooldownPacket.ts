@@ -29,6 +29,11 @@ export interface PlayerStartItemCooldown {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-start-item-cooldown-packet/
  */
 export default class PlayerStartItemCooldownPacket extends NetworkPacket<PlayerStartItemCooldown> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerStartItemCooldownPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_START_ITEM_COOLDOWN;
     }

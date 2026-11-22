@@ -16,6 +16,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-settings-response-packet/
  */
 export default class ServerSettingsResponsePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerSettingsResponsePacket';
+    }
+
     /** Identifies the form in the client's reply. */
     public formId = 0;
 

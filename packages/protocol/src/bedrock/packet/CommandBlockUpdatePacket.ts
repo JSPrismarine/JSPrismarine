@@ -30,6 +30,11 @@ export type CommandBlockUpdate = CommandBlockUpdatePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-block-update-packet/
  */
 export default class CommandBlockUpdatePacket extends NetworkPacket<CommandBlockUpdate> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CommandBlockUpdatePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.COMMAND_BLOCK_UPDATE;
     }

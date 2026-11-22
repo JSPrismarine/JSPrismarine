@@ -34,6 +34,11 @@ export type { LegacyTelemetryEventData };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/legacy-telemetry-event-packet/
  */
 export default class LegacyTelemetryEventPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LegacyTelemetryEventPacket';
+    }
+
     /** Target Actor ID, the actor the event happened to. */
     public targetActorId = 0n;
 

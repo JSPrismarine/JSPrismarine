@@ -15,6 +15,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class SetPassengerOfBlockPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetPassengerOfBlockPacket';
+    }
+
     /** `PassengerActorUniqueID`. */
     public passenger: bigint = 0n;
 

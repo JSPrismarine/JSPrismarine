@@ -55,6 +55,11 @@ export interface NetworkSettings {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-settings-packet/
  */
 export default class NetworkSettingsPacket extends NetworkPacket<NetworkSettings> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'NetworkSettingsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.NETWORK_SETTINGS;
     }

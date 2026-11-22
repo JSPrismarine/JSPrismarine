@@ -22,6 +22,11 @@ export enum MultiplayerSettingsPacketType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/multiplayer-settings-packet/
  */
 export default class MultiplayerSettingsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MultiplayerSettingsPacket';
+    }
+
     /** PacketType: the single setting this packet carries. */
     public packetType: MultiplayerSettingsPacketType = MultiplayerSettingsPacketType.EnableMultiplayer;
 

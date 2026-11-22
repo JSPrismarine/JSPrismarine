@@ -18,6 +18,11 @@ export type PlayerFogPayload = PayloadOf<typeof playerFogPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-fog-packet/
  */
 export default class PlayerFogPacket extends NetworkPacket<PlayerFogPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerFogPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_FOG;
     }

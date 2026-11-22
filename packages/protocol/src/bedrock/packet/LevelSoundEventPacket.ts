@@ -32,6 +32,11 @@ const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, nam
  * and `LevelSoundEventHandler` relays those.
  */
 export default class LevelSoundEventPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LevelSoundEventPacket';
+    }
+
     /**
      * `Sound Event`, held as a `LevelSoundEvent` number and written as its name.
      *

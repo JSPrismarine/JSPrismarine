@@ -21,6 +21,11 @@ import type { GameRule } from '../wire/structures/GameRule';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-rules-changed-packet/
  */
 export default class GameRulesChangedPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'GameRulesChangedPacket';
+    }
+
     /** Rules List, the rules whose values changed. */
     public rulesList: GameRule[] = [];
 

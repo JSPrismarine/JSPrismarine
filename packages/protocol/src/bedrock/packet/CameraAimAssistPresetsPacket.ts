@@ -49,6 +49,11 @@ const layout = () => layoutAt(cameraAimAssistPresetsPacket, protocolVersion);
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-presets-packet/}
  */
 export default class CameraAimAssistPresetsPacket extends NetworkPacket<CameraAimAssistPresets> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraAimAssistPresetsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_AIM_ASSIST_PRESETS;
     }

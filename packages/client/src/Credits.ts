@@ -14,6 +14,11 @@ import type ClientSession from './net/ClientSession';
  * credits state off the wire needs the typed form.
  */
 export class ShowCreditsPacket extends NetworkPacket<ShowCreditsPayload> {
+    /** The name this packet's wire id is listed under, the same as the protocol package's own `ShowCreditsPacket`. */
+    public getName(): string {
+        return 'ShowCreditsPacket';
+    }
+
     /** The default wire id, `SHOW_CREDITS`. */
     public get id(): number {
         return PacketIdentifier.SHOW_CREDITS;

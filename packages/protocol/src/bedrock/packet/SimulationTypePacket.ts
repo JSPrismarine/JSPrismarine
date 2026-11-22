@@ -36,6 +36,11 @@ export interface SimulationTypeData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simulation-type-packet/
  */
 export default class SimulationTypePacket extends NetworkPacket<SimulationTypeData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SimulationTypePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SIMULATION_TYPE;
     }

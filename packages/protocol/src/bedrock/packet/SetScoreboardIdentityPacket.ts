@@ -26,6 +26,11 @@ export enum ScoreboardIdentityPacketType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-scoreboard-identity-packet/
  */
 export default class SetScoreboardIdentityPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetScoreboardIdentityPacket';
+    }
+
     public type: ScoreboardIdentityPacketType = ScoreboardIdentityPacketType.Update;
 
     /** The entries whose identity is being set or cleared. */

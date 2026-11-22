@@ -21,6 +21,11 @@ export type { PackSettingValue, ServerboundPackSettingChange };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-pack-setting-change-packet/
  */
 export default class ServerboundPackSettingChangePacket extends NetworkPacket<ServerboundPackSettingChange> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundPackSettingChangePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVERBOUND_PACK_SETTING_CHANGE;
     }

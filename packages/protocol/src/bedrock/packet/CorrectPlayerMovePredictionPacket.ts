@@ -22,6 +22,11 @@ export type CorrectPlayerMovePrediction = CorrectPlayerMovePredictionPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/correct-player-move-prediction-packet/
  */
 export default class CorrectPlayerMovePredictionPacket extends NetworkPacket<CorrectPlayerMovePrediction> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CorrectPlayerMovePredictionPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CORRECT_PLAYER_MOVE_PREDICTION;
     }

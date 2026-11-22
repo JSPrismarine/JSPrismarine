@@ -17,6 +17,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/automation-client-connect-packet/
  */
 export default class AutomationClientConnectPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AutomationClientConnectPacket';
+    }
+
     /** The address the client connects to, without a scheme. */
     public websocketServerUri = '';
 

@@ -19,6 +19,11 @@ export type OpenSign = OpenSignPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/open-sign-packet/
  */
 export default class OpenSignPacket extends NetworkPacket<OpenSign> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'OpenSignPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.OPEN_SIGN;
     }

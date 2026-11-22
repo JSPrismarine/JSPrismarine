@@ -13,6 +13,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see `docs/research/protocol-2259-delta.md`
  */
 export default class ClientboundOnlineMusicPlaybackResponsePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundOnlineMusicPlaybackResponsePacket';
+    }
+
     /** `Request ID` of the request this answers. */
     public requestId: number = 0;
 

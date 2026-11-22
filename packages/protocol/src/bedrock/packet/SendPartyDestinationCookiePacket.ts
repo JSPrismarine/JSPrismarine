@@ -21,6 +21,11 @@ export type SendPartyDestinationCookie = SendPartyDestinationCookiePayload;
  * string. Strings are a varuint32 byte length followed by UTF-8.
  */
 export default class SendPartyDestinationCookiePacket extends NetworkPacket<SendPartyDestinationCookie> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SendPartyDestinationCookiePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SEND_PARTY_DESTINATION_COOKIE;
     }

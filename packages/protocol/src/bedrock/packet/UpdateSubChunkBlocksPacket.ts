@@ -38,6 +38,11 @@ const layout = () => layoutAt(updateSubChunkBlocksPacket, protocolVersion);
  * The wire layout is the `updateSubChunkBlocksPacket` definition in `wire/definitions`.
  */
 export default class UpdateSubChunkBlocksPacket extends NetworkPacket<UpdateSubChunkBlocks> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateSubChunkBlocksPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_SUB_CHUNK_BLOCKS;
     }

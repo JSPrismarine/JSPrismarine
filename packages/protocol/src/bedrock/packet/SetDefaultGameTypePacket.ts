@@ -15,6 +15,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-default-game-type-packet/
  */
 export default class SetDefaultGameTypePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetDefaultGameTypePacket';
+    }
+
     /**
      * `Default Game Type`, a `Gametype` value written ZigZag encoded.
      * @defaultValue `Gametype.SURVIVAL`

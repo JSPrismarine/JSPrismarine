@@ -34,6 +34,11 @@ import type { ActorLink } from '../wire/definitions/addActor';
  * | Actor Links | ActorLink[] | varuint32 count, then each {@link ActorLink} |
  */
 export default class AddActorPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddActorPacket';
+    }
+
     /** Zero means the entity has no unique id of its own and goes out under its runtime id. */
     public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;

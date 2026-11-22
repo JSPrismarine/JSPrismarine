@@ -21,6 +21,11 @@ export type BookEdit = BookEditPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/book-edit-packet/
  */
 export default class BookEditPacket extends NetworkPacket<BookEdit> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BookEditPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.BOOK_EDIT;
     }

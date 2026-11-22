@@ -24,6 +24,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-link-packet/
  */
 export default class SetActorLinkPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetActorLinkPacket';
+    }
+
     /** Link, the riding relationship to set or clear. */
     public link: ActorLink = {
         targetA: 0n,

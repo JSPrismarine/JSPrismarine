@@ -32,6 +32,11 @@ export type { EntityOverrideUpdate, PlayerUpdateEntityOverrides };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-update-entity-overrides-packet/
  */
 export default class PlayerUpdateEntityOverridesPacket extends NetworkPacket<PlayerUpdateEntityOverrides> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerUpdateEntityOverridesPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_UPDATE_ENTITY_OVERRIDES;
     }

@@ -19,6 +19,11 @@ import type CommandOriginData from '../wire/structures/CommandOriginData';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-request-packet/
  */
 export default class CommandRequestPacket extends NetworkPacket<CommandRequestPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CommandRequestPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: CommandRequestPayload | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

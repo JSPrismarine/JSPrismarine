@@ -20,6 +20,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/item-stack-request-packet/
  */
 export default class ItemStackRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ItemStackRequestPacket';
+    }
+
     /** Requests, in the order the client sent them. */
     public requests: ItemStackRequest[] = [];
 

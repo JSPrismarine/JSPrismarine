@@ -33,6 +33,11 @@ export interface SubChunkPosition {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sub-chunk-request-packet/
  */
 export default class SubChunkRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SubChunkRequestPacket';
+    }
+
     /** 0 for the overworld, 1 for the nether, 2 for the end. */
     public dimensionType = 0;
 

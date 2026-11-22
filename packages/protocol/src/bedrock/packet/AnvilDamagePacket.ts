@@ -17,6 +17,11 @@ export type AnvilDamage = AnvilDamagePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/anvil-damage-packet/
  */
 export default class AnvilDamagePacket extends NetworkPacket<AnvilDamage> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AnvilDamagePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.ANVIL_DAMAGE;
     }

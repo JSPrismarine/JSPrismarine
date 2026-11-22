@@ -67,12 +67,12 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     }
 
     /**
-     * The class name used by the server's packet handlers and traffic logs.
-     * @returns The concrete packet class name.
+     * The packet's name, which keys its wire id in each version's packet table, its handler and
+     * its traffic log lines. Each packet class returns its own class name. A class that extends a
+     * concrete packet overrides this too: otherwise it inherits its parent's name and wire id.
+     * @returns The packet class name, for example `'TextPacket'`.
      */
-    public getName(): string {
-        return this.constructor.name;
-    }
+    public abstract getName(): string;
 
     /**
      * Gets the wire id stamped by a version codec, or the packet class's default id.
