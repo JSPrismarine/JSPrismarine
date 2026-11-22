@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 interface ChildExit {
     readonly code: number | null;
@@ -239,69 +239,76 @@ describe('server shutdown', () => {
         }
     });
 
-    it('stops with exit code 1 and one report when the server cannot start', async () => {
-        const dataDirectory = await mkdtemp(path.join(tmpdir(), 'jsprismarine-start-failure-'));
-        // Not the published build, so NetherNet refuses to load it and the start fails.
-        const library = path.join(dataDirectory, 'not-the-library');
-        await writeFile(library, 'not a library');
-        await writeFile(
-            path.join(dataDirectory, 'config.json'),
-            JSON.stringify({
-                'level-name': 'world',
-                'enable-query': false,
-                'enable-ticking': false,
-                'enable-process-title': false,
-                'enable-nethernet': true,
-                'preload-radius': 0,
-                port: 0,
-                worlds: { world: { generator: 'Flat', provider: 'LevelDB', seed: '20261028' } }
-            })
-        );
-
-        const child = spawn(
-            process.execPath,
-            [
-                '--unhandled-rejections=strict',
-                '--import',
-                import.meta.resolve('tsx'),
-                fileURLToPath(new URL('./Server.ts', import.meta.url)),
-                '--no-tui'
-            ],
-            {
-                cwd: process.cwd(),
-                env: {
-                    ...process.env,
-                    NODE_ENV: 'development',
-                    NODE_OPTIONS: '',
-                    JSP_DIR: dataDirectory,
-                    JSP_NATIVE_NETWORK_LIBRARY: library
-                },
-                stdio: ['ignore', 'pipe', 'pipe']
-            }
-        );
+    describe('when the server cannot start', () => {
+        let exit: ChildExit | undefined;
         let output = '';
-        const collect = (chunk: Buffer): void => {
-            output += chunk.toString();
-        };
-        child.stdout?.on('data', collect);
-        child.stderr?.on('data', collect);
 
-        try {
-            const exit = waitForExit(child, 15_000).catch((error: unknown) => {
-                throw new Error(`${error instanceof Error ? error.message : String(error)}\n${output}`);
-            });
-            await expect(exit).resolves.toEqual({ code: 1, signal: null });
-            await once(child, 'close');
+        // A start that fails only after loading the content takes a full cold startup, so the
+        // run lives in the hook, whose budget covers it, and the test reads what it left behind.
+        beforeAll(async () => {
+            const dataDirectory = await mkdtemp(path.join(tmpdir(), 'jsprismarine-start-failure-'));
+            // Not the published build, so NetherNet refuses to load it and the start fails.
+            const library = path.join(dataDirectory, 'not-the-library');
+            await writeFile(library, 'not a library');
+            await writeFile(
+                path.join(dataDirectory, 'config.json'),
+                JSON.stringify({
+                    'level-name': 'world',
+                    'enable-query': false,
+                    'enable-ticking': false,
+                    'enable-process-title': false,
+                    'enable-nethernet': true,
+                    'preload-radius': 0,
+                    port: 0,
+                    worlds: { world: { generator: 'Flat', provider: 'LevelDB', seed: '20261028' } }
+                })
+            );
 
+            const child = spawn(
+                process.execPath,
+                [
+                    '--unhandled-rejections=strict',
+                    '--import',
+                    import.meta.resolve('tsx'),
+                    fileURLToPath(new URL('./Server.ts', import.meta.url)),
+                    '--no-tui'
+                ],
+                {
+                    cwd: process.cwd(),
+                    env: {
+                        ...process.env,
+                        NODE_ENV: 'development',
+                        NODE_OPTIONS: '',
+                        JSP_DIR: dataDirectory,
+                        JSP_NATIVE_NETWORK_LIBRARY: library
+                    },
+                    stdio: ['ignore', 'pipe', 'pipe']
+                }
+            );
+            const collect = (chunk: Buffer): void => {
+                output += chunk.toString();
+            };
+            child.stdout?.on('data', collect);
+            child.stderr?.on('data', collect);
+
+            try {
+                const closed = once(child, 'close');
+                exit = await waitForExit(child, 50_000);
+                await closed;
+            } finally {
+                if (child.exitCode === null && child.signalCode === null) {
+                    const exited = once(child, 'exit');
+                    child.kill('SIGKILL');
+                    await exited;
+                }
+                await rm(dataDirectory, { recursive: true, force: true });
+            }
+        }, 60_000);
+
+        it('stops with exit code 1 and one report', () => {
+            expect(exit, output).toEqual({ code: 1, signal: null });
             expect(output.split('Cannot start the server').length - 1).toBe(1);
             expect(output).not.toContain('UnhandledPromiseRejection');
-        } finally {
-            if (child.exitCode === null && child.signalCode === null) {
-                const exited = once(child, 'exit');
-                child.kill('SIGKILL');
-                await exited;
-            }
-            await rm(dataDirectory, { recursive: true, force: true });
-        }
+        });
     });
 });
