@@ -18,6 +18,10 @@
  * because the packets are the entire behavior, so nothing about them is
  * approximated.
  *
+ * `/allowlist` manages the server's allow list. Java's `/whitelist` does the
+ * same job under another name and syntax, so it is Bedrock's command here,
+ * with `whitelist` as its alias, as Bedrock Dedicated Server has it.
+ *
  * Every tree follows the overload list in `mojang-commands.json`, including the
  * enum names, so the client autocompletes each one the way it autocompletes
  * Mojang's own.
@@ -38,6 +42,7 @@ import { gameRule } from '../gamerules';
 import type { CommandSource, SlotTarget } from '../host';
 import type { CommandRegistry } from '../tree';
 import { registerTitleRaw } from './server';
+import { registerAllowList } from './allowlist';
 import { registerTickingArea } from './tickingarea';
 import type { Context } from './support';
 import { arg, command, lit, report, resolvePosition, select, source, value } from './support';
@@ -146,6 +151,7 @@ export const registerBedrockCommands = (registry: CommandRegistry<CommandSource>
 
     registerTitleRaw(registry);
     registerTickingArea(registry);
+    registerAllowList(registry);
 
     /**
      * The `<slotId> [oldItemHandling] <itemName> [amount]` tail both

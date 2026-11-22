@@ -84,9 +84,10 @@ export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 
  *
  * Four are older spellings of something Java says differently and run the same
  * host verbs as the Java form; the rest are Bedrock's own. See
- * {@link registerBedrockCommands} for why these and not the other 29.
+ * {@link registerBedrockCommands} for why these and not the other 28.
  */
 export const BEDROCK_ONLY_COMMAND_NAMES: readonly string[] = [
+    'allowlist',
     'camerashake',
     'daylock',
     'fog',

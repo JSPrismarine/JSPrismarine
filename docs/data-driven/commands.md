@@ -83,7 +83,7 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->59<!-- /fact --> of them:
+`@jsprismarine/commands` implements <!-- fact:commands.implemented -->63<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->60<!-- /fact --> of them:
 
 <!-- fact:commands.registered.list -->
 ```
@@ -91,7 +91,7 @@ execute summon kill teleport damage effect enchant gamemode give clear xp tag se
 time weather gamerule difficulty setworldspawn spawnpoint locate particle playsound stopsound
 spreadplayers data item loot function return schedule scoreboard random say me tell tellraw title op
 deop kick list stop reload transfer tick help recipe testfor testforblock testforblocks daylock
-titleraw tickingarea replaceitem camerashake fog playanimation
+titleraw tickingarea allowlist replaceitem camerashake fog playanimation
 ```
 <!-- /fact -->
 
@@ -180,12 +180,10 @@ height, and prints the sampled height and a three-axis distance. `/locate poi` i
 `This server has no point of interest index yet`: Java answers it from a `PoiManager`, an index
 of bed, job site and portal blocks kept per loaded chunk, and this server keeps no such index.
 
-Separately, 29 of Bedrock's own commands are not implemented at all. They group by reason:
+Separately, 27 of Bedrock's own commands are not implemented at all. They group by reason:
 
-- Eight need a subsystem no server here has, or are still to be written over one it has:
-  `/allowlist`, whose list the server keeps
-  ([#3642](https://github.com/JSPrismarine/JSPrismarine/issues/3642)), `/save`, `/setmaxplayers`,
-  `/mobevent`, `/tickingarea`, `/structure`, `/clearspawnpoint` and `/toggledownfall`. `/structure` is the
+- Six need a subsystem no server here has, or are still to be written over one it has: `/save`,
+  `/setmaxplayers`, `/mobevent`, `/structure`, `/clearspawnpoint` and `/toggledownfall`. `/structure` is the
   closest to arriving, since `@jsprismarine/structures` already reads and writes the NBT template
   format; what is missing is somewhere to save a player-made template and read it back.
 - Nine need a packet this repository does not write yet: `/camera`, `/hud`, `/music`, `/dialogue`,

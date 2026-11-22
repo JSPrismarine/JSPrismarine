@@ -881,9 +881,23 @@ with "You are not invited to this server." The file is Bedrock Dedicated Server'
 entries, each with a `name`, a `xuid` or both, and `ignoresPlayerLimit`. A name matches exactly,
 case and all, and a xuid matches the signed-in account. The server writes an empty file on its
 first start. A behavior pack script with `@minecraft/server-admin` reads and changes the list
-through `dedicatedServer.allowList`, and each change is written to the file at once. There is no
-`/allowlist` command yet, and `ignoresPlayerLimit` is kept but not applied: a full server turns
-away a listed player too ([#3642](https://github.com/JSPrismarine/JSPrismarine/issues/3642)).
+through `dedicatedServer.allowList`, and each change is written to the file at once. A listed
+player whose entry has `ignoresPlayerLimit` set joins a full server.
+
+`/allowlist`, or Java's `/whitelist`, manages the list from the console, with Bedrock Dedicated
+Server's verbs and replies:
+
+| Command                    | What it does                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `/allowlist add <name>`    | Adds the name; a name already listed is refused.                               |
+| `/allowlist remove <name>` | Takes the name off; a name not listed is refused.                              |
+| `/allowlist list`          | Prints the list as a line of JSON behind `###* `, as BDS's console does.       |
+| `/allowlist on`            | Turns the list on until the server stops; `allow-list` says what it starts as. |
+| `/allowlist off`           | Turns it off until the server stops.                                           |
+| `/allowlist reload`        | Reads `allowlist.json` again.                                                  |
+
+`/allowlist on` is refused while `online-mode` is off, as on BDS: an offline login only claims a
+name, so anybody could join under a listed one.
 
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that

@@ -10,7 +10,9 @@
 /**
  * The lines the pass sends, in order. Most are refused at parse time, so the capture shows where
  * the server's syntax error points; the rest are accepted forms of the same commands. None
- * changes anything another probe depends on, apart from the clock.
+ * changes anything another probe depends on, apart from the clock and the allow list: its probes
+ * run in order on a server whose list starts empty, so each answer shows what the ones before it
+ * left behind, such as adding a name twice.
  */
 export const COMMAND_PROBES = [
     'time set nonsense',
@@ -28,7 +30,26 @@ export const COMMAND_PROBES = [
     'effect @a speed 10 1 notabool',
     'setblock 0 0 0 stone ["a"=1] replace extra',
     'weather clear abc',
-    'difficulty bogus'
+    'difficulty bogus',
+    'allowlist list',
+    'allowlist add Steve',
+    'allowlist add Steve',
+    'allowlist add Alex',
+    'allowlist list',
+    'allowlist remove Steve',
+    'allowlist remove Steve',
+    'allowlist on',
+    'allowlist on',
+    'allowlist off',
+    'allowlist off',
+    'allowlist reload',
+    'allowlist add',
+    'allowlist remove',
+    'allowlist bogus',
+    'allowlist list extra',
+    'whitelist list',
+    'allowlist add "Two Words"',
+    'allowlist remove "Two Words"'
 ] as const;
 
 /** One console answer: whether the server ran the line, and what it printed. */

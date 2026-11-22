@@ -74,7 +74,7 @@ export interface LoginServices {
     /** The ban list. */
     readonly bans: Pick<BanManager, 'isBanned' | 'claimLegacy'>;
     /** The allow list, which turns away a player not on it while it is on. */
-    readonly allowList: Pick<AllowList, 'allows'>;
+    readonly allowList: Pick<AllowList, 'allows' | 'ignoresPlayerLimit'>;
     /** The operator list, which a login may claim an entry of. */
     readonly permissions: Pick<PermissionManager, 'claimLegacy'>;
     /** Where a login's player is built. */

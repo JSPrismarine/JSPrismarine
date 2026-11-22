@@ -102,7 +102,8 @@ describe('the command set', () => {
         // `/data modify … from`, `/function … with` and the `value` and `max` literals of
         // `execute store … bossbar` then joined the tree.
         // `/item … from` then took a source of either kind under every target, as Java's does.
-        expect(digest).toBe('cf684aaaf7ed5c8ed1a92e170bece431ad1ec9c3');
+        // `/allowlist`, with its `whitelist` alias, then joined the Bedrock-only commands.
+        expect(digest).toBe('b620fd49318b955ea3c2fef9e45ca4509ca74eb5');
     });
 });
 

@@ -84,18 +84,6 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
 
         let identity = parseLoginIdentity(login);
 
-        // The client renders this status as "server full", so the player learns why without
-        // the server building a player it would only tear down again. The disconnect that
-        // follows carries `ServerFull` and hangs up.
-        if (services.sessions.getSessions().length >= config.getMaxPlayers()) {
-            await connection.sendDataPacket(
-                new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
-                true
-            );
-            await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
-            return;
-        }
-
         // With online mode on, the account comes from the signed token and nowhere else. The claims
         // parsed above are whatever the client wrote; they are replaced, not trusted, and a login
         // that cannot be verified is refused before anything about it is acted on.
@@ -228,10 +216,22 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             );
             return;
         }
-        if (
-            !login.allowList.allows({ name: identity.displayName, ...(identity.xuid ? { xuid: identity.xuid } : {}) })
-        ) {
+        const listed = { name: identity.displayName, ...(identity.xuid ? { xuid: identity.xuid } : {}) };
+        if (!login.allowList.allows(listed)) {
             await connection.disconnect('You are not invited to this server.', false, DisconnectReason.NOT_ALLOWED);
+            return;
+        }
+
+        // The client renders this status as "server full", so the player learns why without
+        // the server building a player it would only tear down again. The disconnect that
+        // follows carries `ServerFull` and hangs up. Checked once the account is the verified
+        // one, since an allow list entry that ignores the player limit lets its player in anyway.
+        if (sessions.getSessions().length >= config.getMaxPlayers() && !login.allowList.ignoresPlayerLimit(listed)) {
+            await connection.sendDataPacket(
+                new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
+                true
+            );
+            await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
             return;
         }
 

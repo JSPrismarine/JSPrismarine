@@ -43,9 +43,9 @@ describe('the allow list', () => {
         const list = allowListOf();
         await list.enable();
 
-        list.add({ name: 'Steve', ignoresPlayerLimit: false });
-        list.add({ name: 'Steve', ignoresPlayerLimit: true });
-        list.add({ xuid: '2535400000000001', ignoresPlayerLimit: false });
+        expect(list.add({ name: 'Steve', ignoresPlayerLimit: false })).toBe(true);
+        expect(list.add({ name: 'Steve', ignoresPlayerLimit: true })).toBe(false);
+        expect(list.add({ xuid: '2535400000000001', ignoresPlayerLimit: false })).toBe(true);
 
         expect(list.contains({ name: 'Steve' })).toBe(true);
         expect(list.contains({ name: 'steve' })).toBe(false);
@@ -70,6 +70,19 @@ describe('the allow list', () => {
         list.clear();
         list.reload();
         expect(list.getEntries()).toEqual([]);
+    });
+
+    it('lets only the players whose entry says so past the player limit, on or off', async () => {
+        const list = allowListOf();
+        await list.enable();
+        list.add({ name: 'Steve', ignoresPlayerLimit: true });
+        list.add({ name: 'Alex', ignoresPlayerLimit: false });
+
+        expect(list.ignoresPlayerLimit({ name: 'Steve' })).toBe(true);
+        expect(list.ignoresPlayerLimit({ name: 'Alex' })).toBe(false);
+        expect(list.ignoresPlayerLimit({ name: 'Herobrine' })).toBe(false);
+        list.setEnabled(true);
+        expect(list.ignoresPlayerLimit({ name: 'Steve' })).toBe(true);
     });
 
     it('lets everybody in while off, and only the listed players while on', async () => {

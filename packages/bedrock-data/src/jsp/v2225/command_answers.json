@@ -81,6 +81,101 @@
             "command": "difficulty bogus",
             "level": "ERROR",
             "message": "Syntax error: Unexpected \"bogus\": at \"ifficulty >>bogus<<\""
+        },
+        {
+            "command": "allowlist list",
+            "level": "INFO",
+            "message": "###* {\"command\":\"allowlist\",\"result\":null}"
+        },
+        {
+            "command": "allowlist add Steve",
+            "level": "INFO",
+            "message": "Added Steve to the allowlist"
+        },
+        {
+            "command": "allowlist add Steve",
+            "level": "ERROR",
+            "message": "Could not add Steve to the allowlist"
+        },
+        {
+            "command": "allowlist add Alex",
+            "level": "INFO",
+            "message": "Added Alex to the allowlist"
+        },
+        {
+            "command": "allowlist list",
+            "level": "INFO",
+            "message": "###* {\"command\":\"allowlist\",\"result\":[{\"ignoresPlayerLimit\":false,\"name\":\"Steve\"},{\"ignoresPlayerLimit\":false,\"name\":\"Alex\"}]}"
+        },
+        {
+            "command": "allowlist remove Steve",
+            "level": "INFO",
+            "message": "Removed Steve from the allowlist"
+        },
+        {
+            "command": "allowlist remove Steve",
+            "level": "ERROR",
+            "message": "Could not remove Steve from the allowlist"
+        },
+        {
+            "command": "allowlist on",
+            "level": "ERROR",
+            "message": "Using an allowlist without online authentication can be dangerous and is not allowed."
+        },
+        {
+            "command": "allowlist on",
+            "level": "ERROR",
+            "message": "Using an allowlist without online authentication can be dangerous and is not allowed."
+        },
+        {
+            "command": "allowlist off",
+            "level": "INFO",
+            "message": "Turned off the allowlist"
+        },
+        {
+            "command": "allowlist off",
+            "level": "INFO",
+            "message": "Turned off the allowlist"
+        },
+        {
+            "command": "allowlist reload",
+            "level": "INFO",
+            "message": "Allowlist reloaded from file."
+        },
+        {
+            "command": "allowlist add",
+            "level": "ERROR",
+            "message": "Could not add  to the allowlist"
+        },
+        {
+            "command": "allowlist remove",
+            "level": "ERROR",
+            "message": "Could not remove  from the allowlist"
+        },
+        {
+            "command": "allowlist bogus",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"bogus\": at \"allowlist >>bogus<<\""
+        },
+        {
+            "command": "allowlist list extra",
+            "level": "INFO",
+            "message": "###* {\"command\":\"allowlist\",\"result\":[{\"ignoresPlayerLimit\":false,\"name\":\"Alex\"}]}"
+        },
+        {
+            "command": "whitelist list",
+            "level": "INFO",
+            "message": "###* {\"command\":\"allowlist\",\"result\":[{\"ignoresPlayerLimit\":false,\"name\":\"Alex\"}]}"
+        },
+        {
+            "command": "allowlist add \"Two Words\"",
+            "level": "INFO",
+            "message": "Added Two Words to the allowlist"
+        },
+        {
+            "command": "allowlist remove \"Two Words\"",
+            "level": "INFO",
+            "message": "Removed Two Words from the allowlist"
         }
     ]
 }
