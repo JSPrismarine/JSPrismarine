@@ -78,6 +78,8 @@ import { showContainerLid } from '../inventory/containerLid';
 import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import BlockStorage from './chunk/BlockStorage';
+import type { ReadonlyBlockStorage } from './chunk/BlockStorage';
 import { DragonFight } from './end/DragonFight';
 import { liquidOf } from './physics/BlockRules';
 import type { RaidHost, RaidRecord } from './raid/RaidManager';
@@ -653,6 +655,14 @@ export class World implements Service {
     private blockWriteListeners: Set<BlockWriteListener> | undefined;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
     private loadedChunksRevision = 0;
+    /** The section {@link World.loadedBlockStorageAt} read last, and what it was read under. */
+    private readSectionX = 0;
+    private readSectionY = 0;
+    private readSectionZ = 0;
+    private readSectionEpoch = -1;
+    private readSectionChunks = -1;
+    private readSectionSource: Map<number, Chunk> | null = null;
+    private readSectionStorage: ReadonlyBlockStorage | null | undefined;
     private portalRuntimeIds: Map<number, boolean> | undefined;
     private portalRuntimeIdsRevision: number | undefined;
     private lightChunksCache:
@@ -816,6 +826,7 @@ export class World implements Service {
                 dimension: this.dimension,
                 blockAt: (x, y, z) => this.loadedBlockAt(x, y, z),
                 blockRuntimeIdAt: (x, y, z) => this.loadedBlockRuntimeIdAt(x, y, z),
+                blockStorageAt: (x, y, z) => this.loadedBlockStorageAt(x, y, z),
                 topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 // A fluid tick reads and writes the blocks around it, and its spread reaches the
@@ -3706,6 +3717,49 @@ export class World implements Service {
         if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return undefined;
 
         return chunk.getBlockRuntimeId(x, y, z);
+    }
+
+    /**
+     * The block layer storage of the section holding a position, for a caller that reads many
+     * blocks out of one section in a row.
+     *
+     * The light engine does: a propagation step reads the six neighbors of a position, and most of
+     * them share its section. Walking from the chunk map to the section and its storage for each of
+     * those reads was most of what a read cost, so the last section is kept until a block write,
+     * a storage swap or a chunk entering or leaving memory could change the answer.
+     * @param {number} x - World x.
+     * @param {number} y - World y.
+     * @param {number} z - World z.
+     * @returns {ReadonlyBlockStorage | null | undefined} The storage; null where the section has no
+     * block layer, which reads as air; undefined where {@link loadedBlockRuntimeIdAt} has no block.
+     */
+    public loadedBlockStorageAt(x: number, y: number, z: number): ReadonlyBlockStorage | null | undefined {
+        const sectionX = x >> 4;
+        const sectionY = y >> 4;
+        const sectionZ = z >> 4;
+        if (
+            sectionX === this.readSectionX &&
+            sectionY === this.readSectionY &&
+            sectionZ === this.readSectionZ &&
+            this.readSectionEpoch === BlockStorage.writeEpoch &&
+            this.readSectionChunks === this.loadedChunksRevision &&
+            this.readSectionSource === this.chunks
+        )
+            return this.readSectionStorage;
+
+        const chunk = this.getLoadedChunk(sectionX, sectionZ);
+        const storage =
+            !chunk || y < chunk.getMinY() || y > chunk.getMaxY()
+                ? undefined
+                : (chunk.getSubChunk(sectionY)?.getBlockStorage(0) ?? null);
+        this.readSectionX = sectionX;
+        this.readSectionY = sectionY;
+        this.readSectionZ = sectionZ;
+        this.readSectionEpoch = BlockStorage.writeEpoch;
+        this.readSectionChunks = this.loadedChunksRevision;
+        this.readSectionSource = this.chunks;
+        this.readSectionStorage = storage;
+        return storage;
     }
 
     /**

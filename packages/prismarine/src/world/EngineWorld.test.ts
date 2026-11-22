@@ -283,6 +283,29 @@ describe('world', () => {
             expect(again(3, GROUND, 3)).toBe(idOf(named('minecraft:oak_sapling')));
         });
 
+        it('reads a kept section only until a write or a chunk leaving could change it', async () => {
+            const world = await flatWorld();
+            const blockAt = (x: number, y: number, z: number): number | undefined => {
+                const storage = world.loadedBlockStorageAt(x, y, z);
+                if (storage === undefined) return undefined;
+                if (storage === null) return BlockRuntimeIds.getByName('minecraft:air');
+                return storage.getPalette()[storage.getPaletteIndexAt(x & 15, y & 15, z & 15)];
+            };
+
+            expect(blockAt(1, GROUND, 1)).toBe(idOf(STONE));
+            // A section above the ground holds nothing yet, then gains a block layer.
+            expect(world.loadedBlockStorageAt(1, 200, 1)).toBeNull();
+            place(world, 1, 200, 1, STONE);
+            expect(blockAt(1, 200, 1)).toBe(idOf(STONE));
+
+            place(world, 1, GROUND, 1, WATER);
+            expect(blockAt(1, GROUND, 1)).toBe(idOf(WATER));
+
+            world.replayChunkLeave(0, 0);
+            expect(world.loadedBlockStorageAt(1, GROUND, 1)).toBeUndefined();
+            expect(blockAt(-1, GROUND, -1)).toBe(world.loadedBlockRuntimeIdAt(-1, GROUND, -1));
+        });
+
         /**
          * The container fill level a comparator reads.
          *

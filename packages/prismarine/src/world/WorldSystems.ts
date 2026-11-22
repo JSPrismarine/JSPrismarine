@@ -24,6 +24,7 @@ import { isLiquid } from '@jsprismarine/block-behaviors';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 
 import Chunk from './chunk/Chunk';
+import type { ReadonlyBlockStorage } from './chunk/BlockStorage';
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
 import type { DimensionType } from './DimensionType';
 import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
@@ -111,6 +112,15 @@ export interface WorldSystemsView {
      * by every test double, which take the second path.
      */
     blockRuntimeIdAt?(x: number, y: number, z: number): number | undefined;
+    /**
+     * The block layer storage of the section holding a position: null where the section has no
+     * block layer, which reads as air, and undefined where {@link blockRuntimeIdAt} has no block.
+     *
+     * The light pass reads a block's two numbers out of a table per palette slot with it, which
+     * skips the walk from the chunk to the section on every read and the lookup by runtime id.
+     * Left out by every test double, which read through {@link blockRuntimeIdAt}.
+     */
+    blockStorageAt?(x: number, y: number, z: number): ReadonlyBlockStorage | null | undefined;
     /**
      * One past the highest y a column stores a block for, as
      * {@link BlockLightView.topOfColumn} defines it.
@@ -221,6 +231,14 @@ export class WorldSystems {
 
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
+    /**
+     * What each palette slot of a block storage does to light. A storage only ever appends to its
+     * palette, so a slot names the same block for as long as the storage lives.
+     */
+    private readonly lightBySlot = new WeakMap<ReadonlyBlockStorage, BlockLightProperties[]>();
+    /** The storage the light pass read last, and its slots, so a run of reads in one section skips the map. */
+    private lightSlotStorage: ReadonlyBlockStorage | undefined;
+    private lightSlots: BlockLightProperties[] = [];
     /** Per chunk section facts, replaced whenever that section's palette revision changes. */
     /** The list the light passes found fully lit and ready, while it is still the current one. */
     private litLightChunks: Iterable<{ readonly x: number; readonly z: number }> | undefined;
@@ -762,10 +780,36 @@ export class WorldSystems {
      * their keys and merges the row it finds - costs two allocations and a string walk, and the
      * light pass asks tens of millions of times while a world preloads.
      *
-     * A view with no {@link WorldSystemsView.blockRuntimeIdAt} resolves every read the long way,
-     * which is what this did for all of them.
+     * A view with {@link WorldSystemsView.blockStorageAt} keeps the same memo per palette slot as
+     * well, so a read is an index into the section and an index into an array. A view with no
+     * {@link WorldSystemsView.blockRuntimeIdAt} resolves every read the long way, which is what
+     * this did for all of them.
      */
     private lightPropertiesAt(x: number, y: number, z: number): BlockLightProperties | undefined {
+        if (this.view.blockStorageAt !== undefined) {
+            const storage = this.view.blockStorageAt(x, y, z);
+            if (storage === undefined) return undefined;
+            if (storage === null) return this.lightPropertiesForRuntimeId(BlockRuntimeIds.getByName('minecraft:air'));
+
+            if (storage !== this.lightSlotStorage) {
+                let slots = this.lightBySlot.get(storage);
+                if (slots === undefined) {
+                    slots = [];
+                    this.lightBySlot.set(storage, slots);
+                }
+                this.lightSlotStorage = storage;
+                this.lightSlots = slots;
+            }
+
+            const slot = storage.getPaletteIndexAt(x & 15, y & 15, z & 15);
+            const known = this.lightSlots[slot];
+            if (known !== undefined) return known;
+
+            const properties = this.lightPropertiesForRuntimeId(storage.getPalette()[slot]!);
+            this.lightSlots[slot] = properties;
+            return properties;
+        }
+
         const runtimeId = this.view.blockRuntimeIdAt?.(x, y, z);
         if (runtimeId !== undefined) {
             const known = this.lightByRuntimeId.get(runtimeId);
