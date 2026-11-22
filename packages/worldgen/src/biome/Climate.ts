@@ -143,8 +143,11 @@ export const climateFitness = (point: ClimateParameterPoint, target: ClimateTarg
     return total;
 };
 
-abstract class TreeNode<T> {
-    public readonly value?: T;
+/** A node of the construction tree: a single entry, or a subtree that groups up to {@link CLIMATE_CHILDREN_PER_NODE} nodes. */
+type TreeNode<T> = TreeLeaf<T> | TreeSubtree<T>;
+
+/** The bounding box both node kinds share. */
+abstract class TreeNodeBase {
     /** Centers are reused by every sort in this build; querying them in comparators repeats work. */
     public readonly axisCenters: Float64Array;
 
@@ -158,7 +161,7 @@ abstract class TreeNode<T> {
     }
 }
 
-class TreeLeaf<T> extends TreeNode<T> {
+class TreeLeaf<T> extends TreeNodeBase {
     public constructor(
         point: ClimateParameterPoint,
         public readonly value: T
@@ -167,7 +170,7 @@ class TreeLeaf<T> extends TreeNode<T> {
     }
 }
 
-class TreeSubtree<T> extends TreeNode<T> {
+class TreeSubtree<T> extends TreeNodeBase {
     public constructor(
         public readonly children: readonly TreeNode<T>[],
         parameterSpace?: readonly ClimateParameter[]
