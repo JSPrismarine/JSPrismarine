@@ -1,5 +1,4 @@
 ---
-"@jsprismarine/addon-tps-bar": patch
 "@jsprismarine/packs": patch
 ---
 
