@@ -4,6 +4,7 @@ import LiteralMessage from '../LiteralMessage';
 import type Message from '../Message';
 import StringReader from '../StringReader';
 import CommandSyntaxException from './CommandSyntaxException';
+import { DynamicCommandExceptionType } from './DynamicCommandExceptionType';
 import { SimpleCommandExceptionType } from './SimpleCommandExceptionType';
 
 describe('CommandSyntaxException', () => {
@@ -35,6 +36,27 @@ describe('CommandSyntaxException', () => {
             const exception = CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().create();
 
             expect(exception.stack).toContain('CommandSyntaxException');
+        } finally {
+            CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES = previousSetting;
+        }
+    });
+
+    it('keeps exception types free of a stack of their own', () => {
+        const simple = new SimpleCommandExceptionType(new LiteralMessage('error'));
+        const dynamic = new DynamicCommandExceptionType((value) => new LiteralMessage(`error ${value}`));
+
+        expect('stack' in simple).toBe(false);
+        expect('stack' in dynamic).toBe(false);
+        expect(dynamic.create('x').message).toBe('error x');
+    });
+
+    it('starts an enabled stack at the exception type that created it', () => {
+        const previousSetting = CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES;
+        try {
+            CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES = true;
+            const exception = CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedInt().create();
+
+            expect(exception.stack?.split('\n')[1]).toContain('SimpleCommandExceptionType.create');
         } finally {
             CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES = previousSetting;
         }

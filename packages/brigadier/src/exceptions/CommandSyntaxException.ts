@@ -17,7 +17,6 @@ export class SimpleCommandExceptionType implements CommandExceptionType {
 
     public constructor(message: Message) {
         this.message = message;
-        Error.captureStackTrace?.(this, SimpleCommandExceptionType);
     }
 
     public create(): CommandSyntaxException {
@@ -38,7 +37,6 @@ export class DynamicCommandExceptionType implements CommandExceptionType {
 
     public constructor(fn: (...args: any[]) => Message) {
         this.fn = fn;
-        Error.captureStackTrace?.(this, DynamicCommandExceptionType);
     }
 
     public create(...args: any[]): CommandSyntaxException {
