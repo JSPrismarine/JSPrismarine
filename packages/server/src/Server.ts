@@ -212,8 +212,11 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
         try {
             await server.bootstrap();
         } catch (error: unknown) {
+            // Stopped here rather than re-thrown: nothing awaits this promise, so a rejection
+            // reached Node as an unhandled one, which printed the error a second time with
+            // Node's warning about it, behind the message that already says what to do.
             logger.error(`Cannot start the server: ${error instanceof Error ? error.message : String(error)}`);
-            throw error; // Re-throw it so `process.on` can handle it.
+            stop({ crash: true });
         }
     };
 
