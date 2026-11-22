@@ -602,6 +602,15 @@ export default class Chunk {
     }
 
     /**
+     * How many changes the chunk has had, a count that only grows. Two readings that match say
+     * nothing changed between them, which is how a fresh chunk queued for a write of its own is
+     * told apart from one gameplay touched since (ADR 0018).
+     */
+    public changeCount(): number {
+        return this.changes;
+    }
+
+    /**
      * Records that this chunk now matches what is on disk.
      *
      * Without it `hasChanged` only ever goes true, so every chunk a player has walked through is

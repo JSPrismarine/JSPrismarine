@@ -1,3 +1,5 @@
+import { isRecord } from '../utils/isRecord';
+
 /**
  * A mob world generation decided should exist, recorded rather than created.
  *
@@ -30,3 +32,33 @@ export interface EntitySpawn {
     /** Whether the entity ignores damage, Java's `crystal_invulnerable`. */
     readonly invulnerable?: boolean;
 }
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+/** A block position out of parsed JSON, or undefined when it is not one. */
+const blockPositionOf = (value: unknown): EntitySpawn['beamTarget'] => {
+    if (!isRecord(value)) return undefined;
+    const { x, y, z } = value;
+    return isFiniteNumber(x) && isFiniteNumber(y) && isFiniteNumber(z) ? { x, y, z } : undefined;
+};
+
+/**
+ * A spawn out of parsed JSON, such as a pending record a fresh chunk's write keeps, or undefined
+ * when it is not one. A field that does not parse is left out.
+ */
+export const entitySpawnOf = (value: unknown): EntitySpawn | undefined => {
+    if (!isRecord(value) || typeof value.type !== 'string') return undefined;
+    const { type, x, y, z, yaw, showBottom, invulnerable } = value;
+    if (!isFiniteNumber(x) || !isFiniteNumber(y) || !isFiniteNumber(z)) return undefined;
+    const beamTarget = blockPositionOf(value.beamTarget);
+    return {
+        type,
+        x,
+        y,
+        z,
+        ...(isFiniteNumber(yaw) ? { yaw } : {}),
+        ...(beamTarget === undefined ? {} : { beamTarget }),
+        ...(typeof showBottom === 'boolean' ? { showBottom } : {}),
+        ...(typeof invulnerable === 'boolean' ? { invulnerable } : {})
+    };
+};

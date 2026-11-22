@@ -78,6 +78,7 @@ import { showContainerLid } from '../inventory/containerLid';
 import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import type { EntitySpawn } from './EntitySpawn';
 import BlockStorage from './chunk/BlockStorage';
 import type { ReadonlyBlockStorage } from './chunk/BlockStorage';
 import { DragonFight } from './end/DragonFight';
@@ -650,6 +651,14 @@ export class World implements Service {
      */
     private readonly players: Map<number, PlayerSession> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
+    /**
+     * Chunks generated and not yet written, each with its change count when it was queued and the
+     * mobs its generation left; see {@link World.writeFreshChunks}.
+     */
+    private readonly freshChunks = new Map<
+        number,
+        { readonly chunk: Chunk; readonly changes: number; readonly spawns: readonly EntitySpawn[] }
+    >();
     private blockWriteVersion = World.nextBlockWriteVersion++;
     /** What {@link World.onBlockWritten} registered, told of every block write after it lands. */
     private blockWriteListeners: Set<BlockWriteListener> | undefined;
@@ -2136,8 +2145,11 @@ export class World implements Service {
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
         this.measured('chunk-lighting', () => this.systems.onChunkLoaded(x, z));
+        const fresh = chunk.takeFreshlyGenerated();
+        // Before its entities are created, which takes the spawns generation left.
+        const spawns = fresh ? [...chunk.getEntitySpawns()] : [];
         this.measured('chunk-fluids', () => {
-            if (chunk.takeFreshlyGenerated()) this.markChunkSettling(x, z);
+            if (fresh) this.markChunkSettling(x, z);
             this.schedulePendingFluidTicks(chunk);
             this.schedulePendingBlockTicks(chunk);
             this.settlePendingShapes(chunk);
@@ -2146,8 +2158,37 @@ export class World implements Service {
         return this.measured('chunk-entities', () => {
             const discarded = this.createStoredEntities(chunk);
             this.createGeneratedEntities(chunk);
+            if (fresh) this.freshChunks.set(index, { chunk, changes: chunk.changeCount(), spawns });
             return discarded;
         });
+    }
+
+    /**
+     * Writes chunks generated since they were queued, and untouched since, outside the save pass,
+     * up to `budget` sub chunks (ADR 0018, E1d): each one's terrain, and its generation's mobs as
+     * its pending record, held for the next commit. A chunk gameplay changed since it was queued,
+     * one a pass has saved since, and one that unloaded are dropped from the queue: the cut or the
+     * unload writes them, and none is written twice.
+     *
+     * @returns The sub chunks it encoded.
+     */
+    public writeFreshChunks(budget: number): number {
+        let encoded = 0;
+        for (const [index, fresh] of this.freshChunks) {
+            if (encoded >= budget) break;
+            this.freshChunks.delete(index);
+            const { chunk, changes, spawns } = fresh;
+            if (this.chunks.get(index) !== chunk || chunk.changeCount() !== changes || !chunk.getHasChanged()) continue;
+            const written = this.getProvider().writeFreshChunk(chunk, spawns);
+            if (written === undefined) {
+                // The provider writes no chunk on its own, so the cut writes every one of them.
+                this.freshChunks.clear();
+                break;
+            }
+            // At least one for each chunk, so a chunk of air still uses the budget.
+            encoded += Math.max(1, written);
+        }
+        return encoded;
     }
 
     /** Books a synchronous piece of chunk completion under a label, when the scheduler does accounting. */

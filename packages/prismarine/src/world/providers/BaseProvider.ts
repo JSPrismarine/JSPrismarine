@@ -3,6 +3,7 @@ import type { Generator } from '../Generator';
 import type { World } from '../World';
 import type { ChunkRequestOptions } from '../Generator';
 import type Server from '../../Server';
+import type { EntitySpawn } from '../EntitySpawn';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../DimensionType';
 import type { StoreActor } from '../../entity/data/storeActors';
@@ -171,6 +172,19 @@ export default abstract class BaseProvider implements Provider {
      * @param chunk - the chunk data.
      */
     public abstract writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void>;
+
+    /**
+     * Writes a chunk generated since the last pass and untouched by gameplay outside the pass, as
+     * ADR 0018 has it: its terrain, and the mobs its generation left as its pending record, with
+     * no actor records or digest. The write is held for the next pass like any other outside one.
+     *
+     * @param spawns - The mobs generation left in the chunk, as they were before they went live.
+     * @returns The sub chunks it encoded, or undefined for a provider that does not write fresh
+     *   chunks on their own, whose chunks the cut writes instead.
+     */
+    public writeFreshChunk(_chunk: Chunk, _spawns: readonly EntitySpawn[]): number | undefined {
+        return undefined;
+    }
 
     /** Reads world state from the provider's fallback NBT file. */
     public async readWorldData(): Promise<WorldPersistenceData | null> {

@@ -36,6 +36,12 @@ export interface SavedWorld {
      * @param requireSuccess - Throw when a chunk cannot be cut, rather than log it and leave it dirty.
      */
     cutSave(pass: ProviderSavePass, players: Map<string, WorldPlayerData>, requireSuccess: boolean): void;
+    /**
+     * Writes chunks generated since they were queued and untouched since outside the pass, up to
+     * `budget` sub chunks, held for the next commit (ADR 0018, E1d); see `World.writeFreshChunks`.
+     * @returns The sub chunks it encoded.
+     */
+    writeFreshChunks?(budget: number): number;
 }
 
 /** The level's own state as a cut takes it: the record the provider keeps, and `level.dat`. */
@@ -129,6 +135,13 @@ export class LevelSave {
         }
         if (this.queue !== null) return;
         if (tick % AUTO_SAVE_INTERVAL_TICKS !== 0) {
+            // Fresh chunks are written on their own, a budget a tick, so a pass holds only what
+            // gameplay changed. Their writes are held like any other outside one.
+            let budget = SAVE_ENCODE_BUDGET;
+            for (const world of worlds) {
+                if (budget <= 0) break;
+                budget -= world.writeFreshChunks?.(budget) ?? 0;
+            }
             if (this.options.provider().heldWriteBytes() > HELD_WRITE_LIMIT) this.commitHeld();
             return;
         }
