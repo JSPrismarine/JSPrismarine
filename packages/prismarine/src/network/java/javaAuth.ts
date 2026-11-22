@@ -2,7 +2,8 @@
  * What a Java Edition login proves about a player: the offline UUID a name gives, the hash a
  * client and the server both send Mojang's session server, and that server's answer.
  */
-import { createHash } from 'node:crypto';
+import { constants, createHash, privateDecrypt, randomBytes } from 'node:crypto';
+import type { KeyObject } from 'node:crypto';
 
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
@@ -55,6 +56,36 @@ export const serverHash = (serverId: string, sharedSecret: Buffer, publicKey: Bu
     }
     const hex = digest.toString('hex').replace(/^0+/, '');
     return negative ? `-${hex}` : hex;
+};
+
+/**
+ * Decrypts what a Java client encrypted with the server's public key, as RSA with PKCS #1 v1.5
+ * padding, the only padding the client uses.
+ *
+ * Bun refuses `RSA_PKCS1_PADDING` for private decryption, so this decrypts the raw block and takes
+ * the padding off itself. A block that is not `00 02`, at least eight nonzero padding bytes, `00`
+ * and a message of `length` bytes gives random bytes instead of an error, as OpenSSL's implicit
+ * rejection does: a client that sent garbage then fails the verify token or the encryption, and
+ * nobody learns which blocks had good padding. The check reads every byte whatever it finds.
+ * @param key - The server's private key.
+ * @param ciphertext - What the client sent.
+ * @param length - How many bytes the message is: 16 for the shared secret, the verify token's own.
+ * @returns The message, or random bytes of the same length.
+ */
+export const decryptFromClient = (key: KeyObject, ciphertext: Buffer, length: number): Buffer => {
+    const rejected = randomBytes(length);
+    let block: Buffer;
+    try {
+        block = privateDecrypt({ key, padding: constants.RSA_NO_PADDING }, ciphertext);
+    } catch {
+        // Not a block this key encrypts, such as one of the wrong size.
+        return rejected;
+    }
+    const separator = block.byteLength - length - 1;
+    if (separator < 10) return rejected;
+    let bad = block[0]! | (block[1]! ^ 0x02) | block[separator]!;
+    for (let i = 2; i < separator; i++) bad |= block[i]! === 0 ? 1 : 0;
+    return bad === 0 ? block.subarray(separator + 1) : rejected;
 };
 
 /** Where `hasJoined` asks. */

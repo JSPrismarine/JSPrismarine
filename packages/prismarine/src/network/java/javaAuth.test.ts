@@ -1,6 +1,7 @@
+import { constants, generateKeyPairSync, publicEncrypt, randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { hasJoined, serverHash } from './javaAuth';
+import { decryptFromClient, hasJoined, serverHash } from './javaAuth';
 
 describe('serverHash', () => {
     // The protocol page's examples: the SHA-1 of each name, as Java's signed hex digest.
@@ -10,6 +11,34 @@ describe('serverHash', () => {
         ['simon', '88e16a1019277b15d58faf0541e11910eb756f6']
     ])('hashes %s to %s', (name, hash) => {
         expect(serverHash(name, Buffer.alloc(0), Buffer.alloc(0))).toBe(hash);
+    });
+});
+
+describe('decryptFromClient', () => {
+    const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
+    const encrypt = (message: Buffer) =>
+        publicEncrypt({ key: publicKey, padding: constants.RSA_PKCS1_PADDING }, message);
+
+    it('reads what a client encrypted with PKCS #1 v1.5 padding', () => {
+        const secret = randomBytes(16);
+
+        expect(decryptFromClient(privateKey, encrypt(secret), 16)).toStrictEqual(secret);
+    });
+
+    it('gives other bytes of the asked length for a message of another length, or a block that is not one', () => {
+        const token = Buffer.from([1, 2, 3, 4]);
+        const wrongLength = decryptFromClient(privateKey, encrypt(token), 16);
+        const unpadded = decryptFromClient(
+            privateKey,
+            publicEncrypt({ key: publicKey, padding: constants.RSA_NO_PADDING }, Buffer.alloc(128, 1)),
+            4
+        );
+        const truncated = decryptFromClient(privateKey, Buffer.alloc(3), 4);
+
+        expect(wrongLength).toHaveLength(16);
+        expect(unpadded).toHaveLength(4);
+        expect(unpadded.equals(Buffer.alloc(4, 1))).toBe(false);
+        expect(truncated).toHaveLength(4);
     });
 });
 

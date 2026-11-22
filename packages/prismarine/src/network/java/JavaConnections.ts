@@ -5,7 +5,7 @@
  * turns on encryption and compression, and names the profile the player joins with.
  */
 import type { KeyObject } from 'node:crypto';
-import { constants, generateKeyPairSync, privateDecrypt, randomBytes, randomUUID } from 'node:crypto';
+import { generateKeyPairSync, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { Logger } from '@jsprismarine/logger';
@@ -72,7 +72,7 @@ import type { ConnectionId } from '../transport/ConnectionId';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
 import type { Transport } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
-import { hasJoined, offlineUuid, serverHash } from './javaAuth';
+import { decryptFromClient, hasJoined, offlineUuid, serverHash } from './javaAuth';
 import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
 import { Vector3 } from '@jsprismarine/math';
@@ -144,6 +144,9 @@ const JOIN_REFUSAL = 'This server does not take Java Edition players yet.';
 
 /** A player name the vanilla server accepts: one to sixteen letters, digits and underscores. */
 const VALID_NAME = /^[A-Za-z0-9_]{1,16}$/;
+
+/** The shared secret's length: an AES-128 key, which is what a Java client sends. */
+const SHARED_SECRET_BYTES = 16;
 
 /** Where one connection is, and what its login has agreed so far. */
 interface JavaConnectionState {
@@ -338,12 +341,11 @@ export class JavaConnections {
     ): Promise<void> {
         const pending = state.pending!;
         state.pending = undefined;
-        const decrypt = (bytes: Buffer) =>
-            privateDecrypt({ key: this.key.privateKey, padding: constants.RSA_PKCS1_PADDING }, bytes);
-        if (!decrypt(response.verifyToken).equals(pending.verifyToken)) {
+        const token = decryptFromClient(this.key.privateKey, response.verifyToken, pending.verifyToken.byteLength);
+        if (!timingSafeEqual(token, pending.verifyToken)) {
             throw new PrismarineNetworkErrors.JavaVerifyTokenMismatch();
         }
-        const secret = decrypt(response.sharedSecret);
+        const secret = decryptFromClient(this.key.privateKey, response.sharedSecret, SHARED_SECRET_BYTES);
         state.connection.encrypt(secret);
 
         const profile = await this.askSessionServer(pending.name, serverHash('', secret, this.key.publicDer));
