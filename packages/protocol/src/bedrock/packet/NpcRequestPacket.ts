@@ -27,6 +27,11 @@ export enum NpcRequestType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/npc-request-packet/
  */
 export default class NpcRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'NpcRequestPacket';
+    }
+
     /** The NPC the player interacted with. */
     public npcRuntimeId = 0n;
 

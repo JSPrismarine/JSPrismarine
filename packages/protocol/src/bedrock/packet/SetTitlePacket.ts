@@ -21,6 +21,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-title-packet/
  */
 export default class SetTitlePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetTitlePacket';
+    }
+
     public titleType: TitleType = TitleType.TITLE;
 
     /** The text to show, or JSON when the type is one of the text object members. */

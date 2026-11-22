@@ -11,6 +11,11 @@ import { onScreenTextureAnimationPacket } from '../wire/definitions/effects';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/on-screen-texture-animation-packet/
  */
 export default class OnScreenTextureAnimationPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'OnScreenTextureAnimationPacket';
+    }
+
     /** `Effect Id`: which animation to play. */
     public animationType!: number;
 

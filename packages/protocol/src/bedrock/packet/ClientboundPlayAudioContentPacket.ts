@@ -14,6 +14,11 @@ import type { PlaySoundPayload, SignedAudioContent } from '../wire/definitions/a
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ClientboundPlayAudioContentPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundPlayAudioContentPacket';
+    }
+
     /** `sharedMetadata`. */
     public sharedMetadata: SignedAudioContent = { compactJwt: '' };
 

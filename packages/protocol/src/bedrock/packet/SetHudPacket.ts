@@ -20,6 +20,11 @@ export type SetHud = SetHudPayload;
  * {@link HudVisibility}.
  */
 export default class SetHudPacket extends NetworkPacket<SetHud> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetHudPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_HUD;
     }

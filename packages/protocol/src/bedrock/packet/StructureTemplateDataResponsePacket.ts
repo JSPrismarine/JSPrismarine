@@ -24,6 +24,11 @@ export type StructureTemplateDataResponse = StructureTemplateDataResponsePayload
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/structure-template-data-response-packet/
  */
 export default class StructureTemplateDataResponsePacket extends NetworkPacket<StructureTemplateDataResponse> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'StructureTemplateDataResponsePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.STRUCTURE_TEMPLATE_DATA_RESPONSE;
     }

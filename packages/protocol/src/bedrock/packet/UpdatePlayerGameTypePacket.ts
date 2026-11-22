@@ -16,6 +16,11 @@ import type { UpdatePlayerGameTypePayload } from '../wire/definitions/player';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-player-game-type-packet/
  */
 export default class UpdatePlayerGameTypePacket extends NetworkPacket<UpdatePlayerGameTypePayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdatePlayerGameTypePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_PLAYER_GAME_TYPE;
     }

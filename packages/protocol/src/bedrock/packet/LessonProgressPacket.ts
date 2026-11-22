@@ -36,6 +36,11 @@ export interface LessonProgress {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/lesson-progress-packet/
  */
 export default class LessonProgressPacket extends NetworkPacket<LessonProgress> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LessonProgressPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LESSON_PROGRESS;
     }

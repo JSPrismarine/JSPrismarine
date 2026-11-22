@@ -17,6 +17,11 @@ import { playerSkinPacket } from '../wire/definitions/playerSkin';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-skin-packet/
  */
 export default class PlayerSkinPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerSkinPacket';
+    }
+
     /** The player whose skin changed. */
     public uuid!: UUID;
     /** The new skin, laid out as `SerializedSkin`. */

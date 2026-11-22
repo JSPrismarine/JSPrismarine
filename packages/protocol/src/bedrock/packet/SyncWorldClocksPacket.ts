@@ -102,6 +102,11 @@ export type SyncWorldClocks = SyncWorldClocksPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sync-world-clocks-packet/
  */
 export default class SyncWorldClocksPacket extends NetworkPacket<SyncWorldClocks> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SyncWorldClocksPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SYNC_WORLD_CLOCKS;
     }

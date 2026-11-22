@@ -19,6 +19,11 @@ export type MotionPredictionHints = MotionPredictionHintsPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/motion-prediction-hints-packet/
  */
 export default class MotionPredictionHintsPacket extends NetworkPacket<MotionPredictionHints> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MotionPredictionHintsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.MOTION_PREDICTION_HINTS;
     }

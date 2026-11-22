@@ -48,6 +48,11 @@ export type {
  * future use in UI". The server has nothing to send in it today.
  */
 export default class ClientboundDataStorePacket extends NetworkPacket<ClientboundDataStore> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundDataStorePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_DATA_STORE;
     }

@@ -25,6 +25,11 @@ export interface CreatePhoto {
  * and `Photo Item Name` as strings (a varuint32 byte length followed by UTF-8).
  */
 export default class CreatePhotoPacket extends NetworkPacket<CreatePhoto> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CreatePhotoPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CREATE_PHOTO;
     }

@@ -50,6 +50,11 @@ export type MovePlayer = MovePlayerPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-player-packet/
  */
 export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MovePlayerPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.MOVE_PLAYER;
     }

@@ -57,6 +57,10 @@ describe('readPacketId', () => {
 
 /** `SetPlayerInventoryOptions`, the smallest id this protocol has that needs two bytes. */
 class ThreeDigitPacket extends FieldNetworkPacket {
+    public getName(): string {
+        return 'ThreeDigitPacket';
+    }
+
     public constructor(buffer?: Buffer) {
         super(buffer);
         this.setNetId(0x133);
@@ -65,6 +69,10 @@ class ThreeDigitPacket extends FieldNetworkPacket {
 
 /** An id a single byte can hold, for the case the header is one byte long. */
 class SingleBytePacket extends FieldNetworkPacket {
+    public getName(): string {
+        return 'SingleBytePacket';
+    }
+
     public constructor(buffer?: Buffer) {
         super(buffer);
         this.setNetId(0x0b);

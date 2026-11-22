@@ -24,6 +24,11 @@ export type CameraAimAssist = CameraAimAssistPayload;
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-packet/}
  */
 export default class CameraAimAssistPacket extends NetworkPacket<CameraAimAssist> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraAimAssistPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_AIM_ASSIST;
     }

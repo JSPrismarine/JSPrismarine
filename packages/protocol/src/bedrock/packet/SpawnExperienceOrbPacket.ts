@@ -18,6 +18,11 @@ export type SpawnExperienceOrb = SpawnExperienceOrbPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/spawn-experience-orb-packet/
  */
 export default class SpawnExperienceOrbPacket extends NetworkPacket<SpawnExperienceOrb> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SpawnExperienceOrbPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SPAWN_EXPERIENCE_ORB;
     }

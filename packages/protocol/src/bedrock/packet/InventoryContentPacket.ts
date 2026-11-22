@@ -20,6 +20,11 @@ import type { ItemStackDescriptorData } from '../wire/structures/ItemStackDescri
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-content-packet/
  */
 export default class InventoryContentPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'InventoryContentPacket';
+    }
+
     /** `Container Id`: the window these slots belong to. */
     public windowId!: number;
 

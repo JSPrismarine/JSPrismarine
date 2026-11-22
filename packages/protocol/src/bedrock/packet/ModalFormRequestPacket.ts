@@ -14,6 +14,11 @@ import { modalFormRequestPacket } from '../wire/definitions/forms';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/modal-form-request-packet/
  */
 export default class ModalFormRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ModalFormRequestPacket';
+    }
+
     /** Identifies the form in the client's reply. */
     public formId = 0;
 

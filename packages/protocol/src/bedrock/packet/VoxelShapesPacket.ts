@@ -45,6 +45,11 @@ const layout = () => layoutAt(voxelShapesPacket, protocolVersion);
  * `customShapeCount` to 0.
  */
 export default class VoxelShapesPacket extends NetworkPacket<VoxelShapes> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'VoxelShapesPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.VOXEL_SHAPES;
     }

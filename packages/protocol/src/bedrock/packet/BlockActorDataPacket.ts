@@ -26,6 +26,11 @@ export interface BlockActorData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/block-actor-data-packet/
  */
 export default class BlockActorDataPacket extends NetworkPacket<BlockActorData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BlockActorDataPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.BLOCK_ACTOR_DATA;
     }

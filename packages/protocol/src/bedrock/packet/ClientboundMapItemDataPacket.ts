@@ -67,6 +67,11 @@ export type ClientboundMapItemData = ClientboundMapItemDataPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-map-item-data-packet/
  */
 export default class ClientboundMapItemDataPacket extends NetworkPacket<ClientboundMapItemData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundMapItemDataPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_MAP_ITEM_DATA;
     }

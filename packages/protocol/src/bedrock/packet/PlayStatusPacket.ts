@@ -41,6 +41,11 @@ export interface PlayStatusData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-status-packet/
  */
 export default class PlayStatusPacket extends NetworkPacket<PlayStatusData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayStatusPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAY_STATUS;
     }

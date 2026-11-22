@@ -19,6 +19,11 @@ export type SetCommandsEnabledPayload = PayloadOf<typeof setCommandsEnabledPacke
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simple-event-packet/
  */
 export default class SetCommandsEnabledPacket extends NetworkPacket<SetCommandsEnabledPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetCommandsEnabledPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_COMMANDS_ENABLED;
     }

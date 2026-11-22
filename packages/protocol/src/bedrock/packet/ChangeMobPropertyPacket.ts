@@ -31,6 +31,11 @@ export interface ChangeMobProperty {
  * float. Strings are a varuint32 byte length followed by UTF-8.
  */
 export default class ChangeMobPropertyPacket extends NetworkPacket<ChangeMobProperty> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ChangeMobPropertyPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CHANGE_MOB_PROPERTY;
     }

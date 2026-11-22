@@ -13,6 +13,11 @@ import { CursorItemDragState, serverboundCursorItemDragPacket } from '../wire/de
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ServerboundCursorItemDragPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundCursorItemDragPacket';
+    }
+
     /** `state`. */
     public state: number = CursorItemDragState.Start;
     /** Writes the fields in layout order. */

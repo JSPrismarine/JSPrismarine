@@ -30,6 +30,11 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-player-inventory-options-packet/
  */
 export default class SetPlayerInventoryOptionsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetPlayerInventoryOptionsPacket';
+    }
+
     /** Left Inventory Tab: the recipe book tab that is open. */
     public leftTab: InventoryLeftTab = InventoryLeftTab.NONE;
 

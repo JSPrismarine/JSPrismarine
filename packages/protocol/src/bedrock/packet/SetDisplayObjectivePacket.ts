@@ -23,6 +23,11 @@ export enum ObjectiveSortOrder {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-display-objective-packet/
  */
 export default class SetDisplayObjectivePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetDisplayObjectivePacket';
+    }
+
     /** Where the objective is shown: `list`, `sidebar` or `belowname`. */
     public displaySlotName = '';
 

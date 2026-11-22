@@ -14,6 +14,11 @@ export { AnimateAction };
  * layout's decision, not this file's.
  */
 export default class AnimatePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AnimatePacket';
+    }
+
     /** `Action`, as the raw byte. See {@link AnimateAction} for the numbers. */
     public action!: number;
 

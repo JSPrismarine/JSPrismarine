@@ -18,6 +18,11 @@ export type RecordStarted = RecordStartedPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/record-started-packet/
  */
 export default class RecordStartedPacket extends NetworkPacket<RecordStarted> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RecordStartedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.RECORD_STARTED;
     }

@@ -71,6 +71,11 @@ export const readCraftingData = (stream: NetworkBinaryStream): CraftingData =>
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/crafting-data-packet/
  */
 export default class CraftingDataPacket extends NetworkPacket<CraftingData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CraftingDataPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CRAFTING_DATA;
     }

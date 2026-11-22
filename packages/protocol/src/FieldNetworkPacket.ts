@@ -11,7 +11,7 @@ import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
  * package without keeping a second packet header or a second stream implementation. New
  * packet classes should use a typed payload and implement `serializePayload` directly.
  */
-export default class FieldNetworkPacket extends NetworkPacket<unknown> {
+export default abstract class FieldNetworkPacket extends NetworkPacket<unknown> {
     /** A field-based packet has no separate payload object. */
     public constructor(buffer?: Buffer) {
         super(undefined, buffer);

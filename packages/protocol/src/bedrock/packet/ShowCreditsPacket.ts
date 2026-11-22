@@ -25,6 +25,11 @@ export enum CreditsState {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/show-credits-packet/
  */
 export default class ShowCreditsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ShowCreditsPacket';
+    }
+
     /** The runtime id of the player watching. */
     public playerRuntimeId = 0n;
 

@@ -18,6 +18,11 @@ export type MobArmorEquipment = MobArmorEquipmentPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-armor-equipment-packet/
  */
 export default class MobArmorEquipmentPacket extends NetworkPacket<MobArmorEquipment> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MobArmorEquipmentPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: MobArmorEquipment | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

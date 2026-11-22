@@ -55,6 +55,11 @@ export interface UpdateClientInputLocks {
  * the 2193 schema, gophertunnel master and PocketMine all stop after the bitmask.
  */
 export default class UpdateClientInputLocksPacket extends NetworkPacket<UpdateClientInputLocks> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateClientInputLocksPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_CLIENT_INPUT_LOCKS;
     }

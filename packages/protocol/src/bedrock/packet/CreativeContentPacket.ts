@@ -84,6 +84,11 @@ export const readCreativeContent = (stream: NetworkBinaryStream): CreativeConten
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/creative-content-packet/
  */
 export default class CreativeContentPacket extends NetworkPacket<CreativeContent> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CreativeContentPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CREATIVE_CONTENT;
     }

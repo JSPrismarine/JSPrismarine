@@ -16,6 +16,11 @@ export { GraphicsMode };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-client-options-packet/
  */
 export default class UpdateClientOptionsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateClientOptionsPacket';
+    }
+
     /** Graphics Mode Change: the new graphics mode, or `null` when it did not change. */
     public graphicsMode: GraphicsMode | null = null;
 

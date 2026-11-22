@@ -30,6 +30,11 @@ const layout = () => layoutAt(clientToServerHandshakePacket, protocolVersion);
  * `ServerToClientHandshake`, so a server that skipped the handshake must not wait for it.
  */
 export default class ClientToServerHandshakePacket extends NetworkPacket<ClientToServerHandshake> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientToServerHandshakePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENT_TO_SERVER_HANDSHAKE;
     }

@@ -15,6 +15,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-permissions-packet/
  */
 export default class RequestPermissionsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RequestPermissionsPacket';
+    }
+
     /** Unique id of the player whose level should change. */
     public targetPlayerUniqueId = 0n;
 

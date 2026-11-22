@@ -12,6 +12,11 @@ import { serverboundStonecutterSetRecipePacket } from '../wire/definitions/added
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ServerboundStonecutterSetRecipePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundStonecutterSetRecipePacket';
+    }
+
     /** `containerId`. */
     public containerId: number = 0;
 

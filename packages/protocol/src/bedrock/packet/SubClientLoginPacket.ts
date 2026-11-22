@@ -27,6 +27,11 @@ export interface SubClientLogin {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sub-client-login-packet/
  */
 export default class SubClientLoginPacket extends NetworkPacket<SubClientLogin> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SubClientLoginPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SUB_CLIENT_LOGIN;
     }

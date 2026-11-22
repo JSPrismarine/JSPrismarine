@@ -206,6 +206,11 @@ export const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/start-game-packet/
  */
 export default class StartGamePacket extends NetworkPacket<StartGame> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'StartGamePacket';
+    }
+
     /** Returns the wire identifier for Start Game. */
     public get id(): number {
         return PacketIdentifier.START_GAME;

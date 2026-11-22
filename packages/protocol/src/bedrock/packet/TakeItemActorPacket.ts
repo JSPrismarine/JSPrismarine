@@ -21,6 +21,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/take-item-actor-packet/
  */
 export default class TakeItemActorPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'TakeItemActorPacket';
+    }
+
     /** Item Runtime ID, the item entity being taken. */
     public itemRuntimeEntityId!: bigint;
     /** Actor Runtime ID, the entity taking it. */

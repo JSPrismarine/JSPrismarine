@@ -23,6 +23,11 @@ export interface ServerStats {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-stats-packet/
  */
 export default class ServerStatsPacket extends NetworkPacket<ServerStats> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerStatsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVER_STATS;
     }

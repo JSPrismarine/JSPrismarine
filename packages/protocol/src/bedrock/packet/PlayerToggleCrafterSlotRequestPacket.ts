@@ -11,6 +11,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-toggle-crafter-slot-request-packet/
  */
 export default class PlayerToggleCrafterSlotRequestPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerToggleCrafterSlotRequestPacket';
+    }
+
     public posX = 0;
     public posY = 0;
     public posZ = 0;

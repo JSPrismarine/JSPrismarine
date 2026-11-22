@@ -26,6 +26,11 @@ export { PositionTrackingDBServerBroadcastAction };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/position-tracking-dbserver-broadcast-packet/
  */
 export default class PositionTrackingDBServerBroadcastPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PositionTrackingDBServerBroadcastPacket';
+    }
+
     /** Action: what became of the tracked position. */
     public action: PositionTrackingDBServerBroadcastAction = PositionTrackingDBServerBroadcastAction.NotFound;
 

@@ -20,6 +20,11 @@ export type LabTable = LabTablePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/lab-table-packet/
  */
 export default class LabTablePacket extends NetworkPacket<LabTablePayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LabTablePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LAB_TABLE;
     }

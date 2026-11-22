@@ -20,6 +20,11 @@ export enum EmoteFlags {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/emote-packet/
  */
 export default class EmotePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'EmotePacket';
+    }
+
     /** Runtime id of the player performing the emote. */
     public actorRuntimeId = 0n;
 

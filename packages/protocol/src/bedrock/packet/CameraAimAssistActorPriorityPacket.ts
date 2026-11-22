@@ -26,6 +26,11 @@ export type CameraAimAssistActorPriority = CameraAimAssistActorPriorityPayload;
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-actor-priority-packet/}
  */
 export default class CameraAimAssistActorPriorityPacket extends NetworkPacket<CameraAimAssistActorPriority> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraAimAssistActorPriorityPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_AIM_ASSIST_ACTOR_PRIORITY;
     }

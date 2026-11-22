@@ -92,6 +92,11 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/available-commands-packet/
  */
 export default class AvailableCommandsPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AvailableCommandsPacket';
+    }
+
     public commandData: CommandData[] = [];
     public hardcodedEnums: CommandEnum[] = [];
     public softEnums: CommandEnum[] = [];

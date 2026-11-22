@@ -14,6 +14,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/map-create-locked-copy-packet/
  */
 export default class MapCreateLockedCopyPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MapCreateLockedCopyPacket';
+    }
+
     /** Id of the map being copied. */
     public originalMapId = 0n;
 

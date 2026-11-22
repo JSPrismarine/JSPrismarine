@@ -46,6 +46,11 @@ const layout = () => layoutAt(trimDataPacket, protocolVersion);
  * The wire layout is the `trimDataPacket` definition in `wire/definitions`.
  */
 export default class TrimDataPacket extends NetworkPacket<TrimData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'TrimDataPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.TRIM_DATA;
     }

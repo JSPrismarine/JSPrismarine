@@ -57,6 +57,11 @@ export enum BossBarOverlay {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/boss-event-packet/
  */
 export default class BossEventPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BossEventPacket';
+    }
+
     /** The actor the bar belongs to. The client reads its health and name tag from this actor. */
     public targetActorId = 0n;
 

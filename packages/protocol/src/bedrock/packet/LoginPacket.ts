@@ -34,6 +34,11 @@ export interface Login {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/login-packet/
  */
 export default class LoginPacket extends NetworkPacket<Login> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LoginPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LOGIN;
     }

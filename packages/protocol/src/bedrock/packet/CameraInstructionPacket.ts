@@ -18,6 +18,11 @@ export type { CameraInstructionPayload };
  * indexes the list the server sent in `CameraPresetsPacket`.
  */
 export default class CameraInstructionPacket extends NetworkPacket<CameraInstructionPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CameraInstructionPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CAMERA_INSTRUCTION;
     }

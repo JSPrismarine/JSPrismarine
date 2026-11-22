@@ -19,6 +19,11 @@ export type AddPainting = AddPaintingPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-painting-packet/
  */
 export default class AddPaintingPacket extends NetworkPacket<AddPainting> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddPaintingPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.ADD_PAINTING;
     }

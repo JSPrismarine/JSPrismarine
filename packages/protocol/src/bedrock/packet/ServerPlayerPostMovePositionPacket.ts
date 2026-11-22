@@ -17,6 +17,11 @@ export type ServerPlayerPostMovePosition = ServerPlayerPostMovePositionPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-player-post-move-position-packet/
  */
 export default class ServerPlayerPostMovePositionPacket extends NetworkPacket<ServerPlayerPostMovePosition> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerPlayerPostMovePositionPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVER_PLAYER_POST_MOVE_POSITION;
     }

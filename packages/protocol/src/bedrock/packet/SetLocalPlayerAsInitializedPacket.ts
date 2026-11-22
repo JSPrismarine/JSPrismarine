@@ -22,6 +22,11 @@ export interface SetLocalPlayerAsInitialized {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-local-player-as-initialized-packet/
  */
 export default class SetLocalPlayerAsInitializedPacket extends NetworkPacket<SetLocalPlayerAsInitialized> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetLocalPlayerAsInitializedPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_LOCAL_PLAYER_AS_INITIALIZED;
     }

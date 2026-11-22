@@ -14,6 +14,11 @@ import type { AudioContentRegistrationEntry } from '../wire/definitions/added222
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ServerboundRegisterAudioContentPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerboundRegisterAudioContentPacket';
+    }
+
     /** `registrations`. */
     public registrations: AudioContentRegistrationEntry[] = [];
     /** Writes the fields in layout order. */

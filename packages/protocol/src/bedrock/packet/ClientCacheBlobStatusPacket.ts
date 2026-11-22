@@ -14,6 +14,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-cache-blob-status-packet/
  */
 export default class ClientCacheBlobStatusPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientCacheBlobStatusPacket';
+    }
+
     /** Blob hashes the client needs the server to send in full. */
     public missingIds: bigint[] = [];
 

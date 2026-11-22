@@ -31,6 +31,11 @@ export type ArmorSlotAndDamagePair = PlayerArmorDamagePayload['armorSlotAndDamag
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-armor-damage-packet/
  */
 export default class PlayerArmorDamagePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerArmorDamagePacket';
+    }
+
     /** Armor Slot and Damage Pairs: one entry per piece that took damage. */
     public armorSlotAndDamagePairs: ArmorSlotAndDamagePair[] = [];
 

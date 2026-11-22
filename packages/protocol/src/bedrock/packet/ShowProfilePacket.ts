@@ -15,6 +15,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/show-profile-packet/
  */
 export default class ShowProfilePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ShowProfilePacket';
+    }
+
     /** The Xbox Live id of the player whose profile the client opens. */
     public xuid = '';
 

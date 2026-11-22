@@ -22,6 +22,11 @@ export interface PartyDestinationCookieResponse {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/party-destination-cookie-response-packet/
  */
 export default class PartyDestinationCookieResponsePacket extends NetworkPacket<PartyDestinationCookieResponse> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PartyDestinationCookieResponsePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PARTY_DESTINATION_COOKIE_RESPONSE;
     }

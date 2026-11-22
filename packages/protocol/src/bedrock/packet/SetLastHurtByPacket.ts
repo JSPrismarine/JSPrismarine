@@ -22,6 +22,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-last-hurt-by-packet/
  */
 export default class SetLastHurtByPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetLastHurtByPacket';
+    }
+
     /** The `ActorType` of the last attacker. */
     public lastHurtBy = 0;
 

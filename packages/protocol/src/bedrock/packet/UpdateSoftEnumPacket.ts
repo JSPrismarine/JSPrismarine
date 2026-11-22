@@ -21,6 +21,11 @@ export type UpdateSoftEnum = UpdateSoftEnumPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-soft-enum-packet/
  */
 export default class UpdateSoftEnumPacket extends NetworkPacket<UpdateSoftEnum> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateSoftEnumPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UPDATE_SOFT_ENUM;
     }

@@ -87,6 +87,11 @@ export interface PlayerActionData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-action-packet/
  */
 export default class PlayerActionPacket extends NetworkPacket<PlayerActionData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerActionPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_ACTION;
     }

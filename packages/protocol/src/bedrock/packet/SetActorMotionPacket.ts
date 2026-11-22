@@ -23,6 +23,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-motion-packet/
  */
 export default class SetActorMotionPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetActorMotionPacket';
+    }
+
     public runtimeEntityId!: bigint;
     public motion!: Vector3;
 

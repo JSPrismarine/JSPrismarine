@@ -46,6 +46,11 @@ export interface NpcDialogue {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/npc-dialogue-packet/
  */
 export default class NpcDialoguePacket extends NetworkPacket<NpcDialogue> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'NpcDialoguePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.NPC_DIALOGUE;
     }

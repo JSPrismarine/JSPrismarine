@@ -16,6 +16,11 @@ import type { AddItemActorPayload } from '../wire/definitions/addItemActor';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-item-actor-packet/
  */
 export default class AddItemActorPacket extends NetworkPacket<AddItemActorPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddItemActorPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: AddItemActorPayload | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

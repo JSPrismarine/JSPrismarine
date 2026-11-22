@@ -24,6 +24,11 @@ export interface GameTestResults {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-test-results-packet/
  */
 export default class GameTestResultsPacket extends NetworkPacket<GameTestResults> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'GameTestResultsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.GAME_TEST_RESULTS;
     }

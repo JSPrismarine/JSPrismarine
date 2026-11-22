@@ -22,6 +22,11 @@ export type AddVolumeEntity = AddVolumeEntityPayload;
  * 1.26.70-preview.20 removes this packet and `RemoveVolumeEntityPacket`.
  */
 export default class AddVolumeEntityPacket extends NetworkPacket<AddVolumeEntity> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddVolumeEntityPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.ADD_VOLUME_ENTITY;
     }

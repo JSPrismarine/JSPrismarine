@@ -33,6 +33,11 @@ export type ClientboundTextureShift = ClientboundTextureShiftPayload;
  * send it during a join.
  */
 export default class ClientboundTextureShiftPacket extends NetworkPacket<ClientboundTextureShift> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundTextureShiftPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_TEXTURE_SHIFT;
     }

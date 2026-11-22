@@ -149,6 +149,11 @@ export type GraphicsOverrideParameter = GraphicsOverrideParameterPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/graphics-override-parameter-packet/
  */
 export default class GraphicsOverrideParameterPacket extends NetworkPacket<GraphicsOverrideParameter> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'GraphicsOverrideParameterPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.GRAPHICS_OVERRIDE_PARAMETER;
     }

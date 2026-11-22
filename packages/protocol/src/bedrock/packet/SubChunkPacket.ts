@@ -53,6 +53,11 @@ export interface SubChunk {
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sub-chunk-packet/}
  */
 export default class SubChunkPacket extends NetworkPacket<SubChunk> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SubChunkPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SUB_CHUNK;
     }

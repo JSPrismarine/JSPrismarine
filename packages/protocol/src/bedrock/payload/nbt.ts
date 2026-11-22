@@ -92,15 +92,21 @@ export const readNetworkNbt = (buffer: Buffer): NBTTagCompound =>
 /** A tag as plain JavaScript, with the tag type kept as a prefix so a diff shows a type change. */
 export type PlainNbt = string | number | boolean | PlainNbt[] | { [key: string]: PlainNbt };
 
-const TYPE_NAMES = new Map<unknown, string>([
-    [Types.ByteVal, 'byte'],
-    [Types.ShortVal, 'short'],
-    [Types.NumberVal, 'int'],
-    [Types.LongVal, 'long'],
-    [Types.FloatVal, 'float'],
-    [Types.DoubleVal, 'double'],
-    [Types.StringVal, 'string']
-]);
+/**
+ * A scalar tag's type prefix and value, or `undefined` for anything else.
+ * @param value - The tag to read.
+ * @returns The tag type as {@link nbtToPlain} prints it, and the tag's value.
+ */
+const scalarTag = (value: unknown): [typeName: string, scalar: number | bigint | string] | undefined => {
+    if (value instanceof Types.ByteVal) return ['byte', value.getValue()];
+    if (value instanceof Types.ShortVal) return ['short', value.getValue()];
+    if (value instanceof Types.NumberVal) return ['int', value.getValue()];
+    if (value instanceof Types.LongVal) return ['long', value.getValue()];
+    if (value instanceof Types.FloatVal) return ['float', value.getValue()];
+    if (value instanceof Types.DoubleVal) return ['double', value.getValue()];
+    if (value instanceof Types.StringVal) return ['string', value.getValue()];
+    return undefined;
+};
 
 /**
  * Turns a tag tree into plain data for comparison and for a readable failure.
@@ -117,11 +123,9 @@ export const nbtToPlain = (value: unknown): PlainNbt => {
     }
     if (value instanceof Set) return [...value].map(nbtToPlain);
 
-    const typeName = TYPE_NAMES.get(value?.constructor);
-    if (typeName !== undefined) {
-        // `getValue` is the one member every tag wrapper in `@jsprismarine/nbt`
-        // shares, and the classes do not share a base type to narrow against.
-        const scalar = (value as { getValue(): number | bigint | string }).getValue();
+    const tag = scalarTag(value);
+    if (tag !== undefined) {
+        const [typeName, scalar] = tag;
         if (typeof scalar === 'bigint') return `${typeName}:${scalar.toString()}`;
         // A float that has not been through the writer still holds all 53
         // bits of the double it came from, so rounding here is what makes a

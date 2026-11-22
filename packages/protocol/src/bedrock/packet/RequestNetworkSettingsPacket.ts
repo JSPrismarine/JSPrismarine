@@ -21,6 +21,11 @@ export interface RequestNetworkSettings {
  * `PlayStatus`.
  */
 export default class RequestNetworkSettingsPacket extends NetworkPacket<RequestNetworkSettings> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RequestNetworkSettingsPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.REQUEST_NETWORK_SETTINGS;
     }

@@ -17,6 +17,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sync-actor-property-packet/
  */
 export default class SyncActorPropertyPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SyncActorPropertyPacket';
+    }
+
     /** Property Data: the actor type and its synced properties. */
     public propertyData: NBTTagCompound = new NBTTagCompound();
 

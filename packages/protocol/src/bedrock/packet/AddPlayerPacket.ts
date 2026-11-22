@@ -16,6 +16,11 @@ import type { AddPlayerPayload } from '../wire/definitions/addPlayer';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-player-packet/
  */
 export default class AddPlayerPacket extends NetworkPacket<AddPlayerPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AddPlayerPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: AddPlayerPayload | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

@@ -38,6 +38,11 @@ export enum MobEffectEvent {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-effect-packet/
  */
 export default class MobEffectPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MobEffectPacket';
+    }
+
     /** Target Runtime ID, the actor the effect is on. */
     public targetRuntimeId = 0n;
 

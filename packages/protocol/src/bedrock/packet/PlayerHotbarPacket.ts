@@ -19,6 +19,11 @@ export type PlayerHotbarPayload = PayloadOf<typeof playerHotbarPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-hotbar-packet/
  */
 export default class PlayerHotbarPacket extends NetworkPacket<PlayerHotbarPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PlayerHotbarPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PLAYER_HOTBAR;
     }

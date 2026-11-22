@@ -26,6 +26,11 @@ export interface AgentAnimationData {
  * {@link AgentAnimation}, then `Runtime Id` as an `ActorRuntimeID`, a varuint64.
  */
 export default class AgentAnimationPacket extends NetworkPacket<AgentAnimationData> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AgentAnimationPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.AGENT_ANIMATION;
     }

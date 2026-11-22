@@ -22,6 +22,11 @@ export type PrimitiveShapes = PrimitiveShapesPayload;
  * float for the three trailing booleans.
  */
 export default class PrimitiveShapesPacket extends NetworkPacket<PrimitiveShapes> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PrimitiveShapesPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PRIMITIVE_SHAPES;
     }

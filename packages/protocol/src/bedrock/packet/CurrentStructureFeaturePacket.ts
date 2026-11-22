@@ -22,6 +22,11 @@ export interface CurrentStructureFeature {
  * sends it when the structure the player stands in changes.
  */
 export default class CurrentStructureFeaturePacket extends NetworkPacket<CurrentStructureFeature> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CurrentStructureFeaturePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CURRENT_STRUCTURE_FEATURE;
     }

@@ -24,6 +24,11 @@ import type { ScorePacketEntry } from '../wire/definitions/scoreboard';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-score-packet/
  */
 export default class SetScorePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetScorePacket';
+    }
+
     /** The lines to add, change or remove. */
     public entries: ScorePacketEntry[] = [];
 

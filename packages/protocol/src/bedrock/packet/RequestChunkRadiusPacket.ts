@@ -29,6 +29,11 @@ export interface RequestChunkRadius {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-chunk-radius-packet/
  */
 export default class RequestChunkRadiusPacket extends NetworkPacket<RequestChunkRadius> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RequestChunkRadiusPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.REQUEST_CHUNK_RADIUS;
     }

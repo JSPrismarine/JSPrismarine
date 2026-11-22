@@ -26,6 +26,11 @@ import type { Attribute } from '../wire/structures/Attribute';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-attributes-packet/
  */
 export default class UpdateAttributesPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateAttributesPacket';
+    }
+
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];
 

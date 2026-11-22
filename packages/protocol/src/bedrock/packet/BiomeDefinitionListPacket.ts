@@ -28,6 +28,11 @@ import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/biome-definition-list-packet/
  */
 export default class BiomeDefinitionListPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'BiomeDefinitionListPacket';
+    }
+
     /** Both fields as the network carries them, or `null` to use the connection's captured bytes. */
     public definitions: Buffer | null = null;
 

@@ -35,6 +35,11 @@ export type StructureBlockUpdate = StructureBlockUpdatePayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/structure-block-update-packet/
  */
 export default class StructureBlockUpdatePacket extends NetworkPacket<StructureBlockUpdate> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'StructureBlockUpdatePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.STRUCTURE_BLOCK_UPDATE;
     }

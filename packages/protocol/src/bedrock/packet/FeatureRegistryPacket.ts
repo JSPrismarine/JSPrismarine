@@ -21,6 +21,11 @@ export type { FeatureRegistry, FeatureRegistryEntry } from '../wire/definitions/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/feature-registry-packet/
  */
 export default class FeatureRegistryPacket extends NetworkPacket<FeatureRegistry> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'FeatureRegistryPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.FEATURE_REGISTRY;
     }

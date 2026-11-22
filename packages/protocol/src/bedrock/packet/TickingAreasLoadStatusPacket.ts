@@ -19,6 +19,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/ticking-areas-load-status-packet/
  */
 export default class TickingAreasLoadStatusPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'TickingAreasLoadStatusPacket';
+    }
+
     /** Waiting For Preload: `true` while the client is still waiting on the preload. */
     public preload: boolean = false;
 

@@ -24,6 +24,11 @@ import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/available-actor-identifiers-packet/
  */
 export default class AvailableActorIdentifiersPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AvailableActorIdentifiersPacket';
+    }
+
     /** `Identifier List` as network NBT, or `null` to use the connection's captured bytes. */
     public identifiers: Buffer | null = null;
 

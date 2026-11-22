@@ -34,6 +34,11 @@ export interface ClientCameraAimAssist {
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-camera-aim-assist-packet/}
  */
 export default class ClientCameraAimAssistPacket extends NetworkPacket<ClientCameraAimAssist> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientCameraAimAssistPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENT_CAMERA_AIM_ASSIST;
     }

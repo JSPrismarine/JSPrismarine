@@ -18,6 +18,11 @@ export type PurchaseReceipt = PurchaseReceiptPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/purchase-receipt-packet/
  */
 export default class PurchaseReceiptPacket extends NetworkPacket<PurchaseReceipt> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'PurchaseReceiptPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.PURCHASE_RECEIPT;
     }

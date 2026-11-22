@@ -22,6 +22,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/hurt-armor-packet/
  */
 export default class HurtArmorPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'HurtArmorPacket';
+    }
+
     /**
      * Cause, the damage cause that produced the hit, as a `SharedTypes::Legacy::ActorDamageCause`
      * number. Mojang's datagen snapshot numbers its 35 members consecutively from `Override` (0)

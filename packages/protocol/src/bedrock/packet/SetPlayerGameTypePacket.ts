@@ -13,6 +13,11 @@ import type { SetPlayerGameTypePayload } from '../wire/definitions/player';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-player-game-type-packet/
  */
 export default class SetPlayerGameTypePacket extends NetworkPacket<SetPlayerGameTypePayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetPlayerGameTypePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_PLAYER_GAME_TYPE;
     }

@@ -41,6 +41,11 @@ export interface InventoryTransaction {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-transaction-packet/
  */
 export default class InventoryTransactionPacket extends NetworkPacket<InventoryTransaction> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'InventoryTransactionPacket';
+    }
+
     /** Returns the wire identifier for Inventory Transaction. */
     public get id(): number {
         return PacketIdentifier.INVENTORY_TRANSACTION;

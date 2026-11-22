@@ -12,6 +12,11 @@ export type ClientboundDataDrivenUIReload = Record<string, never>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-data-driven-uireload-packet/
  */
 export default class ClientboundDataDrivenUIReloadPacket extends NetworkPacket<ClientboundDataDrivenUIReload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundDataDrivenUIReloadPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_DATA_DRIVEN_UI_RELOAD;
     }

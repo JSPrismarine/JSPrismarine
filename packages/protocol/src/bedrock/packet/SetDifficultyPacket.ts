@@ -17,6 +17,11 @@ export type SetDifficultyPayload = PayloadOf<typeof setDifficultyPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-difficulty-packet/
  */
 export default class SetDifficultyPacket extends NetworkPacket<SetDifficultyPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetDifficultyPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_DIFFICULTY;
     }

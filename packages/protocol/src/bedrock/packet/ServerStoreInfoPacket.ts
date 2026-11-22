@@ -25,6 +25,11 @@ export type { ServerStoreInfo };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-store-info-packet/
  */
 export default class ServerStoreInfoPacket extends NetworkPacket<ServerStoreInfo> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ServerStoreInfoPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SERVER_STORE_INFO;
     }

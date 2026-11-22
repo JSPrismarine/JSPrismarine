@@ -57,6 +57,11 @@ export interface AgentActionEvent {
  * ZigZag varint consumes one byte and reads the remaining three as the response length.
  */
 export default class AgentActionEventPacket extends NetworkPacket<AgentActionEvent> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'AgentActionEventPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.AGENT_ACTION_EVENT;
     }

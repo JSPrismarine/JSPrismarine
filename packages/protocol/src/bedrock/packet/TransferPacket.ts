@@ -21,6 +21,11 @@ export type GatheringsConfig = NonNullable<Transfer['gatheringsConfig']>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/transfer-packet/
  */
 export default class TransferPacket extends NetworkPacket<Transfer> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'TransferPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.TRANSFER;
     }

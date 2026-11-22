@@ -16,6 +16,11 @@ import { layoutAt } from '../../wire/WireLayout';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-equip-packet/
  */
 export default class UpdateEquipPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UpdateEquipPacket';
+    }
+
     /** The id of the opened window. */
     public containerId = 0;
 

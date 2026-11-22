@@ -42,6 +42,11 @@ export interface UnlockedRecipes {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/unlocked-recipes-packet/
  */
 export default class UnlockedRecipesPacket extends NetworkPacket<UnlockedRecipes> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'UnlockedRecipesPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.UNLOCKED_RECIPES;
     }

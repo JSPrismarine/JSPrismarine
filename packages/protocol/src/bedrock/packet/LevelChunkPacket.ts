@@ -58,6 +58,11 @@ export interface LevelChunk {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-chunk-packet/
  */
 export default class LevelChunkPacket extends NetworkPacket<LevelChunk> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'LevelChunkPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.LEVEL_CHUNK;
     }

@@ -40,6 +40,11 @@ export type { ItemStackResponse, ItemStackResponseContainerInfo, ItemStackRespon
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/item-stack-response-packet/
  */
 export default class ItemStackResponsePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ItemStackResponsePacket';
+    }
+
     public responses: ItemStackResponse[] = [];
 
     /**

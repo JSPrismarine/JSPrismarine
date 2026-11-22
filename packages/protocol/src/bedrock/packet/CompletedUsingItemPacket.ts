@@ -43,6 +43,11 @@ export enum ItemUseMethod {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/completed-using-item-packet/
  */
 export default class CompletedUsingItemPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CompletedUsingItemPacket';
+    }
+
     /** Item Id: the network id of the item that finished being used. */
     public itemId = 0;
 

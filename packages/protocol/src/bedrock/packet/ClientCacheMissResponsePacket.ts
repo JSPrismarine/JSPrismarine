@@ -35,6 +35,11 @@ export type MissingBlobData = ClientCacheMissResponsePayload['blobs'][number];
  * @see https://mojang.github.io/bedrock-protocol-docs/guides/client-cache-miss-response-packet-validation/
  */
 export default class ClientCacheMissResponsePacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientCacheMissResponsePacket';
+    }
+
     /** The blobs being delivered, in no particular order. */
     public blobs: MissingBlobData[] = [];
 

@@ -21,6 +21,11 @@ export type ContainerRegistryCleanup = ContainerRegistryCleanupPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/container-registry-cleanup-packet/
  */
 export default class ContainerRegistryCleanupPacket extends NetworkPacket<ContainerRegistryCleanup> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ContainerRegistryCleanupPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CONTAINER_REGISTRY_CLEANUP;
     }

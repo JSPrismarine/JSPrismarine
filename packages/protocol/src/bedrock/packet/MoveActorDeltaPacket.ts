@@ -25,6 +25,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-actor-delta-packet/
  */
 export default class MoveActorDeltaPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'MoveActorDeltaPacket';
+    }
+
     /** Runtime id of the actor being moved. */
     public runtimeEntityId = 0n;
 

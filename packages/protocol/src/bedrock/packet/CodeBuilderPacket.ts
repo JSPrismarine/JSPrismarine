@@ -14,6 +14,11 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/code-builder-packet/
  */
 export default class CodeBuilderPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'CodeBuilderPacket';
+    }
+
     /** URL of the Code Builder websocket server. */
     public url = '';
 

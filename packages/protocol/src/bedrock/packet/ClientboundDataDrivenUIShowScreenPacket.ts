@@ -20,6 +20,11 @@ export type ClientboundDataDrivenUIShowScreen = ClientboundDataDrivenUIShowScree
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-data-driven-uishow-screen-packet/
  */
 export default class ClientboundDataDrivenUIShowScreenPacket extends NetworkPacket<ClientboundDataDrivenUIShowScreen> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientboundDataDrivenUIShowScreenPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_DATA_DRIVEN_UI_SHOW_SCREEN;
     }

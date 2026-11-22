@@ -26,6 +26,11 @@ export type SetSpawnPositionPayload = PayloadOf<typeof setSpawnPositionPacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-spawn-position-packet/
  */
 export default class SetSpawnPositionPacket extends NetworkPacket<SetSpawnPositionPayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetSpawnPositionPacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_SPAWN_POSITION;
     }

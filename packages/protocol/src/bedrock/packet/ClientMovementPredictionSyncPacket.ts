@@ -23,6 +23,11 @@ export type ClientMovementPredictionSync = ClientMovementPredictionSyncPayload;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/client-movement-prediction-sync-packet/
  */
 export default class ClientMovementPredictionSyncPacket extends NetworkPacket<ClientMovementPredictionSync> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'ClientMovementPredictionSyncPacket';
+    }
+
     /** Accepts payload data for sending or an encoded buffer for decoding. */
     public constructor(packetData?: ClientMovementPredictionSync | Buffer | null, buffer?: Buffer) {
         if (Buffer.isBuffer(packetData)) {

@@ -16,6 +16,11 @@ export type SetTimePayload = PayloadOf<typeof setTimePacket>;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-time-packet/
  */
 export default class SetTimePacket extends NetworkPacket<SetTimePayload> {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'SetTimePacket';
+    }
+
     public get id(): number {
         return PacketIdentifier.SET_TIME;
     }

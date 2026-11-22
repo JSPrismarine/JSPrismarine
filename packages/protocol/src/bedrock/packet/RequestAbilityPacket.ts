@@ -22,6 +22,11 @@ export enum RequestAbilityValueType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-ability-packet/
  */
 export default class RequestAbilityPacket extends FieldNetworkPacket {
+    /** The name this packet's wire id is listed under. */
+    public getName(): string {
+        return 'RequestAbilityPacket';
+    }
+
     /** The ability being changed, see `AbilityLayerFlag`. */
     public ability = AbilityLayerFlag.INVALID;
 
