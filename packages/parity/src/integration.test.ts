@@ -32,7 +32,8 @@ import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/co
 import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapter';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
-import { World } from '@jsprismarine/prismarine/world/World';
+import { testWorld } from '@jsprismarine/prismarine/testing/level';
+import type { World } from '@jsprismarine/prismarine/world/World';
 import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';
 import type { SpawnPosition, SpawnWorld } from '@jsprismarine/spawning';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
@@ -340,10 +341,7 @@ const javaBiomeTagGaps = (content: ServerContent): string[] => {
 /** A Bedrock biome's expected world-view tags, keyed by the Bedrock name in the real content. */
 const biomeWorldViewGaps = (content: ServerContent): string[] => {
     const chunk = new Chunk(0, 0);
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        dimension: Dimensions.Overworld
-    });
+    const world: World = Object.assign(testWorld(), { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) });
     const groups = worldContentGroups({
         dimension: Dimensions.Overworld.name,
         world: () => world,
@@ -1532,10 +1530,7 @@ describeFamily(
                 }
             }
 
-            const world: World = Object.assign(Object.create(World.prototype), {
-                chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-                dimension: Dimensions.Overworld
-            });
+            const world: World = Object.assign(testWorld(), { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) });
             const groups = worldContentGroups({
                 dimension: Dimensions.Overworld.name,
                 world: () => world,
