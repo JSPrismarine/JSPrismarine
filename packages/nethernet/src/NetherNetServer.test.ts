@@ -1,7 +1,7 @@
 import { createPublicKey, generateKeyPairSync } from 'node:crypto';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { SEGMENT_BYTES } from './Connection';
 import type { Connection } from './Connection';
@@ -251,13 +251,23 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
         }
     };
 
-    it('serves two peers on one port at once, and frees the port after the last one leaves', async () => {
-        const port = await freePort();
-        const server = new NetherNetServer({
-            driver,
-            peerConfig: () => LOOPBACK,
-            ports: new PortAllocator({ start: port, end: port })
+    /** Resolves once the library reports a peer connection closed. */
+    const peerClosed = (connection: Connection): Promise<void> =>
+        new Promise((resolve) => {
+            if (connection.peer.state === 'closed') resolve();
+            else
+                connection.peer.onStateChange((state) => {
+                    if (state === 'closed') resolve();
+                });
         });
+
+    // libdatachannel closes the shared socket on a teardown thread after the peer reports
+    // `closed`, and says nothing when it is done, so the test checks what the server decides:
+    // it closes every peer and gives the port back. Polling `bindable` would time a native thread.
+    it('serves two peers on one port at once, and gives the port back after the last one leaves', async () => {
+        const port = await freePort();
+        const allocator = new PortAllocator({ start: port, end: port });
+        const server = new NetherNetServer({ driver, peerConfig: () => LOOPBACK, ports: allocator });
         const first = await join(driver, server);
         const second = await join(driver, server);
         try {
@@ -265,18 +275,20 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
                 port,
                 port
             ]);
+            expect(allocator.loads()).toStrictEqual([{ port, peers: 2 }]);
             expect(await bindable(port)).toBe(false);
 
             const closed = once(server, 'closeConnection');
             first.client.close();
             await closed;
+            expect(allocator.loads()).toStrictEqual([{ port, peers: 1 }]);
             expect(await bindable(port)).toBe(false);
+
             const lastClosed = once(server, 'closeConnection');
             second.client.close();
             await lastClosed;
-            // libjuice closes the socket on its own thread after the connection closes, which
-            // can take longer than `waitFor`'s one second default on a busy runner.
-            await vi.waitFor(async () => expect(await bindable(port)).toBe(true), { timeout: 10_000 });
+            expect(allocator.loads()).toStrictEqual([{ port, peers: 0 }]);
+            await Promise.all([peerClosed(first.connection), peerClosed(second.connection)]);
         } finally {
             first.client.close();
             second.client.close();
