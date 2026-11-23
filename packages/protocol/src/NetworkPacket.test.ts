@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import NetworkBinaryStream from './NetworkBinaryStream';
 import NetworkPacket from './NetworkPacket';
 import { BatchCodec } from './bedrock/BatchCodec';
-import { isProtocolPacketClass, type ProtocolPacketClass } from './bedrock/ProtocolCodec';
+import type { ProtocolPacketClass } from './bedrock/ProtocolCodec';
+import { isProtocolPacketClass } from './bedrock/ProtocolCodec';
 import * as Packets from './bedrock/packet';
 
 class PayloadPacket extends NetworkPacket<number> {
