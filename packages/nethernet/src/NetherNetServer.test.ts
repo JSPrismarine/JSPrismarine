@@ -274,7 +274,9 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
             const lastClosed = once(server, 'closeConnection');
             second.client.close();
             await lastClosed;
-            await vi.waitFor(async () => expect(await bindable(port)).toBe(true));
+            // libjuice closes the socket on its own thread after the connection closes, which
+            // can take longer than `waitFor`'s one second default on a busy runner.
+            await vi.waitFor(async () => expect(await bindable(port)).toBe(true), { timeout: 10_000 });
         } finally {
             first.client.close();
             second.client.close();
