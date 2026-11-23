@@ -1,0 +1,12 @@
+language js
+
+// A `World` built on its prototype never runs the constructor, so it has none of the maps, sets
+// and systems the constructor makes. Each field `World` gains later is missing from every such
+// double until a test reaches it and throws, as `freshChunks` did. Build a test world with
+// `testWorld` from `testing/level`, and assign the members a test needs over it.
+`Object.create(World.prototype)` as $token where {
+    register_diagnostic(
+        span = $token,
+        message = "Build the world with testWorld() from @jsprismarine/prismarine/testing/level and assign overrides over it: a World built on its prototype skips the constructor and misses every field it makes."
+    )
+}

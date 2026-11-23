@@ -150,5 +150,9 @@
             }
         }
     ],
-    "plugins": ["./.biome/no-barrel-imports.grit", "./.biome/no-british-spellings.grit"]
+    "plugins": [
+        "./.biome/no-barrel-imports.grit",
+        "./.biome/no-british-spellings.grit",
+        "./.biome/no-prototype-world.grit"
+    ]
 }
