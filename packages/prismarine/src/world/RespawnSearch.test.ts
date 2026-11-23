@@ -8,7 +8,7 @@ import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import type PlayerSession from '../network/PlayerSession';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
@@ -18,8 +18,7 @@ import { Position } from './Position';
 import BaseProvider from './providers/BaseProvider';
 import { RespawnSearch } from './RespawnSearch';
 import type { RespawnAttempt, RespawnRequest } from './RespawnSearch';
-import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import type { World } from './World';
 
 /**
  * A world of air with the named blocks placed, keyed by `x,y,z`. The chunks named in `unloaded`,
@@ -84,9 +83,9 @@ const searchOver = ({ overworld = worldOf(Dimensions.Overworld), nether = worldO
 };
 
 /**
- * An Overworld on the real prototype, with no chunk in memory and a provider that lets chunks
- * unload, so the chunk tickets and the unload pass are the real ones. A ticket's load is only
- * recorded; `admit` puts the recorded chunks in, as an input step would, with `blocks` placed.
+ * An Overworld built by the real constructor, with no chunk in memory and a provider that lets
+ * chunks unload, so the chunk tickets and the unload pass are the real ones. A ticket's load is
+ * only recorded; `admit` puts the recorded chunks in, as an input step would, with `blocks` placed.
  * One player stands far away, because the unload pass does nothing in a world nobody is in.
  */
 const unloadingWorld = (blocks: Record<string, string>) => {
@@ -94,42 +93,41 @@ const unloadingWorld = (blocks: Record<string, string>) => {
     const chunks = new Map<number, Chunk>();
     const requested: string[] = [];
     let due: [number, number][] = [];
-    const world: World = Object.assign(Object.create(World.prototype), {
-        // The sink the constructor would have set, which hears each chunk enter and leave.
-        changes: NULL_WORLD_CHANGE_SINK,
-        chunks,
-        loadedChunksRevision: 0,
-        players,
-        loading: new Map(),
-        level: fakeLevel({
-            provider: stubOf(BaseProvider, {
-                supportsChunkUnload: true,
-                writeChunk: async (chunk) => chunk.markSaved()
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({
+                provider: stubOf(BaseProvider, {
+                    supportsChunkUnload: true,
+                    writeChunk: async (chunk) => chunk.markSaved()
+                })
             })
         }),
-        getPlayers: () => Array.from(players.values()),
-        getEntities: () => [],
-        actors: () => [].values(),
-        dataEntities: () => ({
-            persist: () => {},
-            unload: () => false,
-            runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
-        }),
-        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
-        dimension: Dimensions.Overworld,
-        server: {
-            // No content, so a block resolves from the full palette's schemas: the fixture
-            // content has stone but no air or bed.
-            getContent: () => undefined,
-            invalidateEntityBlockCaches: () => {},
-            getLogger: () => ({ error: vi.fn() })
-        },
-        loadTicketedChunk: (x: number, z: number) => {
-            requested.push(`${x},${z}`);
-            due.push([x, z]);
-            return true;
+        {
+            chunks,
+            players,
+            getPlayers: () => Array.from(players.values()),
+            getEntities: () => [],
+            actors: () => [].values(),
+            dataEntities: () => ({
+                persist: () => {},
+                unload: () => false,
+                runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
+            }),
+            systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
+            server: {
+                // No content, so a block resolves from the full palette's schemas: the fixture
+                // content has stone but no air or bed.
+                getContent: () => undefined,
+                invalidateEntityBlockCaches: () => {},
+                getLogger: () => ({ error: vi.fn() })
+            },
+            loadTicketedChunk: (x: number, z: number) => {
+                requested.push(`${x},${z}`);
+                due.push([x, z]);
+                return true;
+            }
         }
-    });
+    );
     players.set(
         1,
         stub<PlayerSession>({

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
+import type { Logger } from '@jsprismarine/logger';
 import { Difficulty, Gametype, LevelSoundEventName } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
@@ -24,17 +25,19 @@ import type { ServerWorldHandle } from '../content/world/serverSource';
 import { Item } from './Item';
 import { useItemInAir, useItemOnBlock } from './interaction';
 import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
-import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
 import { createEngineWorld } from '../world/EngineWorld';
-import { World } from '../world/World';
+import type { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
 import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
+import { stub } from '../testing/stub.test.helper';
+import type Server from '../Server';
+import type { Config } from '../config/Config';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';
 
@@ -170,7 +173,7 @@ const overlayBlock = (identifier: string) => {
     return definitionOf('blocks', identifier, JSON.parse(readFileSync(file, 'utf8')));
 };
 
-/** A `World` reduced to what the interaction path touches, on a real chunk and real systems. */
+/** A `World` holding one chunk, for the interaction path to act on, with real systems. */
 const liveWorld = (
     content: () => ServerContent
 ): {
@@ -189,26 +192,25 @@ const liveWorld = (
     const redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[] = [];
 
     const kernel = testKernel();
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
-        dimension: Dimensions.Overworld,
-        blockUpdates: new BlockUpdateScheduler(),
-        players: new Map(),
-        server: {
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
-            // to land. Read late, because the content is built over this world.
-            getContent: () => content(),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            // Rolled for the pitch of an eye of ender's launch.
-            getRandom: () => () => 0.5,
-            getEntityRuntime: () => runtime,
-            hasEntityRuntime: () => true,
-            // Where an item use raises its guard and after events.
-            getKernel: () => kernel
-        }
-    });
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
+            server: stub<Server>({
+                getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL }),
+                // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
+                // to land. Read late, because the content is built over this world.
+                getContent: () => content(),
+                getLogger: () => stub<Logger>({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
+                // Rolled for the pitch of an eye of ender's launch.
+                getRandom: () => () => 0.5,
+                getEntityRuntime: () => runtime,
+                hasEntityRuntime: () => true,
+                // Where an item use raises its guard and after events.
+                getKernel: () => kernel
+            })
+        }),
+        { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) }
+    );
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,

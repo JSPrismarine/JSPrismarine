@@ -10,13 +10,11 @@ import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/bedrock/packet/AddItemActorPacket';
 import Codec2193 from '../network/codec/Codec2193';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';
 import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { fakeLevel } from '../testing/level';
+import { testWorld } from '../testing/level';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';
@@ -91,14 +89,10 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     let world: World | undefined;
     const live = liveTestEntities(() => world);
     const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
-    world = Object.assign(Object.create(World.prototype), {
+    world = Object.assign(testWorld(), {
         tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        dimension: Dimensions.Overworld,
-        level: fakeLevel(),
-        blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
-        players: new Map(),
         getLoadedChunk: () => chunk,
         loadedBlock: () => block,
         getViewers: () => [session],
@@ -151,14 +145,8 @@ const emptyWorld = () => {
     let world: World | undefined;
     const live = liveTestEntities(() => world);
     const items = () => itemsOf(live.entityRuntime(Dimensions.Overworld.name));
-    world = Object.assign(Object.create(World.prototype), {
+    world = Object.assign(testWorld({ name: 'flooded' }), {
         tickHeader: () => QUIET_TICK_HEADER,
-        name: 'flooded',
-        dimension: Dimensions.Overworld,
-        players: new Map(),
-        chunks: new Map(),
-        level: fakeLevel(),
-        changes: NULL_WORLD_CHANGE_SINK,
         server: {
             getKernel: () => testKernel(),
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),

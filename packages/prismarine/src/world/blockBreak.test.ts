@@ -20,15 +20,10 @@ import type { ContentPosition } from '../content/world/adapter';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { ServerContent } from '../content/ServerContent';
 import { Item } from '../item/Item';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './DimensionType';
-import { createEngineWorld } from './EngineWorld';
-import { World } from './World';
-import { WorldSystems } from './WorldSystems';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import type { World } from './World';
 import { Position } from './Position';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
@@ -195,7 +190,7 @@ const fixturePalette = (): BlockPalette =>
 /**
  * A `World` reduced to what a break touches.
  *
- * Built on the real prototype with a real `Chunk` and real `WorldSystems`, so the write, the
+ * Built by the real constructor with a real `Chunk` and real `WorldSystems`, so the write, the
  * block entity and the drops are the server's own. Only the disk, the network and the server
  * around it are replaced.
  */
@@ -231,11 +226,8 @@ const liveWorld = (
     // Where the world finds the breaking player's session by the same key.
     const players = new Map<number, PlayerSession>();
 
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const world: World = Object.assign(testWorld({ level: fakeLevel({ spawn: new Vector3(8, 64, 8) }) }), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
-        dimension: Dimensions.Overworld,
-        blockUpdates: new BlockUpdateScheduler(),
         entities,
         players,
         getChunkAt: async () => chunk,
@@ -252,19 +244,7 @@ const liveWorld = (
         }
     });
 
-    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     collectAddedActors(spawned);
-    Object.assign(world, {
-        systems: new WorldSystems({
-            view: {
-                dimension: Dimensions.Overworld,
-                blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
-                loadedChunks: () => [{ x: 0, z: 0 }]
-            },
-            world: createEngineWorld(world)
-        })
-    });
-
     return { world, chunk, spawned, entities, players };
 };
 

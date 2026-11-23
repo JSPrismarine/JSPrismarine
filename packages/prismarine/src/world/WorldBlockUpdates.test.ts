@@ -2,12 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { BLOCK_UPDATE_BUDGET_PER_TICK, BlockUpdateScheduler } from './BlockUpdateScheduler';
 import type { BlockUpdate } from './BlockUpdateScheduler';
-import { World } from './World';
+import type { World } from './World';
+import { testWorld } from '../testing/level';
 
 /**
  * A world reduced to its block update queue and a physics pass that records what it was asked.
  *
- * Built on the real prototype, so `runBlockUpdates` is the code under test. Every other update
+ * Built by the real constructor, so `runBlockUpdates` is the code under test. Every other update
  * resolves at once, as a state-changing update does, so the run awaits the way it does live.
  */
 const worldWithBlockUpdates = (queued: number) => {
@@ -16,7 +17,7 @@ const worldWithBlockUpdates = (queued: number) => {
     const blockUpdates = new BlockUpdateScheduler();
     for (let x = 0; x < queued; x++) blockUpdates.schedule(x, 64, 0, 0);
 
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const world: World = Object.assign(testWorld(), {
         blockUpdates,
         physics: {
             update: (x: number, y: number, z: number) => {

@@ -8,12 +8,9 @@ import type { EntityStore } from '../entity/data/EntityStore';
 import type Server from '../Server';
 import type { ChangeEntry, OccurrenceEntry } from '../world/changelog/ChangeEntry';
 import type { SealedTick } from '../world/changelog/ChangeLog';
-import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
-import { Dimensions } from '../world/DimensionType';
-import { World } from '../world/World';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
-import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { inertEntityRuntime } from './entityServer';
+import { testWorld } from './level';
 import { stub } from './stub.test.helper';
 import type { StubMembers } from './stub.test.helper';
 
@@ -28,7 +25,7 @@ export const sealOccurrences = (sink: Pick<WorldChangeSink, 'tickSealed'>, ...en
 };
 
 /**
- * A world double built on the prototype, whose occurrences go into a real store's change log, as
+ * A world built by its own constructor, whose occurrences go into a real store's change log, as
  * a ticking world's do.
  * @param members - The world's members the code under test reads, over the double's own.
  * @param serverMembers - The server's members the code under test reads, beside the ones the
@@ -41,20 +38,15 @@ export const occurrenceWorld = (members: object = {}, serverMembers: StubMembers
     const store: EntityStore = runtime.runtime.store;
     store.beginTick();
     const verbose: string[] = [];
-    const world: World = Object.assign(
-        Object.create(World.prototype),
-        {
-            changes: NULL_WORLD_CHANGE_SINK,
-            dimension: Dimensions.Overworld,
-            // The journal a world registers on its store with its log.
-            blockUpdates: new BlockUpdateScheduler(),
+    const world = Object.assign(
+        testWorld({
             server: stub<Server>({
                 getEntityRuntime: () => runtime,
                 hasEntityRuntime: () => true,
                 getLogger: () => stub<Logger>({ verbose: (message: string) => void verbose.push(message) }),
                 ...serverMembers
             })
-        },
+        }),
         members
     );
     const occurrences = (): OccurrenceEntry[] => {

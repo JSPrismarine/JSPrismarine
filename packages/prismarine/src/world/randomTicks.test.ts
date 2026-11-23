@@ -15,17 +15,15 @@ import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { createEngineWorld } from './EngineWorld';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
-import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import type { World } from './World';
 import { WorldSystems } from './WorldSystems';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 
 /**
  * A field in a loaded chunk, and the proof that a random tick reaches it.
@@ -94,19 +92,14 @@ describe('contentRandomTickHandlers', () => {
     beforeEach(() => {
         chunk = new Chunk(0, 0);
 
-        world = Object.assign(Object.create(World.prototype), {
+        world = Object.assign(testWorld({ level: fakeLevel({ spawn: new Vector3(8, 64, 8) }) }), {
             chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-            level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
-            dimension: Dimensions.Overworld,
-            blockUpdates: new BlockUpdateScheduler(),
-            players: new Map(),
             server: {
                 getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
                 getContent: () => content,
                 getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} })
             }
         });
-        world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
 
         let built: ServerContent | undefined;
         content = buildServerContent({

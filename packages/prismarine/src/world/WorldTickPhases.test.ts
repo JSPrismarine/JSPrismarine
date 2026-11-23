@@ -13,12 +13,11 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
-import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import type { WorldChangeSink } from './WorldChangeSink';
-import { World } from './World';
+import type { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import type GameRuleManager from './GameRuleManager';
 import BaseProvider from './providers/BaseProvider';
@@ -92,37 +91,37 @@ const worldTicking = ({
         getDimensionTravel: () => travel
     };
 
-    // Built on the real prototype, so `update` is the code under test rather than more of the
+    // Built by the real constructor, so `update` is the code under test rather than more of the
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
     const runtimeIds = new Map<string, number>();
-    const world: World = Object.assign(Object.create(World.prototype), {
-        tickHeader: () => QUIET_TICK_HEADER,
-        players: new Map(),
-        chunks: new Map(),
-        tickingAreas: new Map(),
-        name: 'tick-test-world',
-        // The level's clock stands on the second the time is put on the wire, so that the
-        // phase runs at all: it is sent once a second rather than every tick. Chunk unloading
-        // is outside the phase ordering this fixture exercises.
-        level: fakeLevel({
-            ticks: currentTick,
-            gameRules: stub<GameRuleManager>({ getGameRule: () => [true, true] as const }),
-            provider: stubOf(BaseProvider, { supportsChunkUnload: false })
+    const world: World = Object.assign(
+        testWorld({
+            name: 'tick-test-world',
+            // The level's clock stands on the second the time is put on the wire, so that the
+            // phase runs at all: it is sent once a second rather than every tick. Chunk unloading
+            // is outside the phase ordering this fixture exercises.
+            level: fakeLevel({
+                ticks: currentTick,
+                gameRules: stub<GameRuleManager>({ getGameRule: () => [true, true] as const }),
+                provider: stubOf(BaseProvider, { supportsChunkUnload: false })
+            })
         }),
-        dimension: Dimensions.Overworld,
-        loadedBlockAt: blockAt,
-        // A runtime id names one block, so the stand-in numbers each name the first time it is read.
-        loadedBlockRuntimeIdAt: (x: number, y: number, z: number) => {
-            const name = blockAt(x, y, z)?.name;
-            if (name === undefined) return undefined;
-            if (!runtimeIds.has(name)) runtimeIds.set(name, runtimeIds.size);
-            return runtimeIds.get(name);
-        },
-        runBlockUpdates: () => void calls.push('blockUpdates'),
-        systems: { tick: () => void calls.push('systems') },
-        save: async () => {},
-        server
-    });
+        {
+            tickHeader: () => QUIET_TICK_HEADER,
+            loadedBlockAt: blockAt,
+            // A runtime id names one block, so the stand-in numbers each name the first time it is read.
+            loadedBlockRuntimeIdAt: (x: number, y: number, z: number) => {
+                const name = blockAt(x, y, z)?.name;
+                if (name === undefined) return undefined;
+                if (!runtimeIds.has(name)) runtimeIds.set(name, runtimeIds.size);
+                return runtimeIds.get(name);
+            },
+            runBlockUpdates: () => void calls.push('blockUpdates'),
+            systems: { tick: () => void calls.push('systems') },
+            save: async () => {},
+            server
+        }
+    );
 
     world.attachChangeSink(sink);
 

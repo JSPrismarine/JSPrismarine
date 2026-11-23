@@ -12,16 +12,13 @@ import { fixtureContentOptions } from '../content/testing';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { sealBlockKinds } from '../testing/sealedBlocks.test.helper';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { stub } from '../testing/stub.test.helper';
-import { fakeLevel } from '../testing/level';
+import { testWorld } from '../testing/level';
 import { Position } from './Position';
-import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
-import { World } from './World';
+import type { World } from './World';
 import { tickFurnace } from './cooking';
 
 const ITEM_IDS = new Set([
@@ -95,13 +92,9 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
     const runtime = inertEntityRuntime();
     const store = runtime.runtime.store;
     store.beginTick();
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const world: World = Object.assign(testWorld(), {
         chunks,
         players,
-        dimension: Dimensions.Overworld,
-        level: fakeLevel(),
-        blockUpdates: new BlockUpdateScheduler(),
-        systems: { onBlockChanged: () => {} },
         server: {
             getContent: () => content,
             getLogger: () => ({ error: vi.fn() }),
@@ -119,8 +112,6 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         })
     );
 
-    // The sink the constructor would have set, which reads the sealed ticks too.
-    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     /** What the open tick changed in the blocks, which seals it and opens the next. */
     const changes = (): string[] => sealBlockKinds(store);
     const refs = world['getPlayerChunkRefCounts']();

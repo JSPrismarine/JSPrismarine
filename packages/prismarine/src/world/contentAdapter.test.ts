@@ -29,8 +29,9 @@ import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator
 import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
 import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
 import { loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
-import { World } from './World';
-import { fakeLevel } from '../testing/level';
+import type { Generator } from './Generator';
+import type { World } from './World';
+import { fakeLevel, testWorld } from '../testing/level';
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -78,10 +79,7 @@ const contentWith = (
 
 /** The world's groups over one in-memory chunk at the origin, on a real `World`. */
 const groupsOver = (chunk: Chunk, content: WorldContentFacts) => {
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        dimension: Dimensions.Overworld
-    });
+    const world: World = Object.assign(testWorld(), { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) });
 
     return worldContentGroups({
         dimension: DIMENSION,
@@ -222,8 +220,7 @@ describe('the spawn floor of a column', () => {
 
 describe('dimension brightness', () => {
     const lightAt = (dimension: (typeof Dimensions)[keyof typeof Dimensions], blockLight = 0) => {
-        const world: World = Object.assign(Object.create(World.prototype), {
-            dimension,
+        const world: World = Object.assign(testWorld({ dimension }), {
             systems: {
                 lighting: {
                     getBlockLight: () => blockLight,
@@ -315,11 +312,7 @@ describe('the game rules a world carries', () => {
         const rules = new GameRuleManager(server);
         for (const [name, value] of set) rules.setGameRule(name, value, true);
 
-        const world: World = Object.assign(Object.create(World.prototype), {
-            chunks: new Map(),
-            dimension: Dimensions.Overworld,
-            level: fakeLevel({ server, gameRules: rules })
-        });
+        const world = testWorld({ level: fakeLevel({ server, gameRules: rules }) });
 
         return worldContentGroups({
             dimension: DIMENSION,
@@ -359,10 +352,9 @@ describe('the level facts a dimension answers', () => {
      * behind it whose generator floods to `seaLevel`, or to nothing in particular when left out.
      */
     const levelOf = (dimension: string, seaLevel?: number) => {
-        const world: World = Object.assign(Object.create(World.prototype), {
-            chunks: new Map(),
+        const world = testWorld({
             dimension: dimensionByName(dimension) ?? Dimensions.Overworld,
-            generator: seaLevel === undefined ? {} : { seaLevel }
+            generator: stub<Generator>(seaLevel === undefined ? {} : { seaLevel })
         });
 
         return worldContentGroups({
@@ -415,11 +407,7 @@ describe('the level facts a dimension answers', () => {
             'mypack:sky',
             FIRST_CUSTOM_DIMENSION_ID
         );
-        const world: World = Object.assign(Object.create(World.prototype), {
-            chunks: new Map(),
-            dimension: sky,
-            generator: {}
-        });
+        const world = testWorld({ dimension: sky });
 
         const level = worldContentGroups({
             dimension: 'mypack:sky',

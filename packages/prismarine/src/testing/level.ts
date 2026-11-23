@@ -35,7 +35,7 @@ import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
 import { RespawnSearch } from '../world/RespawnSearch';
 import { WorldWeather } from '../world/Weather';
-import type { World } from '../world/World';
+import { World } from '../world/World';
 import type { WorldExperiment } from '../world/WorldExperiments';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
 import { testEntityServer } from './entityServer';
@@ -180,6 +180,41 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         savePlayerData: async (key, data) => {
             options.playerData?.set(key, data);
         }
+    });
+};
+
+/** What a test says about the world {@link testWorld} builds. Every member is optional. */
+export interface TestWorldOptions {
+    readonly name?: string;
+    /** Defaults to the level's server, or {@link testEntityServer} with no level either. */
+    readonly server?: Server;
+    /** Defaults to a {@link fakeLevel} over the server. */
+    readonly level?: Level;
+    readonly dimension?: DimensionType;
+    /** Defaults to a generator with no members, for a test that never generates a chunk. */
+    readonly generator?: Generator;
+    readonly config?: WorldConfig;
+}
+
+/**
+ * A world built by its own constructor over test doubles.
+ *
+ * Build every test world through this, never on `World.prototype`: the constructor makes each
+ * map, set and system a world keeps, so a field `World` adds later is there in every test. A
+ * test that needs a member to answer differently assigns it over the built world.
+ */
+export const testWorld = (options: TestWorldOptions = {}): World => {
+    const server = options.server ?? options.level?.getServer() ?? testEntityServer();
+    const name = options.name ?? 'test';
+    return new World({
+        name,
+        path: name,
+        server,
+        level: options.level ?? fakeLevel({ server }),
+        stem: TEST_OVERWORLD_STEM,
+        generator: options.generator ?? stub<Generator>({}),
+        dimension: options.dimension ?? Dimensions.Overworld,
+        ...(options.config === undefined ? {} : { config: options.config })
     });
 };
 

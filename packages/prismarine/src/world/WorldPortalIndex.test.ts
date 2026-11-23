@@ -3,7 +3,7 @@ import { EntityStore } from '../entity/data/EntityStore';
 import { TickScheduler } from '@jsprismarine/engine-systems';
 import { describe, expect, it, vi } from 'vitest';
 
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -11,39 +11,38 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import BaseProvider from './providers/BaseProvider';
-import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import type { World } from './World';
 
 /**
- * A world over in-memory chunks whose provider lets them be unloaded, built on the real
- * prototype so the unload path and the portal index are the code under test.
+ * A world over in-memory chunks whose provider lets them be unloaded, built by the real
+ * constructor so the unload path and the portal index are the code under test.
  */
 const worldWith = (chunks: readonly Chunk[]): World => {
     const players = new Map<bigint, PlayerSession>();
-    const world: World = Object.assign(Object.create(World.prototype), {
-        // The sink the constructor would have set, which hears each chunk enter and leave.
-        changes: NULL_WORLD_CHANGE_SINK,
-        chunks: new Map(chunks.map((chunk) => [Chunk.packXZ(chunk.getX(), chunk.getZ()), chunk])),
-        players,
-        loading: new Map(),
-        level: fakeLevel({
-            provider: stubOf(BaseProvider, {
-                supportsChunkUnload: true,
-                writeChunk: async (chunk) => chunk.markSaved()
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({
+                provider: stubOf(BaseProvider, {
+                    supportsChunkUnload: true,
+                    writeChunk: async (chunk) => chunk.markSaved()
+                })
             })
         }),
-        getPlayers: () => Array.from(players.values()),
-        getEntities: () => [],
-        actors: () => [].values(),
-        dataEntities: () => ({
-            persist: () => {},
-            unload: () => false,
-            runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
-        }),
-        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
-        dimension: Dimensions.Overworld,
-        server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
-    });
+        {
+            chunks: new Map(chunks.map((chunk) => [Chunk.packXZ(chunk.getX(), chunk.getZ()), chunk])),
+            players,
+            getPlayers: () => Array.from(players.values()),
+            getEntities: () => [],
+            actors: () => [].values(),
+            dataEntities: () => ({
+                persist: () => {},
+                unload: () => false,
+                runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
+            }),
+            systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
+            server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
+        }
+    );
     for (const chunk of chunks) world.getPortalIndex().chunkLoaded(chunk);
     return world;
 };

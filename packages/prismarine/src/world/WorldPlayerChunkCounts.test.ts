@@ -16,8 +16,7 @@ import type { Generator } from './Generator';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
+import { TEST_OVERWORLD_STEM, fakeLevel, testWorld } from '../testing/level';
 import BaseProvider from './providers/BaseProvider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import type { DataEntity } from '../entity/data/DataEntity';
@@ -34,26 +33,25 @@ const worldWith = (
     const players = new Map<number, PlayerSession>();
     const chunks = new Map(chunkPositions.map(([x, z]) => [Chunk.packXZ(x, z), new Chunk(x, z)]));
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        // The sink the constructor would have set, which hears each chunk enter and leave.
-        changes: NULL_WORLD_CHANGE_SINK,
-        chunks,
-        loadedChunksRevision: 0,
-        players,
-        loading: new Map(),
-        level: fakeLevel({ provider: stubOf(BaseProvider, { supportsChunkUnload: unloadable, writeChunk }) }),
-        getPlayers: () => Array.from(players.values()),
-        getEntities: () => [],
-        actors: () => [].values(),
-        dataEntities: () => ({
-            persist: () => {},
-            unload: () => false,
-            runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({ provider: stubOf(BaseProvider, { supportsChunkUnload: unloadable, writeChunk }) })
         }),
-        systems: { onChunkUnloaded: () => {}, isLightReady: () => true, ticks: new TickScheduler() },
-        dimension: Dimensions.Overworld,
-        server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
-    });
+        {
+            chunks,
+            players,
+            getPlayers: () => Array.from(players.values()),
+            getEntities: () => [],
+            actors: () => [].values(),
+            dataEntities: () => ({
+                persist: () => {},
+                unload: () => false,
+                runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
+            }),
+            systems: { onChunkUnloaded: () => {}, isLightReady: () => true, ticks: new TickScheduler() },
+            server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
+        }
+    );
 
     return world;
 };

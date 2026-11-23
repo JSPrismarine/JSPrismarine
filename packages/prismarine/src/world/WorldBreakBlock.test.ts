@@ -10,12 +10,10 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';
-import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
-import { World } from './World';
-import { fakeLevel } from '../testing/level';
+import type { World } from './World';
+import { testWorld } from '../testing/level';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
 import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';
@@ -92,14 +90,9 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     const entities = liveTestEntities(() => live);
     // One kernel for the world's whole life, so a test hears the player events a break posts.
     const kernel = testKernel();
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const world: World = Object.assign(testWorld(), {
         tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        dimension: Dimensions.Overworld,
-        // Empty and never written: a drop is a store stack. It is here because a world with no
-        // entity map is not a world.
-        level: fakeLevel(),
-        blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
         getLoadedChunk: () => chunk,
         loadedBlock: () => broken,

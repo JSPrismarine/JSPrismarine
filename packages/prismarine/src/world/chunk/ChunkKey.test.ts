@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { World } from '../World';
+import { testWorld } from '../../testing/level';
+import type { World } from '../World';
 import Chunk from './Chunk';
 
 /** The world border is 30000000 blocks from origin, which is this many chunks. */
@@ -65,17 +66,16 @@ describe('world', () => {
     /**
      * The key a world stores a chunk under has to be the key it looks one up by.
      *
-     * Nothing else checks that. `pnpm typecheck` skips `*.test.*`, and a double assembled
-     * with `Object.assign(Object.create(World.prototype), { chunks })` never has its
-     * `chunks` field compared against the class either. A map keyed the other way answers
+     * Nothing else checks that. `pnpm typecheck` skips `*.test.*`, and a fixture that assigns
+     * its own `chunks` over a test world, as `Object.assign(testWorld(), { chunks })` does,
+     * never has that field compared against the class either. A map keyed the other way answers
      * null to every question instead of throwing, so the spawner's loaded check, the surface
      * scan and the path finder all read an empty world and report nothing wrong. A fixture
      * that kept a bigint key after this one became a number is what stopped mobs spawning in
      * `entity/data/live.test.ts`.
      */
     describe('World.getLoadedChunk', () => {
-        const worldOver = (chunks: Map<number, Chunk>): World =>
-            Object.assign(Object.create(World.prototype), { chunks });
+        const worldOver = (chunks: Map<number, Chunk>): World => Object.assign(testWorld(), { chunks });
 
         it('finds a chunk stored under the key packXZ returns', () => {
             const chunk = new Chunk(-3, 5);

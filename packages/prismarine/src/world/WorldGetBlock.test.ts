@@ -5,20 +5,24 @@ import { reportProgress } from '../../../../.test/reportProgress';
 import { BlockState } from '../block/state/BlockState';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { ServerContent } from '../content/ServerContent';
-import { World } from './World';
+import { testWorld } from '../testing/level';
+import { stub } from '../testing/stub.test.helper';
+import type Chunk from './chunk/Chunk';
+import type { World } from './World';
 
 /**
  * A world that holds one state at every position.
  *
- * Built off the prototype because what is under test is the one method and the registry
- * behind it, and standing up a provider, a generator and a tick would say nothing more.
+ * Every chunk it answers is a stub that holds `state`, because what is under test is the one
+ * method and the registry behind it, and a provider and a generator would say nothing more.
  */
-const worldHolding = (state: BlockState, content?: ServerContent) =>
-    Object.assign(Object.create(World.prototype), {
-        getName: () => 'test',
-        getChunkAt: async () => ({ getBlock: () => state }),
+const worldHolding = (state: BlockState, content?: ServerContent): World =>
+    Object.assign(testWorld(), {
+        getChunkAt: async () => stub<Chunk>({ getBlock: () => state }),
+        // Assigned over the built world rather than passed in: with no content a block resolves
+        // from the shipped schemas, and `Server.getContent` is typed never to answer undefined.
         server: { getContent: () => content }
-    }) as World;
+    });
 
 describe('World.getBlock', () => {
     it('resolves every state in the palette', async () => {

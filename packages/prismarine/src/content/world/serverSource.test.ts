@@ -5,6 +5,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
+import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
 import { constantRandom } from '@jsprismarine/predicates';
@@ -15,12 +16,8 @@ import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { dataEntityRecordIn } from '../../entity/data/persistence';
 import { EntityRuntimes } from '../../entity/data/live';
-import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
-import { Dimensions } from '../../world/DimensionType';
-import { createEngineWorld } from '../../world/EngineWorld';
-import { World } from '../../world/World';
-import { WorldSystems } from '../../world/WorldSystems';
+import type { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { definitionOf, definitionsOf } from '../ContentOptions';
 import { overlayPackPath } from '../packStack';
@@ -28,7 +25,10 @@ import { buildServerContent } from '../ServerContent';
 import type { ServerContent } from '../ServerContent';
 import type { ContentPosition } from './adapter';
 import { serverWorldSource } from './serverSource';
-import { fakeLevel } from '../../testing/level';
+import { fakeLevel, testWorld } from '../../testing/level';
+import { stub } from '../../testing/stub.test.helper';
+import type Server from '../../Server';
+import type { Config } from '../../config/Config';
 import { QUIET_TICK_HEADER } from '../../testing/tickHeader.test.helper';
 import { testKernel } from '../../testing/kernel.test.helper';
 
@@ -125,9 +125,9 @@ interface Broadcasts {
 }
 
 /**
- * A `World` reduced to what the content adapter touches.
+ * A `World` holding one chunk, for the content adapter to act on.
  *
- * Built on the real prototype with a real `Chunk` and real `WorldSystems`, so the block
+ * Built by its own constructor with a real `Chunk` and real `WorldSystems`, so the block
  * writes, the light and the tick lists are the server's own rather than a stand-in. Only the
  * disk, the network and the server around it are replaced.
  */
@@ -153,26 +153,30 @@ const liveWorld = (
         }
     };
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        tickHeader: () => QUIET_TICK_HEADER,
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
-        dimension: Dimensions.Overworld,
-        blockUpdates: new BlockUpdateScheduler(),
-        players: new Map(),
-        server: {
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            getKernel: () => testKernel(),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            // An entity reads its hitbox off the built content, and a spawn is what half of
-            // these tests are about, so the double answers the same build the world does.
-            getContent: content,
-            // The store entities the adapter spawns, which the world lists through their actors.
-            getEntityRuntime: (dimension: string) => runtimes().at(dimension),
-            // So its sounds and particles go into its change log, as a live world's do.
-            hasEntityRuntime: () => true
-        }
-    });
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
+            server: stub<Server>({
+                getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL }),
+                getKernel: () => testKernel(),
+                getLogger: () => stub<Logger>({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
+                // An entity reads its hitbox off the built content, and a spawn is what half of
+                // these tests are about, so the double answers the same build the world does.
+                getContent: content,
+                // The store entities the adapter spawns, which the world lists through their actors.
+                // By dimension alone: the source opens the default level's runtime, and this
+                // world's level double is named `test`.
+                getEntityRuntime: (dimension) => {
+                    const runtime = runtimes().at(dimension);
+                    if (runtime === undefined) throw new Error(`no entity runtime open for ${dimension}`);
+                    return runtime;
+                },
+                // So its sounds and particles go into its change log, as a live world's do.
+                hasEntityRuntime: () => true
+            })
+        }),
+        { tickHeader: () => QUIET_TICK_HEADER, chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) }
+    );
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
@@ -183,17 +187,6 @@ const liveWorld = (
                 if (entry.occurrence === 'named-particle') heard.particles.push(entry.data.name);
             }
         }
-    });
-
-    Object.assign(world, {
-        systems: new WorldSystems({
-            view: {
-                dimension: Dimensions.Overworld,
-                blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
-                loadedChunks: () => [{ x: 0, z: 0 }]
-            },
-            world: createEngineWorld(world)
-        })
     });
 
     return { world, chunk, broadcasts };

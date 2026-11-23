@@ -9,9 +9,8 @@ import { testKernel } from '../testing/kernel.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
-import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
+import type { World } from './World';
+import { testWorld } from '../testing/level';
 
 /** The session of a player in the world, joined or still joining. */
 const playerWith = (runtimeId: bigint, online: boolean) => ({
@@ -20,12 +19,11 @@ const playerWith = (runtimeId: bigint, online: boolean) => ({
 
 /** A world holding these sessions in its player map, by entity id. */
 const worldWith = (...sessions: PlayerSession[]): World =>
-    Object.assign(Object.create(World.prototype), {
-        tickHeader: () => QUIET_TICK_HEADER,
+    Object.assign(testWorld(), {
         players: new Map(sessions.map((session) => [Number(session.runtimeId), session]))
     });
 
-/** A world on the real prototype whose players enter a real entity store of the fixture content. */
+/** A world built by its own constructor whose players enter a real entity store of the fixture content. */
 const storeWorld = (): World => {
     let world: World | undefined;
     const entities = liveTestEntities(() => world);
@@ -37,15 +35,8 @@ const storeWorld = (): World => {
         getStorePlayers: () => entities.players,
         getContent: () => entities.content()
     });
-    const created: World = Object.assign(Object.create(World.prototype), {
-        tickHeader: () => QUIET_TICK_HEADER,
-        chunks: new Map(),
-        players: new Map(),
-        dimension: Dimensions.Overworld,
-        server
-    });
+    const created: World = testWorld({ server });
     world = created;
-    created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     return created;
 };
 

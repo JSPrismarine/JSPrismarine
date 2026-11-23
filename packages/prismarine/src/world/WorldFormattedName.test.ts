@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Dimensions } from './DimensionType';
-import { World } from './World';
+import { testWorld } from '../testing/level';
 
 describe('World.getFormattedName', () => {
     it.each([
@@ -9,7 +9,7 @@ describe('World.getFormattedName', () => {
         [Dimensions.Nether, 'minecraft:the_nether'],
         [Dimensions.TheEnd, 'minecraft:the_end']
     ])('names the level and the dimension, not the generator, for %#', (dimension, id) => {
-        const world: World = Object.assign(Object.create(World.prototype), { name: 'world', dimension });
+        const world = testWorld({ name: 'world', dimension });
 
         expect(world.getFormattedName()).toBe(`§b'world'/${id}§r`);
     });

@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import Chunk from '../../world/chunk/Chunk';
 import { worldContentGroups } from '../../world/contentAdapter';
-import { Dimensions } from '../../world/DimensionType';
-import { World } from '../../world/World';
+import { testWorld } from '../../testing/level';
+import type { World } from '../../world/World';
 import type { ContentBlock, ContentBlockAccess } from '../../content/world/adapter';
 
 import { navigationViewOf } from './navigationView';
@@ -39,11 +39,8 @@ describe('navigationViewOf', () => {
         const chunk = new Chunk(0, 0);
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
         for (let x = 0; x < 10; x += 1) chunk.setBlockRuntimeId(x, 64, 0, stone);
-        // Built on the real prototype, so the chunk lookup is the world's own.
-        const world: World = Object.assign(Object.create(World.prototype), {
-            chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-            dimension: Dimensions.Overworld
-        });
+        // A real world, so the chunk lookup is the world's own.
+        const world: World = Object.assign(testWorld(), { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) });
         let resolutions = 0;
         const groups = worldContentGroups({
             dimension: 'minecraft:overworld',

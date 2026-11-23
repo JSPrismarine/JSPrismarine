@@ -31,23 +31,19 @@ import type { Config } from '../../config/Config';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { testEntityServer } from '../../testing/entityServer';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
-import { TEST_GENERATOR_KIND, TEST_OVERWORLD_STEM, fakeLevel } from '../../testing/level';
+import { TEST_GENERATOR_KIND, TEST_OVERWORLD_STEM, fakeLevel, testWorld } from '../../testing/level';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { GeneratorFactories } from '../GeneratorFactories';
 import { Level } from '../Level';
 import type { DimensionTravel } from '../portal/DimensionTravel';
 import LevelDB from '../providers/leveldb/LevelDB';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../DimensionType';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { portalRuleOf } from '../portal/rules';
-import { createEngineWorld } from '../EngineWorld';
 import type { Generator } from '../Generator';
-import { World } from '../World';
-import { NULL_WORLD_CHANGE_SINK } from '../WorldChangeSink';
-import { WorldSystems } from '../WorldSystems';
+import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { parseWorldPersistenceData } from '../WorldPersistence';
 import type { DragonFightState } from '../WorldPersistence';
@@ -63,7 +59,7 @@ const RESPAWN_PREPARE_TICKS = 100;
 const RESPAWN_PILLAR_TICKS = 40;
 
 /**
- * The fight over a live End world: real chunks, a real `World` on the prototype, the real
+ * The fight over a live End world: real chunks, a `World` built by its own constructor, the real
  * content build with the dragon and crystal trimmed to what the fight reads, and fake players
  * whose connections capture packets. Modeled on `entity/data/live.test.ts`.
  */
@@ -176,7 +172,7 @@ interface LiveEndWorldOptions {
     readonly completionQueue?: ChunkCompletionQueue;
 }
 
-/** A `World` reduced to what the fight touches, built on the real prototype over real chunks. */
+/** A `World` reduced to what the fight touches, built by its own constructor over real chunks. */
 const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorldOptions = {}): {
     world: World;
     players: Map<bigint, PlayerSession>;
@@ -226,34 +222,20 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
         }
     );
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks,
-        loading: new Map(),
-        level: fakeLevel({
+    const world: World = Object.assign(
+        testWorld({
             server,
-            seed: 1234n,
-            spawn: new Vector3(0, FLOOR_Y + 1, 0),
-            ...(readChunk === undefined ? {} : { provider: stubOf(BaseProvider, { readChunk }) })
+            level: fakeLevel({
+                server,
+                seed: 1234n,
+                spawn: new Vector3(0, FLOOR_Y + 1, 0),
+                ...(readChunk === undefined ? {} : { provider: stubOf(BaseProvider, { readChunk }) })
+            }),
+            dimension: END,
+            generator: stub<Generator>({ generateChunk: async (x, z) => endChunk(x, z) })
         }),
-        completionQueue,
-        dimension: END,
-        generator: stub<Generator>({ generateChunk: async (x, z) => endChunk(x, z) }),
-        blockUpdates: new BlockUpdateScheduler(),
-        players,
-        server
-    });
-
-    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
-    Object.assign(world, {
-        systems: new WorldSystems({
-            view: {
-                dimension: END,
-                blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
-                loadedChunks: () => [...chunks.values()].map((chunk) => ({ x: chunk.getX(), z: chunk.getZ() }))
-            },
-            world: createEngineWorld(world)
-        })
-    });
+        { chunks, completionQueue, players }
+    );
 
     return {
         world,

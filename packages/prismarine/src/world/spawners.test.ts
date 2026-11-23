@@ -13,14 +13,13 @@ import type { DataEntity } from '../entity/data/DataEntity';
 import type Server from '../Server';
 import { EntityStore } from '../entity/data/EntityStore';
 import { sealBlockKinds } from '../testing/sealedBlocks.test.helper';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './DimensionType';
 import { Position } from './Position';
-import { World } from './World';
+import type { World } from './World';
+import { testWorld } from '../testing/level';
 import { tickSpawner } from './spawners';
 import type { SpawnerSurroundings } from './spawners';
 
@@ -165,7 +164,7 @@ const idOf = (identifier: string): number => {
 };
 
 /**
- * A world built on the real prototype around one chunk: a stone floor at 63, a spawner block at
+ * A world built by its own constructor around one chunk: a stone floor at 63, a spawner block at
  * (5, 64, 5) carrying a zombie spawner ready to fire, and a recording data runtime.
  */
 const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: number }) => {
@@ -214,20 +213,12 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         hasEntityRuntime: () => true
     });
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        players: new Map(),
-        dimension: Dimensions.Overworld,
-        systems: {},
-        server
-    });
+    const world: World = Object.assign(testWorld({ server }), { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) });
     const eyes = () => new Position(playerAt.getX(), playerAt.getY() + EYE_HEIGHT, playerAt.getZ(), world);
     // The spawner measures from where the player's client sees the world from, its eyes.
     const player = stub<PlayerSession>({ isConnected: () => true, getViewPosition: eyes });
     world['players'].set(1, player);
 
-    // The sink the constructor would have set, which reads the sealed ticks too.
-    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     /** What the open tick changed in the blocks, which seals it and opens the next. */
     const written = (): string[] => sealBlockKinds(store);
 

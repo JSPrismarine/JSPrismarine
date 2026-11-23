@@ -35,8 +35,9 @@ import { createItemActorPort } from '../../item/actorPort';
 import { useItemOnEntity } from '../../item/interaction';
 import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
-import { fakeLevel } from '../../testing/level';
-import { stub } from '../../testing/stub.test.helper';
+import { fakeLevel, testWorld } from '../../testing/level';
+import { stub, stubOf } from '../../testing/stub.test.helper';
+import BaseProvider from '../../world/providers/BaseProvider';
 import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { moveStorePlayer } from './storePlayers';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -45,7 +46,6 @@ import { Scoreboard } from '../../world/Scoreboard';
 import type WorldManager from '../../world/WorldManager';
 import type { DimensionTravel } from '../../world/portal/DimensionTravel';
 import type { Level } from '../../world/Level';
-import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import LevelDB from '../../world/providers/leveldb/LevelDB';
 import { Dimensions } from '../../world/DimensionType';
@@ -53,7 +53,7 @@ import { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import BlockPhysics from '../../world/physics/BlockPhysics';
 import { Position } from '../../world/Position';
-import { World } from '../../world/World';
+import type { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
@@ -815,23 +815,20 @@ const liveWorld = (
         hasEntityRuntime: () => true
     });
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        chunks,
-        // `loadChunk` joins a load already in flight through this, and a world built on the
-        // prototype never ran the constructor that would have made it.
-        loading: new Map(),
-        // Where `loadChunk` queues a generated chunk for `writeFreshChunks`.
-        freshChunks: new Map(),
-        tickingAreas: new Map(),
-        // A real level double, because a `World` built on its prototype never ran the
-        // constructor, and the content level group reads the rules and the clock through it.
-        level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(8, GROUND_Y, 8), provider }),
-        dimension: Dimensions.Overworld,
-        generator: stub<Generator>({}),
-        blockUpdates: new BlockUpdateScheduler(),
-        players: new Map(),
-        server
-    });
+    const world: World = Object.assign(
+        testWorld({
+            server,
+            // The content level group reads the rules and the clock through the level.
+            level: fakeLevel({
+                server,
+                seed: 1234n,
+                spawn: new Vector3(8, GROUND_Y, 8),
+                // A world ticked with no save behind it keeps every chunk it holds.
+                provider: provider ?? stubOf(BaseProvider, { supportsChunkUnload: false })
+            })
+        }),
+        { chunks }
+    );
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,

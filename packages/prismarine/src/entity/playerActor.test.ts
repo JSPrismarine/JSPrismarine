@@ -15,8 +15,8 @@ import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/DimensionType';
 import type GameRuleManager from '../world/GameRuleManager';
-import { World } from '../world/World';
-import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
+import type { World } from '../world/World';
+import { testWorld } from '../testing/level';
 import { canHarm } from './Combat';
 import type { StorePlayerActor } from './data/storePlayers';
 import { entityIds } from './entityIds';
@@ -32,22 +32,23 @@ const emptyWorld = (): World => {
     let world: World | undefined;
     const entities = liveTestEntities(() => world);
     const live = entities.entityRuntime(Dimensions.Overworld.name);
-    const created: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map(),
-        players: new Map(),
-        dimension: Dimensions.Overworld,
-        // PvP on, so only the identity of the two sides decides a swing.
-        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
-        server: stub<Server>({
-            // A bus no one listens on.
-            getKernel: () => testKernel(),
-            getEntityRuntime: () => live,
-            getStorePlayers: () => entities.players,
-            getContent: () => entities.content(),
-            getConfig: () => stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true })
-        })
-    });
-    created.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+    const created = Object.assign(
+        testWorld({
+            server: stub<Server>({
+                // A bus no one listens on.
+                getKernel: () => testKernel(),
+                getEntityRuntime: () => live,
+                getStorePlayers: () => entities.players,
+                getContent: () => entities.content(),
+                getConfig: () =>
+                    stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true })
+            })
+        }),
+        {
+            // PvP on, so only the identity of the two sides decides a swing.
+            getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] })
+        }
+    );
     world = created;
     return created;
 };

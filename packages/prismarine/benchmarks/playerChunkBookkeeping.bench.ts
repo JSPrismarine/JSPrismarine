@@ -10,7 +10,8 @@ import type Server from '../src/Server';
 import { stub } from '../src/testing/stub.test.helper';
 import type { Config } from '../src/config/Config';
 import Chunk from '../src/world/chunk/Chunk';
-import { World } from '../src/world/World';
+import type { World } from '../src/world/World';
+import { testWorld } from '../src/testing/level';
 import type { Position as PositionType } from '../src/world/Position';
 import { sessionFor } from '../src/testing/playerSession.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
@@ -94,7 +95,7 @@ const synchronizeLegacy = (
 
 const states = new Map<number, PlayerState>();
 const players = new Map<number, WorldPlayer>();
-const world = Object.assign(Object.create(World.prototype), { players, chunks: new Map() }) as World;
+const world: World = Object.assign(testWorld(), { players });
 
 for (let index = 0; index < PLAYER_COUNT; index++) {
     const state = {

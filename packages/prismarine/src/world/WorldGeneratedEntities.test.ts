@@ -10,9 +10,8 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import type { StoreActor } from '../entity/data/storeActors';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
-import { World } from './World';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { fakeLevel } from '../testing/level';
+import type { World } from './World';
+import { fakeLevel, testWorld } from '../testing/level';
 import BaseProvider from './providers/BaseProvider';
 
 /**
@@ -69,21 +68,17 @@ const worldLoading = (
         })
     });
 
-    const world: World = Object.assign(Object.create(World.prototype), {
-        // The sink the constructor would have set, which hears each chunk enter and leave.
-        changes: NULL_WORLD_CHANGE_SINK,
-        chunks: new Map(),
-        // `loadChunk` joins a load already in flight through this, and a world built on the
-        // prototype never ran the constructor that would have made it.
-        loading: new Map(),
-        level: fakeLevel({ seed: 1n, provider: stubOf(BaseProvider, { readChunk: async () => chunk }) }),
-        generator: {},
-        config: {},
-        systems: { onChunkLoaded: () => {} },
-        addEntity: async (entity: StoreActor) => void added.push(entity),
-        dataEntities: () => live,
-        server: { getLogger: () => ({ debug: () => {}, warn: () => {} }), getContent: () => content }
-    });
+    const world: World = Object.assign(
+        testWorld({
+            level: fakeLevel({ seed: 1n, provider: stubOf(BaseProvider, { readChunk: async () => chunk }) })
+        }),
+        {
+            systems: { onChunkLoaded: () => {} },
+            addEntity: async (entity: StoreActor) => void added.push(entity),
+            dataEntities: () => live,
+            server: { getLogger: () => ({ debug: () => {}, warn: () => {} }), getContent: () => content }
+        }
+    );
 
     return { world, added, asked };
 };

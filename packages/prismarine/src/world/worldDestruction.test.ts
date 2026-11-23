@@ -27,16 +27,14 @@ import type { StoreActor } from '../entity/data/storeActors';
 import { explode } from '../entity/Explosion';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type { ServerContent } from '../content/ServerContent';
-import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { createEngineWorld } from './EngineWorld';
-import { World } from './World';
+import type { World } from './World';
 import { Position } from './Position';
 import { WorldSystems } from './WorldSystems';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { contentBlockTickHandlers } from './blockTicks';
-import { fakeLevel } from '../testing/level';
+import { fakeLevel, testWorld } from '../testing/level';
 import type GameRuleManager from './GameRuleManager';
 import type { GameRuleEntry } from './GameRuleManager';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
@@ -47,7 +45,7 @@ import { testKernel } from '../testing/kernel.test.helper';
  *
  * `blockBreak.test.ts` proves the player's break. This proves the four the world performs
  * on its own: a blast, a stream of water, fire, and a piston. The fixture is
- * the same shape as that file's, built on the real `World` prototype with a real `Chunk`,
+ * the same shape as that file's, built by the real `World` constructor with a real `Chunk`,
  * real `WorldSystems` and the real overlay's block definitions, so what runs is the server's
  * own write path rather than a model of it.
  */
@@ -233,21 +231,18 @@ const liveWorld = (
     const spawned: StoreActor[] = [];
     const rules = new Map<string, GameRuleEntry>();
 
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const level = fakeLevel({
+        spawn: new Vector3(8, 64, 8),
+        gameRules: stub<GameRuleManager>({
+            getGameRule: () => [true, true] as const,
+            findGameRule: (name: string) => rules.get(name.toLowerCase())
+        })
+    });
+    const world: World = Object.assign(testWorld({ level }), {
         chunks: new Map([
             [Chunk.packXZ(0, 0), chunk],
             [Chunk.packXZ(1, 0), east]
         ]),
-        level: fakeLevel({
-            spawn: new Vector3(8, 64, 8),
-            gameRules: stub<GameRuleManager>({
-                getGameRule: () => [true, true] as const,
-                findGameRule: (name: string) => rules.get(name.toLowerCase())
-            })
-        }),
-        dimension: Dimensions.Overworld,
-        blockUpdates: new BlockUpdateScheduler(),
-        players: new Map(),
         getChunkAt: async () => chunk,
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
         // The content adapter reads the same player fields as it does for a live player.
@@ -288,7 +283,6 @@ const liveWorld = (
         }
     });
 
-    world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     collectAddedActors(spawned);
     return { world, chunk, east, spawned, rules };
 };

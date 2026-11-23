@@ -12,13 +12,15 @@ import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { MobSpawner } from '../src/blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../src/blockentity/BlockEntityRegistry';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { Gametype } from '@jsprismarine/minecraft';
 import type { StoreActors } from '../src/entity/data/storeActors';
 import { entityFixture } from '../src/entity/data/testing';
 import { testContent } from '../src/testing/entityServer';
 import { stub } from '../src/testing/stub.test.helper';
 import Chunk from '../src/world/chunk/Chunk';
 import { Position } from '../src/world/Position';
-import { World } from '../src/world/World';
+import type { World } from '../src/world/World';
+import { fakeLevel, testWorld } from '../src/testing/level';
 import { NULL_WORLD_CHANGE_SINK } from '../src/world/WorldChangeSink';
 import { tickFurnace } from '../src/world/cooking';
 
@@ -78,40 +80,41 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         }
     };
 
-    // `World` normally fills these private fields in its constructor. This benchmark assembles
-    // just the update dependencies it measures around the real prototype, outside timed samples.
-    const target = Object.assign(Object.create(World.prototype) as World, {
-        name: 'world-update-chunk-work-benchmark',
-        closing: false,
-        level: { getTicks: () => 1 },
-        server: stub<Server>({ getContent: () => content }),
-        players: new Map<number, WorldPlayer>(),
-        chunks,
-        tickingAreas: new Map(),
-        loading: new Map(),
-        systems,
-        changes: { ...NULL_WORLD_CHANGE_SINK, flushBlockChanges: async () => {}, flushBlockEntities: async () => {} },
-        getEntities: () => [],
-        runBlockUpdates: async () => {},
-        touchPortals: async () => {},
-        getDragonFight: () => undefined,
-        getRaidManager: () => undefined,
-        dataEntities: () => ({
-            // A real store, empty, whose tick the update opens and seals around the chunk work.
-            runtime,
-            tick: async () => {},
-            persist: () => {},
-            unload: () => false,
-            actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() })
-        }),
-        // The header the store seals each tick with, which reads level state this fixture has not.
-        tickHeader: () => undefined,
-        flushEntityAttributes: async () => {},
-        updateTracking: async () => {},
-        flushMovement: async () => {},
-        sendTime: async () => {},
-        beginDistantChunkUnloads: () => {}
-    });
+    // Built by the real constructor, then narrowed to the update dependencies this benchmark
+    // measures, outside timed samples.
+    const server = stub<Server>({ getContent: () => content });
+    const target = Object.assign(
+        testWorld({ name: 'world-update-chunk-work-benchmark', server, level: fakeLevel({ server, ticks: 1 }) }),
+        {
+            chunks,
+            systems,
+            changes: {
+                ...NULL_WORLD_CHANGE_SINK,
+                flushBlockChanges: async () => {},
+                flushBlockEntities: async () => {}
+            },
+            getEntities: () => [],
+            runBlockUpdates: async () => {},
+            touchPortals: async () => {},
+            getDragonFight: () => undefined,
+            getRaidManager: () => undefined,
+            dataEntities: () => ({
+                // A real store, empty, whose tick the update opens and seals around the chunk work.
+                runtime,
+                tick: async () => {},
+                persist: () => {},
+                unload: () => false,
+                actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() })
+            }),
+            // The header the store seals each tick with, which reads level state this fixture has not.
+            tickHeader: () => undefined,
+            flushEntityAttributes: async () => {},
+            updateTracking: async () => {},
+            flushMovement: async () => {},
+            sendTime: async () => {},
+            beginDistantChunkUnloads: () => {}
+        }
+    );
     world = target;
     world['players'].set(
         1,
@@ -119,6 +122,8 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
             isConnected: () => true,
             getViewPosition: () => new Position(0, 64, 0, world),
             getViewDistance: () => CHUNK_RADIUS,
+            // The tick counts inhabited time for every player that is not a spectator.
+            getPlayer: () => stub<ReturnType<PlayerSession['getPlayer']>>({ gamemode: Gametype.SURVIVAL }),
             getConnection: () => stub<ClientConnection>({ flushOutboundPackets: async () => {} })
         })
     );
