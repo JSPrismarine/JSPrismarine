@@ -820,6 +820,8 @@ const liveWorld = (
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
         loading: new Map(),
+        // Where `loadChunk` queues a generated chunk for `writeFreshChunks`.
+        freshChunks: new Map(),
         tickingAreas: new Map(),
         // A real level double, because a `World` built on its prototype never ran the
         // constructor, and the content level group reads the rules and the clock through it.
