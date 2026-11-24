@@ -1181,7 +1181,9 @@ type LiveOffer = ReturnType<NonNullable<ReturnType<EntityRuntime['merchant']>>['
 
 /** The terms of one Java `villager_trade` entry, with its codec's defaults, as an offer states them. */
 interface JavaTradeTerms {
+    /** The Bedrock item it gives, from Java's through the item mapping. */
     readonly gives: string;
+    /** The Bedrock item it wants first. */
     readonly wants: string;
     /** The emeralds it asks, or undefined for a trade whose modifier adds a cost to them. */
     readonly price: number | undefined;
@@ -1215,8 +1217,10 @@ const javaTradeTerms = (tradeSet: string): readonly JavaTradeTerms[] => {
         const number = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback);
         return [
             {
-                gives,
-                wants,
+                // The items as a Bedrock client is offered them, which is what the server's
+                // offers name: an explorer map is a filled map there.
+                gives: bedrockItem(gives),
+                wants: bedrockItem(wants),
                 price: field(entry, 'given_item_modifier') === undefined ? number(count, 1) : undefined,
                 maxUses: number(field(entry, 'max_uses'), 4),
                 xp: number(field(entry, 'xp'), 1),

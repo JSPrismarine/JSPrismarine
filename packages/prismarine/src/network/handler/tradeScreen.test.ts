@@ -10,6 +10,7 @@ import { ContainerUiId, WindowTypes } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { seededRandom } from '@jsprismarine/predicates';
 import { Merchant, parseTradeTable } from '@jsprismarine/trading';
+import type { LiveOffer, TradeContext, TradeStack } from '@jsprismarine/trading';
 import { describe, expect, it } from 'vitest';
 
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../../content/testing';
@@ -27,7 +28,10 @@ import { PlayerComponents } from '../../entity/playerComponents';
 import type { World } from '../../world/World';
 import type { StoreActor } from '../../entity/data/storeActors';
 import type { Logger } from '@jsprismarine/logger';
-import type { OpenBlockContainer } from '../PlayerSession';
+import type { OpenBlockContainer, OpenTrade, TradeSource } from '../PlayerSession';
+import { tradeNetIdOf } from '../tradeOffers';
+import { selectTrade } from './tradeScreen';
+import type { Trader } from './tradeScreen';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
@@ -289,5 +293,56 @@ describe('a villager trade screen', () => {
 
         expect(merchant.level).toBe(2);
         expect(merchant.offers()).toHaveLength(2);
+    });
+});
+
+describe('an explorer map trade', () => {
+    it('hands over the filled map with the map id its offer carries', () => {
+        const map: TradeStack = {
+            item: 'minecraft:filled_map',
+            count: 1,
+            components: new Map<string, unknown>([
+                ['minecraft:aux_value', 3],
+                ['minecraft:map_id', 6]
+            ])
+        };
+        const emeralds: TradeStack = { item: 'minecraft:emerald', count: 13, components: new Map() };
+        const live: LiveOffer = {
+            offer: {
+                tier: 2,
+                wants: [emeralds],
+                gives: [map],
+                priceMultipliers: [0.2],
+                traderExp: 10,
+                maxUses: 12,
+                rewardExp: true
+            },
+            uses: 0,
+            demand: 0,
+            available: true,
+            wants: [emeralds]
+        };
+        const open = stub<OpenBlockContainer>({
+            inputs: [new Item({ name: 'minecraft:emerald', count: 13 })],
+            trade: stub<OpenTrade>({
+                context: () => stub<TradeContext>(),
+                source: stub<TradeSource>({ offers: () => [live] })
+            })
+        });
+
+        const selected = selectTrade(
+            stub<Trader>(),
+            open,
+            tradeNetIdOf(0),
+            buildServerContent({
+                load: () => ({ definitions: definitionsOf({}), diagnostics: [] }),
+                blockPalette: fixtureBlockPalette(),
+                itemDefinitions: fixtureItemDefinitions()
+            })
+        );
+
+        expect(selected?.stack.getName()).toBe('minecraft:filled_map');
+        expect(selected?.stack.meta).toBe(3);
+        expect(selected?.stack.getMapId()).toBe(6);
     });
 });

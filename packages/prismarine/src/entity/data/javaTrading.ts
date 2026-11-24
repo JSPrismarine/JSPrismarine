@@ -23,6 +23,7 @@ import type { JavaTradeHost, JavaTradeStack, JavaVillagerTrade } from '@jsprisma
 import type { LevelView, RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
+import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 
 /** The profession a wandering trader's trade table names, which has no villager levels. */
@@ -100,14 +101,19 @@ const predicateStackOf = (stack: JavaTradeStack): PredicateItemStack => ({
 });
 
 /**
- * The stack a trade screen offers for a Java stack: its aux value and its enchantments, which
- * are what a trade stack carries to the client, read the way a loot drop reads them.
+ * The stack a trade screen offers for a Java stack: its Bedrock item and aux value, its
+ * enchantments and the map it shows, which are what a trade stack carries to the client, read
+ * the way a chest's roll reads them. The Bedrock item is what makes a cartographer's
+ * `minecraft:ocean_monument_map` an Ocean Monument filled map rather than an item the client
+ * does not have.
  */
 const tradeStackOf = (stack: JavaTradeStack): TradeStack => {
-    const drop = dropOfRolledStack(predicateStackOf(stack));
+    const rolled = dropOfRolledStack(predicateStackOf(stack));
+    const [drop = rolled] = bedrockItemDrops([rolled]);
     const components = new Map<string, unknown>();
     if (drop.meta !== undefined) components.set('minecraft:aux_value', drop.meta);
     if (drop.enchantments !== undefined) components.set('minecraft:enchantments', drop.enchantments);
+    if (drop.mapId !== undefined) components.set('minecraft:map_id', drop.mapId);
     return { item: drop.identifier, count: drop.count, components };
 };
 
