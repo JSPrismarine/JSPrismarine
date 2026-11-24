@@ -62,6 +62,6 @@
         "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
-        "@opentui/core": "0.9.7"
+        "@opentui/core": "0.9.9"
     }
 }
