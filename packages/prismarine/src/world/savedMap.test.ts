@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAP_SIZE, bedrockPixelOf, biomePreviewColors, newSavedMap } from './savedMap';
+import {
+    MAP_SIZE,
+    biomePreviewColors,
+    blankSavedMap,
+    drawnColors,
+    holderDecorationOnMap,
+    newSavedMap
+} from './savedMap';
 
 /** Java's packed map color: the color id over the brightness id. */
 const packedColor = (color: number, brightness: number): number => (color << 2) | brightness;
@@ -83,13 +90,63 @@ describe("an explorer map's biome preview", () => {
     });
 });
 
-describe('a map pixel on a Bedrock client', () => {
-    it("is Java's color at its brightness, red in the low byte and opaque", () => {
-        // Orange 0xD87F33 at 220/255: 186, 109, 44.
-        expect(bedrockPixelOf(packedColor(ORANGE, NORMAL))).toBe(0xff2c6dba);
+describe('a blank map', () => {
+    it('centers on the grid cell it was made in, with nothing drawn and no markers', () => {
+        const map = blankSavedMap({ dimension: 'minecraft:overworld', x: 100, z: -20, scale: 0 });
+
+        expect(map).toMatchObject({ centerX: 128, centerZ: 0, decorations: [], locked: false });
+        expect(map.unlimitedTracking).toBe(false);
+        expect(map.colors?.every((color) => color === 0)).toBe(true);
     });
 
-    it('is transparent where nothing was drawn', () => {
-        expect(bedrockPixelOf(0)).toBe(0);
+    it('is never given a biome preview', () => {
+        const map = blankSavedMap({ dimension: 'minecraft:overworld', x: 0, z: 0, scale: 0 });
+
+        expect(drawnColors(map, () => true).every((color) => color === 0)).toBe(true);
+    });
+});
+
+describe("an explorer map's pixels", () => {
+    it('are its biome preview, drawn once', () => {
+        const map = treasure(400, -800);
+        expect(map.colors).toBeUndefined();
+
+        const colors = drawnColors(map, (x) => x < 320);
+
+        expect(colors.some((color) => color !== 0)).toBe(true);
+        expect(drawnColors(map, () => false)).toBe(colors);
+    });
+});
+
+describe("a holder's marker", () => {
+    const at = (x: number, z: number, unlimitedTracking = false, dimension = 'minecraft:overworld') =>
+        holderDecorationOnMap(
+            { centerX: 0, centerZ: 0, scale: 0, dimension, unlimitedTracking },
+            { x, z, yaw: 90, gameTime: 0 }
+        );
+
+    it('is an arrow facing the way the holder does while it is on the map', () => {
+        // 90 degrees is a quarter turn, four sixteenths. Java adds half a step and casts, so -19.5
+        // half pixels truncates to -19.
+        expect(at(10, -10)).toEqual({ type: 'minecraft:player', x: 20, y: -19, rotation: 4 });
+    });
+
+    it('is a dot at the edge a little way off the map, and is dropped further off', () => {
+        expect(at(100, 0)).toMatchObject({ type: 'minecraft:player_off_map', x: 127 });
+        expect(at(400, 0)).toBeUndefined();
+    });
+
+    it('is a small dot at the edge far off a map with unlimited tracking', () => {
+        expect(at(400, 0, true)).toMatchObject({ type: 'minecraft:player_off_limits', x: 127 });
+    });
+
+    it('spins by the clock in the Nether rather than facing the holder', () => {
+        const spun = (gameTime: number) =>
+            holderDecorationOnMap(
+                { centerX: 0, centerZ: 0, scale: 0, dimension: 'minecraft:the_nether', unlimitedTracking: false },
+                { x: 0, z: 0, yaw: 90, gameTime }
+            )?.rotation;
+
+        expect(new Set(Array.from({ length: 20 }, (_unused, tick) => spun(tick * 10))).size).toBeGreaterThan(1);
     });
 });

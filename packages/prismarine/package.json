@@ -1390,6 +1390,31 @@
                 "import": "./dist/world/lootLevel.js",
                 "module": "./dist/world/lootLevel.js"
             },
+            "./world/mapColors": {
+                "types": "./dist/world/mapColors.d.ts",
+                "import": "./dist/world/mapColors.js",
+                "module": "./dist/world/mapColors.js"
+            },
+            "./world/mapCarriers": {
+                "types": "./dist/world/mapCarriers.d.ts",
+                "import": "./dist/world/mapCarriers.js",
+                "module": "./dist/world/mapCarriers.js"
+            },
+            "./world/mapTerrain": {
+                "types": "./dist/world/mapTerrain.d.ts",
+                "import": "./dist/world/mapTerrain.js",
+                "module": "./dist/world/mapTerrain.js"
+            },
+            "./world/mapRender": {
+                "types": "./dist/world/mapRender.d.ts",
+                "import": "./dist/world/mapRender.js",
+                "module": "./dist/world/mapRender.js"
+            },
+            "./world/savedMap": {
+                "types": "./dist/world/savedMap.d.ts",
+                "import": "./dist/world/savedMap.js",
+                "module": "./dist/world/savedMap.js"
+            },
             "./command/host/support": {
                 "types": "./dist/command/host/support.d.ts",
                 "import": "./dist/command/host/support.js",
@@ -2836,6 +2861,26 @@
         "./world/lootLevel": {
             "jsprismarine:dist": "./dist/world/lootLevel.js",
             "default": "./src/world/lootLevel.ts"
+        },
+        "./world/mapColors": {
+            "jsprismarine:dist": "./dist/world/mapColors.js",
+            "default": "./src/world/mapColors.ts"
+        },
+        "./world/mapCarriers": {
+            "jsprismarine:dist": "./dist/world/mapCarriers.js",
+            "default": "./src/world/mapCarriers.ts"
+        },
+        "./world/mapTerrain": {
+            "jsprismarine:dist": "./dist/world/mapTerrain.js",
+            "default": "./src/world/mapTerrain.ts"
+        },
+        "./world/mapRender": {
+            "jsprismarine:dist": "./dist/world/mapRender.js",
+            "default": "./src/world/mapRender.ts"
+        },
+        "./world/savedMap": {
+            "jsprismarine:dist": "./dist/world/savedMap.js",
+            "default": "./src/world/savedMap.ts"
         },
         "./command/host/support": {
             "jsprismarine:dist": "./dist/command/host/support.js",

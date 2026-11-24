@@ -2,18 +2,24 @@ import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { destroyProgress } from '@jsprismarine/item-behaviors';
 import { planPush } from '@jsprismarine/block-behaviors/rules/piston';
 import { blockProperties } from '@jsprismarine/blocks/components';
-import { explosionResistanceOf } from '@jsprismarine/engine-systems';
+import { explosionResistanceOf, hasSturdyTopFace } from '@jsprismarine/engine-systems';
 import { itemTypesTable } from '@jsprismarine/items/tables';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
+import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { flammabilityOf } from '@jsprismarine/prismarine/content/world/views';
 import { Item } from '@jsprismarine/prismarine/item/Item';
+import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
+import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
+import { MapColors, mapColorIdOf } from '@jsprismarine/prismarine/world/mapColors';
+import { mapTerrainOf } from '@jsprismarine/prismarine/world/mapTerrain';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import type { JavaBlockPropertyRow } from '../goldens.ts';
 import { loadJavaBlockProperties } from '../goldens.ts';
 import { javaBlockBehaviors, javaBlockHasBlockEntity, javaBlockIsA } from '../javaBlockClasses.ts';
+import { javaDefaultStates } from '../javaBlockStates.ts';
 import { pinnedJavaClassFile } from '../javaClassFile.ts';
 import { serverContent } from '../serverStack.ts';
 
@@ -87,6 +93,12 @@ const anyState = (row: JavaBlockPropertyRow, field: string, test: (value: number
         const value = values[field];
         return typeof value === 'number' && test(value);
     });
+
+/** Whether a map draws any state of the block, rather than looking through all of them. */
+export const hasMapColor = (row: JavaBlockPropertyRow): boolean =>
+    [row.base, ...Object.values(row.stateOverrides ?? {})].some(
+        (values) => values['mapColor'] !== undefined && values['mapColor'] !== 'none'
+    );
 
 /** Blocks that hold water, one of each shape, for the waterlogged light row. */
 const WATERLOGGED_LIGHT_SAMPLES = [
@@ -283,8 +295,67 @@ const serverPistonOutcome = (subject: BlockStateSubject): PistonOutcome => {
     return plan.moved.some(at) ? 'moved' : 'destroyed';
 };
 
+let javaDefaults: ReadonlyMap<string, Record<string, string>> | undefined;
+
+/**
+ * The color a held map draws a block state in, standing alone on a stone floor: the column the
+ * server's map reads, or why it could not be read.
+ */
+const drawnMapColor = (subject: BlockStateSubject, waterlogged: boolean): number | string => {
+    const runtimeId = BlockRuntimeIds.tryGetByState(subject.bedrock, subject.states);
+    if (runtimeId === null) return `the server has no state for ${subject.bedrock}`;
+    const chunk = new Chunk(0, 0);
+    chunk.setBlockRuntimeId(0, 60, 0, BlockRuntimeIds.getByName('minecraft:stone'));
+    chunk.setBlockRuntimeId(0, 61, 0, runtimeId);
+    // A Bedrock world keeps a waterlogged block's water in the second storage layer.
+    if (waterlogged) chunk.setBlockRuntimeId(0, 61, 0, BlockRuntimeIds.getByName('minecraft:water'), 1);
+    const world = { getLoadedChunk: () => chunk, getDimension: () => Dimensions.Overworld };
+    return mapTerrainOf(world).column(0, 0).colorId;
+};
+
 /** The scenarios over a block's Java properties. */
 export const blockPropertyScenarios: readonly BehaviorScenario<BlockStateSubject>[] = [
+    {
+        name: 'map-color',
+        java: 'A held map draws a block, seen from above, in its Java map color in each state, and looks through a state with none to the block under it.',
+        reference: "Java 26.3 MapItem.update and each block's mapColor property",
+        aspects: () => ['map-color'],
+        classify: (subject) =>
+            subject.bedrock === 'minecraft:bed'
+                ? {
+                      kind: 'deferred',
+                      reason: "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+                      reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3699'
+                  }
+                : undefined,
+        subjects: () =>
+            subjectsVarying(['mapColor'], (row, javaId) => !javaBlockIsA(javaId, 'AirBlock') && hasMapColor(row)),
+        idOf: titleOf,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            // Java's default coral, sea pickle and conduit are waterlogged.
+            javaDefaults ??= javaDefaultStates();
+            const state = { ...javaDefaults.get(subject.javaId), ...parseStateKey(subject.stateKey) };
+            const waterlogged = state['waterlogged'] === 'true';
+            const drawn = drawnMapColor(subject, waterlogged);
+            if (typeof drawn === 'string') return drawn;
+            const javaName = String(subject.java.mapColor);
+            // A state Java gives no color is looked through, to the stone under it. One that holds
+            // water is drawn as the water unless its top face is sturdy, `getCorrectStateForFluidBlock`,
+            // which the server's sturdiness rule answers here; the support rows compare that rule.
+            const sturdy = hasSturdyTopFace({ name: subject.bedrock, states: subject.states });
+            const java =
+                javaName === 'none'
+                    ? MapColors.stone.id
+                    : waterlogged && !sturdy
+                      ? MapColors.water.id
+                      : mapColorIdOf(javaName);
+            if (drawn === java) return undefined;
+            const name = (id: number) =>
+                Object.entries(MapColors).find(([, color]) => color.id === id)?.[0] ?? `color ${id}`;
+            return `a map draws it ${name(drawn)}, Java ${javaName === 'none' ? 'looks through it to stone' : javaName}`;
+        }
+    },
     {
         name: 'holds-water',
         java: 'A block whose Java class is a SimpleWaterloggedBlock or a LiquidBlockContainer holds water, so flowing water stops at it rather than washing it away.',

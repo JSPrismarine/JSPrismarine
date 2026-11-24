@@ -10,7 +10,14 @@ import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
+import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
+import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
+import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import { lootLevelOf } from '@jsprismarine/prismarine/world/lootLevel';
+import { MapCarriers } from '@jsprismarine/prismarine/world/mapCarriers';
+import { updateMapAround } from '@jsprismarine/prismarine/world/mapRender';
+import { mapTerrainOf } from '@jsprismarine/prismarine/world/mapTerrain';
+import { MAP_SIZE, blankSavedMap } from '@jsprismarine/prismarine/world/savedMap';
 import { STATION_BY_TYPE, recipeIngredients, recipeResult } from '@jsprismarine/recipes';
 import type { Ingredient, Recipe, RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
 import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -180,6 +187,60 @@ const explorationMapScenario: BehaviorScenario<{ readonly id: string }> = {
             if (map !== undefined) return explorerMapDifference(map);
         }
         return 'no roll in a hundred produced a map';
+    }
+};
+
+/**
+ * A blank map held at (8.5, 8.5) for sixteen ticks over one loaded chunk of grass at y 64, as the
+ * server's player tick drives it: its pixels and its markers afterwards.
+ */
+const heldMapOverGrass = () => {
+    const chunk = new Chunk(0, 0);
+    const grass = BlockRuntimeIds.getByName('minecraft:grass_block');
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) chunk.setBlockRuntimeId(x, 64, z, grass);
+    const terrain = mapTerrainOf({
+        getLoadedChunk: (chunkX, chunkZ) => (chunkX === 0 && chunkZ === 0 ? chunk : null),
+        getDimension: () => Dimensions.Overworld
+    });
+    const map = blankSavedMap({ dimension: 'minecraft:overworld', x: 8, z: 8, scale: 0 });
+    const carriers = new MapCarriers(map);
+    const holder = {
+        name: 'Steve',
+        isRemoved: () => false,
+        carries: () => true,
+        dimension: () => 'minecraft:overworld',
+        position: () => ({ x: 8.5, z: 8.5, yaw: 0, gameTime: 0 }),
+        hidesFromMaps: () => false
+    };
+    for (let tick = 0; tick < 16; tick++) {
+        carriers.tickCarriedBy(holder);
+        updateMapAround(map, { x: 8.5, z: 8.5, step: carriers.nextStep(holder) }, terrain, carriers.paint);
+    }
+    return { colors: map.colors ?? new Uint8Array(), decorations: carriers.decorations() };
+};
+
+const mapScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'map-fills-in',
+    java: 'A held map fills in over sixteen ticks from the loaded chunks around its holder, flat grass at normal brightness, leaves the rest blank, and draws the holder as an arrow at its position.',
+    reference: 'Java 26.3 MapItem.update and MapItemSavedData.tickCarriedBy',
+    subjects: () => [subject('mechanic', 'maps')],
+    idOf: (entry) => entry.id,
+    aspects: () => ['behavior'],
+    run: () => {
+        const { colors, decorations } = heldMapOverGrass();
+        // The map is centered on the origin, so the loaded chunk is pixels 64 to 79.
+        const at = (x: number, z: number) => colors[x + z * MAP_SIZE];
+        // Java's packed id for grass at normal brightness: `MapColor.GRASS` is id 1 and
+        // `Brightness.NORMAL` id 1, so `1 << 2 | 1`.
+        const grass = 5;
+        if (at(70, 70) !== grass) return `the holder's chunk is drawn as packed color ${at(70, 70)}, Java ${grass}`;
+        if (at(30, 30) !== 0) return 'a pixel in a chunk that is not loaded is drawn';
+        // Java's marker is in half pixels from the center: 8.5 blocks is 17.
+        const marker = decorations[0];
+        if (marker?.type !== 'minecraft:player' || marker.x !== 17 || marker.y !== 17) {
+            return `the holder is marked ${JSON.stringify(marker)}, Java a minecraft:player at 17, 17`;
+        }
+        return undefined;
     }
 };
 
@@ -521,6 +582,7 @@ describeFamily(
                 scenarioGroup(playerScenarios),
                 scenarioGroup([recipeScenario]),
                 scenarioGroup([explorationMapScenario]),
+                scenarioGroup([mapScenario]),
                 scenarioGroup([hurtExhaustionScenario]),
                 scenarioGroup([difficultyScenario]),
                 scenarioGroup(experienceOrbScenarios)

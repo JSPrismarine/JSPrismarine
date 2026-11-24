@@ -23,6 +23,7 @@ import type { World } from '../../World';
 import { createChunkSaveContext } from '../ChunkSaveContext';
 import { CommandStorage } from '../../CommandStorage';
 import type { SavedMap } from '../../savedMap';
+import { MAP_SIZE } from '../../savedMap';
 import { Scoreboard } from '../../Scoreboard';
 import LevelDB from './LevelDB';
 
@@ -509,7 +510,15 @@ describe('a LevelDB provider holding writes for the next pass', () => {
                     centerX: id * 256 - 64,
                     centerZ: -192,
                     scale: 1,
-                    decorations: [{ type: 'minecraft:red_x', x: 89, y: -95, rotation: 8 }]
+                    decorations: [{ type: 'minecraft:red_x', x: 89, y: -95, rotation: 8 }],
+                    trackingPosition: true,
+                    unlimitedTracking: id >= 3,
+                    locked: id === 1,
+                    // A few maps with pixels, which an undrawn explorer map does not have.
+                    colors:
+                        id < 3
+                            ? Uint8Array.from({ length: MAP_SIZE * MAP_SIZE }, (_pixel, index) => (index + id) & 0xff)
+                            : undefined
                 }
             ])
         );
