@@ -102,7 +102,7 @@
     },
     "homepage": "https://jsprismarine.dev/",
     "devDependencies": {
-        "@biomejs/biome": "2.6.8",
+        "@biomejs/biome": "2.6.9",
         "@changesets/changelog-github": "1.0.1",
         "@changesets/cli": "3.0.3",
         "@changesets/types": "7.0.0",
@@ -110,7 +110,7 @@
         "@commitlint/cli": "21.2.4",
         "@commitlint/config-conventional": "21.2.4",
         "@commitlint/types": "21.2.3",
-        "@interfere/landmines": "0.3.0",
+        "@interfere/landmines": "0.3.1",
         "@nordcom/prettier": "0.1.1",
         "@scriptc/threads": "0.4.16",
         "@turbo/gen": "2.11.13",
