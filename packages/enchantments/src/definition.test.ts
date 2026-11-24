@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../.test/reportProgress';
 
-import { EQUIPMENT_SLOT_GROUPS, costAt, levelsOf, parseEnchantment } from './definition';
+import { EQUIPMENT_SLOT_GROUPS, costAt, levelsOf, parseEnchantment, slotGroupContains } from './definition';
 
 /** `enchantment/sharpness.json` of Java 26.3, verbatim. */
 const SHARPNESS = {
@@ -82,6 +82,16 @@ describe('the enchantment definition model', () => {
             'offhand'
         ]);
         reportProgress(`${EQUIPMENT_SLOT_GROUPS.length} enchantment equipment slot groups are recognized.`);
+    });
+});
+
+describe('an equipment slot group', () => {
+    it('covers the slots Java groups under it', () => {
+        expect(slotGroupContains('any', 'saddle')).toBe(true);
+        expect(slotGroupContains('hand', 'offhand')).toBe(true);
+        expect(slotGroupContains('armor', 'head')).toBe(true);
+        expect(slotGroupContains('armor', 'body')).toBe(false);
+        expect(slotGroupContains('mainhand', 'offhand')).toBe(false);
     });
 });
 

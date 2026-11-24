@@ -30,6 +30,31 @@ export const EQUIPMENT_SLOT_GROUPS = [
 /** One of {@link EQUIPMENT_SLOT_GROUPS}. */
 export type EquipmentSlotGroup = (typeof EQUIPMENT_SLOT_GROUPS)[number];
 
+/** One of Java's equipment slots, by the name its `EquipmentSlot` serializes to. */
+export type EquipmentSlotName = 'mainhand' | 'offhand' | 'feet' | 'legs' | 'chest' | 'head' | 'body' | 'saddle';
+
+/** The slots each group other than `any` covers, Java's `EquipmentSlotGroup` constants. */
+const GROUP_SLOTS: Readonly<Record<Exclude<EquipmentSlotGroup, 'any'>, readonly EquipmentSlotName[]>> = {
+    mainhand: ['mainhand'],
+    offhand: ['offhand'],
+    hand: ['mainhand', 'offhand'],
+    feet: ['feet'],
+    legs: ['legs'],
+    chest: ['chest'],
+    head: ['head'],
+    armor: ['feet', 'legs', 'chest', 'head'],
+    body: ['body'],
+    saddle: ['saddle']
+};
+
+/**
+ * Whether an enchantment declared for a slot group acts on a stack in a slot, Java's
+ * `EquipmentSlotGroup.test`, which `Enchantment.matchingSlot` asks of each group the
+ * enchantment's `slots` names.
+ */
+export const slotGroupContains = (group: EquipmentSlotGroup, slot: EquipmentSlotName): boolean =>
+    group === 'any' || GROUP_SLOTS[group].includes(slot);
+
 /** Java hardcodes the lowest level of every enchantment to 1. */
 export const MIN_ENCHANTMENT_LEVEL = 1;
 
