@@ -1,5 +1,6 @@
-import { instructionLength, parseJavaClass } from './classFile.ts';
-import type { JavaClass, JavaCodeMethod, JavaConstant, JavaMemberRef } from './classFile.ts';
+import { parseJavaClass } from '@jsprismarine/java-classfile/classFile';
+import { instructionLength } from '@jsprismarine/java-classfile/instructions';
+import type { JavaClass, JavaCodeMethod, JavaConstant, JavaMemberRef } from '@jsprismarine/java-classfile/classFile';
 
 /**
  * Reads the goals each Java mob registers, with their constructor arguments, out of a Java

@@ -1,5 +1,8 @@
-import type { JavaClass, JavaInstruction, JavaMethod } from './javaClassFile.ts';
-import { OPCODES, pinnedJavaClassFile } from './javaClassFile.ts';
+import type { JavaInstruction } from '@jsprismarine/java-classfile/instructions';
+import { OPCODES } from '@jsprismarine/java-classfile/instructions';
+
+import type { JavaClass, JavaMethod } from './javaClassFile.ts';
+import { pinnedJavaClassFile } from './javaClassFile.ts';
 
 /**
  * Java Edition's entity classes, read out of the pinned server jar: which class each entity type

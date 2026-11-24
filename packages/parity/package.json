@@ -42,6 +42,7 @@
         "@jsprismarine/features": "workspace:*",
         "@jsprismarine/item-behaviors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
+        "@jsprismarine/java-classfile": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/loot": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
