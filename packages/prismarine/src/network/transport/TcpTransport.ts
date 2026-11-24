@@ -1,5 +1,3 @@
-import type { Cipheriv, Decipheriv } from 'node:crypto';
-import { createCipheriv, createDecipheriv } from 'node:crypto';
 import type { Server as NetServer, Socket } from 'node:net';
 import { createServer } from 'node:net';
 
@@ -7,6 +5,8 @@ import type { Logger } from '@jsprismarine/logger';
 import { InetAddress } from '@jsprismarine/raknet';
 
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
+import { createCfb8 } from './cfb8';
+import type { StreamCipher } from './cfb8';
 import { KeyedTransport } from './KeyedTransport';
 import { framed, MAX_JAVA_FRAME, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { TransportNames } from './Transport';
@@ -26,7 +26,7 @@ export class TcpTransportConnection implements TransportConnection {
     public readonly transport = TransportNames.java;
 
     /** The stream cipher each way, once {@link TcpTransportConnection.encrypt} turned it on. */
-    private cipher: { readonly out: Cipheriv; readonly in: Decipheriv } | undefined;
+    private cipher: { readonly out: StreamCipher; readonly in: StreamCipher } | undefined;
 
     public constructor(
         public readonly id: ConnectionId,
@@ -50,8 +50,8 @@ export class TcpTransportConnection implements TransportConnection {
      */
     public encrypt(secret: Buffer): void {
         this.cipher = {
-            out: createCipheriv('aes-128-cfb8', secret, secret),
-            in: createDecipheriv('aes-128-cfb8', secret, secret)
+            out: createCfb8('encrypt', secret, secret),
+            in: createCfb8('decrypt', secret, secret)
         };
     }
 
