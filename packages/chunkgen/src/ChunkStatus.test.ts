@@ -14,12 +14,13 @@ import {
     UnknownChunkStatusError
 } from './ChunkStatus';
 
-describe('the ten statuses', () => {
-    it('is the list ChunkStatus registers in 26.3, in registration order', () => {
+describe('the eleven statuses', () => {
+    it('is the list ChunkStatus registers in 26.4, in registration order', () => {
         expect([...CHUNK_STATUSES]).toEqual([
             'empty',
             'structure_starts',
             'structure_references',
+            'noise_biomes',
             'biomes',
             'terrain',
             'features',
@@ -33,13 +34,19 @@ describe('the ten statuses', () => {
     it('keeps initialize_light, light and spawn even though no body runs in them yet', () => {
         // Collapsing the three would shift every accumulated radius by one and turn the step
         // table from a transcription into a derivation nobody can check against the jar.
-        expect(CHUNK_STATUSES).toHaveLength(10);
+        expect(CHUNK_STATUSES).toHaveLength(11);
         expect(indexOfStatus('full') - indexOfStatus('features')).toBe(4);
     });
 
-    it('indexes empty at 0 and full at 9', () => {
+    it('indexes empty at 0 and full at 10', () => {
         expect(indexOfStatus('empty')).toBe(0);
-        expect(indexOfStatus('full')).toBe(9);
+        expect(indexOfStatus('full')).toBe(10);
+    });
+
+    it("reads 26.4's noise_biomes, which a 26.4 save may record", () => {
+        expect(isChunkStatus('noise_biomes')).toBe(true);
+        expect(parentOfStatus('biomes')).toBe('noise_biomes');
+        expect(parentOfStatus('noise_biomes')).toBe('structure_references');
     });
 
     it('is a chain, so every status but empty has the status below it as its parent', () => {
@@ -83,6 +90,6 @@ describe('the ten statuses', () => {
         const notAStatus = 'noise';
         expect(() => indexOfStatus(notAStatus as ChunkStatus)).toThrow(UnknownChunkStatusError);
         expect(() => indexOfStatus(notAStatus as ChunkStatus)).toThrow(/"noise" is not a chunk status/);
-        expect(() => statusAtIndex(10)).toThrow(UnknownChunkStatusError);
+        expect(() => statusAtIndex(11)).toThrow(UnknownChunkStatusError);
     });
 });

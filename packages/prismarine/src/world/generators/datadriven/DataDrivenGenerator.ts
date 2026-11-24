@@ -29,6 +29,7 @@ import {
     GENERATION_PRIORITIES,
     GenerationPool,
     GenerationScheduler,
+    generationPyramidFor,
     InboundFeaturePatches,
     createGenerationTransport,
     mergeGenerationStats,
@@ -3629,6 +3630,7 @@ export class DataDrivenGenerator implements Generator {
             // run: nothing climbs a rung until `generateChunk` asks the scheduler to.
             scheduler: new GenerationScheduler<GenerationChunk>({
                 holders,
+                pyramid: generationPyramidFor(this.options.registries.format),
                 tasks: {
                     terrain: (region) => this.runTerrain(region, pipeline),
                     features: (region) => this.runFeatures(region, pipeline),

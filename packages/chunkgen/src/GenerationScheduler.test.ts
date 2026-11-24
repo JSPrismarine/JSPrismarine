@@ -77,7 +77,7 @@ interface Harness {
 }
 
 /**
- * Bodies for all ten statuses, so every rung is counted.
+ * Bodies for all eleven statuses, so every rung is counted.
  *
  * `biomes` writes a biome derived from the chunk position. `terrain` reads its own biome and its
  * eight neighbors' through the region, which the step table allows at distance 1, and writes them
@@ -138,21 +138,23 @@ describe('the layers a target walks', () => {
     // Written out from the accumulated-dependency table in the slice 4 tests, not read back from
     // the pyramid. `terrain` reads `biomes` one ring out and `structure_starts` eight rings out,
     // so reaching it needs `structure_starts` nine rings out and `biomes` one.
-    it('walks 9, 9, 1, 1, 0 for a terrain target', () => {
+    it('walks 9, 9, 1, 1, 1, 0 for a terrain target', () => {
         expect(harness().scheduler.layersFor('terrain')).toEqual([
             ['empty', 9],
             ['structure_starts', 9],
             ['structure_references', 1],
+            ['noise_biomes', 1],
             ['biomes', 1],
             ['terrain', 0]
         ]);
     });
 
-    it('walks 11, 11, 3, 3, 2, 1, 1, 0, 0, 0 for a full target', () => {
+    it('walks 11, 11, 3, 3, 3, 2, 1, 1, 0, 0, 0 for a full target', () => {
         expect(harness().scheduler.layersFor('full')).toEqual([
             ['empty', 11],
             ['structure_starts', 11],
             ['structure_references', 3],
+            ['noise_biomes', 3],
             ['biomes', 3],
             ['terrain', 2],
             ['features', 1],
@@ -177,14 +179,15 @@ describe('running a status body exactly once per chunk', () => {
         await Promise.all(Array.from({ length: 10 }, () => scheduler.generate(0, 0, 'terrain')));
 
         // One chunk at `terrain` is a 19 by 19 square at `empty` and `structure_starts`, a 3 by 3
-        // at `structure_references` and `biomes`, and the chunk itself at `terrain`.
+        // at `structure_references`, `noise_biomes` and `biomes`, and the chunk itself at `terrain`.
         expect(log.repeated()).toEqual([]);
         expect(log.runsAt('empty')).toBe(361);
         expect(log.runsAt('structure_starts')).toBe(361);
         expect(log.runsAt('structure_references')).toBe(9);
+        expect(log.runsAt('noise_biomes')).toBe(9);
         expect(log.runsAt('biomes')).toBe(9);
         expect(log.runsAt('terrain')).toBe(1);
-        expect(log.total).toBe(741);
+        expect(log.total).toBe(750);
     });
 
     it('shares the overlap between nine concurrent requests rather than redoing it', async () => {
@@ -200,9 +203,10 @@ describe('running a status body exactly once per chunk', () => {
         expect(log.runsAt('empty')).toBe(441);
         expect(log.runsAt('structure_starts')).toBe(441);
         expect(log.runsAt('structure_references')).toBe(25);
+        expect(log.runsAt('noise_biomes')).toBe(25);
         expect(log.runsAt('biomes')).toBe(25);
         expect(log.runsAt('terrain')).toBe(9);
-        expect(log.total).toBe(941);
+        expect(log.total).toBe(966);
 
         expect(log.positionsAt('terrain')).toEqual(sortedPositions(square(0, 0, 3)));
         expect(log.positionsAt('biomes')).toEqual(sortedPositions(square(-1, -1, 5)));
@@ -224,15 +228,15 @@ describe('running a status body exactly once per chunk', () => {
         expect(log.runsAt('full')).toBe(9);
     });
 
-    it('counts every layer of a 3 by 3 of full targets, 1538 bodies and none run twice', async () => {
+    it('counts every layer of a 3 by 3 of full targets, 1619 bodies and none run twice', async () => {
         const { scheduler, log } = harness();
 
         await Promise.all(square(0, 0, 3).map(([x, z]) => scheduler.generate(x, z, 'full')));
 
-        // Widths 11, 11, 3, 3, 2, 1, 1, 0, 0, 0 over a 3 by 3 of targets: 625, 625, 81, 81, 49,
-        // 25, 25, 9, 9, 9.
-        expect(CHUNK_STATUSES.map((status) => log.runsAt(status))).toEqual([625, 625, 81, 81, 49, 25, 25, 9, 9, 9]);
-        expect(log.total).toBe(1538);
+        // Widths 11, 11, 3, 3, 3, 2, 1, 1, 0, 0, 0 over a 3 by 3 of targets: 625, 625, 81, 81,
+        // 81, 49, 25, 25, 9, 9, 9.
+        expect(CHUNK_STATUSES.map((status) => log.runsAt(status))).toEqual([625, 625, 81, 81, 81, 49, 25, 25, 9, 9, 9]);
+        expect(log.total).toBe(1619);
         expect(log.repeated()).toEqual([]);
     });
 

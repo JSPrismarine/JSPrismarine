@@ -16,7 +16,9 @@ const DIRECT: Record<ChunkStatus, ChunkStatus[]> = {
     empty: [],
     structure_starts: ['empty'],
     structure_references: repeat('structure_starts', 9),
-    biomes: ['structure_references', ...repeat('structure_starts', 8)],
+    // 26.3 has no `noise_biomes`; it is a pass-through rung here, so it declares only its parent.
+    noise_biomes: ['structure_references'],
+    biomes: ['noise_biomes', ...repeat('structure_starts', 8)],
     terrain: ['biomes', 'biomes', ...repeat('structure_starts', 7)],
     features: ['terrain', 'terrain', ...repeat('structure_starts', 7)],
     initialize_light: ['features'],
@@ -32,7 +34,8 @@ const ACCUMULATED: Record<ChunkStatus, ChunkStatus[]> = {
     empty: [],
     structure_starts: ['empty'],
     structure_references: repeat('structure_starts', 9),
-    biomes: ['structure_references', ...repeat('structure_starts', 8)],
+    noise_biomes: ['structure_references', ...repeat('structure_starts', 8)],
+    biomes: ['noise_biomes', ...repeat('structure_starts', 8)],
     terrain: ['biomes', 'biomes', ...repeat('structure_starts', 8)],
     features: ['terrain', 'terrain', 'biomes', ...repeat('structure_starts', 8)],
     initialize_light: ['features', 'terrain', 'biomes', ...repeat('structure_starts', 8)],
@@ -46,6 +49,7 @@ const WRITE_RADIUS: Record<ChunkStatus, number> = {
     empty: -1,
     structure_starts: -1,
     structure_references: -1,
+    noise_biomes: -1,
     biomes: -1,
     terrain: 0,
     features: 1,
@@ -123,11 +127,11 @@ describe('the radii around one chunk reaching full', () => {
     it('gives the target status a layer of its own at radius 0', () => {
         // Java's `ChunkStep.getAccumulatedRadiusOf` answers 0 for the target rather than reading
         // the dependency table, which never names the status it belongs to. The layer widths a
-        // scheduler walks are therefore 11, 11, 3, 3, 2, 1, 1, 0, 0, 0 and not an empty last one.
+        // scheduler walks are therefore 11, 11, 3, 3, 3, 2, 1, 1, 0, 0, 0 and not an empty last one.
         const toFull = GENERATION_PYRAMID.stepTo('full');
         expect(toFull.accumulatedRadiusOf('full')).toBe(0);
         expect(CHUNK_STATUSES.map((status) => toFull.accumulatedRadiusOf(status))).toEqual([
-            11, 11, 3, 3, 2, 1, 1, 0, 0, 0
+            11, 11, 3, 3, 3, 2, 1, 1, 0, 0, 0
         ]);
 
         const toTerrain = GENERATION_PYRAMID.stepTo('terrain');
