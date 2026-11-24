@@ -81,7 +81,8 @@ export const BEDROCK_ONLY_FALLBACK: BedrockBlockProperties = {
     randomTick: false,
     pushReaction: 'push_pull',
     igniteOdds: 0,
-    burnOdds: 0
+    burnOdds: 0,
+    mapColor: 'none'
 };
 
 /** Why one Bedrock-only block has no Java row, by the group it belongs to. */

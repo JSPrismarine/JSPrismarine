@@ -30,6 +30,20 @@ export interface BedrockBlockProperties {
     readonly igniteOdds: number;
     /** Fire's odds of consuming the block once lit. */
     readonly burnOdds: number;
+    /**
+     * The Java `MapColor` of the block state, by its constant's name in lower case: `grass`,
+     * `water`, `color_red`, or `none` for a block a map looks through. This is the block's own
+     * color, before a map applies its fluid rule: a waterlogged state whose top face is not sturdy,
+     * such as a lower slab, is drawn as the water it holds.
+     */
+    readonly mapColor: string;
+    /**
+     * The `MapColor` of the block's waterlogged states where Java gives them another than the dry
+     * ones: the barrier and the light block take `water`. Bedrock keeps the water in the second
+     * storage layer, so the state itself cannot say. Like `mapColor` it is the block's color, which
+     * a map's fluid rule then applies to.
+     */
+    readonly waterloggedMapColor?: string;
 }
 
 interface BlockRow {

@@ -70,6 +70,9 @@ interface PropertyRow {
     pushReaction: string;
     igniteOdds: number;
     burnOdds: number;
+    mapColor: string;
+    /** The map color of the block's waterlogged states, where it differs from the dry ones'. */
+    waterloggedMapColor?: string;
 }
 
 const FIELDS = [
@@ -82,7 +85,8 @@ const FIELDS = [
     'randomTick',
     'pushReaction',
     'igniteOdds',
-    'burnOdds'
+    'burnOdds',
+    'mapColor'
 ] as const;
 
 interface GoldenEntry {
@@ -278,6 +282,23 @@ for (const [canonical, claimed] of candidates) {
     accumulated.set(canonical, { name: winner.name, stateKey: winner.stateKey, row });
 }
 
+/**
+ * The map color Java gives a block's waterlogged states, by Bedrock block, where it differs from
+ * the dry state's they collapse onto. Bedrock keeps the water in the second storage layer, so the
+ * wet row is dropped above, but Java's `Blocks.waterloggedMapColor` draws a waterlogged barrier or
+ * light block as water where the dry one is drawn as nothing, and a map has to know.
+ */
+const waterloggedMapColors = new Map<string, string>();
+for (const { canonical, value } of deferredWet) {
+    const dry = accumulated.get(canonical);
+    if (dry === undefined || dry.row.mapColor === value.row.mapColor) continue;
+    const seen = waterloggedMapColors.get(value.name);
+    if (seen !== undefined && seen !== value.row.mapColor) {
+        throw new Error(`${value.name}: waterlogged states disagree on their map color`);
+    }
+    waterloggedMapColors.set(value.name, value.row.mapColor);
+}
+
 // ---------------------------------------------------------------------------
 // Grouping per Bedrock block, base row by field-wise majority
 // ---------------------------------------------------------------------------
@@ -323,6 +344,9 @@ for (const name of [...byName.keys()].sort()) {
         }
         if (Object.keys(diff).length > 0) stateOverrides[state.stateKey] = diff;
     }
+
+    const waterloggedMapColor = waterloggedMapColors.get(name);
+    if (waterloggedMapColor !== undefined) base['waterloggedMapColor'] = waterloggedMapColor;
 
     // The field-wise picks above come from PropertyRow values, so the shapes hold.
     const row: BlockRow = { base: base as PropertyRow };

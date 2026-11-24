@@ -48,6 +48,11 @@ interface JavaSource {
     distance: number;
     row: Record<string, string | number | boolean>;
     describe: string;
+    /**
+     * The map colors of the block's waterlogged states that land on the same Bedrock state, which
+     * the table's `waterloggedMapColor` stands for: Bedrock keeps the water in the second layer.
+     */
+    wetMapColors: Set<string | number | boolean>;
 }
 
 /** The dumped row of one Java state: the block's base row with that state's overrides folded in. */
@@ -89,8 +94,11 @@ const javaSourcesByBedrockState = (): ReadonlyMap<string, JavaSource[]> => {
 
         const candidates = byBedrock.get(bedrockKey) ?? new Map<string, JavaSource>();
         const current = candidates.get(javaId);
+        const row = rowOf(block, key);
+        const wetMapColors = current?.wetMapColors ?? new Set();
+        if (values['waterlogged'] === 'true' && row['mapColor'] !== undefined) wetMapColors.add(row['mapColor']);
         if (current === undefined || distance < current.distance) {
-            candidates.set(javaId, { distance, row: rowOf(block, key), describe: `${javaId}[${key}]` });
+            candidates.set(javaId, { distance, row, describe: `${javaId}[${key}]`, wetMapColors });
         }
         byBedrock.set(bedrockKey, candidates);
     }
@@ -155,7 +163,9 @@ const compareBlockProperties = (): {
         for (const [field, value] of Object.entries(shipped)) {
             fields += 1;
             parityCase.fields += 1;
-            if (candidates.some((candidate) => candidate.row[field] === value)) continue;
+            const matches = (candidate: JavaSource): boolean =>
+                field === 'waterloggedMapColor' ? candidate.wetMapColors.has(value) : candidate.row[field] === value;
+            if (candidates.some(matches)) continue;
             const gap = `${name}#${field}`;
             gaps.add(gap);
             parityCase.gaps.push(gap);
