@@ -525,7 +525,14 @@ export const itemModifierArgument = (): BedrockDescribedType<string> =>
 export const lootPredicateArgument = (): BedrockDescribedType<string> =>
     unrepresentable('Bedrock has no loot_predicate parameter type', readToken);
 
-/** `minecraft:loot_table`, the argument of `/loot` and `execute if items`. */
+/**
+ * `minecraft:item_predicate`, an item id, a `#tag` or `*` with optional component tests in
+ * brackets, which may hold spaces inside quotes and brackets as an NBT path may.
+ */
+export const itemPredicateArgument = (): BedrockDescribedType<string> =>
+    unrepresentable('Bedrock has no item_predicate parameter type', readNbtPath);
+
+/** `minecraft:loot_table`, the argument of `/loot`. */
 export const lootTableArgument = (): BedrockDescribedType<string> =>
     unrepresentable('Bedrock has no loot_table parameter type', readToken);
 

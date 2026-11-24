@@ -1166,9 +1166,18 @@ describe('the server command host', () => {
         });
 
         describe('item modifiers', () => {
-            /** A content build whose datapack declares `mypack:sharpen` and `mypack:triple`. */
+            /**
+             * A content build whose datapack declares the item modifiers `mypack:sharpen` and
+             * `mypack:triple`, and the item tag `mypack:blades`.
+             */
             const modifierContent = (): ServerContent => {
                 const definitions = definitionsOf({
+                    tags: new Map([
+                        [
+                            'item/mypack:blades',
+                            definitionOf('tags', 'item/mypack:blades', { values: ['minecraft:diamond_sword'] })
+                        ]
+                    ]),
                     itemModifiers: new Map([
                         [
                             'mypack:sharpen',
@@ -1262,6 +1271,33 @@ describe('the server command host', () => {
                 fixture.useContent(modifierContent());
 
                 await expect(fixture.run('item modify entity @a weapon.mainhand mypack:triple')).resolves.toBe(0);
+            });
+
+            it('counts the matching items in the slots execute if items names', async () => {
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+                await fixture.run('item replace entity @a hotbar.1 with minecraft:stone 5');
+                await fixture.run('item replace entity @a hotbar.2 with minecraft:stone 2');
+                player
+                    .getInventory()
+                    .setEquipment(
+                        'mainhand',
+                        itemOfDrop({ identifier: 'minecraft:diamond_sword', count: 1, customName: 'Edge' })
+                    );
+
+                await expect(fixture.run('execute if items entity @a hotbar.* minecraft:stone')).resolves.toBe(7);
+                await expect(fixture.run('execute if items entity @a hotbar.1 stone')).resolves.toBe(5);
+                await expect(fixture.run('execute if items entity @a hotbar.* minecraft:dirt')).resolves.toBe(0);
+                await expect(fixture.run('execute unless items entity @a hotbar.* minecraft:dirt')).resolves.toBe(1);
+                await expect(fixture.run('execute if items entity @a weapon.mainhand #mypack:blades')).resolves.toBe(1);
+                await expect(fixture.run('execute if items entity @a weapon.mainhand *[custom_name]')).resolves.toBe(1);
+                await expect(
+                    fixture.run('execute if items entity @a weapon.mainhand *[custom_name="Edge"]')
+                ).resolves.toBe(1);
+                await expect(
+                    fixture.run('execute if items entity @a weapon.mainhand *[!custom_name|custom_name="Dull"]')
+                ).resolves.toBe(0);
+                await expect(fixture.run('execute if items entity @a weapon.mainhand * run say yes')).resolves.toBe(1);
             });
 
             it('refuses a modifier no datapack declares', async () => {
