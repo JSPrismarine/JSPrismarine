@@ -77,11 +77,13 @@ export const selectTrade = (
     if (give === undefined) return undefined;
     const aux = give.components.get('minecraft:aux_value');
     const enchantments = give.components.get('minecraft:enchantments');
+    const mapId = give.components.get('minecraft:map_id');
     const stack = new Item({
         name: give.item,
         count: give.count,
         content,
         ...(typeof aux === 'number' ? { meta: aux } : {}),
+        ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(typeof enchantments === 'object' && enchantments !== null
             ? { enchantments: enchantments as Record<string, number> } // keys are Java enchantment ids by the function's contract
             : {})

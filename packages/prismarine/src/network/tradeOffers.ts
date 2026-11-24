@@ -32,10 +32,12 @@ export const tradeIndexOf = (netId: number, count: number): number | undefined =
 export const storedTradeStack = (stack: TradeStack): StoredItemStack => {
     const aux = stack.components.get('minecraft:aux_value');
     const enchantments = stack.components.get('minecraft:enchantments');
+    const mapId = stack.components.get('minecraft:map_id');
     return {
         name: stack.item,
         count: stack.count,
         ...(typeof aux === 'number' && Number.isInteger(aux) ? { meta: aux } : {}),
+        ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(typeof enchantments === 'object' && enchantments !== null && !Array.isArray(enchantments)
             ? { enchantments: enchantments as Record<string, number> } // keys are Java enchantment ids by the function's contract
             : {})
