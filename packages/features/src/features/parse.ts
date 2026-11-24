@@ -7,6 +7,7 @@ import { normalizeIdentifier, typeNameOf } from '../registry';
 import type { BlockState, Direction, VerticalDirection } from '../world/BlockState';
 import { ALL_DIRECTIONS, blockState } from '../world/BlockState';
 import { parseCaveFeature } from './caves';
+import { parseCrevasseFeature } from './crevasse';
 import type { ConfiguredFeature, FeatureTypeName } from './Feature';
 import { FEATURE_TYPES } from './Feature';
 import { parseOreFeature } from './ore';
@@ -118,9 +119,10 @@ export class FeatureLoader {
             parseOreFeature(type, raw, path) ??
             parseTreeFeature(type, raw, path, this.parsers) ??
             parseCaveFeature(type, raw, path, this.parsers) ??
+            parseCrevasseFeature(type, raw, path, this.parsers) ??
             parseStructuralFeature(type, raw, path, this.parsers);
         if (parsed === undefined) {
-            // Every name in FEATURE_TYPES is handled by one of the five readers, so reaching
+            // Every name in FEATURE_TYPES is handled by one of the six readers, so reaching
             // here means a type was registered without a reader rather than that the data is
             // wrong. Failing loudly keeps that from becoming a silently missing feature.
             return fail(new FeaturesErrors.FeatureTypeHasNoReader({ path, type: JSON.stringify(type) }));

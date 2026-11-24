@@ -3,8 +3,9 @@ import type { RandomSource } from '@jsprismarine/worldgen';
 import type { BlockPos, FeatureWorld } from '../world/FeatureWorld';
 
 /**
- * The feature types this package reads: the 58 Java 26.3 registers in `worldgen/feature_type`, and
- * 26.4's `large_speleothem`, which generalizes `large_dripstone` over its base block.
+ * The feature types this package reads: the 58 Java 26.3 registers in `worldgen/feature_type`,
+ * 26.4's `large_speleothem`, which generalizes `large_dripstone` over its base block, and 26.4's
+ * `crevasse`.
  */
 export const FEATURE_TYPES = [
     'bamboo',
@@ -16,6 +17,7 @@ export const FEATURE_TYPES = [
     'chorus_plant',
     'coral_claw',
     'coral_tree',
+    'crevasse',
     'delta_feature',
     'disk',
     'end_gateway',
@@ -68,7 +70,7 @@ export const FEATURE_TYPES = [
     'weighted_random_selector'
 ] as const;
 
-/** One of the 58 registered feature types. */
+/** One of the feature types in {@link FEATURE_TYPES}. */
 export type FeatureTypeName = (typeof FEATURE_TYPES)[number];
 
 /**
