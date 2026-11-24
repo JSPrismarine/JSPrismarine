@@ -1285,7 +1285,9 @@
                                         "conditions": []
                                     },
                                     {
-                                        "class": "EnchantRandomEquipmentFunction"
+                                        "class": "EnchantRandomEquipmentFunction",
+                                        "chance": 0.1,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 95,
@@ -1306,7 +1308,9 @@
                                         "conditions": []
                                     },
                                     {
-                                        "class": "EnchantRandomEquipmentFunction"
+                                        "class": "EnchantRandomEquipmentFunction",
+                                        "chance": 0.1,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 5,
@@ -1387,7 +1391,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomEquipmentFunction"
+                                        "class": "EnchantRandomEquipmentFunction",
+                                        "chance": 0.25,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 1,
@@ -1473,7 +1479,9 @@
                                         "conditions": []
                                     },
                                     {
-                                        "class": "EnchantRandomEquipmentFunction"
+                                        "class": "EnchantRandomEquipmentFunction",
+                                        "chance": 0.1,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 1,
@@ -2164,7 +2172,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 3,
@@ -2177,7 +2187,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 3,
@@ -2190,7 +2202,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 3,
@@ -2203,7 +2217,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 3,
@@ -2727,7 +2743,13 @@
                                         "conditions": []
                                     },
                                     {
-                                        "class": "EnchantWithLevelsFunction"
+                                        "class": "EnchantWithLevelsFunction",
+                                        "levels": {
+                                            "max": 50,
+                                            "min": 30
+                                        },
+                                        "treasure": true,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 2,
@@ -2812,7 +2834,13 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantWithLevelsFunction"
+                                        "class": "EnchantWithLevelsFunction",
+                                        "levels": {
+                                            "max": 50,
+                                            "min": 30
+                                        },
+                                        "treasure": true,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 2,
@@ -2952,7 +2980,13 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantWithLevelsFunction"
+                                        "class": "EnchantWithLevelsFunction",
+                                        "levels": {
+                                            "max": 39,
+                                            "min": 20
+                                        },
+                                        "treasure": true,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 3,
@@ -3024,7 +3058,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 5,
@@ -3202,7 +3238,9 @@
                                 "conditions": [],
                                 "functions": [
                                     {
-                                        "class": "EnchantRandomlyFunction"
+                                        "class": "EnchantRandomlyFunction",
+                                        "treasure": false,
+                                        "conditions": []
                                     }
                                 ],
                                 "weight": 10,

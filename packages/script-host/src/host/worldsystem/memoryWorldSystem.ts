@@ -38,7 +38,10 @@ const BIOMES = [
     { id: 'minecraft:desert', tags: ['desert', 'monster', 'overworld'] }
 ];
 
-/** The loot tables a memory world has: the pig's, as the behavior pack writes it. */
+/**
+ * The loot tables a memory world has: the pig's, as the behavior pack writes it, and a chest's
+ * with the enchanting functions as the vanilla tables write them.
+ */
 const LOOT_TABLES: Readonly<Record<string, unknown>> = {
     'loot_tables/entities/pig.json': {
         pools: [
@@ -62,6 +65,25 @@ const LOOT_TABLES: Readonly<Record<string, unknown>> = {
                                 rolls: 2,
                                 conditions: [{ condition: 'random_difficulty_chance', default_chance: 0.5, hard: 0.6 }]
                             }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    'loot_tables/chests/enchanted.json': {
+        pools: [
+            {
+                rolls: 1,
+                entries: [
+                    {
+                        type: 'item',
+                        name: 'minecraft:diamond_sword',
+                        weight: 1,
+                        functions: [
+                            { function: 'enchant_with_levels', levels: 30, treasure: true },
+                            { function: 'enchant_randomly' },
+                            { function: 'enchant_random_gear', chance: 0.25 }
                         ]
                     }
                 ]
