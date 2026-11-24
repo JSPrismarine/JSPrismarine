@@ -411,6 +411,56 @@ describe('one synthetic rule per material condition type', () => {
     }
 });
 
+describe('a 26.4 material rule that places no block', () => {
+    /** The rule from issue #3282: dirt above the preliminary surface, nothing below it. */
+    const dirtAboveSurface = {
+        type: 'minecraft:condition',
+        if_true: { type: 'minecraft:above_preliminary_surface' },
+        then_run: { type: 'minecraft:block', result_state: { Name: 'minecraft:dirt' } }
+    };
+    let built: ReturnType<typeof buildChunk>;
+    beforeAll(() => {
+        const overworld = buildChunk('minecraft:overworld', 'overworld');
+        const settings = { ...overworld.settings, materialRulePlacesSolid: true } as const;
+        built = { ...overworld, settings, randomState: new RandomState(worldgenData, SEED, settings) };
+    });
+
+    const countBlocks = (chunk: BlockArraySurfaceChunk) => {
+        const counts = new Map<string, number>();
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                const blockX = columnVectors.chunkX * 16 + x;
+                const blockZ = columnVectors.chunkZ * 16 + z;
+                for (let y = chunk.minY; y <= chunk.maxY; y++) {
+                    const state = chunk.getBlock(blockX, y, blockZ);
+                    counts.set(state, (counts.get(state) ?? 0) + 1);
+                }
+            }
+        }
+        return counts;
+    };
+
+    for (const nativePass of [false, true]) {
+        it(`leaves air where the rule places nothing${nativePass ? ' through the native pass where the library loads' : ''}`, () => {
+            const chunk = runRule(
+                built,
+                materialRuleData.parseRule(dirtAboveSurface, 'dirt_above_surface'),
+                nativePass
+            );
+            const counts = countBlocks(chunk);
+            expect(counts.get('minecraft:stone')).toBeUndefined();
+            expect(counts.get('minecraft:dirt')).toBeGreaterThan(0);
+            expect(counts.get('minecraft:water')).toBeGreaterThan(0);
+        });
+    }
+
+    it('keeps the filler block before 26.4, where the settings name it', () => {
+        const overworld = buildChunk('minecraft:overworld', 'overworld');
+        const chunk = runRule(overworld, materialRuleData.parseRule(dirtAboveSurface, 'dirt_above_surface'));
+        expect(countBlocks(chunk).get('minecraft:stone')).toBeGreaterThan(0);
+    });
+});
+
 describe('the material rule at one position, which a carver asks after it opens a cave', () => {
     /**
      * Three outcomes, one per detail of Java's `MaterialSystem.topMaterial`. The outer branch

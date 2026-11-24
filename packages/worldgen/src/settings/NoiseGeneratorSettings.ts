@@ -66,6 +66,13 @@ export interface NoiseGeneratorSettings {
     readonly noiseSettings: NoiseSettings;
     /** The Java block state identifier used where the density is solid. */
     readonly defaultBlock: string;
+    /**
+     * Set from {@link SINCE_MATERIAL_RULE_PLACES_SOLID} on, where the settings name no
+     * `default_block`: {@link defaultBlock} is then a placeholder the surface pass replaces, with
+     * air where the material rule places nothing. Left out before that, so older settings hash
+     * as they did.
+     */
+    readonly materialRulePlacesSolid?: true;
     /** The Java block state identifier used for the dimension's sea. */
     readonly defaultFluid: string;
     /** The eight router slots. */
@@ -105,9 +112,9 @@ export const SINCE_MATERIAL_RULE_PLACES_SOLID = 128;
 
 /**
  * The block the noise pass fills solid density with when the settings name none. The surface
- * pass asks the material rule for every solid block, and every vanilla rule tree ends in an
- * unconditional `block` rule, so this stone is replaced wherever the 26.4 rules place a block.
- * Where a rule tree leaves a block unplaced, 26.4 leaves air and this generator leaves stone.
+ * pass asks the material rule for every solid block and replaces this placeholder with what the
+ * rule places, or with air where it places nothing, as 26.4's `ChunkTerrainBuilder` leaves an
+ * unplaced solid block empty.
  */
 const SOLID_PLACEHOLDER = 'minecraft:stone';
 
@@ -192,11 +199,11 @@ export const parseNoiseGeneratorSettings = (
                   } satisfies AquiferConfig;
               })();
 
+    const placesSolid = readsSince(format, SINCE_MATERIAL_RULE_PLACES_SOLID);
     return {
         noiseSettings: { minY, height },
-        defaultBlock: readsSince(format, SINCE_MATERIAL_RULE_PLACES_SOLID)
-            ? SOLID_PLACEHOLDER
-            : blockState(raw['default_block'], `${path}.default_block`),
+        defaultBlock: placesSolid ? SOLID_PLACEHOLDER : blockState(raw['default_block'], `${path}.default_block`),
+        ...(placesSolid ? { materialRulePlacesSolid: true } : {}),
         defaultFluid: blockState(raw['default_fluid'], `${path}.default_fluid`),
         noiseRouter: {
             temperature: parseSlot('temperature'),

@@ -157,6 +157,11 @@ export class SurfaceSystem {
     public readonly defaultBlock: string;
     /** The dimension's sea level. */
     public readonly seaLevel: number;
+    /**
+     * Whether {@link defaultBlock} is a placeholder the material rule replaces, which turns to
+     * air where the rule places nothing. 26.4 settings name no filler block.
+     */
+    private readonly placesSolid: boolean;
     /** The preliminary surface height function, which is the router's `chunk_surface_level`. */
     public readonly preliminarySurface: DensityFunctionNode;
     /** The dimension extent a vertical anchor resolves against. */
@@ -183,6 +188,7 @@ export class SurfaceSystem {
         const settings = randomState.settings;
         this.defaultBlock = settings.defaultBlock;
         this.seaLevel = settings.seaLevel;
+        this.placesSolid = settings.materialRulePlacesSolid === true;
         this.preliminarySurface = settings.noiseRouter.chunkSurfaceLevel;
         this.generationContext = createWorldGenerationContext(settings);
         this.noiseRandom = randomState.random;
@@ -348,6 +354,9 @@ export class SurfaceSystem {
         const surfaceBiomes = new Array<string>(CHUNK_SIZE * CHUNK_SIZE);
         const minSurfaceLevels = new Float64Array(CHUNK_SIZE * CHUNK_SIZE);
         const fields = NativeSurfaceLayout.columnFields;
+        // Which blocks hold the solid placeholder, for the settings where an unmatched rule
+        // leaves air; the C reports only that it changed nothing.
+        const placeholders = this.placesSolid ? new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * height) : undefined;
 
         for (let localX = 0; localX < CHUNK_SIZE; localX++) {
             for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
@@ -379,6 +388,9 @@ export class SurfaceSystem {
                         column[y - chunk.minY] = chunk.getBlock(blockX, y, blockZ);
                 const base = index * height;
                 for (let y = 0; y < height; y++) blocks[base + y] = NativeSurfacePass.categoryOf(column[y]!);
+                if (placeholders !== undefined) {
+                    for (let y = 0; y < height; y++) placeholders[base + y] = column[y] === this.defaultBlock ? 1 : 0;
+                }
             }
         }
 
@@ -403,6 +415,9 @@ export class SurfaceSystem {
             for (let y = 0; y < height; y++) {
                 const state = states[base + y]!;
                 if (state >= 0) chunk.setBlock(blockX, chunk.minY + y, blockZ, names[state]!);
+                else if (state === NativeSurfaceLayout.unchanged && placeholders?.[base + y] === 1) {
+                    chunk.setBlock(blockX, chunk.minY + y, blockZ, AIR);
+                }
             }
         }
 
@@ -437,6 +452,7 @@ export class SurfaceSystem {
             );
             const state = rule.run(blockX, blockY, blockZ);
             if (state !== undefined) chunk.setBlock(blockX, blockY, blockZ, state);
+            else if (placeholders?.[block] === 1) chunk.setBlock(blockX, blockY, blockZ, AIR);
         }
 
         for (let index = 0; index < CHUNK_SIZE * CHUNK_SIZE; index++) {
@@ -506,6 +522,7 @@ export class SurfaceSystem {
             if (y >= chunk.minY && y <= chunk.maxY) {
                 const state = rule.run(blockX, y, blockZ);
                 if (state !== undefined) chunk.setBlock(blockX, y, blockZ, state);
+                else if (this.placesSolid && old === this.defaultBlock) chunk.setBlock(blockX, y, blockZ, AIR);
             }
         }
     }
