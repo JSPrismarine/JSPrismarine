@@ -18,17 +18,17 @@ import { nbtDataVerbs } from './nbtData';
 import { RandomSequences } from './randomSequences';
 import { scoreboardCommandHost } from './scoreboard';
 import { serverSideCommandHost } from './server';
+import { targetDataAccess } from './targetData';
 import { unsupported } from './support';
 import { worldCommandHost } from './world';
 
 /**
  * The NBT, loot, predicate and function group.
  *
- * The NBT verbs read and write the command's level's command storage (see `./nbtData`). The
- * function verbs run `@jsprismarine/mcfunction` over whatever the loaded datapacks declared. The
- * slot verbs write named slots on players, mobs and container blocks and run item modifiers over
- * them (see `./inventory`). What still refuses is NBT for blocks and entities, and the predicate
- * evaluator.
+ * The NBT verbs read and write the command's level's command storage and the NBT form of blocks
+ * and entities (see `./nbtData` and `./targetData`). The function verbs run
+ * `@jsprismarine/mcfunction` over whatever the loaded datapacks declared. The slot verbs write named slots on players, mobs and container blocks and run item modifiers over
+ * them (see `./inventory`). What still refuses is the predicate evaluator.
  */
 const dataCommandHost = (server: Server, sequences: RandomSequences, level: () => Level): DataCommandHost => {
     const functions = () => server.getCommandManager().getFunctionRuntime();
@@ -36,7 +36,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences, level: () =
     const storage = () => level().getCommandStorage();
 
     return {
-        ...nbtDataVerbs(storage),
+        ...nbtDataVerbs(storage, targetDataAccess(server)),
         countSlotItems: (sources, slot, predicate) => countSlotItems(server, sources, slot, predicate),
         applyItemModifier: (targets, slot, modifier) => modifyItemSlots(server, targets, slot, modifier),
         setSlot: (targets, slot, item, count, mode) => setItemSlot(server, targets, slot, item, count, mode),

@@ -112,6 +112,26 @@ const openTarget = (server: Server, target: SlotTarget, role: SlotRole): OpenedH
     return actor === undefined ? undefined : mobHolder(actor.entity);
 };
 
+/**
+ * What the slots each name covers on one target hold, in order, empty ones as null.
+ *
+ * @returns The stacks of each name, in the order of the names; none for a name the target does
+ *   not have, and none for any when the target has gone.
+ * @throws {CommandSyntaxException} When a block target is not a container.
+ */
+export const slotItemsOf = (
+    server: Server,
+    target: SlotTarget,
+    names: readonly string[]
+): readonly (readonly (Item | null)[])[] => {
+    const opened = openTarget(server, target, 'source');
+    return names.map((name) => {
+        if (opened === undefined) return [];
+        const resolved = resolveSlotName({ name }, opened.holder, { role: 'source' });
+        return resolved.ok ? resolved.slots.map((slot) => opened.get(slot)) : [];
+    });
+};
+
 /** A copy of a stack for another slot: the same item, and a stack the client has not named yet. */
 const copyOf = (item: Item): Item => {
     const copy = item.withCount(item.getAmount());

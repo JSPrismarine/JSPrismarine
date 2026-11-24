@@ -26,6 +26,7 @@ import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { DamageSource } from '../../entity/DamageSource';
 import HumanInventory from '../../inventory/HumanInventory';
+import { EntityInventory, mobLayout } from '../../inventory/EntityInventory';
 import { itemOfDrop } from '../../inventory/persistence';
 import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
@@ -83,7 +84,12 @@ const storeHealth = (max: number) => {
     const attributes = new StoreAttributes(new Map(), (write) => writes.push(write));
     attributes.define('health', { base: max });
     writes.length = 0;
-    return { attributes, writes, instance: stub<EntityInstance>({ attributes }) };
+    return {
+        attributes,
+        writes,
+        // What a slot name resolves against too: no inventory component and no equippable slots.
+        instance: stub<EntityInstance>({ attributes, componentParams: () => undefined, hasComponent: () => false })
+    };
 };
 
 interface Fixture {
@@ -347,9 +353,21 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
     const actor = stubOf(StoreActor, {
         entity: stub<DataEntity>({
             id: Number(id),
-            body: stub<MobBody>({ yaw: 0, pitch: 0, teleportTo, tags: new ObservedSet<string>() }),
-            instance: health.instance
+            body: stub<MobBody>({
+                yaw: 0,
+                pitch: 0,
+                teleportTo,
+                tags: new ObservedSet<string>(),
+                velocity: { x: 0, y: 0, z: 0 },
+                inventory: new EntityInventory(mobLayout(0)),
+                fireTicks: 0,
+                invulnerable: false,
+                deathTime: 0
+            }),
+            instance: health.instance,
+            conditions: new Set<string>()
         }),
+        getPortalCooldown: () => 0,
         getRuntimeId: () => id,
         getType: () => type,
         getName: () => type.split(':')[1]!,
@@ -402,7 +420,17 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3,
                 removeTag: (tag: string) => tags.delete(tag),
                 attributes: new Attributes(Attributes.getPlayerDefaults()),
                 // The store entity, whose `health` attribute `max_health` is kept in.
-                entity: stub<DataEntity>({ id: Number(id), instance: storeHealth(20).instance }),
+                entity: stub<DataEntity>({
+                    id: Number(id),
+                    instance: storeHealth(20).instance,
+                    // What `/data get entity` reads of a player's body.
+                    body: stub<MobBody>({ fireTicks: 0, invulnerable: false, deathTime: 0 })
+                }),
+                getVelocity: () => new Vector3(0, 0, 0),
+                isOnGround: () => true,
+                getPortalCooldown: () => 0,
+                getHealth: () => 20,
+                getMaxHealth: () => 20,
                 yaw: 0,
                 pitch: 0,
                 headYaw: 0
@@ -825,8 +853,47 @@ describe('the server command host', () => {
         });
     });
 
-    describe('what has no subsystem behind it', () => {
-        it('refuses NBT by path on a block or an entity with a sentence that reads as one', () => {
+    describe('the NBT of blocks and entities', () => {
+        it("reads a mob's data in Java's shape, and one field of it by path", async () => {
+            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(1, 64, 2));
+            await fixture.run('tag @e add winner');
+
+            await expect(fixture.run('data get entity @e[type=pig,limit=1] Health')).resolves.toBe(10);
+            expect(fixture.feedback.at(-1)).toBe('pig has the following entity data: 10.0f');
+
+            const data = serverCommandHost(fixture.server).data;
+            const entity = { kind: 'entity', entity: entityRefOf(pig.actor) } as const;
+            expect(data.getData(entity, 'Pos')?.snbt).toBe('[1.0d, 64.0d, 2.0d]');
+            expect(data.getData(entity, 'Tags')?.snbt).toBe('["winner"]');
+            expect(data.countData(entity, 'NoSuchField')).toBe(0);
+        });
+
+        it('writes the fields it models back onto a mob, and drops the rest', async () => {
+            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(1, 64, 2));
+
+            await expect(
+                fixture.run(
+                    'data merge entity @e[type=pig,limit=1] {Health: 4.0f, Tags: ["a"], Pos: [5.0d, 70.0d, 6.0d]}'
+                )
+            ).resolves.toBe(1);
+
+            expect(pig.health.instance.attributes.get('health')?.current).toBe(4);
+            expect(pig.actor.getTags()).toEqual(['a']);
+            expect(pig.teleportTo).toHaveBeenCalledWith({ x: 5, y: 70, z: 6 });
+        });
+
+        it("reads a player's data, and refuses to write it, as Java does", async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            await fixture.run('item replace entity @a hotbar.1 with minecraft:stone 3');
+
+            await expect(fixture.run('data get entity @a Inventory[0].count')).resolves.toBe(3);
+            await expect(fixture.run('data merge entity @a {Health: 1.0f}')).rejects.toThrow(
+                'Unable to modify player data'
+            );
+            expect(player.getActor()!.entity.instance.attributes.get('health')?.current).toBe(20);
+        });
+
+        it('refuses a block that is not a block entity', () => {
             const data = serverCommandHost(fixture.server).data;
             const block = {
                 kind: 'block',
@@ -834,12 +901,7 @@ describe('the server command host', () => {
                 position: { x: 0, y: 0, z: 0 }
             } as const;
 
-            expect(() => data.getData(block, 'Items')).toThrow(
-                'This server has no NBT paths for blocks and entities yet, so that command cannot run'
-            );
-            expect(() => data.modifyData(block, 'a', 'set', { kind: 'value', snbt: '1' })).toThrow(
-                'no NBT paths for blocks and entities'
-            );
+            expect(() => data.getData(block)).toThrow('The target block is not a block entity');
         });
     });
 

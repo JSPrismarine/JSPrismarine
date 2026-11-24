@@ -3,9 +3,8 @@
  * `/function … with` against a level's command storage.
  *
  * The verbs read and edit `@jsprismarine/nbt` tags and follow Java Edition's `DataCommands`.
- * Blocks and entities have no NBT form here yet
- * ([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)), so a block or an entity
- * target is refused.
+ * A block or an entity is read into the compound `./targetData` builds for it and written back
+ * through the same module.
  */
 import type { DataCommandHost, DataModifySource, DataTarget } from '@jsprismarine/commands';
 import { NbtErrors } from '@jsprismarine/errors/nbt';
@@ -25,7 +24,8 @@ import type { NbtCompoundTag, NbtTag } from '@jsprismarine/nbt/tag';
 import { compoundTag, isNumericTag, mergeCompounds, numericValueOf, sizeOf, tagsEqual } from '@jsprismarine/nbt/tag';
 
 import type { CommandStorage } from '../../world/CommandStorage';
-import { refuse, unsupported } from './support';
+import { refuse } from './support';
+import type { TargetDataAccess } from './targetData';
 
 /** The verbs this module implements. */
 export type NbtDataVerbs = Pick<DataCommandHost, 'countData' | 'getData' | 'mergeData' | 'modifyData' | 'removeData'>;
@@ -65,18 +65,17 @@ const javaFloor = (value: number): number =>
 const resultOf = (tag: NbtTag): number => (isNumericTag(tag) ? javaFloor(numericValueOf(tag)) : sizeOf(tag));
 
 /**
- * Builds the NBT verbs over a command storage.
+ * Builds the NBT verbs over a command storage and the world's blocks and entities.
  *
  * @param storage - The storage, read per call, since the host is built before the worlds load.
+ * @param objects - The compounds of blocks and entities.
  */
-export const nbtDataVerbs = (storage: () => CommandStorage): NbtDataVerbs => {
-    const read = (target: DataTarget): NbtCompoundTag => {
-        if (target.kind !== 'storage') return unsupported('NBT paths for blocks and entities');
-        return storage().get(target.id);
-    };
+export const nbtDataVerbs = (storage: () => CommandStorage, objects: TargetDataAccess): NbtDataVerbs => {
+    const read = (target: DataTarget): NbtCompoundTag =>
+        target.kind === 'storage' ? storage().get(target.id) : objects.read(target);
     const write = (target: DataTarget, compound: NbtCompoundTag): void => {
-        if (target.kind !== 'storage') return unsupported('NBT paths for blocks and entities');
-        storage().set(target.id, compound);
+        if (target.kind === 'storage') storage().set(target.id, compound);
+        else objects.write(target, compound);
     };
 
     /** The tags `/data modify` writes: the one typed, or every one the source path names. */
