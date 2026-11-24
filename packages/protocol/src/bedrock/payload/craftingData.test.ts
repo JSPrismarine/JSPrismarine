@@ -1,7 +1,18 @@
 import { FIRST_RECIPE_NET_ID, assignNetIds, orderRecipes } from '@jsprismarine/recipes';
 import { describe, expect, it } from 'vitest';
 
-import { ANY_META, RECIPES_WITHOUT_A_BEDROCK_FORM, buildCraftingData } from './craftingData';
+import NetworkBinaryStream from '../../NetworkBinaryStream';
+import { capture } from '../../testing/evidence.test.helper';
+import { layoutAt } from '../../wire/WireLayout';
+import { craftingDataPacket } from '../wire/definitions/craftingData';
+import {
+    ANY_META,
+    MAP_CLONING_UUID,
+    MULTI_RECIPE_UUIDS,
+    RECIPES_WITHOUT_A_BEDROCK_FORM,
+    SMITHING_TRIM_ENTRY,
+    buildCraftingData
+} from './craftingData';
 
 import type { CompiledIngredient, CompiledRecipe, Recipe, RecipeType } from '@jsprismarine/recipes';
 
@@ -135,22 +146,146 @@ describe('buildCraftingData', () => {
         });
     });
 
-    it('writes a smithing trim, which is the one recipe with no result', () => {
-        const { smithingTrim, omitted } = buildCraftingData([
+    describe('smithing trims', () => {
+        const trim = (id: string, netId: number): CompiledRecipe =>
             compiled({
-                id: 'a',
+                id,
                 type: 'minecraft:smithing_trim',
                 station: 'smithing',
+                netId,
                 ingredients: [
-                    accepts('minecraft:coast_armor_trim_smithing_template'),
+                    accepts(`${id}_armor_trim_smithing_template`),
                     accepts('minecraft:iron_chestplate'),
                     accepts('minecraft:redstone')
                 ]
-            })
-        ]);
+            });
 
-        expect(omitted).toEqual([]);
-        expect(smithingTrim[0]).toMatchObject({ station: 'smithing_table' });
+        it('sends every trim recipe as the one entry the client trims anything with', () => {
+            const { smithingTrim, recipesByNetId, omitted } = buildCraftingData([
+                trim('minecraft:coast', 4),
+                trim('minecraft:dune', 5)
+            ]);
+
+            expect(omitted).toEqual([]);
+            expect(smithingTrim).toEqual([
+                {
+                    id: SMITHING_TRIM_ENTRY.id,
+                    netId: 4,
+                    station: 'smithing_table',
+                    template: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.template }, count: 1 },
+                    base: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.base }, count: 1 },
+                    addition: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.addition }, count: 1 }
+                }
+            ]);
+            expect(recipesByNetId.get(4)).toEqual(['minecraft:coast', 'minecraft:dune']);
+        });
+    });
+
+    describe('transmutes', () => {
+        const redShulkerBox = compiled({
+            id: 'minecraft:red_shulker_box',
+            type: 'minecraft:crafting_transmute',
+            station: 'crafting',
+            netId: 3,
+            blockTags: ['crafting_table'],
+            ingredients: [
+                accepts('minecraft:undyed_shulker_box', 'minecraft:red_shulker_box', 'minecraft:blue_shulker_box'),
+                accepts('minecraft:red_dye')
+            ],
+            result: { identifier: 'minecraft:red_shulker_box', count: 1 }
+        });
+
+        it('sends one user data entry per input item, leaving out the input that is already the result', () => {
+            const { userDataShapeless, shapeless, widened } = buildCraftingData([redShulkerBox]);
+
+            expect(shapeless).toEqual([]);
+            expect(widened).toEqual([]);
+            expect(userDataShapeless.map((entry) => entry.ingredients[0]?.descriptor)).toEqual([
+                { kind: 'name', name: 'minecraft:undyed_shulker_box', meta: ANY_META },
+                { kind: 'name', name: 'minecraft:blue_shulker_box', meta: ANY_META }
+            ]);
+            for (const entry of userDataShapeless) {
+                expect(entry.ingredients[1]?.descriptor).toEqual({
+                    kind: 'name',
+                    name: 'minecraft:red_dye',
+                    meta: ANY_META
+                });
+                expect(entry.outputs).toEqual([{ name: 'minecraft:red_shulker_box', meta: 0, count: 1 }]);
+            }
+        });
+
+        it('keeps the recipe’s own net id on the first entry and numbers the rest after every recipe', () => {
+            const { userDataShapeless, recipesByNetId } = buildCraftingData([redShulkerBox, shapedRecipe]);
+
+            expect(userDataShapeless.map((entry) => entry.netId)).toEqual([3, 8]);
+            expect(new Set(userDataShapeless.map((entry) => entry.id)).size).toBe(2);
+            expect(recipesByNetId.get(3)).toEqual(['minecraft:red_shulker_box']);
+            expect(recipesByNetId.get(8)).toEqual(['minecraft:red_shulker_box']);
+            expect(recipesByNetId.get(7)).toEqual(['minecraft:oak_planks']);
+        });
+    });
+
+    describe('multi recipes', () => {
+        const banner = (color: string, netId: number): CompiledRecipe =>
+            compiled({
+                id: `minecraft:${color}_banner_duplicate`,
+                type: 'minecraft:crafting_special_bannerduplicate',
+                station: 'crafting',
+                netId,
+                ingredients: [accepts(`minecraft:${color}_banner`)],
+                result: { identifier: `minecraft:${color}_banner`, count: 1 }
+            });
+
+        it('sends the Java recipes one built-in recipe covers as one entry under the first one’s id', () => {
+            const { multi, recipesByNetId } = buildCraftingData([banner('black', 2), banner('red', 9)]);
+
+            expect(multi).toEqual([
+                { uuid: MULTI_RECIPE_UUIDS['minecraft:crafting_special_bannerduplicate'], netId: 2 }
+            ]);
+            expect(recipesByNetId.get(2)).toEqual([
+                'minecraft:black_banner_duplicate',
+                'minecraft:red_banner_duplicate'
+            ]);
+        });
+
+        it('sends a transmute with no result item of its own as map cloning', () => {
+            const { multi, userDataShapeless } = buildCraftingData([
+                compiled({
+                    id: 'minecraft:map_cloning',
+                    type: 'minecraft:crafting_transmute',
+                    station: 'crafting',
+                    ingredients: [accepts('minecraft:filled_map'), accepts('minecraft:map')]
+                })
+            ]);
+
+            expect(userDataShapeless).toEqual([]);
+            expect(multi).toEqual([{ uuid: MAP_CLONING_UUID, netId: 1 }]);
+        });
+    });
+
+    // The UUIDs and the trim entry are the pinned server's, so each has to be in what it sent.
+    describe.each([2193, 2225])('against the recipes the real server sent at protocol %i', (protocol) => {
+        const sent = layoutAt(craftingDataPacket, protocol).decode(new NetworkBinaryStream(capture(protocol, 0x34)));
+
+        it('names only built-in recipes the server sent', () => {
+            const uuids = new Set(sent.multi.map((entry) => entry.uuid.toString('hex')));
+
+            for (const uuid of [...Object.values(MULTI_RECIPE_UUIDS), MAP_CLONING_UUID]) {
+                expect(uuids).toContain(uuid.replaceAll('-', ''));
+            }
+        });
+
+        it('sends the trim entry the server sent', () => {
+            expect(sent.smithingTrim).toEqual([
+                expect.objectContaining({
+                    id: SMITHING_TRIM_ENTRY.id,
+                    station: 'smithing_table',
+                    template: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.template }, count: 1 },
+                    base: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.base }, count: 1 },
+                    addition: { descriptor: { kind: 'tag', tag: SMITHING_TRIM_ENTRY.addition }, count: 1 }
+                })
+            ]);
+        });
     });
 
     it('writes one furnace entry per station tag, because the wire holds one station each', () => {

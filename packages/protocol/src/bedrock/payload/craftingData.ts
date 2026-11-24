@@ -14,7 +14,11 @@
  *
  * Network ids come from `@jsprismarine/recipes`, which sorts by namespace
  * and then path and numbers from 1 because Bedrock reserves 0 for "no
- * recipe". Nothing here renumbers them.
+ * recipe". Nothing here renumbers them. A Java recipe that goes out as
+ * several entries keeps its own id on the first and takes ids after the
+ * last recipe's for the rest, and several Java recipes behind one entry
+ * share the first one's; {@link CraftingDataResult.recipesByNetId} says
+ * which Java recipes each id stands for.
  */
 import { BEDROCK_STATION_TAGS } from '@jsprismarine/recipes';
 
@@ -86,6 +90,18 @@ export interface SmithingTrimEntry extends RecipeEntryBase {
     readonly addition: WireIngredient;
 }
 
+/**
+ * A recipe the client holds the behavior of, named by the UUID the client has compiled in.
+ *
+ * Several Java recipes can stand behind one: Java has a banner duplicate recipe per color and
+ * Bedrock one built-in recipe for all of them.
+ */
+export interface MultiRecipeEntry {
+    /** The UUID, in its dashed text form. */
+    readonly uuid: string;
+    readonly netId: number;
+}
+
 /** A brewing stand recipe that turns one potion into another. */
 export interface PotionMixEntry {
     readonly id: string;
@@ -121,32 +137,72 @@ export interface WidenedIngredient {
 }
 
 /**
- * Why each Java serializer with no Bedrock form has none.
+ * The built-in recipe each Java serializer is on a Bedrock client, by the UUID the client knows
+ * it by.
  *
- * Every one of them is a Bedrock multi recipe, which is a bare UUID plus a
- * network id: the client holds the behavior and matches the UUID against a
- * list compiled into it. Reproducing one means knowing that UUID, and no
- * capture of `CraftingDataPacket` is in this repository to read it from.
+ * Every UUID here is one the pinned Bedrock Dedicated Server sends in its `CraftingDataPacket`
+ * (`packages/bedrock-data/src/jsp/v2225/wire/0x34.bin`) and holds as text in its binary. The
+ * packet pairs a UUID with nothing but a net id, so which recipe each one is comes from the
+ * names other Bedrock servers give them, such as PocketMine-MP's `MultiRecipe` constants. The
+ * capture's other UUIDs are the cartography table's and the old banner pattern recipe, which no
+ * Java crafting recipe is.
  */
-export const RECIPES_WITHOUT_A_BEDROCK_FORM: Partial<Record<RecipeType, string>> = {
-    'minecraft:crafting_decorated_pot': 'The client crafts a decorated pot itself; Bedrock has no data form.',
-    'minecraft:crafting_dye': 'Dyeing is a multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_imbue': 'Imbuing is a multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_bannerduplicate': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_bookcloning': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_firework_rocket': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_firework_star': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_firework_star_fade': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_mapextending': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_repairitem': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_special_shielddecoration': 'A multi recipe, keyed by a UUID the client has compiled in.',
-    'minecraft:crafting_transmute': 'Transmuting is a multi recipe, keyed by a UUID the client has compiled in.'
+export const MULTI_RECIPE_UUIDS: Partial<Record<RecipeType, string>> = {
+    'minecraft:crafting_special_repairitem': '00000000-0000-0000-0000-000000000001',
+    // Bedrock has one built-in fireworks recipe, which makes the stars and fades them as well
+    // as the rockets.
+    'minecraft:crafting_special_firework_rocket': '00000000-0000-0000-0000-000000000002',
+    'minecraft:crafting_special_firework_star': '00000000-0000-0000-0000-000000000002',
+    'minecraft:crafting_special_firework_star_fade': '00000000-0000-0000-0000-000000000002',
+    'minecraft:crafting_special_mapextending': 'd392b075-4ba1-40ae-8789-af868d56f6ce',
+    'minecraft:crafting_special_bookcloning': 'd1ca6b84-338e-4f2f-9c6b-76cc8b4bd98d',
+    'minecraft:crafting_special_bannerduplicate': 'b5c5d105-75a2-4076-af2b-923ea2bf4bf0',
+    'minecraft:crafting_decorated_pot': '685a742a-c42e-4a4e-88ea-5eb83fc98e5b'
 };
 
-/** The eight lists, one per shape the packet carries. */
+/**
+ * Map cloning's built-in recipe. Java writes map cloning as a `crafting_transmute` with no
+ * result item of its own, since the copies are the input map, so it is told apart from the
+ * other transmutes by that missing result rather than by its type.
+ */
+export const MAP_CLONING_UUID = '85939755-ba10-4d9d-a4cc-efb7a8e943c4';
+
+/**
+ * The one smithing trim entry the pinned Bedrock Dedicated Server sends, which stands for every
+ * trim pattern: the client trims any template, armor piece and material its own tags name.
+ * Java has a recipe per pattern, and all of them go out as this entry.
+ */
+export const SMITHING_TRIM_ENTRY = {
+    id: 'minecraft:smithing_armor_trim',
+    template: 'minecraft:trim_templates',
+    base: 'minecraft:trimmable_armors',
+    addition: 'minecraft:trim_materials'
+} as const;
+
+/**
+ * Why each Java serializer with no Bedrock form has none.
+ * @see https://github.com/JSPrismarine/JSPrismarine/issues/3690
+ */
+export const RECIPES_WITHOUT_A_BEDROCK_FORM: Partial<Record<RecipeType, string>> = {
+    'minecraft:crafting_dye':
+        'Bedrock dyes armor with a built-in recipe whose UUID is not yet paired with the captured ones.',
+    'minecraft:crafting_imbue':
+        'Bedrock writes a tipped arrow recipe per potion, which needs the potion to arrow data mapping.',
+    'minecraft:crafting_special_shielddecoration':
+        'Bedrock decorates a shield with a built-in recipe whose UUID is not yet paired with the captured ones.'
+};
+
+/** The lists, one per shape the packet carries. */
 export interface CraftingDataPayload {
     readonly shaped: readonly ShapedRecipeEntry[];
     readonly shapeless: readonly ShapelessRecipeEntry[];
+    readonly multi: readonly MultiRecipeEntry[];
+    /**
+     * Shapeless recipes whose output keeps the input's user data, which is how a shulker box
+     * keeps its contents when it is dyed. A Java `crafting_transmute` goes out as one of these
+     * per item its input accepts, as the Bedrock Dedicated Server writes its own.
+     */
+    readonly userDataShapeless: readonly ShapelessRecipeEntry[];
     readonly smithingTransform: readonly SmithingTransformEntry[];
     readonly smithingTrim: readonly SmithingTrimEntry[];
     readonly potionMixes: readonly PotionMixEntry[];
@@ -161,6 +217,12 @@ export interface CraftingDataPayload {
 
 /** What {@link buildCraftingData} produced, and everything it could not say on the wire. */
 export interface CraftingDataResult extends CraftingDataPayload {
+    /**
+     * The Java recipes behind each net id a crafting or smithing entry carries, which is what a
+     * client names when it crafts. Most ids stand for one recipe; a multi or trim entry stands
+     * for every Java recipe it covers.
+     */
+    readonly recipesByNetId: ReadonlyMap<number, readonly string[]>;
     readonly omitted: readonly OmittedRecipe[];
     readonly widened: readonly WidenedIngredient[];
 }
@@ -250,16 +312,28 @@ export const buildCraftingData = (
     recipes: Iterable<CompiledRecipe>,
     options: CraftingDataOptions = {}
 ): CraftingDataResult => {
+    const all = [...recipes];
     const shaped: ShapedRecipeEntry[] = [];
     const shapeless: ShapelessRecipeEntry[] = [];
+    const userDataShapeless: ShapelessRecipeEntry[] = [];
     const smithingTransform: SmithingTransformEntry[] = [];
     const smithingTrim: SmithingTrimEntry[] = [];
     const potionMixes: PotionMixEntry[] = [];
     const furnace: FurnaceRecipeEntry[] = [];
     const omitted: OmittedRecipe[] = [];
     const widened: WidenedIngredient[] = [];
+    const recipesByNetId = new Map<number, string[]>();
+    const multiByUuid = new Map<string, number>();
 
-    for (const recipe of recipes) {
+    // Ids for the entries past a recipe's first, after every id the recipes already hold.
+    let nextNetId = all.reduce((highest, recipe) => Math.max(highest, recipe.netId), 0) + 1;
+    const stands = (netId: number, recipeId: string): void => {
+        const ids = recipesByNetId.get(netId);
+        if (ids === undefined) recipesByNetId.set(netId, [recipeId]);
+        else ids.push(recipeId);
+    };
+
+    for (const recipe of all) {
         const noForm = RECIPES_WITHOUT_A_BEDROCK_FORM[recipe.type];
         if (noForm !== undefined) {
             omitted.push({ recipeId: recipe.id, type: recipe.type, reason: noForm });
@@ -273,14 +347,32 @@ export const buildCraftingData = (
         const base = { id: recipe.id, netId: recipe.netId, station };
         const [first, second, third] = recipe.ingredients;
 
+        const uuid =
+            recipe.type === 'minecraft:crafting_transmute' && recipe.result === undefined
+                ? MAP_CLONING_UUID
+                : MULTI_RECIPE_UUIDS[recipe.type];
+        if (uuid !== undefined) {
+            // Recipes arrive in net id order, so the first one sets the entry's id.
+            const netId = multiByUuid.get(uuid) ?? recipe.netId;
+            multiByUuid.set(uuid, netId);
+            stands(netId, recipe.id);
+            continue;
+        }
+
         // The one entry with no result: a trim writes a pattern onto the base.
         if (recipe.type === 'minecraft:smithing_trim') {
-            smithingTrim.push({
-                ...base,
-                template: slot(first ?? null),
-                base: slot(second ?? null),
-                addition: slot(third ?? null)
-            });
+            const netId = smithingTrim[0]?.netId ?? recipe.netId;
+            if (smithingTrim.length === 0) {
+                const tag = (name: string): WireIngredient => ({ descriptor: { kind: 'tag', tag: name }, count: 1 });
+                smithingTrim.push({
+                    ...base,
+                    id: SMITHING_TRIM_ENTRY.id,
+                    template: tag(SMITHING_TRIM_ENTRY.template),
+                    base: tag(SMITHING_TRIM_ENTRY.base),
+                    addition: tag(SMITHING_TRIM_ENTRY.addition)
+                });
+            }
+            stands(netId, recipe.id);
             continue;
         }
 
@@ -306,6 +398,7 @@ export const buildCraftingData = (
                     break;
                 }
 
+                stands(recipe.netId, recipe.id);
                 shaped.push({
                     ...base,
                     width: shape.width,
@@ -323,6 +416,7 @@ export const buildCraftingData = (
             // stonecutter, which is how the vanilla Bedrock pack writes its
             // own 354 of them.
             case 'minecraft:stonecutting':
+                stands(recipe.netId, recipe.id);
                 shapeless.push({
                     ...base,
                     ingredients: recipe.ingredients.filter((item) => item !== null).map(slot),
@@ -331,7 +425,37 @@ export const buildCraftingData = (
                 });
                 break;
 
+            case 'minecraft:crafting_transmute': {
+                // One entry per item the input accepts, since the wire's single slot would
+                // otherwise narrow a tag of shulker boxes to one of them. An input that is
+                // already the result is left out, as the Bedrock Dedicated Server leaves it.
+                const inputs = (first?.items ?? []).filter(
+                    (item) => item.identifier !== result.identifier || (item.data ?? 0) !== (result.data ?? 0)
+                );
+                const material = slot(second ?? null);
+                for (const [index, item] of inputs.entries()) {
+                    const netId = index === 0 ? recipe.netId : nextNetId++;
+                    stands(netId, recipe.id);
+                    userDataShapeless.push({
+                        ...base,
+                        id: index === 0 ? recipe.id : `${recipe.id}_from_${item.identifier.replace(/^.*:/, '')}`,
+                        netId,
+                        ingredients: [
+                            {
+                                descriptor: { kind: 'name', name: item.identifier, meta: item.data ?? ANY_META },
+                                count: 1
+                            },
+                            material
+                        ],
+                        outputs: [resultOf(result)],
+                        priority
+                    });
+                }
+                break;
+            }
+
             case 'minecraft:smithing_transform':
+                stands(recipe.netId, recipe.id);
                 smithingTransform.push({
                     ...base,
                     template: slot(first ?? null),
@@ -391,5 +515,17 @@ export const buildCraftingData = (
         }
     }
 
-    return { shaped, shapeless, smithingTransform, smithingTrim, potionMixes, furnace, omitted, widened };
+    return {
+        shaped,
+        shapeless,
+        multi: [...multiByUuid].map(([uuid, netId]) => ({ uuid, netId })),
+        userDataShapeless,
+        smithingTransform,
+        smithingTrim,
+        potionMixes,
+        furnace,
+        recipesByNetId,
+        omitted,
+        widened
+    };
 };
