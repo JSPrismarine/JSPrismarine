@@ -5,8 +5,9 @@ import type { ConnectionLaneHandler } from './SessionHandler';
 /**
  * A map locked at a cartography table.
  *
- * The request is recorded at debug level and dropped. Known gap: the server stores no maps, so
- * there is nothing to copy and no `ClientboundMapItemDataPacket` to send for the new id.
+ * The request is recorded at debug level and dropped. Known gap: the server keeps explorer maps
+ * (`Level.createMap`) but copies none, so the locked copy gets no saved data and no
+ * `ClientboundMapItemDataPacket` is sent for the new id.
  */
 export default class MapCreateLockedCopyHandler implements ConnectionLaneHandler<MapCreateLockedCopyPacket> {
     public static PacketName = 'MapCreateLockedCopyPacket';
@@ -16,7 +17,7 @@ export default class MapCreateLockedCopyHandler implements ConnectionLaneHandler
     /** Logs the map being copied and the id asked for. */
     public handle(packet: MapCreateLockedCopyPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} locked map ${packet.originalMapId} as ${packet.newMapId}. The server stores no maps`
+            `${session.identity.name} locked map ${packet.originalMapId} as ${packet.newMapId}. Maps are not copied`
         );
     }
 }

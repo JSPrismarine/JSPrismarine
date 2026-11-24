@@ -316,6 +316,11 @@
                 "import": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js",
                 "module": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js"
             },
+            "./bedrock/packet/ClientboundMapItemDataPacket": {
+                "types": "./dist/bedrock/packet/ClientboundMapItemDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientboundMapItemDataPacket.js",
+                "module": "./dist/bedrock/packet/ClientboundMapItemDataPacket.js"
+            },
             "./bedrock/packet/MapInfoRequestPacket": {
                 "types": "./dist/bedrock/packet/MapInfoRequestPacket.d.ts",
                 "import": "./dist/bedrock/packet/MapInfoRequestPacket.js",
@@ -1280,6 +1285,10 @@
         "./bedrock/packet/MapCreateLockedCopyPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js",
             "default": "./src/bedrock/packet/MapCreateLockedCopyPacket.ts"
+        },
+        "./bedrock/packet/ClientboundMapItemDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundMapItemDataPacket.js",
+            "default": "./src/bedrock/packet/ClientboundMapItemDataPacket.ts"
         },
         "./bedrock/packet/MapInfoRequestPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/MapInfoRequestPacket.js",
