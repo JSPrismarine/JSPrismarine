@@ -111,12 +111,12 @@ const suffixKind = (suffix: string | undefined): number => {
 };
 
 /**
- * Orders two Java Edition release ids, such as `26.3`, `26.4-snapshot-8` and `26.4-pre1`.
+ * Orders two Java Edition release ids, such as `26.3`, `26.4-snapshot-8` and `26.4-pre-1`.
  *
  * The release portion before the first `-` is compared number by number, with a missing number
  * read as 0, so `26.10` is newer than `26.9`. When the release portions are equal, Mojang's
  * publishing order decides: snapshots, then pre-releases (`pre`), then release candidates
- * (`rc`), then the release itself, so `26.4` > `26.4-rc1` > `26.4-pre1` > `26.4-snapshot-8`.
+ * (`rc`), then the release itself, so `26.4` > `26.4-rc-1` > `26.4-pre-1` > `26.4-snapshot-8`.
  * Two suffixes of one kind compare with their numbers read as numbers, so `snapshot-10` is
  * newer than `snapshot-9`.
  *

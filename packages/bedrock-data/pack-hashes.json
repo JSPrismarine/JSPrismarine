@@ -96,10 +96,10 @@
             "server.jar": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64"
         }
     },
-    "java-server/26.4-snapshot-10": {
-        "version": "26.4-snapshot-10",
+    "java-server/26.4-pre-1": {
+        "version": "26.4-pre-1",
         "entries": {
-            "server.jar": "54648ab1ee76981c3aa27b2456f325f9e77be35098ebcd9493fd45fbce7b415d"
+            "server.jar": "e82d51679154e4e5ea5e26a0bde7a44156f3329d3f08cae2e2d595f955a4715f"
         }
     },
     "vanilla-mcdoc": {
