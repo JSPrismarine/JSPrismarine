@@ -551,9 +551,8 @@ block entity; nothing rolls them.
 **Loot rolls get no content view and no enchantment registry.** `LootRegistry` is built without the
 optional content options, and the two drop paths pass no `enchantments` view, so the modifiers that
 need either fall back. `furnace_smelt` is the one you will notice: <!-- fact:java.datapack.lootTables.furnaceSmelt -->16<!-- /fact --> vanilla tables use it, which
-is why a cow that dies burning drops raw beef rather than steak. The five tables with an
-`exploration_map` and the 25 with `enchant_randomly` or `enchant_with_levels` are in the same
-position. Each reports a diagnostic and leaves the stack alone rather than failing the roll. Reading
+is why a cow that dies burning drops raw beef rather than steak. The 25 tables with
+`enchant_randomly` or `enchant_with_levels` are in the same position. Each reports a diagnostic and leaves the stack alone rather than failing the roll. Reading
 a Fortune or Looting level is unaffected, because the default view reads the
 `minecraft:enchantments` component straight off the stack.
 
