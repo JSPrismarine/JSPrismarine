@@ -160,6 +160,22 @@ describe('routeDatapackPath', () => {
         expect(routeDatapackPath('data/minecraft/worldgen/biome/Bad Name.json')).toBeUndefined();
     });
 
+    it("routes 26.4's dispense behaviors and block sound sets by namespaced id", () => {
+        expect(routeDatapackPath('data/minecraft/dispense_behavior/filled_bucket.json')).toEqual({
+            registry: 'dispenseBehaviors',
+            identifier: 'minecraft:filled_bucket'
+        });
+        expect(routeDatapackPath('data/minecraft/block_sound_set/stone.json')).toEqual({
+            registry: 'blockSoundSets',
+            identifier: 'minecraft:stone'
+        });
+        expect(routeDatapackPath('data/minecraft/tags/block_sound_set/sounds_wooden.json')).toEqual({
+            registry: 'tags',
+            identifier: 'block_sound_set/minecraft:sounds_wooden',
+            taggedRegistry: 'block_sound_set'
+        });
+    });
+
     it('ignores pre-1.21 plural directories, unconsumed registries and nested built-in packs', () => {
         expect(routeDatapackPath('data/minecraft/loot_tables/blocks/stone.json')).toBeUndefined();
         expect(routeDatapackPath('data/minecraft/chat_type/chat.json')).toBeUndefined();
@@ -195,6 +211,20 @@ describe('structuralValidator for Java registries', () => {
         expect(structuralValidator({ registry: 'recipesJava', path: 'p', data: [] })).toMatchObject([
             { severity: 'error', code: 'definition.not-an-object' }
         ]);
+    });
+
+    it('takes a dispense behavior only as a list, and a block sound set with numeric volume and pitch', () => {
+        const behaviors = [{ type: 'minecraft:fill_bucket' }, { type: 'minecraft:drop_item' }];
+        expect(structuralValidator({ registry: 'dispenseBehaviors', path: 'p', data: behaviors })).toEqual([]);
+        expect(
+            structuralValidator({ registry: 'dispenseBehaviors', path: 'p', data: { type: 'minecraft:drop_item' } })
+        ).toMatchObject([{ severity: 'error', code: 'definition.not-an-array' }]);
+
+        const stone = { break_sound: 'minecraft:block.stone.break', volume: 1, pitch: 0.8 };
+        expect(structuralValidator({ registry: 'blockSoundSets', path: 'p', data: stone })).toEqual([]);
+        expect(
+            structuralValidator({ registry: 'blockSoundSets', path: 'p', data: { ...stone, pitch: 'high' } })
+        ).toMatchObject([{ severity: 'error', code: 'definition.missing-key' }]);
     });
 
     it('checks a dimension type and a stem, and takes any worldgen root', () => {
