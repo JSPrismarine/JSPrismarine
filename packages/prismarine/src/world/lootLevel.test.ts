@@ -16,6 +16,29 @@ describe('the loot level view', () => {
         expect(level.clockTicks?.('minecraft:overworld')).toBe(18000);
     });
 
+    it("searches the world's structures and hands out the level's map ids for an explorer map", () => {
+        const searches: unknown[] = [];
+        let lastMapId = 4;
+        const level = lootLevelOf({
+            getTicks: () => 0,
+            getDimension: () => ({ name: 'minecraft:overworld' }),
+            locateStructure: (name, origin, radius) => {
+                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius });
+                return { x: 320, y: 40, z: -96 };
+            },
+            nextMapId: () => ++lastMapId
+        });
+
+        expect(level.nearestStructure?.('#minecraft:on_treasure_maps', { x: 1, y: 2, z: 3 }, 50)).toEqual({
+            x: 320,
+            y: 40,
+            z: -96
+        });
+        // The radius goes through as the loot function stated it, as `/locate` reads its own.
+        expect(searches).toEqual([{ name: '#minecraft:on_treasure_maps', origin: { x: 1, z: 3 }, radius: 50 }]);
+        expect([level.newMapId?.(), level.newMapId?.()]).toEqual([5, 6]);
+    });
+
     it('leaves out what the server cannot answer truthfully yet', () => {
         const level = lootLevelOf({ getTicks: () => 0, getDimension: () => ({ name: 'minecraft:overworld' }) });
 

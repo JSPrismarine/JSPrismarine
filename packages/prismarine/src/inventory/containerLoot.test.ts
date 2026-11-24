@@ -27,6 +27,9 @@ const CHEST: ContentPosition = { x: 20, y: 36, z: -12 };
 /** The table a dungeon chest names, which is one of the ones a structure writes. */
 const DUNGEON = 'minecraft:chests/simple_dungeon';
 
+/** The shipwreck's map chest, whose map pool runs `exploration_map` and drops a map that found nothing. */
+const SHIPWRECK_MAP = 'minecraft:chests/shipwreck_map';
+
 /**
  * The real Java 26.3 tables, loaded the way the server loads them. They need the datapack
  * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` caches, so this is skipped
@@ -58,7 +61,10 @@ const contentWith = (seed: bigint): ServerContent =>
     );
 
 /** A world of one chunk, holding whatever block entities are filed in it. */
-const worldHolding = (entities: readonly BlockEntity[]): ContainerLootWorld => {
+const worldHolding = (
+    entities: readonly BlockEntity[],
+    level: Pick<ContainerLootWorld, 'locateStructure' | 'nextMapId'> = {}
+): ContainerLootWorld => {
     const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
     const held = new Map(entities.map((entity) => [key(...positionOf(entity)), entity]));
 
@@ -68,7 +74,13 @@ const worldHolding = (entities: readonly BlockEntity[]): ContainerLootWorld => {
             held.set(key(...positionOf(entity)), entity);
         }
     };
-    return { getLoadedChunk: () => chunk, blockEntityChanged: () => {} };
+    return {
+        getLoadedChunk: () => chunk,
+        blockEntityChanged: () => {},
+        getTicks: () => 0,
+        getDimension: () => ({ name: 'minecraft:overworld' }),
+        ...level
+    };
 };
 
 const positionOf = (entity: BlockEntity): [number, number, number] => {
@@ -77,8 +89,8 @@ const positionOf = (entity: BlockEntity): [number, number, number] => {
 };
 
 /** The chest a structure writes: the Bedrock table path and the seed, and nothing in it yet. */
-const generatedChest = (seed: bigint, at: ContentPosition = CHEST): BlockEntity => {
-    const entity = createBlockEntity({ request: { id: 'minecraft:chest', lootTable: DUNGEON }, ...at }, seed);
+const generatedChest = (seed: bigint, at: ContentPosition = CHEST, lootTable = DUNGEON): BlockEntity => {
+    const entity = createBlockEntity({ request: { id: 'minecraft:chest', lootTable }, ...at }, seed);
     expect(entity).toBeDefined();
     return entity!;
 };
@@ -161,6 +173,39 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
         const world = worldHolding([plain]);
 
         expect(fillContainerLoot(contentWith(1234n), world, CHEST, 'minecraft:chest')).toBe(false);
+    });
+
+    it("points a shipwreck's map at the structure the world finds from the chest", () => {
+        const searches: unknown[] = [];
+        let lastMapId = -1;
+        const world = worldHolding([generatedChest(1234n, CHEST, SHIPWRECK_MAP)], {
+            locateStructure: (name, origin, radius) => {
+                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius });
+                return { x: 400, y: 50, z: -800 };
+            },
+            nextMapId: () => ++lastMapId
+        });
+        const bare = worldHolding([generatedChest(1234n, CHEST, SHIPWRECK_MAP)]);
+
+        fillContainerLoot(contentWith(1234n), world, CHEST, 'minecraft:chest');
+        fillContainerLoot(contentWith(1234n), bare, CHEST, 'minecraft:chest');
+
+        // The table's own destination and Java's default radius, searched from the chest.
+        expect(searches).toEqual([
+            { name: '#minecraft:on_treasure_maps', origin: { x: CHEST.x, z: CHEST.z }, radius: 50 }
+        ]);
+        expect(lastMapId).toBe(0);
+
+        // The map pool keeps a map only once it has a `map_id`, so the chest whose world found
+        // the structure holds one item more than the chest whose world could not search.
+        const held = (chest: ContainerLootWorld) =>
+            recordOf(chest.getLoadedChunk(0, 0)!.getBlockEntity(CHEST.x, CHEST.y, CHEST.z)!)
+                .filter((item) => item !== undefined)
+                .map((item) => item.identifier);
+        const found = held(world);
+        const missing = held(bare);
+        expect(found.length).toBe(missing.length + 1);
+        for (const identifier of missing) expect(found).toContain(identifier);
     });
 
     it('leaves a block with no slots alone', () => {

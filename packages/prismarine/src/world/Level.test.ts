@@ -570,6 +570,23 @@ describe('Level', () => {
             await reopened.level.disable();
         });
 
+        it('hands out map ids that carry on after a restart instead of starting again', async () => {
+            const { level } = buildLevel('maps');
+            await level.enable();
+            const overworld = await level.world(OVERWORLD_STEM_ID);
+            const nether = await level.world(NETHER_STEM_ID);
+
+            // One counter for the level, as Java's `idcounts` is, so two dimensions never share an id.
+            expect([overworld.nextMapId(), nether.nextMapId(), overworld.nextMapId()]).toEqual([0, 1, 2]);
+            await level.save();
+            await level.disable();
+
+            const reopened = buildLevel('maps');
+            await reopened.level.enable();
+            expect(reopened.level.nextMapId()).toBe(3);
+            await reopened.level.disable();
+        });
+
         it('keeps an experiment its config turned on in level.dat, so it stays on without the config', async () => {
             const { level } = buildLevel('experimental', { config: { experiments: ['gametest'] } });
             await level.enable();
