@@ -63,28 +63,31 @@ export const fallDamage: Scenario = {
     description: 'an eleven block fall costs health while a three block drop or one onto hay costs none',
     run: async (context) => {
         const { client, server, log } = context;
-        // Its own floor at y 63, rather than whatever an earlier scenario left: run alone, the
-        // drop used to fall to the flat world's ground at y -60 and never land where it looked.
-        server.command('fill -2 63 -2 2 63 2 minecraft:stone');
-        await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
-        const start = healthOf(await client.state()).current;
-
-        await dropFrom(context, 67);
-        await waitTicks(server, 10);
-        assert.equal(healthOf(await client.state()).current, start, 'a three block drop should not hurt');
-
-        await dropFrom(context, 75);
-        await waitTicks(server, 10);
-        const hurt = healthOf(await client.state()).current;
-        assert.ok(hurt < start - 4, `an eleven block fall left health at ${hurt} from ${start}`);
-
-        log(`fall took health from ${start} to ${hurt}`);
-
-        // A hay bale under the feet breaks the fall. The server used to read the blocks under the
-        // eyes, which the client reports, so the bale was never seen. Regeneration is off for the
-        // drop, so a point healed meanwhile cannot hide a point lost to the fall.
+        // Regeneration is off for the whole scenario, so a point healed cannot hide a point lost
+        // to a fall. Turning it off only before the hay drop left the long fall's healing racing
+        // the gamerule: a heal sent just before it took effect reached the client after the
+        // reading before the hay drop, and the hay drop seemed to heal the player.
         server.command('gamerule naturalRegeneration false');
         try {
+            // Its own floor at y 63, rather than whatever an earlier scenario left: run alone, the
+            // drop used to fall to the flat world's ground at y -60 and never land where it looked.
+            server.command('fill -2 63 -2 2 63 2 minecraft:stone');
+            await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
+            const start = healthOf(await client.state()).current;
+
+            await dropFrom(context, 67);
+            await waitTicks(server, 10);
+            assert.equal(healthOf(await client.state()).current, start, 'a three block drop should not hurt');
+
+            await dropFrom(context, 75);
+            await waitTicks(server, 10);
+            const hurt = healthOf(await client.state()).current;
+            assert.ok(hurt < start - 4, `an eleven block fall left health at ${hurt} from ${start}`);
+
+            log(`fall took health from ${start} to ${hurt}`);
+
+            // A hay bale under the feet breaks the fall. The server used to read the blocks under
+            // the eyes, which the client reports, so the bale was never seen.
             await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:hay_block');
             const beforeHay = healthOf(await client.state()).current;
             await dropFrom(context, 75);
