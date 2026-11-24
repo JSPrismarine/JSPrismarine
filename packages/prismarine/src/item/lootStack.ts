@@ -170,3 +170,36 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
         ...(contents === undefined ? {} : { contents })
     };
 };
+
+/**
+ * Puts back what a drop carried that the translation to and from a rolled stack drops: the
+ * Bedrock fields Java has no component for here, such as the blocks a stack may be placed on and
+ * its lock. A stack a modifier rebuilt keeps them, and so does each stack it holds, slot by slot,
+ * where the slot still holds the same item.
+ *
+ * @param original - The drop before the round trip.
+ * @param rebuilt - The drop after it, which keeps every field it has.
+ */
+export const withBedrockFields = (original: ContentItemDrop, rebuilt: ContentItemDrop): ContentItemDrop => {
+    const { canPlaceOn, canDestroy, keepOnDeath, lockMode, dynamicProperties } = original;
+    const inner = original.contents;
+    const contents =
+        rebuilt.contents === undefined || inner === undefined
+            ? rebuilt.contents
+            : rebuilt.contents.map((held, slot) => {
+                  const before = inner[slot];
+                  return held === undefined || before === undefined || before.identifier !== held.identifier
+                      ? held
+                      : withBedrockFields(before, held);
+              });
+
+    return {
+        ...rebuilt,
+        ...(canPlaceOn === undefined ? {} : { canPlaceOn }),
+        ...(canDestroy === undefined ? {} : { canDestroy }),
+        ...(keepOnDeath === undefined ? {} : { keepOnDeath }),
+        ...(lockMode === undefined ? {} : { lockMode }),
+        ...(dynamicProperties === undefined ? {} : { dynamicProperties }),
+        ...(contents === undefined ? {} : { contents })
+    };
+};

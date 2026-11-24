@@ -26,6 +26,7 @@ import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { DamageSource } from '../../entity/DamageSource';
 import HumanInventory from '../../inventory/HumanInventory';
+import { itemOfDrop } from '../../inventory/persistence';
 import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
 import AnimateEntityPacket from '@jsprismarine/protocol/bedrock/packet/AnimateEntityPacket';
@@ -1164,12 +1165,113 @@ describe('the server command host', () => {
             expect(player.getInventory().container('armor').get(0)).toBeNull();
         });
 
-        it('refuses an item modifier with a sentence', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+        describe('item modifiers', () => {
+            /** A content build whose datapack declares `mypack:sharpen` and `mypack:triple`. */
+            const modifierContent = (): ServerContent => {
+                const definitions = definitionsOf({
+                    itemModifiers: new Map([
+                        [
+                            'mypack:sharpen',
+                            definitionOf('itemModifiers', 'mypack:sharpen', [
+                                { type: 'minecraft:set_name', name: 'Sharp' },
+                                { type: 'minecraft:set_count', count: 1 }
+                            ])
+                        ],
+                        [
+                            'mypack:triple',
+                            definitionOf('itemModifiers', 'mypack:triple', {
+                                type: 'minecraft:set_count',
+                                count: 3
+                            })
+                        ]
+                    ])
+                });
+                return stub<ServerContent>({
+                    definitions,
+                    blocks: stub<ServerContent['blocks']>({ types: new Map<string, BlockType>() }),
+                    items: stub<ServerContent['items']>({ types: vanillaItemTypes() }),
+                    loot: new LootRegistry(
+                        { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+                        { worldSeed: 1n }
+                    )
+                });
+            };
 
-            await expect(fixture.run('item modify entity @a weapon.mainhand mypack:sharpen')).rejects.toThrow(
-                'This server has no item modifiers for /item yet, so that command cannot run'
-            );
+            it('runs a modifier over the held stack and keeps what it did not touch', async () => {
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+                player.getInventory().setEquipment(
+                    'mainhand',
+                    itemOfDrop({
+                        identifier: 'minecraft:diamond_sword',
+                        count: 1,
+                        lore: ['Old'],
+                        enchantments: { 'minecraft:sharpness': 2 }
+                    })
+                );
+
+                await expect(fixture.run('item modify entity @a weapon.mainhand mypack:sharpen')).resolves.toBe(1);
+
+                const held = player.getInventory().equipment('mainhand');
+                expect(held?.getName()).toBe('minecraft:diamond_sword');
+                expect(held?.getEnchantmentLevel('minecraft:sharpness')).toBe(2);
+                expect(held?.getCustomName()).toBe('Sharp');
+                expect(held?.getLore()).toEqual(['Old']);
+                expect(held?.durability).toBe(held?.getMaxDurability());
+            });
+
+            it("keeps the Bedrock fields of a container's stacks through a modifier", async () => {
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+                player.getInventory().setEquipment(
+                    'mainhand',
+                    itemOfDrop({
+                        identifier: 'minecraft:shulker_box',
+                        count: 1,
+                        canPlaceOn: ['minecraft:stone'],
+                        contents: [{ identifier: 'minecraft:stone', count: 3, canDestroy: ['minecraft:dirt'] }]
+                    })
+                );
+
+                await expect(fixture.run('item modify entity @a weapon.mainhand mypack:sharpen')).resolves.toBe(1);
+
+                const held = player.getInventory().equipment('mainhand');
+                expect(held?.getCustomName()).toBe('Sharp');
+                expect(held?.getCanPlaceOnBlocks()).toEqual(['minecraft:stone']);
+                const [inside] = held?.getContents() ?? [];
+                expect(inside?.getAmount()).toBe(3);
+                expect(inside?.getCanDestroyBlocks()).toEqual(['minecraft:dirt']);
+            });
+
+            it('runs a modifier over each stack /item … from copies', async () => {
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+                await fixture.run('item replace entity @a hotbar.0 with minecraft:stone 1');
+
+                await expect(
+                    fixture.run('item replace entity @a hotbar.1 from entity @a hotbar.0 mypack:triple')
+                ).resolves.toBe(1);
+
+                const inventory = player.getInventory().container('inventory');
+                expect(inventory.get(1)?.getAmount()).toBe(3);
+                expect(inventory.get(0)?.getAmount()).toBe(1);
+            });
+
+            it('leaves an empty slot alone', async () => {
+                playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+
+                await expect(fixture.run('item modify entity @a weapon.mainhand mypack:triple')).resolves.toBe(0);
+            });
+
+            it('refuses a modifier no datapack declares', async () => {
+                playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+
+                await expect(fixture.run('item modify entity @a weapon.mainhand mypack:nothing')).rejects.toThrow(
+                    'Unknown item modifier: mypack:nothing'
+                );
+            });
         });
 
         it('shakes a camera through /camerashake', async () => {

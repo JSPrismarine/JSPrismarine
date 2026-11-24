@@ -309,11 +309,13 @@ of them, and `/item override` puts it in the first and empties the rest. `/item 
 slots of a block or an entity, empty ones included, and `/loot replace` writes one rolled stack
 per slot from the one it names, emptying the slots its count reaches past the roll.
 
-Three slot features are missing:
+`/item modify` runs a datapack's item modifier over each filled slot a name covers, and the
+modifier on `/item … from` runs over each stack on its way. A stack keeps its name, lore,
+enchantments, durability and contents through the modifier, and a name no datapack declares
+fails with `Unknown item modifier: <id>`.
 
-- `/item modify` and the modifier on `/item … from` refuse with `This server has no item modifiers
-  for /item yet`
-  ([#3607](https://github.com/JSPrismarine/JSPrismarine/issues/3607)).
+Two slot features are missing:
+
 - `horse.chest` and `player.crafting.N` refuse with `Slot <name> is not one this server can reach
   yet` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)).
 - `execute if items` reads its slots as an NBT path and refuses
