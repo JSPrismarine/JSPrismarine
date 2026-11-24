@@ -104,7 +104,7 @@ export const ITEM_TABLE_EXCEPTIONS = [
         ],
         bedrockId: 'minecraft:filled_map',
         supersededBy: 'minecraft:filled_map',
-        reason: 'The 16 structure locator maps are one Bedrock item. They differ from a plain filled map only in their map decorations, which travel in the stack NBT.',
+        reason: 'The 16 structure locator maps are one Bedrock item. Each has its own aux value, which names it on the client, and its map decorations travel with the map data.',
         reference: `${TRANSLATION_NOTE} section 3`
     },
     {

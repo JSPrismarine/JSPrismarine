@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createJavaItemMapping } from './itemMapping';
+import { EXPLORER_MAP_DATA, createJavaItemMapping, javaItemToBedrock } from './itemMapping';
 import { itemsTable } from './tables';
 
 describe('createJavaItemMapping', () => {
@@ -16,6 +16,32 @@ describe('createJavaItemMapping', () => {
         expect(createJavaItemMapping(itemsTable)('minecraft:acacia_planks')).toEqual({
             kind: 'mapped',
             bedrock: { identifier: 'minecraft:acacia_planks', data: 4 }
+        });
+    });
+
+    it('gives each structure locator map its own aux value on a filled map', () => {
+        const auxValues = Object.entries(EXPLORER_MAP_DATA).map(([javaId, data]) => {
+            const mapped = javaItemToBedrock(javaId);
+            expect(mapped.kind === 'mapped' || mapped.kind === 'loss' ? mapped.bedrock : undefined).toEqual({
+                identifier: 'minecraft:filled_map',
+                data
+            });
+            return data;
+        });
+
+        // Every Java item that maps onto a filled map other than the plain one is listed, and no
+        // two share an aux value, so the client names each one apart.
+        const locators = Object.entries(itemsTable.items)
+            .filter(
+                ([javaId, entry]) =>
+                    entry.bedrockIdentifier === 'minecraft:filled_map' && javaId !== 'minecraft:filled_map'
+            )
+            .map(([javaId]) => javaId);
+        expect(Object.keys(EXPLORER_MAP_DATA).sort()).toEqual(locators.sort());
+        expect(new Set(auxValues).size).toBe(auxValues.length);
+        expect(javaItemToBedrock('minecraft:filled_map')).toEqual({
+            kind: 'mapped',
+            bedrock: { identifier: 'minecraft:filled_map' }
         });
     });
 
