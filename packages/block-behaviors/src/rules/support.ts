@@ -114,3 +114,45 @@ export const attachmentFaceOf = (block: HookBlock, sideHasWall: boolean): BlockF
             return undefined;
     }
 };
+
+/** One face a block can cover, and the bit its direction state sets for it. */
+export type FaceBit = { readonly face: BlockFace; readonly bit: number };
+
+/** The state Bedrock packs a lichen's, a vein's or a resin clump's faces into. */
+export const MULTI_FACE_STATE = 'multi_face_direction_bits';
+
+/** The six faces Bedrock packs into {@link MULTI_FACE_STATE}. */
+const MULTI_FACE_BITS = [
+    { face: 'down', bit: 1 },
+    { face: 'up', bit: 2 },
+    { face: 'north', bit: 4 },
+    { face: 'south', bit: 8 },
+    { face: 'west', bit: 16 },
+    { face: 'east', bit: 32 }
+] as const satisfies readonly FaceBit[];
+
+/** Whether one of a block's flagged faces still touches a supporting block. */
+export const hasSupportedAttachment = (
+    world: WorldActions,
+    block: HookBlock,
+    state: string,
+    faces: readonly FaceBit[]
+): boolean => {
+    const bits = stateNumber(block, state);
+    return faces.some(({ face, bit }) => (bits & bit) !== 0 && isSolidSupport(world, offset(block.position, face)));
+};
+
+/**
+ * Breaks a multiface block, Java's `MultifaceBlock` (glow lichen, a sculk vein, a resin clump),
+ * once the neighbor that changed was on one of its faces and no face it covers is held any more.
+ *
+ * @param changed - The face whose neighbor changed.
+ * @returns True when the block popped.
+ */
+export const popUnsupportedMultiface = (world: WorldActions, block: HookBlock, changed: BlockFace): boolean => {
+    const bit = MULTI_FACE_BITS.find(({ face }) => face === changed)?.bit;
+    if (bit === undefined || (stateNumber(block, MULTI_FACE_STATE) & bit) === 0) return false;
+    if (hasSupportedAttachment(world, block, MULTI_FACE_STATE, MULTI_FACE_BITS)) return false;
+    popBlock(world, block);
+    return true;
+};

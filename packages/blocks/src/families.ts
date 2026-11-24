@@ -96,7 +96,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
         prefix: ['light_block_', 'element_'],
         contains: ['hard_glass', 'hard_', 'chemistry_table', 'colored_torch_', 'underwater_torch', 'underwater_tnt']
     },
-    { behavior: 'jsprismarine:liquid', exact: ['water', 'flowing_water', 'lava', 'flowing_lava'] },
+    { behavior: 'jsprismarine:liquid', exact: ['water', 'flowing_water', 'lava', 'flowing_lava', 'bubble_column'] },
     {
         behavior: 'jsprismarine:portal',
         exact: Object.values(PORTAL_BLOCK_NAMES).flat()
@@ -235,7 +235,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
         ]
     },
     { behavior: 'jsprismarine:egg', contains: ['egg', 'frogspawn'] },
-    { behavior: 'jsprismarine:dripstone', contains: ['dripstone', 'amethyst', 'budding'] },
+    { behavior: 'jsprismarine:dripstone', contains: ['dripstone', 'amethyst', 'budding', 'sulfur_spike'] },
     { behavior: 'jsprismarine:dripleaf', contains: ['dripleaf', 'spore_blossom'] },
     {
         behavior: 'jsprismarine:flora',

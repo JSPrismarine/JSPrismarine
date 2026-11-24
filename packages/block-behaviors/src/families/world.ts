@@ -2,6 +2,8 @@
  * The families the world itself drives: liquids, the portals and fires, the
  * sculk blocks, and copper weathering.
  */
+import type { HookBlock } from '@jsprismarine/blocks';
+
 import { defineFamily } from '../family';
 import { offset, opposite } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
@@ -17,14 +19,50 @@ import {
     lightNetherPortal,
     spawnPiglinFromPortal
 } from '../rules/portal';
-import { breakBlock } from '../rules/support';
-import { bareName, hasState, setStates, stateNumber } from '../state';
+import { breakBlock, MULTI_FACE_STATE, popUnsupportedMultiface } from '../rules/support';
+import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber } from '../state';
+import type { WorldActions } from '../world';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 
-/** Water and lava, source and flowing. */
+const BUBBLE_COLUMN = 'bubble_column';
+
+/** How long Java's `BubbleColumnBlock` waits after a neighbor changes to check the column. */
+const BUBBLE_COLUMN_CHECK_TICKS = 5;
+
+const isBubbleColumn = (identifier: string): boolean => bareName(identifier) === BUBBLE_COLUMN;
+
+/** Whether a bubble column above a block drags down, or undefined when the block holds no column. */
+const columnDragAbove = (below: HookBlock | undefined): boolean | undefined => {
+    if (below === undefined) return undefined;
+    switch (bareName(below.identifier)) {
+        case BUBBLE_COLUMN:
+            return stateBoolean(below, 'drag_down');
+        case 'magma':
+            return true;
+        case 'soul_sand':
+            return false;
+        default:
+            return undefined;
+    }
+};
+
+/**
+ * Java's `BubbleColumnBlock.updateColumn` for one block: soul sand below pushes the column up,
+ * a magma block drags it down, more column passes its pull on, and anything else leaves water.
+ */
+const updateBubbleColumn = (world: WorldActions, block: HookBlock): void => {
+    const dragDown = columnDragAbove(world.getBlock(offset(block.position, 'down')));
+    if (dragDown === undefined) {
+        world.setBlock(block.position, sibling(block.identifier, 'water'));
+        return;
+    }
+    if (stateBoolean(block, 'drag_down') !== dragDown) setStates(world, block, { drag_down: dragDown });
+};
+
+/** Water and lava, source and flowing, and the bubble column water holds above soul sand or magma. */
 export const liquidFamily = defineFamily(
     'jsprismarine:liquid',
-    'Recomputes flowing depth, follows the nearest downward opening, forms source blocks when enabled, reacts where water meets lava, and gives sources up to buckets or bottles.',
+    'Recomputes flowing depth, follows the nearest downward opening, forms source blocks when enabled, reacts where water meets lava, gives sources up to buckets or bottles, and points a bubble column the way the magma or soul sand below it pulls, or turns it back into water.',
     {
         onPlayerInteract: (event, world) => {
             // Only a source fills a bucket. A flowing block has no liquid of
@@ -51,6 +89,10 @@ export const liquidFamily = defineFamily(
             return undefined;
         },
         onPlace: (event, world) => {
+            if (isBubbleColumn(event.block.identifier)) {
+                world.scheduleTick(event.block.position, BUBBLE_COLUMN_CHECK_TICKS);
+                return;
+            }
             world.scheduleTick(
                 event.block.position,
                 spreadTicks(event.block.identifier, event.block.dimension),
@@ -58,9 +100,19 @@ export const liquidFamily = defineFamily(
             );
         },
         onNeighborChanged: (event, world) => {
+            if (isBubbleColumn(event.block.identifier)) {
+                // Java's `BubbleColumnBlock.updateShape` checks the column again 5 ticks after the
+                // block below it changes.
+                if (event.face === 'down') world.scheduleTick(event.block.position, BUBBLE_COLUMN_CHECK_TICKS);
+                return;
+            }
             fluidNeighborChanged(world, event.block);
         },
         onTick: (event, world) => {
+            if (isBubbleColumn(event.block.identifier)) {
+                updateBubbleColumn(world, event.block);
+                return;
+            }
             fluidTick(world, event.block);
         },
         // A stack lying in lava burns in the entity runtime, at Java's cadence and not at all when
@@ -169,8 +221,11 @@ export const SCULK_SPREAD_RANGE = 8;
 /** The sculk blocks: the catalyst, the shrieker, the sensor and the veins. */
 export const sculkFamily = defineFamily(
     'jsprismarine:sculk',
-    'Runs the shrieker warning, cycles the sensor through its three phases, and gives experience for breaking sculk. The catalyst needs a mob death, which no block hook reports.',
+    'Pops a sculk vein once no face it covers is held, runs the shrieker warning, cycles the sensor through its three phases, and gives experience for breaking sculk. The catalyst needs a mob death, which no block hook reports.',
     {
+        onNeighborChanged: (event, world) => {
+            if (hasState(event.block, MULTI_FACE_STATE)) popUnsupportedMultiface(world, event.block, event.face);
+        },
         onStepOn: (event, world) => {
             const name = bareName(event.block.identifier);
             if (name !== 'sculk_shrieker' && name !== 'sculk_sensor' && name !== 'calibrated_sculk_sensor') return;

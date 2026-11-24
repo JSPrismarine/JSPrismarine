@@ -328,10 +328,10 @@ const popUnsupportedDripstone = (world: WorldActions, block: HookBlock): void =>
     popWithoutSupport(world, block, support);
 };
 
-/** Dripstone, amethyst and budding amethyst. */
+/** Dripstone, the sulfur spike, amethyst and budding amethyst. */
 export const dripstoneFamily = defineFamily(
     'jsprismarine:dripstone',
-    'Grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster.',
+    'Pops pointed dripstone, a sulfur spike or an amethyst bud without the block it grows from, grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster.',
     {
         onRandomTick: (event, world) => {
             const name = bareName(event.block.identifier);

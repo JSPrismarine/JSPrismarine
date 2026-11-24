@@ -242,7 +242,7 @@ definition declares one, because Mojang already decided the family there; otherw
 picks a rule from `BLOCK_FAMILIES`. The two agree by construction: `slab_block` lands in
 `jsprismarine:slab` and `stair_block` in `jsprismarine:stairs`. Over the palette the rules produce
 <!-- fact:blockBehaviors.families -->50<!-- /fact --> families, the largest being
-<!-- fact:blockBehaviors.largest -->`inert` 199, `plain_block` 199, `slab` 109, `stairs` 97, `double_slab` 93, `copper` 75<!-- /fact -->.
+<!-- fact:blockBehaviors.largest -->`inert` 199, `plain_block` 197, `slab` 109, `stairs` 97, `double_slab` 93, `copper` 75<!-- /fact -->.
 `BLOCK_BEHAVIOR_NAMES` has <!-- fact:blockBehaviors.names -->51<!-- /fact --> entries because `pane` matches no vanilla block. `vanilla_overlay/report.json` has the full tally.
 
 ## Flattening

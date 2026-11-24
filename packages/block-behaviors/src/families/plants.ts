@@ -20,7 +20,16 @@ import {
     SOIL_NAMES
 } from '../rules/growth';
 import { cutsCleanly } from '../rules/heldItem';
-import { breakBlock, isSolidSupport, popBlock, popWithoutGround, popWithoutSupport } from '../rules/support';
+import {
+    breakBlock,
+    hasSupportedAttachment,
+    isSolidSupport,
+    MULTI_FACE_STATE,
+    popBlock,
+    popUnsupportedMultiface,
+    popWithoutGround,
+    popWithoutSupport
+} from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber } from '../state';
 import type { WorldActions } from '../world';
 import { dropSelf, selfDrop } from './shared';
@@ -112,8 +121,6 @@ const NETHER_VINES: Readonly<Record<string, { readonly head: GrowingPlantHead; r
     weeping_vines: { head: WEEPING_VINES_HEAD, support: 'up' }
 };
 
-type FaceBit = { readonly face: BlockFace; readonly bit: number };
-
 /** The side directions Bedrock packs into `vine_direction_bits`. */
 const VINE_FACE_BITS = [
     { face: 'south', bit: 1 },
@@ -121,16 +128,6 @@ const VINE_FACE_BITS = [
     { face: 'north', bit: 4 },
     { face: 'east', bit: 8 }
 ] as const satisfies readonly { readonly face: HorizontalFace; readonly bit: number }[];
-
-/** The six faces Bedrock packs into `multi_face_direction_bits`. */
-const MULTI_FACE_BITS = [
-    { face: 'down', bit: 1 },
-    { face: 'up', bit: 2 },
-    { face: 'north', bit: 4 },
-    { face: 'south', bit: 8 },
-    { face: 'west', bit: 16 },
-    { face: 'east', bit: 32 }
-] as const satisfies readonly FaceBit[];
 
 const DRY_VEGETATION_FALLBACK_NAMES: ReadonlySet<string> = new Set([...SOIL_NAMES, 'sand', 'red_sand', 'terracotta']);
 const CACTUS_SUPPORT_FALLBACK_NAMES: ReadonlySet<string> = new Set(['cactus', 'sand', 'red_sand']);
@@ -225,17 +222,6 @@ const hasPlantSupport = (world: WorldActions, block: HookBlock): boolean => {
         default:
             return SOIL_NAMES.has(groundName);
     }
-};
-
-/** Whether one of a block's flagged faces still touches a supporting block. */
-const hasSupportedAttachment = (
-    world: WorldActions,
-    block: HookBlock,
-    state: string,
-    faces: readonly FaceBit[]
-): boolean => {
-    const bits = stateNumber(block, state);
-    return faces.some(({ face, bit }) => (bits & bit) !== 0 && isSolidSupport(world, offset(block.position, face)));
 };
 
 const growthOf = (identifier: string): { readonly state: string; readonly max: number } =>
@@ -631,14 +617,8 @@ export const climbingFamily = defineFamily(
                 popWithoutSupport(world, event.block, netherVine.support);
                 return;
             }
-            if (hasState(event.block, 'multi_face_direction_bits')) {
-                const faceBit = MULTI_FACE_BITS.find(({ face }) => face === event.face)?.bit;
-                if (faceBit === undefined || (stateNumber(event.block, 'multi_face_direction_bits') & faceBit) === 0) {
-                    return;
-                }
-                if (!hasSupportedAttachment(world, event.block, 'multi_face_direction_bits', MULTI_FACE_BITS)) {
-                    popBlock(world, event.block);
-                }
+            if (hasState(event.block, MULTI_FACE_STATE)) {
+                popUnsupportedMultiface(world, event.block, event.face);
                 return;
             }
             if (name === 'wildflowers') {
