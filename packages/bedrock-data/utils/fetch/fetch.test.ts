@@ -340,15 +340,15 @@ describe('compareJavaReleases', () => {
             '26.3',
             '26.4-snapshot-8',
             '26.4-snapshot-10',
-            '26.4-pre1',
-            '26.4-pre2',
-            '26.4-rc1',
+            '26.4-pre-1',
+            '26.4-pre-2',
+            '26.4-rc-1',
             '26.4',
             '26.10'
         ];
         expect([...ascending].reverse().sort(compareJavaReleases)).toEqual(ascending);
         expect(compareJavaReleases('26.4-snapshot-8', '26.3')).toBeGreaterThan(0);
-        expect(compareJavaReleases('26.4-pre1', '26.3')).toBeGreaterThan(0);
+        expect(compareJavaReleases('26.4-pre-1', '26.3')).toBeGreaterThan(0);
         expect(compareJavaReleases('26.4', '26.4-snapshot-8')).toBeGreaterThan(0);
         expect(compareJavaReleases('26.3', '26.3.0')).toBe(0);
     });
