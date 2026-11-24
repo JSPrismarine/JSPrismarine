@@ -9,6 +9,10 @@
  */
 import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } from '@jsprismarine/commands';
 import { matchSelector } from '@jsprismarine/commands';
+import { NbtErrors } from '@jsprismarine/errors/nbt';
+import { parseSnbtCompound } from '@jsprismarine/nbt/snbt';
+import type { NbtCompoundTag } from '@jsprismarine/nbt/tag';
+import { mergeCompounds } from '@jsprismarine/nbt/tag';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
@@ -26,6 +30,7 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import { isSummonable } from '../vanillaCommands';
+import { targetDataAccess } from './targetData';
 import type { Scoreboard } from '../../world/Scoreboard';
 import { scoreFactOf } from './scoreboard';
 import type { CommandPlayer } from './support';
@@ -69,6 +74,20 @@ const ATTRIBUTE_IDS: Readonly<Record<string, string>> = {
  * answers for `attributes` is not read for health while the entity is in a store.
  */
 const storeAttributesOf = (entity: StoreActor) => entity.entity.instance.attributes;
+
+/**
+ * The compound `/summon … <nbt>` names, read as Java reads it.
+ *
+ * @throws {CommandSyntaxException} When it is not an SNBT compound.
+ */
+const summonNbtOf = (snbt: string): NbtCompoundTag => {
+    try {
+        return parseSnbtCompound(snbt);
+    } catch (error) {
+        if (error instanceof NbtErrors.SnbtSyntax) refuse(error.message);
+        throw error;
+    }
+};
 
 const attributeIdOf = (name: string): string | undefined =>
     ATTRIBUTE_IDS[name.includes(':') ? name : `minecraft:${name}`];
@@ -251,12 +270,19 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
         related: () => unsupported('entity relationship tracking'),
 
         summon: (type: string, position: Vector3, rotation: Rotation, options): EntityRef | undefined => {
-            if (options.nbt !== undefined) unsupported('entity NBT');
+            // Read before anything spawns, so a typo in it summons nothing.
+            const nbt = options.nbt === undefined ? undefined : summonNbtOf(options.nbt);
 
             const typed = type.includes(':') ? type : `minecraft:${type}`;
             const world = worldOf(server, options.dimension ?? 'minecraft:overworld');
 
-            return summonDataEntity(world, typed, position, rotation, options.name);
+            const summoned = summonDataEntity(world, typed, position, rotation, options.name);
+            if (summoned === undefined || nbt === undefined) return summoned;
+            // Java loads the tag onto the new entity, as `/data merge entity` would.
+            const target = { kind: 'entity', entity: summoned } as const;
+            const data = targetDataAccess(server);
+            data.write(target, mergeCompounds(data.read(target), nbt));
+            return summoned;
         },
 
         kill: (ref) => {

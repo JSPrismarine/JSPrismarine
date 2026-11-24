@@ -567,11 +567,18 @@ server's, and the fix on your side is to check the objective exists before you b
 **`execute on <relation>` always refuses.** All 8 relations parse, but nothing tracks entity
 relationships, so the host rejects the call.
 
-**NBT on blocks and entities refuses.** `/data`, `execute if data`, `execute store … <nbt path>`
-and `/function … with` work on [command storage](#command-storage) only. A block or an entity
-target is refused with `This server has no NBT paths for blocks and entities yet`, and so are
-`execute if slots` and the NBT tag argument on `/summon`
-([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)).
+**NBT on blocks and entities covers the fields this server models.** `/data`, `execute if data`,
+`execute store … <nbt path>`, `/function … with` and the NBT argument of `/summon` read an entity
+in Java's shape: `Pos`, `Motion`, `Rotation`, `OnGround`, `Fire`, `Invulnerable`, `PortalCooldown`,
+`CustomName` and `Tags`, plus `Health` and `DeathTime` on a living entity, `equipment` on one with
+item slots, and `Inventory` and `SelectedItem` on a player. A block entity reads as `x`, `y`, `z`,
+`id` and, for a container, `Items`. A write applies `Pos`, `Motion`, `Rotation`, `Fire`,
+`Invulnerable`, `CustomName`, `Tags` and `Health` to an entity and `Items` to a container, and
+drops any other key, so `{NoAI: 1b}` reports a change and does nothing
+([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). A player's data cannot be
+written (`Unable to modify player data`), and a block with no block entity is refused with `The
+target block is not a block entity`, as in Java. `execute if slots <source> <slot_source>` answers 0
+([#3679](https://github.com/JSPrismarine/JSPrismarine/issues/3679)).
 
 **`execute if predicate` refuses.** The datapack predicate evaluator is not wired to the command
 host, even though `@jsprismarine/predicates` compiles predicates for loot and advancements.
