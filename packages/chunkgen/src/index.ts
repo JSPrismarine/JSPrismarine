@@ -11,7 +11,15 @@ export {
     storageKindOf,
     UnknownChunkStatusError
 } from './ChunkStatus';
-export { ChunkPyramid, GENERATION_PYRAMID, RADIUS_AROUND_FULL_CHUNK, SAFETY_MARGIN_CHUNKS } from './ChunkPyramid';
+export {
+    ChunkPyramid,
+    GENERATION_PYRAMID,
+    generationPyramidFor,
+    NOISE_BIOMES_GENERATION_PYRAMID,
+    RADIUS_AROUND_FULL_CHUNK,
+    SAFETY_MARGIN_CHUNKS,
+    SINCE_NOISE_BIOMES_STATUS
+} from './ChunkPyramid';
 export { ChunkDependencies, ChunkStep, ChunkStepBuilder } from './ChunkStep';
 export type { ChunkStepBody } from './ChunkHolder';
 export { ChunkHolder, ChunkNotReadyError, ChunkStepOutOfOrderError } from './ChunkHolder';

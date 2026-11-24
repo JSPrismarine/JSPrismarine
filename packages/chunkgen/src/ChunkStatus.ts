@@ -1,19 +1,24 @@
 import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 /**
- * The ten chunk statuses Java Edition 26.3 registers, in registration order.
+ * The eleven chunk statuses Java Edition 26.4 registers, in registration order.
  *
- * `ChunkStatus`'s static initializer in the 26.3 server jar registers exactly these names, and
- * each `register(name, parent, ...)` call sets `index = parent.index + 1`. The list is therefore a
- * chain rather than a graph, which is what lets {@link isOrAfter} be an integer comparison.
+ * `ChunkStatus`'s static initializer registers these names, and each `register(name, parent, ...)`
+ * call sets `index = parent.index + 1`. The list is therefore a chain rather than a graph, which is
+ * what lets {@link isOrAfter} be an integer comparison.
  *
- * 26.3 has ten statuses, not the twelve older versions had. `noise`, `surface` and `carvers` were
- * merged into one `terrain` status whose task runs noise fill, surface materials and carvers back
- * to back.
+ * 26.3 registers ten: the same list without `noise_biomes`, which 26.4 put between
+ * `structure_references` and `biomes`. 26.4 samples each chunk's biomes at quarter resolution
+ * there, and `biomes` then upscales them from the chunk and its eight neighbors. A 26.3 target
+ * climbs `noise_biomes` as a pass-through, so the ladder is one list for both releases and a
+ * status a 26.4 save records still reads. Older versions had twelve: 26.3 merged `noise`,
+ * `surface` and `carvers` into one `terrain` status whose task runs noise fill, surface materials
+ * and carvers back to back.
  */
 export const CHUNK_STATUSES = [
     'empty',
     'structure_starts',
     'structure_references',
+    'noise_biomes',
     'biomes',
     'terrain',
     'features',
@@ -42,11 +47,11 @@ export class UnknownChunkStatusError extends ChunkgenErrors.UnknownChunkStatus {
 const INDEX_BY_STATUS = new Map<string, number>(CHUNK_STATUSES.map((status, index) => [status, index]));
 
 /**
- * The position of a status on the ladder, with `empty` at 0 and `full` at 9.
+ * The position of a status on the ladder, with `empty` at 0 and `full` at 10.
  *
  * This is Java's `ChunkStatus.getIndex()`, and it is the only ordering this package uses.
  *
- * @throws UnknownChunkStatusError when the value is not one of the ten statuses.
+ * @throws UnknownChunkStatusError when the value is not one of the eleven statuses.
  */
 export const indexOfStatus = (status: ChunkStatus): number => {
     const index = INDEX_BY_STATUS.get(status);

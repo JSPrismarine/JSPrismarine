@@ -1,6 +1,6 @@
 # @jsprismarine/chunkgen
 
-Java Edition's chunk generation ladder. A chunk is at one of ten named statuses, a step table says
+Java Edition's chunk generation ladder. A chunk is at one of eleven named statuses, a step table says
 what each status may read and how far it may write, and a holder per chunk makes each status body
 run exactly once.
 
@@ -22,16 +22,20 @@ The tables come out of Mojang's 26.3 server jar, read class by class in
 decision to copy them rather than derive something equivalent is
 [ADR 0002](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0002-chunk-generation-architecture.md).
 
-## The ten statuses
+## The eleven statuses
 
-`empty`, `structure_starts`, `structure_references`, `biomes`, `terrain`, `features`,
-`initialize_light`, `light`, `spawn`, `full`. `register` sets each status's index to its parent's
-plus one, so the ladder is a chain and `isOrAfter` is an integer comparison.
+`empty`, `structure_starts`, `structure_references`, `noise_biomes`, `biomes`, `terrain`,
+`features`, `initialize_light`, `light`, `spawn`, `full`. `register` sets each status's index to its
+parent's plus one, so the ladder is a chain and `isOrAfter` is an integer comparison.
 
-26.3 has ten, not the twelve older versions had: `noise`, `surface` and `carvers` are one `terrain`
-status whose task runs noise fill, surface materials and carvers back to back.
+This is 26.4's ladder. 26.3 has ten, without `noise_biomes`; older versions had twelve, before
+`noise`, `surface` and `carvers` became one `terrain` status whose task runs noise fill, surface
+materials and carvers back to back. 26.4 samples a chunk's biomes at quarter resolution in
+`noise_biomes`, and `biomes` upscales them from the chunk and its eight neighbors. A 26.3 target
+climbs `noise_biomes` as a pass-through that declares nothing, so one ladder serves both releases
+and a status a 26.4 save records still reads.
 
-Three of the ten have no body in this repository yet. Lighting lives in
+Three of the eleven have no body in this repository yet. Lighting lives in
 [`@jsprismarine/lighting`](../lighting/README.md) and spawning in
 [`@jsprismarine/spawning`](../spawning/README.md), and neither is sequenced against generation
 today. They stay on the ladder anyway. Collapsing them would shift every accumulated radius by one,
@@ -51,7 +55,8 @@ undeclared read is a crash on the first chunk rather than a wrong block on the t
 | `empty` | outside the window | | | |
 | `structure_starts` | `empty` | outside | | |
 | `structure_references` | `structure_starts` | `structure_starts` | `structure_starts` | `structure_starts` |
-| `biomes` | `structure_references` | `structure_starts` | `structure_starts` | `structure_starts` |
+| `noise_biomes` | `structure_references` | outside | | |
+| `biomes` | `noise_biomes` | `structure_starts` | `structure_starts` | `structure_starts` |
 | `terrain` | `biomes` | `biomes` | `structure_starts` | `structure_starts` |
 | `features` | `terrain` | `terrain` | `structure_starts` | `structure_starts` |
 | `initialize_light` | `features` | outside | | |
@@ -64,11 +69,18 @@ feature pass has already written through into the neighbor. Ours reads the eight
 `features` to collect the patches they recorded for it. The accumulated table does not move:
 `full` already guaranteed `initialize_light` at distance 1, which is above `features`.
 
+That table is `GENERATION_PYRAMID`, 26.3's. `NOISE_BIOMES_GENERATION_PYRAMID` is 26.4's, and
+`generationPyramidFor` picks it for a target at data pack format 128 or later. In it
+`noise_biomes` reads `empty` out to 8, `biomes` reads only its eight neighbors at `noise_biomes`,
+`terrain` no longer reads `biomes` at distance 1, and `spawn` reads `features` at distance 1 where
+26.3's read `biomes`. The radius around a `full` chunk is 11 in both.
+
 **Accumulated dependencies.** The transitive closure of the above, which is what sizes each layer
 of a scheduler. Inverting the `full` row gives the radius each status has to reach before one chunk
-can become `full`: 11 for `empty` and `structure_starts`, 3 for `structure_references` and `biomes`,
-2 for `terrain`, 1 for `features` and `initialize_light`, 0 for `light` and `spawn`. Generating one
-chunk from nothing therefore touches 529 chunks at `structure_starts` and 25 at `terrain`.
+can become `full`: 11 for `empty` and `structure_starts`, 3 for `structure_references`,
+`noise_biomes` and `biomes`, 2 for `terrain`, 1 for `features` and `initialize_light`, 0 for
+`light` and `spawn`. Generating one chunk from nothing therefore touches 529 chunks at
+`structure_starts` and 25 at `terrain`.
 
 **The block write radius.** `terrain` is 0 and `features` is 1. Every other step is -1, and -1
 excludes the step's own chunk, so those steps cannot write a block through the region at all.

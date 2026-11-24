@@ -13,7 +13,7 @@ const step = (status: ChunkStatus) => GENERATION_PYRAMID.stepTo(status);
 
 /** Climbs a holder to a status with bodies that do nothing, so a test can start part way up. */
 const climbTo = async (holder: ChunkHolder<TestChunk>, status: ChunkStatus): Promise<void> => {
-    for (const rung of ['empty', 'structure_starts', 'structure_references', 'biomes'] as const) {
+    for (const rung of ['empty', 'structure_starts', 'structure_references', 'noise_biomes', 'biomes'] as const) {
         await holder.applyStep(step(rung), (chunk) => chunk);
         if (rung === status) return;
     }
