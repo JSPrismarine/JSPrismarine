@@ -41,10 +41,11 @@ Here is what Java 26.3's vanilla datapack contributes, counted from the extracte
 | enchantment   | `enchantment/`                      |                 43 | `@jsprismarine/enchantments` |
 | predicate     | `predicate/`                        |                  3 | `@jsprismarine/predicates`   |
 | item modifier | `item_modifier/`                    |                  0 | `@jsprismarine/predicates`   |
+| slot source   | `slot_source/`                      |                  0 | the command host             |
 | function      | `function/*.mcfunction`             |                  0 | `@jsprismarine/mcfunction`   |
 
-The datapack Mojang's data generator writes carries no item modifier files and no functions, but
-both registries route, so a datapack of yours can fill them.
+The datapack Mojang's data generator writes carries no item modifier, slot source or function
+files, but all three registries route, so a datapack of yours can fill them.
 
 ## What the server loads at startup
 
@@ -401,7 +402,7 @@ A pack whose declared range does not cover that format gets an error diagnostic 
 
 Files route into registries by the singular directory names Java has used since 1.21 under `data/<namespace>/`:
 `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`, `predicate`, `item_modifier`,
-`function` and `tags`. A pack written with the pre-1.21 plural names will not route and is silently
+`slot_source`, `function` and `tags`. A pack written with the pre-1.21 plural names will not route and is silently
 skipped, which is the most common reason an override appears to do nothing. The identifier comes
 from the path, so `data/minecraft/loot_table/blocks/gravel.json` registers as
 `minecraft:blocks/gravel` whichever pack it came from, and that is why writing to a `minecraft`

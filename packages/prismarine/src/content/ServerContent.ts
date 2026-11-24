@@ -802,6 +802,8 @@ const isKnownTagMember = (
                 return definitions.predicates.has(identifier);
             case 'item_modifier':
                 return definitions.itemModifiers.has(identifier);
+            case 'slot_source':
+                return definitions.slotSources.has(identifier);
             case 'function':
                 return definitions.functions.has(identifier);
             default:

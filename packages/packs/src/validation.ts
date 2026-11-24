@@ -148,6 +148,8 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     damageTypes: { required: { message_id: 'string', scaling: 'string', exhaustion: 'number' } },
     predicates: { allowsArrayRoot: true, optional: { condition: 'string' } },
     itemModifiers: { allowsArrayRoot: true, optional: { type: 'string' } },
+    // A slot source file is one source, a bare id or a list of either, as an item modifier is.
+    slotSources: { allowsArrayRoot: true, optional: { type: 'string' } },
     // An mcfunction is text; `loadDatapack` registers it without consulting a
     // validator, and the line format is checked when it compiles.
     functions: { allowsTextRoot: true },

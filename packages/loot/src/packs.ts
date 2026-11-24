@@ -71,6 +71,7 @@ export interface LootPackDefinitions {
     readonly lootTables: LootTableSource;
     readonly predicates?: ReadonlyMap<string, unknown>;
     readonly itemModifiers?: ReadonlyMap<string, unknown>;
+    readonly slotSources?: ReadonlyMap<string, unknown>;
     readonly recipesJava?: ReadonlyMap<string, unknown>;
     /** Tags keyed the way the loader keys them, with the tagged registry first: `item/minecraft:planks`. */
     readonly tags?: ReadonlyMap<string, unknown>;
@@ -99,6 +100,7 @@ type RegistryMembers<T> = {
 const ELEMENT_SOURCES: Readonly<Record<string, RegistryMembers<LootPackDefinitions>>> = {
     predicate: 'predicates',
     item_modifier: 'itemModifiers',
+    slot_source: 'slotSources',
     recipe: 'recipesJava'
 };
 
