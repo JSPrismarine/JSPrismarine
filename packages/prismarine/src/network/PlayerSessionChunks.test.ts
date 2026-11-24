@@ -231,6 +231,117 @@ describe('network', () => {
             expect(walker.sender.has(0, 0)).toBe(true);
         });
 
+        /**
+         * A session at the origin whose chunk sends fail while `failing.sends` is above zero, once
+         * `failing.after` sends have gone through. Chunks 0 to 3 along x are loaded.
+         */
+        const failingSender = () => {
+            const chunks = [0, 1, 2, 3].map((x) => new Chunk(x, 0, new Map(), Dimensions.Overworld));
+            const chunkAt = (x: number, z: number) => (z === 0 ? (chunks[x] ?? null) : null);
+            const world = stub<World>({
+                getLoadedChunk: chunkAt,
+                getChunk: async (x, z) => chunkAt(x, z) ?? new Chunk(x, z, new Map(), Dimensions.Overworld)
+            });
+            const failing = { sends: 0, after: 0 };
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async () => {},
+                sendSharedCompressedBatchAsync: async () => {
+                    if (failing.after > 0) {
+                        failing.after -= 1;
+                        return;
+                    }
+                    if (failing.sends === 0) return;
+                    failing.sends -= 1;
+                    throw new Error('send failed');
+                }
+            });
+            const at = { x: 0 };
+            const standing = stub<SessionPlayer>({ getPosition: () => new Position(at.x, 64, 0, world) });
+            const sender = sessionFor(server, connection, standing, { world, joined: true });
+            sender['viewDistance'] = 2;
+
+            /** Takes the chunk off the queue, as the scheduler does, and flushes it. */
+            const deliver = async () => {
+                sender.sender.forget(0, 0);
+                sender.tryDeliverLoaded(0, 0);
+                await sender.flush().catch(() => {});
+            };
+            return { sender, failing, deliver, at };
+        };
+
+        it('queues a chunk again after its batch fails, for a player standing still', async () => {
+            // Forgetting it alone waited for the player to cross into another chunk. Arriving in
+            // another dimension, the client sat on its loading screen until the timeout.
+            const { sender, failing, deliver } = failingSender();
+            await sender.needNewChunks();
+            failing.sends = 1;
+
+            await deliver();
+            expect(sender.sender.has(0, 0)).toBe(true);
+
+            await deliver();
+            expect(sender.sender.has(0, 0)).toBe(false);
+            // Sent and held: a fresh request for the area does not ask for it again.
+            await sender.needNewChunks();
+            expect(sender.sender.has(0, 0)).toBe(false);
+        });
+
+        it('sends no chunk again whose send completed before its batch failed', async () => {
+            // In sub chunk request mode a second `LevelChunk` resets the column the client holds,
+            // and a player standing on it falls through.
+            const { sender, failing } = failingSender();
+            await sender.needNewChunks();
+            sender.sender.forget(0, 0);
+            sender.sender.forget(1, 0);
+            sender.tryDeliverLoaded(0, 0);
+            sender.tryDeliverLoaded(1, 0);
+            failing.after = 1;
+            failing.sends = 1;
+
+            await expect(sender.flush()).rejects.toThrow('send failed');
+
+            expect(sender.sender.has(0, 0)).toBe(false);
+            expect(sender.sender.has(1, 0)).toBe(true);
+            await sender.needNewChunks();
+            expect(sender.sender.has(0, 0)).toBe(false);
+        });
+
+        it('forgets a retry its delivery queued once the player walks away', async () => {
+            // The failed flush inside `deliver` queues the chunk again; `deliver` dropping its
+            // loading entry afterwards left the retry where walking away could not reach it.
+            const { sender, failing, at } = failingSender();
+            await sender.needNewChunks();
+            for (const x of [0, 1, 2, 3]) sender.sender.forget(x, 0);
+            for (const x of [1, 2, 3]) sender.tryDeliverLoaded(x, 0);
+            failing.sends = 1;
+
+            await expect(sender.deliver(0, 0)).rejects.toThrow('send failed');
+            expect(sender.sender.has(0, 0)).toBe(true);
+
+            at.x = 16 * 400;
+            await sender.needNewChunks();
+            expect(sender.sender.has(0, 0)).toBe(false);
+        });
+
+        it('stops queuing a chunk again whose batch keeps failing', async () => {
+            const { sender, failing, deliver } = failingSender();
+            await sender.needNewChunks();
+            failing.sends = Number.POSITIVE_INFINITY;
+
+            let attempts = 0;
+            while (sender.sender.has(0, 0) && attempts < 10) {
+                attempts += 1;
+                await deliver();
+            }
+
+            // The first send and three retries.
+            expect(attempts).toBe(4);
+            // A later request for the view still asks for it.
+            await sender.needNewChunks();
+            expect(sender.sender.has(0, 0)).toBe(true);
+        });
+
         it('asks for no chunks for a radius answered after the player left', async () => {
             // A removal applied in the same input step as the request, such as a replacing login,
             // takes the player off while the answer is on its way.
