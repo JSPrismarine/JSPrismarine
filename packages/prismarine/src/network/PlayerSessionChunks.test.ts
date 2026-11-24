@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import BinaryStream from '@jsprismarine/binaryutils';
+
 import type { Logger } from '@jsprismarine/logger';
 import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
@@ -415,6 +417,48 @@ describe('network', () => {
                 expect(response.blobs).toEqual([{ blobId: xxHash64(biomes), blobData: biomes }]);
             }
         );
+
+        // A column queued for a 2193 client and then built higher before its batch went out, as a
+        // held arrival's columns can be while the client opens its loading screen, was declared
+        // with the newer sub chunk count. Translating its palettes then read past the queued
+        // payload, the flush threw "No bytes left in buffer", and the client waited on its loading
+        // screen for a column that never came.
+        it('declares the sub chunks its queued payload holds when the column grows before the flush', async () => {
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Nether);
+            chunk.setBlockRuntimeId(1, 40, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            const world = stub<World>({ getLoadedChunk: () => chunk });
+            const playerWithWorld = stub<SessionPlayer>({
+                getPosition: () => new Position(0, 64, 0, world)
+            });
+            const sentBatches: NetworkPacket<unknown>[][] = [];
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async () => {},
+                sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
+            });
+            const grownSession = sessionFor(server, connection, playerWithWorld, { world, joined: true });
+            const queuedCount = chunk.getNetworkSubChunkCount();
+            grownSession.tryDeliverLoaded(1, 2);
+
+            chunk.setBlockRuntimeId(1, 88, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            expect(chunk.getNetworkSubChunkCount()).toBeGreaterThan(queuedCount);
+
+            await grownSession.flush();
+
+            const chunkData = sentBatches
+                .flat()
+                .find((packet): packet is LevelChunkPacket => packet instanceof LevelChunkPacket)
+                ?.getPacketData();
+            expect(chunkData).toMatchObject({ subChunkCount: queuedCount });
+            const decoded = Chunk.networkDeserialize(
+                new BinaryStream(chunkData?.payload ?? Buffer.alloc(0)),
+                1,
+                2,
+                chunkData?.subChunkCount,
+                Dimensions.Nether
+            );
+            expect(decoded.getNetworkSubChunkCount()).toBe(queuedCount);
+        });
 
         it('answers missing, invalid, and repeated requests with request-mode results', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);

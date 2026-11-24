@@ -163,6 +163,12 @@ interface QueuedChunk {
     readonly chunk: Chunk;
     readonly payload: Buffer;
     readonly revision: number;
+    /**
+     * The sub chunk count `payload` was serialized with. Read when the chunk is queued, not when
+     * it is sent: the column can grow in between, and a whole-chunk payload declared with the
+     * newer count told the reader of the payload to expect sub chunks it does not hold.
+     */
+    readonly subChunkCount: number;
     /** Bytes retained by this queued request-mode packet. */
     readonly memoryBytes: number;
 }
@@ -1293,15 +1299,16 @@ export default class PlayerSession {
             // For each chunk, the view in effect when it went out and how many views the flush
             // had seen published by then: the ones after it can make the client drop it too.
             const sentUnder: { readonly view: PublishedView | null; readonly later: number }[] = [];
-            for (const { chunk, payload, revision } of chunksToSend) {
+            for (const { chunk, payload, revision, subChunkCount: queuedSubChunkCount } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
                 // the old world's, and the client has already been told it is somewhere else.
                 if (epoch !== this.chunkEpoch) return;
                 const biomes = cached ? this.clientBlobCache.prepareRequestBiomes(chunk) : undefined;
                 if (biomes !== undefined) this.clientBlobCache.track([biomes]);
-                const subChunkCount = requestMode
-                    ? chunk.getNetworkSubChunkRequestLimit()
-                    : chunk.getNetworkSubChunkCount();
+                // A request-mode client asks for its sub chunks later and is answered from the
+                // column as it is then, so it is told the current limit. A whole-chunk payload
+                // carries its sub chunks, and declares the count it was serialized with.
+                const subChunkCount = requestMode ? chunk.getNetworkSubChunkRequestLimit() : queuedSubChunkCount;
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
@@ -1595,6 +1602,7 @@ export default class PlayerSession {
             chunk,
             payload,
             revision: chunk.getNetworkRevision(),
+            subChunkCount: chunk.getNetworkSubChunkCount(),
             memoryBytes: payload.byteLength
         };
     }
