@@ -1,5 +1,7 @@
 /** Parses a `minecraft:tree` configuration and its placers, size and decorators. */
 
+import type { MthTrig } from '@jsprismarine/worldgen';
+
 import { asArray, asInteger, asNumber, asObject, fail } from '../../json';
 import { parseDirection } from '../../providers/blockPredicate';
 import { parseIntProvider } from '../../providers/valueProviders';
@@ -84,7 +86,7 @@ const parseFeatureSize = (source: unknown, path: string): FeatureSize => {
 };
 
 /** Parses a `trunk_placer` body into the matching placer. */
-export const parseTrunkPlacer = (source: unknown, path: string): TrunkPlacer => {
+export const parseTrunkPlacer = (source: unknown, path: string, trig?: MthTrig): TrunkPlacer => {
     const raw = asObject(source, path);
     const type = typeNameOf(raw['type'], path);
     const base = asInteger(raw['base_height'], `${path}.base_height`);
@@ -98,7 +100,7 @@ export const parseTrunkPlacer = (source: unknown, path: string): TrunkPlacer => 
         case 'giant_trunk_placer':
             return giantTrunkPlacer(base, randA, randB);
         case 'mega_jungle_trunk_placer':
-            return megaJungleTrunkPlacer(base, randA, randB);
+            return megaJungleTrunkPlacer(base, randA, randB, trig);
         case 'dark_oak_trunk_placer':
             return darkOakTrunkPlacer(base, randA, randB);
         case 'fancy_trunk_placer':
@@ -303,7 +305,7 @@ export const parseTreeConfig = (raw: Record<string, unknown>, path: string, pars
     const rootPlacer = raw['root_placer'];
     return {
         trunkProvider: parsers.blockStateProvider(raw['trunk_provider'], `${path}.trunk_provider`),
-        trunkPlacer: parseTrunkPlacer(raw['trunk_placer'], `${path}.trunk_placer`),
+        trunkPlacer: parseTrunkPlacer(raw['trunk_placer'], `${path}.trunk_placer`, parsers.trig),
         foliageProvider: parsers.blockStateProvider(raw['foliage_provider'], `${path}.foliage_provider`),
         foliagePlacer: parseFoliagePlacer(raw['foliage_placer'], `${path}.foliage_placer`),
         ...(rootPlacer === undefined

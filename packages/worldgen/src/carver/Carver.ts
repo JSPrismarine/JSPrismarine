@@ -15,7 +15,9 @@ import {
     sampleHeight,
     sampleInt
 } from './providers';
-import { mthCos, mthSin, randomBetween } from './trig';
+import type { MthTrig } from './trig';
+import { randomBetween, ROUNDING_MTH_TRIG, SINCE_ROUNDED_MTH_TRIG, TRUNCATING_MTH_TRIG } from './trig';
+import { readsSince } from '../dataPackFormat';
 import { asObject, number } from '../json';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
@@ -49,6 +51,8 @@ export interface CaveCarverConfig {
     readonly startVerticalRadiusMultiplier: FloatProvider;
     /** How much of the bottom of a tunnel stays solid, as a fraction of its height. */
     readonly floorLevel: FloatProvider;
+    /** Set when the target reads 26.4's rounding `Mth.sin` and `Mth.cos`; see {@link SINCE_ROUNDED_MTH_TRIG}. */
+    readonly roundedTrig?: true;
 }
 
 /** The shape fields of a `minecraft:canyon` carver. */
@@ -81,6 +85,8 @@ export interface CanyonCarverConfig {
     readonly verticalRotation: FloatProvider;
     /** The shape fields. */
     readonly shape: CanyonShape;
+    /** Set when the target reads 26.4's rounding `Mth.sin` and `Mth.cos`; see {@link SINCE_ROUNDED_MTH_TRIG}. */
+    readonly roundedTrig?: true;
 }
 
 /** Either carver type 26.3 registers. */
@@ -89,17 +95,23 @@ export type CarverConfig = CaveCarverConfig | CanyonCarverConfig;
 const optionalFloatProvider = (value: unknown, path: string, fallback: number): FloatProvider =>
     value === undefined ? { type: 'constant', value: f32(fallback) } : parseFloatProvider(value, path);
 
+/** The release trig a carver walks with. A flag rather than the functions keeps the config plain data. */
+const trigOf = (config: CarverConfig): MthTrig => (config.roundedTrig ? ROUNDING_MTH_TRIG : TRUNCATING_MTH_TRIG);
+
 /**
  * Reads one `worldgen/carver` document.
  *
  * 26.3 flattened the `config` object the older schema wrapped these fields in, so a loader
  * written against 1.21 data does not read this.
  *
+ * @param format - The target's data pack format major, which picks the release's `Mth.sin` and
+ *   `Mth.cos`; undefined reads as the default release.
  * @throws When the type is unknown or a field is missing.
  */
-export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig => {
+export const parseCarver = (source: unknown, path = '<carver>', format?: number): CarverConfig => {
     const raw = asObject(source, path);
     const type = typeName(raw['type']);
+    const trig = readsSince(format, SINCE_ROUNDED_MTH_TRIG) ? ({ roundedTrig: true } as const) : {};
     if (type === 'cave') {
         return {
             type: 'cave',
@@ -125,7 +137,8 @@ export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig =>
                 `${path}.start_vertical_radius_multiplier`,
                 1
             ),
-            floorLevel: parseFloatProvider(raw['floor_level'], `${path}.floor_level`)
+            floorLevel: parseFloatProvider(raw['floor_level'], `${path}.floor_level`),
+            ...trig
         };
     }
     if (type === 'canyon') {
@@ -154,7 +167,8 @@ export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig =>
                     number(shape['vertical_radius_center_factor'], `${path}.shape.vertical_radius_center_factor`)
                 ),
                 yScale: parseFloatProvider(shape['y_scale'], `${path}.shape.y_scale`)
-            }
+            },
+            ...trig
         };
     }
     throw new WorldgenErrors.UnknownCarverType({ path, type: JSON.stringify(raw['type']) });
@@ -421,6 +435,7 @@ const createTunnel = (
     skip: number
 ): void => {
     const tunnel = plan.begin();
+    const trig = trigOf(config);
     const random = new LegacyRandomSource(tunnelSeed);
     const splitPoint = random.nextIntBounded(Math.trunc(dist / 2)) + Math.trunc(dist / 4);
     const steep = random.nextIntBounded(6) === 0;
@@ -433,12 +448,12 @@ const createTunnel = (
     let xRota = 0;
 
     for (let currentStep = step; currentStep < dist; currentStep++) {
-        const horizontalRadius = 1.5 + f32(mthSin(f32(f32(f32(Math.PI) * currentStep) / dist)) * thickness);
+        const horizontalRadius = 1.5 + f32(trig.sin(f32(f32(f32(Math.PI) * currentStep) / dist)) * thickness);
         const verticalRadius = horizontalRadius * yScale;
-        const cosX = mthCos(verticalRotation);
-        x += f32(mthCos(horizontalRotation) * cosX);
-        y += mthSin(verticalRotation);
-        z += f32(mthSin(horizontalRotation) * cosX);
+        const cosX = trig.cos(verticalRotation);
+        x += f32(trig.cos(horizontalRotation) * cosX);
+        y += trig.sin(verticalRotation);
+        z += f32(trig.sin(horizontalRotation) * cosX);
         verticalRotation = f32(verticalRotation * (steep ? f32(0.92) : f32(0.7)));
         verticalRotation = f32(verticalRotation + f32(xRota * f32(0.1)));
         horizontalRotation = f32(horizontalRotation + f32(yRota * f32(0.1)));
@@ -526,7 +541,7 @@ const recordCave = (
         if (random.nextIntBounded(4) === 0) {
             const yScale = sampleFloat(config.roomVerticalRadiusMultiplier, random);
             const roomThickness = f32(1 + f32(random.nextFloat() * 6));
-            const horizontalRadius = 1.5 + f32(mthSin(f32(Math.PI / 2)) * roomThickness);
+            const horizontalRadius = 1.5 + f32(trigOf(config).sin(f32(Math.PI / 2)) * roomThickness);
             plan.carve(x + 1, y, z, horizontalRadius, horizontalRadius * yScale, skip);
             tunnels += random.nextIntBounded(4);
         }
@@ -592,6 +607,7 @@ const recordCanyon = (
             (xd * xd + zd * zd) * (widthFactorPerHeight[y - context.minGenY - 1] as number) + (yd * yd) / 6 >= 1
     );
     const tunnel = plan.begin();
+    const trig = trigOf(config);
 
     let x = startX;
     let y = startY;
@@ -602,7 +618,7 @@ const recordCanyon = (
     let xRota = 0;
 
     for (let currentStep = 0; currentStep < distance; currentStep++) {
-        let horizontalRadius = 1.5 + f32(mthSin(f32(f32(currentStep * f32(Math.PI)) / distance)) * thickness);
+        let horizontalRadius = 1.5 + f32(trig.sin(f32(f32(currentStep * f32(Math.PI)) / distance)) * thickness);
         let verticalRadius = horizontalRadius * yScale;
         horizontalRadius *= sampleFloat(config.shape.horizontalRadiusFactor, tunnelRandom);
 
@@ -612,11 +628,11 @@ const recordCanyon = (
         );
         verticalRadius = factor * verticalRadius * randomBetween(tunnelRandom.nextFloat(), f32(0.75), 1);
 
-        const cosX = mthCos(verticalRotation);
-        const sinX = mthSin(verticalRotation);
-        x += f32(mthCos(horizontalRotation) * cosX);
+        const cosX = trig.cos(verticalRotation);
+        const sinX = trig.sin(verticalRotation);
+        x += f32(trig.cos(horizontalRotation) * cosX);
         y += sinX;
-        z += f32(mthSin(horizontalRotation) * cosX);
+        z += f32(trig.sin(horizontalRotation) * cosX);
         verticalRotation = f32(verticalRotation * f32(0.7));
         verticalRotation = f32(verticalRotation + f32(xRota * f32(0.05)));
         horizontalRotation = f32(horizontalRotation + f32(yRota * f32(0.05)));

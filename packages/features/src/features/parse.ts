@@ -16,6 +16,7 @@ import { parseSimpleFeature } from './simple';
 import { parseStructuralFeature } from './structural';
 import { parseTreeFeature } from './tree';
 import { FeaturesErrors } from '@jsprismarine/errors/features';
+import { mthTrig } from '@jsprismarine/worldgen';
 
 /**
  * Resolves `worldgen/feature` and `worldgen/placed_feature` identifiers.
@@ -38,6 +39,15 @@ export interface FeatureRegistry {
     blockStateProvider?(id: string): unknown;
 }
 
+/** What a {@link FeatureLoader} reads its documents as. */
+export interface FeatureLoaderOptions {
+    /**
+     * The target release's data pack format major, such as 121 for 26.3 and 128 for 26.4, which
+     * picks the release's `Mth.sin` and `Mth.cos`. Undefined reads as the default release.
+     */
+    readonly format?: number;
+}
+
 /** Reads the two feature registries, resolving references and caching what it builds. */
 export class FeatureLoader {
     private readonly features = new Map<string, ConfiguredFeature>();
@@ -46,7 +56,10 @@ export class FeatureLoader {
     private readonly inProgress = new Set<string>();
     private readonly parsers: FeatureParsers;
 
-    public constructor(private readonly registry: FeatureRegistry) {
+    public constructor(
+        private readonly registry: FeatureRegistry,
+        options: FeatureLoaderOptions = {}
+    ) {
         this.parsers = {
             placedFeature: (source, path) => this.readPlacedFeature(source, path),
             placedFeatureList: (source, path) => this.readPlacedFeatureList(source, path),
@@ -55,7 +68,8 @@ export class FeatureLoader {
             identifier: (source, path) => normalizeIdentifier(source, path),
             direction: (source, path) => readDirection(source, path),
             verticalDirection: (source, path) => readVerticalDirection(source, path),
-            fluidState: (source, path) => readFluidState(source, path)
+            fluidState: (source, path) => readFluidState(source, path),
+            trig: mthTrig(options.format)
         };
     }
 
@@ -116,7 +130,7 @@ export class FeatureLoader {
 
         const parsed =
             parseSimpleFeature(type, raw, path, this.parsers) ??
-            parseOreFeature(type, raw, path) ??
+            parseOreFeature(type, raw, path, this.parsers) ??
             parseTreeFeature(type, raw, path, this.parsers) ??
             parseCaveFeature(type, raw, path, this.parsers) ??
             parseCrevasseFeature(type, raw, path, this.parsers) ??
