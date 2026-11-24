@@ -47,4 +47,24 @@ describe.skipIf(!scriptHostAvailable())('world.getLootTableManager()', () => {
             'entity ["minecraft:porkchop"]'
         ]);
     });
+
+    it("reads the enchanting functions' levels, treasure and chance", () => {
+        const { lines } = harness.start(
+            `
+            world.afterEvents.worldLoad.subscribe(() => {
+                const manager = world.getLootTableManager();
+                const [withLevels, randomly, randomGear] = manager.getLootTable('chests/enchanted').pools[0].entries[0].functions;
+                log('classes', () => [withLevels, randomly, randomGear].map((each) => each.constructor.name));
+                log('with levels', () => [withLevels.levels, withLevels.treasure]);
+                log('randomly', () => randomly.treasure);
+                log('random gear', () => randomGear.chance);
+            });`
+        );
+        expect(lines).toEqual([
+            'classes ["EnchantWithLevelsFunction","EnchantRandomlyFunction","EnchantRandomEquipmentFunction"]',
+            'with levels [{"max":30,"min":30},true]',
+            'randomly false',
+            'random gear 0.25'
+        ]);
+    });
 });

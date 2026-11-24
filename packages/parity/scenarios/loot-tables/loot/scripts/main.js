@@ -62,14 +62,7 @@ const round = (value) => (typeof value === 'number' ? Math.round(value * 1e4) / 
  * The loot classes whose members the enchantment and entity variant work covers, which this
  * scenario names without reading.
  */
-const NAMED_ONLY = new Set([
-    'EnchantInfo',
-    'EnchantRandomEquipmentFunction',
-    'EnchantRandomlyFunction',
-    'EnchantWithLevelsFunction',
-    'EntityHasVariantCondition',
-    'EntityHasMarkVariantCondition'
-]);
+const NAMED_ONLY = new Set(['EnchantInfo', 'EntityHasVariantCondition', 'EntityHasMarkVariantCondition']);
 
 /**
  * Any loot object as plain data: its class, and each property its class and the classes it
