@@ -121,6 +121,8 @@ export interface WorldPersistenceData {
     scriptSettings?: SavedScriptSettings;
     /** Whether a script paused the overworld clock. */
     clockPaused?: boolean;
+    /** The last `minecraft:map_id` the level handed out; see `Level.nextMapId`. */
+    lastMapId?: number;
 }
 
 /**
@@ -147,6 +149,8 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const tickingAreas = savedTickingAreasOf(value['tickingAreas']);
     const scriptSettings = savedScriptSettingsOf(value['scriptSettings']);
     const clockPaused = typeof value['clockPaused'] === 'boolean' ? value['clockPaused'] : undefined;
+    const storedMapId = value['lastMapId'];
+    const lastMapId = typeof storedMapId === 'number' && Number.isSafeInteger(storedMapId) ? storedMapId : undefined;
 
     return {
         ...(levelId === undefined ? {} : { levelId }),
@@ -160,7 +164,8 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
         ...(raids === undefined ? {} : { raids }),
         ...(tickingAreas === undefined ? {} : { tickingAreas }),
         ...(scriptSettings === undefined ? {} : { scriptSettings }),
-        ...(clockPaused === undefined ? {} : { clockPaused })
+        ...(clockPaused === undefined ? {} : { clockPaused }),
+        ...(lastMapId === undefined ? {} : { lastMapId })
     };
 };
 

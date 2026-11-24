@@ -239,6 +239,9 @@ export class Level {
     /** The NBT compounds `/data … storage` reads and writes. */
     private readonly commandStorage = new CommandStorage();
 
+    /** The last `minecraft:map_id` handed out, Java's `idcounts` entry; -1 before the first. */
+    private lastMapId = -1;
+
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
     private savedRaids: SavedRaid[] = [];
@@ -906,6 +909,15 @@ export class Level {
         return this.commandStorage;
     }
 
+    /**
+     * A `minecraft:map_id` no map in this level has had, which is Java's `ServerLevel.getFreeMapId`.
+     * The counter is saved with the level, so an id is never handed out twice.
+     */
+    public nextMapId(): number {
+        this.lastMapId += 1;
+        return this.lastMapId;
+    }
+
     /** The level's weather: one cycle for the whole save, rendered where there is a sky. */
     public getWeather(): WorldWeather {
         return this.weather;
@@ -1125,6 +1137,7 @@ export class Level {
         if (gameTime !== undefined) this.setTicks(gameTime);
         if (levelDat?.time !== undefined) this.setDayTime(levelDat.time);
         if (stored.clockPaused !== undefined) this.setDayTimePaused(stored.clockPaused);
+        if (stored.lastMapId !== undefined) this.lastMapId = stored.lastMapId;
         this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
@@ -1294,7 +1307,8 @@ export class Level {
                 tickingAreas: this.tickingAreas?.all() ?? [...this.storedTickingAreas],
                 scriptSettings: this.scriptSettings.saved(),
                 dimensionNumbers: this.dimensionNumbers.saved(),
-                clockPaused: this.isDayTimePaused()
+                clockPaused: this.isDayTimePaused(),
+                lastMapId: this.lastMapId
             },
             levelDat: {
                 ...(position === undefined ? {} : { spawn: position }),

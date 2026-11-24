@@ -5041,6 +5041,11 @@ export class World implements Service {
         return this.level;
     }
 
+    /** A `minecraft:map_id` no map has had, from the level's counter, which its dimensions share. */
+    public nextMapId(): number {
+        return this.level.nextMapId();
+    }
+
     /** The stem this world was built from: its dimension type id and its generator definition. */
     public getStem(): LevelStem {
         return this.stem;

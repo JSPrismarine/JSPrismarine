@@ -8,8 +8,10 @@
  * them false. Both loot callers used to pass none, so those conditions could
  * not be reached at all.
  *
- * Every member is optional by design, and this view implements the two the
- * server can answer truthfully today. The rest are left out deliberately:
+ * Every member is optional by design, and this view implements the ones the
+ * server can answer truthfully today: the clock, the dimension, and the
+ * structure search and map ids an `exploration_map` needs. The rest are left
+ * out deliberately:
  *
  * - **Blocks, fluids and biomes.** The chunks hold Bedrock-named states and
  *   the predicates compare Java names, and `@jsprismarine/mapping` only
@@ -19,7 +21,7 @@
  * - **Weather, sky and light.** No rain, thunder or sky-visibility state
  *   exists on a world yet, and light is per-chunk rather than per-position.
  */
-import type { LevelView } from '@jsprismarine/predicates';
+import type { LevelView, Vec3 } from '@jsprismarine/predicates';
 
 /** The little of a world {@link lootLevelOf} reads, so a test satisfies it without building one. */
 export interface LootLevelWorld {
@@ -27,6 +29,14 @@ export interface LootLevelWorld {
     getTicks(): number;
     /** The dimension this world is, by the identifier a `location_check` compares. */
     getDimension(): { readonly name: string };
+    /** The search `/locate structure` runs; see `World.locateStructure`. */
+    locateStructure?(
+        name: string,
+        origin: { readonly x: number; readonly z: number },
+        radius: number
+    ): Vec3 | undefined;
+    /** A fresh map id from the level's counter; see `World.nextMapId`. */
+    nextMapId?(): number;
 }
 
 /**
@@ -36,7 +46,23 @@ export interface LootLevelWorld {
  * @returns The view, reading through to the world on every call rather than
  *   snapshotting it, because a roll may happen ticks after the view is made.
  */
-export const lootLevelOf = (world: LootLevelWorld): LevelView => ({
-    clockTicks: () => world.getTicks(),
-    dimension: () => world.getDimension().name
-});
+export const lootLevelOf = (world: LootLevelWorld): LevelView => {
+    const view: LevelView = {
+        clockTicks: () => world.getTicks(),
+        dimension: () => world.getDimension().name
+    };
+
+    if (world.locateStructure !== undefined) {
+        const locate = world.locateStructure.bind(world);
+        // Java's `findNearestMapStructure` reads its radius the way `/locate` does, so the
+        // `search_radius` goes straight through. Java can also skip a structure an earlier map
+        // already found (`skip_existing_chunks`); nothing here records that, so every search
+        // finds the nearest one.
+        view.nearestStructure = (destination, origin, searchRadius) => {
+            const found = locate(destination, origin, searchRadius);
+            return found === undefined ? undefined : { x: found.x, y: found.y, z: found.z };
+        };
+    }
+    if (world.nextMapId !== undefined) view.newMapId = world.nextMapId.bind(world);
+    return view;
+};
