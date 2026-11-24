@@ -85,7 +85,7 @@ export const FAMILIES = {
      * The Java preview's vanilla datapack through the loader, against its own reports. The family
      * follows the preview: a new preview replaces it, as the java-bringup skill says.
      */
-    datapack26_4Snapshot10: 'datapack.26.4-snapshot-10',
+    datapack26_4Pre1: 'datapack.26.4-pre-1',
 
     /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
     worldgenBiomes: 'worldgen.biomes',

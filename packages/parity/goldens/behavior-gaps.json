@@ -1019,7 +1019,7 @@
             "reference": "issue #2912"
         }
     },
-    "datapack.26.4-snapshot-10": {
+    "datapack.26.4-pre-1": {
         "registry-entry-count:minecraft:chat_type": {
             "kind": "intentional",
             "reason": "Chat formatting is the Bedrock client's; the server sends chat as Bedrock text packets.",
