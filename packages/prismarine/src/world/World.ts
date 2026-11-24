@@ -14,6 +14,7 @@ import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { LevelStem } from '@jsprismarine/worldgen';
+import type { NewMap } from '@jsprismarine/predicates';
 import type { Block } from '../block/Block';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
@@ -203,6 +204,9 @@ const DEFAULT_SEA_LEVEL = 63;
  * strongholds' concentric placement; see {@link StructureSearchRequest.radius}.
  */
 const LOCATE_RADIUS = 100;
+
+/** The biome tag a map's biome preview outlines as water, Java's `BiomeTags.WATER_ON_MAP_OUTLINES`. */
+const WATER_ON_MAP_OUTLINES = 'minecraft:water_on_map_outlines';
 
 /**
  * How Java's `LocateCommand` walks for a biome: `MAX_BIOME_SEARCH_RADIUS` blocks out, one column
@@ -2742,13 +2746,15 @@ export class World implements Service {
      * @param radius - How far out to look, in rings of placement regions; Java's 100 by default.
      * @param options.skipKnownStructures - Java's `skipKnownStructures`, which an explorer map's
      * `skip_existing_chunks` sets: pass over a start an earlier such search already found, and
-     * mark the one found so the next search passes over it too.
+     * mark the one found so the next search passes over it too. When the origin has a y, a
+     * wanted structure standing there is marked first, as Java's `ExplorationMapFunction`
+     * claims the structure a map was rolled in, so the map leads somewhere else.
      * @returns Java's locate position and the generation point, or undefined when the generator
      * places no structures, has no search of its own, or found nothing inside the radius.
      */
     public locateStructure(
         name: string,
-        origin: { readonly x: number; readonly z: number },
+        origin: { readonly x: number; readonly y?: number; readonly z: number },
         radius: number = LOCATE_RADIUS,
         options: { readonly skipKnownStructures?: boolean } = {}
     ): StructureSearchResult | undefined {
@@ -2764,14 +2770,26 @@ export class World implements Service {
 
         const dimension = this.dimension.id;
         const skipKnown = options.skipKnownStructures === true;
+        const wanted =
+            tagged === undefined
+                ? (structure: string) => structureNameMatches(name, structure)
+                : (structure: string) => tagged.has(structure);
+
+        // Java's `claimStructureAt`: `StructureManager.getStructureAt` answers the first wanted
+        // start with a piece at the block, and that one is referenced before the search.
+        if (skipKnown && origin.y !== undefined) {
+            const at = { x: Math.floor(origin.x), y: Math.floor(origin.y), z: Math.floor(origin.z) };
+            const standing = this.generator.structureStartsContaining
+                ?.call(this.generator, at, this.level.seed)
+                .find((start) => wanted(start.structure));
+            if (standing !== undefined) this.level.referenceStructure({ dimension, ...standing });
+        }
+
         const found = search.call(this.generator, {
             x: Math.trunc(origin.x),
             z: Math.trunc(origin.z),
             radius,
-            wanted:
-                tagged === undefined
-                    ? (structure) => structureNameMatches(name, structure)
-                    : (structure) => tagged.has(structure),
+            wanted,
             ...(skipKnown
                 ? {
                       skip: (structure: string, chunkX: number, chunkZ: number) =>
@@ -5065,9 +5083,24 @@ export class World implements Service {
         return this.level;
     }
 
-    /** A `minecraft:map_id` no map has had, from the level's counter, which its dimensions share. */
-    public nextMapId(): number {
-        return this.level.nextMapId();
+    /**
+     * Makes a map of this world and answers its `minecraft:map_id`, Java's `MapItem.create`.
+     * The id comes from the level's counter, which its dimensions share.
+     */
+    public createMap(map: NewMap): number {
+        return this.level.createMap({ dimension: this.dimension.id, ...map });
+    }
+
+    /**
+     * Whether the biome at a column, sampled at sea level, is one a map outlines as water:
+     * `#minecraft:water_on_map_outlines`, which an explorer map's biome preview reads. False
+     * for a generator that cannot answer a biome without a chunk.
+     */
+    public isMapWaterAt(x: number, z: number): boolean {
+        const biome = this.generator.biomeAt?.call(this.generator, x, this.getSeaLevel(), z, this.level.seed);
+        if (biome === undefined) return false;
+        const water = this.generator.membersOfTag?.call(this.generator, 'worldgen/biome', WATER_ON_MAP_OUTLINES);
+        return water?.has(biome) ?? false;
     }
 
     /** The stem this world was built from: its dimension type id and its generator definition. */

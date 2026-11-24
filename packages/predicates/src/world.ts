@@ -136,6 +136,28 @@ export interface DamageSource {
     readonly position?: Vec3;
 }
 
+/** One marker on a map, as the `minecraft:map_decorations` component holds it. */
+export interface MapDecorationEntry {
+    /** Namespaced map decoration type, such as `minecraft:red_x`. */
+    readonly type: string;
+    /** Where the marker is, in world blocks. */
+    readonly x: number;
+    readonly z: number;
+    /** Which way it faces, in degrees. */
+    readonly rotation: number;
+}
+
+/** The map an `exploration_map` asks a level for; see {@link LevelView.newMapId}. */
+export interface NewMap {
+    /** A position the map covers, in blocks. The map centers on the grid cell holding it, as Java's does. */
+    readonly x: number;
+    readonly z: number;
+    /** How far the map is zoomed out, Java's `zoom`: one map pixel is `2^scale` blocks. */
+    readonly scale: number;
+    /** The markers it starts with, by key, as the stack's `minecraft:map_decorations` holds them. */
+    readonly decorations: Readonly<Record<string, MapDecorationEntry>>;
+}
+
 /**
  * The world state the location, weather and time conditions read. Implement
  * what the host can answer; a predicate that reaches an unimplemented member
@@ -174,8 +196,13 @@ export interface LevelView {
         searchRadius: number,
         skipKnownStructures: boolean
     ): Vec3 | undefined;
-    /** Allocates a fresh `minecraft:map_id`, which is Java's `ServerLevel.getFreeMapId`. */
-    newMapId?(): number;
+    /**
+     * Makes a map and answers its fresh `minecraft:map_id`, which is Java's `MapItem.create`:
+     * `ServerLevel.getFreeMapId` and the saved data the id names.
+     *
+     * @param map - Where the map is, how far it is zoomed out, and the markers on it.
+     */
+    newMapId?(map: NewMap): number;
     /** Combined light level at a position, which is what Java's `light` predicate compares. */
     lightAt?(position: Vec3): number;
     canSeeSky?(position: Vec3): boolean;

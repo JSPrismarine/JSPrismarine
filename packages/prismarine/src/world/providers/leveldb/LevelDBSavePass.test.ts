@@ -22,6 +22,7 @@ import { Dimensions } from '../../DimensionType';
 import type { World } from '../../World';
 import { createChunkSaveContext } from '../ChunkSaveContext';
 import { CommandStorage } from '../../CommandStorage';
+import type { SavedMap } from '../../savedMap';
 import { Scoreboard } from '../../Scoreboard';
 import LevelDB from './LevelDB';
 
@@ -499,9 +500,34 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         board.setScore('Steve', 'kills', 3);
         board.setDisplay('sidebar', 'kills', 'descending');
         const dynamicProperties = new Map([['pack', new Map([['jsp:n', 1.5]])]]);
+        // Far more than a 65,535-byte string could hold, so the records cannot be one.
+        const maps = new Map(
+            Array.from({ length: 3000 }, (_unused, id): [number, SavedMap] => [
+                id,
+                {
+                    dimension: 'minecraft:overworld',
+                    centerX: id * 256 - 64,
+                    centerZ: -192,
+                    scale: 1,
+                    decorations: [{ type: 'minecraft:red_x', x: 89, y: -95, rotation: 8 }]
+                }
+            ])
+        );
+        const referencedStructures = Array.from({ length: 3000 }, (_unused, index) => ({
+            dimension: 'minecraft:overworld',
+            structure: 'minecraft:buried_treasure',
+            chunkX: index,
+            chunkZ: 7 - index
+        }));
 
         const pass = leveldb.beginSavePass();
-        pass.putLevelRecords({ dynamicProperties, scoreboard: board.saved(), commandStorage: new Map() });
+        pass.putLevelRecords({
+            dynamicProperties,
+            scoreboard: board.saved(),
+            commandStorage: new Map(),
+            maps,
+            referencedStructures
+        });
         await pass.commit({ sync: true });
         await leveldb.disable();
 
@@ -514,6 +540,8 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         await reopened.enable();
         const records = reopened.readLevelRecords();
         expect(records?.dynamicProperties).toEqual(dynamicProperties);
+        expect(records?.maps).toEqual(maps);
+        expect(records?.referencedStructures).toEqual(referencedStructures);
         const restored = new Scoreboard();
         restored.restore(records?.scoreboard ?? board.saved());
         expect(restored.score('Steve', 'kills')).toBe(3);
@@ -524,7 +552,9 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         empty.putLevelRecords({
             dynamicProperties: new Map(),
             scoreboard: new Scoreboard().saved(),
-            commandStorage: new Map()
+            commandStorage: new Map(),
+            maps: new Map(),
+            referencedStructures: []
         });
         await empty.commit({ sync: true });
         expect(reopened.readLevelRecords()).toBeNull();
@@ -548,7 +578,9 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         pass.putLevelRecords({
             dynamicProperties: new Map(),
             scoreboard: new Scoreboard().saved(),
-            commandStorage: storage.saved()
+            commandStorage: storage.saved(),
+            maps: new Map(),
+            referencedStructures: []
         });
         await pass.commit({ sync: true });
         await leveldb.disable();
@@ -577,7 +609,9 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         pass.putLevelRecords({
             dynamicProperties: new Map(),
             scoreboard: new Scoreboard().saved(),
-            commandStorage: storage.saved()
+            commandStorage: storage.saved(),
+            maps: new Map(),
+            referencedStructures: []
         });
         await pass.commit({ sync: true });
         await leveldb.disable();
@@ -600,7 +634,9 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         empty.putLevelRecords({
             dynamicProperties: new Map(),
             scoreboard: new Scoreboard().saved(),
-            commandStorage: restored.saved()
+            commandStorage: restored.saved(),
+            maps: new Map(),
+            referencedStructures: []
         });
         await empty.commit({ sync: true });
         expect(reopened.readLevelRecords()).toBeNull();

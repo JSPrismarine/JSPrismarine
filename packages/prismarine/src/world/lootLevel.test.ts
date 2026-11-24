@@ -18,7 +18,7 @@ describe('the loot level view', () => {
 
     it("searches the world's structures and hands out the level's map ids for an explorer map", () => {
         const searches: unknown[] = [];
-        let lastMapId = 4;
+        const maps: unknown[] = [];
         const level = lootLevelOf({
             getTicks: () => 0,
             getDimension: () => ({ name: 'minecraft:overworld' }),
@@ -26,7 +26,7 @@ describe('the loot level view', () => {
                 searches.push({ name, origin: { x: origin.x, z: origin.z }, radius, ...options });
                 return { x: 320, y: 40, z: -96 };
             },
-            nextMapId: () => ++lastMapId
+            createMap: (map) => maps.push(map) + 4
         });
 
         expect(level.nearestStructure?.('#minecraft:on_treasure_maps', { x: 1, y: 2, z: 3 }, 50, true)).toEqual({
@@ -38,7 +38,9 @@ describe('the loot level view', () => {
         expect(searches).toEqual([
             { name: '#minecraft:on_treasure_maps', origin: { x: 1, z: 3 }, radius: 50, skipKnownStructures: true }
         ]);
-        expect([level.newMapId?.(), level.newMapId?.()]).toEqual([5, 6]);
+        const map = { x: 320, z: -96, scale: 2, decorations: {} };
+        expect([level.newMapId?.(map), level.newMapId?.(map)]).toEqual([5, 6]);
+        expect(maps).toEqual([map, map]);
     });
 
     it('leaves out what the server cannot answer truthfully yet', () => {

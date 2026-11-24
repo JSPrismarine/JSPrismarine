@@ -262,6 +262,24 @@ export interface Generator {
     locate?(request: StructureSearchRequest): StructureSearchResult | undefined;
 
     /**
+     * The structure starts with a piece that holds a block, by structure and start chunk, which
+     * is Java's `StructureManager.getStructureAt`. Like {@link Generator.locate} it reads the
+     * layout rather than a chunk.
+     *
+     * @param at - The block.
+     */
+    structureStartsContaining?(
+        at: { readonly x: number; readonly y: number; readonly z: number },
+        seed?: bigint
+    ): readonly { readonly structure: string; readonly chunkX: number; readonly chunkZ: number }[];
+
+    /**
+     * The biome at a block as Java's `ServerLevel.getBiome` answers it, read from the noise rather
+     * than a chunk: the dimension's biome cells with `BiomeManager`'s jitter.
+     */
+    biomeAt?(x: number, y: number, z: number, seed?: bigint): string | undefined;
+
+    /**
      * The nearest cell of a biome a search accepts, without generating anything.
      *
      * This is what `/locate biome` asks: Java's `BiomeSource.findClosestBiome3d`, a grid laid

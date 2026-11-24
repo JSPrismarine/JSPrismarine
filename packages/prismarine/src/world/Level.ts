@@ -75,6 +75,8 @@ import { LevelScriptSettings } from './LevelScriptSettings';
 import type { TickingArea } from './TickingAreas';
 import { TickingAreas } from './TickingAreas';
 import { CommandStorage } from './CommandStorage';
+import { newSavedMap } from './savedMap';
+import type { NewSavedMap, SavedMap } from './savedMap';
 import { Scoreboard } from './Scoreboard';
 import GameRuleChangedEvent from '../events/other/GameRuleChangedEvent';
 import { ADVANCE_TIME, gameRuleValue } from '../content/world/gameRules';
@@ -252,6 +254,9 @@ export class Level {
 
     /** The last `minecraft:map_id` handed out, Java's `idcounts` entry; -1 before the first. */
     private lastMapId = -1;
+
+    /** Every map made in this level, by `minecraft:map_id`: Java's `map_<id>` saved data. */
+    private readonly maps = new Map<number, SavedMap>();
 
     /**
      * The structure starts an explorer map already points at, by {@link structureReferenceKey}.
@@ -935,6 +940,21 @@ export class Level {
         return this.lastMapId;
     }
 
+    /**
+     * Makes a map and answers its id, Java's `MapItem.createNewSavedData`: a fresh id and the
+     * map's center, scale, dimension and markers, saved with the level under that id.
+     */
+    public createMap(request: NewSavedMap): number {
+        const id = this.nextMapId();
+        this.maps.set(id, newSavedMap(request));
+        return id;
+    }
+
+    /** The map saved under an id, or undefined for an id this level never made. */
+    public getMap(id: number): SavedMap | undefined {
+        return this.maps.get(id);
+    }
+
     /** Whether an earlier explorer map search already found this structure start. */
     public isStructureReferenced(start: StructureReference): boolean {
         return this.referencedStructures.has(structureReferenceKey(start));
@@ -1155,6 +1175,8 @@ export class Level {
             this.dynamicProperties.restore(records.dynamicProperties);
             this.scoreboard.restore(records.scoreboard);
             this.commandStorage.restore(records.commandStorage);
+            for (const start of records.referencedStructures) this.referenceStructure(start);
+            for (const [id, map] of records.maps) this.maps.set(id, map);
         }
 
         // The clocks are written to `level.dat` alone, so they are read back from there; without
@@ -1165,7 +1187,6 @@ export class Level {
         if (levelDat?.time !== undefined) this.setDayTime(levelDat.time);
         if (stored.clockPaused !== undefined) this.setDayTimePaused(stored.clockPaused);
         if (stored.lastMapId !== undefined) this.lastMapId = stored.lastMapId;
-        for (const start of stored.referencedStructures ?? []) this.referenceStructure(start);
         this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
@@ -1336,8 +1357,7 @@ export class Level {
                 scriptSettings: this.scriptSettings.saved(),
                 dimensionNumbers: this.dimensionNumbers.saved(),
                 clockPaused: this.isDayTimePaused(),
-                lastMapId: this.lastMapId,
-                referencedStructures: [...this.referencedStructures.values()]
+                lastMapId: this.lastMapId
             },
             levelDat: {
                 ...(position === undefined ? {} : { spawn: position }),
@@ -1353,7 +1373,9 @@ export class Level {
             records: {
                 dynamicProperties: this.dynamicProperties.all(),
                 scoreboard: this.scoreboard.saved((live) => this.savedActorId(live)),
-                commandStorage: this.commandStorage.saved()
+                commandStorage: this.commandStorage.saved(),
+                maps: new Map(this.maps),
+                referencedStructures: [...this.referencedStructures.values()]
             }
         };
     }

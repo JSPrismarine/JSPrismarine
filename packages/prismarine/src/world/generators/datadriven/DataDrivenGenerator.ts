@@ -1441,6 +1441,8 @@ export class DataDrivenGenerator implements Generator {
             locatableNames: (kind) => this.locatableNames(kind),
             structureSpawnOverrideAt: (identifier, at, seed = 0n) =>
                 this.structureSpawnOverrideUnder(key, identifier, at, seed),
+            structureStartsContaining: (at, seed = 0n) => this.structureStartsContainingUnder(key, at, seed),
+            biomeAt: (x, y, z, seed = 0n) => this.biomeAtUnder(key, x, y, z, seed),
             stopGenerating: () => this.stopGenerating(),
             generationControl: () => this.generationControl()
         };
@@ -1800,6 +1802,35 @@ export class DataDrivenGenerator implements Generator {
                         : start.pieces.some((piece) => boxContains(piece.boundingBox, at)))
             )
         );
+    }
+
+    /** @inheritDoc */
+    public structureStartsContaining(
+        at: { readonly x: number; readonly y: number; readonly z: number },
+        seed = 0n
+    ): readonly { readonly structure: string; readonly chunkX: number; readonly chunkZ: number }[] {
+        return this.structureStartsContainingUnder(this.defaultKey, at, seed);
+    }
+
+    /** {@link DataDrivenGenerator.structureStartsContaining} for one key. */
+    private structureStartsContainingUnder(
+        key: PipelineKey,
+        at: { readonly x: number; readonly y: number; readonly z: number },
+        seed: bigint
+    ): readonly { readonly structure: string; readonly chunkX: number; readonly chunkZ: number }[] {
+        return this.structureStartsAt(Math.floor(at.x / 16), Math.floor(at.z / 16), seed, key)
+            .filter((start) => start.pieces.some((piece) => boxContains(piece.boundingBox, at)))
+            .map(({ structure, chunkX, chunkZ }) => ({ structure, chunkX, chunkZ }));
+    }
+
+    /** @inheritDoc */
+    public biomeAt(x: number, y: number, z: number, seed = 0n): string | undefined {
+        return this.biomeAtUnder(this.defaultKey, x, y, z, seed);
+    }
+
+    /** {@link DataDrivenGenerator.biomeAt} for one key. */
+    private biomeAtUnder(key: PipelineKey, x: number, y: number, z: number, seed: bigint): string | undefined {
+        return this.pipelineFor(key, seed).biomes.getBiome(x, y, z);
     }
 
     /**

@@ -208,15 +208,17 @@ const createContentView = (
         const found = locate(request, context);
         if (found === undefined) return undefined;
 
-        // Allocated after the search, as Java's `MapItem.create` is, so a search that finds
-        // nothing uses up no id.
-        const mapId = options.mapIds === undefined ? context.level?.newMapId?.() : options.mapIds(context);
+        // Java's `MapItemSavedData.addTargetDecoration` keys the entry "+" and faces it south.
+        const decorations = { '+': { type: request.decoration, x: found.x, z: found.z, rotation: 180 } };
+        // Made after the search, as Java's `MapItem.create` is, so a search that finds nothing
+        // uses up no id.
+        const mapId =
+            options.mapIds === undefined
+                ? context.level?.newMapId?.({ x: found.x, z: found.z, scale: request.zoom, decorations })
+                : options.mapIds(context);
         const items = context.items;
         const withId = mapId === undefined ? stack : items.withComponent(stack, 'minecraft:map_id', mapId);
-        // Java's `MapItemSavedData.addTargetDecoration` keys the entry "+" and faces it south.
-        return items.withComponent(withId, 'minecraft:map_decorations', {
-            '+': { type: request.decoration, x: found.x, z: found.z, rotation: 180 }
-        });
+        return items.withComponent(withId, 'minecraft:map_decorations', decorations);
     };
 
     return view;

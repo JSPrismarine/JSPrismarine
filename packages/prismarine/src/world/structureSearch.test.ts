@@ -148,6 +148,47 @@ describe('World.locateStructure', () => {
     });
 });
 
+describe("an explorer map's search from inside a structure", () => {
+    it("passes over the structure it starts in, as Java 26.3's claimStructureAt does", () => {
+        const starts = [
+            { chunkX: 0, chunkZ: 0 },
+            { chunkX: 30, chunkZ: 4 }
+        ];
+        const generator = stub<Generator>({
+            // The origin stands in a piece of the start at chunk (0, 0).
+            structureStartsContaining: (at) =>
+                at.x === 5 && at.y === 64 && at.z === 6
+                    ? [{ structure: 'minecraft:village_plains', chunkX: 0, chunkZ: 0 }]
+                    : [],
+            locate: (request) => {
+                const nearest = starts.find(
+                    ({ chunkX, chunkZ }) => request.skip?.('minecraft:village_plains', chunkX, chunkZ) !== true
+                );
+                return nearest === undefined
+                    ? undefined
+                    : {
+                          structure: 'minecraft:village_plains',
+                          x: nearest.chunkX * 16,
+                          y: 0,
+                          z: nearest.chunkZ * 16,
+                          origin: { x: 0, y: 64, z: 0 },
+                          startChunk: { x: nearest.chunkX, z: nearest.chunkZ }
+                      };
+            },
+            membersOfTag: () => new Set(['minecraft:village_plains'])
+        });
+        const world = worldOver(generator);
+        const origin = { x: 5.5, y: 64.2, z: 6.9 };
+
+        // `/locate` from the same spot finds the village it stands in.
+        expect(world.locateStructure('#minecraft:village', origin)?.startChunk).toEqual({ x: 0, z: 0 });
+        // A cartographer standing in that village sells a map to the next one.
+        expect(
+            world.locateStructure('#minecraft:village', origin, 100, { skipKnownStructures: true })?.startChunk
+        ).toEqual({ x: 30, z: 4 });
+    });
+});
+
 describe('World.locateBiome', () => {
     it("walks Java's grid: 6400 blocks out, 32 between columns, 64 between samples", () => {
         const { generator, asked } = searchingGenerator();

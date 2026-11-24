@@ -8,6 +8,7 @@
  */
 import { load as loadPacks } from '@jsprismarine/packs';
 import type { Definitions } from '@jsprismarine/packs';
+import type { NewMap } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import type { BlockEntity } from '../blockentity/BlockEntity';
@@ -63,7 +64,7 @@ const contentWith = (seed: bigint): ServerContent =>
 /** A world of one chunk, holding whatever block entities are filed in it. */
 const worldHolding = (
     entities: readonly BlockEntity[],
-    level: Pick<ContainerLootWorld, 'locateStructure' | 'nextMapId'> = {}
+    level: Pick<ContainerLootWorld, 'locateStructure' | 'createMap'> = {}
 ): ContainerLootWorld => {
     const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
     const held = new Map(entities.map((entity) => [key(...positionOf(entity)), entity]));
@@ -177,13 +178,13 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
 
     it("points a shipwreck's map at the structure the world finds from the chest", () => {
         const searches: unknown[] = [];
-        let lastMapId = -1;
+        const maps: NewMap[] = [];
         const world = worldHolding([generatedChest(1234n, CHEST, SHIPWRECK_MAP)], {
             locateStructure: (name, origin, radius, options) => {
                 searches.push({ name, origin: { x: origin.x, z: origin.z }, radius, ...options });
                 return { x: 400, y: 50, z: -800 };
             },
-            nextMapId: () => ++lastMapId
+            createMap: (map) => maps.push(map) - 1
         });
         const bare = worldHolding([generatedChest(1234n, CHEST, SHIPWRECK_MAP)]);
 
@@ -200,7 +201,15 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
                 skipKnownStructures: false
             }
         ]);
-        expect(lastMapId).toBe(0);
+        // One map, made at the table's zoom of 1 around the structure, marked with a red X there.
+        expect(maps).toEqual([
+            {
+                x: 400,
+                z: -800,
+                scale: 1,
+                decorations: { '+': { type: 'minecraft:red_x', x: 400, z: -800, rotation: 180 } }
+            }
+        ]);
 
         // The map pool keeps a map only once it has a `map_id`, so the chest whose world found
         // the structure holds one item more than the chest whose world could not search.

@@ -570,14 +570,25 @@ describe('Level', () => {
             await reopened.level.disable();
         });
 
-        it('keeps map ids and the structures explorer maps point at across a restart', async () => {
+        it('keeps its maps and the structures explorer maps point at across a restart', async () => {
             const { level } = buildLevel('maps');
             await level.enable();
             const overworld = await level.world(OVERWORLD_STEM_ID);
             const nether = await level.world(NETHER_STEM_ID);
 
+            const treasure = {
+                x: 300,
+                z: -500,
+                scale: 1,
+                decorations: { '+': { type: 'minecraft:red_x', x: 300, z: -500, rotation: 180 } }
+            };
             // One counter for the level, as Java's `idcounts` is, so two dimensions never share an id.
-            expect([overworld.nextMapId(), nether.nextMapId(), overworld.nextMapId()]).toEqual([0, 1, 2]);
+            expect([overworld.createMap(treasure), nether.createMap(treasure), overworld.createMap(treasure)]).toEqual([
+                0, 1, 2
+            ]);
+            const saved = level.getMap(0);
+            expect(saved?.dimension).toBe(overworld.getDimension().id);
+            expect(level.getMap(1)?.dimension).toBe(nether.getDimension().id);
             const mansion = { dimension: 'minecraft:overworld', structure: 'minecraft:mansion', chunkX: 2, chunkZ: -3 };
             level.referenceStructure(mansion);
             await level.save();
@@ -585,6 +596,7 @@ describe('Level', () => {
 
             const reopened = buildLevel('maps');
             await reopened.level.enable();
+            expect(reopened.level.getMap(0)).toEqual(saved);
             expect(reopened.level.nextMapId()).toBe(3);
             // The structures explorer maps point at stay taken, so a restart does not hand them out again.
             expect(reopened.level.isStructureReferenced(mansion)).toBe(true);

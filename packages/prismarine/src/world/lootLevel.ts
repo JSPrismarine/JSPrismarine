@@ -21,7 +21,7 @@
  * - **Weather, sky and light.** No rain, thunder or sky-visibility state
  *   exists on a world yet, and light is per-chunk rather than per-position.
  */
-import type { LevelView, Vec3 } from '@jsprismarine/predicates';
+import type { LevelView, NewMap, Vec3 } from '@jsprismarine/predicates';
 
 /** The little of a world {@link lootLevelOf} reads, so a test satisfies it without building one. */
 export interface LootLevelWorld {
@@ -32,12 +32,12 @@ export interface LootLevelWorld {
     /** The search `/locate structure` runs; see `World.locateStructure`. */
     locateStructure?(
         name: string,
-        origin: { readonly x: number; readonly z: number },
+        origin: { readonly x: number; readonly y?: number; readonly z: number },
         radius: number,
         options: { readonly skipKnownStructures: boolean }
     ): Vec3 | undefined;
-    /** A fresh map id from the level's counter; see `World.nextMapId`. */
-    nextMapId?(): number;
+    /** Makes a map and answers its id; see `World.createMap`. */
+    createMap?(map: NewMap): number;
 }
 
 /**
@@ -62,6 +62,6 @@ export const lootLevelOf = (world: LootLevelWorld): LevelView => {
             return found === undefined ? undefined : { x: found.x, y: found.y, z: found.z };
         };
     }
-    if (world.nextMapId !== undefined) view.newMapId = world.nextMapId.bind(world);
+    if (world.createMap !== undefined) view.newMapId = world.createMap.bind(world);
     return view;
 };
