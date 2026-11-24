@@ -113,7 +113,7 @@ const polyline = (segment: readonly ChartPoint[]) =>
                     v-for="rule in rules"
                     :key="rule.time"
                     class="hist-rule"
-                    :style="{ left: `${x(rule.time)}%` }"
+                    :style="{ left: `${x(rule.time)}%`, '--tip-x': x(rule.time) }"
                     :data-tip="rule.tip"
                     ><b>{{ rule.label }}</b></span
                 >
@@ -139,7 +139,11 @@ const polyline = (segment: readonly ChartPoint[]) =>
                             v-for="point in segment"
                             :key="point.time"
                             class="hist-hit"
-                            :style="{ left: `${x(point.time)}%`, bottom: `${y(point.value)}%` }"
+                            :style="{
+                                left: `${x(point.time)}%`,
+                                bottom: `${y(point.value)}%`,
+                                '--tip-x': x(point.time)
+                            }"
                             :data-tip="point.tip"
                             ><i class="hist-point" :class="`is-${line.server}`"></i
                         ></span>
@@ -315,7 +319,9 @@ polyline.is-dashed {
     transform: rotate(45deg) scale(0.85);
 }
 
-/* The hover layer: each mark and rule names its run, its commit and its value. */
+/* The hover layer: each mark and rule names its run, its commit and its value. The tooltip
+   slides along its mark by the mark's position across the plot, left edge on the mark at the
+   start and right edge on it at the end, so it never reaches past the chart. */
 .hist-hit::after,
 .hist-rule::after {
     position: absolute;
@@ -324,7 +330,7 @@ polyline.is-dashed {
     z-index: 2;
     display: none;
     width: max-content;
-    max-width: 240px;
+    max-width: min(240px, 70vw);
     padding: 6px 9px;
     font: 12px/1.4 var(--vp-font-family-mono);
     color: var(--jsp-cream);
@@ -333,7 +339,7 @@ polyline.is-dashed {
     content: attr(data-tip);
     background: var(--jsp-ink);
     border-radius: 6px;
-    transform: translateX(-50%);
+    transform: translateX(calc(var(--tip-x, 50) * -1%));
 }
 
 .hist-rule::after {
