@@ -588,14 +588,16 @@ registry runs each trade's `merchant_predicate` and `given_item_modifier`, with 
 `minecraft:mark_variant` read as its biome type. An explorer map trade searches the trader's world
 for the structure its destination names, the same search `/locate structure` runs, and gives a map
 with a new `minecraft:map_id` and a marker on that structure. As in Java, the search passes over a
-structure an earlier explorer map already points at, so two map trades lead to two structures. When
-none is in range, the modifier's filter discards the map and the trade makes no offer, as Java's
-does. A trade stack reaches the client with its aux value and enchantments only, so dyed armor,
-suspicious stew and tipped arrows arrive without what their modifier wrote
-([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The server stores no maps, so a
-Bedrock client shows an explorer map blank, without its marker
-([#3694](https://github.com/JSPrismarine/JSPrismarine/issues/3694)). The
-discounts still come from the Bedrock `minecraft:economy_trade_table` component.
+structure an earlier explorer map already points at, and over one the trader stands in, so two map
+trades lead to two structures. When none is in range, the modifier's filter discards the map and the
+trade makes no offer, as Java's does. The map reaches the client as the Bedrock filled map named for
+its structure, such as an Ocean Monument Map. When the client asks for the map, the server answers
+with the structure's marker and Java's biome preview, the outline of the coast drawn before anyone
+has explored the map. Walking around does not fill the map in, and a cartography table cannot lock
+or copy it. A trade stack otherwise reaches the client with its aux value and enchantments only, so
+dyed armor, suspicious stew and tipped arrows arrive without what their modifier wrote
+([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The discounts still come from
+the Bedrock `minecraft:economy_trade_table` component.
 
 On a default build only 18 of the 27 tables load, because BDS ships eleven of them as an
 undocumented binary format the pack loader cannot read and reports as `definition.mcb`. Copying the
