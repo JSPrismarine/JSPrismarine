@@ -23,7 +23,7 @@ The dimension notes, written 2026-10-30, ask what it takes to run the Overworld,
 
 ## The seam between them
 
-- [java-26.4-snapshot-10-delta.md](java-26.4-snapshot-10-delta.md): what changed in the vanilla datapack and the data generator reports between Java 26.3 and the 26.4 Snapshot 10 preview, from `java:diff` and the Minecraft Wiki, with the gates the loaders carry and the gaps left open.
+- [java-26.4-pre-1-delta.md](java-26.4-pre-1-delta.md): what changed in the vanilla datapack and the data generator reports between Java 26.3 and the 26.4 Pre-Release 1 preview, and between Snapshot 10 and Pre-Release 1, from `java:diff` and the Minecraft Wiki, with the gates the loaders carry and the gaps left open.
 - [java-to-bedrock-translation.md](java-to-bedrock-translation.md): whether Java-shaped state can be presented to a Bedrock client, measured against GeyserMC, per domain, with the losses counted and the license position stated.
 - [hybrid-format-prior-art.md](hybrid-format-prior-art.md): who has fused two content formats (nobody), Chunker and the other bidirectional mapping projects, the four candidate architectures compared, and the reusable mapping data sets with their licenses.
 - [edition-behavior-differences.md](edition-behavior-differences.md): 278 classified differences between the editions, each marked for who decides it and what happens if the server implements Java's version, plus a testable wording for the parity claim and the categories it must exclude.

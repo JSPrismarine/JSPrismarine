@@ -25,7 +25,7 @@ Branch `docs/java-datapack-version-support`, 2026-11-19.
 | 4. Derived-list tests | Done. Every grammar package checks its handlers against the pinned `registries.json`; reviewed lists hold 11 component predicates and the `nbt` and `slots` sub-predicates. |
 | 5. The diff tool and the skill | Done. `java:diff`, `bringup:java` with eight stages, the java-bringup skill. |
 | 6. Per-version derived data | Done. Goldens, mapping and item tables and worldgen vectors live under `<release>/`; pairs derive from the manifest. |
-| 7. The first preview | Done for 26.4 Snapshot 10, format 128.0, data version 5130. Bring-up passes every stage. The preview's mapping and item tables map it onto the 2259 block palette capture ([#3283](https://github.com/JSPrismarine/JSPrismarine/issues/3283)); its vectors wait on [#3284](https://github.com/JSPrismarine/JSPrismarine/issues/3284). |
+| 7. The first preview | Done for 26.4 Snapshot 10, format 128.0, data version 5130. Bring-up passes every stage. The preview's mapping and item tables map it onto the 2259 block palette capture ([#3283](https://github.com/JSPrismarine/JSPrismarine/issues/3283)); its vectors wait on [#3284](https://github.com/JSPrismarine/JSPrismarine/issues/3284). Re-pinned to 26.4 Pre-Release 1, format 128.1, data version 5131, on 2026-11-24. |
 | 8. Docs | Done. `docs/guide/java-versions.md`, the pipeline and pack pages read the target through facts. |
 
 Open follow-ups from the preview:

@@ -48,7 +48,7 @@ The Bedrock side is layered, and each layer is a seam the Java side can use or h
 | Light | `@jsprismarine/lighting` | Sky and block light per block, used by spawning, crops and daylight detectors and never sent, because no Bedrock packet carries light. |
 | Content | `@jsprismarine/mapping` | Four total functions from Java identifiers to Bedrock ones, and one inverse for biomes. |
 | Identity | `playerIdentity.ts`, and the `Subject` union in [the permissions plan](https://github.com/JSPrismarine/JSPrismarine/pull/3377), which adds `docs/plans/permissions.md` | Keyed by XUID or name. The permissions plan adds a `java` kind with no producer yet. |
-| Java releases | `javaServer` in `packages/bedrock-data/sources.json` | One default release, 26.3, and one preview, 26.4-snapshot-10, with the jar, its data generator output and per-release derived data ([the datapack plan](java-datapack-version-support.md)). |
+| Java releases | `javaServer` in `packages/bedrock-data/sources.json` | One default release, 26.3, and one preview, 26.4-pre-1, with the jar, its data generator output and per-release derived data ([the datapack plan](java-datapack-version-support.md)). |
 
 The Java client itself differs from the Bedrock client in four ways the design has to answer. It
 connects over TCP with a length-prefixed frame, zlib above a threshold and AES-CFB8 after login. It
