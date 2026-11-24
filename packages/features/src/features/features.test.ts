@@ -825,3 +825,97 @@ describe('large_speleothem', () => {
         expect(placed).not.toContain('minecraft:dripstone_block');
     });
 });
+
+describe('crevasse', () => {
+    /** 26.4's `ice_crevasse`, with its two tags declared by the test oracle. */
+    const iceCrevasse = {
+        type: 'minecraft:crevasse',
+        acceptable_barrier: { type: 'minecraft:matching_block_tag', tag: 'minecraft:blocks_fluid_flow' },
+        carvable_blocks: { type: 'minecraft:matching_block_tag', tag: 'minecraft:ice_crevasse_replaceables' },
+        carve_depth: { type: 'minecraft:uniform', min_inclusive: 6, max_inclusive: 10 },
+        column_surface_search_range: 8,
+        cursor_surface_search_range: 8,
+        fill_block: { id: 'minecraft:water', properties: { level: '0' } },
+        fill_depth: { type: 'minecraft:uniform', min_inclusive: 4, max_inclusive: 6 },
+        max_length: 16,
+        max_width: 4,
+        min_footprint: 10,
+        surface_block: { id: 'minecraft:brittle_ice', properties: { age: '0' } },
+        tapering: 0.6,
+        turn_factor: 0.05,
+        twistiness: 4.0
+    };
+
+    const ICE = blockState('minecraft:packed_ice');
+    const SURFACE_Y = 40;
+
+    /** A flat sheet of packed ice, 20 deep, with air above it. */
+    const iceSheet = (): TestFeatureWorld => {
+        const world = new TestFeatureWorld({
+            minY: -64,
+            height: 384,
+            blocks: createTestOracle({
+                tags: {
+                    'minecraft:ice_crevasse_replaceables': ['minecraft:packed_ice', 'minecraft:snow_block'],
+                    'minecraft:blocks_fluid_flow': ['minecraft:stone']
+                }
+            })
+        });
+        world.fill({ x: -16, y: SURFACE_Y - 20, z: -16 }, { x: 16, y: SURFACE_Y, z: 16 }, ICE);
+        world.clearWrites();
+        return world;
+    };
+
+    const placeAt = (world: TestFeatureWorld, seed: bigint) =>
+        build(iceCrevasse).place(world, new WorldgenRandom(seed), { x: 0, y: SURFACE_Y, z: 0 });
+
+    it('cuts a water-filled channel capped with brittle ice', () => {
+        const world = iceSheet();
+        expect(placeAt(world, 1n)).toBe(true);
+
+        const caps = world.positionsOf('minecraft:brittle_ice');
+        expect(caps.length).toBeGreaterThanOrEqual(10);
+        expect(caps.every((cap) => cap.y === SURFACE_Y)).toBe(true);
+        expect(world.getBlock({ x: 0, y: SURFACE_Y, z: 0 }).name).toBe('minecraft:brittle_ice');
+
+        // fill_depth is at least 4, so the water starts that far below the origin's surface and
+        // runs down to the carved floor, with air between it and the cap.
+        const water = world.positionsOf('minecraft:water');
+        expect(water.length).toBeGreaterThan(0);
+        expect(Math.max(...water.map((block) => block.y))).toBeLessThanOrEqual(SURFACE_Y - 4);
+        expect(world.getBlock({ x: 0, y: SURFACE_Y - 1, z: 0 }).name).toBe('minecraft:air');
+    });
+
+    it('carves less as the branches taper', () => {
+        const world = iceSheet();
+        placeAt(world, 7n);
+        const depthAt = (x: number, z: number) => {
+            let y = SURFACE_Y - 1;
+            while (world.getBlock({ x, y, z }).name !== 'minecraft:packed_ice' && y > SURFACE_Y - 20) y--;
+            return SURFACE_Y - y;
+        };
+        const caps = world.positionsOf('minecraft:brittle_ice');
+        const farthest = caps.reduce((best, cap) =>
+            Math.hypot(cap.x, cap.z) > Math.hypot(best.x, best.z) ? cap : best
+        );
+        expect(depthAt(farthest.x, farthest.z)).toBeLessThan(depthAt(0, 0));
+    });
+
+    it('places nothing when the origin has no carvable surface', () => {
+        const world = iceSheet();
+        world.fill({ x: -16, y: SURFACE_Y - 20, z: -16 }, { x: 16, y: SURFACE_Y, z: 16 }, STONE);
+        world.clearWrites();
+        expect(placeAt(world, 1n)).toBe(false);
+        expect(world.writes).toEqual([]);
+    });
+
+    it('stops carving air beside standing water', () => {
+        const world = iceSheet();
+        // Water under the ice east of the origin column, one block below the surface.
+        world.fill({ x: 1, y: SURFACE_Y - 1, z: -16 }, { x: 16, y: SURFACE_Y - 1, z: 16 }, WATER);
+        world.clearWrites();
+        expect(placeAt(world, 1n)).toBe(true);
+        expect(world.getBlock({ x: 0, y: SURFACE_Y, z: 0 }).name).toBe('minecraft:brittle_ice');
+        expect(world.getBlock({ x: 0, y: SURFACE_Y - 1, z: 0 }).name).toBe('minecraft:packed_ice');
+    });
+});

@@ -57,6 +57,10 @@ usage table is `tree` 45, `simple_block` 37, `ore` 30, `random_selector` 21, `ov
 `weighted_random_selector` 8, and `block_column`, `fallen_tree`, `spring_feature` and
 `vegetation_patch` at 6 each.
 
+The loader also reads the two feature types Java 26.4, the preview the server tracks, adds:
+`large_speleothem`, which builds `large_dripstone`'s cones out of the `base_block` it names, and
+`crevasse`, the water-filled cut under `brittle_ice` in the ice caves.
+
 Two things changed in 26.3 that a loader written against 1.21 data gets wrong. `random_patch` is
 gone, replaced by `projected_random_patchy_square`, which thins toward the corners of its square
 instead of scattering uniformly. And `pointed_dripstone` and `dripstone_cluster` became
