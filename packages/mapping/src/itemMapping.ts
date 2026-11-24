@@ -25,6 +25,31 @@ export type ItemMappingResult =
 const itemLossById = new Map<string, ItemLoss>(ITEM_LOSSES.map((loss) => [loss.javaId, loss]));
 
 /**
+ * The Bedrock aux value of each structure locator map, which is what names it on the client:
+ * a `minecraft:filled_map` with aux 5 is a Treasure Map. GeyserMC's `items.json`, which the
+ * item table is generated from, leaves these at 0; Geyser's item translator writes them from
+ * its `MapItem.EXPLORER_MAP_METADATA`, which this copies.
+ */
+export const EXPLORER_MAP_DATA: Readonly<Record<string, number>> = {
+    'minecraft:ocean_monument_map': 3,
+    'minecraft:woodland_mansion_map': 4,
+    'minecraft:buried_treasure_map': 5,
+    'minecraft:snowy_village_map': 7,
+    'minecraft:taiga_village_map': 8,
+    'minecraft:plains_village_map': 9,
+    'minecraft:savanna_village_map': 10,
+    'minecraft:desert_village_map': 11,
+    'minecraft:jungle_pyramid_map': 12,
+    'minecraft:swamp_hut_map': 13,
+    'minecraft:buried_trial_chambers_map': 14,
+    'minecraft:abandoned_camp_map': 18,
+    'minecraft:buried_ancient_city_map': 23,
+    'minecraft:buried_mineshaft_map': 24,
+    'minecraft:desert_pyramid_map': 25,
+    'minecraft:warm_ocean_ruins_map': 26
+};
+
+/**
  * Builds an item lookup over one release's item table, which is how the item type generator maps
  * a release other than the default through that release's own table.
  *
@@ -39,9 +64,10 @@ export const createJavaItemMapping =
         }
         const entry = table.items[javaId];
         if (entry === undefined) return { kind: 'unknown', javaId };
+        const data = entry.bedrockData ?? EXPLORER_MAP_DATA[javaId];
         const bedrock: BedrockItem = {
             identifier: entry.bedrockIdentifier,
-            ...(entry.bedrockData !== undefined ? { data: entry.bedrockData } : {})
+            ...(data !== undefined ? { data } : {})
         };
         const loss = itemLossById.get(javaId);
         if (loss !== undefined) return { kind: 'loss', loss, bedrock };

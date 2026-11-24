@@ -633,7 +633,8 @@ export const ITEM_MERGES = [
     { bedrockId: 'minecraft:book', recovery: 'The knowledge book does not recover.', reference: `${NOTE} section 3` },
     {
         bedrockId: 'minecraft:filled_map',
-        recovery: 'The 16 structure locator maps recover from map NBT.',
+        recovery:
+            'Each of the 16 structure locator maps has its own aux value (EXPLORER_MAP_DATA), so its type recovers from that.',
         reference: `${NOTE} section 3`
     },
     {
