@@ -1,7 +1,7 @@
 /**
  * Checks the `@interfere/landmines` rules that `.oxlintrc.json` enables.
  *
- * Biome cannot load JavaScript lint rules, so Oxlint runs the landmines plugins with every
+ * Biome cannot load JavaScript lint rules, so Oxlint runs the landmines plugin with every
  * built-in Oxlint rule turned off. The repository broke several of these rules when they were
  * adopted, so `scripts/landmines-baseline.json` records how often each rule fires in each file
  * that broke it, and the check fails when a file fires a rule more often than that. It also fails
@@ -27,7 +27,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const baselinePath = path.join(repoRoot, 'scripts', 'landmines-baseline.json');
 
 /** The rule that reports a package's `exports` map on each of the package's files. */
-const PACKAGE_EXPORTS = 'landmines-structure/package-exports';
+const PACKAGE_EXPORTS = 'landmines/package-exports';
 
 /** The rules `.oxlintrc.json` in `cwd` turns on, as `<plugin>/<rule>`. */
 export const enabledRules = (cwd: string): string[] => {

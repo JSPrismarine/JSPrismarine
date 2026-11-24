@@ -17,21 +17,18 @@ const write = (file: string, contents: string): void => {
 
 beforeEach(() => {
     root = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), 'jsp-check-landmines-')));
-    // The temporary directory has no node_modules, so point Oxlint at the installed plugins by path.
+    // The temporary directory has no node_modules, so point Oxlint at the installed plugin by path.
     const require = createRequire(import.meta.url);
     write(
         '.oxlintrc.json',
         JSON.stringify({
             plugins: [],
             categories: { correctness: 'off' },
-            jsPlugins: [
-                { name: 'landmines-testing', specifier: require.resolve('@interfere/landmines/testing') },
-                { name: 'landmines-structure', specifier: require.resolve('@interfere/landmines/structure') }
-            ],
+            jsPlugins: [{ name: 'landmines', specifier: require.resolve('@interfere/landmines') }],
             rules: {
-                'landmines-testing/no-flake-masking': 'error',
-                'landmines-structure/package-exports': ['error'],
-                'landmines-structure/test-file-names': 'off'
+                'landmines/no-flake-masking': 'error',
+                'landmines/package-exports': ['error'],
+                'landmines/test-file-names': 'off'
             }
         })
     );
@@ -46,15 +43,12 @@ afterEach(() => {
 
 describe('check-landmines', () => {
     it('reads the rules the configuration turns on', () => {
-        expect(enabledRules(root)).toEqual([
-            'landmines-structure/package-exports',
-            'landmines-testing/no-flake-masking'
-        ]);
+        expect(enabledRules(root)).toEqual(['landmines/no-flake-masking', 'landmines/package-exports']);
     });
 
     it('counts package-exports once per package, so a new file in that package passes', () => {
         const baseline = findLandmines(root);
-        expect(baseline).toEqual({ 'pkg/package.json': { 'landmines-structure/package-exports': 1 } });
+        expect(baseline).toEqual({ 'pkg/package.json': { 'landmines/package-exports': 1 } });
 
         write('pkg/src/c.ts', 'export const c = 3;\n');
         expect(compareCounts(enabledRules(root), findLandmines(root), baseline)).toEqual({ added: [], removed: [] });
@@ -65,7 +59,7 @@ describe('check-landmines', () => {
         write('src/a.ts', 'export const a = 1;\n');
         write('src/b.ts', 'export const b = 2;\n');
 
-        expect(findLandmines(root)['package.json']).toEqual({ 'landmines-structure/package-exports': 1 });
+        expect(findLandmines(root)['package.json']).toEqual({ 'landmines/package-exports': 1 });
         expect(Object.keys(findLandmines(root)).filter((file) => file.startsWith('src/'))).toEqual([]);
     });
 
@@ -77,7 +71,7 @@ describe('check-landmines', () => {
         );
 
         expect(compareCounts(enabledRules(root), findLandmines(root), baseline).added).toEqual([
-            { file: 'pkg/src/a.test.ts', rule: 'landmines-testing/no-flake-masking', allowed: 0, found: 1 }
+            { file: 'pkg/src/a.test.ts', rule: 'landmines/no-flake-masking', allowed: 0, found: 1 }
         ]);
     });
 });

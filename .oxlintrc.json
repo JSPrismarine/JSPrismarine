@@ -10,19 +10,16 @@
         "restriction": "off",
         "nursery": "off"
     },
-    "jsPlugins": [
-        { "name": "landmines-testing", "specifier": "@interfere/landmines/testing" },
-        { "name": "landmines-structure", "specifier": "@interfere/landmines/structure" }
-    ],
+    "jsPlugins": [{ "name": "landmines", "specifier": "@interfere/landmines" }],
     "rules": {
-        "landmines-testing/no-fixed-sleep": "error",
-        "landmines-testing/no-flake-masking": "error",
-        "landmines-testing/no-test-doubles": "error",
-        "landmines-testing/no-unsignaled-poll": "error",
-        "landmines-testing/strict-msw": "error",
-        "landmines-structure/colocated-tests": "error",
-        "landmines-structure/package-exports": "error",
-        "landmines-structure/test-file-names": "error"
+        "landmines/no-fixed-sleep": "error",
+        "landmines/no-flake-masking": "error",
+        "landmines/no-test-doubles": "error",
+        "landmines/no-unsignaled-poll": "error",
+        "landmines/strict-msw": "error",
+        "landmines/colocated-tests": "error",
+        "landmines/package-exports": "error",
+        "landmines/test-file-names": "error"
     },
     "ignorePatterns": [
         "**/dist/**",
