@@ -54,6 +54,7 @@ import { spawn } from './scenarios/spawn.mts';
 import { subChunkBlockChanges } from './scenarios/sub-chunk-block-changes.mts';
 import { generatedFluidFlow } from './scenarios/generated-fluid-flow.mts';
 import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
+import { explorerMap } from './scenarios/explorer-map.mts';
 import { worldgenDimensions } from './scenarios/worldgen-dimensions.mts';
 import { levelTransfer } from './scenarios/level-transfer.mts';
 import { levelIsolation } from './scenarios/level-isolation.mts';
@@ -164,7 +165,7 @@ export const suites: ScenarioSuite[] = [
     // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
     // The canopy one runs last: it roofs the world over, and nothing after it would see the sky.
     { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] },
-    { name: 'worldgen-spawn', scenarios: [worldgenSpawn] },
+    { name: 'worldgen-spawn', scenarios: [worldgenSpawn, explorerMap] },
     // Its own suite: the reset between scenarios walks back to the flat world's spawn pad, which on
     // the noise world means generating the terrain around the origin first.
     { name: 'generated-fluids', scenarios: [generatedFluidFlow] },
