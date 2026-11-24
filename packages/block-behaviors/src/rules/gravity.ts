@@ -41,6 +41,8 @@ export const isFallingBlock = (identifier: string): boolean => {
  *
  * Java's `FallingBlock.isFree`: air, fire, a liquid or a replaceable block. How a piston treats
  * the block does not enter into it, so gravel stays put on a moss block or a torch.
+ *
+ * @javaSource FallingBlock.isFree
  */
 export const isFallThrough = (_world: WorldActions, block: HookBlock): boolean =>
     isReplaceable(block.identifier) || isLiquid(block.identifier);

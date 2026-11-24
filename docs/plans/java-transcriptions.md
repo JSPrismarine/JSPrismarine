@@ -107,45 +107,55 @@ that calls it. The bring-up report lists those separately (section "On a new rel
 
 ## Where the fingerprints live
 
-`packages/parity/goldens/java-sources.json` records each source once, by its resolved binary name:
+`packages/parity/goldens/java-sources.json` maps each tag spelling to the member it resolves to,
+and records each member once, by its resolved binary name, with a fingerprint per release:
 
 ```json
 {
-    "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z": {
-        "26.3": "sha256:9f1c...",
-        "26.4-snapshot-8": "sha256:9f1c..."
+    "names": {
+        "SpongeBlock.removeWaterBreadthFirstSearch": "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z"
+    },
+    "sources": {
+        "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:06af..."
+        }
     }
 }
 ```
 
-A source holds a fingerprint for the default release and, while one is pinned, the preview. The
-TypeScript sites that cite it are not recorded; the checker finds them from the tags each run, so
-moving code needs no golden update.
+The `names` map is what lets the lint check run without the jar: a tag whose spelling is not in it
+has never been stamped. A source holds a fingerprint for the default release and, once slice 4
+lands, the preview. The TypeScript sites that cite it are not recorded; the checks find them from
+the tags each run, so moving code needs no golden update.
 
 ## Checks
 
-**`pnpm run lint:java-sources`** runs in `lint:custom` and needs no jar. It parses every
-`packages/*/src/**/*.ts` with the TypeScript API, as `scripts/check-jsdoc.mts` does, and fails when
-a tag is malformed, when a tag has no entry in the golden, or when a golden entry has no tag left.
-It also counts prose citations (``Java's `X.y` ``) in a declaration's JSDoc that has no
-`@javaSource`, per file, against `scripts/java-sources-baseline.json`. The count may fall and
-never rise, the way `lint:landmines` works, and `--update` lowers it.
+**`pnpm run lint:java-sources`** runs in `lint:custom` and needs no jar. It reads the JSDoc
+comments of every `packages/*/src/**/*.ts` file outside tests, generated output and the parity
+suite, which reads Java code to compare with it rather than copying it, and fails when
+a tag is malformed, when a tag's spelling has no entry in the golden, or when a golden entry has no
+tag left. It also counts prose citations (``Java's `X.y` ``) in JSDoc comments that carry no
+`@javaSource`, per file, against `scripts/java-sources-baseline.json`. The count may fall and never
+rise, the way `lint:landmines` works, and `--update-baseline` lowers it.
 
 **The `java.transcriptions` parity family** reads the pinned jar, which the CI unit shards already
-restore from cache. One row per source:
+restore from cache. One tracker row per tag spelling:
 
-- It passes when the source resolves and its fingerprint for the default release matches the
-  golden.
-- It fails when the fingerprint differs or the member is gone. The message names the TypeScript
-  sites and prints the normalized diff against the release the golden was stamped at.
+- It passes when the spelling resolves to the member the golden names and its fingerprint for the
+  default release matches the golden.
+- It fails when the fingerprint differs, the spelling resolves elsewhere, or the member is gone.
+  The message names the TypeScript sites and both fingerprints.
 - A preview mismatch is reported as `deferred` with the preview's id, not a failure, until the
-  preview becomes the default. This is the existing behavior-gaps mechanism, so the dashboard shows
-  it without new UI.
+  preview becomes the default (slice 4). This is the existing behavior-gaps mechanism, so the
+  dashboard shows it without new UI.
 - Without the jar in the cache the row is "not measured", as other jar-reading rows are.
 
-`node scripts/check-java-sources.mts --update --java <R>` stamps fingerprints for R after a
-maintainer has re-read the changed sources. It never stamps a source whose fingerprint changed
-without `--reviewed <source>` for each one, so a bulk update cannot hide a change.
+`pnpm --filter @jsprismarine/bedrock-data run java:sources --update` stamps fingerprints for the
+default release, or
+for `--java <R>`, after a maintainer has re-read the changed sources. It never restamps a source
+whose fingerprint changed without `--reviewed <spelling>` for each one, so a bulk update cannot hide
+a change. `--list <spelling>` prints the listing the fingerprint hashes; listing a source under two
+releases' `--java` and diffing the output shows what changed.
 
 ## On a new release
 
@@ -170,28 +180,32 @@ default matters, and its own regression test either way.
 
 ## Slices
 
-1. **One class-file reader.** Create a private tool workspace with
-   `pnpm exec turbo gen Tool --args java-classfile "<description>"`, move the parser and
-   instruction decoder into it from both current homes, and point `bedrock-data`'s goal dump and
-   `parity` at it. Add the normalized listing and fingerprint with unit tests over small class
-   files compiled from our own Java sources and checked in as fixtures, so the tests need no jar.
-   Done when both old readers are deleted and `dump:java-goals` writes an identical file.
-2. **Tag, golden and checks.** Add `@javaSource` and `@javaVerified` to the JSDoc tags the API docs
-   build accepts, write `scripts/check-java-sources.mts`, the golden, the `java.transcriptions`
-   family and its declared-family test, and tag one package end to end. `block-behaviors` is the
-   smallest package with many citations (61). Done when a hand-edited golden hash fails the row
-   with a readable diff.
-3. **Convert the citations.** A codemod reads each ``Java's `X.y` `` citation in a declaration's
-   JSDoc, resolves it in the jar, and adds the tag when it resolves to one member. Run it a package
+1. **One class-file reader.** Done. `tools/java-classfile` holds the parser, the instruction
+   decoder, the listing and the fingerprint, tested over `fixtures/v1` and `fixtures/v2`, two
+   compilations of one small class that differ in a private helper and an added lambda.
+   `bedrock-data`'s goal dump and `parity` read class files through it, and the goal dump's capture
+   test still matches the committed `entity_goals.json`.
+2. **Tag, golden and checks.** Done. `@javaSource` and `@javaVerified` are in the API docs
+   build's block tags, `scripts/check-java-sources.mts` lints the tags without the jar,
+   `bedrock-data`'s `java:sources` stamps the golden and prints listings, and the
+   `java.transcriptions` family checks the golden against the jar. `block-behaviors` carries 32
+   tags on 31 members. Tagging it found three citations that no longer named a 26.3 member:
+   `FarmBlock` is `FarmlandBlock`, `SpreadingSnowyBlock.canBeGrass` is `canStayAlive`, and pointed
+   dripstone's `canSurvive` moved up to `SpeleothemBlock`. A hand-edited golden hash fails the row,
+   naming the TypeScript site and both fingerprints.
+3. **Convert the citations** ([#3703](https://github.com/JSPrismarine/JSPrismarine/issues/3703)). A codemod reads each ``Java's `X.y` `` citation in a JSDoc comment,
+   resolves it in the jar, and adds the tag when it resolves to one member. Run it a package
    at a time, review the ambiguous and unresolved ones by hand, and lower the baseline after each.
-   Constants typed in by hand with a "read from the jar" comment are tagged on the constant. Done
-   when the baseline is empty for `entity-brains`, `entity-goals`, `block-behaviors` and `features`.
-   `prismarine` follows; it is the largest and does not block slice 4.
-4. **Bring-up stage.** Add the `transcriptions` stage, the delta-note section, `--reviewed`
-   stamping and the preview fingerprints, and update the java-bringup skill. Exercise it on the
+   Constants typed in by hand with a "read from the jar" comment are tagged on the constant. A
+   citation that compares with Java rather than copying it, such as an interface member that
+   describes what its host does, stays untagged. Done when every remaining citation in
+   `entity-brains`, `entity-goals` and `features` is that kind. `prismarine` follows; it is the
+   largest and does not block slice 4.
+4. **Bring-up stage** ([#3704](https://github.com/JSPrismarine/JSPrismarine/issues/3704)). Add the `transcriptions` stage, the delta-note section with listing diffs,
+   and the preview fingerprints, and update the java-bringup skill. Exercise it on the
    pinned 26.4 preview against 26.3. Done when the 26.4 delta note lists every changed tagged source
    and the parity rows for the preview show as `deferred`.
-5. **Promote heavy copies.** With counts by kind on the dashboard, open an issue for each
+5. **Promote heavy copies** ([#3705](https://github.com/JSPrismarine/JSPrismarine/issues/3705)). With counts by kind on the dashboard, open an issue for each
    transcription large enough to deserve vectors or extraction instead of a re-read, starting with
    the ones the 26.4 bring-up flagged.
 
@@ -208,7 +222,7 @@ All four were accepted as recommended on 2026-11-25.
 3. **One golden in `packages/parity/goldens/`**, beside `behavior-gaps.json` and the family that
    reads it, rather than one per package, which would spread the bring-up report over a dozen
    files.
-4. **An ADR after slice 2.** Once the tag is the required way to cite Java code, it is a lasting
+4. **An ADR after slice 2** ([#3706](https://github.com/JSPrismarine/JSPrismarine/issues/3706)). Once the tag is the required way to cite Java code, it is a lasting
    rule and belongs in an ADR next to [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) and
    [ADR 0024](../adr/0024-java-decides-server-decided-goal-parameters.md). Write it after the tag's
    shape has been used on a real package.

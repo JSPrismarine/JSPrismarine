@@ -165,6 +165,8 @@ const MUSHROOM_LIGHT_OVERRIDE_FALLBACK_NAMES: ReadonlySet<string> = new Set([
 /**
  * The light a mushroom stands in from which only {@link MUSHROOM_LIGHT_OVERRIDE_TAG} ground holds
  * it up. Java's `MushroomBlock.canSurvive` compares `getRawBrightness` against 13.
+ *
+ * @javaSource MushroomBlock.canSurvive
  */
 const MUSHROOM_MAX_LIGHT = 12;
 
@@ -177,6 +179,8 @@ const OPAQUE_LIGHT_DAMPENING = 15;
  *
  * Solid render reads as a full cube that lets no light through, since this world reports
  * collision shapes and light dampening but not occlusion shapes.
+ *
+ * @javaSource MushroomBlock.canSurvive
  */
 const mushroomHasSupport = (world: WorldActions, block: HookBlock, below: HookBlock): boolean => {
     const overrides =

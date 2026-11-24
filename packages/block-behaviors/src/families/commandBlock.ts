@@ -168,7 +168,11 @@ const markConditionMet = (world: WorldActions, located: Located): boolean => {
     return met;
 };
 
-/** Java's `BaseCommandBlock.performCommand`: runs the command and keeps what it reported. */
+/**
+ * Java's `BaseCommandBlock.performCommand`: runs the command and keeps what it reported.
+ *
+ * @javaSource BaseCommandBlock.performCommand
+ */
 const perform = (world: WorldActions, located: Located): void => {
     const { command, customName, trackOutput } = located.state;
     if (command.trim() === '') {
@@ -227,6 +231,8 @@ const startDelay = (located: Located): number =>
 /**
  * Java's `CommandBlockEntity.scheduleTick`: marks the condition and asks for the tick that runs
  * the block. A chain block never schedules one; the block in front of it runs it.
+ *
+ * @javaSource CommandBlockEntity.scheduleTick
  */
 const start = (world: WorldActions, located: Located): void => {
     if (located.mode === 'chain') return;
@@ -234,7 +240,11 @@ const start = (world: WorldActions, located: Located): void => {
     world.scheduleTick(located.block.position, startDelay(located));
 };
 
-/** Java's `CommandBlock.tick`. */
+/**
+ * Java's `CommandBlock.tick`.
+ *
+ * @javaSource CommandBlock.tick
+ */
 const tick = (world: WorldActions, located: Located): void => {
     const conditional = stateBoolean(located.block, 'conditional_bit');
     const wasConditionMet = located.state.conditionMet;
@@ -277,6 +287,7 @@ export interface CommandBlockEdit {
  * the block becomes the mode it was set to, keeping its facing; the command and its options are
  * stored; and a block that became always active starts, as `setAutomatic` and `onModeSwitch` have it.
  *
+ * @javaSource ServerGamePacketListenerImpl.handleSetCommandBlock
  * @returns False when the position holds no command block.
  */
 export const editCommandBlock = (world: WorldActions, position: BlockPosition, edit: CommandBlockEdit): boolean => {

@@ -51,9 +51,11 @@ const MAINTAINS_FARMLAND_FALLBACK_NAMES: ReadonlySet<string> = new Set([
 /**
  * Whether what stands on a farmland block keeps it from turning back to dirt.
  *
- * Java's `FarmBlock.shouldMaintainFarmland`, which is a tag rather than a shape: an attached
+ * Java's `FarmlandBlock.shouldMaintainFarmland`, which is a tag rather than a shape: an attached
  * melon stem has no growth of its own and still holds the field, a fence gate over farmland
  * holds it, and a sweet berry bush - which does grow - does not.
+ *
+ * @javaSource FarmlandBlock.shouldMaintainFarmland
  */
 const maintainsFarmland = (world: WorldActions, block: HookBlock): boolean => {
     const planted = world.getBlock(offset(block.position, 'up'));
@@ -132,15 +134,21 @@ export const concretePowderFamily = defineFamily(
 /** How many blocks a grass or mycelium block tries to spread onto per random tick. */
 const GRASS_SPREAD_ATTEMPTS = 4;
 
-/** The light a block no light passes through dampens, Java's `LightEngine.MAX_LEVEL`. */
+/**
+ * The light a block no light passes through dampens, Java's `LightEngine.MAX_LEVEL`.
+ *
+ * @javaSource LightEngine.MAX_LEVEL
+ */
 const OPAQUE_DAMPENING = 15;
 
 /** Java's `RandomSource.nextInt(bound)`, over the world's random draw. */
 const nextInt = (world: WorldActions, bound: number): number => Math.floor(world.random() * bound);
 
 /**
- * Java's `SpreadingSnowyBlock.canBeGrass`: grass lives under a single snow layer or anything
+ * Java's `SpreadingSnowyBlock.canStayAlive`: grass lives under a single snow layer or anything
  * light passes through, and dies under an opaque block or a water source.
+ *
+ * @javaSource SpreadingSnowyBlock.canStayAlive
  */
 const canBeGrass = (world: WorldActions, at: BlockPosition): boolean => {
     const abovePosition = offset(at, 'up');
@@ -153,7 +161,11 @@ const canBeGrass = (world: WorldActions, at: BlockPosition): boolean => {
     return !dampensLightMoreThan(world, above, OPAQUE_DAMPENING - 1);
 };
 
-/** Java's `SpreadingSnowyBlock.canPropagate`: grass could live there, and no water is above it. */
+/**
+ * Java's `SpreadingSnowyBlock.canPropagate`: grass could live there, and no water is above it.
+ *
+ * @javaSource SpreadingSnowyBlock.canPropagate
+ */
 const canPropagate = (world: WorldActions, at: BlockPosition): boolean =>
     canBeGrass(world, at) && fluidAt(world, offset(at, 'up'))?.kind !== 'water';
 
@@ -308,11 +320,13 @@ export const AMETHYST_STAGES: readonly string[] = [
 ];
 
 /**
- * Pops pointed dripstone that lost what holds it, Java's `PointedDripstoneBlock.canSurvive`.
+ * Pops pointed dripstone that lost what holds it, Java's `SpeleothemBlock.canSurvive`.
  *
  * A stalactite (`hanging`) hangs from the block above it and a stalagmite stands on the block
  * below. Another pointed dripstone pointing the same way holds it too, which is how a column
  * longer than one block stays up although a piston would pop every segment of it.
+ *
+ * @javaSource SpeleothemBlock.canSurvive
  */
 const popUnsupportedDripstone = (world: WorldActions, block: HookBlock): void => {
     const hanging = stateBoolean(block, 'hanging');

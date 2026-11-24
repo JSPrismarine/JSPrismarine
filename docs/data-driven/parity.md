@@ -72,6 +72,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `gameplay` | <!-- fact:parity.families.gameplay -->end-fight, brain-effects, combat-advancements, raids, datapack, mechanics, block-targets<!-- /fact --> | Java gameplay no single block, item or mob owns: game rules, mob effects, enchantments, damage types, recipes, advancements and player and world systems, plus the End fight, raids and brain effects |
 | `protocol` | <!-- fact:parity.families.protocol -->negotiation, wire-roundtrip, dimension-change<!-- /fact --> | Each registered protocol version negotiates its own codec from a real first packet; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
 | `scripting` | <!-- fact:parity.families.scripting -->lifecycle, events, engine, ui, world, entities, blocks, items, gametest, commands, components, net, admin, debug<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against JSPrismarine |
+| `java` | <!-- fact:parity.families.java -->transcriptions<!-- /fact --> | Each Java method or field the server's code copies, by its `@javaSource` tag, against the fingerprint of its bytecode in the pinned jar |
 | `conformance` | <!-- fact:parity.families.conformance -->claim, classification, exclusions<!-- /fact --> | The claim, the table it counts, and the exclusions |
 
 Each test file covers one family and wraps its tests in a top-level `describe` whose title is the
@@ -200,6 +201,38 @@ earlier master commit whose run kept its inputs while the base's run is still go
 sets how far back it looks. A run that finds none runs every file and needs no base. For same-repository pull
 requests, CI compares the current tracker with that commit's in one comment, naming the commit when
 it is not the base. Later runs update the comment.
+
+### Java transcriptions
+
+Code that copies a Java method or field out of the pinned server jar names it with a JSDoc tag:
+
+```ts
+/**
+ * Water within six steps, up to 65 blocks.
+ *
+ * @javaSource SpongeBlock.removeWaterBreadthFirstSearch
+ */
+```
+
+The tag takes a simple class name when one class in the jar has it, a binary name otherwise, and a
+descriptor for an overloaded method. `goldens/java-sources.json` records which member each tag
+resolves to and a fingerprint of that member's bytecode for each Java release. The fingerprint
+hashes a listing that drops what recompiling the same source can change, and it includes the
+private methods and lambdas of the same class the member reaches.
+
+`java.transcriptions` resolves every tag in the pinned jar and fails a row when the member is
+gone or its fingerprint differs from the golden's, naming the code that copies it. After adding
+or removing a tag, run `pnpm --filter @jsprismarine/bedrock-data run java:sources --update` to
+stamp it.
+`pnpm run lint:java-sources` checks the tags against the golden without the jar. It also counts
+the citations of the form ``Java's `Class.member` `` in JSDoc comments that carry no tag, against a
+baseline that only shrinks.
+
+When a release changes a member, print its listing with `java:sources --list <spelling>` under
+each release's `--java`, read
+the change against the TypeScript, fix the copy if Java's behavior changed, and restamp with
+`--update --reviewed <spelling>`. The [Java transcriptions plan](../plans/java-transcriptions.md)
+covers the design.
 
 ### Keeping the claim honest
 

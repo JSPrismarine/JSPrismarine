@@ -175,6 +175,8 @@ const faceToward = (from: BlockPosition, to: BlockPosition): BlockFace => {
  * Whether a fluid can move between two neighboring cells, Java's `FlowingFluid.canPassThroughWall`:
  * neither is a full cube, and their shapes leave the face between them open where the host can
  * tell, so a bottom slab keeps its water from the cell below.
+ *
+ * @javaSource FlowingFluid.canPassThroughWall
  */
 const canPassThroughWall = (world: WorldActions, from: BlockPosition, to: BlockPosition): boolean => {
     const fromBlock = world.getBlock(from);
@@ -365,6 +367,8 @@ const SEARCH_SPAN = SEARCH_REACH * 2 + 1;
  * and its neighbors again. Java's `FlowingFluid.getSpread` keeps the same per-search cache of
  * block states. What the host says about a block it read, whether it is a full cube and how fluid
  * reacts to it, is kept beside it, since the host works that out from the block's state each time.
+ *
+ * @javaSource FlowingFluid.getSpread
  */
 const searchView = (
     world: WorldActions,

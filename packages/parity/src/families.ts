@@ -175,6 +175,12 @@ export const FAMILIES = {
     /** `@minecraft/debug-utilities`: the debug shapes a script makes, what they keep and how the drawer counts their time down. */
     scriptingDebug: 'scripting.debug',
 
+    /**
+     * Each Java method or field a `@javaSource` tag names, against the fingerprint of its bytecode
+     * the golden records for the pinned jar.
+     */
+    javaTranscriptions: 'java.transcriptions',
+
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
     /** The classification table the claim counts stays in step with the research note. */

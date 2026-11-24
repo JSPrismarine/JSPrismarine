@@ -43,13 +43,29 @@ export const END_PORTAL_FRAME_BLOCKS: readonly string[] = PORTAL_BLOCK_NAMES.end
 /** The fires that light a nether portal frame. */
 export const PORTAL_LIGHTING_FIRES: readonly string[] = PORTAL_BLOCK_NAMES.fire.map(namespaced);
 
-/** Java's `PortalShape.MIN_WIDTH`: the narrowest interior, in blocks. */
+/**
+ * Java's `PortalShape.MIN_WIDTH`: the narrowest interior, in blocks.
+ *
+ * @javaSource PortalShape.MIN_WIDTH
+ */
 export const PORTAL_MIN_WIDTH = 2;
-/** Java's `PortalShape.MAX_WIDTH`: the widest interior, in blocks. */
+/**
+ * Java's `PortalShape.MAX_WIDTH`: the widest interior, in blocks.
+ *
+ * @javaSource PortalShape.MAX_WIDTH
+ */
 export const PORTAL_MAX_WIDTH = 21;
-/** Java's `PortalShape.MIN_HEIGHT`: the shortest interior, in blocks. */
+/**
+ * Java's `PortalShape.MIN_HEIGHT`: the shortest interior, in blocks.
+ *
+ * @javaSource PortalShape.MIN_HEIGHT
+ */
 export const PORTAL_MIN_HEIGHT = 3;
-/** Java's `PortalShape.MAX_HEIGHT`: the tallest interior, in blocks. */
+/**
+ * Java's `PortalShape.MAX_HEIGHT`: the tallest interior, in blocks.
+ *
+ * @javaSource PortalShape.MAX_HEIGHT
+ */
 export const PORTAL_MAX_HEIGHT = 21;
 
 /** The horizontal axis a nether portal's plane runs along. */
@@ -90,6 +106,8 @@ export const isPortalLightingFire = (identifier: string): boolean => PORTAL_LIGH
 /**
  * Java's `PortalShape.isEmpty`: what may sit inside a frame before it lights.
  * Air, either fire, or a portal block that is already there.
+ *
+ * @javaSource PortalShape.isEmpty
  */
 const isPortalInterior = (block: HookBlock | undefined): boolean =>
     block !== undefined &&
@@ -181,6 +199,7 @@ const scanPortalShape = (world: WorldActions, at: BlockPosition, axis: PortalAxi
  * The interior may hold air, fire or nothing else, 2 to 21 blocks wide and
  * 3 to 21 tall, and the corners of the frame are not checked.
  *
+ * @javaSource PortalShape.findEmptyPortalShape
  * @param at - A position inside the frame, which is where the fire appeared.
  * @returns The frame, or undefined when no valid, unlit frame surrounds the position.
  */
@@ -277,6 +296,7 @@ export const connectedPortalBlocks = (world: WorldActions, at: BlockPosition): B
  * the neighbor on a face in the portal's plane is neither a portal block nor a
  * frame block, every connected portal block becomes air.
  *
+ * @javaSource NetherPortalBlock.updateShape
  * @returns The positions cleared, empty when the portal stands.
  */
 export const collapseNetherPortal = (
@@ -443,6 +463,7 @@ const squaredDistance = (a: BlockPosition, b: BlockPosition): number =>
  * the target, with y clamped to `[70, maxY - 10]`, and the caller writes a
  * platform under it.
  *
+ * @javaSource PortalForcer.createPortal
  * @param target - The scaled arrival position in the destination dimension.
  * @param axis - The source portal's axis, which the new portal keeps.
  */
@@ -542,6 +563,7 @@ export const writeNetherPortal = (
  * already what the platform wants is destroyed with its drops first, so the
  * platform can be regenerated on every arrival.
  *
+ * @javaSource EndPlatformFeature.createEndPlatform
  * @param center - The arrival block, (100, 49, 0) for a player in the End.
  */
 export const writeEndPlatform = (world: WorldActions, center: BlockPosition): void => {
@@ -565,7 +587,11 @@ export const OVERWORLD_DIMENSION = 'minecraft:overworld';
 /** The Bedrock identifier of the zombified piglin. */
 export const ZOMBIFIED_PIGLIN = 'minecraft:zombie_pigman';
 
-/** Java's `NetherPortalBlock.randomTick` denominator: `random.nextInt(2000) < difficulty.getId()`. */
+/**
+ * Java's `NetherPortalBlock.randomTick` denominator: `random.nextInt(2000) < difficulty.getId()`.
+ *
+ * @javaSource NetherPortalBlock.randomTick
+ */
 export const PIGLIN_SPAWN_ROLL_BOUND = 2000;
 
 /** The `PortalCooldown` a spawned piglin starts with, so it does not walk straight back in. */

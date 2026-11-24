@@ -49,6 +49,8 @@ const columnDragAbove = (below: HookBlock | undefined): boolean | undefined => {
 /**
  * Java's `BubbleColumnBlock.updateColumn` for one block: soul sand below pushes the column up,
  * a magma block drags it down, more column passes its pull on, and anything else leaves water.
+ *
+ * @javaSource BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V
  */
 const updateBubbleColumn = (world: WorldActions, block: HookBlock): void => {
     const dragDown = columnDragAbove(world.getBlock(offset(block.position, 'down')));

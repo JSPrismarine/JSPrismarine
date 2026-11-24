@@ -291,6 +291,8 @@ export const performPush = (
 /**
  * Moves every entity standing where the head or a pushed block arrives one block along with it,
  * which is Java's `PistonMovingBlockEntity.moveCollidedEntities` at the end of the push.
+ *
+ * @javaSource PistonMovingBlockEntity.moveCollidedEntities
  */
 const carryEntities = (
     world: WorldActions,
