@@ -58,18 +58,20 @@ describe.skipIf(driver === undefined)('the client relay', () => {
             const opened = new Promise<Connection>((resolve) => server.once('openConnection', resolve));
             await transport.connect();
             const connection = await opened;
+            const frames = Array.from({ length: 40 }, (_, index) => batch(index, 3_000));
             const atServer: Buffer[] = [];
             const atClient: Buffer[] = [];
-            server.on('encapsulated', (message: Buffer) => atServer.push(message));
-            transport.on('batch', (frame) => atClient.push(frame));
+            const delivered = Promise.withResolvers<void>();
+            const record = (into: Buffer[]) => (message: Buffer) => {
+                into.push(message);
+                if (atServer.length >= frames.length && atClient.length >= frames.length) delivered.resolve();
+            };
+            server.on('encapsulated', record(atServer));
+            transport.on('batch', record(atClient));
 
-            const frames = Array.from({ length: 40 }, (_, index) => batch(index, 3_000));
             for (const frame of frames) transport.send(frame);
             for (const frame of frames) connection.send(frame.subarray(1));
-            const deadline = Date.now() + 30_000;
-            while ((atServer.length < frames.length || atClient.length < frames.length) && Date.now() < deadline) {
-                await new Promise((resolve) => setTimeout(resolve, 20));
-            }
+            await delivered.promise;
 
             expect(atServer).toStrictEqual(frames.map((frame) => frame.subarray(1)));
             expect(atClient).toStrictEqual(frames);
@@ -81,7 +83,7 @@ describe.skipIf(driver === undefined)('the client relay', () => {
             signaling.close();
             server.close();
         }
-    }, 60_000);
+    });
 
     it('is not opened when nothing conditions the link', async () => {
         const { server, signaling, port } = await startServer();

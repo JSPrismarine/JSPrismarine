@@ -76,10 +76,12 @@ describe.skipIf(!nativeLibraryAvailable())('RakNet on a port it shares with Neth
         const v6 = dgram.createSocket('udp6');
         try {
             const pongs: { family: string; from: number; id: number }[] = [];
+            const allPonged = Promise.withResolvers<void>();
             for (const socket of [v4, v6]) {
-                socket.on('message', (message, from) =>
-                    pongs.push({ family: from.family, from: from.port, id: message[0]! })
-                );
+                socket.on('message', (message, from) => {
+                    pongs.push({ family: from.family, from: from.port, id: message[0]! });
+                    if (pongs.length >= 20) allPonged.resolve();
+                });
             }
             const exchange = runLoopback(
                 network,
@@ -92,8 +94,7 @@ describe.skipIf(!nativeLibraryAvailable())('RakNet on a port it shares with Neth
                 v6.send(ping(BigInt(index)), port, '::1');
             }
             const result = await exchange;
-            const deadline = Date.now() + 5_000;
-            while (pongs.length < 20 && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 10));
+            await allPonged.promise;
 
             // Every byte through the data channel, and a pong from the shared port for every ping.
             expect(result.bytesReceived).toBe(result.bytesSent);
@@ -129,7 +130,11 @@ describe.skipIf(!nativeLibraryAvailable())('RakNet on a port it shares with Neth
         const client = new ClientSocket(logger);
         try {
             const received: number[] = [];
-            server.on('encapsulated', (frame: Frame) => received.push(frame.content[1]!));
+            const allReceived = Promise.withResolvers<void>();
+            server.on('encapsulated', (frame: Frame) => {
+                received.push(frame.content[1]!);
+                if (received.length >= 50) allReceived.resolve();
+            });
             const session = await client.connect('127.0.0.1', port);
             for (let id = 0; id < 50; id++) {
                 const frame = new Frame();
@@ -139,9 +144,7 @@ describe.skipIf(!nativeLibraryAvailable())('RakNet on a port it shares with Neth
                 session.sendFrame(frame);
             }
             session.sendFrameQueue();
-            const deadline = Date.now() + 5_000;
-            while (received.length < 50 && Date.now() < deadline)
-                await new Promise((resolve) => setTimeout(resolve, 10));
+            await allReceived.promise;
 
             expect(received).toStrictEqual(Array.from({ length: 50 }, (_, id) => id));
             // A datagram that arrives after the 50th frame, an ACK or a resend, is counted natively

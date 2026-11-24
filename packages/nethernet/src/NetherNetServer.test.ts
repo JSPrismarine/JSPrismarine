@@ -54,20 +54,22 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
         const server = new NetherNetServer({ driver, peerConfig: () => LOOPBACK });
         const { client, connection } = await join(driver, server);
         try {
-            const toServer: Buffer[] = [];
-            const toClient: Buffer[] = [];
-            server.on('encapsulated', (message: Buffer) => toServer.push(message));
-            client.on('encapsulated', (message: Buffer) => toClient.push(message));
             // One byte, one segment exactly, one more than a segment, and several segments.
             const sizes = [1, SEGMENT_BYTES, SEGMENT_BYTES + 1, 1_000_000];
             const messages = sizes.map((size, index) => Buffer.alloc(size, index + 1));
+            const toServer: Buffer[] = [];
+            const toClient: Buffer[] = [];
+            const delivered = Promise.withResolvers<void>();
+            const record = (into: Buffer[]) => (message: Buffer) => {
+                into.push(message);
+                if (toServer.length >= sizes.length && toClient.length >= sizes.length) delivered.resolve();
+            };
+            server.on('encapsulated', record(toServer));
+            client.on('encapsulated', record(toClient));
 
             for (const message of messages) client.send(message);
             for (const message of messages) connection.send(message);
-            const deadline = Date.now() + 10_000;
-            while ((toServer.length < sizes.length || toClient.length < sizes.length) && Date.now() < deadline) {
-                await new Promise((resolve) => setTimeout(resolve, 10));
-            }
+            await delivered.promise;
 
             expect(toServer).toStrictEqual(messages);
             expect(toClient).toStrictEqual(messages);
