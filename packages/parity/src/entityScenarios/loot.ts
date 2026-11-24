@@ -4,6 +4,7 @@ import { placedEntityOf } from '@jsprismarine/item-behaviors/behaviors/placement
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { ContentEntity, ContentItemDrop } from '@jsprismarine/prismarine/content/world/adapter';
 import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
+import { orbViewOf } from '@jsprismarine/prismarine/entity/data/experienceOrbs';
 import { SURVIVAL_REACH, distanceToBody } from '@jsprismarine/prismarine/entity/Combat';
 import { savedWithChunk } from '@jsprismarine/prismarine/entity/data/storeActors';
 import { blockPosTracker } from '@jsprismarine/entity-brains/world';
@@ -380,14 +381,15 @@ const javaExperience = (javaId: string, facts: DeathFacts): Distribution => {
     }
 };
 
-/** The experience orbs standing near the origin, removed once counted, and their total value. */
+/** The experience orbs standing near the origin, removed once counted, and the points they hold. */
 const collectOrbs = (): number => {
     const { runtime } = realStack();
     let total = 0;
     for (const entity of runtime.near(ORIGIN, 16)) {
-        if (entity.identifier !== 'minecraft:xp_orb') continue;
-        const value = entity.spawnData?.['value'];
-        total += typeof value === 'number' ? value : 0;
+        const orb = orbViewOf(entity);
+        if (orb === undefined) continue;
+        // An award may join an orb already lying there, which then holds more than one.
+        total += orb.value * orb.count;
         runtime.remove(entity.id, 'parity scenario counted');
     }
     return total;
