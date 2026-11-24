@@ -49,7 +49,7 @@ describe('config', () => {
             for (const key of ['port', 'server-udp-ports', 'query-port', 'server-public-ip']) {
                 expect(read()).not.toContain(`"${key}"`);
             }
-            expect([reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([19132, '']);
+            expect([reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([25565, '']);
         });
 
         it("renames an older file's port to server-port, keeping its value and comments", async () => {
@@ -353,14 +353,19 @@ describe('config', () => {
             expect(text).toContain('"view-distance": 10');
         });
 
-        it('answers query on the game socket by default, on whatever port the file names', async () => {
+        it("answers query on Java's port by default, whatever the server port", async () => {
             expect(config.getEnableQuery()).toBe(true);
-            expect(config.getQueryPort()).toBe(config.getServerPort());
+            expect(config.getQueryPort()).toBe(25565);
 
-            writeFileSync(path.join(configDirectory, 'config.json'), '{ "server-port": 25565 }\n');
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "server-port": 19200 }\n');
             const reread = new Config();
             await reread.enable();
             expect(reread.getQueryPort()).toBe(25565);
+
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "query-port": 19132 }\n');
+            const set = new Config();
+            await set.enable();
+            expect(set.getQueryPort()).toBe(19132);
         });
 
         it("keeps the script debugger off with BDS's defaults, and writes none of its keys to a fresh file", () => {
@@ -421,12 +426,12 @@ describe('config', () => {
             expect(reread.getScriptDebugger().autoAttach).toBe('disabled');
         });
 
-        it('keeps query on the game socket when the server port is overridden, and writes no query port', async () => {
+        it('keeps the query port when the server port is overridden, and writes no query port', async () => {
             const overridden = new Config({ serverPort: 19200 });
             await overridden.enable();
 
             expect(overridden.getServerPort()).toBe(19200);
-            expect(overridden.getQueryPort()).toBe(19200);
+            expect(overridden.getQueryPort()).toBe(25565);
             expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).not.toContain('"query-port"');
         });
 

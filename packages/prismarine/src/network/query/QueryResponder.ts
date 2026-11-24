@@ -18,14 +18,24 @@ const FULL_STAT_KV_PADDING = Buffer.from('splitnum\0\x80\0', 'latin1');
 /** What separates a full stat reply's key-value section from its player list. */
 const FULL_STAT_PLAYER_PADDING = Buffer.from('\x01player_\0\0', 'latin1');
 
+/**
+ * The `game_id` a full stat reply carries: `MINECRAFTPE` as Bedrock servers report it, or
+ * `MINECRAFT` as a Java Edition server does.
+ */
+export type QueryGameId = 'MINECRAFT' | 'MINECRAFTPE';
+
 /** The server's status as a query reply reports it, read once per stat request. */
 export interface QueryStatus {
     /** The message of the day, the reply's `hostname`. */
     readonly motd: string;
-    /** The game version the server speaks. */
+    /** The edition the reply speaks for. */
+    readonly gameId: QueryGameId;
+    /** The game version of that edition the server speaks. */
     readonly version: string;
-    /** The server software and its version, reported as `server_engine` and `plugins`. */
+    /** The server software and its version, reported as `server_engine` and leading `plugins`. */
     readonly software: string;
+    /** The installed addons, each as its name and version, which follow the software in `plugins`. */
+    readonly plugins: readonly string[];
     /** The world players join, reported as `map`. */
     readonly map: string;
     readonly onlinePlayers: number;
@@ -138,20 +148,26 @@ const basicStat = (sessionId: number, status: QueryStatus): Buffer => {
 };
 
 /**
- * The long status: every key a Bedrock server reports, then the player names. The software goes
- * in `server_engine`, as PocketMine-MP reports it, and leads `plugins`, as Spigot and
- * CraftBukkit report it, so tools reading either key name the server.
+ * `plugins` as Spigot and PocketMine-MP write it: the software, then a colon and the plugins
+ * separated by semicolons, such as `JSPrismarine v1.0.0: warps 1.2.0; tps-bar 0.3.0`. Status
+ * tools split the software from the plugins at the colon, so with none the software stands alone.
+ */
+const pluginsValue = (software: string, plugins: readonly string[]): string =>
+    plugins.length === 0 ? software : `${software}: ${plugins.join('; ')}`;
+
+/**
+ * The long status: every key a Bedrock or Java server reports, then the player names. The
+ * software goes in `server_engine`, as PocketMine-MP reports it, and leads `plugins`, as Spigot
+ * and PocketMine-MP report it, so tools reading either key name the server.
  */
 const fullStat = (sessionId: number, status: QueryStatus): Buffer => {
     const fields: [string, string][] = [
         ['hostname', status.motd],
         ['gametype', 'SMP'],
-        ['game_id', 'MINECRAFTPE'],
+        ['game_id', status.gameId],
         ['version', status.version],
         ['server_engine', status.software],
-        // TODO: list the loaded plugins after the software, as `software: a; b`, once the
-        // plugin API reports them. Until then the software alone is what Spigot sends with none.
-        ['plugins', status.software],
+        ['plugins', pluginsValue(status.software, status.plugins)],
         ['map', status.map],
         ['numplayers', String(status.onlinePlayers)],
         ['maxplayers', String(status.maxPlayers)],

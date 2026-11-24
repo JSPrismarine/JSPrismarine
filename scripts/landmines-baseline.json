@@ -280,7 +280,7 @@
     },
     "packages/prismarine/src/modules/network.test.ts": {
         "landmines/no-test-doubles": 2,
-        "landmines/no-unsignaled-poll": 2
+        "landmines/no-unsignaled-poll": 1
     },
     "packages/prismarine/src/modules/ticker.test.ts": {
         "landmines/no-test-doubles": 1,
