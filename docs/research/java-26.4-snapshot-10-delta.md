@@ -175,6 +175,13 @@ new type ids rather than two spellings of one key, so they need no gate.
   `NoiseGeneratorSettings.defaultBlock` changed).
 - `dispense_behavior` and `block_sound_set` element registries: #3286.
 
+Status, 2026-11-24: `crevasse` (#3279), `noise_biomes` (#3281), the material rule that places
+nothing (#3282) and the two element registries (#3286) are read. Reading the 26.4 bytecode for them
+found one more change: `Mth.sin` and `Mth.cos` round the scaled angle to the nearest table entry
+where 26.3 truncated, mirror a negative angle, and hold exactly 0, 1, 0 and -1 at the quarter
+turns. Carvers and the features that call them use the 26.4 lookup from format 128 on
+(`SINCE_ROUNDED_MTH_TRIG`).
+
 The Java goldens dumper compiles against 26.4 after two fixes. It reads the `MinecraftServer` and
 `ServerLevel` constructors with `javap`, and it reads a block's sound by reflection, because
 26.4 replaced `SoundType` with the `block_sound_set` registry. A 26.4 golden's `soundType` is the
