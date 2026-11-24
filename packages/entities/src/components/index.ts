@@ -285,6 +285,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(physics);
     register(dataComponent('jsprismarine:falling_block'));
     register(dataComponent('jsprismarine:item'));
+    register(dataComponent('jsprismarine:experience_orb'));
     register(dataComponent('jsprismarine:eye_of_ender_signal'));
     register(dataComponent('jsprismarine:evoker_fangs'));
     register(dataComponent('jsprismarine:ominous_item_spawner'));
