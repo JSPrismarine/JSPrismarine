@@ -123,7 +123,8 @@ describe('modules/network', () => {
                     getEnableServerPublicIpLookup: () => lookup,
                     getLevelName: () => 'world'
                 }),
-            getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn, error: () => {} }),
+            getLogger: () =>
+                stub<Logger>({ debug: () => {}, info: () => {}, verbose: () => {}, warn, error: () => {} }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
             getSessionManager: () => new SessionManager(),
@@ -209,7 +210,7 @@ describe('modules/network', () => {
                     getServerUdpPorts: () => 'ports',
                     getServerPublicIp: () => ''
                 }),
-            getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} })
+            getLogger: () => stub<Logger>({ info: () => {}, verbose: () => {}, warn: () => {}, error: () => {} })
         });
 
         await expect(new ServerNetworking(server).start('127.0.0.1', 0)).rejects.toThrow(

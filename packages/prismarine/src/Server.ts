@@ -709,7 +709,8 @@ export default class Server {
         await this.networking.start(bindAddress, bindPort);
         this.ticker.release();
 
-        this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
+        const javaPort = this.config.getJavaEnabled() ? ` and Java Edition on port §b${this.config.getJavaPort()}` : '';
+        this.logger.info(`JSPrismarine is now listening on port §b${bindPort}§r${javaPort}`);
         this.remoteConsole?.markRunning();
     }
 
