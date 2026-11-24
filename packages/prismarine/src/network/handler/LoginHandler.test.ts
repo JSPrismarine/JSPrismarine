@@ -42,6 +42,7 @@ import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 import { ChatManager } from '../../chat/ChatManager';
 import { testKernel } from '../../testing/kernel.test.helper';
+import { AccountLinks } from '../../identity/AccountLinks';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
@@ -347,6 +348,46 @@ describe('network', () => {
 
                     // Notch and 999 match nobody; Steve, whom the token names, is replaced.
                     expect(kicked).toEqual(['Logged in from another location']);
+                });
+
+                it('replaces the Java session of the account a linked Xbox account plays as', async () => {
+                    arrange();
+                    // Only the Java session is online, so the server has room for the login.
+                    sessions.remove(99);
+                    const javaUuid = '0f1e2d3c-4b5a-4968-8776-655443322110';
+                    const links = new AccountLinks(
+                        {
+                            load: async () => [
+                                {
+                                    account: { kind: 'xbox', xuid: '2535400000000001' },
+                                    primary: { kind: 'java', uuid: javaUuid },
+                                    primaryName: 'Alex',
+                                    primaryXuid: ''
+                                }
+                            ],
+                            save: async () => {}
+                        },
+                        () => true
+                    );
+                    await links.load();
+                    const linkedServer = stub<Server>({ ...server, getKernel: () => testKernel(undefined, links) });
+                    const replaced: Array<DisconnectReason | undefined> = [];
+                    const javaSession = stub<PlayerSession>({
+                        isConnected: () => true,
+                        kick: async (_reason, code) => void replaced.push(code),
+                        identity: { name: 'Alex', xuid: '', uuid: javaUuid, subject: { kind: 'java', uuid: javaUuid } }
+                    });
+                    sessions.add(98, stub<ClientConnection>({ getPlayerSession: () => javaSession }));
+                    const { connection: held } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        contextOf(linkedServer, held)
+                    );
+                    await held.resumeLogin?.();
+
+                    expect(replaced).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
                 });
 
                 it("refuses a verified login on a connection that did not prove the login's key", async () => {

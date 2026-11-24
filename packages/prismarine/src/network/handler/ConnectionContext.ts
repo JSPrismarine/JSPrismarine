@@ -16,6 +16,7 @@ import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type AllowList from '../../allowlist/AllowList';
 import type BanManager from '../../ban/BanManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
+import type { AccountLinks } from '../../identity/AccountLinks';
 import type { Config } from '../../config/Config';
 import type SessionManager from '../../SessionManager';
 import type ClientConnection from '../ClientConnection';
@@ -77,6 +78,11 @@ export interface LoginServices {
     readonly allowList: Pick<AllowList, 'allows' | 'ignoresPlayerLimit'>;
     /** The operator list, which a login may claim an entry of. */
     readonly permissions: Pick<PermissionManager, 'claimLegacy'>;
+    /**
+     * The account links, which make a linked account's login hold the primary's account, so it
+     * replaces the primary's session on the other edition rather than playing beside it.
+     */
+    readonly links: Pick<AccountLinks, 'resolve'>;
     /** Where a login's player is built. */
     readonly players: JoinPreparation;
     /**

@@ -135,6 +135,9 @@ export class ConnectionContexts {
             get permissions() {
                 return server.getPermissionManager();
             },
+            get links() {
+                return server.getKernel().get(accountLinksToken);
+            },
             players: this.players,
             async removeAsInput(replaced, remove) {
                 let removed: Promise<void> = Promise.resolve();

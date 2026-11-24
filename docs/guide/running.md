@@ -586,7 +586,8 @@ Free it, change `java-port`, or set `java-enabled` to `false`.
 
 With `account-linking` on, as it is by default, a player who owns both editions can link their
 Java Edition account and their Xbox account, so both play as one player: one saved record, one set
-of permissions, and one live session, so a login on the second edition replaces the first. Type
+of permissions, and one live session, so a login on the second edition replaces the first, which
+is told it logged in from another location, as vanilla tells a second login of one account. Type
 `/link` on one edition to get a short code, then, within five minutes, `/link <code>` on the other.
 The account that asked for the code leads: from its next login, the other account plays as it, by
 its name. The other account's own record stays saved, and `/unlink` on either side brings it back.
