@@ -33,6 +33,7 @@ import {
     relativeValueArgument,
     resourceArgument,
     scoreHolderArgument,
+    slotSourceArgument,
     softEnumArgument,
     stringArgument
 } from '../argumentTypes';
@@ -669,24 +670,44 @@ const buildConditions = (
         });
     };
 
+    /** The block or every entity the `source` argument of an `items` or `slots` condition names. */
+    const slotSources = (context: Context, kind: 'block' | 'entity'): readonly SlotTarget[] => {
+        const current = source(context);
+        return kind === 'block'
+            ? [{ kind, dimension: current.dimension, position: positionAt(context, 'source') }]
+            : select(current, value(context, 'source')).map((entity) => ({ kind, entity }));
+    };
+
     const items = lit('items');
+    const slots = lit('slots');
     for (const kind of ['block', 'entity'] as const) {
+        const sourceArgument = () =>
+            arg<unknown>('source', kind === 'block' ? blockPositionArgument() : entityArgument());
         items.then(
             lit(kind).then(
-                arg<unknown>('source', kind === 'block' ? blockPositionArgument() : entityArgument()).then(
-                    arg('slots', stringArgument()).then(
-                        attachCount(arg('item_predicate', itemPredicateArgument()), (context) => {
-                            const current = source(context);
-                            const sources: readonly SlotTarget[] =
-                                kind === 'block'
-                                    ? [{ kind, dimension: current.dimension, position: positionAt(context, 'source') }]
-                                    : select(current, value(context, 'source')).map((entity) => ({ kind, entity }));
-                            return current.host.data.countSlotItems(
-                                sources,
-                                { name: value(context, 'slots') },
-                                value(context, 'item_predicate')
-                            );
-                        })
+                sourceArgument().then(
+                    arg('slots', slotSourceArgument()).then(
+                        attachCount(arg('item_predicate', itemPredicateArgument()), (context) =>
+                            source(context).host.data.countSlotItems(
+                                slotSources(context, kind),
+                                value(context, 'slots'),
+                                value(context, 'item_predicate'),
+                                source(context)
+                            )
+                        )
+                    )
+                )
+            )
+        );
+        slots.then(
+            lit(kind).then(
+                sourceArgument().then(
+                    attachCount(arg('slots', slotSourceArgument()), (context) =>
+                        source(context).host.data.countSlots(
+                            slotSources(context, kind),
+                            value(context, 'slots'),
+                            source(context)
+                        )
                     )
                 )
             )
@@ -694,23 +715,25 @@ const buildConditions = (
     }
     node.then(items);
 
-    node.then(
-        lit('slots').then(
-            arg('slots', stringArgument()).then(
-                attach(arg('item', itemPredicateArgument()), (context) => {
-                    const current = source(context);
-                    if (current.entity === undefined) return false;
-                    return (
-                        current.host.data.countSlotItems(
-                            [{ kind: 'entity', entity: current.entity }],
-                            { name: value(context, 'slots') },
-                            value(context, 'item')
-                        ) > 0
-                    );
-                })
-            )
+    // The executor's own slots and an item, the form this server had before Java 26.3's. The
+    // literals above take `block` and `entity`, so a slot name reaches only this one.
+    slots.then(
+        arg('slots', slotSourceArgument()).then(
+            attach(arg('item', itemPredicateArgument()), (context) => {
+                const current = source(context);
+                if (current.entity === undefined) return false;
+                return (
+                    current.host.data.countSlotItems(
+                        [{ kind: 'entity', entity: current.entity }],
+                        value(context, 'slots'),
+                        value(context, 'item'),
+                        current
+                    ) > 0
+                );
+            })
         )
     );
+    node.then(slots);
 
     node.then(
         lit('stopwatch').then(

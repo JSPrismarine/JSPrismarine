@@ -398,14 +398,24 @@ export interface DataCommandHost {
     /** @returns How many tags the path matched and removed. */
     removeData(target: DataTarget, path: string): number;
     /**
-     * Counts the items in the slots a name covers on every source that pass an item predicate,
-     * which is `execute if items`.
+     * Counts the slots a slot source selects on every source, which is `execute if slots`.
      *
+     * @param slots - Java's `slot_source` argument: a slot name such as `weapon.mainhand`, the
+     *   id or `#tag` of a datapack's slot source, or one written as SNBT.
+     * @param source - Who runs the command, which a source's `this` names.
+     * @returns How many slots were selected, empty ones included, as Java counts them.
+     */
+    countSlots(sources: readonly SlotTarget[], slots: string, source: CommandSource): number;
+    /**
+     * Counts the items in the slots a slot source selects on every source that pass an item
+     * predicate, which is `execute if items`.
+     *
+     * @param slots - Java's `slot_source` argument; see {@link countSlots}.
      * @param predicate - Java's `item_predicate` argument: an id, a `#tag` or `*`, with optional
      *   component tests in brackets.
      * @returns The summed counts of the matching stacks. A source without the slot adds nothing.
      */
-    countSlotItems(sources: readonly SlotTarget[], slot: ItemSlot, predicate: string): number;
+    countSlotItems(sources: readonly SlotTarget[], slots: string, predicate: string, source: CommandSource): number;
     /**
      * Applies a standalone item modifier to the items in the slots a name covers, on every target.
      *

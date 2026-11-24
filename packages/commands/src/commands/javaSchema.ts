@@ -39,6 +39,7 @@ import {
     relativeValueArgument,
     resourceArgument,
     scoreHolderArgument,
+    slotSourceArgument,
     stringArgument,
     timeArgument
 } from '../argumentTypes';
@@ -326,8 +327,9 @@ const javaArgumentType = (
         }
         case 'minecraft:item_predicate':
             return itemPredicateArgument();
-        case 'minecraft:block_predicate':
         case 'minecraft:slot_source':
+            return slotSourceArgument();
+        case 'minecraft:block_predicate':
         case 'minecraft:item_slot':
         case 'minecraft:objective':
         case 'minecraft:objective_criteria':
