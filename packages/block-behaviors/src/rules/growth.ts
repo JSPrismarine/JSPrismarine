@@ -106,6 +106,8 @@ export const advanceCounter = (
  * `worldgen/feature` data, and Java's `TreeFeature.updateLeaves` writes
  * distances out to 6 from the trunk, so 4 condemned the outer rings of every
  * canopy the generator placed.
+ *
+ * @javaSource LeavesBlock.DECAY_DISTANCE
  */
 export const MAX_LEAF_DISTANCE = 6;
 
@@ -232,7 +234,11 @@ export interface GrowingPlantHead {
     readonly bodyOf?: (head: HookBlock) => string | undefined;
 }
 
-/** Java's `GrowingPlantHeadBlock.MAX_AGE`: a head at this age no longer takes a random tick. */
+/**
+ * Java's `GrowingPlantHeadBlock.MAX_AGE`: a head at this age no longer takes a random tick.
+ *
+ * @javaSource GrowingPlantHeadBlock.MAX_AGE
+ */
 export const GROWING_PLANT_MAX_AGE = 25;
 
 /**
@@ -241,6 +247,7 @@ export const GROWING_PLANT_MAX_AGE = 25;
  * one year older. A body block, one with more of the plant beyond it, never grows: Bedrock keeps
  * head and body under one identifier where Java has two blocks, so the position decides.
  *
+ * @javaSource GrowingPlantHeadBlock.randomTick
  * @returns True when the plant grew.
  */
 export const growPlantHead = (world: WorldActions, block: HookBlock, plant: GrowingPlantHead): boolean => {

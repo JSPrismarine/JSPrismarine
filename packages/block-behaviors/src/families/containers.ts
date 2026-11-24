@@ -377,6 +377,7 @@ const SPONGE_LIMIT = 65;
 /**
  * Java's `SpongeBlock.removeWaterBreadthFirstSearch`: water within six steps, up to 65 blocks.
  *
+ * @javaSource SpongeBlock.removeWaterBreadthFirstSearch
  * @returns Whether any water was removed.
  */
 const soakUpWater = (world: WorldActions, origin: BlockPosition): boolean => {

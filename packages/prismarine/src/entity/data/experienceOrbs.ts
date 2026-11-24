@@ -67,11 +67,20 @@ export interface OrbTuning {
     readonly mergeReach: number;
     /** The size of the box around an award's spot that an orb joins another in. */
     readonly awardMergeSize: number;
-    /** How far past a player's box sideways an orb is taken, Java's `Player.aiStep` inflation. */
+    /**
+     * How far past a player's box sideways an orb is taken, Java's `Player.aiStep` inflation.
+     *
+     * @javaSource Player.aiStep
+     */
     readonly pickupReach: number;
     /** How far above and below a player's box an orb is taken. */
     readonly pickupReachVertical: number;
-    /** Ticks between two orbs one player takes, Java's `Player.takeXpDelay`. */
+    /**
+     * Ticks between two orbs one player takes, Java's `Player.takeXpDelay`, which
+     * `ExperienceOrb.playerTouch` sets.
+     *
+     * @javaSource ExperienceOrb.playerTouch
+     */
     readonly takeDelay: number;
 }
 
@@ -227,6 +236,8 @@ export class ExperienceOrbs {
      * Drops a payout as orbs at a spot, Java's `ExperienceOrb.award`: the payout split into the
      * largest orb sizes that fit, each added to an orb of the same value near the spot when the
      * roll picks one and spawned as a new orb with a random toss otherwise.
+     *
+     * @javaSource ExperienceOrb.award
      * @returns The orbs spawned, without those an award joined.
      */
     public award(at: EntityPosition, points: number): DataEntity[] {

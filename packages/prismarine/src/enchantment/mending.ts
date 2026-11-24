@@ -12,7 +12,11 @@ import { enchantmentsOf, slotGroupContains } from '@jsprismarine/enchantments';
 
 import type { Item } from '../item/Item';
 
-/** The order Java's `EquipmentSlot.values()` visits a player's slots in. */
+/**
+ * The order Java's `EquipmentSlot.values()` visits a player's slots in.
+ *
+ * @javaSource EquipmentSlot.$values
+ */
 export const REPAIR_SLOTS = [
     'mainhand',
     'offhand',

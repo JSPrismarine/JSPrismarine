@@ -139,6 +139,7 @@ export interface EntityHostFacts {
      * it can of the player's gear and the rest of the points are experience. Left out, an orb a
      * player takes is lost.
      *
+     * @javaSource ExperienceOrb.playerTouch
      * @param playerId - The runtime id of the player taking it.
      * @param orbId - The runtime id of the orb.
      * @param value - The points one orb is worth.

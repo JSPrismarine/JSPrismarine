@@ -144,6 +144,8 @@ export const doorFamily = defineFamily(
  * opposes the placer's horizontal direction instead. Java skips the clicked
  * face when the placement replaced the clicked block itself, which the event
  * cannot tell apart, so a click on the side of tall grass keeps the face.
+ *
+ * @javaSource TrapDoorBlock.getStateForPlacement
  */
 const trapdoorFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => {
     const clicked = HORIZONTAL_FACES.find((face) => face === event.face);

@@ -8,7 +8,8 @@
     "exports": {
         "./classFile": "./src/classFile.mts",
         "./instructions": "./src/instructions.mts",
-        "./fingerprint": "./src/fingerprint.mts"
+        "./fingerprint": "./src/fingerprint.mts",
+        "./sources": "./src/sources.mts"
     },
     "scripts": {
         "test": "vitest run --root ../.. --dir tools/java-classfile",

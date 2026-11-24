@@ -903,6 +903,8 @@ const isMinecart = (identifier: string): boolean => bareName(identifier).endsWit
  * Java's `DetectorRailBlock.checkPressed`: powers the rail while a minecart is on it and releases
  * it once none is, telling the neighbors and the block below, which the rail powers strongly. A
  * powered rail checks again every second.
+ *
+ * @javaSource DetectorRailBlock.checkPressed
  */
 const checkDetectorRail = (world: WorldActions, block: HookBlock): void => {
     const powered = stateBoolean(block, 'rail_data_bit');
