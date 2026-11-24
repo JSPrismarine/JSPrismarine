@@ -8,7 +8,8 @@
  *         node --import tsx test/quota.mts off|on
  *
  * The tick is simulated by a 50 ms loop that spends 5 ms of work, so the figures are lateness of
- * that loop. Compare the two arms on the same host, back to back.
+ * that loop. Each arm runs a fixed number of ticks, 15 s at the nominal rate, so both arms sample
+ * the same count however late the ticks run. Compare the two arms on the same host, back to back.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +19,7 @@ import { HostedGenerationPool } from '../src/HostedGenerationPool.ts';
 
 const governed = process.argv[2] === 'on';
 const WORKERS = 4;
+const TICKS = 300;
 const pool = new HostedGenerationPool({
     pipeline: fileURLToPath(new URL('./fakePipeline.mjs', import.meta.url)),
     workers: WORKERS,
@@ -46,13 +48,12 @@ const late: number[] = [];
 let due = performance.now() + 50;
 let lastSample = 0;
 let sampledDelta = 0;
-const end = performance.now() + 15_000;
 const busy = (ms: number) => {
     const until = performance.now() + ms;
     while (performance.now() < until);
 };
 if (governed) pool.setBackgroundLimit(governor.active);
-while (performance.now() < end) {
+for (let tick = 0; tick < TICKS; tick++) {
     const wait = due - performance.now();
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     const lateness = Math.max(0, performance.now() - due);
