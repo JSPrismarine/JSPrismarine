@@ -142,7 +142,7 @@ const explorationMapScenario: BehaviorScenario<{ readonly id: string }> = {
             getTicks: () => 0,
             getDimension: () => ({ name: 'minecraft:overworld' }),
             locateStructure: () => FOUND_STRUCTURE,
-            nextMapId: () => ++lastMapId
+            createMap: () => ++lastMapId
         });
         const [registry, id = ''] = entry.id.split('/minecraft:');
 

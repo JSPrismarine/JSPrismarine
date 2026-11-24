@@ -1,4 +1,4 @@
-import type { EntityView, ItemStack, LevelView } from '@jsprismarine/predicates';
+import type { EntityView, ItemStack, LevelView, NewMap } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import type { LootContentOptions } from './content';
@@ -219,13 +219,13 @@ describe('exploration maps', () => {
 
     it("searches the roll's level from its origin when the host passes no locator", () => {
         const searches: unknown[] = [];
-        let lastMapId = 41;
+        const maps: NewMap[] = [];
         const level: LevelView = {
             nearestStructure: (destination, origin, searchRadius, skipKnownStructures) => {
                 searches.push({ destination, origin, searchRadius, skipKnownStructures });
                 return { x: -64, y: 70, z: 32 };
             },
-            newMapId: () => ++lastMapId
+            newMapId: (map) => maps.push(map) + 41
         };
 
         const { stacks, diagnostics } = rollModified(
@@ -247,6 +247,16 @@ describe('exploration maps', () => {
             }
         ]);
         expect(stacks[0]?.components.get('minecraft:map_id')).toBe(42);
+        // The level makes the map Java's `MapItem.create` makes: around the structure, at the
+        // modifier's zoom, with the marker the stack carries.
+        expect(maps).toEqual([
+            {
+                x: -64,
+                z: 32,
+                scale: 1,
+                decorations: { '+': { type: 'minecraft:woodland_mansion', x: -64, z: 32, rotation: 180 } }
+            }
+        ]);
         expect(stacks[0]?.components.get('minecraft:map_decorations')).toEqual({
             '+': { type: 'minecraft:woodland_mansion', x: -64, z: 32, rotation: 180 }
         });

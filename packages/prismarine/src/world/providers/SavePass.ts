@@ -4,18 +4,23 @@ import type Chunk from '../chunk/Chunk';
 import type { DynamicProperties } from '../dynamicProperties';
 import type { SavedCommandStorage } from '../CommandStorage';
 import type { SavedScoreboard } from '../Scoreboard';
-import type { WorldPersistenceData } from '../WorldPersistence';
+import type { StructureReference, WorldPersistenceData } from '../WorldPersistence';
+import type { SavedMap } from '../savedMap';
 import type { ChunkSaveContext } from './ChunkSaveContext';
 
 /**
  * The level-wide records a save keeps apart from `level.dat` and the world data record: the
  * world's script dynamic properties and the scoreboard, in Bedrock's form, and the command
- * storage, which Bedrock has no record for.
+ * storage, the maps and the structures explorer maps point at, which Bedrock has no record for.
  */
 export interface LevelRecords {
     readonly dynamicProperties: DynamicProperties;
     readonly scoreboard: SavedScoreboard;
     readonly commandStorage: SavedCommandStorage;
+    /** Every map the level made, by `minecraft:map_id`; see `Level.createMap`. */
+    readonly maps: ReadonlyMap<number, SavedMap>;
+    /** The structure starts explorer maps point at, which a skipping search passes over. */
+    readonly referencedStructures: readonly StructureReference[];
 }
 
 /** What one save pass wrote, in keys and bytes; see {@link ProviderSavePass.stats}. */

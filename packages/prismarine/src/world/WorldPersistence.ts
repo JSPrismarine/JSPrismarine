@@ -123,8 +123,6 @@ export interface WorldPersistenceData {
     clockPaused?: boolean;
     /** The last `minecraft:map_id` the level handed out; see `Level.nextMapId`. */
     lastMapId?: number;
-    /** The structure starts explorer maps point at, which a skipping search passes over. */
-    referencedStructures?: StructureReference[];
 }
 
 /** One structure start an explorer map points at: Java's `StructureStart.references`. */
@@ -140,23 +138,6 @@ export interface StructureReference {
 /** The key one {@link StructureReference} is held under. */
 export const structureReferenceKey = (start: StructureReference): string =>
     `${start.dimension}|${start.structure}|${start.chunkX},${start.chunkZ}`;
-
-/** The references a save holds, dropping a malformed entry. */
-const structureReferencesOf = (value: unknown): StructureReference[] | undefined => {
-    if (!Array.isArray(value)) return undefined;
-    return value.flatMap((entry: unknown) => {
-        if (!isRecord(entry)) return [];
-        const { dimension, structure, chunkX, chunkZ } = entry;
-        return typeof dimension === 'string' &&
-            typeof structure === 'string' &&
-            typeof chunkX === 'number' &&
-            typeof chunkZ === 'number' &&
-            Number.isSafeInteger(chunkX) &&
-            Number.isSafeInteger(chunkZ)
-            ? [{ dimension, structure, chunkX, chunkZ }]
-            : [];
-    });
-};
 
 /**
  * Reads persisted world state at the JSON and NBT boundaries.
@@ -184,7 +165,6 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const clockPaused = typeof value['clockPaused'] === 'boolean' ? value['clockPaused'] : undefined;
     const storedMapId = value['lastMapId'];
     const lastMapId = typeof storedMapId === 'number' && Number.isSafeInteger(storedMapId) ? storedMapId : undefined;
-    const referencedStructures = structureReferencesOf(value['referencedStructures']);
 
     return {
         ...(levelId === undefined ? {} : { levelId }),
@@ -199,8 +179,7 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
         ...(tickingAreas === undefined ? {} : { tickingAreas }),
         ...(scriptSettings === undefined ? {} : { scriptSettings }),
         ...(clockPaused === undefined ? {} : { clockPaused }),
-        ...(lastMapId === undefined ? {} : { lastMapId }),
-        ...(referencedStructures === undefined ? {} : { referencedStructures })
+        ...(lastMapId === undefined ? {} : { lastMapId })
     };
 };
 

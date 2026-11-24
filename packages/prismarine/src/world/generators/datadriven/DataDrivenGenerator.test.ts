@@ -310,6 +310,27 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         CHUNK_TIMEOUT
     );
 
+    it("answers an explorer map's biome and structure lookups through forStem as itself", () => {
+        // A world holds the per-stem view rather than the generator, so a lookup the view does not
+        // forward is one the world never has: maps came out blank before it forwarded these.
+        const overworld = terrainOnly.forStem({
+            noiseSettings: 'minecraft:overworld',
+            biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' },
+            dimension: Dimensions.Overworld
+        });
+
+        for (const [x, z] of [
+            [0, 0],
+            [-448, -192],
+            [1000, 37]
+        ] as const) {
+            expect(overworld.biomeAt?.(x, 63, z, SEED)).toBe(terrainOnly.biomeAt(x, 63, z, SEED));
+        }
+        expect(overworld.structureStartsContaining?.({ x: 0, y: 64, z: 0 }, SEED)).toEqual(
+            terrainOnly.structureStartsContaining({ x: 0, y: 64, z: 0 }, SEED)
+        );
+    });
+
     it(
         'reuses terrain scratch across seeds and chunks without changing fresh-generator results',
         async () => {
