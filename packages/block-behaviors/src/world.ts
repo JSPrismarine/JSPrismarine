@@ -71,6 +71,8 @@ export interface ItemDrop {
     readonly lockMode?: 'slot' | 'inventory';
     /** The script dynamic properties set on the stack, by pack UUID and then by property id. */
     readonly dynamicProperties?: ItemDynamicProperties;
+    /** Which saved map a filled map shows: Java's `minecraft:map_id` and Bedrock's `map_uuid`. */
+    readonly mapId?: number;
 }
 
 /** A script dynamic property's value: a number, a boolean, a string or a vector. */

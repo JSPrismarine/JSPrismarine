@@ -79,6 +79,8 @@ export interface ItemProps {
      * being broken and being placed again.
      */
     contents?: readonly (Item | null)[];
+    /** Which saved map a filled map shows, Java's `minecraft:map_id`; see {@link Item.getMapId}. */
+    mapId?: number;
 }
 
 /** A player's own base attack damage, which an item modifies rather than replaces. */
@@ -235,6 +237,13 @@ export class Item {
      */
     private readonly heldContents: readonly (Item | null)[];
 
+    /**
+     * The stack's `minecraft:map_id`: which of its level's saved maps a filled map shows. It
+     * goes to the client as `map_uuid`, which is what the client asks for the map's pixels and
+     * markers by.
+     */
+    private readonly mapId: number | undefined;
+
     public constructor({
         runtimeId,
         name,
@@ -247,7 +256,8 @@ export class Item {
         lore,
         canPlaceOnBlocks,
         canDestroyBlocks,
-        contents
+        contents,
+        mapId
     }: ItemProps) {
         this.name = name;
         this.runtimeId = runtimeId ?? 0;
@@ -259,6 +269,7 @@ export class Item {
         this.canPlaceOnBlocks = canPlaceOnBlocks === undefined ? [] : [...canPlaceOnBlocks];
         this.canDestroyBlocks = canDestroyBlocks === undefined ? [] : [...canDestroyBlocks];
         this.heldContents = contents === undefined ? [] : [...contents];
+        this.mapId = mapId;
         if (meta) this.meta = meta;
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
         if (count !== undefined) this.count = count;
@@ -465,6 +476,11 @@ export class Item {
         return this.canDestroyBlocks;
     }
 
+    /** Which saved map this stack shows, or undefined for anything but a filled map that has one. */
+    public getMapId(): number | undefined {
+        return this.mapId;
+    }
+
     /**
      * A copy of this stack holding different contents.
      *
@@ -553,6 +569,7 @@ export class Item {
             canPlaceOnBlocks: this.canPlaceOnBlocks,
             canDestroyBlocks: this.canDestroyBlocks,
             contents: this.heldContents,
+            mapId: this.mapId,
             ...changes
         });
         copy.durability = this.durability;
@@ -827,6 +844,7 @@ export class Item {
             // Through the stored form, so the `Items` list the client previews a shulker box
             // from is the same list the world record keeps.
             contents: this.heldContents.map((held) => (held === null ? null : storedItem(held))),
+            mapId: this.mapId,
             enchantmentRegistry: this.content?.enchantments
         });
     }

@@ -25,7 +25,7 @@ import { projectToBedrock, romanNumeral } from '@jsprismarine/enchantments';
 import type { EnchantmentDefinition, EnchantmentRegistry } from '@jsprismarine/enchantments';
 
 import { bedrockEnchantType } from '../enchantment/bedrockIds';
-import { ITEMS_TAG, itemSlotsToNbt } from '../inventory/itemNbt';
+import { ITEMS_TAG, addMapIdTags, itemSlotsToNbt } from '../inventory/itemNbt';
 import type { StoredItemStack } from '../inventory/persistence';
 import { EnchantType } from '@jsprismarine/protocol/bedrock/packet/PlayerEnchantOptionsPacket';
 
@@ -62,6 +62,8 @@ export interface ItemUserData {
      * however full it is.
      */
     readonly contents: readonly (StoredItemStack | null)[];
+    /** Which saved map a filled map shows, which the client asks for the map's pixels by. */
+    readonly mapId?: number | undefined;
     /** The definitions, for naming an enchantment the client has no number for. */
     readonly enchantmentRegistry: EnchantmentRegistry | undefined;
 }
@@ -130,7 +132,8 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
         stack.customName === undefined &&
         stack.lore.length === 0 &&
         stack.damage === undefined &&
-        stack.contents.length === 0
+        stack.contents.length === 0 &&
+        stack.mapId === undefined
     ) {
         return null;
     }
@@ -179,6 +182,11 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
     const held = itemSlotsToNbt(stack.contents);
     if (held.size > 0) {
         tag.addValue(ITEMS_TAG, held);
+        anything = true;
+    }
+
+    if (stack.mapId !== undefined) {
+        addMapIdTags(tag, stack.mapId);
         anything = true;
     }
 

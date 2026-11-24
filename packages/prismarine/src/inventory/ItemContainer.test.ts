@@ -119,6 +119,20 @@ describe('ItemContainer', () => {
             ]);
         });
 
+        it('keeps two maps apart unless they show the same map', () => {
+            const container = new ItemContainer(3);
+            const map = (mapId: number) => new Item({ name: 'minecraft:filled_map', meta: 5, count: 1, mapId });
+            container.add(map(4));
+            container.add(map(9));
+            container.add(map(4));
+
+            expect(container.items().map((item) => [item?.getMapId(), item?.getAmount()])).toEqual([
+                [4, 2],
+                [9, 1],
+                [undefined, undefined]
+            ]);
+        });
+
         it('splits a stack larger than a slot holds into copies of it', () => {
             const container = new ItemContainer(3);
             const pearls = new Item({ name: 'minecraft:ender_pearl', count: 20, customName: 'Spares' });

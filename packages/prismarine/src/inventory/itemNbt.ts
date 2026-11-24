@@ -41,6 +41,21 @@ const KEEP_ON_DEATH_TAG = 'minecraft:keep_on_death';
 /** Bedrock's tag for a locked stack, a byte: 1 locks it in its slot and 2 in the inventory. */
 const ITEM_LOCK_TAG = 'minecraft:item_lock';
 
+/** Bedrock's key for which saved map a filled map shows, a long. */
+const MAP_UUID_TAG = 'map_uuid';
+
+/**
+ * Writes which saved map a filled map shows, as a Bedrock map item carries it: `map_uuid`, the
+ * id the client asks for the map's pixels and markers by, and the two keys GeyserMC writes
+ * beside it so the client names and draws the map: `map_name_index` and `map_display_players`.
+ * The pinned Bedrock Dedicated Server's binary holds the same key names.
+ */
+export const addMapIdTags = (tag: NBTTagCompound, mapId: number): void => {
+    tag.addValue(MAP_UUID_TAG, new Types.LongVal(BigInt(mapId)));
+    tag.addValue('map_name_index', new Types.NumberVal(mapId));
+    tag.addValue('map_display_players', new Types.ByteVal(1));
+};
+
 /** The {@link ITEM_LOCK_TAG} byte of each lock mode. */
 const LOCK_BYTES = { slot: 1, inventory: 2 } as const;
 
@@ -169,6 +184,10 @@ export const itemStackToNbt = (stack: StoredItemStack, slot?: number): NBTTagCom
         tag.addValue(KEEP_ON_DEATH_TAG, new Types.ByteVal(1));
         anything = true;
     }
+    if (stack.mapId !== undefined) {
+        addMapIdTags(tag, stack.mapId);
+        anything = true;
+    }
     if (stack.lockMode !== undefined) {
         tag.addValue(ITEM_LOCK_TAG, new Types.ByteVal(LOCK_BYTES[stack.lockMode]));
         anything = true;
@@ -200,6 +219,7 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
     const canPlaceOn = stringsIn(entry, 'CanPlaceOn');
     const canDestroy = stringsIn(entry, 'CanDestroy');
     const keepOnDeath = tag?.getByte(KEEP_ON_DEATH_TAG, 0) === 1;
+    const mapId = tag?.has(MAP_UUID_TAG) === true ? Number(tag.getLong(MAP_UUID_TAG, 0n)) : undefined;
     const lock = tag?.getByte(ITEM_LOCK_TAG, 0) ?? 0;
     const lockMode = lock === LOCK_BYTES.slot ? 'slot' : lock === LOCK_BYTES.inventory ? 'inventory' : undefined;
     const propertiesTag = tag?.getCompound(DYNAMIC_PROPERTIES_TAG, false) ?? null;
@@ -217,6 +237,7 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
         ...(canPlaceOn.length === 0 ? {} : { canPlaceOn }),
         ...(canDestroy.length === 0 ? {} : { canDestroy }),
         ...(keepOnDeath ? { keepOnDeath } : {}),
+        ...(mapId !== undefined && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(lockMode === undefined ? {} : { lockMode }),
         ...(Object.keys(dynamicProperties).length === 0 ? {} : { dynamicProperties })
     };

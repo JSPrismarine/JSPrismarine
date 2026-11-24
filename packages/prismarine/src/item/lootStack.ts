@@ -35,6 +35,7 @@ export const rolledStackOfDrop = (drop: ContentItemDrop): PredicateItemStack => 
     if (drop.damage !== undefined && drop.damage > 0) components.set('minecraft:damage', drop.damage);
     if (drop.customName !== undefined) components.set('minecraft:custom_name', drop.customName);
     if (drop.lore !== undefined && drop.lore.length > 0) components.set('minecraft:lore', [...drop.lore]);
+    if (drop.mapId !== undefined) components.set('minecraft:map_id', drop.mapId);
     if (drop.contents !== undefined) {
         components.set('minecraft:container', containerComponentOf(drop.contents));
     }
@@ -158,6 +159,7 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
     const lore = components.get('minecraft:lore');
     const lines = Array.isArray(lore) ? lore.map(plainText).filter((line) => line !== undefined) : [];
     const contents = contentsOf(components.get('minecraft:container'));
+    const mapId = components.get('minecraft:map_id');
 
     return {
         identifier: stack.id,
@@ -167,7 +169,8 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
         ...(typeof damage === 'number' && damage > 0 ? { damage: Math.trunc(damage) } : {}),
         ...(customName === undefined ? {} : { customName }),
         ...(lines.length === 0 ? {} : { lore: lines }),
-        ...(contents === undefined ? {} : { contents })
+        ...(contents === undefined ? {} : { contents }),
+        ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {})
     };
 };
 

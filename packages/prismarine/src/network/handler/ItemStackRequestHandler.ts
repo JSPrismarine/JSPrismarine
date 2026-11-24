@@ -161,9 +161,12 @@ const blockPositionOf = (position: Vector3) => ({
  */
 const isClientRequestId = (id: number): boolean => Number.isInteger(id) && id < 0 && id % 2 !== 0;
 
-/** Two stacks that can be one: the same item in the same variant. */
+/** Two stacks that can be one: the same item in the same variant, and the same map for a filled map. */
 const sameItem = (a: Item, b: Item): boolean =>
-    a.getName() === b.getName() && a.meta === b.meta && a.getBlockRuntimeId() === b.getBlockRuntimeId();
+    a.getName() === b.getName() &&
+    a.meta === b.meta &&
+    a.getBlockRuntimeId() === b.getBlockRuntimeId() &&
+    a.getMapId() === b.getMapId();
 
 /** A recipe ingredient and the number of its items one craft consumes. */
 interface CraftingRequirement {
