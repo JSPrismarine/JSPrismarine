@@ -453,6 +453,9 @@ importers:
       '@jsprismarine/binaryutils':
         specifier: workspace:*
         version: link:../binaryutils
+      '@jsprismarine/java-classfile':
+        specifier: workspace:*
+        version: link:../../tools/java-classfile
       '@jsprismarine/leveldb':
         specifier: workspace:*
         version: link:../leveldb
@@ -1635,6 +1638,9 @@ importers:
       '@jsprismarine/items':
         specifier: workspace:*
         version: link:../items
+      '@jsprismarine/java-classfile':
+        specifier: workspace:*
+        version: link:../../tools/java-classfile
       '@jsprismarine/logger':
         specifier: workspace:*
         version: link:../logger
@@ -2328,6 +2334,8 @@ importers:
       yaml:
         specifier: 2.9.1
         version: 2.9.1
+
+  tools/java-classfile: {}
 
   tools/server-benchmark:
     dependencies:

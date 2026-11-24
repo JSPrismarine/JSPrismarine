@@ -109,6 +109,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/bedrock-data",
     "devDependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/java-classfile": "workspace:*",
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
         "@types/node": "26.6.6",

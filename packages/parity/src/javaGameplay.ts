@@ -2,10 +2,11 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { JAVA_GAME_RULES } from '@jsprismarine/commands/gamerules';
+import { OPCODES } from '@jsprismarine/java-classfile/instructions';
 
 import type { BehaviorAspect } from './behaviorScenarios.ts';
+import { pinnedJavaClassFile } from './javaClassFile.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
-import { OPCODES, pinnedJavaClassFile } from './javaClassFile.ts';
 
 /**
  * The Java gameplay a player meets outside any one block, item or mob, as rows of the

@@ -1,0 +1,17 @@
+{
+    "name": "@jsprismarine/java-classfile",
+    "version": "0.25.0",
+    "private": true,
+    "license": "(MIT OR MPL-2.0)",
+    "description": "Parses Java class files and fingerprints their methods, for the readers and checks that compare against the pinned server jar",
+    "type": "module",
+    "exports": {
+        "./classFile": "./src/classFile.mts",
+        "./instructions": "./src/instructions.mts",
+        "./fingerprint": "./src/fingerprint.mts"
+    },
+    "scripts": {
+        "test": "vitest run --root ../.. --dir tools/java-classfile",
+        "typecheck": "tsc-ts --noEmit"
+    }
+}

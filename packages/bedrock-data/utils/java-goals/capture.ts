@@ -1,5 +1,5 @@
 import type { JavaEntityGoal, JavaGoalArgument } from '../../src/index.ts';
-import type { JavaMemberRef } from './classFile.ts';
+import type { JavaMemberRef } from '@jsprismarine/java-classfile/classFile';
 import type { JavaGoal, JavaGoalReader, JavaValue } from './goals.ts';
 
 /**

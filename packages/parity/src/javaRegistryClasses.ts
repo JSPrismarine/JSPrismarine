@@ -1,5 +1,7 @@
+import { OPCODES } from '@jsprismarine/java-classfile/instructions';
+
 import type { JavaClass } from './javaClassFile.ts';
-import { OPCODES, pinnedJavaClassFile } from './javaClassFile.ts';
+import { pinnedJavaClassFile } from './javaClassFile.ts';
 
 /**
  * Readers for a Java registry class's static initializer (`Blocks`, `Items`) and for the hooks a
