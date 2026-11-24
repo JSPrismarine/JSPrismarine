@@ -1,7 +1,7 @@
 # Builds and runs the dedicated server from compiled JavaScript.
 FROM eclipse-temurin:25-jdk-jammy@sha256:43d6f1775a0660b561c1c42edfdf8538a89672a040961acb3730c3ccc53c53de AS temurin-jdk
 
-FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS builder
+FROM node:26-slim@sha256:abe7e5a82b61a8ef67b315b85497c9e65173387ccf2f4a029248184b8e020be5 AS builder
 
 COPY --from=temurin-jdk /opt/java/openjdk /opt/java/openjdk
 
@@ -35,7 +35,7 @@ RUN pnpm install --frozen-lockfile --os linux --cpu "$(node -p process.arch)" --
     && rm -rf node_modules/.cache/jsprismarine/java-server \
     && pnpm run server:build
 
-FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS runtime
+FROM node:26-slim@sha256:abe7e5a82b61a8ef67b315b85497c9e65173387ccf2f4a029248184b8e020be5 AS runtime
 
 WORKDIR /app
 
