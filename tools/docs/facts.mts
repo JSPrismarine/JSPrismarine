@@ -1001,7 +1001,6 @@ function dataSources(sources: Sources): FactSource[] {
                 'java.datapack.tags',
                 'java.datapack.recipes',
                 'java.datapack.lootTables',
-                'java.datapack.lootTables.furnaceSmelt',
                 'java.datapack.advancements',
                 'java.datapack.advancements.recipeRewards',
                 'java.datapack.advancements.criteria',
@@ -1026,9 +1025,6 @@ function dataSources(sources: Sources): FactSource[] {
                     'java.datapack.tags': filesUnder(path.join(vanilla, 'tags')).length,
                     'java.datapack.recipes': jsonUnder(path.join(vanilla, 'recipe')).length,
                     'java.datapack.lootTables': jsonUnder(lootDir).length,
-                    'java.datapack.lootTables.furnaceSmelt': filesUnder(lootDir).filter((file) =>
-                        /"(minecraft:)?furnace_smelt"/.test(readFileSync(path.join(lootDir, file), 'utf8'))
-                    ).length,
                     'java.datapack.advancements': advancements.length,
                     'java.datapack.advancements.recipeRewards': advancements.filter((advancement) => {
                         const recipes = field(field(advancement, 'rewards'), 'recipes');

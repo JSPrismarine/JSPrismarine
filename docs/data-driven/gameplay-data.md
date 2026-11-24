@@ -545,17 +545,6 @@ rather than letting the client compute it.
 for an `EffectSink`; nothing in the server supplies one. `armor_effectiveness` is excluded on
 purpose, as described above.
 
-**Structure chests stay empty.** The table reference and the per-position seed are written into the
-block entity; nothing rolls them.
-
-**Loot rolls get no content view and no enchantment registry.** `LootRegistry` is built without the
-optional content options, and the two drop paths pass no `enchantments` view, so the modifiers that
-need either fall back. `furnace_smelt` is the one you will notice: <!-- fact:java.datapack.lootTables.furnaceSmelt -->16<!-- /fact --> vanilla tables use it, which
-is why a cow that dies burning drops raw beef rather than steak. The 25 tables with
-`enchant_randomly` or `enchant_with_levels` are in the same position. Each reports a diagnostic and leaves the stack alone rather than failing the roll. Reading
-a Fortune or Looting level is unaffected, because the default view reads the
-`minecraft:enchantments` component straight off the stack.
-
 **41 of the 58 advancement triggers never fire.** The `recipes` reward on <!-- fact:java.datapack.advancements.recipeRewards -->1739<!-- /fact --> files is never paid
 either. See the advancements section for which triggers are wired and why the rest are not.
 
