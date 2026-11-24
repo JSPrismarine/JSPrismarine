@@ -41,7 +41,7 @@ export const scriptForm: Scenario = {
     name: 'script-form',
     description:
         "a behavior pack script's ActionFormData shows on the client, and the button the player clicks settles the script's show()",
-    run: async ({ client, server, log }) => {
+    run: async ({ client, server, playerName, log }) => {
         // A platform without a published script host build runs no scripts, as script-world-message says.
         if (!isPublishedPlatform(platformKey())) {
             log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
@@ -50,6 +50,9 @@ export const scriptForm: Scenario = {
         const unloaded = server.lines.find((line) => NO_SCRIPT_HOST.test(line));
         assert.equal(unloaded, undefined, `the server could not load the script host: ${unloaded}`);
 
+        // The script's thunder handler teleports the player off the floor, and in survival the
+        // fall kills them before the suite's reset can catch them. Creative lands them unhurt.
+        server.command(`gamemode creative ${playerName}`);
         server.command('weather thunder');
         try {
             let target: [number, number] | undefined;

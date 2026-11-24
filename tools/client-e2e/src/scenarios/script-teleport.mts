@@ -18,7 +18,7 @@ const TOLERANCE = 0.5;
 export const scriptTeleport: Scenario = {
     name: 'script-teleport',
     description: "a behavior pack script's Entity.teleport moves the player, and the client's position follows",
-    run: async ({ client, server, log }) => {
+    run: async ({ client, server, playerName, log }) => {
         // A platform without a published script host build runs the server
         // without scripts, which this scenario cannot check.
         if (!isPublishedPlatform(platformKey())) {
@@ -27,6 +27,9 @@ export const scriptTeleport: Scenario = {
         }
         const [startX, , startZ] = vec3(await client.state(), 'feet');
         const expectedX = startX + SCRIPT_TELEPORT_DISTANCE;
+        // The script's thunder handler teleports the player off the floor, and in survival the
+        // fall kills them before the suite's reset can catch them. Creative lands them unhurt.
+        server.command(`gamemode creative ${playerName}`);
         server.command('weather thunder');
         try {
             const deadline = Date.now() + 15_000;

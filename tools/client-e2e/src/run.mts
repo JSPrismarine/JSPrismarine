@@ -34,7 +34,7 @@ import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import { createMutex } from './mutex.mts';
 import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
-import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
+import { respawnFromDeathScreen, sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import { pinSkips } from './pin-skips.mts';
 import type { ScenarioWindow } from './scenario-coverage.mts';
 import { buildScenarioCoverageMap } from './scenario-coverage.mts';
@@ -265,9 +265,15 @@ const resetBetweenScenarios = async (
     server: Awaited<ReturnType<typeof startServer>>,
     client: CinnabarClient
 ): Promise<void> => {
+    // Creative until the player stands on the floor again: a scenario can finish far from the spawn
+    // pad, where the floor is not loaded and the pad is not there yet, and a survival player
+    // teleported above nothing falls a hundred blocks to their death. It comes first, so a player
+    // still falling when the scenario ends does not die on landing while the reset closes its
+    // screens.
+    server.command(`gamemode creative ${playerName}`);
     await client.input({ release_all: true });
     await client.waitForScreenAbsent('Loading', 30_000);
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; ; attempt += 1) {
         const screens = (await client.state()).screens;
         const visibleScreens = Array.isArray(screens)
             ? screens.filter(
@@ -276,11 +282,12 @@ const resetBetweenScenarios = async (
               )
             : [];
         if (visibleScreens.length === 0) break;
-        const deathScreen = visibleScreens.find((screen) => screen.includes('Death'));
-        if (deathScreen !== undefined) {
-            await client.input({ pointer: [640, 510], press: ['MouseLeft'], press_frames: 3 });
-            await client.input({ release_all: true });
-            await client.waitForScreenAbsent(deathScreen, 15_000);
+        if (attempt >= 4) {
+            throw new Error(`client UI did not close before reset: ${visibleScreens.join(', ')}`);
+        }
+        if (visibleScreens.some((screen) => screen.includes('Death'))) {
+            // A player who died respawns, so the rest of the suite still runs.
+            await respawnFromDeathScreen(client, server);
         } else {
             await client.input({ press: ['Escape'], press_frames: 3 });
             await client.input({ release_all: true });
@@ -288,23 +295,8 @@ const resetBetweenScenarios = async (
         }
     }
 
-    const screens = (await client.state()).screens;
-    const remainingScreens = Array.isArray(screens)
-        ? screens.filter(
-              (screen): screen is string =>
-                  typeof screen === 'string' && screen !== 'Loading' && !persistentGameplayScreens.has(screen)
-          )
-        : [];
-    if (remainingScreens.length > 0) {
-        throw new Error(`client UI did not close before reset: ${remainingScreens.join(', ')}`);
-    }
-
     const reset = `e2e-reset-${Date.now()}`;
     const resetComplete = server.waitForLine(new RegExp(reset), 15_000);
-    // Creative until the player stands on the floor again: a scenario can finish far from the spawn
-    // pad, where the floor is not loaded and the pad is not there yet, and a survival player
-    // teleported above nothing falls a hundred blocks to their death.
-    server.command(`gamemode creative ${playerName}`);
     server.command(`clear ${playerName}`);
     server.command('kill @e[type=item]');
     server.command(`execute in minecraft:overworld run teleport ${playerName} 0.5 64 0.5`);
