@@ -37,12 +37,16 @@ describe('the default_block gate', () => {
         expect(
             parseNoiseGeneratorSettings(settings('minecraft:deepslate'), noReferences, 's', BEFORE).defaultBlock
         ).toBe('minecraft:deepslate');
+        expect(
+            parseNoiseGeneratorSettings(settings('minecraft:deepslate'), noReferences, 's', BEFORE)
+        ).not.toHaveProperty('materialRulePlacesSolid');
         expect(() => parseNoiseGeneratorSettings(settings(), noReferences, 's', BEFORE)).toThrow();
     });
 
     it('fills solid density with stone for the material rule to replace from the change on', () => {
         const parsed = parseNoiseGeneratorSettings(settings(), noReferences, 's', SINCE_MATERIAL_RULE_PLACES_SOLID);
         expect(parsed.defaultBlock).toBe('minecraft:stone');
+        expect(parsed.materialRulePlacesSolid).toBe(true);
         expect(
             parseNoiseGeneratorSettings(
                 settings('minecraft:deepslate'),
