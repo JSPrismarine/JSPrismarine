@@ -30,8 +30,6 @@ import {
     distanceSquared,
     inBlockSet,
     isEmptyBlock,
-    mthCos,
-    mthSin,
     relative,
     shuffledCopy
 } from './support';
@@ -1710,4 +1708,4 @@ export const parseStructuralFeature = (
 };
 
 /** Exported for the corpus test, which reports how many states a geode's inner placements hold. */
-export const structuralInternals = { parseStateList, PACKED_ICE, mthCos, mthSin };
+export const structuralInternals = { parseStateList, PACKED_ICE };

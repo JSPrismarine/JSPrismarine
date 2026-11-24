@@ -1,3 +1,5 @@
+import type { MthTrig } from '@jsprismarine/worldgen';
+
 import type { PlacedFeature } from '../placement/pipeline';
 import type { BlockStateProvider } from '../providers/blockStateProvider';
 import type { BlockState, Direction, VerticalDirection } from '../world/BlockState';
@@ -29,4 +31,6 @@ export interface FeatureParsers {
      * source fluid, and a source fluid's legacy block is the fluid block at level zero.
      */
     fluidState(source: unknown, path: string): BlockState;
+    /** The target release's `Mth.sin` and `Mth.cos`, which 26.4 changed. */
+    readonly trig: MthTrig;
 }

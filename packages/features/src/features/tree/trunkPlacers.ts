@@ -1,5 +1,8 @@
 /** Java's trunk placers, from `straight_trunk_placer` to `cherry_trunk_placer`. */
 
+import type { MthTrig } from '@jsprismarine/worldgen';
+import { TRUNCATING_MTH_TRIG } from '@jsprismarine/worldgen';
+
 import { randomBetweenInclusive } from '../../placement/WorldgenRandom';
 import type { IntProvider } from '../../providers/valueProviders';
 import type { BlockSet } from '../../registry';
@@ -7,7 +10,7 @@ import type { BlockState, Direction } from '../../world/BlockState';
 import { ALL_DIRECTIONS, DIRECTION_STEPS, oppositeDirection, withProperty } from '../../world/BlockState';
 import type { BlockPos } from '../../world/FeatureWorld';
 import { offset } from '../../world/FeatureWorld';
-import { above, below, inBlockSet, mthCos, mthSin, relative, shuffledCopy } from '../support';
+import { above, below, inBlockSet, relative, shuffledCopy } from '../support';
 
 import type { FoliageAttachment, TreeContext, TrunkPlacer } from './shared';
 import {
@@ -122,7 +125,12 @@ export const giantTrunkPlacer = (
     });
 
 /** Java's `MegaJungleTrunkPlacer`. */
-export const megaJungleTrunkPlacer = (base: number, randA: number, randB: number): TrunkPlacer => {
+export const megaJungleTrunkPlacer = (
+    base: number,
+    randA: number,
+    randB: number,
+    trig: MthTrig = TRUNCATING_MTH_TRIG
+): TrunkPlacer => {
     const giant = giantTrunkPlacer(base, randA, randB, 'mega_jungle_trunk_placer');
     return {
         ...giant,
@@ -137,8 +145,8 @@ export const megaJungleTrunkPlacer = (base: number, randA: number, randB: number
                 let bx = 0;
                 let bz = 0;
                 for (let step = 0; step < 5; step++) {
-                    bx = Math.trunc(f32(1.5 + mthCos(angle) * step));
-                    bz = Math.trunc(f32(1.5 + mthSin(angle) * step));
+                    bx = Math.trunc(f32(1.5 + f32(trig.cos(angle) * step)));
+                    bz = Math.trunc(f32(1.5 + f32(trig.sin(angle) * step)));
                     placeLog(context, offset(origin, bx, branchHeight - 3 + Math.trunc(step / 2), bz));
                 }
                 attachments.push(attachment(offset(origin, bx, branchHeight, bz), -2, false));

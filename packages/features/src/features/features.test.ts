@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
+import { ROUNDING_MTH_TRIG } from '@jsprismarine/worldgen';
 
 import { WorldgenRandom } from '../placement/WorldgenRandom';
 import { blockState } from '../world/BlockState';
@@ -917,5 +918,34 @@ describe('crevasse', () => {
         expect(placeAt(world, 1n)).toBe(true);
         expect(world.getBlock({ x: 0, y: SURFACE_Y, z: 0 }).name).toBe('minecraft:brittle_ice');
         expect(world.getBlock({ x: 0, y: SURFACE_Y - 1, z: 0 }).name).toBe('minecraft:packed_ice');
+    });
+});
+
+describe("the target release's Mth.sin", () => {
+    it("shapes ore veins with 26.4's rounding lookup from data pack format 128 on", () => {
+        const document = {
+            type: 'minecraft:ore',
+            size: 20,
+            discard_chance_on_air_exposure: 0,
+            targets: [
+                {
+                    target: { predicate_type: 'minecraft:tag_match', tag: 'minecraft:stone_ore_replaceables' },
+                    state: { Name: 'minecraft:coal_ore' }
+                }
+            ]
+        };
+        const roundingCalls = (format: number) => {
+            const rounding = vi.spyOn(ROUNDING_MTH_TRIG, 'sin');
+            try {
+                new FeatureLoader({ feature: () => undefined, placedFeature: () => undefined }, { format })
+                    .readFeature(document, 'test')
+                    .place(stoneWorld(), new WorldgenRandom(1n), { x: 0, y: 20, z: 0 });
+                return rounding.mock.calls.length;
+            } finally {
+                rounding.mockRestore();
+            }
+        };
+        expect(roundingCalls(121)).toBe(0);
+        expect(roundingCalls(128)).toBe(20);
     });
 });

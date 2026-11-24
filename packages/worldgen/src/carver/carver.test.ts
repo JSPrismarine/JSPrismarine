@@ -72,6 +72,21 @@ describe('the carver registry', () => {
         expect(cave.count).toEqual({ type: 'very_biased_to_bottom', minInclusive: 0, maxInclusive: 14 });
     });
 
+    it("walks with 26.4's rounding Mth.sin and Mth.cos from data pack format 128 on", () => {
+        const document: unknown = JSON.parse(registryVectors.carvers['minecraft:cave']);
+        const truncating = parseCarver(document, 'minecraft:cave', 121);
+        const rounding = parseCarver(document, 'minecraft:cave', 128);
+        expect(truncating).not.toHaveProperty('roundedTrig');
+        expect(rounding.roundedTrig).toBe(true);
+
+        const segments = (config: CarverConfig) => {
+            const found: number[][] = [];
+            carve(config, 0, 0).visit((localX, localZ, bottomY, topY) => found.push([localX, localZ, bottomY, topY]));
+            return found;
+        };
+        expect(segments(rounding)).not.toEqual(segments(truncating));
+    });
+
     it('rejects an unknown carver type', () => {
         expect(() => parseCarver({ type: 'minecraft:invented' })).toThrow(/unknown carver type/);
     });

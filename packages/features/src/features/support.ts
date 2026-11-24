@@ -100,25 +100,6 @@ export const withinManhattan = function* (
     }
 };
 
-const SIN_SCALE = 10430.378350470453;
-const SIN_TABLE = (() => {
-    const table = new Float32Array(65536);
-    for (let index = 0; index < 65536; index++) table[index] = Math.fround(Math.sin(index / SIN_SCALE));
-    return table;
-})();
-
-/**
- * Java's `Mth.sin`, which reads a 65536-entry `float` table rather than calling `Math.sin`.
- *
- * The two differ by up to about 5e-5, which is enough to move an ore vein's sphere radii across
- * a block boundary, so worldgen code that calls `Mth.sin` has to call this and code that calls
- * `java.lang.Math.sin` has to call `Math.sin`.
- */
-export const mthSin = (value: number): number => SIN_TABLE[Math.trunc(value * SIN_SCALE) & 65535] ?? 0;
-
-/** Java's `Mth.cos`, the same table a quarter turn along. */
-export const mthCos = (value: number): number => SIN_TABLE[Math.trunc(value * SIN_SCALE + 16384) & 65535] ?? 0;
-
 /** Answers whether a state is in a parsed `HolderSet<Block>`. */
 export const inBlockSet = (blocks: BlockOracle, state: BlockState, set: BlockSet): boolean =>
     set.kind === 'tag' ? blocks.hasTag(state, set.tag) : set.names.includes(state.name);

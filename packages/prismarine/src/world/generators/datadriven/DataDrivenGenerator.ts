@@ -3685,7 +3685,7 @@ export class DataDrivenGenerator implements Generator {
 
             const configs = references.flatMap((reference) => {
                 const raw = this.options.registries.carvers.get(reference);
-                return raw === undefined ? [] : [parseCarver(raw, reference)];
+                return raw === undefined ? [] : [parseCarver(raw, reference, this.options.registries.format)];
             });
 
             cache.set(biome, configs);
@@ -3717,11 +3717,14 @@ export class DataDrivenGenerator implements Generator {
         readonly biomeDecoration: ReadonlyMap<string, BiomeDecoration>;
     } {
         const registries = this.options.registries;
-        const loader = new FeatureLoader({
-            feature: (id) => registries.features.get(id),
-            placedFeature: (id) => registries.placedFeatures.get(id),
-            blockStateProvider: (id) => registries.blockStateProviders.get(id)
-        });
+        const loader = new FeatureLoader(
+            {
+                feature: (id) => registries.features.get(id),
+                placedFeature: (id) => registries.placedFeatures.get(id),
+                blockStateProvider: (id) => registries.blockStateProviders.get(id)
+            },
+            registries.format === undefined ? {} : { format: registries.format }
+        );
 
         const byBiome = new Map<string, readonly (readonly string[])[]>();
         for (const biome of biomeSource.possibleBiomes()) {

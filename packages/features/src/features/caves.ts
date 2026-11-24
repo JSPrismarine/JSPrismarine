@@ -1,4 +1,5 @@
-import type { RandomSource } from '@jsprismarine/worldgen';
+import type { MthTrig, RandomSource } from '@jsprismarine/worldgen';
+import { TRUNCATING_MTH_TRIG } from '@jsprismarine/worldgen';
 
 import { asInteger, asNumber, asObject } from '../json';
 import type { PlacedFeature } from '../placement/pipeline';
@@ -25,7 +26,7 @@ import { atY, offset } from '../world/FeatureWorld';
 import type { ConfiguredFeature } from './Feature';
 import { feature } from './Feature';
 import type { FeatureParsers } from './parseContext';
-import { above, below, betweenClosed, inBlockSet, mthCos, mthSin, outsideBuildHeight, relative } from './support';
+import { above, below, betweenClosed, inBlockSet, outsideBuildHeight, relative } from './support';
 
 const f32 = Math.fround;
 const WATER = blockState('minecraft:water');
@@ -419,12 +420,17 @@ const dripstoneHeight = (xzDistanceFromCenter: number, radius: number, scale: nu
     return (Math.max(value, 0) / 0.384) * radius;
 };
 
-const isCircleMostlyEmbeddedInStone = (world: FeatureWorld, center: BlockPos, radius: number): boolean => {
+const isCircleMostlyEmbeddedInStone = (
+    world: FeatureWorld,
+    center: BlockPos,
+    radius: number,
+    trig: MthTrig
+): boolean => {
     if (isEmptyOrWaterOrLava(world.getBlock(center), world)) return false;
     const increment = f32(6 / radius);
     for (let angle = 0; angle < f32(Math.PI * 2); angle = f32(angle + increment)) {
-        const dx = Math.trunc(f32(mthCos(angle) * radius));
-        const dz = Math.trunc(f32(mthSin(angle) * radius));
+        const dx = Math.trunc(f32(trig.cos(angle) * radius));
+        const dz = Math.trunc(f32(trig.sin(angle) * radius));
         if (isEmptyOrWaterOrLava(world.getBlock(offset(center, dx, 0, dz)), world)) return false;
     }
     return true;
@@ -437,7 +443,8 @@ const isCircleMostlyEmbeddedInStone = (world: FeatureWorld, center: BlockPos, ra
  */
 export const largeDripstone = (
     config: LargeDripstoneConfig,
-    type: 'large_dripstone' | 'large_speleothem' = 'large_dripstone'
+    type: 'large_dripstone' | 'large_speleothem' = 'large_dripstone',
+    trig: MthTrig = TRUNCATING_MTH_TRIG
 ): ConfiguredFeature =>
     feature(type, (world, random, origin) => {
         if (!isEmptyOrWater(world.getBlock(origin), world)) return false;
@@ -477,8 +484,8 @@ export const largeDripstone = (
         if (suitable(stalactite) && suitable(stalagmite)) {
             const speed = config.windSpeed.sample(random);
             const direction = f32(random.nextFloat() * f32(Math.PI));
-            const windX = f32(mthCos(direction) * speed);
-            const windZ = f32(mthSin(direction) * speed);
+            const windX = f32(trig.cos(direction) * speed);
+            const windZ = f32(trig.sin(direction) * speed);
             const maxOffset = 16 - radius;
             wind = (position) => {
                 const dy = origin.y - position.y;
@@ -495,7 +502,7 @@ export const largeDripstone = (
                 const maxTries = Math.min(10, Math.trunc(dripstoneHeight(0, cone.radius, cone.scale, cone.bluntness)));
                 for (let attempt = 0; attempt < maxTries; attempt++) {
                     if (world.getBlock(root).name === 'minecraft:lava') return false;
-                    if (isCircleMostlyEmbeddedInStone(world, offsetByWind(root), cone.radius)) {
+                    if (isCircleMostlyEmbeddedInStone(world, offsetByWind(root), cone.radius, trig)) {
                         cone.root = root;
                         return true;
                     }
@@ -897,7 +904,8 @@ export const parseCaveFeature = (
                     minRadiusForWind: asInteger(raw['min_radius_for_wind'], `${path}.min_radius_for_wind`),
                     minBluntnessForWind: asNumber(raw['min_bluntness_for_wind'], `${path}.min_bluntness_for_wind`)
                 },
-                type === 'large_dripstone' ? 'large_dripstone' : 'large_speleothem'
+                type === 'large_dripstone' ? 'large_dripstone' : 'large_speleothem',
+                parsers.trig
             );
 
         case 'vegetation_patch':

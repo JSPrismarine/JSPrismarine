@@ -1,4 +1,5 @@
-import type { RandomSource } from '@jsprismarine/worldgen';
+import type { MthTrig, RandomSource } from '@jsprismarine/worldgen';
+import { TRUNCATING_MTH_TRIG } from '@jsprismarine/worldgen';
 
 import { asInteger, asNumber } from '../json';
 import { ALL_DIRECTIONS, DIRECTION_STEPS } from '../world/BlockState';
@@ -7,7 +8,8 @@ import type { ConfiguredFeature } from './Feature';
 import { feature } from './Feature';
 import type { BlockReplacement } from './ruleTest';
 import { parseBlockReplacements } from './ruleTest';
-import { mthSin, outsideBuildHeight } from './support';
+import type { FeatureParsers } from './parseContext';
+import { outsideBuildHeight } from './support';
 
 const f32 = Math.fround;
 
@@ -67,7 +69,8 @@ const isAdjacentToAir = (world: FeatureWorld, position: BlockPos, neighbor: Muta
 export const ore = (
     targets: readonly BlockReplacement[],
     size: number,
-    discardChanceOnAirExposure: number
+    discardChanceOnAirExposure: number,
+    trig: MthTrig = TRUNCATING_MTH_TRIG
 ): ConfiguredFeature =>
     feature('ore', (world, random, origin) => {
         const angle = f32(random.nextFloat() * Math.PI);
@@ -101,7 +104,7 @@ export const ore = (
         for (let index = 0; index < size; index++) {
             const step = f32(index / size);
             const scale = (random.nextDouble() * size) / 16;
-            const radius = (f32(mthSin(f32(Math.PI) * step) + 1) * scale + 1) / 2;
+            const radius = (f32(trig.sin(f32(f32(Math.PI) * step)) + 1) * scale + 1) / 2;
             spheres[index * 4 + 0] = x0 + (x1 - x0) * step;
             spheres[index * 4 + 1] = y0 + (y1 - y0) * step;
             spheres[index * 4 + 2] = z0 + (z1 - z0) * step;
@@ -229,11 +232,12 @@ export const scatteredOre = (
 export const parseOreFeature = (
     type: string,
     raw: Record<string, unknown>,
-    path: string
+    path: string,
+    parsers: Pick<FeatureParsers, 'trig'>
 ): ConfiguredFeature | undefined => {
     if (type !== 'ore' && type !== 'scattered_ore') return undefined;
     const targets = parseBlockReplacements(raw['targets'], `${path}.targets`);
     const size = asInteger(raw['size'], `${path}.size`);
     const discard = asNumber(raw['discard_chance_on_air_exposure'], `${path}.discard_chance_on_air_exposure`, 0);
-    return type === 'ore' ? ore(targets, size, discard) : scatteredOre(targets, size, discard);
+    return type === 'ore' ? ore(targets, size, discard, parsers.trig) : scatteredOre(targets, size, discard);
 };
