@@ -679,6 +679,175 @@ describe('network', () => {
             expect(open.inputs[1]).toBeNull();
         });
 
+        describe('a recipe the client knows by a built-in entry', () => {
+            /** Content holding the vanilla items `names` and one Java recipe. */
+            const contentWithRecipe = (id: string, recipe: object, names: readonly string[]) => {
+                const base = fixtureDefinitions();
+                return buildServerContent(
+                    fixtureContentOptions({
+                        load: () => ({
+                            definitions: definitionsOf({
+                                ...base,
+                                recipesJava: new Map([
+                                    ...base.recipesJava,
+                                    [id, definitionOf('recipesJava', id, recipe)]
+                                ])
+                            }),
+                            diagnostics: []
+                        }),
+                        itemDefinitions: [
+                            ...fixtureItemDefinitions(),
+                            ...vanillaItemDefinitions().filter((definition) => names.includes(definition.identifier))
+                        ]
+                    })
+                );
+            };
+
+            it('dyes a shulker box by the net id of the entry for its color, keeping what it holds', async () => {
+                const id = 'minecraft:red_shulker_box';
+                const content = contentWithRecipe(
+                    id,
+                    {
+                        type: 'minecraft:crafting_transmute',
+                        input: ['minecraft:shulker_box', 'minecraft:blue_shulker_box'],
+                        material: 'minecraft:red_dye',
+                        result: { id }
+                    },
+                    ['minecraft:undyed_shulker_box', 'minecraft:blue_shulker_box', 'minecraft:red_shulker_box']
+                );
+                const server = fakeServer([], { getContent: () => content });
+                const advertised = joinContentPayloads(content, server.getLogger(), {
+                    clientPalette: fixtureBlockPalette()
+                })?.crafting.userDataShapeless.find((recipe) =>
+                    recipe.ingredients.some(
+                        ({ descriptor }) =>
+                            descriptor?.kind === 'name' && descriptor.name === 'minecraft:blue_shulker_box'
+                    )
+                );
+                if (advertised === undefined) throw new Error('the blue shulker box entry was not advertised');
+                // The first input item's entry has the recipe's own id; this one has an id of its own.
+                expect(advertised.netId).not.toBe(netIdOf(server, id));
+
+                const inventory = new HumanInventory();
+                const craftingInput = new CraftingInput();
+                craftingInput.set(
+                    0,
+                    new Item({
+                        name: 'minecraft:blue_shulker_box',
+                        contents: [new Item({ name: 'minecraft:stone', count: 5 }), null]
+                    })
+                );
+                craftingInput.set(1, new Item({ name: 'minecraft:red_dye' }));
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: advertised.netId,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                const made = inventory.container('inventory').get(0);
+                expect(made?.getName()).toBe('minecraft:red_shulker_box');
+                expect(made?.getContents()[0]?.getName()).toBe('minecraft:stone');
+                expect(made?.getContents()[0]?.getAmount()).toBe(5);
+            });
+
+            it('trims an armor piece through the one trim entry, keeping its enchantments', async () => {
+                const id = 'minecraft:coast_armor_trim_smithing_template_smithing_trim';
+                const content = contentWithRecipe(
+                    id,
+                    {
+                        type: 'minecraft:smithing_trim',
+                        template: 'minecraft:coast_armor_trim_smithing_template',
+                        base: 'minecraft:iron_chestplate',
+                        addition: 'minecraft:redstone',
+                        pattern: 'minecraft:coast'
+                    },
+                    ['minecraft:coast_armor_trim_smithing_template', 'minecraft:iron_chestplate', 'minecraft:redstone']
+                );
+                const server = fakeServer([], { getContent: () => content });
+                const trim = joinContentPayloads(content, server.getLogger(), {
+                    clientPalette: fixtureBlockPalette()
+                })?.crafting.smithingTrim[0];
+                if (trim === undefined) throw new Error('the trim entry was not advertised');
+
+                const open: OpenBlockContainer = {
+                    windowId: 1,
+                    position: new Vector3(0, 64, 0),
+                    identifier: 'minecraft:smithing_table',
+                    screen: WindowTypes.SMITHING_TABLE,
+                    inputs: [
+                        new Item({ name: 'minecraft:coast_armor_trim_smithing_template' }),
+                        new Item({ name: 'minecraft:iron_chestplate', enchantments: { 'minecraft:protection': 2 } }),
+                        new Item({ name: 'minecraft:redstone' })
+                    ],
+                    bookshelfPower: 0
+                };
+                const inventory = new HumanInventory();
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: trim.netId,
+                                    repetitions: 1
+                                },
+                                ...[
+                                    ContainerUiId.SMITHING_TABLE_TEMPLATE_CONTAINER,
+                                    ContainerUiId.SMITHING_TABLE_INPUT_CONTAINER,
+                                    ContainerUiId.SMITHING_TABLE_MATERIAL_CONTAINER
+                                ].map((container) => ({
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 1,
+                                    source: slot(0, container)
+                                })),
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    new CraftingInput(),
+                    { open }
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                const made = inventory.container('inventory').get(0);
+                expect(made?.getName()).toBe('minecraft:iron_chestplate');
+                expect(made?.getEnchantmentLevel('minecraft:protection')).toBe(2);
+                expect(open.inputs).toEqual([null, null, null]);
+            });
+        });
+
         it('undoes everything when a later step fails', async () => {
             // A request is all or nothing. Its steps used to be applied as they were read and
             // a refusal simply returned, so a request that failed on its last action kept what
