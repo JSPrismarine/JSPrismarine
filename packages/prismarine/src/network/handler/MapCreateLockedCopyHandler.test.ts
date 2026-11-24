@@ -16,6 +16,6 @@ describe('MapCreateLockedCopyHandler', () => {
 
         new MapCreateLockedCopyHandler().handle(packet, sessionContext(session, { log }));
 
-        expect(logged).toEqual(['Steve locked map 5 as 6. The server stores no maps']);
+        expect(logged).toEqual(['Steve locked map 5 as 6. Maps are not copied']);
     });
 });
