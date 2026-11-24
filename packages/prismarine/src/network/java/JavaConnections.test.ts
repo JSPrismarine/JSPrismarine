@@ -61,6 +61,7 @@ import { TcpTransport } from '../transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
 import { offlineUuid, serverHash } from './javaAuth';
 import { JavaConnections } from './JavaConnections';
+import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 
 /** `Client Information`, by id alone: its fields are the client's settings, which the server reads past. */
 const ClientInformationProbe = defineJavaPacket(
@@ -355,6 +356,67 @@ describe('JavaConnections', () => {
         for (const step of apply) step();
         expect(await java.receive(BlockChangedAck)).toEqual({ sequence: 3 });
         java.destroy();
+    });
+
+    it('disconnects a player in play with the reason the world hangs up with, and closes the connection', async () => {
+        transport = new TcpTransport(new ConnectionIds(), quiet);
+        let hangUp: (reason: JavaText) => Promise<void> = async () => {};
+        let left: () => void = () => {};
+        const leaving = new Promise<void>((resolve) => (left = resolve));
+        const session = stub<PlayerSession>({
+            runtimeId: 7n,
+            getPlayer: () =>
+                stub<SessionPlayer>({
+                    yaw: 0,
+                    pitch: 0,
+                    gamemode: Gametype.CREATIVE,
+                    getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
+                })
+        });
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            log: quiet,
+            world: {
+                players: {
+                    join: async (_profile, _verified, _id, _send, close) => {
+                        hangUp = close;
+                        return { session, feet: { x: 8.5, y: -60, z: 8.5 } };
+                    },
+                    move: async () => {},
+                    intent: async () => {},
+                    leave: async () => left()
+                },
+                chunk: async (x, z) => new Chunk(x, z),
+                light: () => ({ sky: () => 15, block: () => 0 }),
+                viewDistance: () => 0,
+                maxPlayers: () => 20
+            }
+        });
+        await transport.listen('127.0.0.1', 0);
+        const java = await configuring(transport.port()!);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        java.send(ServerboundKnownPacks, await java.receive(ClientboundKnownPacks));
+        for (const _ of CONFIGURATION.registries) await java.receive(RegistryData);
+        await java.receive(UpdateTags);
+        await java.receive(FinishConfiguration);
+        java.send(AcknowledgeFinishConfiguration, {});
+        await java.receive(PlayLogin);
+
+        await hangUp({ translate: 'multiplayer.disconnect.duplicate_login' });
+
+        for (const opening of [SynchronizePlayerPosition, GameEvent, SetCenterChunk, ChunkBatchStart]) {
+            await java.receive(opening);
+        }
+        await java.receive(LevelChunkWithLight);
+        await java.receive(ChunkBatchFinished);
+        expect(await java.receive(PlayDisconnect)).toEqual({
+            reason: { translate: 'multiplayer.disconnect.duplicate_login' }
+        });
+        await java.closed;
+        await leaving;
     });
 
     it('ends the join of a client without the pack the registries come from', async () => {

@@ -8,14 +8,17 @@ import { accountLinksToken } from '../modules/tokens';
 import { stub } from './stub.test.helper';
 
 /**
- * A kernel double whose only part is its event bus, for a server double whose code raises the
- * server's events.
+ * A kernel double whose only parts are its event bus and the account links, for a server double
+ * whose code raises the server's events.
  * @param events - The bus, a fresh one by default. Pass one to listen on it.
+ * @param links - The account links, by default none with linking off, so a login plays as the
+ *   account it logged in with.
  * @returns The kernel double.
  */
-export const testKernel = (events = new KernelEventBus<ServerEvents>()): Kernel<ServerEvents> => {
-    // No links, and linking off: a login plays as the account it logged in with.
-    const links = new AccountLinks({ load: async () => [], save: async () => {} }, () => false);
+export const testKernel = (
+    events = new KernelEventBus<ServerEvents>(),
+    links = new AccountLinks({ load: async () => [], save: async () => {} }, () => false)
+): Kernel<ServerEvents> => {
     return stub<Kernel<ServerEvents>>({
         events,
         get: <T>(token: ServiceToken<T>): T => {

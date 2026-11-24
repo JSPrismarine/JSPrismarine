@@ -421,7 +421,11 @@ export class JavaConnections {
             state.profile!,
             state.verified ?? false,
             state.connection.id,
-            (definition, value) => this.send(state, definition, value)
+            (definition, value) => this.send(state, definition, value),
+            async (reason) => {
+                this.send(state, PlayDisconnect, { reason });
+                await state.connection.close();
+            }
         );
         state.session = session;
         const player = session.getPlayer();
