@@ -9,7 +9,9 @@ import type { ReferenceResolver } from './reference';
 const elements: Record<string, unknown> = {
     'minecraft:a': { name: 'a' },
     'minecraft:b': { name: 'b' },
-    'minecraft:loop': { ref: 'minecraft:loop' }
+    'minecraft:loop': { ref: 'minecraft:loop' },
+    'minecraft:list': [{ name: 'first' }, 'minecraft:b'],
+    'minecraft:list_loop': ['minecraft:list_loop']
 };
 
 const tags: Record<string, readonly string[]> = {
@@ -51,6 +53,14 @@ describe('the 26.3 composition rule', () => {
 
     it('accepts a list mixing inline values and ids', () => {
         expect(names([{ name: 'inline' }, 'minecraft:b'])).toEqual({ parsed: ['inline', 'b'], diagnostics: [] });
+    });
+
+    it('composes a file that holds a list, as one of several item modifiers does', () => {
+        expect(names('minecraft:list')).toEqual({ parsed: ['first', 'b'], diagnostics: [] });
+    });
+
+    it('reports a list file that names itself instead of recursing forever', () => {
+        expect(names('minecraft:list_loop').diagnostics.some((entry) => entry.message.includes('cyclic'))).toBe(true);
     });
 
     it('accepts a hash-prefixed tag id', () => {

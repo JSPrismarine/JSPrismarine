@@ -181,6 +181,10 @@ export const parseComposed = <T>(
 
             context.visiting.add(key);
             try {
+                // A file may hold a list as readily as an inline field, as an `item_modifier`
+                // file of several functions does, and it composes the same way.
+                if (Array.isArray(element))
+                    return parseComposed(element, registry, context.atReference(id), parseInline);
                 const parsed = parseInline(element, context.atReference(id));
                 return parsed === undefined ? [] : [parsed];
             } finally {
