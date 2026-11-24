@@ -126,13 +126,15 @@ To regenerate after a version bump:
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+pnpm --filter @jsprismarine/bedrock-data run datagen:java
 pnpm --filter @jsprismarine/mapping run generate:tables
 ```
 
 `--java <release>` generates another pinned release's directory, against the Bedrock capture
-and block palette of the protocol it is paired with. The generator runs Mojang's Java data generator against the hash-verified server jar when its
-reports are missing from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or
-`JSP_JAVA_HOME`). It refuses to emit when any Java identifier has neither a mapping nor a loss
+and block palette of the protocol it is paired with. Pass the same `--java <release>` to
+`datagen:java`. The generator reads the data reports and the vanilla datapack where `datagen:java`
+writes them, and stops with a pointer to it when they are missing. For a release newer than
+Geyser's, it also needs `datagen:java --java <geyser release>`. It refuses to emit when any Java identifier has neither a mapping nor a loss
 entry, or when any produced Bedrock state is missing from the pinned palette.
 
 ## The block state vocabularies

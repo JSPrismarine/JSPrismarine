@@ -13,6 +13,7 @@
  * Run after a Java or Bedrock version bump:
  *
  *     pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+ *     pnpm --filter @jsprismarine/bedrock-data run datagen:java
  *     pnpm exec turbo run build --filter=@jsprismarine/mapping
  *     pnpm --filter @jsprismarine/items run generate:item-types
  *
@@ -21,7 +22,6 @@
  * report, when a produced Bedrock identifier is missing from the captured item
  * table, or when the computed exceptions disagree with `src/exceptions.ts`.
  */
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,7 @@ import { format, resolveConfig } from 'prettier';
 
 // The pair resolver of the package that owns `sources.json`; generator scripts are not published.
 import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
+import { worldgenCachePaths } from '../../../bedrock-data/utils/java/worldgen-cache.ts';
 import { ITEM_TABLE_EXCEPTIONS } from '../../src/exceptions.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -80,63 +81,20 @@ const bedrockItemTable = readJson(
 // The Java data generator reports
 // ---------------------------------------------------------------------------
 
-/** Finds a JDK of at least version 25, which the 26.3 server requires. */
-const findJava = (): string => {
-    const candidates: string[] = [];
-    for (const env of ['JSP_JAVA_HOME', 'JAVA_HOME']) {
-        const home = process.env[env];
-        if (home) candidates.push(home);
-    }
-    if (process.platform === 'darwin') {
-        try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', '25+'], { encoding: 'utf8' }).trim();
-            if (home) candidates.push(home);
-        } catch {
-            // No registered JVM matches; the error below says what to install.
-        }
-    }
-    for (const home of candidates) {
-        const java = join(home, 'bin/java');
-        if (!existsSync(java)) continue;
-        // `java --version` prints `openjdk 27 2026-09-15` on stdout; the older `-version`
-        // prints its banner to stderr and leaves stdout empty, so every JDK looked too old.
-        const banner = execFileSync(java, ['--version'], { encoding: 'utf8' });
-        const major = Number(/\b(\d+)/.exec(banner.split('\n')[0] ?? '')?.[1]);
-        if (major >= 25) return java;
-    }
-    throw new Error('No JDK >= 25 found. Point JAVA_HOME or JSP_JAVA_HOME at one.');
-};
-
-const reportsRoot = join(cacheRoot, 'java-reports', javaVersion);
-const generatedDir = join(reportsRoot, 'generated');
-const componentsDir = join(generatedDir, 'reports/minecraft/components/item');
-if (!existsSync(componentsDir)) {
-    const serverJar = join(cacheRoot, 'java-server', javaVersion, 'server.jar');
-    if (!existsSync(serverJar)) {
+// `datagen:java` owns these directories and sorts the reports it installs, so this script reads
+// them and never runs the generator into them.
+const { reports: reportsDir, datapack: datapackDir } = worldgenCachePaths(javaVersion, cacheRoot);
+const componentsDir = join(reportsDir, 'reports/minecraft/components/item');
+for (const required of [componentsDir, join(reportsDir, 'reports/registries.json'), join(datapackDir, 'data')]) {
+    if (!existsSync(required)) {
         throw new Error(
-            `${serverJar} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` first.`
+            `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run datagen:java --java ${javaVersion}\` first.`
         );
     }
-    console.log(`Running the Java ${javaVersion} data generator into ${generatedDir}`);
-    mkdirSync(generatedDir, { recursive: true });
-    execFileSync(
-        findJava(),
-        [
-            '-DbundlerMainClass=net.minecraft.data.Main',
-            '-jar',
-            serverJar,
-            '--reports',
-            '--server',
-            '--all',
-            '--output',
-            generatedDir
-        ],
-        { cwd: reportsRoot, stdio: 'inherit' }
-    );
 }
 
 /** `reports/registries.json`, read for the component type registry and the item registry. */
-const registries = readJson(join(generatedDir, 'reports/registries.json')) as Record<
+const registries = readJson(join(reportsDir, 'reports/registries.json')) as Record<
     string,
     { entries: Record<string, unknown> }
 >;
@@ -261,8 +219,8 @@ for (const bedrockId of [...groups.keys()].sort()) {
  * `numberProvider.ts` evaluate one at runtime without the data generator.
  */
 const providerDirs = [
-    join(generatedDir, 'data/minecraft/context_int_provider'),
-    join(generatedDir, 'data/minecraft/context_float_provider')
+    join(datapackDir, 'data/minecraft/context_int_provider'),
+    join(datapackDir, 'data/minecraft/context_float_provider')
 ];
 
 const providerDefinition = (id: string): unknown => {
