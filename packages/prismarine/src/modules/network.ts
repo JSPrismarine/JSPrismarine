@@ -245,7 +245,7 @@ export class ServerNetworking implements Networking {
                 this.startedTransports = [
                     ...(rakNet.length > 0 ? [TransportNames.raknet] : []),
                     ...(driver !== undefined ? [TransportNames.nethernet] : []),
-                    ...(this.java !== undefined ? [TransportNames.tcp] : [])
+                    ...(this.java !== undefined ? [TransportNames.java] : [])
                 ];
                 return transports;
             });

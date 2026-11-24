@@ -43,7 +43,7 @@ or to the URL in <!-- fact:bstats.endpointKey -->`stats.bstats.endpoint`<!-- /fa
 | Build Type          | `buildType`       | Whether the server is a `dev`, `nightly` or `release` build, then its version.  |
 | Memory              | `memory`          | The host's memory in whole gigabytes, such as `8 GB`.                           |
 | Online Mode         | `onlineMode`      | Whether `online-mode` is on, as `online` or `offline`.                          |
-| Enabled Transports  | `transports`      | Which transports the server accepts players over: RakNet, NetherNet or both.    |
+| Enabled Transports  | `transports`      | Which transports the server accepts players over: RakNet, NetherNet and Java.   |
 | Player Platform     | `playerPlatform`  | How many online players play on each platform, such as Android, iOS or Windows. |
 | Player Game Version | `playerProtocol`  | How many online players use each Minecraft release, then each protocol number.  |
 | Player Transport    | `playerTransport` | How many online players joined over each transport.                             |

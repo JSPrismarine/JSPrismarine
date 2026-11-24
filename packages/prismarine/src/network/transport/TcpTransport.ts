@@ -23,7 +23,7 @@ const TCP_CAPABILITIES: TransportCapabilities = {
 export class TcpTransportConnection implements TransportConnection {
     public readonly address: InetAddress;
     public readonly capabilities = TCP_CAPABILITIES;
-    public readonly transport = TransportNames.tcp;
+    public readonly transport = TransportNames.java;
 
     /** The stream cipher each way, once {@link TcpTransportConnection.encrypt} turned it on. */
     private cipher: { readonly out: Cipheriv; readonly in: Decipheriv } | undefined;

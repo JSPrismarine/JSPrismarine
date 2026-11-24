@@ -118,7 +118,7 @@ export const BSTATS_CHARTS = {
     transports: {
         type: 'AdvancedPie',
         title: 'Enabled Transports',
-        description: 'Which transports the server accepts players over: RakNet, NetherNet or both.',
+        description: 'Which transports the server accepts players over: RakNet, NetherNet and Java.',
         maxValue: 1,
         filter: { values: Object.values(TransportNames) },
         build: ({ metrics }) => {

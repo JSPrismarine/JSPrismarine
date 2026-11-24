@@ -2,9 +2,9 @@ import type { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId } from './ConnectionId';
 
 /** The display name of each transport a connection can arrive over, keyed by a lowercase id. */
-export const TransportNames = { raknet: 'RakNet', nethernet: 'NetherNet', tcp: 'TCP' } as const;
+export const TransportNames = { raknet: 'RakNet', nethernet: 'NetherNet', java: 'Java' } as const;
 
-/** One of {@link TransportNames}: `RakNet`, `NetherNet`, or `TCP` for Java Edition. */
+/** One of {@link TransportNames}: `RakNet`, `NetherNet`, or `Java` for Java Edition over TCP. */
 export type TransportName = (typeof TransportNames)[keyof typeof TransportNames];
 
 /**

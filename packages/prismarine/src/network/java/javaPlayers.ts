@@ -77,7 +77,7 @@ const javaSide = (id: ConnectionId): TransportConnection => ({
     id,
     address: new InetAddress('0.0.0.0', 0),
     capabilities: { encrypted: false, reliableOrdered: true, maxFrameSize: Number.MAX_SAFE_INTEGER },
-    transport: TransportNames.tcp,
+    transport: TransportNames.java,
     sendFrame: () => {},
     close: () => {}
 });
