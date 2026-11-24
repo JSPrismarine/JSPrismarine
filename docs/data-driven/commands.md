@@ -314,12 +314,14 @@ modifier on `/item … from` runs over each stack on its way. A stack keeps its 
 enchantments, durability and contents through the modifier, and a name no datapack declares
 fails with `Unknown item modifier: <id>`.
 
-Two slot features are missing:
+`execute if items entity <targets> <slots> <item_predicate>` and its `block <pos>` form count the
+items in the slots a name covers that match Java's item predicate: an id, a `#tag` or `*`, with
+optional component tests in brackets, such as `*[custom_name, damage~{damage:{min:1}}]`. A comma
+joins tests that must all pass, `|` joins alternatives, and `!` negates a test. Run on its own,
+`if` returns the count and `unless` returns 1 when it is zero.
 
-- `horse.chest` and `player.crafting.N` refuse with `Slot <name> is not one this server can reach
-  yet` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)).
-- `execute if items` reads its slots as an NBT path and refuses
-  ([#3609](https://github.com/JSPrismarine/JSPrismarine/issues/3609)).
+`horse.chest` and `player.crafting.N` refuse with `Slot <name> is not one this server can reach
+yet` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)).
 
 ## The mcfunction runtime
 
@@ -569,8 +571,7 @@ relationships, so the host rejects the call.
 and `/function … with` work on [command storage](#command-storage) only. A block or an entity
 target is refused with `This server has no NBT paths for blocks and entities yet`, and so are
 `execute if slots` and the NBT tag argument on `/summon`
-([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). `execute if items` refuses
-the same way ([#3609](https://github.com/JSPrismarine/JSPrismarine/issues/3609)).
+([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)).
 
 **`execute if predicate` refuses.** The datapack predicate evaluator is not wired to the command
 host, even though `@jsprismarine/predicates` compiles predicates for loot and advancements.

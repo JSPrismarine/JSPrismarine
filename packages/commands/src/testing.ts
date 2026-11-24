@@ -110,6 +110,7 @@ const data = (): DataCommandHost => ({
     mergeData: () => false,
     modifyData: () => 0,
     removeData: () => 0,
+    countSlotItems: () => 0,
     applyItemModifier: () => 0,
     setSlot: () => 0,
     copySlots: () => 0,

@@ -14,7 +14,8 @@
  * target had it, with the sentence the resolver wrote for the last one.
  */
 import type { ItemSlot, SlotTarget, SlotWriteMode } from '@jsprismarine/commands';
-import type { ItemModifier, PredicateContext } from '@jsprismarine/predicates';
+import type { ItemDrop } from '@jsprismarine/block-behaviors';
+import type { ItemModifier, PredicateContext, ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
 import type Server from '../../Server';
 import type { ServerContent } from '../../content/ServerContent';
@@ -28,6 +29,7 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { dropOfRolledStack, rolledStackOfDrop, withBedrockFields } from '../../item/lootStack';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt } from './containers';
+import { parseItemPredicateArgument } from './itemPredicate';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolveTarget, worldOf } from './support';
 
 /** One target opened for a command: what its slot names resolve against, and its slots. */
@@ -217,6 +219,56 @@ export const setItemSlot = (
 };
 
 /**
+ * A stack as the loot and predicate grammars read one: what it carries, through the translation
+ * a rolled drop takes backwards, and what its item type declares, such as its maximum
+ * durability, which `set_damage` and a `damage` predicate read.
+ *
+ * @param drop - The stack as a drop, when the caller already made one.
+ */
+const predicateStackOf = (item: Item, drop: ItemDrop | undefined = dropOfItem(item)): PredicateItemStack => {
+    const declared = item.asPredicateStack();
+    if (drop === undefined) return declared;
+    const rolled = rolledStackOfDrop(drop);
+    return { ...rolled, components: new Map([...declared.components, ...rolled.components]) };
+};
+
+/**
+ * Counts the items in the slots a name covers on every source that pass an item predicate,
+ * which is `execute if items`.
+ *
+ * Java's `ExecuteCommand.countItems`: the counts of the matching stacks, summed over the
+ * sources. A source without the slot adds nothing rather than failing the condition.
+ *
+ * @param predicate - Java's `item_predicate` argument.
+ * @throws {CommandSyntaxException} When the predicate cannot be read, or a block source is not
+ *   a container.
+ */
+export const countSlotItems = (
+    server: Server,
+    sources: readonly SlotTarget[],
+    slot: ItemSlot,
+    predicate: string
+): number => {
+    const matches = parseItemPredicateArgument(predicate, server.getContent().loot);
+
+    let count = 0;
+    eachHolding(
+        server,
+        sources,
+        slot,
+        { role: 'source' },
+        (opened, slots) => {
+            for (const held of slots) {
+                const item = opened.get(held);
+                if (item !== null && matches(predicateStackOf(item))) count += item.getAmount();
+            }
+        },
+        false
+    );
+    return count;
+};
+
+/**
  * A datapack's item modifier, compiled for one command.
  *
  * @throws {CommandSyntaxException} When no loaded datapack declares it, which is Java's
@@ -258,10 +310,7 @@ const modifiedItem = (server: Server, modifier: ItemModifier, item: Item, target
     if (drop === undefined) return null;
     const content = server.getContent();
 
-    const rolled = rolledStackOfDrop(drop);
-    // What the item type declares, such as its maximum durability, which `set_damage` reads.
-    const stack = { ...rolled, components: new Map([...item.asPredicateStack().components, ...rolled.components]) };
-    const result = modifier(stack, modifierContext(content, server, target));
+    const result = modifier(predicateStackOf(item, drop), modifierContext(content, server, target));
     if (result === undefined || result.count <= 0) return null;
 
     const [translated] = bedrockItemDrops([dropOfRolledStack(result)]);

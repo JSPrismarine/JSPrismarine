@@ -26,6 +26,7 @@ import {
     filePathArgument,
     integerRangeArgument,
     itemModifierArgument,
+    itemPredicateArgument,
     jsonArgument,
     lootPredicateArgument,
     lootTableArgument,
@@ -323,8 +324,9 @@ const javaArgumentType = (
                 bedrockGap: 'Java block states are not a Bedrock parameter type'
             };
         }
-        case 'minecraft:block_predicate':
         case 'minecraft:item_predicate':
+            return itemPredicateArgument();
+        case 'minecraft:block_predicate':
         case 'minecraft:slot_source':
         case 'minecraft:item_slot':
         case 'minecraft:objective':

@@ -12,7 +12,7 @@ import type { CommandHost, DataCommandHost } from '@jsprismarine/commands';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
 import { entityCommandHost } from './entities';
-import { copyItemSlots, modifyItemSlots, setItemSlot } from './inventory';
+import { copyItemSlots, countSlotItems, modifyItemSlots, setItemSlot } from './inventory';
 import { runLootCommand } from './loot';
 import { nbtDataVerbs } from './nbtData';
 import { RandomSequences } from './randomSequences';
@@ -37,6 +37,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences, level: () =
 
     return {
         ...nbtDataVerbs(storage),
+        countSlotItems: (sources, slot, predicate) => countSlotItems(server, sources, slot, predicate),
         applyItemModifier: (targets, slot, modifier) => modifyItemSlots(server, targets, slot, modifier),
         setSlot: (targets, slot, item, count, mode) => setItemSlot(server, targets, slot, item, count, mode),
         copySlots: (sources, fromSlot, targets, toSlot, mode, modifier) =>

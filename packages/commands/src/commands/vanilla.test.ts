@@ -103,7 +103,10 @@ describe('the command set', () => {
         // `execute store … bossbar` then joined the tree.
         // `/item … from` then took a source of either kind under every target, as Java's does.
         // `/allowlist`, with its `whitelist` alias, then joined the Bedrock-only commands.
-        expect(digest).toBe('b620fd49318b955ea3c2fef9e45ca4509ca74eb5');
+        // `execute if items` then took its block form, and Java's `item_predicate` argument, a
+        // string to Bedrock, then read brackets and quotes with spaces in them, as the item of
+        // `execute if slots <slots> <item>` does.
+        expect(digest).toBe('baa5eb96850569a70e76799a911c36573ca2351b');
     });
 });
 
@@ -1107,6 +1110,34 @@ describe('the data-driven commands', () => {
         });
 
         expect(seen).toEqual([{ slot: { name: 'weapon.mainhand' }, modifier: 'mypack:sharpen' }]);
+    });
+
+    it('execute if items reads a block or every entity, and an item predicate with spaces in it', () => {
+        const pig = testEntity({ id: 'pig', name: 'Pig', type: 'minecraft:pig', isPlayer: false });
+        const cow = testEntity({ id: 'cow', name: 'Cow', type: 'minecraft:cow', isPlayer: false });
+        const seen: unknown[] = [];
+        const overrides: TestCommandHostOverrides = {
+            entities: { select: () => [pig, cow] },
+            data: {
+                countSlotItems: (sources, slot, predicate) => {
+                    seen.push({ sources: sources.map((source) => source.kind), slot, predicate });
+                    return 3;
+                }
+            }
+        };
+
+        expect(run('execute if items block 1 2 3 container.* *[custom_name="a b"]', overrides).results).toEqual([3]);
+        expect(run('execute if items entity @e armor.* #minecraft:trimmable_armor', overrides).results).toEqual([3]);
+        expect(run('execute unless items entity @e armor.* minecraft:stone', overrides).results).toEqual([0]);
+        // The executor's own slots, which is all this older form reads.
+        expect(run('execute if slots weapon.mainhand stone', overrides, { entity: pig }).results).toEqual([1]);
+
+        expect(seen).toEqual([
+            { sources: ['block'], slot: { name: 'container.*' }, predicate: '*[custom_name="a b"]' },
+            { sources: ['entity', 'entity'], slot: { name: 'armor.*' }, predicate: '#minecraft:trimmable_armor' },
+            { sources: ['entity', 'entity'], slot: { name: 'armor.*' }, predicate: 'minecraft:stone' },
+            { sources: ['entity'], slot: { name: 'weapon.mainhand' }, predicate: 'stone' }
+        ]);
     });
 
     it('/item hands every target to the host, with the action that spreads the stack', () => {

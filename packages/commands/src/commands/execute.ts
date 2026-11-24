@@ -26,8 +26,8 @@ import {
     enumArgument,
     floatArgument,
     integerRangeArgument,
+    itemPredicateArgument,
     lootPredicateArgument,
-    lootTableArgument,
     nbtPathArgument,
     positionArgument,
     relativeValueArgument,
@@ -36,7 +36,7 @@ import {
     softEnumArgument,
     stringArgument
 } from '../argumentTypes';
-import type { CommandSource, DataTarget, EntityRelation, Vector3 } from '../host';
+import type { CommandSource, DataTarget, EntityRelation, SlotTarget, Vector3 } from '../host';
 import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
@@ -652,36 +652,59 @@ const buildConditions = (
         );
     }
 
-    node.then(
-        lit('items').then(
-            lit('entity').then(
-                arg('source', entityArgument()).then(
+    /**
+     * Wires a condition that counts, which is Java's `createNumericConditionalHandler`: run on its
+     * own, `if` returns the count and `unless` returns 1 when it is zero.
+     */
+    const attachCount = (builder: ConditionTerminal, count: (context: Context) => number): ConditionTerminal => {
+        builder.executes(
+            command((context) => {
+                const found = count(context);
+                if (positive) return found;
+                return found === 0 ? 1 : 0;
+            })
+        );
+        return builder.fork(root, {
+            apply: (context) => (count(context) > 0 === positive ? [source(context)] : [])
+        });
+    };
+
+    const items = lit('items');
+    for (const kind of ['block', 'entity'] as const) {
+        items.then(
+            lit(kind).then(
+                arg<unknown>('source', kind === 'block' ? blockPositionArgument() : entityArgument()).then(
                     arg('slots', stringArgument()).then(
-                        attach(arg('items', lootTableArgument()), (context) => {
+                        attachCount(arg('item_predicate', itemPredicateArgument()), (context) => {
                             const current = source(context);
-                            return (
-                                current.host.data.countData(
-                                    { kind: 'entity', entity: selectOne(current, value(context, 'source')) },
-                                    value(context, 'slots')
-                                ) > 0
+                            const sources: readonly SlotTarget[] =
+                                kind === 'block'
+                                    ? [{ kind, dimension: current.dimension, position: positionAt(context, 'source') }]
+                                    : select(current, value(context, 'source')).map((entity) => ({ kind, entity }));
+                            return current.host.data.countSlotItems(
+                                sources,
+                                { name: value(context, 'slots') },
+                                value(context, 'item_predicate')
                             );
                         })
                     )
                 )
             )
-        )
-    );
+        );
+    }
+    node.then(items);
 
     node.then(
         lit('slots').then(
             arg('slots', stringArgument()).then(
-                attach(arg('item', stringArgument()), (context) => {
+                attach(arg('item', itemPredicateArgument()), (context) => {
                     const current = source(context);
                     if (current.entity === undefined) return false;
                     return (
-                        current.host.data.countData(
-                            { kind: 'entity', entity: current.entity },
-                            value(context, 'slots')
+                        current.host.data.countSlotItems(
+                            [{ kind: 'entity', entity: current.entity }],
+                            { name: value(context, 'slots') },
+                            value(context, 'item')
                         ) > 0
                     );
                 })
