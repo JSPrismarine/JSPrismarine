@@ -1,4 +1,4 @@
-import type { EntityView, ItemStack } from '@jsprismarine/predicates';
+import type { EntityView, ItemStack, LevelView } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import type { LootContentOptions } from './content';
@@ -25,7 +25,8 @@ const rollModified = (
     name: string,
     modifier: unknown,
     content: LootContentOptions = {},
-    parameters: NonNullable<Parameters<typeof createLootContext>[0]>['parameters'] = { origin: { x: 0, y: 64, z: 0 } }
+    parameters: NonNullable<Parameters<typeof createLootContext>[0]>['parameters'] = { origin: { x: 0, y: 64, z: 0 } },
+    level?: LevelView
 ): { readonly stacks: readonly ItemStack[]; readonly diagnostics: readonly unknown[] } => {
     const parsed = parseLootTable({
         type: 'minecraft:chest',
@@ -33,7 +34,7 @@ const rollModified = (
     });
     expect(parsed.diagnostics).toEqual([]);
 
-    const context = createLootContext({ parameterSet: 'chest', parameters, content });
+    const context = createLootContext({ parameterSet: 'chest', parameters, content, ...(level ? { level } : {}) });
     return { stacks: rollLootTable(parsed.value, context), diagnostics: context.diagnostics.entries };
 };
 
@@ -213,6 +214,52 @@ describe('exploration maps', () => {
     it('leaves the stack alone when the search finds nothing', () => {
         const { stacks } = rollModified('minecraft:map', modifier, { structures: () => undefined });
 
+        expect(stacks[0]?.components.size).toBe(0);
+    });
+
+    it("searches the roll's level from its origin when the host passes no locator", () => {
+        const searches: unknown[] = [];
+        let lastMapId = 41;
+        const level: LevelView = {
+            nearestStructure: (destination, origin, searchRadius) => {
+                searches.push({ destination, origin, searchRadius });
+                return { x: -64, y: 70, z: 32 };
+            },
+            newMapId: () => ++lastMapId
+        };
+
+        const { stacks, diagnostics } = rollModified(
+            'minecraft:map',
+            modifier,
+            {},
+            { origin: { x: 5, y: 64, z: 9 } },
+            level
+        );
+
+        expect(diagnostics).toEqual([]);
+        expect(searches).toEqual([
+            { destination: '#minecraft:on_treasure_maps', origin: { x: 5, y: 64, z: 9 }, searchRadius: 50 }
+        ]);
+        expect(stacks[0]?.components.get('minecraft:map_id')).toBe(42);
+        expect(stacks[0]?.components.get('minecraft:map_decorations')).toEqual({
+            '+': { type: 'minecraft:woodland_mansion', x: -64, z: 32, rotation: 180 }
+        });
+    });
+
+    it('takes no map id when the level finds nothing', () => {
+        let allocated = 0;
+        const level: LevelView = { nearestStructure: () => undefined, newMapId: () => ++allocated };
+
+        const { stacks } = rollModified('minecraft:map', modifier, {}, undefined, level);
+
+        expect(allocated).toBe(0);
+        expect(stacks[0]?.components.size).toBe(0);
+    });
+
+    it('reports and leaves the stack alone when the level cannot search', () => {
+        const { stacks, diagnostics } = rollModified('minecraft:map', modifier, {}, undefined, {});
+
+        expect(diagnostics).toHaveLength(1);
         expect(stacks[0]?.components.size).toBe(0);
     });
 });

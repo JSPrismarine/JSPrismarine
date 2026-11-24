@@ -42,10 +42,16 @@ export interface LootContentOptions {
     readonly recipes?: ReadonlyMap<string, unknown>;
     /** Expands an item tag a smelting ingredient names, without the leading `#`. */
     readonly itemTag?: (tag: string) => readonly string[] | undefined;
-    /** Where `exploration_map` searches. Without it the modifier reports and leaves the stack alone. */
+    /**
+     * Where `exploration_map` searches. Defaults to the level view's `nearestStructure` from the
+     * roll's `origin`; a roll whose level has none reports and leaves the stack alone.
+     */
     readonly structures?: StructureLocator;
-    /** Allocates the `minecraft:map_id` an exploration map carries. */
-    readonly mapIds?: () => number;
+    /**
+     * Allocates the `minecraft:map_id` an exploration map carries. Defaults to the level view's
+     * `newMapId`; with neither, the map carries no id.
+     */
+    readonly mapIds?: (context: PredicateContext) => number | undefined;
     /**
      * Reads a player profile off an entity for `fill_player_head`. The default
      * returns the entity's own `minecraft:profile` component, which is what a
@@ -138,6 +144,23 @@ const profileComponent = (entity: unknown): unknown => {
 };
 
 /**
+ * The search a host that passes no {@link LootContentOptions.structures} gets: the level's own,
+ * from the roll's origin. Java's `ExplorationMapFunction` leaves the stack alone when the context
+ * has no origin, so that reports nothing.
+ */
+const levelStructureLocator: StructureLocator = (request, context) => {
+    const origin = context.parameters.origin;
+    if (origin === undefined) return undefined;
+
+    const level = context.level;
+    if (level?.nearestStructure === undefined) {
+        context.diagnostics.warn('exploration_map', 'the level view does not implement nearestStructure');
+        return undefined;
+    }
+    return level.nearestStructure(request.destination, origin, request.searchRadius);
+};
+
+/**
  * Builds the content view for one roll. The view needs the context it will be
  * attached to, because `set_contents` rolls its nested entries against that
  * same context, so {@link createLootContext} closes the loop rather than
@@ -176,24 +199,25 @@ const createContentView = (
         };
     }
 
-    if (options.structures !== undefined) {
-        const locate = options.structures;
-        view.explorationMap = (stack: ItemStack, request: ExplorationMapRequest): ItemStack | undefined => {
-            const evaluation = evaluationOf();
-            if (evaluation === undefined) return undefined;
+    const locate = options.structures ?? levelStructureLocator;
+    view.explorationMap = (stack: ItemStack, request: ExplorationMapRequest): ItemStack | undefined => {
+        const evaluation = evaluationOf();
+        if (evaluation === undefined) return undefined;
 
-            const found = locate(request, evaluation.context);
-            if (found === undefined) return undefined;
+        const { context } = evaluation;
+        const found = locate(request, context);
+        if (found === undefined) return undefined;
 
-            const items = evaluation.context.items;
-            const withId =
-                options.mapIds === undefined ? stack : items.withComponent(stack, 'minecraft:map_id', options.mapIds());
-            // Java's `MapItemSavedData.addTargetDecoration` keys the entry "+" and faces it south.
-            return items.withComponent(withId, 'minecraft:map_decorations', {
-                '+': { type: request.decoration, x: found.x, z: found.z, rotation: 180 }
-            });
-        };
-    }
+        // Allocated after the search, as Java's `MapItem.create` is, so a search that finds
+        // nothing uses up no id.
+        const mapId = options.mapIds === undefined ? context.level?.newMapId?.() : options.mapIds(context);
+        const items = context.items;
+        const withId = mapId === undefined ? stack : items.withComponent(stack, 'minecraft:map_id', mapId);
+        // Java's `MapItemSavedData.addTargetDecoration` keys the entry "+" and faces it south.
+        return items.withComponent(withId, 'minecraft:map_decorations', {
+            '+': { type: request.decoration, x: found.x, z: found.z, rotation: 180 }
+        });
+    };
 
     return view;
 };
