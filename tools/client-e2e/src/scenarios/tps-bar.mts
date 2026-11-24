@@ -64,12 +64,15 @@ export const tpsBar: Scenario = {
             ),
             `the client never showed a boss bar; its boss lines: ${JSON.stringify(bossLines(client).slice(before))}`
         );
-        // Two redraws, so the bar has been updated in place, then a look at it.
+        // Two redraws, so the bar has been updated in place, then a look at it. A redraw that
+        // changes the bar's color sends a Hide and a Show, since an Add is the only event every
+        // client takes a color from; a slow runner crosses an MSPT level and does that. So the
+        // bar is kept when no bar was retired and the last lifecycle line shows it.
         await waitTicks(server, 45);
         const shown = bossLines(client).slice(before);
-        assert.deepEqual(
-            shown.filter((line) => BOSS_RETIRED.test(line) || /action=Hide/.test(line)),
-            [],
+        const lifecycle = shown.filter((line) => BOSS_LIFECYCLE.test(line));
+        assert.ok(
+            !shown.some((line) => BOSS_RETIRED.test(line)) && /action=Show.*applied=true/.test(lifecycle.at(-1) ?? ''),
             `the client dropped the bar after showing it: ${JSON.stringify(shown)}`
         );
         await client.screenshot(path.join(artifacts, 'tps-bar.png'));
