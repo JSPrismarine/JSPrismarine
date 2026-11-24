@@ -1,9 +1,11 @@
 import type { CommandInfo, SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
 import { BoxRenderable, InputRenderable, TextRenderable, parseColor } from '@opentui/core';
-import { createTestRenderer } from '@opentui/core/testing';
+import { ManualClock, createTestRenderer } from '@opentui/core/testing';
+import type { TestRendererOptions } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { ConsoleClipboard } from '../clipboard';
 import { CommandHistory } from '../input/history';
 import { COMMAND_CATALOG, KEY_PLATFORMS, bindingsFor, formatBinding } from '../keymap/catalog';
 import type { CommandId, KeyBinding } from '../keymap/catalog';
@@ -18,8 +20,47 @@ const AT = new Date(2026, 0, 1, 12, 0, 1).getTime();
 const logMessage = (message: string, level: LogLevel = 'info') =>
     ({ type: 'log', v: 1, seq: 1, level, namespace: 'Server', at: AT, message, formatted: message }) as const;
 
+/**
+ * A clipboard that keeps what the app copies instead of reaching the system clipboard, and
+ * answers reads with the text a test sets.
+ */
+class RecordingClipboard implements ConsoleClipboard {
+    /** Each text the app copied, in order. */
+    readonly copies: string[] = [];
+    /** What a copy resolves to; false stands for a terminal with no clipboard to reach. */
+    reachable = true;
+    /** What a read returns. */
+    text: string | undefined;
+    private last: Promise<unknown> = Promise.resolve();
+
+    copy(text: string): Promise<boolean> {
+        this.copies.push(text);
+        return this.track(Promise.resolve(this.reachable));
+    }
+
+    read(): Promise<string | undefined> {
+        return this.track(Promise.resolve(this.text));
+    }
+
+    async dispose(): Promise<void> {}
+
+    /**
+     * Resolves once the app has handled the answer to its latest copy or read. The app chains
+     * its handler onto the promise it was given before the test gets here, so a reaction added
+     * now runs after it.
+     */
+    async settled(): Promise<void> {
+        await this.last;
+    }
+
+    private track<T>(answer: Promise<T>): Promise<T> {
+        this.last = answer;
+        return answer;
+    }
+}
+
 async function setup(
-    size: { width: number; height: number },
+    size: { width: number; height: number; clock?: TestRendererOptions['clock'] },
     overrides: Partial<AppProps> = {},
     now: () => number = () => AT
 ) {
@@ -28,12 +69,7 @@ async function setup(
     const actions = { restart: vi.fn(), stop: vi.fn(), forceStop: vi.fn() };
     const store = new LogStore();
     const history = new CommandHistory();
-    let clipboardText: string | undefined;
-    const clipboard = {
-        copy: vi.fn(async (_text: string) => true),
-        read: vi.fn(async (): Promise<string | undefined> => clipboardText),
-        dispose: vi.fn(async () => {})
-    };
+    const clipboard = new RecordingClipboard();
     const app = createApp(
         { renderer: test.renderer, theme: defaultTheme, store, history, now, clipboard },
         {
@@ -57,7 +93,7 @@ async function setup(
     };
     /** Sets what a read of the clipboard returns. */
     const setClipboard = (text: string | undefined): void => {
-        clipboardText = text;
+        clipboard.text = text;
     };
     return { ...test, dispose, app, store, history, commands, actions, clipboard, setClipboard };
 }
@@ -66,8 +102,11 @@ type AppHarness = Awaited<ReturnType<typeof setup>>;
 
 const byId = (t: AppHarness, id: string) => t.renderer.root.findDescendantById(id);
 
-/** Lets pending promise callbacks, such as a clipboard read, run. */
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+/**
+ * `CSI 27u` is Esc in the kitty keyboard protocol. A lone ESC byte stays pending until the input
+ * parser's timeout tells it from the start of a sequence; this form is complete on arrival.
+ */
+const ESCAPE = '\u001B[27u';
 
 /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
 const cmd = (letter: string) => `\u001B[${letter.charCodeAt(0)};9u`;
@@ -120,9 +159,9 @@ const visibleLevels = (t: AppHarness): string[] => {
 };
 
 async function focusLog(t: AppHarness): Promise<void> {
-    t.mockInput.pressEscape();
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    await t.waitForFrame(() => !inputFocused(t));
+    t.mockInput.pressKey(ESCAPE);
+    await t.renderOnce();
+    expect(inputFocused(t)).toBe(false);
 }
 
 describe('createApp', () => {
@@ -306,7 +345,7 @@ describe('createApp', () => {
             t.mockInput.pressKey('o');
             await t.renderOnce();
 
-            expect(t.clipboard.copy).toHaveBeenCalledWith(trace.join('\n'));
+            expect(t.clipboard.copies).toEqual([trace.join('\n')]);
             expect(opened).toEqual([{ path: '/repo/packages/chunkgen/dist/ChunkHolder.js', line: 133, column: 19 }]);
         });
 
@@ -510,10 +549,10 @@ describe('createApp', () => {
             dispose = t.dispose;
 
             await selectInLog(t, 'copy me');
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
-            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+            expect(t.clipboard.copies).toEqual(['copy me']);
             expect(notices(t)).toEqual(['muted']);
         });
 
@@ -521,17 +560,17 @@ describe('createApp', () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
             await selectInLog(t, 'copy me');
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
-            expect(t.clipboard.copy).toHaveBeenCalledOnce();
+            expect(t.clipboard.copies).toHaveLength(1);
 
             const [toast] = byId(t, 'toast-stack')!.getChildren();
             const close = byId(t, `${toast!.id}-close`)!;
             await t.mockMouse.click(close.x + 1, close.y);
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
-            expect(t.clipboard.copy).toHaveBeenCalledOnce();
+            expect(t.clipboard.copies).toHaveLength(1);
             expect(notices(t)).toEqual([]);
         });
 
@@ -539,17 +578,17 @@ describe('createApp', () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
             await selectInLog(t, 'copy me');
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
-            t.clipboard.copy.mockClear();
+            t.clipboard.copies.length = 0;
 
             const rows = t.captureCharFrame().split('\n');
             const y = rows.findIndex((row) => row.includes('copied selection'));
             const x = rows[y]!.indexOf('copied selection');
             await t.mockMouse.drag(x, y, x + 'copied selection'.length, y);
-            await flush();
+            await t.clipboard.settled();
 
-            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.clipboard.copies).toEqual([]);
         });
 
         it('does not copy when a tab on the TPS page is clicked', async () => {
@@ -564,10 +603,10 @@ describe('createApp', () => {
             const x = rows[y]!.indexOf(' 15m ');
             await t.mockMouse.click(x + 1, y);
             await t.mockMouse.drag(x, y, x + 4, y);
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
-            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.clipboard.copies).toEqual([]);
             expect(t.captureCharFrame()).toContain('-15m');
         });
 
@@ -584,38 +623,38 @@ describe('createApp', () => {
 
             await t.mockMouse.drag(barX, bar, barX + 6, bar);
             await t.mockMouse.drag(paneX, pane, paneX + 7, pane);
-            await flush();
+            await t.clipboard.settled();
 
-            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.clipboard.copies).toEqual([]);
         });
 
         it('copies the selection again on Ctrl+C when the log pane has focus', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
             await selectInLog(t, 'copy me');
-            t.clipboard.copy.mockClear();
+            t.clipboard.copies.length = 0;
 
             t.mockInput.pressCtrlC();
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
-            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+            expect(t.clipboard.copies).toEqual(['copy me']);
         });
 
         it('copies on Cmd+C even when the command line has focus', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
             await selectInLog(t, 'copy me');
-            t.clipboard.copy.mockClear();
+            t.clipboard.copies.length = 0;
             t.app.focus();
             await t.renderOnce();
             expect(inputFocused(t)).toBe(true);
 
             t.mockInput.pressKey(cmd('c'));
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
-            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
+            expect(t.clipboard.copies).toEqual(['copy me']);
             expect(commandLine(t)).toBe('');
         });
 
@@ -628,18 +667,18 @@ describe('createApp', () => {
             await t.renderOnce();
 
             t.mockInput.pressKey(cmd('c'));
-            await flush();
+            await t.clipboard.settled();
 
-            expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('lo');
+            expect(t.clipboard.copies).toEqual(['lo']);
         });
 
         it('says so when no clipboard could be reached', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
-            t.clipboard.copy.mockResolvedValue(false);
+            t.clipboard.reachable = false;
 
             await selectInLog(t, 'copy me');
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
             expect(notices(t)).toEqual(['warning']);
@@ -652,18 +691,18 @@ describe('createApp', () => {
             t.mockInput.pressKey(cmd('c'));
             await t.renderOnce();
 
-            expect(t.clipboard.copy).not.toHaveBeenCalled();
+            expect(t.clipboard.copies).toEqual([]);
             expect(notices(t)).toEqual(['muted']);
         });
 
         it('pastes the clipboard text on Cmd+V into the command line and focuses it', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
-            t.clipboard.read.mockResolvedValue('say pasted');
+            t.setClipboard('say pasted');
             await focusLog(t);
 
             t.mockInput.pressKey(cmd('v'));
-            await flush();
+            await t.clipboard.settled();
             await t.renderOnce();
 
             expect(commandLine(t)).toBe('say pasted');
@@ -736,7 +775,8 @@ describe('createApp', () => {
     });
 
     it('closes the help overlay with Esc', async () => {
-        const t = await setup({ width: 120, height: 40 });
+        const clock = new ManualClock();
+        const t = await setup({ width: 120, height: 40, clock });
         dispose = t.dispose;
         await focusLog(t);
 
@@ -744,10 +784,14 @@ describe('createApp', () => {
         await t.renderOnce();
         expect(shown(t, 'help-overlay')).toBe(true);
 
+        // A lone ESC byte, as a terminal without the kitty protocol sends it, stays pending until
+        // the input parser's timeout tells it from the start of a sequence.
         t.mockInput.pressEscape();
-        // A lone ESC byte stays pending until the parser's 20 ms timeout fires.
-        await new Promise((resolve) => setTimeout(resolve, 30));
-        await t.waitForFrame(() => !shown(t, 'help-overlay'));
+        await t.renderOnce();
+        expect(shown(t, 'help-overlay')).toBe(true);
+        clock.advance(1000);
+        await t.renderOnce();
+        expect(shown(t, 'help-overlay')).toBe(false);
     });
 
     it('toggles the side pane back with a second Ctrl+B', async () => {
@@ -791,7 +835,7 @@ describe('createApp', () => {
         t.mockInput.pressCtrlC();
         await t.renderOnce();
         expect(t.actions.stop).toHaveBeenCalledOnce();
-        expect(t.clipboard.copy).not.toHaveBeenCalled();
+        expect(t.clipboard.copies).toEqual([]);
     });
 
     it('opens help on ? from an empty command line', async () => {
@@ -1004,9 +1048,9 @@ describe('createApp', () => {
             await t.renderOnce();
             expect(shown(t, 'tps-page')).toBe(true);
 
-            t.mockInput.pressEscape();
-            await new Promise((resolve) => setTimeout(resolve, 30));
-            await t.waitForFrame(() => !shown(t, 'tps-page'));
+            t.mockInput.pressKey(ESCAPE);
+            await t.renderOnce();
+            expect(shown(t, 'tps-page')).toBe(false);
             expect(inputFocused(t)).toBe(false);
         });
 
@@ -1120,8 +1164,7 @@ describe('createApp', () => {
             const t = await setup({ width: 80, height: 24 });
             dispose = t.dispose;
             reportTps(t, [20, 19]);
-            t.mockInput.pressEscape();
-            await new Promise((resolve) => setTimeout(resolve, 30));
+            t.mockInput.pressKey(ESCAPE);
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
@@ -1190,7 +1233,7 @@ describe('createApp', () => {
 
         const press = (t: Harness, binding: KeyBinding): void => {
             if (binding.name === 'escape') {
-                t.mockInput.pressEscape();
+                t.mockInput.pressKey(ESCAPE);
                 return;
             }
             const named = NAMED_KEYS[binding.name];
@@ -1339,7 +1382,6 @@ describe('createApp', () => {
             await prepare[id]?.(t);
             await t.renderOnce();
             press(t, binding);
-            if (binding.name === 'escape') await new Promise((resolve) => setTimeout(resolve, 30));
             await t.renderOnce();
             await t.renderOnce();
 
@@ -1387,7 +1429,7 @@ describe('createApp', () => {
 
             t.mockInput.pressKey('k', { ctrl: true });
             t.mockInput.pressKey(cmd('v'));
-            await flush();
+            await t.clipboard.settled();
             t.mockInput.pressEnter();
             await t.renderOnce();
 
@@ -1418,17 +1460,24 @@ describe('createApp', () => {
         });
 
         it('keeps the command list of the newest server when an older answer arrives late', async () => {
-            const answers: ((commands: readonly CommandInfo[]) => void)[] = [];
+            const answers: PromiseWithResolvers<readonly CommandInfo[]>[] = [];
             const t = await setup(
                 { width: 120, height: 40 },
-                { onCommands: () => new Promise((resolve) => answers.push(resolve)) }
+                {
+                    onCommands: () => {
+                        const answer = Promise.withResolvers<readonly CommandInfo[]>();
+                        answers.push(answer);
+                        return answer.promise;
+                    }
+                }
             );
             dispose = t.dispose;
             t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
             t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 2 });
-            answers[1]?.([{ name: 'teleport', aliases: [], usage: ['teleport <destination>'] }]);
-            answers[0]?.([{ name: 'oldcommand', aliases: [], usage: ['oldcommand'] }]);
-            await flush();
+            answers[1]?.resolve([{ name: 'teleport', aliases: [], usage: ['teleport <destination>'] }]);
+            answers[0]?.resolve([{ name: 'oldcommand', aliases: [], usage: ['oldcommand'] }]);
+            // The app's handlers were chained onto these promises first, so they have run by now.
+            await Promise.all(answers.map((answer) => answer.promise));
 
             await t.mockInput.typeText('teleport ');
             await t.renderOnce();

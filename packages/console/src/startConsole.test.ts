@@ -1,6 +1,7 @@
 import { memoryLinkPair } from '@jsprismarine/console-protocol';
 import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protocol';
 import { TextRenderable } from '@opentui/core';
+import { createTestRenderer } from '@opentui/core/testing';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,17 +9,53 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { startConsole, TERMINAL_RESET } from './startConsole';
 import type { ConsoleHandle } from './startConsole';
-import { fakeSupervisor, startTestConsole } from './testing/console.test-utils';
-
-const nextTick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+import { fakeSupervisor, startTestConsole, tempHistoryFile } from './testing/console.test-utils';
 
 async function setup(historyFile?: string) {
     const { test, supervisor, handle, historyFile: file } = await startTestConsole(undefined, historyFile);
     const [consoleEnd, serverEnd] = memoryLinkPair<ServerMessage, ConsoleMessage>();
     const received: ConsoleMessage[] = [];
-    serverEnd.onMessage((message) => received.push(message));
+    const waiting = new Set<(message: ConsoleMessage) => boolean>();
+    serverEnd.onMessage((message) => {
+        received.push(message);
+        for (const waiter of waiting) if (waiter(message)) waiting.delete(waiter);
+    });
+    /** Resolves with the first message of `type` the server end receives, now or later. */
+    const receivedOf = <T extends ConsoleMessage['type']>(type: T) => {
+        type Message = Extract<ConsoleMessage, { type: T }>;
+        const matches = (message: ConsoleMessage): message is Message => message.type === type;
+        const seen = received.find(matches);
+        if (seen !== undefined) return Promise.resolve(seen);
+        const { promise, resolve } = Promise.withResolvers<Message>();
+        waiting.add((message) => {
+            if (!matches(message)) return false;
+            resolve(message);
+            return true;
+        });
+        return promise;
+    };
 
-    return { test, supervisor, handle, consoleEnd, serverEnd, received, historyFile: file };
+    return { test, supervisor, handle, consoleEnd, serverEnd, received, receivedOf, historyFile: file };
+}
+
+/**
+ * `process.stdout` as seen through a proxy that records writes instead of sending them to the
+ * terminal running the tests; every other member is the real stream's.
+ */
+function recordingStdout() {
+    const writes: unknown[] = [];
+    const write = (chunk: unknown): boolean => {
+        writes.push(chunk);
+        return true;
+    };
+    const stdout = new Proxy(process.stdout, {
+        get(target, key) {
+            if (key === 'write') return write;
+            const value: unknown = Reflect.get(target, key, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        }
+    });
+    return { stdout, writes };
 }
 
 describe('startConsole', () => {
@@ -34,7 +71,7 @@ describe('startConsole', () => {
         handle = t.handle;
 
         t.supervisor.attach(t.consoleEnd);
-        await nextTick();
+        await t.receivedOf('subscribe');
 
         expect(t.received).toEqual([{ type: 'subscribe', v: 1, level: 'silly' }]);
     });
@@ -44,36 +81,30 @@ describe('startConsole', () => {
         handle = t.handle;
         t.supervisor.attach(t.consoleEnd);
         t.serverEnd.send({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
-        await nextTick();
 
-        const request = t.received.find((message) => message.type === 'commands');
-        if (request?.type !== 'commands') throw new Error('no commands request received');
+        const request = await t.receivedOf('commands');
         t.serverEnd.send({
             type: 'commands.result',
             v: 1,
             id: request.id,
             commands: [{ name: 'stop', description: 'Stops the server.', aliases: [], usage: ['stop'] }]
         });
-        await nextTick();
 
+        // The card shows for a typed command once the list arrives, whichever comes first.
         await t.test.mockInput.typeText('stop');
-        await t.test.renderOnce();
-        expect(t.test.renderer.root.findDescendantById('usage-card')?.visible).toBe(true);
+        await t.test.waitFor(() => t.test.renderer.root.findDescendantById('usage-card')?.visible === true);
     });
 
     it('sends a typed command and resolves it with the matching result', async () => {
         const t = await setup();
         handle = t.handle;
         t.supervisor.attach(t.consoleEnd);
-        await nextTick();
 
         await t.test.mockInput.typeText('say hi');
         t.test.mockInput.pressEnter();
-        await nextTick();
 
-        const command = t.received.find((message) => message.type === 'command');
+        const command = await t.receivedOf('command');
         expect(command).toMatchObject({ type: 'command', v: 1, line: 'say hi' });
-        if (command?.type !== 'command') throw new Error('no command received');
 
         t.serverEnd.send({ type: 'command.result', v: 1, id: command.id, ok: false, error: 'Unknown command "say"' });
         await t.test.waitForFrame((frame) => frame.includes('Unknown command "say"'));
@@ -137,14 +168,13 @@ describe('startConsole', () => {
         const t = await setup();
         handle = t.handle;
         t.supervisor.attach(t.consoleEnd);
-        await nextTick();
 
         expect(hasHandler('exit', 'restoreTerminal')).toBe(true);
         expect(hasHandler('uncaughtException', 'onUncaught')).toBe(true);
         expect(hasHandler('unhandledRejection', 'onUnhandledRejection')).toBe(true);
         await t.test.mockInput.typeText('list');
         t.test.mockInput.pressEnter();
-        await nextTick();
+        await t.receivedOf('command');
 
         await t.handle.close();
 
@@ -157,11 +187,18 @@ describe('startConsole', () => {
     });
 
     it('only restores the terminal on an uncaught error and leaves printing and exiting to the host', async () => {
-        const t = await setup();
-        handle = t.handle;
-        const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-        const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-        const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        const { stdout, writes } = recordingStdout();
+        handle = await startConsole({
+            supervisor: fakeSupervisor(),
+            env: {},
+            stdout,
+            historyFile: tempHistoryFile(),
+            createRenderer: async () => (await createTestRenderer({ width: 80, height: 24 })).renderer
+        });
+        // Observers only: a call to either would still print or exit, and Vitest fails a test
+        // that calls process.exit.
+        const stderr = vi.spyOn(process.stderr, 'write');
+        const exit = vi.spyOn(process, 'exit');
         try {
             const onUncaught = process
                 .listeners('uncaughtException')
@@ -170,11 +207,10 @@ describe('startConsole', () => {
 
             onUncaught(new Error('boom'), 'uncaughtException');
 
-            expect(stdout).toHaveBeenCalledWith(TERMINAL_RESET);
+            expect(writes).toEqual([TERMINAL_RESET]);
             expect(stderr).not.toHaveBeenCalled();
             expect(exit).not.toHaveBeenCalled();
         } finally {
-            stdout.mockRestore();
             stderr.mockRestore();
             exit.mockRestore();
         }
