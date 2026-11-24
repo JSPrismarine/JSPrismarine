@@ -10,6 +10,7 @@ import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
+import { lootLevelOf } from '@jsprismarine/prismarine/world/lootLevel';
 import { STATION_BY_TYPE, recipeIngredients, recipeResult } from '@jsprismarine/recipes';
 import type { Ingredient, Recipe, RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
 import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -22,6 +23,7 @@ import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse 
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
+import { isRecord } from './isRecord.ts';
 import { realStack, serverContent } from './serverStack.ts';
 
 /** One Java mechanic named by a Java registry entry. */
@@ -92,6 +94,91 @@ const professionScenario: BehaviorScenario<Mechanic> = {
             normalized(path.replace(/^.*\//, '').replace(/_trades\.json$/, ''))
         );
         return tables.includes(wanted) ? undefined : `no trade table is named for the ${profession.id} profession`;
+    }
+};
+
+/** Where the stand-in world's structure search finds every structure, far from {@link MAP_ORIGIN}. */
+const FOUND_STRUCTURE = { x: 1200, y: 63, z: -880 };
+const MAP_ORIGIN = { x: 8, y: 64, z: 8 };
+
+/** The vanilla entries of one registry whose JSON runs `exploration_map`. */
+const explorationMapEntries = (registry: 'loot_table' | 'villager_trade'): readonly string[] => {
+    const root = join(unpackVanillaDatapack(), 'data', 'minecraft', registry);
+    return javaDatapackEntries(registry).filter((id) =>
+        readFileSync(join(root, `${id.slice('minecraft:'.length)}.json`), 'utf-8').includes('minecraft:exploration_map')
+    );
+};
+
+/**
+ * Why a stack is not the map Java's `ExplorationMapFunction` makes: a `map_id`, and a target
+ * decoration where the search found the structure.
+ */
+const explorerMapDifference = (stack: { readonly components: ReadonlyMap<string, unknown> } | undefined) => {
+    if (stack === undefined) return 'the map was discarded';
+    if (!stack.components.has('minecraft:map_id')) return 'the map has no map_id';
+    const decorations = stack.components.get('minecraft:map_decorations');
+    const target = typeof decorations === 'object' && decorations !== null ? Object.values(decorations)[0] : undefined;
+    return typeof target === 'object' && target !== null && 'x' in target && target.x === FOUND_STRUCTURE.x
+        ? undefined
+        : 'the map points at no structure the world found';
+};
+
+const explorationMapScenario: BehaviorScenario<{ readonly id: string }> = {
+    name: 'exploration-map',
+    java: "A loot table's or a trade's explorer map gets a map id and points at the nearest structure its destination names.",
+    reference: 'Java 26.3 ExplorationMapFunction and ServerLevel.findNearestMapStructure',
+    subjects: () => [
+        ...explorationMapEntries('loot_table').map((id) => ({ id: `loot_table/${id}` })),
+        ...explorationMapEntries('villager_trade').map((id) => ({ id: `villager_trade/${id}` }))
+    ],
+    idOf: (entry) => entry.id,
+    covers: () => undefined,
+    run: (entry) => {
+        const content = serverContent();
+        let lastMapId = -1;
+        // The server's own level view over a world whose search always succeeds, so a row fails
+        // only when the roll never asks the world or drops what it answered.
+        const level = lootLevelOf({
+            getTicks: () => 0,
+            getDimension: () => ({ name: 'minecraft:overworld' }),
+            locateStructure: () => FOUND_STRUCTURE,
+            nextMapId: () => ++lastMapId
+        });
+        const [registry, id = ''] = entry.id.split('/minecraft:');
+
+        if (registry === 'villager_trade') {
+            const trade = content.definitions.villagerTrades.get(`minecraft:${id}`)?.data;
+            const json = isRecord(trade) ? trade : {};
+            const gives = json['gives'];
+            const item =
+                typeof gives === 'object' && gives !== null && 'id' in gives && typeof gives.id === 'string'
+                    ? gives.id
+                    : 'minecraft:map';
+            const modifier = content.loot.itemModifier(json['given_item_modifier'], entry.id);
+            const context = content.loot.context(undefined, {
+                parameterSet: 'villager_trade',
+                parameters: {
+                    origin: MAP_ORIGIN,
+                    this_entity: { type: 'minecraft:villager', position: MAP_ORIGIN },
+                    additional_cost_component_allowed: true
+                },
+                level
+            });
+            return explorerMapDifference(modifier({ id: item, count: 1, components: new Map() }, context));
+        }
+
+        // A ruin or a camp rolls its map in one chest of several, so a row rolls until a map
+        // comes out or a hundred chests have gone by.
+        for (let attempt = 0; attempt < 100; attempt++) {
+            const rolled = content.loot.roll(`minecraft:${id}`, {
+                parameterSet: 'chest',
+                parameters: { origin: MAP_ORIGIN },
+                level
+            });
+            const map = rolled.find((stack) => stack.components.has('minecraft:map_decorations'));
+            if (map !== undefined) return explorerMapDifference(map);
+        }
+        return 'no roll in a hundred produced a map';
     }
 };
 
@@ -433,6 +520,7 @@ describeFamily(
                 scenarioGroup([professionScenario]),
                 scenarioGroup(playerScenarios),
                 scenarioGroup([recipeScenario]),
+                scenarioGroup([explorationMapScenario]),
                 scenarioGroup([hurtExhaustionScenario]),
                 scenarioGroup([difficultyScenario])
             );

@@ -585,12 +585,12 @@ A villager and a wandering trader trade from Java's `trade_set` and `villager_tr
 when the content holds the sets for the profession their Bedrock table names, and from the table
 otherwise. The offers, prices, uses, experience and price multipliers are Java's. The Java loot
 registry runs each trade's `merchant_predicate` and `given_item_modifier`, with the trader's
-`minecraft:mark_variant` read as its biome type. An explorer map trade makes no offer, because
-`exploration_map` has no structure locator to point the map at
-([#3530](https://github.com/JSPrismarine/JSPrismarine/issues/3530)), and the modifier's filter then
-discards it as Java's does when no structure is in range. A trade stack reaches the client with its
-aux value and enchantments only, so dyed armor, suspicious stew and tipped arrows arrive without
-what their modifier wrote ([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The
+`minecraft:mark_variant` read as its biome type. An explorer map trade searches the trader's world
+for the structure its destination names, the same search `/locate structure` runs, and gives a map
+with a new `minecraft:map_id` and a marker on that structure. When none is in range, the modifier's
+filter discards the map and the trade makes no offer, as Java's does. A trade stack reaches the
+client with its aux value and enchantments only, so dyed armor, suspicious stew, tipped arrows and
+explorer maps arrive without what their modifier wrote ([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The
 discounts still come from the Bedrock `minecraft:economy_trade_table` component.
 
 On a default build only 18 of the 27 tables load, because BDS ships eleven of them as an
