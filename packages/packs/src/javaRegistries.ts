@@ -58,6 +58,8 @@ export const JAVA_REGISTRY_IDS = [
     'trialSpawners',
     'timelines',
     'worldClocks',
+    'dispenseBehaviors',
+    'blockSoundSets',
     'worldgen'
 ] as const;
 
@@ -119,6 +121,8 @@ export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
     trialSpawners: 'override',
     timelines: 'override',
     worldClocks: 'override',
+    dispenseBehaviors: 'override',
+    blockSoundSets: 'override',
     worldgen: 'override'
 };
 
@@ -172,7 +176,10 @@ export const JAVA_REGISTRY_DIRECTORIES: Readonly<
     trade_set: 'tradeSets',
     trial_spawner: 'trialSpawners',
     timeline: 'timelines',
-    world_clock: 'worldClocks'
+    world_clock: 'worldClocks',
+    // 26.4 (format 128) adds these two. A 26.3 datapack has neither directory.
+    dispense_behavior: 'dispenseBehaviors',
+    block_sound_set: 'blockSoundSets'
 };
 
 /** The directory under `data/<namespace>/` whose subdirectories are the worldgen registries. */

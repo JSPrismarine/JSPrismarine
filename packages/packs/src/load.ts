@@ -215,6 +215,8 @@ const emptyRegistries = (): DefinitionRegistries => ({
     trialSpawners: new Map(),
     timelines: new Map(),
     worldClocks: new Map(),
+    dispenseBehaviors: new Map(),
+    blockSoundSets: new Map(),
     dimensions: new Map(),
     worldgen: new Map()
 });
@@ -371,6 +373,8 @@ const loadCachedPrefix = (
         trialSpawners: new Map(prefixResult.definitions.trialSpawners),
         timelines: new Map(prefixResult.definitions.timelines),
         worldClocks: new Map(prefixResult.definitions.worldClocks),
+        dispenseBehaviors: new Map(prefixResult.definitions.dispenseBehaviors),
+        blockSoundSets: new Map(prefixResult.definitions.blockSoundSets),
         dimensions: new Map(prefixResult.definitions.dimensions),
         worldgen: new Map(prefixResult.definitions.worldgen)
     };

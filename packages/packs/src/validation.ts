@@ -123,6 +123,8 @@ interface JavaShape {
     optional?: Readonly<Record<string, 'object' | 'array' | 'string' | 'number'>>;
     /** Whether a root array is also a valid file, as it is for predicates and item modifiers. */
     allowsArrayRoot?: boolean;
+    /** Whether the file must be a root array, as a 26.4 dispense behavior's list of behaviors is. */
+    requiresArrayRoot?: boolean;
     /** Whether the file is text rather than JSON, which only an mcfunction is. */
     allowsTextRoot?: boolean;
     /**
@@ -188,6 +190,10 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     timelines: { required: { clock: 'string' }, optional: { tracks: 'object', period_ticks: 'number' } },
     // Vanilla's clocks are empty objects: a clock is only an id timelines run against.
     worldClocks: {},
+    // The behaviors a dispenser tries in order until one handles the item.
+    dispenseBehaviors: { requiresArrayRoot: true },
+    // Each sound is a sound id or an inline sound definition, and every field is optional.
+    blockSoundSets: { optional: { volume: 'number', pitch: 'number' } },
     worldgen: { allowsAnyRoot: true }
 };
 
@@ -205,6 +211,11 @@ const validateJavaDefinition = (registry: JavaRegistryId, data: unknown): Valida
     const findings: ValidationFinding[] = [];
 
     if (shape.allowsTextRoot || shape.allowsAnyRoot) return findings;
+    if (shape.requiresArrayRoot) {
+        return Array.isArray(data)
+            ? findings
+            : [{ severity: 'error', code: 'definition.not-an-array', message: 'the file is not a JSON array' }];
+    }
     if (shape.allowsArrayRoot && Array.isArray(data)) return findings;
     if (!isRecord(data)) {
         return [
