@@ -10,11 +10,11 @@
  * (`javaBedrockPairs`): its `jsp/v<protocol>/` capture and its block palette
  * snapshot. `pair.json` beside the tables records the pair.
  *
- * Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` first; it
- * populates `node_modules/.cache/jsprismarine/`. This script runs the Java
- * data generator against the hash-verified jar when its reports are missing
- * from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or
- * `JSP_JAVA_HOME` point at one).
+ * Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and then
+ * `datagen:java --java <release>` first; they populate
+ * `node_modules/.cache/jsprismarine/`. This script reads the vanilla datapack
+ * and the data reports where `datagen:java` lays them out, and never runs the
+ * Java data generator itself.
  *
  * GeyserMC's tables are made for one Java release, `geyserMappings.javaVersion`
  * in `sources.json`. For a newer release, the block states and identifiers
@@ -27,7 +27,6 @@
  * mapping nor a reviewed loss entry, and when any produced Bedrock block
  * state is not in the pinned palette. Every refusal is a thrown error.
  */
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +36,7 @@ import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths'
 // The pair resolver of the package that owns `sources.json`; generator scripts are not published.
 import { compareJavaReleases } from '../../../bedrock-data/utils/fetch/manifest.ts';
 import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
+import { worldgenCachePaths } from '../../../bedrock-data/utils/java/worldgen-cache.ts';
 
 import type { BedrockBiomeLoss } from '../../src/lossList.ts';
 import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
@@ -76,8 +76,7 @@ const samplesDir = join(
     `bedrock-samples-${sources.bedrockSamples.commit}`,
     'metadata/vanilladata_modules'
 );
-const serverJarOf = (release: string): string => join(cacheRoot, 'java-server', release, 'server.jar');
-for (const required of [geyserDir, samplesDir, serverJarOf(javaVersion)]) {
+for (const required of [geyserDir, samplesDir]) {
     if (!existsSync(required)) {
         throw new Error(
             `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` first.`
@@ -86,75 +85,45 @@ for (const required of [geyserDir, samplesDir, serverJarOf(javaVersion)]) {
 }
 
 // ---------------------------------------------------------------------------
-// The Java data generator reports (run against the hash-verified jar)
+// The Java data generator output, as `datagen:java` lays it out
 // ---------------------------------------------------------------------------
 
-/** Finds a JDK of at least version 25, which the 26.3 server requires. */
-const findJava = (): string => {
-    const candidates: string[] = [];
-    for (const env of ['JSP_JAVA_HOME', 'JAVA_HOME']) {
-        const home = process.env[env];
-        if (home) candidates.push(home);
-    }
-    if (process.platform === 'darwin') {
-        try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', '25+'], { encoding: 'utf8' }).trim();
-            if (home) candidates.push(home);
-        } catch {
-            // No registered JVM matches; the error below says what to install.
-        }
-    }
-    for (const home of candidates) {
-        const java = join(home, 'bin/java');
-        if (!existsSync(java)) continue;
-        // `java --version` prints `openjdk 27 2026-09-15` on stdout; the older `-version`
-        // prints its banner to stderr and leaves stdout empty, so every JDK looked too old.
-        const banner = execFileSync(java, ['--version'], { encoding: 'utf8' });
-        const major = Number(/\b(\d+)/.exec(banner.split('\n')[0] ?? '')?.[1]);
-        if (major >= 25) return java;
-    }
-    throw new Error('No JDK >= 25 found. Point JAVA_HOME or JSP_JAVA_HOME at one.');
-};
+/** Where one Java release's data reports and vanilla datapack are. */
+interface JavaGeneratedData {
+    /** The data generator output root, the directory holding `reports/`. */
+    reports: string;
+    /** The vanilla datapack root, the directory holding `data/`. */
+    datapack: string;
+}
 
 /**
- * The data generator output of one Java release, run against its hash-verified jar when the
- * cache does not hold it yet.
+ * The data generator output of one Java release, which `datagen:java` writes.
+ *
+ * The generator's own output directory belongs to `datagen:java`, which sorts the reports it
+ * installs, so this script never runs the generator into it.
  *
  * @param release - A Java release id `sources.json` pins.
- * @returns The directory the reports and the data directories are under.
+ * @returns The roots the reports and the datapack are under.
  */
-const javaGeneratedDir = (release: string): string => {
-    const reportsRoot = join(cacheRoot, 'java-reports', release);
-    const generatedDir = join(reportsRoot, 'generated');
-    // Both halves of the run, because both are read below and a cache carrying only the reports
-    // would otherwise fail much later, on a missing directory rather than on a missing generator.
-    const generatedOutputs = ['reports/blocks.json', 'data/minecraft/worldgen/biome', 'data/minecraft/enchantment'];
-    if (generatedOutputs.every((output) => existsSync(join(generatedDir, output)))) return generatedDir;
-    const serverJar = serverJarOf(release);
-    if (!existsSync(serverJar)) {
+const javaGeneratedData = (release: string): JavaGeneratedData => {
+    const { reports, datapack } = worldgenCachePaths(release, cacheRoot);
+    // Every input read below, so a missing one fails here with the fix rather than later on a
+    // missing directory.
+    const inputs = [
+        join(reports, 'reports/blocks.json'),
+        join(reports, 'reports/registries.json'),
+        join(datapack, 'data/minecraft/worldgen/biome'),
+        join(datapack, 'data/minecraft/enchantment')
+    ];
+    const missing = inputs.find((input) => !existsSync(input));
+    if (missing !== undefined) {
         throw new Error(
-            `${serverJar} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${release}\` first.`
+            `${missing} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run datagen:java --java ${release}\` first.`
         );
     }
-    console.log(`Running the Java ${release} data generator into ${generatedDir}`);
-    mkdirSync(generatedDir, { recursive: true });
-    execFileSync(
-        findJava(),
-        [
-            '-DbundlerMainClass=net.minecraft.data.Main',
-            '-jar',
-            serverJar,
-            '--reports',
-            '--server',
-            '--all',
-            '--output',
-            generatedDir
-        ],
-        { cwd: reportsRoot, stdio: 'inherit' }
-    );
-    return generatedDir;
+    return { reports, datapack };
 };
-const generatedDir = javaGeneratedDir(javaVersion);
+const javaData = javaGeneratedData(javaVersion);
 
 // ---------------------------------------------------------------------------
 // Inputs
@@ -172,11 +141,11 @@ interface JavaBlock {
 // Mojang's reports are parsed JSON the compiler cannot see the shape of.
 const readJavaBlocks = (directory: string): Record<string, JavaBlock> =>
     readJson(join(directory, 'reports/blocks.json')) as Record<string, JavaBlock>;
-const javaBlocks = readJavaBlocks(generatedDir);
+const javaBlocks = readJavaBlocks(javaData.reports);
 /** The blocks of the Java release GeyserMC's `blocks.nbt` is positional over. */
 const geyserJavaBlocks =
-    geyserJavaVersion === javaVersion ? javaBlocks : readJavaBlocks(javaGeneratedDir(geyserJavaVersion));
-const javaRegistries = readJson(join(generatedDir, 'reports/registries.json')) as Record<
+    geyserJavaVersion === javaVersion ? javaBlocks : readJavaBlocks(javaGeneratedData(geyserJavaVersion).reports);
+const javaRegistries = readJson(join(javaData.reports, 'reports/registries.json')) as Record<
     string,
     { entries: Record<string, unknown> }
 >;
@@ -754,7 +723,7 @@ writeTable('entities.json', {
 const registryLossIds = new Map(REGISTRY_LOSSES.map((loss) => [`${loss.registry} ${loss.javaId}`, loss]));
 
 const biomeIdToName = new Map(bedrockBiomes.data_items.map((item) => [item.id, item.name]));
-const javaBiomeFiles = readdirSync(join(generatedDir, 'data/minecraft/worldgen/biome'))
+const javaBiomeFiles = readdirSync(join(javaData.datapack, 'data/minecraft/worldgen/biome'))
     .map((file) => `minecraft:${file.replace(/\.json$/, '')}`)
     .sort();
 const biomesTable: Record<string, string> = {};
@@ -822,7 +791,7 @@ const enchantmentRenames: Record<string, string> = {
     'minecraft:infinity': 'minecraft:bow_infinity',
     'minecraft:vanishing_curse': 'minecraft:vanishing'
 };
-const javaEnchantmentFiles = readdirSync(join(generatedDir, 'data/minecraft/enchantment'))
+const javaEnchantmentFiles = readdirSync(join(javaData.datapack, 'data/minecraft/enchantment'))
     .map((file) => `minecraft:${file.replace(/\.json$/, '')}`)
     .sort();
 const enchantmentsTable: Record<string, string> = {};
@@ -903,7 +872,7 @@ writeTable('registries.json', {
  * is `minecraft:village/plains`.
  */
 const datapackRegistryIds = (registry: string): string[] | undefined => {
-    const root = join(generatedDir, 'data/minecraft', registry);
+    const root = join(javaData.datapack, 'data/minecraft', registry);
     if (!existsSync(root)) return undefined;
     const ids: string[] = [];
     const descend = (directory: string, prefix: string): void => {

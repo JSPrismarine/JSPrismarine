@@ -185,13 +185,13 @@ package reads the default release's. After a Java or Bedrock version bump:
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+pnpm --filter @jsprismarine/bedrock-data run datagen:java
 pnpm exec turbo run build --filter=@jsprismarine/mapping
 pnpm --filter @jsprismarine/items run generate:item-types
 ```
 
-The generator runs Mojang's data generator against the hash-verified server jar when its reports are
-missing from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or `JSP_JAVA_HOME`).
-It refuses to emit when a Java item has neither a mapping nor a reviewed exception, when a component
+The generator reads the data reports and the vanilla datapack where `datagen:java` writes them, and
+stops with a pointer to it when they are missing. It refuses to emit when a Java item has neither a mapping nor a reviewed exception, when a component
 name is not in the pinned registry report, when a produced Bedrock identifier is missing from the
 captured item table, or when the computed exceptions disagree with `src/exceptions.ts`.
 

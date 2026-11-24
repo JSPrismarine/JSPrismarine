@@ -187,8 +187,8 @@ const treeDifferences = (installed: Map<string, string>, regenerated: Map<string
 /** The generated directories one datagen run writes, by a label for the report. */
 const generatedRoots = (generated: WorldgenCachePaths, root?: string): Record<string, string> => ({
     'vanilla-datapack': generated.datapack,
-    // datagen:java installs `reports/` alone; the mapping and item generators run Mojang's
-    // generator into the same directory and leave its `.cache/` and `data/` beside it.
+    // datagen:java installs `reports/` alone under `generated/`; the generator's `.cache/` and
+    // `data/` from older checkouts can still sit beside it and are not this run's output.
     'java-reports': join(generated.reports, 'reports'),
     'java-structures': generated.structures,
     'java-lang': join(javaLangPath(release, root), '..')
