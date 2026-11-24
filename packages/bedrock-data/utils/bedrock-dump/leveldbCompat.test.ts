@@ -11,10 +11,13 @@
  * 2. We rewrite every record into a database of our own, spread over several levels, and leave
  *    the marker chunk in the log of a database that was never closed, as a crash leaves it. The
  *    server has to find each marker and the scoreboard.
- * 3. We read what the server saved on top of our files, in the same test as step 2.
+ * 3. We read what the server saved on top of our files.
  *
  * It boots the server twice and generates about a thousand chunks, so it takes minutes and runs
- * only when asked: `JSP_BEDROCK_SERVER_TESTS=1`, with the pinned server fetched by
+ * only when asked. Both boots happen in `beforeAll` hooks, which collect what the server answered
+ * for the tests to check. Nothing waits a fixed time: a retry goes out when the server has
+ * answered the last try, and the table check waits on a file system event. Run it with
+ * `JSP_BEDROCK_SERVER_TESTS=1`, with the pinned server fetched by
  * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`, or `JSP_BDS_PATH` pointing at
  * one. CI runs it in its own job.
  *
@@ -22,7 +25,7 @@
  * JSP_BEDROCK_SERVER_TESTS=1 pnpm exec vitest run packages/bedrock-data/utils/bedrock-dump/leveldbCompat.test.ts
  * ```
  */
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, watch } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
@@ -44,7 +47,6 @@ const enabled = process.env.JSP_BEDROCK_SERVER_TESTS === '1';
 
 /** Budgets for a native run; a container that emulates x86-64 multiplies them. */
 const BOOT_MS = 120_000;
-const LOAD_MS = 600_000;
 const STOP_MS = 120_000;
 const STEP_MS = 20 * 60_000;
 
@@ -59,8 +61,6 @@ const MARKERS = [
     { x: 62, y: 200, z: 5, block: 'lapis_block' }
 ] as const;
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
 /** Sends a console command and returns the first line printed after it that `matches` accepts. */
 const ask = (server: RunningServer, command: string, matches: RegExp, timeoutMs = 60_000): Promise<string> => {
     const from = server.lines.length;
@@ -68,9 +68,14 @@ const ask = (server: RunningServer, command: string, matches: RegExp, timeoutMs 
     return server.waitForLine((line) => matches.test(line), command, timeoutMs, from);
 };
 
-/** Repeats a command until the chunk it reaches is loaded, and returns the answer it gave then. */
-const askLoaded = async (server: RunningServer, command: string, timeoutMs: number): Promise<string> => {
-    const until = Date.now() + timeoutMs;
+/**
+ * Repeats a command until the chunk it reaches is loaded, and returns the answer it gave then.
+ *
+ * The engine announces no chunk load on its console, so the answer to each try is the signal to
+ * send the next: the engine runs console commands on its tick, so each retry lands on a later
+ * tick, and none waits on a guessed delay. The hook's own timeout bounds a chunk that never loads.
+ */
+const askLoaded = async (server: RunningServer, command: string): Promise<string> => {
     for (;;) {
         const line = await ask(
             server,
@@ -78,9 +83,22 @@ const askLoaded = async (server: RunningServer, command: string, timeoutMs: numb
             /Successfully found|The block at|Block placed|already|not loaded|outside|Cannot (test|place)/i
         );
         if (!/not loaded|Cannot (test|place)/i.test(line)) return line;
-        if (Date.now() > until) throw new Error(`The chunk for \`${command}\` never loaded: ${line}`);
-        await sleep(2000);
     }
+};
+
+/**
+ * Resolves once `directory` holds a table file, watching it for the server's first flush.
+ *
+ * The watcher is in place before the directory is listed, so a table written between the two is
+ * not missed.
+ */
+const tableWritten = (directory: string): Promise<void> => {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const watcher = watch(directory, (_event, name) => {
+        if (name?.endsWith('.ldb')) resolve();
+    });
+    if (readdirSync(directory).some((name) => name.endsWith('.ldb'))) resolve();
+    return promise.finally(() => watcher.close());
 };
 
 /** A chunk record key: x, z, tag and an optional signed sub chunk index. Overworld keys carry no dimension. */
@@ -227,23 +245,98 @@ describe.skipIf(!enabled)('LevelDB against the pinned Bedrock Dedicated Server',
             }
             // A chunk the bedrock floor of reads as loaded has been generated, and is saved on stop.
             for (const area of AREAS) {
-                await askLoaded(server, `testforblock ${area.x + 159} -64 ${area.z + 159} bedrock`, LOAD_MS * scale);
+                await askLoaded(server, `testforblock ${area.x + 159} -64 ${area.z + 159} bedrock`);
             }
             for (const { x, y, z, block } of MARKERS) {
-                expect(await askLoaded(server, `setblock ${x} ${y} ${z} ${block}`, LOAD_MS * scale)).toMatch(/placed/i);
+                expect(await askLoaded(server, `setblock ${x} ${y} ${z} ${block}`)).toMatch(/placed/i);
             }
             await ask(server, 'scoreboard objectives add jsptest dummy', /objective/i);
             await ask(server, 'scoreboard players set alpha jsptest 42', /jsptest/i);
             // The server flushes a table once its write buffer fills. Until it has, there would be
             // no filter of the server's for the first check to read.
-            const until = Date.now() + LOAD_MS * scale;
-            while (!readdirSync(join(directory, 'db')).some((name) => name.endsWith('.ldb'))) {
-                if (Date.now() > until) throw new Error('The server generated its areas without writing a table.');
-                await sleep(2000);
-            }
+            await tableWritten(join(directory, 'db'));
             expect(storageErrors(server)).toEqual([]);
         } finally {
             vanilla = await stopAndKeep(server, directory, 'vanilla');
+        }
+    }, STEP_MS);
+
+    /** What the server answered on the world we wrote, and the world it saved over it. */
+    let ours: {
+        /** Records left in the log of a database that was never closed. */
+        deferred: number;
+        /** Levels of our database holding at least one table file. */
+        levels: number;
+        /** The server's answer to `testforblock` at each marker. */
+        markers: string[];
+        /** The server's answer to listing the scoreboard entry. */
+        score: string;
+        storageErrors: string[];
+        saved: string;
+    };
+
+    beforeAll(async () => {
+        const source = await Database.open(join(vanilla, 'db'), { readOnly: true, createIfMissing: false });
+        const entries = [...source.entries()];
+        await source.close();
+
+        // Small buffers and files, so the world spreads over several levels and compactions.
+        const written = join(scratch, 'written');
+        const database = await Database.open(written, {
+            writeBufferSize: 96 * 1024,
+            maxFileSize: 48 * 1024,
+            l0CompactionTrigger: 2
+        });
+        const isMarkerChunk = (key: Buffer): boolean =>
+            (key.byteLength === 9 || key.byteLength === 10) && key.readInt32LE(0) === 0 && key.readInt32LE(4) === 0;
+        const deferred = new WriteBatch();
+        let batch = new WriteBatch();
+        // A fixed shuffle, so flushes produce level 0 files whose ranges overlap.
+        for (let i = entries.length - 1; i > 0; i--) {
+            const j = (i * 2654435761) % (i + 1);
+            [entries[i], entries[j]] = [entries[j]!, entries[i]!];
+        }
+        for (const [key, value] of entries) {
+            if (isMarkerChunk(key)) {
+                deferred.put(key, value);
+                continue;
+            }
+            batch.put(key, value);
+            if (batch.count === 64) {
+                database.write(batch);
+                batch = new WriteBatch();
+            }
+        }
+        database.write(batch);
+        database.put(Buffer.from('jsp_deleted'), Buffer.from('x'));
+        await database.flush();
+        database.del(Buffer.from('jsp_deleted'));
+        await database.flush();
+        database.write(deferred, { sync: true });
+        const levels = database.levelSizes.filter((files) => files > 0).length;
+
+        // A copy taken while the database is open is what a crash leaves: the marker chunk is
+        // in the log alone.
+        const copy = join(scratch, 'ours');
+        cpSync(vanilla, copy, { recursive: true, filter: (path) => !path.startsWith(join(vanilla, 'db')) });
+        mkdirSync(join(copy, 'db'));
+        for (const name of readdirSync(written).filter((name) => name !== 'LOCK')) {
+            cpSync(join(written, name), join(copy, 'db', name));
+        }
+        await database.close();
+
+        const { server, directory } = await boot('jsp-ours', copy);
+        const markers: string[] = [];
+        let score = '';
+        try {
+            for (const { x, y, z, block } of MARKERS) {
+                markers.push(await askLoaded(server, `testforblock ${x} ${y} ${z} ${block}`));
+            }
+            score = await ask(server, 'scoreboard players list alpha', /jsptest/i);
+        } finally {
+            const errors = storageErrors(server);
+            const saved = await stopAndKeep(server, directory, 'saved');
+            ours = { deferred: deferred.count, levels, markers, score, storageErrors: errors, saved };
         }
     }, STEP_MS);
 
@@ -251,107 +344,45 @@ describe.skipIf(!enabled)('LevelDB against the pinned Bedrock Dedicated Server',
         if (scratch !== undefined) rmSync(scratch, { recursive: true, force: true });
     });
 
-    it(
-        'reads every key the server wrote, through the server’s own Bloom filters',
-        async () => {
-            const read = await readBack(join(vanilla, 'db'));
-            try {
-                // Without a table the filter check would pass by checking nothing.
-                expect(read.tableEntries).toBeGreaterThan(0);
-                expect(read.highTailEntries).toBeGreaterThan(0);
-                expect(read.tableMisses).toEqual([]);
-                expect(read.mismatches).toEqual([]);
-                for (const { x, y, z } of MARKERS) {
-                    expect(read.database.has(chunkKey(x >> 4, z >> 4, SUB_CHUNK_PREFIX, y >> 4))).toBe(true);
-                }
-            } finally {
-                await read.database.close();
+    it('reads every key the server wrote, through the server’s own Bloom filters', async () => {
+        const read = await readBack(join(vanilla, 'db'));
+        try {
+            // Without a table the filter check would pass by checking nothing.
+            expect(read.tableEntries).toBeGreaterThan(0);
+            expect(read.highTailEntries).toBeGreaterThan(0);
+            expect(read.tableMisses).toEqual([]);
+            expect(read.mismatches).toEqual([]);
+            for (const { x, y, z } of MARKERS) {
+                expect(read.database.has(chunkKey(x >> 4, z >> 4, SUB_CHUNK_PREFIX, y >> 4))).toBe(true);
             }
-        },
-        STEP_MS
-    );
+        } finally {
+            await read.database.close();
+        }
+    });
 
-    it(
-        'writes a world the server loads, with writes it has to replay from our log, and reads back what it saved',
-        async () => {
-            const source = await Database.open(join(vanilla, 'db'), { readOnly: true, createIfMissing: false });
-            const entries = [...source.entries()];
-            await source.close();
+    it('writes a world over several levels, with the marker chunk left in its log', () => {
+        expect(ours.deferred).toBeGreaterThan(0);
+        expect(ours.levels).toBeGreaterThanOrEqual(2);
+    });
 
-            // Small buffers and files, so the world spreads over several levels and compactions.
-            const written = join(scratch, 'written');
-            const database = await Database.open(written, {
-                writeBufferSize: 96 * 1024,
-                maxFileSize: 48 * 1024,
-                l0CompactionTrigger: 2
-            });
-            const isMarkerChunk = (key: Buffer): boolean =>
-                (key.byteLength === 9 || key.byteLength === 10) && key.readInt32LE(0) === 0 && key.readInt32LE(4) === 0;
-            const deferred = new WriteBatch();
-            let batch = new WriteBatch();
-            // A fixed shuffle, so flushes produce level 0 files whose ranges overlap.
-            for (let i = entries.length - 1; i > 0; i--) {
-                const j = (i * 2654435761) % (i + 1);
-                [entries[i], entries[j]] = [entries[j]!, entries[i]!];
-            }
-            for (const [key, value] of entries) {
-                if (isMarkerChunk(key)) {
-                    deferred.put(key, value);
-                    continue;
-                }
-                batch.put(key, value);
-                if (batch.count === 64) {
-                    database.write(batch);
-                    batch = new WriteBatch();
-                }
-            }
-            database.write(batch);
-            database.put(Buffer.from('jsp_deleted'), Buffer.from('x'));
-            await database.flush();
-            database.del(Buffer.from('jsp_deleted'));
-            await database.flush();
-            database.write(deferred, { sync: true });
-            expect(deferred.count).toBeGreaterThan(0);
-            expect(database.levelSizes.filter((files) => files > 0).length).toBeGreaterThanOrEqual(2);
+    it('writes a world the server loads, with writes it has to replay from our log', () => {
+        expect(ours.markers).toHaveLength(MARKERS.length);
+        for (const answer of ours.markers) expect(answer).toMatch(/Successfully found/i);
+        expect(ours.score).toMatch(/jsptest: 42/);
+        expect(ours.storageErrors).toEqual([]);
+    });
 
-            // A copy taken while the database is open is what a crash leaves: the marker chunk is
-            // in the log alone.
-            const ours = join(scratch, 'ours');
-            cpSync(vanilla, ours, { recursive: true, filter: (path) => !path.startsWith(join(vanilla, 'db')) });
-            mkdirSync(join(ours, 'db'));
-            for (const name of readdirSync(written).filter((name) => name !== 'LOCK')) {
-                cpSync(join(written, name), join(ours, 'db', name));
+    it('reads back what the server saved over the world we wrote', async () => {
+        const read = await readBack(join(ours.saved, 'db'));
+        try {
+            expect(read.tableMisses).toEqual([]);
+            expect(read.mismatches).toEqual([]);
+            expect(read.database.get(Buffer.from('jsp_deleted'))).toBeNull();
+            for (const { x, y, z } of MARKERS) {
+                expect(read.database.has(chunkKey(x >> 4, z >> 4, SUB_CHUNK_PREFIX, y >> 4))).toBe(true);
             }
-            await database.close();
-
-            const { server, directory } = await boot('jsp-ours', ours);
-            let saved: string;
-            try {
-                for (const { x, y, z, block } of MARKERS) {
-                    expect(await askLoaded(server, `testforblock ${x} ${y} ${z} ${block}`, LOAD_MS * scale)).toMatch(
-                        /Successfully found/i
-                    );
-                }
-                expect(await ask(server, 'scoreboard players list alpha', /jsptest/i)).toMatch(/jsptest: 42/);
-                expect(storageErrors(server)).toEqual([]);
-            } finally {
-                saved = await stopAndKeep(server, directory, 'saved');
-            }
-
-            // What the server saved over our files, read back here so a run of this test alone
-            // has the world it reads.
-            const read = await readBack(join(saved, 'db'));
-            try {
-                expect(read.tableMisses).toEqual([]);
-                expect(read.mismatches).toEqual([]);
-                expect(read.database.get(Buffer.from('jsp_deleted'))).toBeNull();
-                for (const { x, y, z } of MARKERS) {
-                    expect(read.database.has(chunkKey(x >> 4, z >> 4, SUB_CHUNK_PREFIX, y >> 4))).toBe(true);
-                }
-            } finally {
-                await read.database.close();
-            }
-        },
-        STEP_MS
-    );
+        } finally {
+            await read.database.close();
+        }
+    });
 });
