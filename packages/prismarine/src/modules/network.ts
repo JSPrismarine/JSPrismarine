@@ -19,6 +19,7 @@ import {
     NETHERNET_LAN_PORT,
     NetherNetIdentity,
     NetherNetServer,
+    parsePublicIp,
     parseUdpPorts,
     PortAllocator,
     withAdvertisedCandidates
@@ -476,6 +477,16 @@ export class ServerNetworking implements Networking {
     ): void {
         const server = this.server;
         const config = server.getConfig();
+        // A wildcard bind such as 0.0.0.0 tells a status tool nothing, so `server-public-ip` wins
+        // when it is set. A value NetherNet would refuse falls back to the bind address here,
+        // since a status reply has no start to stop.
+        const hostIp = (): string => {
+            try {
+                return parsePublicIp(server.getConfig().getServerPublicIp()) ?? address;
+            } catch {
+                return address;
+            }
+        };
         const status = (edition: 'bedrock' | 'java'): QueryStatus => ({
             motd: serverName.getMotd(),
             ...(edition === 'java'
@@ -489,7 +500,8 @@ export class ServerNetworking implements Networking {
             map: config.getLevelName(),
             onlinePlayers: serverName.getOnlinePlayerCount(),
             maxPlayers: serverName.getMaxPlayerCount(),
-            hostIp: address,
+            hostIp: hostIp(),
+            allowList: server.getAllowList().isEnabled(),
             players: server
                 .getSessionManager()
                 .getSessions()

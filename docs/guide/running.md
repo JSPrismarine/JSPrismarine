@@ -612,8 +612,10 @@ a forged source address cannot turn the server into an amplifier.
 
 A basic stat carries what a server list shows: the MOTD, the world, and the online and maximum
 player counts. A full stat adds the edition as `game_id`, the Minecraft version of that edition,
-the software and its version as `server_engine`, the installed addons as `plugins`, and the names
-of the players online. `plugins` reads as Spigot and PocketMine-MP write it, the software, then a
+the software and its version as `server_engine`, the installed addons as `plugins`, `whitelist` as
+`on` or `off` with the allow list, and the names of the players online. Both stats report
+`server-public-ip` as the host address when it is set, and the address the server is bound to
+otherwise. `plugins` reads as Spigot and PocketMine-MP write it, the software, then a
 colon and each addon's name and version, such as `JSPrismarine v1.0.0: warps 1.2.0; tps-bar 0.3.0`.
 With no addons installed it is the software alone.
 
