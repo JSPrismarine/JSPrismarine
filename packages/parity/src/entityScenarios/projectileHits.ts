@@ -1,5 +1,6 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
+import { orbViewOf } from '@jsprismarine/prismarine/entity/data/experienceOrbs';
 import { FLOOR_Y, TestEntityWorld } from '@jsprismarine/prismarine/entity/data/testing';
 import { inSandbox } from './sandbox.ts';
 
@@ -191,8 +192,8 @@ export const probeProjectileHit = (projectile: string, probe: HitProbe): Project
             .filter((entity) => !before.has(entity.id));
         const spawned = fresh.map((entity) => entity.identifier);
         const experience = fresh.reduce((sum, entity) => {
-            const value = entity.spawnData?.['value'];
-            return sum + (entity.identifier === 'minecraft:xp_orb' && typeof value === 'number' ? value : 0);
+            const orb = orbViewOf(entity);
+            return sum + (orb === undefined ? 0 : orb.value * orb.count);
         }, 0);
         const effects = new Map(
             [...target.body.statusEffects.values()].map((effect) => [

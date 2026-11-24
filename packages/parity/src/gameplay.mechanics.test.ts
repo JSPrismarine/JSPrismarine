@@ -20,6 +20,7 @@ import type { BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse } from './javaGameplay.ts';
+import { experienceOrbScenarios } from './experienceOrbScenarios.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
@@ -521,7 +522,8 @@ describeFamily(
                 scenarioGroup([recipeScenario]),
                 scenarioGroup([explorationMapScenario]),
                 scenarioGroup([hurtExhaustionScenario]),
-                scenarioGroup([difficultyScenario])
+                scenarioGroup([difficultyScenario]),
+                scenarioGroup(experienceOrbScenarios)
             );
 
             reportCoverage(
