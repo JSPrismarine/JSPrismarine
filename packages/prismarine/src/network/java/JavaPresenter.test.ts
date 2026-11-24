@@ -230,6 +230,32 @@ describe('JavaPresenter', () => {
         expect(sent[3]?.value).toMatchObject({ x: 3, y: 64, onGround: true });
     });
 
+    it('lists a player with the signed textures its skin is drawn from, and one without as the default skin', async () => {
+        const { sent, java } = presenter();
+        const textures = { value: 'dGV4dHVyZXM=', signature: 'c2lnbmVk' };
+
+        java.listProfile({ uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0', name: 'Notch', textures });
+        java.listProfile({ uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f1', name: 'Alex' });
+
+        expect(sent.map(({ value }) => value)).toEqual([
+            {
+                actions: 0x09,
+                players: [
+                    {
+                        uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0',
+                        name: 'Notch',
+                        properties: [{ name: 'textures', ...textures }],
+                        listed: true
+                    }
+                ]
+            },
+            {
+                actions: 0x09,
+                players: [{ uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f1', name: 'Alex', properties: [], listed: true }]
+            }
+        ]);
+    });
+
     it("shows an entity's equipment with its spawn, the filled slots only, and every slot on a change", async () => {
         const { sent, java } = presenter();
         const zombie: ShownEntity = {

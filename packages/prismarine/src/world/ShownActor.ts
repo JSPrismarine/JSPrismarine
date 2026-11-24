@@ -46,6 +46,17 @@ export interface ShownActor {
     isOnGround(): boolean;
 }
 
+/** A player's profile, as a Java client lists it. */
+export interface ShownProfile {
+    readonly uuid: string;
+    readonly name: string;
+    /**
+     * The `textures` property Mojang's session server signed, for a Java player who logged in
+     * online: a Java client draws the player's skin and cape from it.
+     */
+    readonly textures?: { readonly value: string; readonly signature: string | null };
+}
+
 /**
  * One entity as plain facts, for a client whose edition `spawnTo` does not speak: what it is, where
  * its feet are, where it faces, and a player's profile.
@@ -58,7 +69,7 @@ export interface ShownEntityFacts {
     readonly pitch: number;
     readonly headYaw: number;
     /** The player's profile, for a player. */
-    readonly player?: { readonly uuid: string; readonly name: string };
+    readonly player?: ShownProfile;
     /** What it holds and wears; an entity with none shows none. */
     readonly equipment?: ShownEquipment;
     /** How it carries itself: crouched, burning and the like. */

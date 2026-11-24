@@ -159,7 +159,8 @@ Bedrock packets the session still sends, with a `JavaPresenter` for the contract
 `runCommand`, run by the same intent handlers in the same input step as Bedrock's, through one
 `InputQueue` both editions share; a move goes through `applyClientMovement`, the movement a Bedrock
 input applies, with `Confirm Teleportation` standing for Bedrock's `HandledTeleport`. A Java player
-is shown to Bedrock players with the auth package's default skin until their own is fetched.
+is shown to Bedrock players with their own skin, which the server fetches from Mojang's texture
+server as they join, or the auth package's default skin when there is none to fetch.
 
 ### Movement
 
