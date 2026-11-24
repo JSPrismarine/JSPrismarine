@@ -99,6 +99,35 @@ describe('liquidFamily', () => {
     });
 });
 
+describe('liquidFamily: the bubble column', () => {
+    const below = { x: 0, y: 0, z: 0 };
+
+    it('follows the block below: magma drags down, soul sand pushes up', () => {
+        const harness = bindFamily(liquidFamily, 'minecraft:bubble_column');
+        harness.dimension.set(below, 'minecraft:magma');
+        harness.dimension.set(origin, 'minecraft:bubble_column', { drag_down: false });
+
+        harness.neighborChanged(origin, 'down');
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: 5 }]);
+        harness.tick(origin);
+        expect(harness.dimension.stateAt(origin, 'drag_down')).toBe(true);
+
+        harness.dimension.set(below, 'minecraft:soul_sand');
+        harness.tick(origin);
+        expect(harness.dimension.stateAt(origin, 'drag_down')).toBe(false);
+    });
+
+    it('turns back into water once nothing below holds the column', () => {
+        const harness = bindFamily(liquidFamily, 'minecraft:bubble_column');
+        harness.dimension.set(below, 'minecraft:stone');
+        harness.dimension.set(origin, 'minecraft:bubble_column', { drag_down: true });
+
+        harness.tick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:water');
+    });
+});
+
 describe('liquidFamily and buckets', () => {
     it('gives a water source up to an empty bucket and leaves a flow alone', () => {
         const harness = bindFamily(liquidFamily, 'minecraft:water');
@@ -273,6 +302,21 @@ describe('sculkFamily', () => {
         sensor.dimension.set(origin, 'minecraft:sculk_sensor', { sculk_sensor_phase: 0 });
         sensor.stepOn(origin, { identifier: 'minecraft:warden', position: origin });
         expect(sensor.dimension.stateAt(origin, 'sculk_sensor_phase')).toBe(0);
+    });
+
+    it('keeps a sculk vein on a held face and pops it once that face goes', () => {
+        const harness = bindFamily(sculkFamily, 'minecraft:sculk_vein');
+        const above = { x: 0, y: 2, z: 0 };
+        harness.dimension.set(above, 'minecraft:stone');
+        // 2 is the up face: the vein hangs under the stone.
+        harness.dimension.set(origin, 'minecraft:sculk_vein', { multi_face_direction_bits: 2 });
+
+        harness.neighborChanged(origin, 'up');
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:sculk_vein');
+
+        harness.dimension.set(above, AIR);
+        harness.neighborChanged(origin, 'up');
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
     });
 
     it('gives experience for breaking sculk', () => {

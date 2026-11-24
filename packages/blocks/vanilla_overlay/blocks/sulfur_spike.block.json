@@ -22,7 +22,7 @@
                 "origin": [-3, 5, -3],
                 "size": [6, 11, 6]
             },
-            "jsprismarine:behavior": "jsprismarine:plain_block",
+            "jsprismarine:behavior": "jsprismarine:dripstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,

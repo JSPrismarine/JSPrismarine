@@ -401,6 +401,19 @@ describe('dripstoneFamily', () => {
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:air');
     });
 
+    it('pops a sulfur spike whose ground is gone, as Java does for pointed dripstone', () => {
+        const harness = bindFamily(dripstoneFamily, 'minecraft:sulfur_spike');
+        harness.dimension.set(below, 'minecraft:stone');
+        harness.dimension.set(origin, 'minecraft:sulfur_spike', { dripstone_thickness: 'tip', hanging: false });
+
+        harness.neighborChanged(origin, 'down');
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:sulfur_spike');
+
+        harness.dimension.set(below, 'minecraft:air');
+        harness.neighborChanged(origin, 'down');
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:air');
+    });
+
     it('grows a bud on a free face of a budding block', () => {
         const harness = bindFamily(dripstoneFamily, 'minecraft:budding_amethyst');
         harness.dimension.set(origin, 'minecraft:budding_amethyst');
