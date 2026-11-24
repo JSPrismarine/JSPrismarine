@@ -92,7 +92,9 @@ diagnostic and evaluate false, rather than failing the whole parse.
   `uniform`, `binomial`, `explosion_decay` and the weighted list reproduce exactly in a test.
   `scriptedRandom`, `constantRandom` and `seededRandom` are built in.
 - `LevelView` answers weather, the world clock, biomes, structures, light, blocks, fluids, command
-  storage, scoreboards and environment attributes.
+  storage, scoreboards and environment attributes. It also finds the nearest structure an
+  explorer map points at (`nearestStructure`) and hands out its map id (`newMapId`), which
+  `@jsprismarine/loot` uses for `exploration_map`.
 - `ItemStackOps` owns stack construction, Bedrock auxiliary data, component writes, the stack size
   limit, and the durability limit, so a host keeps its own item type behind the minimal
   `{ id, count, components, meta? }` shape this package reads.

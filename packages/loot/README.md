@@ -251,7 +251,7 @@ rolling its nested entries takes the very context whose content view is being bu
 | `rollEntries` | `set_contents` | This package's own entry grammar, rolled against the same context. Always available. |
 | `dyeColors` | `set_random_dyes` | `DYE_COLORS`, the 16 `DyeColor.textureDiffuseColor` values of Java 26.3 in registry order. |
 | `profileOf` | `fill_player_head` | The entity's own `minecraft:profile` component. Override with `profiles`. |
-| `explorationMap` | `exploration_map` | Needs a `structures` locator. Given one, it writes `minecraft:map_id` from your allocator and a `minecraft:map_decorations` entry keyed `"+"` at rotation 180, matching Java's `addTargetDecoration`. |
+| `explorationMap` | `exploration_map` | Your `structures` locator, or else the level view's `nearestStructure`, searched from the roll's `origin` with the modifier's `search_radius` and `skip_existing_chunks`. A roll whose level cannot search reports and leaves the stack alone; one with no `origin` leaves it alone silently, as Java does. When the search finds a structure, it writes a `minecraft:map_id` from your `mapIds` allocator, or else from the level view's `newMapId`, and a `minecraft:map_decorations` entry keyed `"+"` at rotation 180, matching Java's `addTargetDecoration`. With neither allocator the map has no id. |
 
 ```typescript
 const context = createLootContext({
@@ -260,11 +260,16 @@ const context = createLootContext({
     content: {
         recipes: definitions.recipesJava,
         itemTag: (tag) => myTags.get(tag),
-        structures: (request) => myWorld.findStructure(request.destination, request.searchRadius),
-        mapIds: () => myMaps.allocate()
+        // Both optional: a level view with `nearestStructure` and `newMapId` answers them instead.
+        structures: (request, context) => myWorld.findStructure(request.destination, request.searchRadius),
+        mapIds: (context) => myMaps.allocate()
     }
 });
 ```
+
+`mapIds` receives the roll's context and may return undefined, which leaves the map without an id.
+The allocator runs only after the search finds something, so a search that finds nothing uses up no
+id.
 
 Smelting results follow Java: the recipe's own result and count, not a copy of the input, and the
 first recipe to claim an ingredient wins. Tagged ingredients need `itemTag`; vanilla's 73 smelting
