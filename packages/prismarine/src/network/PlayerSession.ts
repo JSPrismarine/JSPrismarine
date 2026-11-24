@@ -75,7 +75,6 @@ import { WindowTypes } from '../inventory/WindowTypes';
 import { Item } from '../item/Item';
 import CraftingInput from '../crafting/CraftingInput';
 import { KEEP_INVENTORY, gameRuleValue } from '../content/world/gameRules';
-import { experienceOrbs } from '../entity/data/deathExperience';
 import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
@@ -252,9 +251,6 @@ const ARRIVAL_HOLD_TICKS = 40;
 
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
-
-/** The orbs a dead player leaves are of this entity type. */
-const EXPERIENCE_ORB = 'minecraft:xp_orb';
 
 /** Experience points a death drops per level, Java's `Player.getBaseExperienceReward`. */
 const DEATH_EXPERIENCE_PER_LEVEL = 7;
@@ -3964,11 +3960,7 @@ export default class PlayerSession {
         experience.setLevel(0);
         experience.setProgress(0);
         const at = actor.getPosition();
-        for (const value of experienceOrbs(points)) {
-            this.world
-                .dataEntities()
-                .runtime.spawn(EXPERIENCE_ORB, { x: at.getX(), y: at.getY(), z: at.getZ() }, { data: { value } });
-        }
+        this.world.dataEntities().runtime.experienceOrbs.award({ x: at.getX(), y: at.getY(), z: at.getZ() }, points);
 
         const dropped = held.filter(
             (item) => item.getName() !== 'minecraft:air' && !item.getEnchantments().has(VANISHING_CURSE)

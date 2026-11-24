@@ -26,7 +26,7 @@ import type {
     FilterEntityView,
     FilterItemView
 } from '@jsprismarine/entities';
-import { ActorEvent, DisconnectReason, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, DisconnectReason, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { singleDimension } from '../../content/world/adapter';
@@ -58,6 +58,9 @@ import type { StoreActor } from './storeActors';
 import { INERT_ACTOR, InertActor, StoreActors } from './storeActors';
 import { reattachStorePlayer, StorePlayerActor, StorePlayers } from './storePlayers';
 import { storePlayerHostFacts } from './playerHostFacts';
+import { REPAIR_SLOTS, repairWithExperience } from '../../enchantment/mending';
+import { addExperiencePoints } from '../Experience';
+import type { StorePlayer } from '../storePlayer';
 import { consumeHeldItem } from '../../item/interaction';
 import { clientOwnsMovement } from '../playerOverlay';
 import { playerAbilityNames } from '../playerAbilities';
@@ -305,6 +308,28 @@ const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
     }
 };
 
+/**
+ * Gives a live player one experience orb: Mending repairs what it can of the gear, the rest is
+ * experience, and the world hears the pickup sound, as Bedrock plays it for a collected orb.
+ */
+const takeExperienceOrb = (
+    options: LiveEntityOptions,
+    runtime: EntityRuntime,
+    player: StorePlayer,
+    value: number
+): void => {
+    const world = options.liveWorld();
+    if (world === undefined) return;
+    const inventory = player.getInventory();
+    const gear = Object.fromEntries(REPAIR_SLOTS.map((slot) => [slot, inventory.equipment(slot)]));
+    const { remaining, repaired } = repairWithExperience(options.content().enchantments, gear, value, (bound) =>
+        runtime.world.random.nextInt(bound)
+    );
+    for (const [slot, item] of repaired) inventory.setEquipment(slot, item);
+    if (remaining > 0) addExperiencePoints(player.getExperience(), remaining);
+    world.sendWorldEvent(player.getPosition(), LevelEvent.SOUND_EXPERIENCE_ORB_PICKUP, 0);
+};
+
 /** The host facts over one live world. */
 const liveHost = (
     options: LiveEntityOptions,
@@ -407,6 +432,10 @@ const liveHost = (
         return taken === undefined ? undefined : itemDropOf(taken);
     },
     givePlayerItem: (playerId, itemId, item) => givePlayerItem(options, playerId, itemId, item),
+    takeExperienceOrb: (playerId, _orbId, value) => {
+        const player = players.of(playerId);
+        if (player !== undefined) takeExperienceOrb(options, runtime(), player, value);
+    },
     itemStackChanged: (itemId, count) => {
         const world = options.liveWorld();
         const body = actors.actorOf(itemId);

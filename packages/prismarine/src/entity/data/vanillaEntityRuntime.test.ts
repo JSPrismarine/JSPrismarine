@@ -5,6 +5,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { singleDimension } from '../../content/world/adapter';
 import { entityContentGroups } from '../contentAdapter';
 import { EntityRuntime } from './EntityRuntime';
+import { orbViewOf } from './experienceOrbs';
 import { dataEntityRecordOf } from './persistence';
 import { spawnDeclared, TestEntityWorld } from './testing';
 import { SHIPPED_PLAYER } from '../../testing/storePlayer.test.helper';
@@ -155,10 +156,11 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
                 if (mob === undefined) throw new Error(`the vanilla pack declares no ${identifier}`);
                 prepare(mob);
                 runtime.hurt(mob, attacker, cause, 10_000);
-                const orbs = runtime
-                    .near(at, 4)
-                    .filter((entity) => entity.identifier === 'minecraft:xp_orb')
-                    .map((orb) => orb.spawnData?.['value']);
+                // An award may join an orb already lying there, so each orb counts as many as it holds.
+                const orbs = runtime.near(at, 4).flatMap((entity) => {
+                    const orb = orbViewOf(entity);
+                    return orb === undefined ? [] : Array.from({ length: orb.count }, () => orb.value);
+                });
                 for (const entity of runtime.near(at, 8)) runtime.remove(entity.id, 'vanilla death coverage');
                 world.players = [];
                 return { mob, drops: world.drops.map((drop) => drop.item.identifier), orbs };

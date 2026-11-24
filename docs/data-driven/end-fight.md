@@ -12,7 +12,8 @@ the dragon if the world has not recorded a kill. The End's generated spike pilla
 are part of the arena, and the server sends a boss bar while the player is nearby.
 
 When the dragon dies, the server opens the podium's portal, places a gateway block, and drops the
-dragon egg on the world's first kill. It pays the first-kill experience and hides the boss bar.
+dragon egg on the world's first kill. It drops its experience as orbs for the players nearby to
+collect, and hides the boss bar.
 Entering the exit portal starts credits on a player's first exit from that save. The transfer to
 the player's respawn point waits for the client to finish or skip the credits. Later exits skip the
 credits screen.

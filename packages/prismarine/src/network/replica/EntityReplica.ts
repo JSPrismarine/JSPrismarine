@@ -20,6 +20,7 @@ import { peekAmountOf } from '@jsprismarine/entities/components/peek';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ComponentView } from '../../entity/data/actorMetadata';
 import { componentMetadataFacts, projectActorMetadata } from '../../entity/data/actorMetadata';
+import { orbValueOf } from '../../entity/data/experienceOrbs';
 import type { EntityView, ShownHealth } from '../../entity/data/actorView';
 import { conditionField } from '../../entity/data/DataEntity';
 import { ITEM_COMPONENT } from '../../entity/data/droppedItems';
@@ -64,6 +65,8 @@ export type HeldEntity = {
     readonly persistentIdentity: string | undefined;
     /** The `block` the spawn data names, which a falling block shows and nothing writes. */
     readonly spawnBlock: unknown;
+    /** The points its spawn data gives each orb, which an experience orb shows and nothing writes. */
+    readonly orbValue: number;
     readonly fields: Map<string, PlainData>;
     /** Each container slot by `container:slot`, holding an item's saved form or nothing. */
     readonly slots: Map<string, PlainRecord | null>;
@@ -293,6 +296,7 @@ export class EntityReplica {
                 beamZ: beam === undefined ? undefined : Math.floor(beam.z),
                 showBottom: bodyFieldValue('showBottom', value('showBottom')) !== false,
                 spawnBlock: held.spawnBlock,
+                orbValue: held.orbValue,
                 peek: peekAmountOf(value('component:minecraft:peek'))
             }
         );
@@ -362,6 +366,7 @@ export class EntityReplica {
             shownIdentifier: typeof shownAs === 'string' ? shownAs : identifier,
             persistentIdentity: typeof identity === 'string' ? identity : undefined,
             spawnBlock: spawnData !== undefined && isPlainRecord(spawnData) ? spawnData['block'] : undefined,
+            orbValue: orbValueOf(spawnData !== undefined && isPlainRecord(spawnData) ? spawnData : undefined),
             fields: loggedFieldsOfSavedForm(saved),
             slots: loggedSlotsOfSavedForm(saved)
         };

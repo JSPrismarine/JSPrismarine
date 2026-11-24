@@ -26,6 +26,7 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { FlagType, MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { DataEntity } from './DataEntity';
+import { EXPERIENCE_ORB_COMPONENT, orbValueOf } from './experienceOrbs';
 
 /** One actor flag and the value the component state projects onto it. */
 export interface ActorFlagProjection {
@@ -123,6 +124,7 @@ export interface ComponentMetadataFacts {
     readonly markVariant: unknown;
     readonly skinId: unknown;
     readonly fallingBlock: boolean;
+    readonly experienceOrb: boolean;
 }
 
 const componentFactsByView = new WeakMap<ComponentView, ComponentMetadataFacts>();
@@ -186,7 +188,8 @@ export const componentMetadataFacts = (view: ComponentView): ComponentMetadataFa
         variant: view.componentParams('minecraft:variant'),
         markVariant: view.componentParams('minecraft:mark_variant'),
         skinId: view.componentParams('minecraft:skin_id'),
-        fallingBlock: has('jsprismarine:falling_block')
+        fallingBlock: has('jsprismarine:falling_block'),
+        experienceOrb: has(EXPERIENCE_ORB_COMPONENT)
     };
     componentFactsByView.set(view, facts);
     return facts;
@@ -213,6 +216,8 @@ export interface ActorMetadataState {
     readonly showBottom: boolean;
     /** The `block` its spawn data names, which only a falling block shows. */
     readonly spawnBlock: unknown;
+    /** The points each of its orbs is worth, which only an experience orb shows; 0 when absent. */
+    readonly orbValue?: number;
     /** How far a shulker's shell is open, from 0 to 100, for an entity with `minecraft:peek`. */
     readonly peek?: number;
 }
@@ -237,6 +242,7 @@ export const actorMetadataStateOf = (entity: DataEntity, leashHolderId?: number)
         beamZ: beam === undefined ? undefined : Math.floor(beam.z),
         showBottom: body.showBottom !== false,
         spawnBlock: entity.spawnData?.['block'],
+        orbValue: orbValueOf(entity.spawnData),
         peek: peekAmount(entity.instance)
     };
 };
@@ -329,6 +335,10 @@ export const projectActorMetadata = (
     if (state.peek !== undefined) properties.push({ kind: 'byte', id: ActorDataID.PEEK_ID, value: state.peek });
     if (typeof facts.color2 === 'number')
         properties.push({ kind: 'byte', id: ActorDataID.COLOR_2_INDEX, value: facts.color2 });
+
+    // The client sizes an orb's sprite by its value, as Java's `ExperienceOrb.getIcon` does.
+    if (facts.experienceOrb)
+        properties.push({ kind: 'int', id: MetadataFlag.EXPERIENCE_VALUE, value: state.orbValue ?? 0 });
 
     if (facts.fallingBlock) {
         const block = state.spawnBlock;

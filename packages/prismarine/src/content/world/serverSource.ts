@@ -31,6 +31,7 @@ import { worldKeyOf, worldOfKey } from '../../world/worldKey';
 import type { ServerItemActorPort } from '../../item/actorPort';
 import type { ContentEffectSink, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import type { ContentLookup } from './views';
+import { EXPERIENCE_ORB } from '../../entity/data/experienceOrbs';
 import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 import RedstoneActivatedEvent from '../../events/other/RedstoneActivatedEvent';
 
@@ -166,6 +167,12 @@ const adapterFor = (
             const live = options.entityRuntimes?.at(dimension, levelName);
             const reference = identifier.includes('<') ? identifier.slice(0, identifier.indexOf('<')) : identifier;
             if (live === undefined || !content().entities.registry.has(reference)) return undefined;
+
+            // A block's experience is a payout, which Java's `ExperienceOrb.award` splits into orb
+            // sizes and adds to orbs already lying there.
+            const value = data?.['value'];
+            if (identifier === EXPERIENCE_ORB && typeof value === 'number')
+                return live.runtime.experienceOrbs.award(at, value)[0]?.id ?? 0;
 
             return live.runtime.spawn(identifier, at, data === undefined ? {} : { data })?.id ?? 0;
         },

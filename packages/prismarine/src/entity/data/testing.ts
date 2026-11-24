@@ -480,6 +480,8 @@ export class TestEntityWorld {
     public readonly given: { playerId: number; itemId: number; item: ContentItemDrop }[] = [];
     /** How many more items each player's inventory takes, by runtime id; unlimited when absent. */
     public readonly room = new Map<number, number>();
+    /** Every experience orb a player took, in order, with the points it was worth. */
+    public readonly orbsTaken: { playerId: number; orbId: number; value: number }[] = [];
     /** Every stack size the host was told about, in order. */
     public readonly stackChanges: { itemId: number; count: number }[] = [];
     /** A function a test sets to make giving an item throw, which fails the item's update. */
@@ -628,6 +630,7 @@ export class TestEntityWorld {
                 this.given.push({ playerId, itemId, item: { ...item, count: fits } });
                 return item.count - fits;
             },
+            takeExperienceOrb: (playerId, orbId, value) => void this.orbsTaken.push({ playerId, orbId, value }),
             itemStackChanged: (itemId, count) => this.stackChanges.push({ itemId, count }),
             playSoundAt: (_at, sound) => this.sounds.push(sound),
             levelEvent: (at, event, data) => this.levelEvents.push({ at, event, data }),

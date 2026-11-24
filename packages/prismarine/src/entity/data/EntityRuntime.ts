@@ -198,7 +198,8 @@ import { isLookingAt, viewVector } from './lookingAt';
 import { mobLootTableOf, rollMobDrops } from '../mobLoot';
 import { deathDamageSource, deathLootState, killerView } from './deathLoot';
 import type { DeathKiller } from './deathLoot';
-import { JAVA_EXPERIENCE, deathExperience, experienceOrbs } from './deathExperience';
+import { JAVA_EXPERIENCE, deathExperience } from './deathExperience';
+import { EXPERIENCE_ORB, EXPERIENCE_ORB_COMPONENT, ExperienceOrbs, isExperienceOrb } from './experienceOrbs';
 import { brainMobFor } from './brainIdentifiers';
 import type { CopperGolemStatueHost } from './copperGolemStatue';
 import { isCopperGolem, tickCopperGolemStatue } from './copperGolemStatue';
@@ -342,7 +343,7 @@ import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
-import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import { clientOwnsMovement, FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { playerAbilityNames } from '../playerAbilities';
 import { javaPotionEffects } from '../../item/potions';
 import { EYE_HEIGHT } from '../playerEyes';
@@ -366,8 +367,8 @@ const PLAYER_LEASH_HOLDER_PREFIX = 'player:';
 /** How long a projectile ignores its owner and stays alive, in ticks. */
 const PROJECTILE_OWNER_GRACE = 5;
 const PROJECTILE_MAX_LIFE = 1200;
-/** The entity a death's experience drops as. */
-const EXPERIENCE_ORB = 'minecraft:xp_orb';
+/** The box a player stands in when the store holds no body for it, as a host's test player. */
+const FALLBACK_PLAYER_BOX = FALLBACK_PLAYER_FILE['minecraft:entity'].components['minecraft:collision_box'];
 
 /** Java's mob no-despawn distance; a nearby player resets `noActionTime`. */
 const MOB_NO_DESPAWN_DISTANCE = 32;
@@ -968,6 +969,8 @@ export class EntityRuntime implements EntityScene {
     public readonly hangingEntities: HangingEntities;
     /** Every area effect cloud, such as the dragon's breath. */
     public readonly areaEffectClouds: AreaEffectClouds;
+    /** Every experience orb, which merges, follows a player and is taken. */
+    public readonly experienceOrbs: ExperienceOrbs;
     private readonly statueHost: CopperGolemStatueHost;
 
     /** The systems a store player's survival runs on, and its component state. */
@@ -1318,6 +1321,34 @@ export class EntityRuntime implements EntityScene {
             applyStatusEffect: (source, targetId, effect) =>
                 void this.applyStatusEffectToId(source.instance, targetId, effect),
             remove: (id, reason) => this.remove(id, reason)
+        });
+        this.experienceOrbs = new ExperienceOrbs({
+            spawn: (identifier, at, options) => this.spawn(identifier, at, options),
+            typeParams: () =>
+                this.content()
+                    .entities.registry.get(EXPERIENCE_ORB)
+                    ?.components.find((component) => component.name === EXPERIENCE_ORB_COMPONENT)?.params,
+            withinBox: (min, max) => this.index.withinBox(min, max),
+            // A dead player stays in the store while its death screen is up, and takes nothing.
+            players: () =>
+                this.host
+                    .players()
+                    .filter((player) => !this.dying.has(player.id))
+                    .map((player) => {
+                        const box = this.store.get(player.id)?.facts.box ?? FALLBACK_PLAYER_BOX;
+                        return {
+                            id: player.id,
+                            position: player.position,
+                            width: box.width,
+                            height: box.height,
+                            ...(player.spectator === undefined ? {} : { spectator: player.spectator })
+                        };
+                    }),
+            tick: () => this.world.level.gameTime(),
+            random: () => this.world.random.nextFloat(),
+            randomInt: (bound) => this.world.random.nextInt(bound),
+            remove: (id, reason) => this.remove(id, reason),
+            take: (playerId, orbId, value) => this.host.takeExperienceOrb?.(playerId, orbId, value)
         });
         this.eyesOfEnder = new EyeOfEnderSignals({
             spawn: (identifier, at, options) => this.spawn(identifier, at, options),
@@ -2462,6 +2493,11 @@ export class EntityRuntime implements EntityScene {
         if (isAreaEffectCloud(entity)) {
             this.areaEffectClouds.update(entity);
             return;
+        }
+        // An orb's own rules run before the body's physics moves it, as Java's tick runs them.
+        if (isExperienceOrb(entity)) {
+            this.experienceOrbs.update(entity);
+            if (entity.removed !== undefined) return;
         }
         if (this.dying.has(entity.id) && !clientOwnsMovement(entity.identifier)) {
             this.tickDeath(entity);
@@ -6322,8 +6358,7 @@ export class EntityRuntime implements EntityScene {
             size: typeof variant === 'number' ? variant : 1,
             random: entity.instance.random
         });
-        for (const value of experienceOrbs(points))
-            this.spawn(EXPERIENCE_ORB, { ...entity.position }, { data: { value } });
+        this.experienceOrbs.award(entity.position, points);
     }
 
     /** The player or mob behind a blow, as a loot predicate reads a killer. */
@@ -7821,7 +7856,7 @@ export class EntityRuntime implements EntityScene {
             java?.experience !== undefined
                 ? java.experience(this.world.random)
                 : grantedExperience(onHit, this.world.random);
-        for (const value of experienceOrbs(points)) this.spawn(EXPERIENCE_ORB, { ...at }, { data: { value } });
+        this.experienceOrbs.award(at, points);
 
         if (java?.cloud !== undefined)
             this.spawn(
