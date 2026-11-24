@@ -720,7 +720,8 @@ export default class LevelDB extends BaseProvider {
             ...(data.tickingAreas === undefined ? {} : { tickingAreas: data.tickingAreas }),
             ...(data.scriptSettings === undefined ? {} : { scriptSettings: data.scriptSettings }),
             ...(data.clockPaused === undefined ? {} : { clockPaused: data.clockPaused }),
-            ...(data.lastMapId === undefined ? {} : { lastMapId: data.lastMapId })
+            ...(data.lastMapId === undefined ? {} : { lastMapId: data.lastMapId }),
+            ...(data.referencedStructures === undefined ? {} : { referencedStructures: data.referencedStructures })
         };
         const root = new NBTTagCompound('');
         root.addValue('Data', new Types.StringVal(JSON.stringify(worldPersistenceJsonOf(metadata))));

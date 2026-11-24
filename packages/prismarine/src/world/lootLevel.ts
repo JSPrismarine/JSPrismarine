@@ -33,7 +33,8 @@ export interface LootLevelWorld {
     locateStructure?(
         name: string,
         origin: { readonly x: number; readonly z: number },
-        radius: number
+        radius: number,
+        options: { readonly skipKnownStructures: boolean }
     ): Vec3 | undefined;
     /** A fresh map id from the level's counter; see `World.nextMapId`. */
     nextMapId?(): number;
@@ -55,11 +56,9 @@ export const lootLevelOf = (world: LootLevelWorld): LevelView => {
     if (world.locateStructure !== undefined) {
         const locate = world.locateStructure.bind(world);
         // Java's `findNearestMapStructure` reads its radius the way `/locate` does, so the
-        // `search_radius` goes straight through. Java can also skip a structure an earlier map
-        // already found (`skip_existing_chunks`); nothing here records that, so every search
-        // finds the nearest one.
-        view.nearestStructure = (destination, origin, searchRadius) => {
-            const found = locate(destination, origin, searchRadius);
+        // `search_radius` goes straight through.
+        view.nearestStructure = (destination, origin, searchRadius, skipKnownStructures) => {
+            const found = locate(destination, origin, searchRadius, { skipKnownStructures });
             return found === undefined ? undefined : { x: found.x, y: found.y, z: found.z };
         };
     }

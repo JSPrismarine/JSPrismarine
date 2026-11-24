@@ -221,8 +221,8 @@ describe('exploration maps', () => {
         const searches: unknown[] = [];
         let lastMapId = 41;
         const level: LevelView = {
-            nearestStructure: (destination, origin, searchRadius) => {
-                searches.push({ destination, origin, searchRadius });
+            nearestStructure: (destination, origin, searchRadius, skipKnownStructures) => {
+                searches.push({ destination, origin, searchRadius, skipKnownStructures });
                 return { x: -64, y: 70, z: 32 };
             },
             newMapId: () => ++lastMapId
@@ -238,7 +238,13 @@ describe('exploration maps', () => {
 
         expect(diagnostics).toEqual([]);
         expect(searches).toEqual([
-            { destination: '#minecraft:on_treasure_maps', origin: { x: 5, y: 64, z: 9 }, searchRadius: 50 }
+            {
+                destination: '#minecraft:on_treasure_maps',
+                origin: { x: 5, y: 64, z: 9 },
+                searchRadius: 50,
+                // Java's default for `skip_existing_chunks`.
+                skipKnownStructures: true
+            }
         ]);
         expect(stacks[0]?.components.get('minecraft:map_id')).toBe(42);
         expect(stacks[0]?.components.get('minecraft:map_decorations')).toEqual({
