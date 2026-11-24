@@ -245,6 +245,28 @@ describe('network', () => {
             expect(leaving.sender.isEmpty()).toBe(true);
         });
 
+        // A chunk the scheduler was producing when the player left reached the flush afterwards,
+        // which read the forgotten player for the publisher update and threw PlayerHasLeft.
+        it('sends nothing queued before the player left', async () => {
+            const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            const world = stub<World>({ getLoadedChunk: () => chunk });
+            const placed = stub<SessionPlayer>({ getPosition: () => new Position(0, 64, 0, world) });
+            const sent: NetworkPacket<unknown>[] = [];
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async (packet) => void sent.push(packet),
+                sendSharedCompressedBatchAsync: async (_content, packets) => void sent.push(...packets)
+            });
+            const leaving = sessionFor(server, connection, placed, { world, joined: true });
+            leaving.tryDeliverLoaded(0, 0);
+
+            leaving.disable();
+
+            await expect(leaving.flush()).resolves.toBeUndefined();
+            expect(sent).toEqual([]);
+            expect(leaving.sender.isEmpty()).toBe(true);
+        });
+
         it('does not requeue a chunk it is already sending', async () => {
             await session.needNewChunks();
             const size = session.sender.size;

@@ -664,6 +664,9 @@ export default class PlayerSession {
      */
     public disable(): void {
         this.server.getChunkScheduler().remove(this);
+        // A delivery the scheduler started before the removal finishes after it, and its flush
+        // read the forgotten player. The new epoch makes it, and any batch it queued, stop short.
+        this.clearChunks();
         this.joined = false;
         // Only once: a second call finds the player forgotten already.
         if (!this.players.delete(Number(this.runtimeId))) return;
