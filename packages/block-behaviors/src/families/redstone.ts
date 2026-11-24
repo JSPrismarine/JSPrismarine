@@ -13,6 +13,7 @@ import { javaBlockStates } from '@jsprismarine/mapping';
 import { defineFamily } from '../family';
 import {
     CARDINAL_DIRECTIONS,
+    COMPASS_DIRECTIONS,
     faceOfFacingDirection,
     offset,
     opposite,
@@ -587,8 +588,8 @@ export const redstoneFamily = defineFamily(
                 return;
             }
 
-            // Java's tripwire hook needs the wall behind the way it faces, and a bell the floor or
-            // ceiling it stands or hangs on.
+            // Java's tripwire hook needs the wall behind the way it faces, and a bell the floor,
+            // ceiling or wall it stands, hangs or is mounted on.
             if (name === 'tripwire_hook') {
                 const facing = CARDINAL_DIRECTIONS[stateNumber(block, 'direction')];
                 if (
@@ -599,7 +600,13 @@ export const redstoneFamily = defineFamily(
                     return;
             }
             if (name === 'bell') {
-                const attached = attachmentFaceOf(block, false);
+                // A bell on one wall or between two names its wall in compass order, and Java's
+                // `BellBlock.canSurvive` checks only that one, even between two walls.
+                const attachment = stateString(block, 'attachment', 'standing');
+                const attached =
+                    attachment === 'side' || attachment === 'multiple'
+                        ? COMPASS_DIRECTIONS[stateNumber(block, 'direction')]
+                        : attachmentFaceOf(block, false);
                 if (attached !== undefined && event.face === attached && popWithoutSupport(world, block, attached))
                     return;
             }

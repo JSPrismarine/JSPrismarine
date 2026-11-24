@@ -70,6 +70,24 @@ describe('redstoneFamily: a tripwire hook', () => {
     });
 });
 
+describe('redstoneFamily: a bell on a wall', () => {
+    it('pops without the wall its direction faces', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:bell');
+        const bell = { x: 0, y: 1, z: 0 };
+        const wall = { x: 1, y: 1, z: 0 };
+        // Direction 1 is east in a bell's compass order, so its wall is to the east.
+        harness.dimension.set(wall, 'minecraft:stone');
+        harness.dimension.set(bell, 'minecraft:bell', { attachment: 'side', direction: 1 });
+
+        harness.neighborChanged(bell, 'east');
+        expect(harness.dimension.identifierAt(bell)).toBe('minecraft:bell');
+
+        harness.dimension.set(wall, 'minecraft:air');
+        harness.neighborChanged(bell, 'east');
+        expect(harness.dimension.identifierAt(bell)).toBe('minecraft:air');
+    });
+});
+
 describe('redstoneFamily: a piston head', () => {
     it('is removed without the piston behind it', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:piston_arm_collision');
