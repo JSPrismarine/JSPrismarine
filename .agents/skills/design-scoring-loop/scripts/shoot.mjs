@@ -27,6 +27,10 @@
  * match of the selector (`clickMobile` in mobile modes), such as an open menu.
  * Set `CHROME` to a browser binary when Playwright's own download is not used.
  * Every capture uses an explicit `en-US` locale and reduced motion; see the skill for why.
+ *
+ * Nothing here waits a fixed time. A capture waits for the page's own signals instead: the load
+ * event, `document.fonts.ready`, every image's load, a rendered frame, and the `finished` promise
+ * of every finite animation and transition still running.
  */
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -39,6 +43,39 @@ if (!configPath || !outDir) {
 }
 const config = JSON.parse(readFileSync(configPath, 'utf8'));
 const wanted = (id) => only.length === 0 || only.includes(id);
+
+/**
+ * Resolves once the page has nothing left to draw: two frames have rendered, so intersection
+ * observers and class changes from the last scroll or click have run and started their
+ * transitions; fonts and images have loaded; and every animation that ends has ended. An
+ * animation that repeats forever is skipped, since it never settles. Lazy images are made eager
+ * first, because one outside the viewport would otherwise never load.
+ */
+const settle = (page) =>
+    page.evaluate(async () => {
+        const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+        await frame();
+        await document.fonts.ready;
+        await Promise.all(
+            [...document.images].map((image) => {
+                image.loading = 'eager';
+                return image.complete
+                    ? null
+                    : new Promise((done) => {
+                          image.addEventListener('load', done, { once: true });
+                          image.addEventListener('error', done, { once: true });
+                      });
+            })
+        );
+        await Promise.all(
+            document
+                .getAnimations()
+                .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+                // A cancelled animation rejects `finished`; it has stopped drawing all the same.
+                .map((animation) => animation.finished.catch(() => null))
+        );
+        await frame();
+    });
 await mkdir(outDir, { recursive: true });
 
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
@@ -59,18 +96,20 @@ for (const mode of config.modes) {
 
     for (const [id, path] of Object.entries(config.pages)) {
         if (!wanted(id)) continue;
-        await page.goto(config.base + path, { waitUntil: 'networkidle' });
-        await page.evaluate(() => document.fonts.ready);
+        await page.goto(config.base + path, { waitUntil: 'load' });
+        await settle(page);
         // Content that starts when it scrolls into view (a reveal, a print, a drawn chart) never starts in a
-        // full-page capture of an unscrolled page, so walk the page a viewport at a time first.
+        // full-page capture of an unscrolled page, so walk the page half a viewport at a time first,
+        // letting two frames render at each stop so its intersection observers fire.
         await page.evaluate(async () => {
+            const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
             for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) {
                 scrollTo(0, y);
-                await new Promise((done) => setTimeout(done, 60));
+                await frame();
             }
             scrollTo(0, 0);
         });
-        await page.waitForTimeout(300);
+        await settle(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
         if (overflow > 0) console.log(`OVERFLOW ${id} ${mode.id} ${overflow}px`);
         const height = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -85,7 +124,8 @@ for (const mode of config.modes) {
 
     for (const [id, state] of Object.entries(config.states ?? {})) {
         if (!wanted(id)) continue;
-        await page.goto(config.base + state.path, { waitUntil: 'networkidle' });
+        await page.goto(config.base + state.path, { waitUntil: 'load' });
+        await settle(page);
         const target = page
             .locator((mode.mobile && state.clickMobile) || state.click)
             .filter({ visible: true })
@@ -95,7 +135,7 @@ for (const mode of config.modes) {
             continue;
         }
         await target.click();
-        await page.waitForTimeout(300);
+        await settle(page);
         await page.screenshot({ path: `${outDir}/${id}-${mode.id}.png` });
     }
     await context.close();
