@@ -20,7 +20,7 @@ import {
     parseJavaVillagerTrade
 } from '@jsprismarine/trading/javaTrades';
 import type { JavaTradeHost, JavaTradeStack, JavaVillagerTrade } from '@jsprismarine/trading/javaTrades';
-import type { RandomSource } from '@jsprismarine/predicates';
+import type { LevelView, RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
 import { dropOfRolledStack } from '../../item/lootStack';
@@ -52,6 +52,11 @@ export interface JavaTraderOptions {
     readonly random: RandomSource;
     /** Where the trader stands, the trade context's `origin`. */
     readonly position: EntityPosition;
+    /**
+     * The world the trader stands in, as a loot roll reads it. A cartographer's map trade
+     * searches it for the structure its map points at, and without it makes no offer.
+     */
+    readonly level?: LevelView | undefined;
     /** Its `minecraft:mark_variant`, which picks its biome type; undefined reads as plains. */
     readonly markVariant: number | undefined;
     readonly report?: (code: string, message: string) => void;
@@ -139,6 +144,7 @@ const javaTradeHost = (options: JavaTraderOptions): JavaTradeHost => {
         session: () => {
             const context = content.loot.context(undefined, {
                 random: options.random,
+                ...(options.level === undefined ? {} : { level: options.level }),
                 parameterSet: 'villager_trade',
                 parameters: {
                     origin: options.position,

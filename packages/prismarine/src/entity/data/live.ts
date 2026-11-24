@@ -34,6 +34,7 @@ import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/worl
 import type { ServerContent } from '../../content/ServerContent';
 import { contentWorldViews } from '../../content/world/views';
 import { destroyBlock } from '../../world/blockDestroy';
+import { lootLevelOf } from '../../world/lootLevel';
 import type { World } from '../../world/World';
 import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
@@ -376,6 +377,10 @@ const liveHost = (
         });
     },
     players: () => options.entities.players(),
+    lootLevel: () => {
+        const world = options.liveWorld();
+        return world === undefined ? undefined : lootLevelOf(world);
+    },
     playerView: (id) => {
         const session = options.liveWorld()?.viewerOf(BigInt(id));
         return session === undefined ? undefined : playerFilterView(session.getPlayer());

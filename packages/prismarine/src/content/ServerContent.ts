@@ -522,9 +522,9 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // enchantment view `enchant_randomly` and `enchant_with_levels` report and
     // leave the stack bare across 25 vanilla tables, and without the item
     // limits a rolled count clamps to 64 whatever the item is. `structures`
-    // stays out: an `exploration_map` needs a structure search, and this
-    // server has none to offer yet, so the modifier reports rather than
-    // pointing a map at a made-up place.
+    // and `mapIds` stay out: an `exploration_map` searches the world the roll
+    // happens in, so it asks the roll's level view (`lootLevelOf`) rather
+    // than this server-wide registry.
     const javaLootDefinitions = javaLootTables(definitions.lootTablesJava);
     const bedrockLootDefinitions = bedrockLootTables(definitions.lootTables);
     const loot = new LootRegistry(

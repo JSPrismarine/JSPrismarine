@@ -6874,6 +6874,7 @@ export class EntityRuntime implements EntityScene {
             content: this.content(),
             random: this.world.random,
             position: entity.position,
+            level: this.host.lootLevel?.(),
             ...(saved === undefined ? {} : { snapshot: saved }),
             report: (code, message) => this.report(`${entity.identifier} trade table ${code}: ${message}`)
         });

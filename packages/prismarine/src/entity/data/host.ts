@@ -13,6 +13,7 @@
  * `src/content/world/notWired.ts` applies at the other seam.
  */
 import type { EntityPosition, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type { LevelView } from '@jsprismarine/predicates';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { StatusEffectInput } from '../StatusEffect';
 import type { DataEntity } from './DataEntity';
@@ -140,6 +141,12 @@ export interface EntityHostFacts {
      * hand. Left out by a host that keeps no inventory for store players, such as a test's.
      */
     heldItemOf?(playerId: number): string | undefined;
+    /**
+     * The world as a loot roll reads it, which a trade's `exploration_map` searches for its
+     * structure. Left out, or answering undefined, an explorer map trade finds nothing and makes
+     * no offer.
+     */
+    lootLevel?(): LevelView | undefined;
     /**
      * What a store player holds in each hand, by identifier, which the store does not model yet.
      * Left out, or answering undefined, the entity's own equipment stands for it.

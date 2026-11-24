@@ -17,7 +17,7 @@
 import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { Merchant, merchantSnapshotIn, parseEconomyTradeTable, parseTradeTableComponent } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
-import type { RandomSource } from '@jsprismarine/predicates';
+import type { LevelView, RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
 import type { TradeSource } from '../../network/PlayerSession';
@@ -93,6 +93,8 @@ export interface MerchantOptions {
     readonly random: RandomSource;
     /** Where the trader stands, which Java's trade context reads as its `origin`. */
     readonly position: EntityPosition;
+    /** The world the trader stands in, which an explorer map trade searches; see {@link JavaTraderOptions.level}. */
+    readonly level?: LevelView | undefined;
     /** The trader's experience when it comes back from a save rather than being created. */
     readonly experience?: number;
     /** What a save kept of this trader's offers and progression; they come back instead of being drawn. */
@@ -161,6 +163,7 @@ export const merchantFor = (entity: EntityInstance, options: MerchantOptions): M
                   content: options.content,
                   random: options.random,
                   position: options.position,
+                  level: options.level,
                   markVariant,
                   ...(options.report === undefined ? {} : { report: options.report })
               });

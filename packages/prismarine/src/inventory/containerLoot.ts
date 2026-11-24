@@ -32,6 +32,8 @@ import { dropOfRolledStack } from '../item/lootStack';
 import { javaLootIdOf } from '../entity/data/facts';
 import type { ContentItemDrop, ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
+import { lootLevelOf } from '../world/lootLevel';
+import type { LootLevelWorld } from '../world/lootLevel';
 
 /** Bedrock's own two tags on an unfilled container, which are also Java's names for them. */
 const LOOT_TABLE_TAG = 'LootTable';
@@ -41,10 +43,10 @@ const LOOT_SEED_TAG = 'LootTableSeed';
 export type ContainerLootChunk = BlockEntityChunk;
 
 /**
- * The little of a world the fill reads: the chunks, synchronously, as a right click can, and
- * somewhere to report the filled container to.
+ * The little of a world the fill reads: the chunks, synchronously, as a right click can,
+ * somewhere to report the filled container to, and the level view the roll reads.
  */
-export type ContainerLootWorld = BlockEntityWorld;
+export type ContainerLootWorld = BlockEntityWorld & LootLevelWorld;
 
 /** The predicate grammar's stream over `java.util.Random`, which is what a stored seed names. */
 const seededRandom = (source: LegacyRandomSource): RandomSource => ({
@@ -154,6 +156,8 @@ const fillOne = (content: ServerContent, world: ContainerLootWorld, at: ContentP
     const rolled = content.loot.roll(table, {
         parameterSet: 'chest',
         parameters: { origin: { x: at.x, y: at.y, z: at.z } },
+        // What points a shipwreck's or a buried treasure's map at a structure of this world.
+        level: lootLevelOf(world),
         random: seededRandom(source)
     });
 
