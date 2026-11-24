@@ -162,6 +162,11 @@ export interface StructureSearchOptions {
      * does not have to be flattened before the search starts.
      */
     readonly wanted: (structure: string) => boolean;
+    /**
+     * Whether to pass over a start the search would otherwise answer, by its structure and start
+     * chunk. An explorer map passes over a structure an earlier map already points at.
+     */
+    readonly skip?: (structure: string, chunkX: number, chunkZ: number) => boolean;
 }
 
 /** How a {@link StructureStartSource} is built. */
@@ -368,7 +373,8 @@ export class StructureStartSource {
 
         for (const candidate of candidates) {
             const start = this.startAt(candidate.named, candidate.x, candidate.z);
-            if (start !== null && options.wanted(start.structure)) return start;
+            if (start === null || !options.wanted(start.structure)) continue;
+            if (options.skip?.(start.structure, start.chunkX, start.chunkZ) !== true) return start;
         }
 
         return undefined;

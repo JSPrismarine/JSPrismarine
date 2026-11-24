@@ -54,8 +54,19 @@ import { outsideTick } from './TickContext';
 import type { WorldData } from './World';
 import { byRuntimeId } from './runtimeIdOrder';
 import type { RaidRecord } from './raid/RaidManager';
-import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
-import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
+import type {
+    DragonFightState,
+    LegacyWorldEntity,
+    SavedRaid,
+    StructureReference,
+    WorldPersistenceData
+} from './WorldPersistence';
+import {
+    isFlatGenerator,
+    isNoiseGenerator,
+    legacyWorldPersistenceDataOf,
+    structureReferenceKey
+} from './WorldPersistence';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 import type { WorldExperiment } from './WorldExperiments';
 import { levelExperiments } from './WorldExperiments';
@@ -241,6 +252,12 @@ export class Level {
 
     /** The last `minecraft:map_id` handed out, Java's `idcounts` entry; -1 before the first. */
     private lastMapId = -1;
+
+    /**
+     * The structure starts an explorer map already points at, by {@link structureReferenceKey}.
+     * Java keeps the same count on each `StructureStart` as its `references`.
+     */
+    private readonly referencedStructures = new Map<string, StructureReference>();
 
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
@@ -918,6 +935,16 @@ export class Level {
         return this.lastMapId;
     }
 
+    /** Whether an earlier explorer map search already found this structure start. */
+    public isStructureReferenced(start: StructureReference): boolean {
+        return this.referencedStructures.has(structureReferenceKey(start));
+    }
+
+    /** Marks a structure start as one an explorer map points at, so later searches pass over it. */
+    public referenceStructure(start: StructureReference): void {
+        this.referencedStructures.set(structureReferenceKey(start), start);
+    }
+
     /** The level's weather: one cycle for the whole save, rendered where there is a sky. */
     public getWeather(): WorldWeather {
         return this.weather;
@@ -1138,6 +1165,7 @@ export class Level {
         if (levelDat?.time !== undefined) this.setDayTime(levelDat.time);
         if (stored.clockPaused !== undefined) this.setDayTimePaused(stored.clockPaused);
         if (stored.lastMapId !== undefined) this.lastMapId = stored.lastMapId;
+        for (const start of stored.referencedStructures ?? []) this.referenceStructure(start);
         this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
@@ -1308,7 +1336,8 @@ export class Level {
                 scriptSettings: this.scriptSettings.saved(),
                 dimensionNumbers: this.dimensionNumbers.saved(),
                 clockPaused: this.isDayTimePaused(),
-                lastMapId: this.lastMapId
+                lastMapId: this.lastMapId,
+                referencedStructures: [...this.referencedStructures.values()]
             },
             levelDat: {
                 ...(position === undefined ? {} : { spawn: position }),

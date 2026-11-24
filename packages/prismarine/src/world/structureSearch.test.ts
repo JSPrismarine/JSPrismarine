@@ -107,6 +107,45 @@ describe('World.locateStructure', () => {
 
         expect(asked.structure).toMatchObject({ x: 10, z: -10, radius: 100, seed: 99n });
     });
+
+    it("passes over a start an explorer map's search already found, as Java's skipKnownStructures does", () => {
+        const asked: StructureSearchRequest[] = [];
+        const generator = stub<Generator>({
+            locate: (request) => {
+                asked.push(request);
+                const nearest = [
+                    { chunkX: 2, chunkZ: 3 },
+                    { chunkX: 40, chunkZ: -7 }
+                ].find(({ chunkX, chunkZ }) => request.skip?.('minecraft:mansion', chunkX, chunkZ) !== true);
+                return nearest === undefined
+                    ? undefined
+                    : {
+                          structure: 'minecraft:mansion',
+                          x: nearest.chunkX * 16,
+                          y: 0,
+                          z: nearest.chunkZ * 16,
+                          origin: { x: 0, y: 64, z: 0 },
+                          startChunk: { x: nearest.chunkX, z: nearest.chunkZ }
+                      };
+            }
+        });
+        const world = worldOver(generator);
+        const skipping = { skipKnownStructures: true };
+
+        expect(world.locateStructure('minecraft:mansion', { x: 0, z: 0 }, 100, skipping)?.startChunk).toEqual({
+            x: 2,
+            z: 3
+        });
+        // `/locate` neither skips nor marks, so it still finds the nearest one.
+        expect(world.locateStructure('minecraft:mansion', { x: 0, z: 0 })?.startChunk).toEqual({ x: 2, z: 3 });
+        expect(asked[1]?.skip).toBeUndefined();
+        // The next explorer map goes to the next mansion, and once both are taken there is none.
+        expect(world.locateStructure('minecraft:mansion', { x: 0, z: 0 }, 100, skipping)?.startChunk).toEqual({
+            x: 40,
+            z: -7
+        });
+        expect(world.locateStructure('minecraft:mansion', { x: 0, z: 0 }, 100, skipping)).toBeUndefined();
+    });
 });
 
 describe('World.locateBiome', () => {

@@ -1825,11 +1825,17 @@ export class DataDrivenGenerator implements Generator {
             originChunkX: request.x >> 4,
             originChunkZ: request.z >> 4,
             radius: Math.max(0, Math.trunc(request.radius)),
-            wanted: request.wanted
+            wanted: request.wanted,
+            ...(request.skip === undefined ? {} : { skip: request.skip })
         });
         if (found === undefined) return undefined;
 
-        return { structure: found.structure, ...found.locatePosition, origin: found.origin };
+        return {
+            structure: found.structure,
+            ...found.locatePosition,
+            origin: found.origin,
+            startChunk: { x: found.chunkX, z: found.chunkZ }
+        };
     }
 
     /** @inheritDoc */
