@@ -17,12 +17,13 @@ import BossEventPacket, {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
-import { overlayPackPath } from '../../content/packStack';
+import { entityOverlayPackPath, overlayPackPath } from '../../content/packStack';
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { serverWorldSource } from '../../content/world/serverSource';
 import type { ServerWorldHandle } from '../../content/world/serverSource';
 import type { DataEntity } from '../../entity/data/DataEntity';
+import { orbViewOf } from '../../entity/data/experienceOrbs';
 import { EntityRuntimes } from '../../entity/data/live';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import type PlayerSession from '../../network/PlayerSession';
@@ -138,12 +139,11 @@ const ENTITIES = new Map([
     ],
     [
         'minecraft:xp_orb',
-        entityFile('minecraft:xp_orb', {
-            components: {
-                'minecraft:collision_box': { width: 0.25, height: 0.25 },
-                'minecraft:physics': {}
-            }
-        })
+        definitionOf(
+            'entities',
+            'minecraft:xp_orb',
+            JSON.parse(readFileSync(join(entityOverlayPackPath(), 'entities', 'xp_orb.json'), 'utf8'))
+        )
     ]
 ]);
 
@@ -678,13 +678,31 @@ describe('the dragon fight over a live End world', () => {
             await run(fight, 2);
         };
 
-        /** The values of every experience orb lying in the world, in spawn order. */
-        const orbValues = (): unknown[] =>
+        /** The points of every experience orb lying in the world, as value times count. */
+        const orbPoints = (): number =>
             live.runtime
                 .entities()
                 .toArray()
-                .filter((entity) => entity.identifier === 'minecraft:xp_orb')
-                .map((orb) => orb.spawnData?.['value']);
+                .map(orbViewOf)
+                .reduce((sum, orb) => sum + (orb === undefined ? 0 : orb.value * orb.count), 0);
+
+        /**
+         * The orbs Java's `ExperienceOrb.award` drops for one kill, as the ten `floor(xp * 0.08)`
+         * awards and the one `floor(xp * 0.2)`, each split by `getExperienceValue`, smallest first.
+         */
+        const javaOrbs = (eighth: readonly number[], fifth: readonly number[]): number[] =>
+            [...Array.from({ length: 10 }, () => eighth).flat(), ...fifth].sort((left, right) => left - right);
+
+        /** The values of every experience orb lying in the world, smallest first. */
+        const orbValues = (): number[] =>
+            live.runtime
+                .entities()
+                .toArray()
+                .flatMap((entity) => {
+                    const orb = orbViewOf(entity);
+                    return orb === undefined ? [] : Array.from({ length: orb.count }, () => orb.value);
+                })
+                .sort((left, right) => left - right);
 
         it('opens the portal, drops the egg and spends a gateway on the first kill', async () => {
             const { player } = enterArena(players, 0, 70, 0);
@@ -722,19 +740,19 @@ describe('the dragon fight over a live End world', () => {
             expect(rule?.links[END.id]).toBe(Dimensions.Overworld.id);
         });
 
-        it('pays the first kill 12000 points, as orbs and directly to the killer', async () => {
+        it('pays the first kill 12000 points as orbs, and nothing directly to the killer', async () => {
             const { player } = enterArena(players, 0, 70, 0);
             const fight = freshFight();
             await run(fight, 1);
 
             await killDragon(fight, Number(player.getRuntimeId()));
 
-            // Java's split: ten awards of floor(12000 * 0.08) over the death hold, floor(12000 * 0.2) at its end.
-            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 960), 2400]);
-            // 12000 points from scratch: 1395 reach level 30, the rest climbs Java's 9n - 158
-            // curve to level 68 with 22 points toward the 454-point level 69.
-            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(68);
-            expect(player.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(22 / 454, 10);
+            // Java's split: ten awards of floor(12000 * 0.08) over the death hold, floor(12000 * 0.2)
+            // at its end, each in Java's orb sizes.
+            // 960 is 617 + 307 + 17 + 17 + 1 + 1, and 2400 is 1237 + 617 + 307 + 149 + 73 + 17.
+            expect(orbValues()).toEqual(javaOrbs([617, 307, 17, 17, 1, 1], [1237, 617, 307, 149, 73, 17]));
+            expect(orbPoints()).toBe(12000);
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
         });
 
         it('pays 500, spends the next gateway and places no egg on a repeat kill', async () => {
@@ -749,11 +767,9 @@ describe('the dragon fight over a live End world', () => {
             // Index 9, the last of the saved list, lands at (-92, 75, 29); the list keeps the rest.
             expect(blockNameAt(world, -92, 75, 29)).toBe('minecraft:end_gateway');
             expect(fight.state().gateways).toEqual([4, 2]);
-            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 40), 100]);
-            // 500 points from scratch: 315 reach level 15, the rest climbs to level 19 with 7
-            // points toward the 57-point level 20.
-            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(19);
-            expect(player.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(7 / 57, 10);
+            // 40 is 37 + 3, and 100 is 73 + 17 + 7 + 3.
+            expect(orbValues()).toEqual(javaOrbs([37, 3], [73, 17, 7, 3]));
+            expect(orbPoints()).toBe(500);
         });
 
         it('pays the orbs but no direct award when no player dealt the killing blow', async () => {
@@ -765,7 +781,7 @@ describe('the dragon fight over a live End world', () => {
             live.runtime.remove(dragon.id, 'death_behavior');
             await run(fight, 2);
 
-            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 960), 2400]);
+            expect(orbPoints()).toBe(12000);
             expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
         });
     });

@@ -1367,6 +1367,26 @@ async function addonFacts() {
     };
 }
 
+/** The numbers an experience orb runs by, read from its `jsprismarine:experience_orb` component. */
+function experienceOrbFacts() {
+    // Parsed JSON is an untyped boundary; only the host component's numbers are read.
+    const file: { 'minecraft:entity': { components: Record<string, Record<string, unknown>> } } = JSON.parse(
+        sourceText('packages', 'entities', 'vanilla_overlay', 'entities', 'xp_orb.json')
+    );
+    const component = file['minecraft:entity'].components['jsprismarine:experience_orb'];
+    const keys = ['lifetime', 'scan_interval', 'follow_range', 'merge_groups', 'merge_reach', 'take_delay'] as const;
+    return Object.fromEntries(
+        keys.map((key) => {
+            const value = component?.[key];
+            if (typeof value !== 'number') throw new Error(`xp_orb.json's jsprismarine:experience_orb has no ${key}.`);
+            return [
+                `experienceOrb.${key.replace(/_(\w)/g, (_, letter: string) => letter.toUpperCase())}`,
+                String(value)
+            ];
+        })
+    );
+}
+
 /**
  * How many palette blocks each block behavior family gets, read from the tally the overlay
  * generator writes, with the names the family rules can produce.
@@ -1568,6 +1588,7 @@ export async function loadFacts(): Promise<Facts> {
             ...prismarineEntryFacts(),
             ...(await addonFacts()),
             ...blockBehaviorFacts(),
+            ...experienceOrbFacts(),
             ...tpsBarFacts(),
             ...standardPlaceholdersFacts(),
             ...tabListFacts(),

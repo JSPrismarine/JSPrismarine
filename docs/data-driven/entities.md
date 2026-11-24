@@ -641,6 +641,21 @@ painting or a fence under a knot, and breaks when it is not, a painting dropping
 carries `jsprismarine:ominous_item_spawner`: it lets its item go between 60 and 120 ticks after it
 appears, firing a projectile item straight down and dropping anything else, and is gone.
 
+An experience orb is Bedrock's `minecraft:xp_orb`, and the overlay's
+[`xp_orb.json`](../../packages/entities/vanilla_overlay/entities/xp_orb.json) repeats the shipped
+file with the host component `jsprismarine:experience_orb` added, which holds the numbers Java's
+`ExperienceOrb` hardcodes. `ExperienceOrbs` runs it as Java does. A payout, from a kill, a block, a
+projectile or a player's death, splits into Java's orb sizes. Runtime ids fall into <!-- fact:experienceOrb.mergeGroups -->40<!-- /fact -->
+merge groups, and each part of a payout joins an orb of the same value at the spot when a roll
+picks that orb's group. On its first tick and every <!-- fact:experienceOrb.scanInterval -->20<!-- /fact --> ticks after, an orb draws in
+the orbs of its value within <!-- fact:experienceOrb.mergeReach -->0.5<!-- /fact --> blocks of its box whose runtime ids fall in its
+group. It follows the nearest player within <!-- fact:experienceOrb.followRange -->8<!-- /fact --> blocks who is not a spectator, and a
+player standing against orbs takes one every <!-- fact:experienceOrb.takeDelay -->2<!-- /fact --> ticks. Mending, or any enchantment that
+declares `repair_with_xp`, repairs the player's damaged gear first, and only the points it leaves
+become experience. An orb is gone after <!-- fact:experienceOrb.lifetime -->6000<!-- /fact --> ticks. Its value comes with its spawn
+data, and its count and age are the component's state, so a merge, a pickup and a save keep them.
+Clients are sent the value as the actor's experience value, which sizes the orb.
+
 A dropped stack's stack, age and pickup delay are the component state of `jsprismarine:item`, and
 its position and speed are the body's, so every change is logged. `DroppedItems` runs it in the
 entity pass as Bedrock Dedicated Server moves one: gravity, the move, then drag, coming to rest on

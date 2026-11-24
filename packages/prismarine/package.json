@@ -745,6 +745,11 @@
                 "import": "./dist/enchantment/enchantingTable.js",
                 "module": "./dist/enchantment/enchantingTable.js"
             },
+            "./enchantment/mending": {
+                "types": "./dist/enchantment/mending.d.ts",
+                "import": "./dist/enchantment/mending.js",
+                "module": "./dist/enchantment/mending.js"
+            },
             "./world/physics/BlockRules": {
                 "types": "./dist/world/physics/BlockRules.d.ts",
                 "import": "./dist/world/physics/BlockRules.js",
@@ -1079,6 +1084,11 @@
                 "types": "./dist/entity/data/evokerFangs.d.ts",
                 "import": "./dist/entity/data/evokerFangs.js",
                 "module": "./dist/entity/data/evokerFangs.js"
+            },
+            "./entity/data/experienceOrbs": {
+                "types": "./dist/entity/data/experienceOrbs.d.ts",
+                "import": "./dist/entity/data/experienceOrbs.js",
+                "module": "./dist/entity/data/experienceOrbs.js"
             },
             "./entity/data/eyeOfEnderSignals": {
                 "types": "./dist/entity/data/eyeOfEnderSignals.d.ts",
@@ -2403,6 +2413,10 @@
             "jsprismarine:dist": "./dist/enchantment/enchantingTable.js",
             "default": "./src/enchantment/enchantingTable.ts"
         },
+        "./enchantment/mending": {
+            "jsprismarine:dist": "./dist/enchantment/mending.js",
+            "default": "./src/enchantment/mending.ts"
+        },
         "./world/physics/BlockRules": {
             "jsprismarine:dist": "./dist/world/physics/BlockRules.js",
             "default": "./src/world/physics/BlockRules.ts"
@@ -2614,6 +2628,10 @@
         "./entity/data/evokerFangs": {
             "jsprismarine:dist": "./dist/entity/data/evokerFangs.js",
             "default": "./src/entity/data/evokerFangs.ts"
+        },
+        "./entity/data/experienceOrbs": {
+            "jsprismarine:dist": "./dist/entity/data/experienceOrbs.js",
+            "default": "./src/entity/data/experienceOrbs.ts"
         },
         "./entity/data/eyeOfEnderSignals": {
             "jsprismarine:dist": "./dist/entity/data/eyeOfEnderSignals.js",

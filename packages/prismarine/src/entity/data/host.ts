@@ -134,6 +134,16 @@ export interface EntityHostFacts {
      * @returns How many of the stack's items did not fit. Left out, nothing is ever taken.
      */
     givePlayerItem?(playerId: number, itemId: number, item: ContentItemDrop): number;
+    /**
+     * Gives a player one experience orb, Java's `ExperienceOrb.playerTouch`: Mending repairs what
+     * it can of the player's gear and the rest of the points are experience. Left out, an orb a
+     * player takes is lost.
+     *
+     * @param playerId - The runtime id of the player taking it.
+     * @param orbId - The runtime id of the orb.
+     * @param value - The points one orb is worth.
+     */
+    takeExperienceOrb?(playerId: number, orbId: number, value: number): void;
     /** Tells clients that a dropped stack now holds `count` items, after a merge or a partial take. */
     itemStackChanged?(itemId: number, count: number): void;
     /**

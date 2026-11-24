@@ -17,7 +17,6 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import type { DataEntity } from '../../entity/data/DataEntity';
 import { explode } from '../../entity/Explosion';
-import { addExperiencePoints } from '../../entity/Experience';
 import { BossBar } from '../../network/BossBar';
 import { chunksOfBlockBox } from '../ChunkTickets';
 import type { ChunkCoordinate } from '../ChunkTickets';
@@ -94,7 +93,6 @@ const RESPAWN_SUMMON_TICKS = 100;
 
 const DRAGON_IDENTIFIER = 'minecraft:ender_dragon';
 const CRYSTAL_IDENTIFIER = 'minecraft:ender_crystal';
-const XP_ORB_IDENTIFIER = 'minecraft:xp_orb';
 
 /** The chunks a pillar reset clears and rebuilds, ten blocks around the pillar's center. */
 const spikeChunks = (spike: EndSpike): ChunkCoordinate[] =>
@@ -124,14 +122,11 @@ const freshState = (): DragonFightState => ({
 interface DragonDeath {
     readonly persistentIdentity: string;
     readonly position: EntityPosition;
-    /** The runtime id of whoever dealt the killing blow, when anybody did in this run. */
-    readonly killerId: number | undefined;
 }
 
 const deathOf = (dragon: DataEntity): DragonDeath => ({
     persistentIdentity: dragon.persistentIdentity,
-    position: { ...dragon.position },
-    killerId: dragon.body.damage.last()?.sourceId
+    position: { ...dragon.position }
 });
 
 /**
@@ -188,7 +183,7 @@ export class DragonFight {
         this.respawnChunksLoaded = this.fight.respawnStage === undefined;
         const { dragonDeathPosition, dragonUniqueId } = this.fight;
         if (dragonDeathPosition !== undefined && dragonUniqueId !== undefined)
-            this.died = { persistentIdentity: dragonUniqueId, position: dragonDeathPosition, killerId: undefined };
+            this.died = { persistentIdentity: dragonUniqueId, position: dragonDeathPosition };
         if (this.fight.gateways.length === 0) {
             this.fight.gateways = shuffledCopy(
                 Array.from({ length: GATEWAY_COUNT }, (_, index) => index),
@@ -755,26 +750,16 @@ export class DragonFight {
 
     /**
      * Java's death payout: 12000 points on a world's first kill and 500 after, split as ten
-     * `floor(xp * 0.08)` awards plus one `floor(xp * 0.2)`. Java spreads the ten over the
-     * death animation's ticks 155 through 200; this server pays the whole schedule when the
-     * animation's end removes the dragon.
-     *
-     * Each award drops an `xp_orb` entity, the way block breaks do. Nothing picks orbs up
-     * yet, so the player who dealt the killing blow is also paid the total directly; take the
-     * direct payment out when orb pickup lands, or a kill will pay twice.
+     * `floor(xp * 0.08)` awards plus one `floor(xp * 0.2)`, each dropped as orbs the way
+     * `ExperienceOrb.award` drops a payout. Java spreads the ten over the death animation's ticks
+     * 155 through 200; this server pays the whole schedule when the animation's end removes the
+     * dragon. The players nearby collect the orbs; nobody is paid directly.
      */
     private awardExperience(dragon: DragonDeath, firstKill: boolean): void {
         const xp = firstKill ? FIRST_KILL_EXPERIENCE : REPEAT_KILL_EXPERIENCE;
         const awards = [...Array.from({ length: 10 }, () => Math.floor(xp * 0.08)), Math.floor(xp * 0.2)];
-        for (const value of awards) {
-            this.world.dataEntities().runtime.spawn(XP_ORB_IDENTIFIER, { ...dragon.position }, { data: { value } });
-        }
-
-        const { killerId } = dragon;
-        const killer = this.world.getViewers().find((session) => Number(session.runtimeId) === killerId);
-        if (killerId === undefined || killer === undefined) return;
-
-        addExperiencePoints(killer.getPlayer().getExperience(), xp);
+        const orbs = this.world.dataEntities().runtime.experienceOrbs;
+        for (const points of awards) orbs.award(dragon.position, points);
     }
 
     /** Java's `spawnExitPortal` position: the (0, 0) surface, stepped down through bedrock above y 63. */
