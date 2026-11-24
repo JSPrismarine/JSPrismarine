@@ -19,7 +19,7 @@ import { expect, it } from 'vitest';
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
-import { blockPropertyScenarios, javaBlockRows } from './blockScenarios/properties.ts';
+import { blockPropertyScenarios, hasMapColor, javaBlockRows } from './blockScenarios/properties.ts';
 import { javaBlockBehaviors, javaBlockIsA } from './javaBlockClasses.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
@@ -1156,6 +1156,9 @@ const blockAspects = (javaId: string): readonly BehaviorAspect[] => {
             );
         }
         aspects.push({ id: 'piston', description: 'whether a piston moves, destroys or stops at it, against Java' });
+    }
+    if (!javaBlockIsA(javaId, 'AirBlock') && java !== undefined && hasMapColor(java)) {
+        aspects.push({ id: 'map-color', description: 'the color a held map draws it in, against Java' });
     }
     if (any('lightEmission', (value) => typeof value === 'number' && value > 0)) {
         aspects.push({ id: 'light', description: 'the light it gives in each state, against Java' });

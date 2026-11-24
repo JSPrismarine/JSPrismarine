@@ -10,6 +10,7 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import type { SavedMap, SavedMapDecoration } from '../../savedMap';
+import { MAP_SIZE } from '../../savedMap';
 import type { StructureReference } from '../../WorldPersistence';
 
 const MAPS_TAG = 'maps';
@@ -43,13 +44,27 @@ export const mapsToNbt = (maps: ReadonlyMap<number, SavedMap>): NBTTagCompound =
         entry.addValue('centerZ', new Types.NumberVal(map.centerZ));
         entry.addValue('scale', new Types.NumberVal(map.scale));
         entry.addValue('decorations', new Set(map.decorations.map(decorationToNbt)));
+        entry.addValue('trackingPosition', new Types.ByteVal(map.trackingPosition ? 1 : 0));
+        entry.addValue('unlimitedTracking', new Types.ByteVal(map.unlimitedTracking ? 1 : 0));
+        entry.addValue('locked', new Types.ByteVal(map.locked ? 1 : 0));
+        // A `TAG_Byte_Array`. An explorer map whose preview nobody has drawn yet saves none.
+        if (map.colors !== undefined) entry.addValue('colors', Buffer.from(map.colors));
         entries.add(entry);
     }
     root.addValue(MAPS_TAG, entries);
     return root;
 };
 
-/** Reads the maps back, skipping an entry that is missing a field. */
+/** The map's pixels, or undefined when the entry has none or they are not a whole map. */
+const colorsIn = (entry: NBTTagCompound): Uint8Array | undefined => {
+    const colors = [...entry.entries()].find(([key]) => key === 'colors')?.[1];
+    return Buffer.isBuffer(colors) && colors.length === MAP_SIZE * MAP_SIZE ? new Uint8Array(colors) : undefined;
+};
+
+/**
+ * Reads the maps back, skipping an entry that is missing a field. An entry saved before maps
+ * had pixels and flags is an explorer map, which tracks without limit and draws its preview.
+ */
 export const mapsFromNbt = (root: NBTTagCompound): Map<number, SavedMap> => {
     const maps = new Map<number, SavedMap>();
     for (const entry of compoundsIn(root, MAPS_TAG)) {
@@ -67,7 +82,11 @@ export const mapsFromNbt = (root: NBTTagCompound): Map<number, SavedMap> => {
             centerX: entry.getNumber('centerX', 0),
             centerZ: entry.getNumber('centerZ', 0),
             scale: entry.getNumber('scale', 0),
-            decorations
+            decorations,
+            trackingPosition: entry.getByte('trackingPosition', 1) !== 0,
+            unlimitedTracking: entry.getByte('unlimitedTracking', 1) !== 0,
+            locked: entry.getByte('locked', 0) !== 0,
+            colors: colorsIn(entry)
         });
     }
     return maps;

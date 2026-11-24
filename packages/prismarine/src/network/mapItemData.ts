@@ -2,7 +2,8 @@
  * A saved map as the `ClientboundMapItemDataPacket` a Bedrock client draws it from.
  *
  * The client asks for a map by the `map_uuid` its item carries (`MapInfoRequestPacket`) and
- * draws whatever comes back: the pixels, and a marker for each decoration. Which fields have to
+ * draws whatever comes back: the pixels, and a marker for each decoration. A held map is sent the
+ * pixels and markers that changed as it fills in. Which fields have to
  * be set, and how, follows GeyserMC's `JavaMapItemDataTranslator`, which draws Java maps on
  * Bedrock clients: the map's own id as the creation id, an origin of zero, one tracked actor per
  * decoration, Java's decoration bytes passed through as they are, and pixels with red in the low
@@ -15,8 +16,10 @@ import {
 } from '@jsprismarine/protocol/bedrock/packet/ClientboundMapItemDataPacket';
 import type { ClientboundMapItemData } from '@jsprismarine/protocol/bedrock/packet/ClientboundMapItemDataPacket';
 
-import type { SavedMap } from '../world/savedMap';
-import { MAP_SIZE, bedrockPixelOf } from '../world/savedMap';
+import type { MapUpdate } from '../world/mapCarriers';
+import { bedrockPixelOf } from '../world/mapColors';
+import type { SavedMap, SavedMapDecoration } from '../world/savedMap';
+import { MAP_SIZE } from '../world/savedMap';
 
 /** White, which leaves a marker's own artwork as it is. */
 const UNTINTED = 0xffffffff;
@@ -58,22 +61,21 @@ const BEDROCK_DECORATIONS: ReadonlyMap<string, { readonly type: MapDecorationTyp
 const unsignedByte = (value: number): number => value & 0xff;
 
 /**
- * The packet that draws one map.
+ * The packet that sends one map, or the part of it that changed.
  *
- * @param mapId - The map's id, which is the `map_uuid` the client asked for.
+ * @param mapId - The map's id, which is the `map_uuid` the client knows it by.
  * @param map - The saved map.
  * @param dimension - The Bedrock number of the dimension the map shows.
- * @param colors - The map's pixels as Java's packed color ids, `x + z * 128`, such as
- *   `biomePreviewColors` draws.
+ * @param update - The pixels and markers to send; a part left out keeps what the client has.
  */
 export const mapItemDataOf = (
     mapId: number,
     map: SavedMap,
     dimension: number,
-    colors: Uint8Array
+    update: MapUpdate
 ): ClientboundMapItemData => {
     // A decoration Geyser has no marker for is left off rather than drawn as the wrong one.
-    const decorations = map.decorations.flatMap((decoration) => {
+    const decorations = update.decorations?.flatMap((decoration) => {
         const bedrock = BEDROCK_DECORATIONS.get(decoration.type);
         if (bedrock === undefined) return [];
         return [
@@ -88,25 +90,33 @@ export const mapItemDataOf = (
             }
         ];
     });
+    const patch = update.patch;
 
     return {
         mapId: BigInt(mapId),
         dimension,
-        isLocked: false,
+        isLocked: map.locked,
         mapOrigin: new BlockPos(0, 0, 0),
         creationMapIds: [BigInt(mapId)],
         scale: map.scale,
         // One tracked actor for each marker, numbered from zero, which the client pairs with it.
-        trackedActorIds: decorations.map((_decoration, index) => ({
-            type: MapItemTrackedActorType.Entity,
-            entityId: BigInt(index),
-            blockPosition: null
-        })),
-        decorations,
-        width: MAP_SIZE,
-        height: MAP_SIZE,
-        startX: 0,
-        startY: 0,
-        pixels: Array.from(colors, bedrockPixelOf)
+        trackedActorIds:
+            decorations?.map((_decoration, index) => ({
+                type: MapItemTrackedActorType.Entity,
+                entityId: BigInt(index),
+                blockPosition: null
+            })) ?? null,
+        decorations: decorations ?? null,
+        width: patch?.width ?? null,
+        height: patch?.height ?? null,
+        startX: patch?.startX ?? null,
+        startY: patch?.startY ?? null,
+        pixels: patch === undefined ? null : Array.from(patch.colors, bedrockPixelOf)
     };
 };
+
+/** The whole of a map, as a client that has none of it is sent it. */
+export const wholeMap = (colors: Uint8Array, decorations: readonly SavedMapDecoration[]): MapUpdate => ({
+    patch: { startX: 0, startY: 0, width: MAP_SIZE, height: MAP_SIZE, colors },
+    decorations
+});

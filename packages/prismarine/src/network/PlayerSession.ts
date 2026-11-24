@@ -48,6 +48,7 @@ import { spawnTarget } from '../world/portal/DimensionTravel';
 import type { respawnPoint } from '../world/SpawnPlacement';
 import { outsideTick } from '../world/TickContext';
 import { allSent } from './allSent';
+import { tickCarriedMaps } from './carriedMaps';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
@@ -3740,6 +3741,9 @@ export default class PlayerSession {
         // is copied into the client's table first.
         this.showOwnHealth();
         this.released(this.syncAttributes());
+
+        // The maps the player carries fill in and send what changed, as Java's player tick does.
+        this.released(allSent(tickCarriedMaps(this)));
 
         // Every second, which is Java's own period for this pair. The `location` conditions are
         // about where the player is standing rather than about anything that happened, so there

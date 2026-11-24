@@ -593,8 +593,9 @@ trades lead to two structures. When none is in range, the modifier's filter disc
 trade makes no offer, as Java's does. The map reaches the client as the Bedrock filled map named for
 its structure, such as an Ocean Monument Map. When the client asks for the map, the server answers
 with the structure's marker and Java's biome preview, the outline of the coast drawn before anyone
-has explored the map. Walking around does not fill the map in, and a cartography table cannot lock
-or copy it. A trade stack otherwise reaches the client with its aux value and enchantments only, so
+has explored the map. Held, the map fills in from the terrain around its holder as Java's
+`MapItem.update` draws it, and shows the holder's marker. A cartography table cannot lock or copy
+it yet ([#3698](https://github.com/JSPrismarine/JSPrismarine/issues/3698)). A trade stack otherwise reaches the client with its aux value and enchantments only, so
 dyed armor, suspicious stew and tipped arrows arrive without what their modifier wrote
 ([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The discounts still come from
 the Bedrock `minecraft:economy_trade_table` component.

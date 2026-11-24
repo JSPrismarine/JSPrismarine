@@ -275,6 +275,81 @@
             "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
         },
+        "map-color:minecraft:blue_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:brown_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:cyan_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:gray_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:green_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:light_blue_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:light_gray_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:lime_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:magenta_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:orange_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:pink_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:purple_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:red_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:white_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
+        "map-color:minecraft:yellow_bed": {
+            "kind": "deferred",
+            "reason": "A Bedrock bed keeps its color in its block entity, which the map's terrain reader does not read, so every bed's foot is drawn in one color.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3699"
+        },
         "piston-reaction:minecraft:acacia_hanging_sign": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
