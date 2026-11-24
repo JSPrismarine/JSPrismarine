@@ -157,7 +157,7 @@ const levelStructureLocator: StructureLocator = (request, context) => {
         context.diagnostics.warn('exploration_map', 'the level view does not implement nearestStructure');
         return undefined;
     }
-    return level.nearestStructure(request.destination, origin, request.searchRadius);
+    return level.nearestStructure(request.destination, origin, request.searchRadius, request.skipExistingChunks);
 };
 
 /**

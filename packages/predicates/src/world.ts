@@ -164,9 +164,16 @@ export interface LevelView {
      * @param destination - A namespaced structure id, or a `#tag` of them.
      * @param origin - Where the search starts.
      * @param searchRadius - How far out to look, in Java's `search_radius` units.
+     * @param skipKnownStructures - Java's `skip_existing_chunks`: pass over a structure an
+     * earlier such search found, and mark the one found so the next search passes over it.
      * @returns The structure's position, or undefined when none is in range.
      */
-    nearestStructure?(destination: string, origin: Vec3, searchRadius: number): Vec3 | undefined;
+    nearestStructure?(
+        destination: string,
+        origin: Vec3,
+        searchRadius: number,
+        skipKnownStructures: boolean
+    ): Vec3 | undefined;
     /** Allocates a fresh `minecraft:map_id`, which is Java's `ServerLevel.getFreeMapId`. */
     newMapId?(): number;
     /** Combined light level at a position, which is what Java's `light` predicate compares. */

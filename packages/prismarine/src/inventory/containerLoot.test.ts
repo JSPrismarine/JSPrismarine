@@ -179,8 +179,8 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
         const searches: unknown[] = [];
         let lastMapId = -1;
         const world = worldHolding([generatedChest(1234n, CHEST, SHIPWRECK_MAP)], {
-            locateStructure: (name, origin, radius) => {
-                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius });
+            locateStructure: (name, origin, radius, options) => {
+                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius, ...options });
                 return { x: 400, y: 50, z: -800 };
             },
             nextMapId: () => ++lastMapId
@@ -192,7 +192,13 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
 
         // The table's own destination and Java's default radius, searched from the chest.
         expect(searches).toEqual([
-            { name: '#minecraft:on_treasure_maps', origin: { x: CHEST.x, z: CHEST.z }, radius: 50 }
+            // The table sets `skip_existing_chunks` to false, so the search does not skip.
+            {
+                name: '#minecraft:on_treasure_maps',
+                origin: { x: CHEST.x, z: CHEST.z },
+                radius: 50,
+                skipKnownStructures: false
+            }
         ]);
         expect(lastMapId).toBe(0);
 

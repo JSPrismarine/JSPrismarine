@@ -2740,13 +2740,17 @@ export class World implements Service {
      * is read.
      * @param origin - Where to search from, in blocks.
      * @param radius - How far out to look, in rings of placement regions; Java's 100 by default.
+     * @param options.skipKnownStructures - Java's `skipKnownStructures`, which an explorer map's
+     * `skip_existing_chunks` sets: pass over a start an earlier such search already found, and
+     * mark the one found so the next search passes over it too.
      * @returns Java's locate position and the generation point, or undefined when the generator
      * places no structures, has no search of its own, or found nothing inside the radius.
      */
     public locateStructure(
         name: string,
         origin: { readonly x: number; readonly z: number },
-        radius: number = LOCATE_RADIUS
+        radius: number = LOCATE_RADIUS,
+        options: { readonly skipKnownStructures?: boolean } = {}
     ): StructureSearchResult | undefined {
         const search = this.generator.locate;
         if (search === undefined) return undefined;
@@ -2758,7 +2762,9 @@ export class World implements Service {
             ? this.generator.membersOfTag?.('worldgen/structure', namespaced(name.slice(1)))
             : undefined;
 
-        return search.call(this.generator, {
+        const dimension = this.dimension.id;
+        const skipKnown = options.skipKnownStructures === true;
+        const found = search.call(this.generator, {
             x: Math.trunc(origin.x),
             z: Math.trunc(origin.z),
             radius,
@@ -2766,8 +2772,26 @@ export class World implements Service {
                 tagged === undefined
                     ? (structure) => structureNameMatches(name, structure)
                     : (structure) => tagged.has(structure),
+            ...(skipKnown
+                ? {
+                      skip: (structure: string, chunkX: number, chunkZ: number) =>
+                          this.level.isStructureReferenced({ dimension, structure, chunkX, chunkZ })
+                  }
+                : {}),
             seed: this.level.seed
         });
+
+        // Java's `tryAddReference`: the start this search settled on is one the next skipping
+        // search passes over.
+        if (skipKnown && found?.startChunk !== undefined) {
+            this.level.referenceStructure({
+                dimension,
+                structure: found.structure,
+                chunkX: found.startChunk.x,
+                chunkZ: found.startChunk.z
+            });
+        }
+        return found;
     }
 
     /**

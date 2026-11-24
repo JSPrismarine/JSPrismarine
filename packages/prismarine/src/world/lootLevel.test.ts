@@ -22,20 +22,22 @@ describe('the loot level view', () => {
         const level = lootLevelOf({
             getTicks: () => 0,
             getDimension: () => ({ name: 'minecraft:overworld' }),
-            locateStructure: (name, origin, radius) => {
-                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius });
+            locateStructure: (name, origin, radius, options) => {
+                searches.push({ name, origin: { x: origin.x, z: origin.z }, radius, ...options });
                 return { x: 320, y: 40, z: -96 };
             },
             nextMapId: () => ++lastMapId
         });
 
-        expect(level.nearestStructure?.('#minecraft:on_treasure_maps', { x: 1, y: 2, z: 3 }, 50)).toEqual({
+        expect(level.nearestStructure?.('#minecraft:on_treasure_maps', { x: 1, y: 2, z: 3 }, 50, true)).toEqual({
             x: 320,
             y: 40,
             z: -96
         });
-        // The radius goes through as the loot function stated it, as `/locate` reads its own.
-        expect(searches).toEqual([{ name: '#minecraft:on_treasure_maps', origin: { x: 1, z: 3 }, radius: 50 }]);
+        // The radius and the skip go through as the loot function stated them.
+        expect(searches).toEqual([
+            { name: '#minecraft:on_treasure_maps', origin: { x: 1, z: 3 }, radius: 50, skipKnownStructures: true }
+        ]);
         expect([level.newMapId?.(), level.newMapId?.()]).toEqual([5, 6]);
     });
 

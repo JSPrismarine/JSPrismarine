@@ -61,6 +61,8 @@ export interface StructureSearchRequest {
      * for "any village" costs the same as one for a single identifier.
      */
     readonly wanted: (structure: string) => boolean;
+    /** Whether to pass over a start the search would otherwise answer, by its structure and start chunk. */
+    readonly skip?: (structure: string, chunkX: number, chunkZ: number) => boolean;
     readonly seed?: bigint;
 }
 
@@ -78,6 +80,8 @@ export interface StructureSearchResult {
     readonly z: number;
     /** The generation point, where the structure's layout started and its biome was checked. */
     readonly origin: { readonly x: number; readonly y: number; readonly z: number };
+    /** The chunk the structure starts in, which is what tells one start of a structure from another. */
+    readonly startChunk?: { readonly x: number; readonly z: number };
 }
 
 /** What a biome search asks a generator; see {@link Generator.locateBiome}. */

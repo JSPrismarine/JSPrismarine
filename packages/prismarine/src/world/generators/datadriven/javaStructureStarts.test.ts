@@ -311,6 +311,20 @@ describe('StructureStartSource', () => {
             expect(found?.origin).toEqual({ x: found!.chunkX * 16 + 8, y: 64, z: found!.chunkZ * 16 + 8 });
         });
 
+        it('passes over a start the skip predicate names and answers the next nearest', () => {
+            const nearest = sourceOf().locate({ originChunkX: 0, originChunkZ: 0, radius: 4, wanted: () => true });
+            const next = sourceOf().locate({
+                originChunkX: 0,
+                originChunkZ: 0,
+                radius: 4,
+                wanted: () => true,
+                skip: (_structure, chunkX, chunkZ) => chunkX === nearest?.chunkX && chunkZ === nearest.chunkZ
+            });
+
+            expect(next).toBeDefined();
+            expect([next!.chunkX, next!.chunkZ]).not.toEqual([nearest!.chunkX, nearest!.chunkZ]);
+        });
+
         it('finds nothing when the predicate wants a structure this world does not place', () => {
             const found = sourceOf().locate({
                 originChunkX: 0,

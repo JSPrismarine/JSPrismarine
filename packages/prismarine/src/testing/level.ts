@@ -38,6 +38,7 @@ import { WorldWeather } from '../world/Weather';
 import { World } from '../world/World';
 import type { WorldExperiment } from '../world/WorldExperiments';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
+import { structureReferenceKey } from '../world/WorldPersistence';
 import { testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
@@ -132,6 +133,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         worldSpawn: () => server.getWorldManager().getEntryWorld()
     });
 
+    const referenced = new Set<string>();
     return stub<Level>({
         name: options.name ?? 'test',
         seed: options.seed ?? 0n,
@@ -155,6 +157,10 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         getSpawn: () => spawn,
         setSpawn: (at) => {
             spawn = at;
+        },
+        isStructureReferenced: (start) => referenced.has(structureReferenceKey(start)),
+        referenceStructure: (start) => {
+            referenced.add(structureReferenceKey(start));
         },
         legacyEntities: () => options.legacyEntities ?? [],
         storedDragonFightState: () => undefined,
