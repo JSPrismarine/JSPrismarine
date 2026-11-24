@@ -194,9 +194,23 @@ jobs:
               if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
               run: git reset --hard "$GITHUB_SHA"
 
+            # A run can wait in the concurrency group long after its push, and its commit's pending
+            # changesets may by then be released: when the release pull request merged meanwhile, the
+            # steps below would open a new one for a version already published. A newer push has its
+            # own run queued behind this one, which opens or updates the pull request from master's tip.
+            - name: 🧭 Check master is still this run's commit
+              id: tip
+              if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
+              run: |
+                  tip="$(git ls-remote origin refs/heads/master | cut -f1)"
+                  current=false
+                  if [ "$tip" = "$GITHUB_SHA" ]; then current=true; fi
+                  echo "master is at $tip, this run's commit is $GITHUB_SHA. Update the release pull request: $current."
+                  echo "current=$current" >> "$GITHUB_OUTPUT"
+
             # Written while the pending changesets are still in the tree; the next step consumes them.
             - name: 📝 Write the release pull request's body
-              if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
+              if: ${{ !cancelled() && steps.tip.outputs.current == 'true' }}
               run: |
                   pnpm exec changeset status --output "$RUNNER_TEMP/release-plan.json"
                   node .github/scripts/release-pr-body.mjs "$RUNNER_TEMP/release-plan.json" > "$RUNNER_TEMP/release-pr-body.md"
@@ -206,7 +220,7 @@ jobs:
             # from this tree. A failed release step above still leaves the pull request to refresh.
             - name: 🤝 Create or Update Release Pull Request
               id: version_pr
-              if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
+              if: ${{ !cancelled() && steps.tip.outputs.current == 'true' }}
               uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
               with:
                   # No publish script, so the action publishes nothing, even if it reads no
