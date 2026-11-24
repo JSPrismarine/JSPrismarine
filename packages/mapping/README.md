@@ -166,7 +166,8 @@ number, are listed in `BLOCK_STATE_LOSSES` and travel as the Bedrock value untou
 
 `bedrockBlockPropertiesOf(name, states?)` answers the Java-sourced per-state block properties -
 hardness, blast resistance, friction, light emission and dampening, correct-tool requirement,
-random tick, push reaction, and fire odds - keyed by Bedrock block state, the server's identity.
+random tick, push reaction, fire odds, and the block's Java `MapColor`, which a map draws it with
+unless the map's fluid rule draws the water it holds instead - keyed by Bedrock block state, the server's identity.
 The table is flattened from the Java 26.3 jar dump golden in `@jsprismarine/bedrock-data` through
 the block mapping; regenerate it with:
 
@@ -178,7 +179,11 @@ It needs only committed inputs, no fetched sources. Bedrock-only blocks with no 
 (the chemistry set, `allow`, `deny`, the deprecated palette entries) are listed in
 `BEDROCK_ONLY_BLOCKS` and return `undefined`, so callers keep their own values rather than a
 silent default. Where collapsed Java states disagreed on a value, the kept rows are listed in
-`BLOCK_PROPERTY_CONFLICTS` for review.
+`BLOCK_PROPERTY_CONFLICTS` for review. Most map color conflicts are beds: a Bedrock bed keeps its
+color in its block entity, so Java's sixteen bed colors collapse onto one state. Where Java gives a
+waterlogged state another color than the dry one, as it gives a waterlogged barrier or light block
+`water`, the row carries it as `waterloggedMapColor`, since Bedrock keeps the water outside the
+state.
 
 ## The property tests
 

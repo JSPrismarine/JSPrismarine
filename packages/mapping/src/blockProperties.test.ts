@@ -37,6 +37,12 @@ describe('the flattened block property table', () => {
         for (const name of covered) expect(name in palette.states, name).toBe(true);
     });
 
+    it('gives every Java-sourced block a map color, even one a map looks through', () => {
+        for (const name of Object.keys(table.blocks)) {
+            expect(typeof bedrockBlockPropertiesOf(name)?.mapColor, name).toBe('string');
+        }
+    });
+
     it('keeps reviewed Bedrock-only blocks out of the Java property table', () => {
         // The chemistry set is the bulk of the list; everything in it is a Bedrock-only family.
         for (const name of ['minecraft:element_0', 'minecraft:allow', 'minecraft:deny', 'minecraft:border_block']) {
@@ -49,7 +55,17 @@ describe('the flattened block property table', () => {
         // Piston extension, leaf distance, bamboo and plant stage: the mapping loss list explains
         // each collapse. Anything new here is a flattening regression to review.
         for (const conflict of BLOCK_PROPERTY_CONFLICTS) {
+            if (conflict.field === 'mapColor') continue;
             expect(['lightDampening', 'randomTick']).toContain(conflict.field);
+        }
+    });
+
+    it('limits map color disagreements to blocks Bedrock keeps one state for', () => {
+        // A Bedrock bed keeps its color in its block entity, so Java's sixteen beds collapse onto
+        // one state, and Java's test blocks all map onto `minecraft:unknown`.
+        for (const conflict of BLOCK_PROPERTY_CONFLICTS) {
+            if (conflict.field !== 'mapColor') continue;
+            expect(conflict.bedrock.split('[')[0]).toMatch(/^minecraft:(bed|unknown)$/);
         }
     });
 
@@ -86,6 +102,25 @@ describe('bedrockBlockPropertiesOf', () => {
         expect(bedrockBlockPropertiesOf('minecraft:glowstone')?.lightEmission).toBe(15);
         expect(bedrockBlockPropertiesOf('minecraft:wheat')?.randomTick).toBe(true);
         expect(bedrockBlockPropertiesOf('minecraft:oak_planks')).toMatchObject({ igniteOdds: 5, burnOdds: 20 });
+        expect(bedrockBlockPropertiesOf('minecraft:grass_block')?.mapColor).toBe('grass');
+        expect(bedrockBlockPropertiesOf('minecraft:water')?.mapColor).toBe('water');
+        // A map looks through a block with no color, such as a button.
+        expect(bedrockBlockPropertiesOf('minecraft:stone_button')?.mapColor).toBe('none');
+    });
+
+    it('gives a log the map color of the face a map sees', () => {
+        // Java draws an upright log by its top and a fallen one by its bark.
+        expect(bedrockBlockPropertiesOf('minecraft:oak_log', { pillar_axis: 'y' })?.mapColor).toBe('wood');
+        expect(bedrockBlockPropertiesOf('minecraft:oak_log', { pillar_axis: 'x' })?.mapColor).toBe('podzol');
+    });
+
+    it('gives a block Java draws as water when it holds water its waterlogged color', () => {
+        // Java's `Blocks.waterloggedMapColor`: a dry barrier is looked through, a wet one is water.
+        expect(bedrockBlockPropertiesOf('minecraft:barrier')).toMatchObject({
+            mapColor: 'none',
+            waterloggedMapColor: 'water'
+        });
+        expect(bedrockBlockPropertiesOf('minecraft:ladder')?.waterloggedMapColor).toBeUndefined();
     });
 
     it('resolves per-state overrides from the Bedrock state values', () => {
