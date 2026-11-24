@@ -157,6 +157,18 @@ export interface LevelView {
     biomeTagsAt?(position: Vec3): readonly string[];
     /** Namespaced identifiers of the structures whose bounding box contains a position. */
     structuresAt?(position: Vec3): readonly string[];
+    /**
+     * Where the nearest structure a destination names starts, for `exploration_map`, which is
+     * Java's `ServerLevel.findNearestMapStructure`.
+     *
+     * @param destination - A namespaced structure id, or a `#tag` of them.
+     * @param origin - Where the search starts.
+     * @param searchRadius - How far out to look, in Java's `search_radius` units.
+     * @returns The structure's position, or undefined when none is in range.
+     */
+    nearestStructure?(destination: string, origin: Vec3, searchRadius: number): Vec3 | undefined;
+    /** Allocates a fresh `minecraft:map_id`, which is Java's `ServerLevel.getFreeMapId`. */
+    newMapId?(): number;
     /** Combined light level at a position, which is what Java's `light` predicate compares. */
     lightAt?(position: Vec3): number;
     canSeeSky?(position: Vec3): boolean;
