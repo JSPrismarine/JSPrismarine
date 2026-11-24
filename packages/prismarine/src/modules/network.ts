@@ -599,7 +599,7 @@ export class ServerNetworking implements Networking {
                     ? new PrismarineServerErrors.SharedUdpPortNotBound(params, { cause: error })
                     : new PrismarineServerErrors.NethernetPortNotBound(params, { cause: error });
             }
-            if (withRakNet) this.server.getLogger().info(`RakNet and NetherNet share UDP port ${candidate}`);
+            if (withRakNet) this.server.getLogger().verbose(`RakNet and NetherNet share UDP port ${candidate}`);
         }
         this.sharedPorts = [...opened.values()];
         return opened;
@@ -637,7 +637,7 @@ export class ServerNetworking implements Networking {
             ...(ports === undefined ? {} : { ports })
         });
         if (ports !== undefined) {
-            logger.info(
+            logger.verbose(
                 `NetherNet players use UDP ${ports.range.start === ports.range.end ? `port ${ports.range.start}` : `ports ${ports.range.start}-${ports.range.end}`}`
             );
         }
@@ -668,7 +668,7 @@ export class ServerNetworking implements Networking {
         });
         listening.push(
             this.signaling.listen(port, address).then(
-                (bound) => logger.info(`NetherNet clients can join by address on TCP port ${bound}`),
+                (bound) => logger.verbose(`NetherNet clients can join by address on TCP port ${bound}`),
                 (error: unknown) => {
                     throw new PrismarineServerErrors.SignalingPortNotBound(
                         { port, errorMessage: errorMessage(error) },
@@ -683,7 +683,10 @@ export class ServerNetworking implements Networking {
         if (config.getEnableLanVisibility()) {
             this.stopLanAdvertisement = advertiseOnLan(nethernet, serverName, config.getOnlineMode());
             nethernet.listen().then(
-                () => logger.info(`Visible to NetherNet clients on the local network (UDP port ${NETHERNET_LAN_PORT})`),
+                () =>
+                    logger.verbose(
+                        `Visible to NetherNet clients on the local network (UDP port ${NETHERNET_LAN_PORT})`
+                    ),
                 (error: unknown) =>
                     logger.warn(
                         `Not visible on the local network: UDP port ${NETHERNET_LAN_PORT} is unavailable (${errorMessage(error)})`

@@ -52,13 +52,17 @@ describe('Server', () => {
      */
     const debugConfig = (
         levelName: string,
-        options: { ticking?: boolean; processTitle?: boolean; java?: boolean } = {}
+        options: { ticking?: boolean; processTitle?: boolean; java?: boolean; javaPort?: number } = {}
     ) =>
         new (class DebugConfig extends Config {
             public override async enable() {}
 
             public override getJavaEnabled() {
                 return options.java ?? false;
+            }
+
+            public override getJavaPort() {
+                return options.javaPort ?? super.getJavaPort();
             }
 
             public override getServerIp() {
@@ -153,6 +157,30 @@ describe('Server', () => {
         expect(bedrockOnly).not.toContain('Java Edition');
         expect(withJava).toContain(describeProtocolProviders([javaProtocolProvider], true)[0]);
     });
+
+    it.each([
+        { java: false, expected: (line: string) => expect(line).not.toContain('Java Edition') },
+        { java: true, expected: (line: string) => expect(line).toContain('Java Edition on port') }
+    ])(
+        'names the Java Edition port in its listening line only when Java is on (java: $java)',
+        async ({ java, expected }) => {
+            const logger = new Logger();
+            const listening: string[] = [];
+            logger.onLine((line) => {
+                if (line.includes('is now listening on port')) listening.push(line);
+            });
+            // Port 0 binds an ephemeral port, so the Java listener holds none of the machine's.
+            const server = new Server({
+                logger,
+                config: debugConfig(`test-world-listening-${java}`, { java, javaPort: 0 })
+            });
+            await server.bootstrap('127.0.0.1', 0);
+            await server.shutdown({ stayAlive: true });
+
+            expect(listening).toHaveLength(1);
+            expected(listening[0] ?? '');
+        }
+    );
 
     it('reports a failed chunk send but not one a stopped generator refused', async () => {
         const logger = new Logger();
