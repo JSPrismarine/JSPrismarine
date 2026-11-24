@@ -57,7 +57,7 @@ import type {
     ShownStack,
     ShownVitals
 } from '../presenter/SessionPresenter';
-import type { ShownEntity } from '../../world/ShownActor';
+import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
 import type { EditionTranslation } from './editionTranslation';
 import {
     javaBlockTranslation,
@@ -257,6 +257,25 @@ export class JavaPresenter implements SessionPresenter {
     public async sendPlayerList(): Promise<void> {}
 
     /**
+     * Lists a profile in the client's tab list. A Java client draws a player's skin from the
+     * `textures` property of its entry, its own player's included, and the default skin without one.
+     * @param profile - The player's profile.
+     */
+    public listProfile({ uuid, name, textures }: ShownProfile): void {
+        this.send(PlayerInfoAdd, {
+            actions: PlayerInfoAction.AddPlayer | PlayerInfoAction.UpdateListed,
+            players: [
+                {
+                    uuid,
+                    name,
+                    properties: textures === undefined ? [] : [{ name: 'textures', ...textures }],
+                    listed: true
+                }
+            ]
+        });
+    }
+
+    /**
      * Moves the client's own player, whose feet Java places where the contract names its eyes,
      * less the eye height. Another player's move comes with other players in PR 10.
      */
@@ -287,10 +306,7 @@ export class JavaPresenter implements SessionPresenter {
         if (facts === undefined || type === undefined) return;
         const runtimeId = entity.getRuntimeId();
         if (facts.player !== undefined) {
-            this.send(PlayerInfoAdd, {
-                actions: PlayerInfoAction.AddPlayer | PlayerInfoAction.UpdateListed,
-                players: [{ uuid: facts.player.uuid, name: facts.player.name, properties: [], listed: true }]
-            });
+            this.listProfile(facts.player);
             this.shownPlayers.set(runtimeId, facts.player.uuid);
         }
         this.send(AddEntity, {

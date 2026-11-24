@@ -571,8 +571,12 @@ the world around them, up to 8 chunks out or the view distance if that is less, 
 and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
 chunks they come into view of follow. Their chat reaches every player and the console, and other
 players' chat, the server's messages and command output reach them; their commands run as any
-player's do. Bedrock players see them, with a plain default skin, and they see the players and mobs
-around them, which come and go from their tab list and screen as Bedrock players' do, and move as
+player's do. Players of both editions see a Java player's own skin: Java players from the signed
+profile Mojang's session server returned, and Bedrock players from the skin image the server
+fetches from Mojang's texture server as the player joins. A player in offline mode has no signed
+skin and is shown with a default one, and so is a player whose skin the texture server does not
+return in time, to Bedrock players. Java players see the players and mobs around them,
+which come and go from their tab list and screen as Bedrock players' do, and move as
 the server moves them, with their equipment and whether they crouch, sprint, swim, glide, sleep or
 burn. A Java player can break and place blocks, set their inventory in creative mode, and has a
 health bar the server keeps current, a death screen and a respawn. They cannot yet move items in a

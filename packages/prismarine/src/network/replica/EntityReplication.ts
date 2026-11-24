@@ -570,7 +570,13 @@ export class EntityReplication {
                     headYaw: view.pose.yaw,
                     ...(identity === undefined
                         ? {}
-                        : { player: { uuid: identity.uuid.toString(), name: identity.name } })
+                        : {
+                              player: {
+                                  uuid: identity.uuid.toString(),
+                                  name: identity.name,
+                                  ...(identity.textures === undefined ? {} : { textures: identity.textures })
+                              }
+                          })
                 };
             },
             // Builds and queues the batch before it returns, so a batch that cannot be built

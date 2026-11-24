@@ -52,6 +52,7 @@ import { addFood, setSaturation } from './playerHunger';
 import { HAND_SLOT_FIELD, HEAD_YAW_FIELD, SHOWN_PLAYER_COMPONENTS, SHOWN_PLAYER_SLOTS, slotKey } from './playerShown';
 import type { PlayerShownForm } from './playerShown';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
+import type { ShownProfile } from '../world/ShownActor';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -93,6 +94,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     public readonly attributes = new Attributes(Attributes.getPlayerDefaults());
     /** The skin the login carried, which a skin change replaces. */
     public skin: Skin | null = null;
+    /** A Java player's signed `textures` property, which Java clients draw the skin from. */
+    public javaTextures: ShownProfile['textures'] = undefined;
     /** {@link StorePlayer.getTimeSinceRest}'s count. */
     private timeSinceRest = 0;
     /** The device the login named, or null when it said nothing. */

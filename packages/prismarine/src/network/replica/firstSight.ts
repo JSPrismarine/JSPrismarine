@@ -41,6 +41,7 @@ import { WindowIds } from '../../inventory/WindowIds';
 import { Item } from '../../item/Item';
 import { isMissingVanillaActor } from '../codec/actorTypes';
 import type Device from '../../utils/Device';
+import type { ShownProfile } from '../../world/ShownActor';
 
 /** Who a player is, as the session that speaks for it holds it, which no log entry carries. */
 export interface SightIdentity {
@@ -52,6 +53,8 @@ export interface SightIdentity {
     readonly op: boolean;
     /** The command level the player runs at. */
     readonly commandLevel: CommandPermissionLevel;
+    /** A Java player's signed `textures` property. */
+    readonly textures?: ShownProfile['textures'];
 }
 
 /** What a client is shown when an entity first comes into its view. */

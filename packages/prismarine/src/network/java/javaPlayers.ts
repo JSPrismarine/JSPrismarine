@@ -40,13 +40,15 @@ import { accountLinksToken } from '../../modules/tokens';
 import type { TransportConnection } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
 import { javaBlockTranslation, javaItemTranslation } from './editionTranslation';
+import type { JavaTexturesProperty } from './javaSkin';
+import { fetchJavaSkin, texturesPropertyOf } from './javaSkin';
 import type { JavaSend } from './JavaPresenter';
 import { JavaPresenter } from './JavaPresenter';
 
 /**
- * The skin Bedrock clients are shown for a Java player: the plain humanoid the auth package
- * generates, since Mojang's textures cannot be redistributed. A Java player's own skin comes with
- * other players in PR 10.
+ * The skin Bedrock clients are shown for a Java player whose own cannot be had: the plain
+ * humanoid the auth package generates. An offline-mode player has no signed skin, and the
+ * texture server can be down or slow.
  */
 export const javaPlayerSkin = (): Skin =>
     Skin.fromJWT({
@@ -147,8 +149,14 @@ export interface JavaPlayers {
  * @param server - The server whose world, sessions and handlers they use.
  * @param inputs - The input queue the Bedrock dispatcher holds inputs in, so both editions' inputs
  *   apply in one order.
+ * @param fetchSkin - Reads a Java player's own skin for Bedrock clients; Mojang's texture server
+ *   unless a test gives another.
  */
-export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers => {
+export const javaPlayersOf = (
+    server: Server,
+    inputs: InputQueue,
+    fetchSkin: (textures: JavaTexturesProperty) => Promise<Skin | undefined> = (textures) => fetchJavaSkin(textures)
+): JavaPlayers => {
     const contexts = HandlerContexts.of(server);
     const report = (error: unknown) => server.getLogger().error(error);
     // Read when an intent arrives, as the dispatcher reads its handlers, not when the listener starts.
@@ -191,21 +199,19 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
                     xuid: identity.xuid,
                     subject: identity.subject
                 });
-                player.skin = javaPlayerSkin();
+                // Read before the player is listed, so every client is shown the player's own skin from
+                // the start; a texture the server cannot read in time leaves the default one.
+                const textures = texturesPropertyOf(profile);
+                player.javaTextures = textures;
+                player.skin = (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();
                 const spawn = await world.getSpawnPosition();
                 player.standAt({
                     x: Math.floor(spawn.getX()) + 0.5,
                     y: spawn.getY(),
                     z: Math.floor(spawn.getZ()) + 0.5
                 });
-                const session = createConnectedPlayer({
-                    server,
-                    connection,
-                    player,
-                    identity,
-                    world,
-                    presenter: new JavaPresenter(send, player.getRuntimeId(), blocks, items)
-                });
+                const presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items);
+                const session = createConnectedPlayer({ server, connection, player, identity, world, presenter });
                 try {
                     await session.join();
                 } catch (error) {
@@ -213,6 +219,12 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
                     throw error;
                 }
                 session.released(session.addToPlayerList());
+                // The client draws its own player's skin from its own tab list entry.
+                presenter.listProfile({
+                    uuid: profile.id,
+                    name: identity.name,
+                    ...(textures === undefined ? {} : { textures })
+                });
                 const feet = session.getPlayer().getPosition();
                 return { session, feet: { x: feet.getX(), y: feet.getY(), z: feet.getZ() } };
             } catch (error) {
