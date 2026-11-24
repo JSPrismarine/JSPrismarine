@@ -1,5 +1,17 @@
 # @jsprismarine/bedrock-data
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3653](https://github.com/JSPrismarine/JSPrismarine/pull/3653) [`2aeca21`](https://github.com/JSPrismarine/JSPrismarine/commit/2aeca21e5f8099902f4db6ffc78c6c59a84402a2) Thanks [@filiphsps](https://github.com/filiphsps)! - Adds `/allowlist`, with Java's `/whitelist` as its alias: `add`, `remove`, `list`, `on`, `off` and `reload`, answering with the lines Bedrock Dedicated Server's console prints for each. `/allowlist on` is refused while `online-mode` is off, as on BDS. A player whose allow list entry has `ignoresPlayerLimit` set now joins a full server.
+  
+  `ServerCommandHost` has a new `allowList` member, so a host that implements it has to add one. The `minor` bump is that change.
+
+- [#3663](https://github.com/JSPrismarine/JSPrismarine/pull/3663) [`8b4dfcd`](https://github.com/JSPrismarine/JSPrismarine/commit/8b4dfcdb2643f73e9c3b803928495b7b5b57ed2d) Thanks [@filiphsps](https://github.com/filiphsps)! - The wither fires a wither skull at its target every 40 ticks within 20 blocks, Java's `RangedAttackGoal(this, 1.0, 40, 20.0F)`, where it only flew at it. A wither skeleton given a bow shoots arrows with Java's bow goal and goes back to its sword attack without one, as Java's `AbstractSkeleton.reassessWeaponGoal` swaps them.
+  
+  The Java goal capture no longer credits a mob with the goals of an ancestor's `registerGoals` that its own `registerGoals` override never calls. Java's camel and camel husk register no goals, and the llama no longer lists `AbstractHorse`'s float, panic and tempt goals a second time.
+
 ## 0.24.0
 
 ### Patch Changes

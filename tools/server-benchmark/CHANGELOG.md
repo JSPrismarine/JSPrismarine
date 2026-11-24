@@ -1,5 +1,16 @@
 # @jsprismarine/server-benchmark
 
+## 0.25.0
+
+### Patch Changes
+
+- Updated dependencies [[`f76f4f2`](https://github.com/JSPrismarine/JSPrismarine/commit/f76f4f25eb0449327fcc06b46797588a0b6879ff), [`ee9993a`](https://github.com/JSPrismarine/JSPrismarine/commit/ee9993a8e4938e0c41ff0af0ecc714af747b560d), [`fed6a7d`](https://github.com/JSPrismarine/JSPrismarine/commit/fed6a7d3cde57705f488e4b09f37ad98123e992b)]:
+  - @jsprismarine/nbt@0.25.0
+  - @jsprismarine/protocol@0.25.0
+  - @jsprismarine/client@0.25.0
+  - @jsprismarine/binaryutils@0.25.0
+  - @jsprismarine/logger@0.25.0
+
 ## 0.24.0
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @jsprismarine/docs
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3647](https://github.com/JSPrismarine/JSPrismarine/pull/3647) [`97e6172`](https://github.com/JSPrismarine/JSPrismarine/commit/97e6172cf38c9f3d8e2d03ee2d1466a3f15484d5) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency markdown-it to v15
+
 ## 0.24.0
 
 No changes in this release.

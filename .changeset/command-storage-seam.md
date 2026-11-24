@@ -1,7 +1,0 @@
----
-'@jsprismarine/commands': minor
----
-
-`DataCommandHost.getData` takes an optional scale and returns `{ snbt, result }`, the tag and the number Java's `/data get` returns, so the command no longer reads its result from the printed text. `runFunction` takes a `stored` flag, set when the argument compound is a stored one printed back, so a printed `Infinityd` reads as a number. `modifyData` takes a `DataModifySource`, either a typed value or another target to read from, and returns how many tags changed; `removeData` returns how many tags it removed.
-
-The tree gains `/data modify … from (block|entity|storage) <source> [<sourcePath>]` and `/function <name> with (block|entity|storage) <source> [<path>]`. A `with` source that is missing or not a compound fails the line, as in Java, and so does a `/data get` that matches nothing and a `/data merge|modify|remove` that changes nothing, so `execute store success` stores 0; `commands/support` exports the `refuse` it fails with. `/data` prints Java's feedback. `execute store … <type> <scale>` writes a typed tag, cast the way Java casts it (`5b`, `-56b`, `5L`, `5.0f`). `execute store … bossbar` writes into the storage `jsprismarine:bossbar/<namespace>/<path>`, which is a valid resource location, and stores again: the Java routes merged into the tree had been taking the line and dropping the store. An NBT path argument keeps a quoted key with a space in it, such as `a."b c"`, and a pattern with spaces, such as `Items[{id: "minecraft:stone"}]`.
