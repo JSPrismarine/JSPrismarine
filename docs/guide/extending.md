@@ -183,7 +183,9 @@ loads:
 The first line counts the members your scripts name, and how many members of each module version
 have behavior. The second lists the members your scripts name that don't, and is left out when
 there are none. The scan reads the script text, so a member reached in a way the text doesn't
-show, such as through a computed property name, isn't counted.
+show, such as through a computed property name, isn't counted. A name counts only when it is a
+member of a class your scripts can reach from what they import, so `server.levels` on another
+API isn't taken for a Script API class's `levels`.
 
 Where JSPrismarine's behavior differs from BDS's, the `scripting` rows of the
 [parity dashboard](https://jsprismarine.dev/parity) say so. Each scenario there runs one pack on
