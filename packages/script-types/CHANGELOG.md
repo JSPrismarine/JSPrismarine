@@ -1,5 +1,11 @@
 # @jsprismarine/script-types
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3644](https://github.com/JSPrismarine/JSPrismarine/pull/3644) [`bebee44`](https://github.com/JSPrismarine/JSPrismarine/commit/bebee44cff690e812c33487e502c7acef5a33aa7) Thanks [@filiphsps](https://github.com/filiphsps)! - `@jsprismarine/server` has `levels`. `current`, `list()` and `levelOf(player)` describe the server's levels. `transfer`, `create`, `attach` and `detach` move a player to another level and manage levels as `/world` does. Each of the four answers a promise that settles on a script tick after the server finishes.
+
 ## 0.24.0
 
 No changes in this release.

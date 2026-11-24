@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/logger",
-    "version": "0.24.0",
+    "version": "0.25.0",
     "description": "Leveled logger with a console transport that holds boot output until a console attaches, and a file transport",
     "sideEffects": false,
     "publishConfig": {

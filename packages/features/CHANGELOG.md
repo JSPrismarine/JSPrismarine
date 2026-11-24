@@ -1,5 +1,18 @@
 # @jsprismarine/features
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3677](https://github.com/JSPrismarine/JSPrismarine/pull/3677) [`e6b93e5`](https://github.com/JSPrismarine/JSPrismarine/commit/e6b93e5b8b151ec2f59c58dbd461cd61ad926ca2) Thanks [@filiphsps](https://github.com/filiphsps)! - `@jsprismarine/features` reads Java 26.4's `crevasse` feature type, which cuts the ice caves' water-filled crevasses under `brittle_ice`.
+
+- [#3677](https://github.com/JSPrismarine/JSPrismarine/pull/3677) [`9b11062`](https://github.com/JSPrismarine/JSPrismarine/commit/9b110623aaacb4ded0a07c91a5fdcfa412f5135f) Thanks [@filiphsps](https://github.com/filiphsps)! - `large_speleothem` and `large_dripstone` round their wind offset, cone height jitter and embedding test as Java's float arithmetic does, and place the base block's default state.
+
+- [#3677](https://github.com/JSPrismarine/JSPrismarine/pull/3677) [`a2da448`](https://github.com/JSPrismarine/JSPrismarine/commit/a2da4482db218a07ae1c51371092fae5a340aabb) Thanks [@filiphsps](https://github.com/filiphsps)! - Carvers, ore veins, large speleothems and mega jungle trunks use Java 26.4's `Mth.sin` and `Mth.cos` when the target reads data pack format 128 or later. 26.4 rounds to the nearest table entry, mirrors negative angles and holds exact quarter turns. `parseCarver` and `FeatureLoader` take the target's format.
+- Updated dependencies [[`dda9dbe`](https://github.com/JSPrismarine/JSPrismarine/commit/dda9dbe5ebfdcdc338e37bf24ae8fe561c9308bb), [`b7fdf4c`](https://github.com/JSPrismarine/JSPrismarine/commit/b7fdf4c9d2707ff639a90df488018ee9bb407570), [`2132959`](https://github.com/JSPrismarine/JSPrismarine/commit/2132959244601c90055b091a4273a008eadf0f3d), [`d4adb53`](https://github.com/JSPrismarine/JSPrismarine/commit/d4adb5381a368d2076a0648ce2522c12cf72ab48), [`27c272f`](https://github.com/JSPrismarine/JSPrismarine/commit/27c272f90af03738b7fd9778e2bddea955fe9cb6), [`d1e9714`](https://github.com/JSPrismarine/JSPrismarine/commit/d1e97142dcfdab12f895719eca9bcbee78346c9a), [`9c0815e`](https://github.com/JSPrismarine/JSPrismarine/commit/9c0815ead0b8f70dd89580a17db9ea4e87deb3cc), [`47aad59`](https://github.com/JSPrismarine/JSPrismarine/commit/47aad598440fd81e5177c60ffeb49972ce697960), [`fc513cf`](https://github.com/JSPrismarine/JSPrismarine/commit/fc513cf74a16caf6f9da30f3323b094c519d1043), [`253f214`](https://github.com/JSPrismarine/JSPrismarine/commit/253f214c096cad79e6f53cd8a88a828b262af315), [`c053dfc`](https://github.com/JSPrismarine/JSPrismarine/commit/c053dfcdd32006386469c31b8448cdfa33b9333f), [`2b53ead`](https://github.com/JSPrismarine/JSPrismarine/commit/2b53ead425d6986bc38cc39af895c95ab1dde5e3), [`239659a`](https://github.com/JSPrismarine/JSPrismarine/commit/239659a6927aa7f2b713ad994fe92fab0f2cece9), [`fea2fcd`](https://github.com/JSPrismarine/JSPrismarine/commit/fea2fcd1d4424bf4c766ba996e9eb0ceb742310a), [`f441ecd`](https://github.com/JSPrismarine/JSPrismarine/commit/f441ecd5e35fa647d4c13fa7313704e86744de08), [`055b1ca`](https://github.com/JSPrismarine/JSPrismarine/commit/055b1ca984f47515b42af6109ea88a7ec7b4d451), [`f76f4f2`](https://github.com/JSPrismarine/JSPrismarine/commit/f76f4f25eb0449327fcc06b46797588a0b6879ff), [`a2da448`](https://github.com/JSPrismarine/JSPrismarine/commit/a2da4482db218a07ae1c51371092fae5a340aabb), [`82c0037`](https://github.com/JSPrismarine/JSPrismarine/commit/82c00376c10419e5884d90229da3b1b52b6ce8aa), [`eb5049a`](https://github.com/JSPrismarine/JSPrismarine/commit/eb5049ad7d7fbb1ed4628cfe6f02a6445c24924a), [`c6fc056`](https://github.com/JSPrismarine/JSPrismarine/commit/c6fc056233588d453bcb33febae92189ecfc8b4b)]:
+  - @jsprismarine/errors@0.25.0
+  - @jsprismarine/worldgen@0.25.0
+
 ## 0.24.0
 
 ### Patch Changes

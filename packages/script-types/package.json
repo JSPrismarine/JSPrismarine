@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/script-types",
-    "version": "0.24.0",
+    "version": "0.25.0",
     "description": "TypeScript declarations for @jsprismarine/server, the JSPrismarine-only module behavior pack scripts import",
     "sideEffects": false,
     "publishConfig": {

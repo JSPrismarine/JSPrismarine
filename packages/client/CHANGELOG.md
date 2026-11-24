@@ -1,5 +1,20 @@
 # @jsprismarine/client
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3660](https://github.com/JSPrismarine/JSPrismarine/pull/3660) [`ee9993a`](https://github.com/JSPrismarine/JSPrismarine/commit/ee9993a8e4938e0c41ff0af0ecc714af747b560d) Thanks [@filiphsps](https://github.com/filiphsps)! - `NetworkPacket.getName()` is abstract, and every packet class returns its own name from it instead of the base class reading `this.constructor.name`. A packet class defined outside `@jsprismarine/protocol` must now implement `getName()`, returning the class name that keys its wire id in the packet tables, such as `'ShowCreditsPacket'`. `FieldNetworkPacket` is abstract too. `nbtToPlain` recognizes tag classes with `instanceof` rather than by their constructor.
+- Updated dependencies [[`dda9dbe`](https://github.com/JSPrismarine/JSPrismarine/commit/dda9dbe5ebfdcdc338e37bf24ae8fe561c9308bb), [`2132959`](https://github.com/JSPrismarine/JSPrismarine/commit/2132959244601c90055b091a4273a008eadf0f3d), [`d4adb53`](https://github.com/JSPrismarine/JSPrismarine/commit/d4adb5381a368d2076a0648ce2522c12cf72ab48), [`27c272f`](https://github.com/JSPrismarine/JSPrismarine/commit/27c272f90af03738b7fd9778e2bddea955fe9cb6), [`d1e9714`](https://github.com/JSPrismarine/JSPrismarine/commit/d1e97142dcfdab12f895719eca9bcbee78346c9a), [`47aad59`](https://github.com/JSPrismarine/JSPrismarine/commit/47aad598440fd81e5177c60ffeb49972ce697960), [`fc513cf`](https://github.com/JSPrismarine/JSPrismarine/commit/fc513cf74a16caf6f9da30f3323b094c519d1043), [`253f214`](https://github.com/JSPrismarine/JSPrismarine/commit/253f214c096cad79e6f53cd8a88a828b262af315), [`c053dfc`](https://github.com/JSPrismarine/JSPrismarine/commit/c053dfcdd32006386469c31b8448cdfa33b9333f), [`239659a`](https://github.com/JSPrismarine/JSPrismarine/commit/239659a6927aa7f2b713ad994fe92fab0f2cece9), [`fea2fcd`](https://github.com/JSPrismarine/JSPrismarine/commit/fea2fcd1d4424bf4c766ba996e9eb0ceb742310a), [`055b1ca`](https://github.com/JSPrismarine/JSPrismarine/commit/055b1ca984f47515b42af6109ea88a7ec7b4d451), [`f76f4f2`](https://github.com/JSPrismarine/JSPrismarine/commit/f76f4f25eb0449327fcc06b46797588a0b6879ff), [`ee9993a`](https://github.com/JSPrismarine/JSPrismarine/commit/ee9993a8e4938e0c41ff0af0ecc714af747b560d), [`5eeed5b`](https://github.com/JSPrismarine/JSPrismarine/commit/5eeed5b4e108944f872456a1d5cbfd911c000e08), [`a074449`](https://github.com/JSPrismarine/JSPrismarine/commit/a07444994d141f6c90adafdc6aa268d4abb44c2b), [`c6fc056`](https://github.com/JSPrismarine/JSPrismarine/commit/c6fc056233588d453bcb33febae92189ecfc8b4b), [`fed6a7d`](https://github.com/JSPrismarine/JSPrismarine/commit/fed6a7d3cde57705f488e4b09f37ad98123e992b)]:
+  - @jsprismarine/errors@0.25.0
+  - @jsprismarine/protocol@0.25.0
+  - @jsprismarine/nethernet@0.25.0
+  - @jsprismarine/raknet@0.25.0
+  - @jsprismarine/auth@0.25.0
+  - @jsprismarine/logger@0.25.0
+  - @jsprismarine/minecraft@0.25.0
+  - @jsprismarine/math@0.25.0
+
 ## 0.24.0
 
 ### Patch Changes

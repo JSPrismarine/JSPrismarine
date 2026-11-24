@@ -1,5 +1,16 @@
 # @jsprismarine/native-network
 
+## 0.25.0
+
+### Patch Changes
+
+- [`c91513b`](https://github.com/JSPrismarine/JSPrismarine/commit/c91513ba1a3d9cfafc6740c2852b78915f8caf46) Thanks [@filiphsps](https://github.com/filiphsps)! - `pnpm dev` runs the new `ensure:native` script, which downloads the NetherNet library build the manifest pins when the installed one is older, as after a `git pull` that moved the pin. The server no longer stops with a checksum error after such a pull.
+
+- [`5c7addc`](https://github.com/JSPrismarine/JSPrismarine/commit/5c7addcfef78e8fa52f9383bef765a22c1264af2) Thanks [@filiphsps](https://github.com/filiphsps)! - In a checkout, `ensure:native` loads the installer from the package's TypeScript sources even when a build is present. Loading the build failed, because its `@jsprismarine/native-library` import resolved to that package's sources, which Node cannot load without tsx. The script reported the error and left the old library in place, so `pnpm dev` stopped with a checksum error after a pull that moved the pin.
+- Updated dependencies [[`dda9dbe`](https://github.com/JSPrismarine/JSPrismarine/commit/dda9dbe5ebfdcdc338e37bf24ae8fe561c9308bb), [`2132959`](https://github.com/JSPrismarine/JSPrismarine/commit/2132959244601c90055b091a4273a008eadf0f3d), [`d4adb53`](https://github.com/JSPrismarine/JSPrismarine/commit/d4adb5381a368d2076a0648ce2522c12cf72ab48), [`27c272f`](https://github.com/JSPrismarine/JSPrismarine/commit/27c272f90af03738b7fd9778e2bddea955fe9cb6), [`d1e9714`](https://github.com/JSPrismarine/JSPrismarine/commit/d1e97142dcfdab12f895719eca9bcbee78346c9a), [`47aad59`](https://github.com/JSPrismarine/JSPrismarine/commit/47aad598440fd81e5177c60ffeb49972ce697960), [`fc513cf`](https://github.com/JSPrismarine/JSPrismarine/commit/fc513cf74a16caf6f9da30f3323b094c519d1043), [`253f214`](https://github.com/JSPrismarine/JSPrismarine/commit/253f214c096cad79e6f53cd8a88a828b262af315), [`c053dfc`](https://github.com/JSPrismarine/JSPrismarine/commit/c053dfcdd32006386469c31b8448cdfa33b9333f), [`239659a`](https://github.com/JSPrismarine/JSPrismarine/commit/239659a6927aa7f2b713ad994fe92fab0f2cece9), [`fea2fcd`](https://github.com/JSPrismarine/JSPrismarine/commit/fea2fcd1d4424bf4c766ba996e9eb0ceb742310a), [`055b1ca`](https://github.com/JSPrismarine/JSPrismarine/commit/055b1ca984f47515b42af6109ea88a7ec7b4d451), [`f76f4f2`](https://github.com/JSPrismarine/JSPrismarine/commit/f76f4f25eb0449327fcc06b46797588a0b6879ff), [`c6fc056`](https://github.com/JSPrismarine/JSPrismarine/commit/c6fc056233588d453bcb33febae92189ecfc8b4b)]:
+  - @jsprismarine/errors@0.25.0
+  - @jsprismarine/native-library@0.25.0
+
 ## 0.24.0
 
 ### Minor Changes

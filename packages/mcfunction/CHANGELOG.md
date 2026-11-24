@@ -1,5 +1,11 @@
 # @jsprismarine/mcfunction
 
+## 0.25.0
+
+### Patch Changes
+
+- [#3590](https://github.com/JSPrismarine/JSPrismarine/pull/3590) [`ad95bf6`](https://github.com/JSPrismarine/JSPrismarine/commit/ad95bf63495cb448f04142e297d651fab0ea8ef2) Thanks [@filiphsps](https://github.com/filiphsps)! - The executor hands a `function <id> with block|entity|storage …` line to its command runner, which has the world to read the compound from, instead of failing to read `with …` as an argument compound.
+
 ## 0.24.0
 
 No changes in this release.
