@@ -1,8 +1,10 @@
-# Java 26.3 to 26.4 Snapshot 10 data delta
+# Java 26.3 to 26.4 Pre-Release 1 data delta
 
-Research note, 2026-11-19. Question: what changed in the vanilla datapack and the data generator
-reports between Java Edition 26.3, the release this server runs, and 26.4 Snapshot 10, the
-preview it tracks, and which of those changes the loaders have to gate.
+Research note, 2026-11-19, re-pinned to 26.4 Pre-Release 1 on 2026-11-24. Question: what changed
+in the vanilla datapack and the data generator reports between Java Edition 26.3, the release this
+server runs, and 26.4 Pre-Release 1, the preview it tracks, and which of those changes the loaders
+have to gate. The note was written against Snapshot 10; [Snapshot 10 to Pre-Release 1](#snapshot-10-to-pre-release-1)
+lists what the pre-release changed on top of it.
 
 ## Summary
 
@@ -20,24 +22,28 @@ registries, `dispense_behavior` and `block_sound_set`, plus 25 blocks, 28 items 
 types, most of them for the new ice caves biome. The vanilla datapack loads strict under the preview's own format
 once the gates below are in. The corpus suites in `loot`, `recipes`, `predicates`,
 `advancements`, `features` and `structures` pass against it, and so does
-`pnpm run bringup:java --java 26.4-snapshot-10`.
+`pnpm run bringup:java --java 26.4-pre-1`.
 
 ## Which release this is
 
-| Key               | 26.3          | 26.4 Snapshot 10   |
-| ----------------- | ------------- | ------------------ |
-| Release id        | `26.3`        | `26.4-snapshot-10` |
-| Data pack format  | 121.0         | 128.0              |
-| Data version      | 5023          | 5130               |
-| JDK               | 25            | 25                 |
-| Server jar sha1   | `33680f5f…`   | `d7135161…`        |
+| Key               | 26.3          | 26.4 Snapshot 10   | 26.4 Pre-Release 1 |
+| ----------------- | ------------- | ------------------ | ------------------ |
+| Release id        | `26.3`        | `26.4-snapshot-10` | `26.4-pre-1`       |
+| Data pack format  | 121.0         | 128.0              | 128.1              |
+| Data version      | 5023          | 5130               | 5131               |
+| JDK               | 25            | 25                 | 25                 |
+| Server jar sha1   | `33680f5f…`   | `d7135161…`        | `7ade6b7b…`        |
 
-Both rows come from the `version.json` `datagen:java` writes beside each datapack, which reads
-the jar's own `version.json`. The pin is the newest snapshot in Mojang's piston-meta version
-manifest on 2026-11-19 (`latest.snapshot`, released 2026-11-17). The URL and sha1 come from its
-version package. The sha256 (`54648ab1…`) and the size (63998326 bytes) were measured on
-download. Snapshot 8, which the plan named, had format 127.0 and data version 5128. Snapshot 10
-moved the format major once more, so it is the pin.
+Every column comes from the `version.json` `datagen:java` writes beside each datapack, which
+reads the jar's own `version.json`. Snapshot 10 was the newest snapshot in Mojang's piston-meta
+version manifest on 2026-11-19 (`latest.snapshot`, released 2026-11-17), with sha256
+`54648ab1…` and 63998326 bytes. Snapshot 8, which the plan named, had format 127.0 and data
+version 5128.
+
+The pin is now Pre-Release 1, `latest.snapshot` in the manifest on 2026-11-24 and released that
+day. The java-bringup skill re-pins the preview when Mojang publishes a pre-release. The URL and
+sha1 come from its version package. The sha256 (`e82d5167…`) and the size (64146748 bytes) were
+measured on download.
 
 ## How the delta was derived
 
@@ -45,6 +51,9 @@ moved the format major once more, so it is the pin.
 pnpm --filter @jsprismarine/bedrock-data run datagen:java --java 26.3
 pnpm --filter @jsprismarine/bedrock-data run datagen:java --java 26.4-snapshot-10
 pnpm --filter @jsprismarine/bedrock-data run java:diff 26.3 26.4-snapshot-10 --out /tmp/java-delta.md
+pnpm --filter @jsprismarine/bedrock-data run datagen:java --java 26.4-pre-1
+pnpm --filter @jsprismarine/bedrock-data run java:diff 26.3 26.4-pre-1 --out /tmp/java-delta.md
+pnpm --filter @jsprismarine/bedrock-data run java:diff 26.4-snapshot-10 26.4-pre-1 --out /tmp/pre-1.md
 ```
 
 `java:diff` compares both generated datapacks file by file and both `registries.json` and
@@ -58,6 +67,9 @@ during the research. The wiki and the generated data agree everywhere they overl
 One report is new and not deterministic: `loot_context_requirements.json` lists each context
 set's parameters in hash order, which changes from run to run. `datagen:java` sorts its arrays,
 so two runs are byte-identical, 11979 files.
+
+The `java:diff` output from 26.3 to Pre-Release 1 is the output from 26.3 to Snapshot 10 with the
+version row changed, so the sections below hold for both.
 
 ## Renamed and moved directories
 
@@ -187,13 +199,49 @@ The Java goldens dumper compiles against 26.4 after two fixes. It reads the `Min
 26.4 replaced `SoundType` with the `block_sound_set` registry. A 26.4 golden's `soundType` is the
 set's id, such as `minecraft:stone`, or `none` for water, lava and the bubble column.
 
+## Snapshot 10 to Pre-Release 1
+
+`java:diff 26.4-snapshot-10 26.4-pre-1` reports no added, removed or renamed directory, registry,
+registry entry, JSON key, block, item or entity type. The data generator reports are
+byte-identical. A file-by-file comparison of the two datapacks finds these changes:
+
+| What                                                      | Change                                                                                              | Effect here                                       |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `pack.mcmeta`, `version.json`                             | format 128.0 to 128.1, data version 5130 to 5131                                                    | a minor format bump, so no gate                   |
+| `datapacks/{minecart_improvements,redstone_experiments,trade_rebalance}/pack.mcmeta` | `min_format` 128 became `[128, 1]`                                                 | loads as before                                   |
+| `dispense_behavior/carved_pumpkin.json`, `glowstone.json` | `equip_sulfur_cube` added before the fallback, fixing MC-312832                                     | none: dispense behaviors are loaded, not run      |
+| structure templates, 1511 files                           | the `DataVersion` each NBT file records                                                             | none                                              |
+| `en_us.json`                                              | 2 chat restriction strings added, 4 subtitles reworded                                              | none                                              |
+
+The wiki's changelog lists two changes that do not show up in a file comparison:
+
+- The `minecraft:tooltip_display` data component has a new optional `split_lines` boolean,
+  default `true`, which lets an item opt out of the new tooltip line wrapping. The items
+  package's `tooltip_display` schema drops keys it does not name, so a component that sets it
+  still loads. No vanilla file sets it, and Bedrock has no tooltip wrapping setting to map it onto.
+- `upscale` now upscales along X, then Z, then Y, where Snapshot 10 went Z, X, Y. In the bytecode,
+  `PolymorphicUpscaler` and `UpscaleFunction$Sampler` swap their X and Z loops and passes. The
+  worldgen reader maps every vanilla `upscale`, which is linear on all three axes, onto the 26.3
+  `interpolated` node, so its output does not change. The non-linear modes that would follow
+  Pre-Release 1's order are still unread (#3280), and the vectors that would compare float results
+  with Java's are still missing (#3284).
+
+Regenerating the derived data for Pre-Release 1 gives the same mapping tables, item type table,
+block properties, entity attributes and navigation as Snapshot 10, apart from the release name. The
+goal capture differs: `minecraft:camel` and `minecraft:camel_husk` have no goals. Both jars'
+`Camel.registerGoals` is empty. The Snapshot 10 capture predates the goal reader fix that stopped
+crediting a mob with its ancestor's goals (8b4dfcdb, #3657), and Pre-Release 1's is the first
+preview capture taken after it.
+
 ## Sources
 
 - Mojang piston-meta version manifest, `https://piston-meta.mojang.com/mc/game/version_manifest_v2.json`,
-  and the 26.4-snapshot-10 version package it links.
+  and the 26.4-snapshot-10 and 26.4-pre-1 version packages it links.
 - The generated data of both releases: `node_modules/.cache/jsprismarine/vanilla-datapack/<release>/`
   and `java-reports/<release>/generated/reports/`, from `datagen:java`.
 - [Java Edition 26.4](https://minecraft.wiki/w/Java_Edition_26.4) and
-  [Java Edition 26.4 Snapshot 10](https://minecraft.wiki/w/Java_Edition_26.4_Snapshot_10) on the
-  Minecraft Wiki.
-- `javap` over both releases' server jars for the constructor and `BlockStateBase` signatures.
+  [Java Edition 26.4 Snapshot 10](https://minecraft.wiki/w/Java_Edition_26.4_Snapshot_10) and
+  [Java Edition 26.4 Pre-Release 1](https://minecraft.wiki/w/Java_Edition_26.4_Pre-Release_1) on
+  the Minecraft Wiki. Mojang's pre-release article on minecraft.net timed out from this host.
+- `javap` over the server jars for the constructor and `BlockStateBase` signatures, and over
+  Snapshot 10's and Pre-Release 1's `upscale` and `Camel` classes.

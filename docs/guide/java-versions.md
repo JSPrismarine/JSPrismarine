@@ -34,8 +34,8 @@ release's server jar by hash. `defaultVersion` there names the release above.
 
 Besides the default, `sources.json` may pin one preview: a Java snapshot or pre-release tracked
 ahead of its release, so the server is ready when the release ships. The pinned preview is
-<!-- fact:java.preview.version -->26.4-snapshot-10<!-- /fact -->, at data pack format
-<!-- fact:java.preview.dataPackFormat -->128.0<!-- /fact -->.
+<!-- fact:java.preview.version -->26.4-pre-1<!-- /fact -->, at data pack format
+<!-- fact:java.preview.dataPackFormat -->128.1<!-- /fact -->.
 
 A preview is for testing. Mojang changes snapshot data from week to week, and the pin moves with
 it, so a world saved under a preview may refuse to open under the release that follows (see
@@ -46,7 +46,7 @@ The server's support for a preview can also trail the preview's data. World gene
 preview's datapack, but its output has not been compared with Java's own generator for the
 preview ([#3284](https://github.com/JSPrismarine/JSPrismarine/issues/3284)), and some of the
 preview's new world generation types are not implemented yet.
-[The research note for the pinned preview](../research/java-26.4-snapshot-10-delta.md#verified-but-not-implemented)
+[The research note for the pinned preview](../research/java-26.4-pre-1-delta.md#verified-but-not-implemented)
 lists each known gap with its issue.
 
 ## Choosing a release
@@ -59,7 +59,7 @@ preview is pinned:
 
 ```json
 {
-    "content-java-version": "26.4-snapshot-10"
+    "content-java-version": "26.4-pre-1"
 }
 ```
 
