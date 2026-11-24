@@ -1,13 +1,21 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import Dgram from 'node:dgram';
+import type { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
-import { MAX_MTU_SIZE, MIN_MTU_SIZE, OFFLINE_MESSAGE_DATA_ID, RAKNET_PROTOCOL_VERSION } from './Constants';
+import {
+    MAX_MTU_SIZE,
+    MIN_MTU_SIZE,
+    OFFLINE_MESSAGE_DATA_ID,
+    RAKNET_PROTOCOL_VERSION,
+    SESSION_TIMEOUT_MS
+} from './Constants';
 import ServerSocket from './ServerSocket';
 import { RakNetRole, SessionStatus } from './Session';
 import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
+import { monotonicNow } from './utils/Clock';
 import IncompatibleProtocolVersion from './protocol/connection/IncompatibleProtocolVersion';
 
 /**
@@ -78,13 +86,23 @@ const newClient = (options?: ConstructorParameters<typeof ClientSocket>[1]) => {
     return client;
 };
 
-const until = async (predicate: () => boolean, timeoutMs = 2_000) => {
-    const deadline = Date.now() + timeoutMs;
-    while (!predicate()) {
-        if (Date.now() > deadline) return false;
-        await new Promise((resolve) => setTimeout(resolve, 5));
-    }
-    return true;
+/**
+ * Resolves once `predicate` holds, testing it now and again after each of `events` fires.
+ *
+ * The emitter calls its listeners in the order they were added, so the ones collecting what
+ * `predicate` reads must be registered first. Nothing here gives up: a state that never
+ * arrives is the test's own timeout to report.
+ */
+const until = (predicate: () => boolean, emitter: EventEmitter, ...events: string[]): Promise<void> => {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const check = () => {
+        if (!predicate()) return;
+        for (const event of events) emitter.off(event, check);
+        resolve();
+    };
+    for (const event of events) emitter.on(event, check);
+    check();
+    return promise;
 };
 
 /** Wraps a Minecraft-shaped payload the way MinecraftSession does. */
@@ -111,7 +129,7 @@ describe('outgoing handshake over a real socket', () => {
         expect(client.getSession()).toBe(session);
 
         // The server must have reached the same conclusion, off its own state machine.
-        expect(await until(() => opened.length === 1)).toBe(true);
+        await until(() => opened.length === 1, server, 'openConnection');
         expect(server.getSessions()).toHaveLength(1);
         expect(opened[0].getState()).toBe(SessionStatus.CONNECTED);
 
@@ -135,7 +153,7 @@ describe('outgoing handshake over a real socket', () => {
         }
         session.sendFrameQueue();
 
-        expect(await until(() => encapsulated.length === 3)).toBe(true);
+        await until(() => encapsulated.length === 3, server, 'encapsulated');
         expect(encapsulated).toEqual([0xc1, 0xc2, 0xc3]);
     });
 
@@ -147,7 +165,7 @@ describe('outgoing handshake over a real socket', () => {
         client.on('encapsulated', (frame: Frame) => received.push(frame.content[1]!));
 
         await client.connect('127.0.0.1', port);
-        expect(await until(() => server.getSessions().length === 1)).toBe(true);
+        await until(() => server.getSessions().length === 1, server, 'openConnection');
 
         const serverSession = server.getSessions()[0]!;
         for (const id of [0x0b, 0x02]) {
@@ -155,7 +173,7 @@ describe('outgoing handshake over a real socket', () => {
         }
         serverSession.sendFrameQueue();
 
-        expect(await until(() => received.length === 2)).toBe(true);
+        await until(() => received.length === 2, client, 'encapsulated');
         expect(received).toEqual([0x0b, 0x02]);
     });
 
@@ -167,7 +185,7 @@ describe('outgoing handshake over a real socket', () => {
         client.on('encapsulated', (frame: Frame) => received.push(frame.content));
 
         const session = await client.connect('127.0.0.1', port);
-        expect(await until(() => server.getSessions().length === 1)).toBe(true);
+        await until(() => server.getSessions().length === 1, server, 'openConnection');
 
         const inbound: Buffer[] = [];
         server.on('encapsulated', (frame) => inbound.push(frame.content));
@@ -185,12 +203,12 @@ describe('outgoing handshake over a real socket', () => {
 
         session.sendFrame(gameFrame(payload));
         session.sendFrameQueue();
-        expect(await until(() => inbound.length === 1, 5_000)).toBe(true);
+        await until(() => inbound.length === 1, server, 'encapsulated');
         expect(inbound[0]!.equals(payload)).toBe(true);
 
         server.getSessions()[0]!.sendFrame(gameFrame(payload));
         server.getSessions()[0]!.sendFrameQueue();
-        expect(await until(() => received.length === 1, 5_000)).toBe(true);
+        await until(() => received.length === 1, client, 'encapsulated');
         expect(received[0]!.equals(payload)).toBe(true);
     });
 
@@ -251,11 +269,11 @@ describe('outgoing handshake over a real socket', () => {
 
         const client = newClient();
         await client.connect('127.0.0.1', port);
-        expect(await until(() => server.getSessions().length === 1)).toBe(true);
+        await until(() => server.getSessions().length === 1, server, 'openConnection');
 
         client.disconnect('leaving');
 
-        expect(await until(() => server.getSessions().length === 0)).toBe(true);
+        await until(() => server.getSessions().length === 0, server, 'closeConnection');
         expect(closed).toHaveLength(1);
     });
 
@@ -277,17 +295,24 @@ describe('outgoing handshake over a real socket', () => {
         await client.connect('127.0.0.1', port);
 
         // A well formed data datagram, but from a port we never dialled.
-        const impostor = (await import('node:dgram')).createSocket('udp4');
+        const impostor = Dgram.createSocket('udp4');
+        running!.sockets.push(impostor);
         await new Promise<void>((resolve) => impostor.bind(0, '127.0.0.1', resolve));
         const local = client.getAddress();
-        impostor.send(
-            Buffer.from([0x84, 0x00, 0x00, 0x00, 0x60, 0x00, 0x10, 0x00, 0x00, 0xfe, 0x99]),
-            local.getPort(),
-            '127.0.0.1'
+        // The callback runs once the datagram is handed to loopback, which queues it on the
+        // client's socket before anything sent after it.
+        await new Promise<void>((resolve, reject) =>
+            impostor.send(
+                Buffer.from([0x84, 0x00, 0x00, 0x00, 0x60, 0x00, 0x10, 0x00, 0x00, 0xfe, 0x99]),
+                local.getPort(),
+                '127.0.0.1',
+                (error) => (error ? reject(error) : resolve())
+            )
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        impostor.close();
+        // The pong lands on the client's socket behind the impostor's datagram, so by the time
+        // the ping resolves the client has already read and judged that datagram.
+        await client.ping('127.0.0.1', port);
 
         expect(received).toHaveLength(0);
     });
@@ -297,15 +322,30 @@ describe('outgoing handshake over a real socket', () => {
 
         const client = newClient();
         const session = await client.connect('127.0.0.1', port);
-        expect(await until(() => server.getSessions().length === 1)).toBe(true);
+        await until(() => server.getSessions()[0]?.getState() === SessionStatus.CONNECTED, server, 'openConnection');
+        const serverSession = server.getSessions()[0]!;
 
-        // Nothing is sent by either side; only the keepalive ping should hold it open.
-        // SESSION_TIMEOUT_MS is 10s, so this is a smoke test of the pings going out at all
-        // rather than of the full window - see CONNECTED_PING_INTERVAL_MS.
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        // The keepalive the client's tick sends every CONNECTED_PING_INTERVAL_MS, sent by hand
+        // so the test does not wait out the interval.
+        const pingedAt = monotonicNow();
+        session.sendConnectedPing();
+        session.sendFrameQueue();
 
-        expect(session.getState()).toBe(SessionStatus.CONNECTED);
+        // An unconnected ping behind it, which the server answers without touching the
+        // session: its pong means the server has read the keepalive.
+        await client.ping('127.0.0.1', port);
+
+        // A full timeout window after the keepalive went out. The server heard from the
+        // client since then, so the session stays.
+        serverSession.update(pingedAt + SESSION_TIMEOUT_MS);
+        expect(serverSession.getState()).toBe(SessionStatus.CONNECTED);
         expect(server.getSessions()).toHaveLength(1);
+        expect(session.getState()).toBe(SessionStatus.CONNECTED);
+
+        // That pass cleared the activity flag, and nothing has arrived since: a window later
+        // the session times out, which is what the keepalive was holding off.
+        serverSession.update(monotonicNow() + SESSION_TIMEOUT_MS + 1);
+        expect(server.getSessions()).toHaveLength(0);
     });
 });
 
@@ -324,7 +364,7 @@ describe('NewIncomingConnection encoding', () => {
         // *sends* NewIncomingConnection, so the server is a round trip behind it. A session
         // exists from OpenConnectionRequest2 onwards, which is why its mere presence proves
         // nothing about whether the message that follows could be decoded.
-        expect(await until(() => server.getSessions()[0]?.getState() === SessionStatus.CONNECTED)).toBe(true);
+        await until(() => server.getSessions()[0]?.getState() === SessionStatus.CONNECTED, server, 'openConnection');
     });
 });
 
@@ -337,7 +377,7 @@ describe('CONNECTED_PONG', () => {
         client.on('encapsulated', (frame: Frame) => received.push(frame.content[0]!));
 
         const session = await client.connect('127.0.0.1', port);
-        expect(await until(() => server.getSessions().length === 1)).toBe(true);
+        await until(() => server.getSessions().length === 1, server, 'openConnection');
 
         session.sendConnectedPing();
         session.sendFrameQueue();
@@ -345,7 +385,16 @@ describe('CONNECTED_PONG', () => {
         // The server answers with CONNECTED_PONG; before it was handled explicitly that
         // pong was emitted as `encapsulated` and reached the packet dispatcher as if it
         // were a Minecraft packet.
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        //
+        // The unconnected ping's pong means the server has read the CONNECTED_PING and queued
+        // its answer. A game frame queued after that answer reaches the client after it too.
+        await client.ping('127.0.0.1', port);
+        const serverSession = server.getSessions()[0]!;
+        serverSession.sendFrame(gameFrame(Buffer.from([0xfe, 0x01])));
+        serverSession.sendFrameQueue();
+        await until(() => received.length > 0, client, 'encapsulated');
+
+        expect(received).toEqual([0xfe]);
         expect(received).not.toContain(MessageIdentifiers.CONNECTED_PONG);
     });
 });

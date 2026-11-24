@@ -271,6 +271,7 @@ const drainCommands = (): void => {
 };
 
 const updateMetrics = (): void => {
+    let sampled = false;
     for (const [id, session] of sessionsById) {
         const previous = lastSessionMetrics.get(id) ?? {
             retransmissions: 0,
@@ -281,9 +282,6 @@ const updateMetrics = (): void => {
         const roundTrips = session.getRoundTripSampleCount();
         if (retransmissions > previous.retransmissions) {
             Atomics.add(metrics, 1, retransmissions - previous.retransmissions);
-        }
-        if (roundTrips > previous.roundTrips) {
-            Atomics.add(metrics, 2, roundTrips - previous.roundTrips);
         }
         const rtt = session.getRTT();
         let reportedRoundTripMs = previous.reportedRoundTripMs;
@@ -304,8 +302,16 @@ const updateMetrics = (): void => {
                 writeEvent(EVENT_ROUND_TRIP, id, '', 0, payload);
             }
         }
+        // Counted after the round trip event is written, so a main thread that sees the count
+        // finds the event behind it in the inbound ring.
+        if (roundTrips > previous.roundTrips) {
+            Atomics.add(metrics, 2, roundTrips - previous.roundTrips);
+            sampled = true;
+        }
         lastSessionMetrics.set(id, { retransmissions, roundTrips, reportedRoundTripMs });
     }
+    // Wakes `WorkerServerSocket.waitForRoundTripSamples`.
+    if (sampled) Atomics.notify(metrics, 2);
 };
 
 const pumpTimer = setInterval(() => {

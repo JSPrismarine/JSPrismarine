@@ -1,12 +1,15 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import Dgram from 'node:dgram';
+import type { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DISCONNECT_LINGER_TIMEOUT_MS, OFFLINE_MESSAGE_DATA_ID, RTO_MAX_MS, SESSION_TIMEOUT_MS } from './Constants';
 import ServerSocket from './ServerSocket';
+import { SessionStatus } from './Session';
 import ACK from './protocol/ACK';
 import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
 import FrameSet from './protocol/FrameSet';
+import BitFlags from './protocol/BitFlags';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import { monotonicNow } from './utils/Clock';
 
@@ -56,18 +59,51 @@ const start = async () => {
     running = { server, client };
 
     const send = (buffer: Buffer) => client.send(buffer, port, '127.0.0.1');
-    const settle = async (ms = 60) => new Promise((resolve) => setTimeout(resolve, ms));
-    const until = async <T>(get: () => T | undefined, timeoutMs = 1000): Promise<T> => {
-        const deadline = Date.now() + timeoutMs;
-        for (;;) {
+
+    /**
+     * Resolves with the first value `get` returns other than `undefined`, reading it now and
+     * again after every datagram the client receives and every session the server opens or
+     * closes. Nothing here gives up: a state that never arrives is the test's own timeout.
+     */
+    const until = <T>(get: () => T | undefined): Promise<T> => {
+        const { promise, resolve } = Promise.withResolvers<T>();
+        const signals: [EventEmitter, string][] = [
+            [client, 'message'],
+            [server, 'openConnection'],
+            [server, 'closeConnection'],
+            [server, 'raw']
+        ];
+        const check = () => {
             const value = get();
-            if (value !== undefined) return value;
-            if (Date.now() > deadline) throw new Error('timed out waiting');
-            await settle(5);
-        }
+            if (value === undefined) return;
+            for (const [emitter, event] of signals) emitter.off(event, check);
+            resolve(value);
+        };
+        for (const [emitter, event] of signals) emitter.on(event, check);
+        check();
+        return promise;
     };
 
-    return { server, port, send, inbox, settle, until };
+    /**
+     * Waits until the server has answered an unconnected ping sent now. The server reads
+     * datagrams in order and sends its answers in order, so everything it sent before that
+     * pong is in the inbox by the time this resolves.
+     */
+    const fence = async () => {
+        const timestamp = BigInt(++fences);
+        const ping = new BinaryStream();
+        ping.writeByte(MessageIdentifiers.UNCONNECTED_PING);
+        ping.writeLong(timestamp);
+        ping.write(OFFLINE_MESSAGE_DATA_ID);
+        send(ping.getBuffer());
+
+        await until(() =>
+            inbox.find((msg) => msg[0] === MessageIdentifiers.UNCONNECTED_PONG && msg.readBigUInt64BE(1) === timestamp)
+        );
+    };
+    let fences = 0;
+
+    return { server, port, send, inbox, until, fence };
 };
 
 // ---------------------------------------------------------------- packet builders
@@ -141,7 +177,17 @@ const acknowledge = (sequenceNumber: number) => {
 
 // ---------------------------------------------------------------- inbox predicates
 
-const isDataDatagram = (buffer: Buffer) => (buffer[0]! & 0x80) !== 0 && (buffer[0]! & 0x60) === 0;
+const isDataDatagram = (buffer: Buffer) =>
+    (buffer[0]! & BitFlags.VALID) !== 0 && (buffer[0]! & (BitFlags.ACK | BitFlags.NACK)) === 0;
+
+/** Whether this is an ACK covering the datagram with this sequence number. */
+const acknowledges = (buffer: Buffer, sequenceNumber: number): boolean => {
+    if ((buffer[0]! & (BitFlags.VALID | BitFlags.ACK)) !== (BitFlags.VALID | BitFlags.ACK)) return false;
+
+    const ack = new ACK(buffer);
+    ack.decode();
+    return ack.contains(sequenceNumber);
+};
 
 /** The sequence number of the datagram carrying a goodbye, if this is one. */
 const goodbyeSequence = (buffer: Buffer): number | undefined => {
@@ -169,7 +215,9 @@ const connect = async (harness: Awaited<ReturnType<typeof start>>) => {
     send(datagram(0, 0, 0, connectionRequest()));
     send(datagram(1, 1, 1, newIncomingConnection(port)));
 
-    const session = await until(() => server.getSessions()[0]);
+    const session = await until(() =>
+        server.getSessions().find((candidate) => candidate.getState() === SessionStatus.CONNECTED)
+    );
     await until(() => (server.getSessions().length === 1 ? true : undefined));
     inbox.length = 0;
 
@@ -179,7 +227,7 @@ const connect = async (harness: Awaited<ReturnType<typeof start>>) => {
 describe('hanging up', () => {
     it('holds the session open until the peer acknowledges the goodbye', async () => {
         const harness = await start();
-        const { server, send, inbox, settle, until } = harness;
+        const { server, send, inbox, until } = harness;
 
         const closed: string[] = [];
         server.on('closeConnection', (_address, reason) => closed.push(reason));
@@ -195,7 +243,10 @@ describe('hanging up', () => {
         send(acknowledge(sequence));
 
         await until(() => (server.getSessions().length === 0 ? true : undefined));
-        await settle();
+        expect(closed).toEqual(['kicked']);
+
+        // The linger's own deadline passing later must not close it a second time.
+        session.update(monotonicNow() + DISCONNECT_LINGER_TIMEOUT_MS + 1);
         expect(closed).toEqual(['kicked']);
     });
 
@@ -241,7 +292,7 @@ describe('hanging up', () => {
 
     it('answers the peer goodbye with an acknowledgment and nothing else', async () => {
         const harness = await start();
-        const { server, send, inbox, settle, until } = harness;
+        const { server, send, inbox, until, fence } = harness;
 
         const session = await connect(harness);
         expect(session).toBeDefined();
@@ -249,11 +300,12 @@ describe('hanging up', () => {
         send(datagram(2, 2, 2, Buffer.from([MessageIdentifiers.DISCONNECTION_NOTIFICATION])));
 
         await until(() => (server.getSessions().length === 0 ? true : undefined));
-        await settle();
+        // Anything the session sent on its way out arrives ahead of the fence's pong.
+        await fence();
 
         // RakNet acks a DISCONNECTION_NOTIFICATION and says nothing back; a goodbye of our
         // own would only reach an address that has already forgotten us.
-        expect(inbox.some((msg) => (msg[0]! & 0x40) !== 0)).toBe(true);
+        expect(inbox.some((msg) => acknowledges(msg, 2))).toBe(true);
         expect(goodbyes(inbox)).toEqual([]);
     });
 
@@ -273,7 +325,7 @@ describe('hanging up', () => {
 
     it('closes a timed out session without a goodbye', async () => {
         const harness = await start();
-        const { server, inbox } = harness;
+        const { server, inbox, fence } = harness;
 
         const closed: string[] = [];
         server.on('closeConnection', (_address, reason) => closed.push(reason));
@@ -285,7 +337,8 @@ describe('hanging up', () => {
         session.update(now);
         inbox.length = 0;
         session.update(now + SESSION_TIMEOUT_MS + 1);
-        await new Promise((resolve) => setTimeout(resolve, 30));
+        // A goodbye sent by that pass would arrive ahead of the fence's pong.
+        await fence();
 
         expect(closed).toEqual(['timeout']);
         expect(server.getSessions()).toHaveLength(0);

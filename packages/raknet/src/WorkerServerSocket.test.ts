@@ -1,6 +1,6 @@
-import { setTimeout as delay } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
+import type { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
 import Frame from './protocol/Frame';
@@ -25,6 +25,25 @@ const makeServerName = () =>
         },
         { protocolVersion: 2193, minecraftVersions: ['1.26.51'] }
     );
+
+/**
+ * Resolves once `predicate` holds, testing it now and again after each of `events` fires.
+ *
+ * The emitter calls its listeners in the order they were added, so the ones collecting what
+ * `predicate` reads must be registered first. Nothing here gives up: a state that never
+ * arrives is the test's own timeout to report.
+ */
+const until = (predicate: () => boolean, emitter: EventEmitter, ...events: string[]): Promise<void> => {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const check = () => {
+        if (!predicate()) return;
+        for (const event of events) emitter.off(event, check);
+        resolve();
+    };
+    for (const event of events) emitter.on(event, check);
+    check();
+    return promise;
+};
 
 const makeFrame = (byte: number) => {
     const frame = new Frame();
@@ -57,32 +76,43 @@ describe('WorkerServerSocket', () => {
         client.on('encapsulated', (frame: Frame) => clientFrames.push(frame.content[1]!));
         const clientSession = await client.connect('127.0.0.1', server.serverName.getPort());
 
-        return { clientFrames, clientSession, server };
+        return { client, clientFrames, clientSession, server };
     };
 
-    const waitFor = async (predicate: () => boolean, timeoutMs = 3000): Promise<void> => {
-        const deadline = Date.now() + timeoutMs;
-        while (!predicate()) {
-            server?.pollInbound();
-            if (Date.now() >= deadline) throw new Error('worker RakNet condition timed out');
-            await delay(2);
-        }
+    /**
+     * Delivers the worker's events on every timer turn, as the game thread's tick does, until
+     * {@link stopPump}.
+     */
+    const startPump = (target: WorkerServerSocket) => {
+        clearInterval(pump);
+        pump = setInterval(() => target.pollInbound(), 1);
+    };
+    const stopPump = () => {
+        clearInterval(pump);
+        pump = undefined;
+    };
+
+    /** Waits for the main thread to receive the worker's first connected session. */
+    const firstSession = async (target: WorkerServerSocket) => {
+        await until(() => target.getSessions().length === 1, target, 'openConnection');
+        const session = target.getSessions()[0];
+        if (!session) throw new Error('connected worker session was not handed to the main thread');
+        return session;
     };
 
     it('preserves reliable order in both directions through the shared rings', async () => {
-        const { clientSession, clientFrames, server } = await start();
+        const { client, clientSession, clientFrames, server } = await start();
         const serverFrames: number[] = [];
         server.on('encapsulated', (frame: Frame) => serverFrames.push(frame.content[1]!));
-        await waitFor(() => server.getSessions().length === 1);
-        const serverSession = server.getSessions()[0];
-        if (!serverSession) throw new Error('connected worker session was not handed to the main thread');
+        startPump(server);
+        const serverSession = await firstSession(server);
 
         for (let value = 0; value < 8; value++) clientSession.sendFrame(makeFrame(value));
         clientSession.sendFrameQueue();
-        await waitFor(() => serverFrames.length === 8);
+        await until(() => serverFrames.length === 8, server, 'encapsulated');
 
         for (let value = 20; value < 28; value++) serverSession.sendFrame(makeFrame(value));
-        await waitFor(() => clientFrames.length === 8);
+        await until(() => clientFrames.length === 8, client, 'encapsulated');
 
         expect(serverFrames).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
         expect(clientFrames).toEqual([20, 21, 22, 23, 24, 25, 26, 27]);
@@ -122,12 +152,7 @@ describe('WorkerServerSocket', () => {
                     const client = new ClientSocket(logger);
                     clients.push(client);
                     clientSessions.push(await client.connect('127.0.0.1', name.getPort()));
-                    const deadline = Date.now() + 3000;
-                    while (nextSession <= id) {
-                        if (Date.now() >= deadline) throw new Error('server did not accept parity-test client');
-                        worker?.pollInbound();
-                        await delay(2);
-                    }
+                    await until(() => nextSession > id, listener, 'openConnection');
                 }
 
                 for (let id = 0; id < clientSessions.length; id++) {
@@ -142,12 +167,7 @@ describe('WorkerServerSocket', () => {
                     session.sendFrameQueue();
                 }
 
-                const deadline = Date.now() + 3000;
-                while (received.some((digests) => digests.length !== 12)) {
-                    if (Date.now() >= deadline) throw new Error('parity-test frames did not arrive');
-                    worker?.pollInbound();
-                    await delay(2);
-                }
+                await until(() => received.every((digests) => digests.length === 12), listener, 'encapsulated');
                 return received;
             } finally {
                 clearInterval(poll);
@@ -162,67 +182,63 @@ describe('WorkerServerSocket', () => {
     });
 
     it('keeps ACK and retransmission work moving while the game-thread handoff waits', async () => {
-        const { clientSession, clientFrames, server } = await start();
+        const { client, clientSession, clientFrames, server } = await start();
         const received: number[] = [];
         server.on('encapsulated', (frame: Frame) => received.push(frame.content[1]!));
-        await waitFor(() => server.getSessions().length === 1);
-        const serverSession = server.getSessions()[0];
-        if (!serverSession) throw new Error('connected worker session was not handed to the main thread');
+        startPump(server);
+        const serverSession = await firstSession(server);
+
+        // From here the game thread is held up: nothing polls the inbound ring until the
+        // worker has shown it kept sending frames and handling reliability feedback alone.
+        stopPump();
+        const samplesBefore = server.getMetrics().roundTripSamples;
 
         for (let value = 0; value < 40; value++) clientSession.sendFrame(makeFrame(value));
         clientSession.sendFrameQueue();
         for (let value = 40; value < 48; value++) serverSession.sendFrame(makeFrame(value));
 
-        // This is the game-thread handoff interval. The client socket still handles UDP, while
-        // the worker continues ACKs, reliability updates, and the bounded inbound queue.
-        await delay(250);
-        let metrics = server.getMetrics();
-        const frameDeadline = Date.now() + 5_000;
-        // Don't poll the inbound ring here: the game-thread handoff must stay blocked while
-        // the worker sends frames and handles reliability feedback.
-        while (clientFrames.length < 8 && Date.now() < frameDeadline) {
-            await delay(2);
-            metrics = server.getMetrics();
-        }
+        // The client socket still handles UDP, so the worker's frames reach it.
+        await until(() => clientFrames.length === 8, client, 'encapsulated');
         expect(clientFrames).toHaveLength(8);
 
         // The client timer is independent of the worker under test. Drive its ACK pass after
         // observing delivery so a loaded test runner cannot starve that unrelated timer.
         clientSession.update();
-        const sampleDeadline = Date.now() + 5_000;
-        while (metrics.roundTripSamples === 0 && Date.now() < sampleDeadline) {
-            await delay(2);
-            metrics = server.getMetrics();
-        }
+        // The worker measures a round trip from that acknowledgment with the handoff still
+        // blocked, which is the proof that it processed ACKs on its own.
+        await server.waitForRoundTripSamples(samplesBefore + 1);
+        const metrics = server.getMetrics();
 
+        // The client's 40 frames went out ahead of its acknowledgment, so they are waiting in
+        // the ring for the game thread.
         expect(metrics.inbound.queuedBytes).toBeGreaterThan(0);
-        // The RTT clock starts when frames are sent, before the handoff wait. Comparing that full
-        // RTT to the later wait duration includes unrelated setup time and flakes under load.
-        // A sample before pollInbound is the deterministic proof that the worker processed ACKs.
-        expect(metrics.roundTripSamples).toBeGreaterThan(0);
+        expect(metrics.roundTripSamples).toBeGreaterThan(samplesBefore);
         expect(metrics.retransmissions).toBe(0);
+        expect(received).toEqual([]);
 
-        server.pollInbound();
-        await waitFor(() => received.length === 40);
-        await waitFor(() => clientFrames.length === 8);
+        startPump(server);
+        await until(() => received.length === 40, server, 'encapsulated');
+        expect(clientFrames).toHaveLength(8);
         expect(received).toEqual(Array.from({ length: 40 }, (_, index) => index));
     });
 
     it("hands the main thread's session the worker's round trip time once it has a sample", async () => {
-        const { clientSession, clientFrames, server } = await start();
-        await waitFor(() => server.getSessions().length === 1);
-        const serverSession = server.getSessions()[0];
-        if (!serverSession) throw new Error('connected worker session was not handed to the main thread');
+        const { client, clientSession, clientFrames, server } = await start();
+        startPump(server);
+        const serverSession = await firstSession(server);
         // The client's own timer may acknowledge the handshake before this line, so the RTT is
         // checked only after a frame the test makes the client acknowledge.
 
         serverSession.sendFrame(makeFrame(1));
-        await waitFor(() => clientFrames.length === 1);
+        await until(() => clientFrames.length === 1, client, 'encapsulated');
         // Drive the client's ACK pass, as its own timer would.
         clientSession.update();
-        await waitFor(() => server.getMetrics().roundTripSamples > 0);
-        await waitFor(() => serverSession.getRTT() !== null);
+        await server.waitForRoundTripSamples(1);
+        // The worker wrote the round trip event before counting the sample; deliver it now
+        // rather than on the pump's next turn.
+        while (server.pollInbound() > 0);
 
+        expect(serverSession.getRTT()).not.toBeNull();
         expect(serverSession.getRTT()).toBeGreaterThanOrEqual(0);
     });
 
@@ -232,9 +248,8 @@ describe('WorkerServerSocket', () => {
         await server.waitUntilReady();
         client = new ClientSocket(logger);
         await client.connect('127.0.0.1', server.serverName.getPort());
-        await waitFor(() => server?.getSessions().length === 1);
-        const session = server.getSessions()[0];
-        if (!session) throw new Error('connected worker session was not handed to the main thread');
+        startPump(server);
+        const session = await firstSession(server);
 
         const oversized = makeFrame(4);
         oversized.content = Buffer.alloc(64);
@@ -270,7 +285,9 @@ describe('WorkerServerSocket', () => {
 
         expect((await failed).message).toContain('EADDRINUSE');
         // Let a rejection nobody handles reach the process, where Vitest fails the run on it.
-        await delay(50);
+        // Node reports unhandled rejections once the task that made them has run its
+        // microtasks, so the next turn of the event loop comes after that report.
+        await new Promise<void>((resolve) => setImmediate(resolve));
         loser.kill();
     });
 
@@ -278,7 +295,8 @@ describe('WorkerServerSocket', () => {
         const { server } = await start();
         const closed: string[] = [];
         server.on('closeConnection', (_address, reason) => closed.push(reason));
-        await waitFor(() => server.getSessions().length === 1);
+        startPump(server);
+        await firstSession(server);
 
         server.kill();
 

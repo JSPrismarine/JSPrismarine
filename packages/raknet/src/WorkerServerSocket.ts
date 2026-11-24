@@ -349,6 +349,25 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         };
     }
 
+    /**
+     * Resolves once the worker has counted at least `count` round trip samples, the figure
+     * {@link getMetrics} reports as `roundTripSamples`. The worker counts a pass's samples after
+     * writing that pass's round trip events, so a {@link pollInbound} after this resolves
+     * delivers them, unless the inbound ring was full and they wait in the worker's staging queue.
+     *
+     * Waits on the shared counter rather than a clock, and never settles if the worker stops
+     * before reaching the count.
+     * @param count - The number of samples to wait for.
+     */
+    public async waitForRoundTripSamples(count: number): Promise<void> {
+        for (;;) {
+            const seen = Atomics.load(this.metrics, 2);
+            if (seen >= count) return;
+            const waiting = Atomics.waitAsync(this.metrics, 2, seen);
+            if (waiting.async) await waiting.value;
+        }
+    }
+
     /** CPU time consumed by the network worker since it started. */
     public async getWorkerCpuUsage(): Promise<NodeJS.CpuUsage> {
         if (!this.worker) return { user: 0, system: 0 };

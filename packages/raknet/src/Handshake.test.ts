@@ -1,10 +1,13 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import Dgram from 'node:dgram';
+import { once } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_MTU_SIZE, MIN_MTU_SIZE, OFFLINE_MESSAGE_DATA_ID } from './Constants';
 import ServerSocket from './ServerSocket';
 import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
+import ACK from './protocol/ACK';
+import BitFlags from './protocol/BitFlags';
 import FrameSet from './protocol/FrameSet';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import UnconnectedPong from './protocol/offline/UnconnectedPong';
@@ -55,12 +58,9 @@ const start = async (name = serverName) => {
     running = { server, client };
 
     const send = (buffer: Buffer) => client.send(buffer, port, '127.0.0.1');
-    const next = async (timeoutMs = 1000): Promise<Buffer> => {
-        const deadline = Date.now() + timeoutMs;
-        while (inbox.length === 0) {
-            if (Date.now() > deadline) throw new Error('timed out waiting for a reply');
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
+    /** The oldest reply not yet taken, waiting for the next datagram when there is none. */
+    const next = async (): Promise<Buffer> => {
+        while (inbox.length === 0) await once(client, 'message');
         return inbox.shift()!;
     };
 
@@ -87,6 +87,17 @@ const openConnectionRequest2 = (mtuSize: number, serverPort: number) => {
     stream.writeLong(CLIENT_GUID);
     return stream.getBuffer();
 };
+
+const unconnectedPing = (timestamp: bigint) => {
+    const stream = new BinaryStream();
+    stream.writeByte(MessageIdentifiers.UNCONNECTED_PING);
+    stream.writeLong(timestamp);
+    stream.write(OFFLINE_MESSAGE_DATA_ID);
+    return stream.getBuffer();
+};
+
+const isAcknowledgment = (buffer: Buffer) =>
+    (buffer[0]! & (BitFlags.VALID | BitFlags.ACK)) === (BitFlags.VALID | BitFlags.ACK);
 
 /** Wraps a payload into a reliable ordered frame inside a datagram. */
 const datagram = (sequenceNumber: number, reliableIndex: number, orderIndex: number, payload: Buffer) => {
@@ -132,11 +143,7 @@ describe('offline handshake over a real socket', () => {
     it('answers an unconnected ping', async () => {
         const { send, next } = await start();
 
-        const ping = new BinaryStream();
-        ping.writeByte(MessageIdentifiers.UNCONNECTED_PING);
-        ping.writeLong(1234n);
-        ping.write(OFFLINE_MESSAGE_DATA_ID);
-        send(ping.getBuffer());
+        send(unconnectedPing(1234n));
 
         const reply = await next();
         expect(reply[0]).toBe(MessageIdentifiers.UNCONNECTED_PONG);
@@ -194,7 +201,13 @@ describe('offline handshake over a real socket', () => {
         forged.write(Buffer.alloc(OFFLINE_MESSAGE_DATA_ID.byteLength, 0x41));
         send(forged.getBuffer());
 
-        await expect(next(200)).rejects.toThrow('timed out');
+        // A genuine ping behind it. The server reads datagrams in the order they arrive, so the
+        // first answer is the forged ping's if it got one; the timestamps tell them apart.
+        send(unconnectedPing(5678n));
+
+        const pong = new UnconnectedPong(await next());
+        pong.decode();
+        expect(pong.timestamp).toBe(5678n);
     });
 
     it('re-answers a duplicate OpenConnectionRequest2, but only while the handshake is running', async () => {
@@ -213,11 +226,10 @@ describe('offline handshake over a real socket', () => {
         send(openConnectionRequest2(1200, serverPort));
         expect((await next())[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_2);
 
+        const connected = once(server, 'openConnection');
         send(datagram(0, 0, 0, connectionRequest()));
         send(datagram(1, 1, 1, newIncomingConnection(serverPort)));
-        for (let i = 0; i < 40 && opened.length === 0; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
+        await connected;
         expect(opened).toHaveLength(1);
 
         // Connected now, so the same request must be refused rather than answered: anyone
@@ -288,10 +300,9 @@ describe('connected handshake over a real socket', () => {
         expect(accepted).toBe(true);
 
         // NewIncomingConnection completes the handshake.
+        const connected = once(server, 'openConnection');
         send(datagram(1, 1, 1, newIncomingConnection(serverPort)));
-        for (let i = 0; i < 40 && opened.length === 0; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
+        await connected;
         expect(opened).toHaveLength(1);
 
         // Now the reliability layer proper: send three game packets out of order, with
@@ -302,8 +313,14 @@ describe('connected handshake over a real socket', () => {
         send(datagram(3, 3, 3, game(0xc2)));
         send(datagram(5, 3, 3, game(0xc2))); // duplicate of the previous message
 
-        for (let i = 0; i < 60 && encapsulated.length < 3; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
+        // The acknowledgment of the duplicate's datagram says the server has read it, so a
+        // second delivery would already be in the list.
+        for (;;) {
+            const reply = await next();
+            if (!isAcknowledgment(reply)) continue;
+            const ack = new ACK(reply);
+            ack.decode();
+            if (ack.contains(5)) break;
         }
 
         expect(encapsulated).toEqual([0xc1, 0xc2, 0xc3]);
@@ -327,14 +344,9 @@ describe('connected handshake over a real socket', () => {
         send(Buffer.from([0x84, 0xff, 0xff, 0xff]));
         send(Buffer.from([0xa0, 0x00, 0x01, 0x01, 0x00, 0x00]));
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // Still alive and still serving.
-        const ping = new BinaryStream();
-        ping.writeByte(MessageIdentifiers.UNCONNECTED_PING);
-        ping.writeLong(1234n);
-        ping.write(OFFLINE_MESSAGE_DATA_ID);
-        send(ping.getBuffer());
+        // Still alive and still serving. The server reads datagrams in arrival order, so this
+        // ping is answered only after every malformed one above has been handled.
+        send(unconnectedPing(1234n));
 
         let sawPong = false;
         for (let i = 0; i < 20 && !sawPong; i++) {
