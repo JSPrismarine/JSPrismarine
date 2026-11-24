@@ -2596,415 +2596,45 @@
             "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
             "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
         },
-        "recipe-crafts:recipe/minecraft:black_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:black_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:black_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:blue_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:blue_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:blue_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:bolt_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:book_cloning": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:brown_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:brown_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:brown_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:coast_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:cyan_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:cyan_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:cyan_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:decorated_pot": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:dune_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:eye_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:firework_rocket": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:firework_star": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:firework_star_fade": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:flow_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:gray_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:gray_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:gray_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:green_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:green_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:green_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:host_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
         "recipe-crafts:recipe/minecraft:leather_boots_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:leather_chestplate_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:leather_helmet_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:leather_horse_armor_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:leather_leggings_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_blue_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_blue_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_blue_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_gray_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_gray_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:light_gray_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:lime_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:lime_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:lime_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:magenta_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:magenta_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:magenta_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:map_cloning": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:map_extending": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:orange_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:orange_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:orange_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:pink_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:pink_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:pink_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:purple_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:purple_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:purple_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:raiser_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:red_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:red_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:red_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:repair_item": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:rib_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:sentry_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:shaper_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:shield_decoration": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:silence_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:snout_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:spire_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:tide_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:tipped_arrow": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:vex_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:ward_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:wayfinder_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:white_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:white_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:white_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:wild_armor_trim_smithing_template_smithing_trim": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "recipe-crafts:recipe/minecraft:wolf_armor_dyed": {
             "kind": "defect",
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:yellow_banner_duplicate": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:yellow_bundle": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
-        },
-        "recipe-crafts:recipe/minecraft:yellow_shulker_box": {
-            "kind": "defect",
-            "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
         "villager-profession-trades:minecraft:mason": {
             "kind": "defect",

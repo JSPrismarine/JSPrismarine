@@ -194,13 +194,23 @@ order: `orderRecipes` sorts by namespace and then path, comparing UTF-16 code un
 recipe renumbers everything that sorts after it, so a reload has to resend the whole list rather
 than patch it.
 
-Not everything goes out, and most of what stays behind does not need to. Twelve of the 22
-serializers are left out because the Bedrock client already has them, compiled in as multi recipes
-keyed by a UUID: the eight `crafting_special_*` types plus `crafting_transmute`, `crafting_dye`,
-`crafting_imbue` and `crafting_decorated_pot`. Two more shapes are built and then dropped because
-protocol 2193's packet has no list for them, smithing trim and the four cooking serializers, and
-the server cooks on its own instead. The startup report counts all of it, along with any ingredient
-the wire forced down to a single item.
+Java's special serializers go out in the forms a Bedrock client knows them by. Most are a multi
+recipe: a UUID the client has compiled the behavior for, under the net id of the first Java recipe
+it covers, so all 16 banner duplicate recipes are one entry. These are repairing, fireworks (rocket,
+star and fade), map extending, map cloning, book cloning, banner duplicating and the decorated pot.
+A `crafting_transmute`, such as dyeing a shulker box or a bundle, goes out as one user data
+shapeless entry per item its input accepts, so the output keeps the input's contents; the entries
+past the first take net ids after the last recipe's. Every `smithing_trim` recipe goes out as the
+single trim entry the Bedrock Dedicated Server sends, which takes any template, armor piece and
+material the client's own tags name. `crafting_dye`, `crafting_imbue` and
+`crafting_special_shielddecoration` have no form yet
+([#3690](https://github.com/JSPrismarine/JSPrismarine/issues/3690)), and the four cooking
+serializers are left out because protocol 2193's packet has no list for them; the server cooks on
+its own instead. The startup report counts what was left out, along with any ingredient the wire
+forced down to a single item.
+
+When a client crafts, it names the entry's net id, and the server looks up the Java recipes that id
+stands for and makes the one the inputs match.
 
 The `crafting-recipe-limit` config key caps how many recipes go out; `0` sends nothing and `-1`
 sends everything.
@@ -548,8 +558,11 @@ purpose, as described above.
 **41 of the 58 advancement triggers never fire.** The `recipes` reward on <!-- fact:java.datapack.advancements.recipeRewards -->1739<!-- /fact --> files is never paid
 either. See the advancements section for which triggers are wired and why the rest are not.
 
-**Smithing trim and cooking recipes are held back from the wire.** Protocol 2193's
-`CraftingDataPacket` has no list for them. They still match server-side.
+**Cooking recipes are held back from the wire.** Protocol 2193's `CraftingDataPacket` has no list
+for them. They still match server-side. Armor dyeing, tipped arrows and shield decoration are not
+sent either ([#3690](https://github.com/JSPrismarine/JSPrismarine/issues/3690)), and a special
+recipe's result loses the components the recipe writes, such as a trim or a firework's explosions
+([#3691](https://github.com/JSPrismarine/JSPrismarine/issues/3691)).
 
 **Scripts never run and binary MCB files are skipped.** The loader reads definitions only. See
 [using-packs.md](using-packs.md) for the rest of the loader's limits.

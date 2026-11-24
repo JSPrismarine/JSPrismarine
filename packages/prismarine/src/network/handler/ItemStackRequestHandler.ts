@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { itemTypesTable } from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
-import type { ItemStackData } from '@jsprismarine/protocol';
+import type { CraftingData, ItemStackData } from '@jsprismarine/protocol';
 import type { RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
 import { ingredientAccepts, recipeIngredients, recipeResult } from '@jsprismarine/recipes';
 import type { Ingredient as JavaIngredient } from '@jsprismarine/recipes';
@@ -323,6 +323,65 @@ const bedrockRecipeResult = (
         blockRuntimeId: result.blockRuntimeId,
         content
     });
+};
+
+/** An entry of the crafting payload a client can name when it crafts. */
+type AdvertisedRecipe =
+    | CraftingData['shaped'][number]
+    | CraftingData['shapeless'][number]
+    | CraftingData['smithingTransform'][number]
+    | CraftingData['smithingTrim'][number]
+    | CraftingData['multi'][number];
+
+/** The output an entry shows the client, or undefined for one whose output its inputs decide. */
+const advertisedOutputOf = (advertised: AdvertisedRecipe): ItemStackData | undefined => {
+    if ('outputs' in advertised) return advertised.outputs[0];
+    if ('output' in advertised) return advertised.output;
+    return undefined;
+};
+
+/**
+ * The stack a built-in or trim recipe makes, which no entry advertises.
+ *
+ * Each of these copies one of its inputs: a trim its armor piece, a banner duplicate its
+ * patterned banner, a cloned map or book its original. Copying that input keeps what the
+ * server holds of it, such as its enchantments and name, and a recipe with no input of the
+ * result's kind, such as a firework rocket, gets a new stack. The Java components the result
+ * gains, such as a trim or a firework's explosions, have no home on a server stack yet
+ * (https://github.com/JSPrismarine/JSPrismarine/issues/3691).
+ */
+const builtInResult = (
+    result: RecipeItemStack,
+    inputs: readonly (Item | null)[],
+    content: HandlerServices['content']
+): Item | undefined => {
+    const source = inputs.find((input) => input !== null && javaStackOf(input)?.id === result.id);
+    const damage = result.components?.['minecraft:damage'];
+    if (source != null) {
+        const copy = splitOff(source, result.count);
+        return typeof damage === 'number' ? copy.withDurability(copy.getMaxDurability() - damage) : copy;
+    }
+
+    const mapped = javaItemToBedrock(result.id);
+    if (mapped.kind === 'unknown') return undefined;
+    return new Item({ name: mapped.bedrock.identifier, meta: mapped.bedrock.data ?? 0, count: result.count, content });
+};
+
+/**
+ * A transmute's result with what its input held: a dyed shulker box keeps its contents, as
+ * Java keeps the input's components and the client its user data.
+ */
+const transmuted = (output: Item, input: JavaIngredient, inputs: readonly (Item | null)[]): Item => {
+    const source = inputs.find((item) => {
+        const stack = item === null ? undefined : javaStackOf(item);
+        return stack !== undefined && ingredientAccepts(input, stack);
+    });
+    if (source == null) return output;
+
+    return output
+        .withEnchantments(source.getEnchantments())
+        .withDisplay(source.getCustomName(), source.getLore())
+        .withContents(source.getContents());
 };
 
 export default class ItemStackRequestHandler implements InputLaneHandler<ItemStackRequestPacket> {
@@ -825,25 +884,36 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                         if (payloads === undefined || craftingRecipeCount(payloads.crafting) === 0) {
                             return deny('no recipes were advertised to craft from');
                         }
-                        const advertised = [
-                            ...payloads.crafting.shaped,
-                            ...payloads.crafting.shapeless,
-                            ...payloads.crafting.smithingTransform
+                        const { crafting } = payloads;
+                        const advertised: AdvertisedRecipe | undefined = [
+                            ...crafting.shaped,
+                            ...crafting.shapeless,
+                            ...crafting.userDataShapeless,
+                            ...crafting.smithingTransform,
+                            ...crafting.smithingTrim,
+                            ...crafting.multi
                         ].find((candidate) => candidate.netId === recipeNetId);
                         if (advertised === undefined) return deny(`no advertised recipe with net id ${recipeNetId}`);
 
+                        // A built-in or trim entry stands for several Java recipes, and the
+                        // inputs decide which of them is made. They share a station.
                         const { content } = services;
-                        const recipe = content.recipes.get(advertised.id);
-                        if (recipe === undefined || content.recipes.netIds.get(advertised.id) !== recipeNetId) {
-                            return deny(`no Java recipe for advertised net id ${recipeNetId}`);
-                        }
+                        const covered = payloads.recipesByNetId.get(recipeNetId) ?? [];
+                        const recipe = covered
+                            .map((id) => content.recipes.get(id))
+                            .find((found) => found !== undefined);
+                        if (recipe === undefined) return deny(`no Java recipe for advertised net id ${recipeNetId}`);
 
                         if (action.type === ItemStackRequestActionType.CRAFTING_RECIPE_AUTO) {
                             if (recipe.station !== 'crafting') {
                                 return deny(`recipe ${recipe.id} cannot be auto-crafted from inventory`);
                             }
-                            const advertisedOutput =
-                                'outputs' in advertised ? advertised.outputs[0] : advertised.output;
+                            // An automatic craft picks its inputs only after the result is built,
+                            // so a dyed shulker box would come out without the contents it had.
+                            if (recipe.type === 'minecraft:crafting_transmute') {
+                                return deny(`transmute ${recipe.id} cannot be auto-crafted from inventory`);
+                            }
+                            const advertisedOutput = advertisedOutputOf(advertised);
                             if (advertisedOutput === undefined)
                                 return deny(`the advertised recipe ${recipe.id} has no output`);
                             const result = recipeResult(recipe);
@@ -915,25 +985,24 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
 
                             const matched = content.recipes
                                 .matchAll(recipeInput)
-                                .find((candidate) => candidate.recipe.id === recipe.id);
+                                .find((candidate) => covered.includes(candidate.recipe.id));
                             if (matched === undefined) {
                                 return deny(`the open station inputs do not make advertised recipe ${recipe.id}`);
                             }
 
-                            const advertisedOutput =
-                                'outputs' in advertised ? advertised.outputs[0] : advertised.output;
-                            if (advertisedOutput === undefined)
-                                return deny(`the advertised recipe ${recipe.id} has no output`);
-                            const recipeOutput = bedrockRecipeResult(
-                                matched.result.id,
-                                advertisedOutput,
-                                services.content
-                            );
+                            const advertisedOutput = advertisedOutputOf(advertised);
+                            const recipeOutput =
+                                advertisedOutput === undefined
+                                    ? builtInResult(matched.result, inputItems, services.content)
+                                    : bedrockRecipeResult(matched.result.id, advertisedOutput, services.content);
                             if (recipeOutput === undefined)
-                                return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
+                                return deny(`the result of ${matched.recipe.id} has no Bedrock item mapping`);
 
-                            recipeId = recipe.id;
-                            output = recipeOutput;
+                            recipeId = matched.recipe.id;
+                            output =
+                                matched.recipe.type === 'minecraft:crafting_transmute'
+                                    ? transmuted(recipeOutput, matched.recipe.input, inputItems)
+                                    : recipeOutput;
                             cost = new Map<number, number>();
                             matched.consumed.forEach((count, slot) => {
                                 if (count > 0) cost.set(slot, count * crafts);

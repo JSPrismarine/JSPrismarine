@@ -90,8 +90,6 @@ export interface ContentPayloadReport {
     readonly omittedRecipes: number;
     /** Ingredients narrowed to one item because the wire has room for one. */
     readonly widenedIngredients: number;
-    /** Smithing trim recipes, which protocol 2193's packet has no list for. */
-    readonly smithingTrimRecipes: number;
     /** Cooking recipes, which protocol 2193's packet has no list for. */
     readonly furnaceRecipes: number;
 }
@@ -112,6 +110,12 @@ export interface NetworkContentPayloads {
      */
     readonly creativeItems: readonly WireItemInstance[];
     readonly crafting: CraftingData;
+    /**
+     * The Java recipes behind each net id in {@link crafting}, which is how a craft the client
+     * names by net id finds the recipe that answers it. A built-in or trim entry stands for
+     * every Java recipe it covers, and a transmute goes out under several ids.
+     */
+    readonly recipesByNetId: ReadonlyMap<number, readonly string[]>;
     readonly report: ContentPayloadReport;
 }
 
@@ -323,8 +327,18 @@ export const buildNetworkContentPayloads = (
                 outputs: recipe.outputs.map(output),
                 priority: recipe.priority
             })),
-            multi: [],
-            userDataShapeless: [],
+            multi: crafting.multi.map((recipe) => ({
+                uuid: Buffer.from(recipe.uuid.replaceAll('-', ''), 'hex'),
+                netId: recipe.netId
+            })),
+            userDataShapeless: crafting.userDataShapeless.map((recipe) => ({
+                id: recipe.id,
+                netId: recipe.netId,
+                station: recipe.station,
+                ingredients: recipe.ingredients,
+                outputs: recipe.outputs.map(output),
+                priority: recipe.priority
+            })),
             shapelessChemistry: [],
             shapedChemistry: [],
             smithingTransform: crafting.smithingTransform.map((recipe) => ({
@@ -336,7 +350,14 @@ export const buildNetworkContentPayloads = (
                 addition: recipe.addition,
                 output: output(recipe.output)
             })),
-            smithingTrim: [],
+            smithingTrim: crafting.smithingTrim.map((recipe) => ({
+                id: recipe.id,
+                netId: recipe.netId,
+                station: recipe.station,
+                template: recipe.template,
+                base: recipe.base,
+                addition: recipe.addition
+            })),
             // The one entry that names nothing: a brewing recipe carries the
             // three items as numbers, which is why `buildCraftingData` needs
             // the item registry before it can produce any of these.
@@ -352,6 +373,7 @@ export const buildNetworkContentPayloads = (
             materialReducers: [],
             cleanRecipes: true
         },
+        recipesByNetId: crafting.recipesByNetId,
         report: {
             inventedBlocks: declared.properties.length,
             allocatedItemIds: items.allocated.map((entry) => entry.identifier),
@@ -359,7 +381,6 @@ export const buildNetworkContentPayloads = (
             unknownCreativeItems: creative.unknown,
             omittedRecipes: crafting.omitted.length,
             widenedIngredients: crafting.widened.length,
-            smithingTrimRecipes: crafting.smithingTrim.length,
             furnaceRecipes: crafting.furnace.length
         }
     };
@@ -484,7 +505,6 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
         [report.unknownCreativeItems.length, 'left §e%§r creative entries out, since no item names them'],
         [report.omittedRecipes, 'left §e%§r recipes out, since the wire has no list for them'],
         [report.widenedIngredients, 'narrowed §e%§r recipe ingredients to one item'],
-        [report.smithingTrimRecipes, 'held back §e%§r smithing trim recipes'],
         [report.furnaceRecipes, 'held back §e%§r cooking recipes']
     ];
 

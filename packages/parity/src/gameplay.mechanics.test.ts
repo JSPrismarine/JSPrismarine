@@ -416,10 +416,9 @@ let advertised: ReadonlySet<string> | undefined;
 /** The ids of the recipes the server advertises to a joining client, which are the ones a client can make. */
 const advertisedRecipes = (): ReadonlySet<string> => {
     if (advertised !== undefined) return advertised;
-    const { crafting } = buildNetworkContentPayloads(serverContent());
-    advertised = new Set(
-        [...crafting.shaped, ...crafting.shapeless, ...crafting.smithingTransform].map((recipe) => recipe.id)
-    );
+    // Every id a crafting or smithing entry carries, with the Java recipes it stands for.
+    const { recipesByNetId } = buildNetworkContentPayloads(serverContent());
+    advertised = new Set([...recipesByNetId.values()].flat());
     return advertised;
 };
 
@@ -478,7 +477,7 @@ const recipeScenario: BehaviorScenario<GameplaySubject> = {
     classify: () => ({
         kind: 'defect',
         reason: 'The server advertises no recipe of this kind to the client, so no player can make it.',
-        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3523'
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3690'
     }),
     run: (entry) => {
         const id = entry.id.slice('recipe/'.length);

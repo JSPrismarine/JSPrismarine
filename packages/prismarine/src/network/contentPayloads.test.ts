@@ -327,7 +327,6 @@ describe('network', () => {
             unknownCreativeItems: [],
             omittedRecipes: 0,
             widenedIngredients: 0,
-            smithingTrimRecipes: 0,
             furnaceRecipes: 0
         } satisfies ContentPayloadReport;
 
