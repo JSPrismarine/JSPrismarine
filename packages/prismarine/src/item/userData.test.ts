@@ -132,6 +132,22 @@ describe('an item stack on the wire', () => {
         ]);
     });
 
+    it("tells the client which map a filled map shows, from the stack's map_id", () => {
+        const rolled = dropOfRolledStack({
+            id: 'minecraft:filled_map',
+            count: 1,
+            components: new Map([['minecraft:map_id', 12]])
+        });
+        const item = itemOfDrop(rolled);
+
+        expect(item?.getMapId()).toBe(12);
+        const tag = item === null ? null : userDataOf(item).userDataTag;
+        // The id the client asks for the map's pixels by, and the two keys GeyserMC writes beside it.
+        expect(tag?.getLong('map_uuid', -1n)).toBe(12n);
+        expect(tag?.getNumber('map_name_index', -1)).toBe(12);
+        expect(tag?.getByte('map_display_players', 0)).toBe(1);
+    });
+
     it('carries the name, the lore and the durability spent', () => {
         const item = new Item({ name: 'minecraft:diamond_pickaxe', count: 1 }).withDisplay('Old Reliable', [
             'Mined a lot'

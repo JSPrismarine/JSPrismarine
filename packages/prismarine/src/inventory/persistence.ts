@@ -61,6 +61,8 @@ export interface StoredItemStack {
     readonly lockMode?: 'slot' | 'inventory';
     /** The script dynamic properties set on the stack, by pack UUID and then by property id. */
     readonly dynamicProperties?: ItemDynamicProperties;
+    /** Which saved map a filled map shows, Java's `minecraft:map_id`. */
+    readonly mapId?: number;
 }
 
 /** Whether a value is a dynamic property value: a number, a boolean, a string or a vector. */
@@ -87,6 +89,8 @@ export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
     if (value.canPlaceOn !== undefined && !isStringList(value.canPlaceOn)) return false;
     if (value.canDestroy !== undefined && !isStringList(value.canDestroy)) return false;
     if (value.keepOnDeath !== undefined && typeof value.keepOnDeath !== 'boolean') return false;
+    if (value.mapId !== undefined && (typeof value.mapId !== 'number' || !Number.isSafeInteger(value.mapId)))
+        return false;
     if (value.lockMode !== undefined && value.lockMode !== 'slot' && value.lockMode !== 'inventory') return false;
     if (value.dynamicProperties !== undefined && !isItemDynamicProperties(value.dynamicProperties)) return false;
     if (value.enchantments !== undefined) {
@@ -157,6 +161,7 @@ export const storedItem = (item: Item): StoredItemStack | null => {
     const contents = item.getContents();
     const canPlaceOn = item.getCanPlaceOnBlocks();
     const canDestroy = item.getCanDestroyBlocks();
+    const mapId = item.getMapId();
 
     return {
         name: item.getName(),
@@ -168,7 +173,8 @@ export const storedItem = (item: Item): StoredItemStack | null => {
         ...(enchantments.size === 0 ? {} : { enchantments: Object.fromEntries(enchantments) }),
         ...(contents.length === 0 ? {} : { contents: contents.map((slot) => (slot ? storedItem(slot) : null)) }),
         ...(canPlaceOn.length === 0 ? {} : { canPlaceOn: [...canPlaceOn] }),
-        ...(canDestroy.length === 0 ? {} : { canDestroy: [...canDestroy] })
+        ...(canDestroy.length === 0 ? {} : { canDestroy: [...canDestroy] }),
+        ...(mapId === undefined ? {} : { mapId })
     };
 };
 
@@ -191,6 +197,7 @@ export const restoredItem = (stored: StoredItemStack | null | undefined, content
         lore: stored.lore,
         canPlaceOnBlocks: stored.canPlaceOn,
         canDestroyBlocks: stored.canDestroy,
+        mapId: stored.mapId,
         ...(stored.contents === undefined
             ? {}
             : { contents: stored.contents.map((slot) => restoredItem(slot, content)) })
