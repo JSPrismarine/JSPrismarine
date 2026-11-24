@@ -1,6 +1,0 @@
----
-'@jsprismarine/prismarine': minor
-'@jsprismarine/errors': patch
----
-
-A player's inventory is the player layout of `EntityInventory` (`@jsprismarine/prismarine/inventory/EntityInventory`), a set of named `ItemContainer`s (`@jsprismarine/prismarine/inventory/ItemContainer`). A slot holds an `Item` or `null`, and the count is the item's own, so `Inventory` and `ContainerEntry` and their entry points are gone. Reach a container with `inventory.container('inventory' | 'armor' | 'offhand' | 'ender_chest' | 'cursor')`, and the held and worn stacks with `equipment(slot)`, `setEquipment(slot, item)` and `setEquipmentCount(slot, count)`. `getItemInHand`, `setItemInHand`, `setHandCount`, `getArmor`, `getOffhand`, `getEnderChest`, `getCursor` and `setCursor` are replaced by those, `getHandSlotIndex` is `getHandSlot`, and `observeCarried` is `observe`. In `inventory/slotLog`, `PLAYER_CONTAINERS`, `PlayerContainer` and `playerContainerNamed` are `ENTITY_CONTAINERS`, `EntityContainer` and `entityContainerNamed`, and `slotValueOf` takes an item, replacing `slotValueOfItem`. In `inventory/persistence`, `storedStack` and `restoredStack` are gone and `storedItem` reads the count off the item. `ItemActor.getItem` returns the item. Saved player records do not change. `PrismarineServerErrors` gains `UnknownInventoryContainer`.
