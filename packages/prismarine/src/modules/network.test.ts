@@ -27,6 +27,7 @@ import type { Connection } from '@jsprismarine/nethernet';
 import { UnconnectedPing, UnconnectedPong } from '@jsprismarine/raknet';
 import { about } from '../about';
 import type { AddonManager, LoadedAddon } from '../addons/AddonManager';
+import type AllowList from '../allowlist/AllowList';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
@@ -542,8 +543,16 @@ describe('modules/network', () => {
         {
             info = () => {},
             java = false,
-            addons = []
-        }: { info?: (message: string) => void; java?: boolean; addons?: readonly LoadedAddon[] } = {}
+            addons = [],
+            publicIp = '',
+            allowList = false
+        }: {
+            info?: (message: string) => void;
+            java?: boolean;
+            addons?: readonly LoadedAddon[];
+            publicIp?: string;
+            allowList?: boolean;
+        } = {}
     ) =>
         stub<Server>({
             getKernel: kernelDouble,
@@ -561,9 +570,11 @@ describe('modules/network', () => {
                     getEnableNetherNet: () => false,
                     getJavaEnabled: () => java,
                     getJavaPort: () => 0,
+                    getServerPublicIp: () => publicIp,
                     getUseRakNetWorker: () => false
                 }),
             getAddons: () => stub<AddonManager>({ loadedAddons: () => addons }),
+            getAllowList: () => stub<AllowList>({ isEnabled: () => allowList }),
             getLogger: () =>
                 stub<Logger>({
                     debug: () => {},
@@ -658,10 +669,29 @@ describe('modules/network', () => {
                 server_engine: softwareLabel(),
                 plugins: `${softwareLabel()}: warps 1.2.0`,
                 numplayers: '0',
-                maxplayers: '5'
+                maxplayers: '5',
+                whitelist: 'off',
+                hostip: '127.0.0.1'
             });
             // The player section follows its padding, empty with nobody online.
             expect(fields.slice(fields.indexOf('\x01player_') + 1)).toStrictEqual(['', '', '']);
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('reports the public address and the allow list when the config sets them', async () => {
+        const networking = new ServerNetworking(
+            queryServer(19_132, 19_132, { publicIp: '[2001:db8::1]', allowList: true })
+        );
+
+        try {
+            await networking.start('127.0.0.1', 0);
+
+            expect(statKeys(await queryStat(networking.getServerName()!.getPort(), true))).toMatchObject({
+                whitelist: 'on',
+                hostip: '2001:db8::1'
+            });
         } finally {
             networking.kill();
         }
@@ -803,6 +833,7 @@ describe('modules/network', () => {
                     getLevelName: () => 'world'
                 }),
             getAddons: () => stub<AddonManager>({ loadedAddons: () => [] }),
+            getAllowList: () => stub<AllowList>({ isEnabled: () => false }),
             getLogger: () =>
                 stub<Logger>({
                     debug: () => {},

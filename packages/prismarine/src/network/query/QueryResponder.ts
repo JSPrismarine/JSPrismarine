@@ -42,8 +42,10 @@ export interface QueryStatus {
     readonly maxPlayers: number;
     /** The port clients join on. */
     readonly hostPort: number;
-    /** The address the server is bound to. */
+    /** The address players reach the server at. */
     readonly hostIp: string;
+    /** Whether only the players on the allow list may join, reported as `whitelist`. */
+    readonly allowList: boolean;
     /** The names of the players online. */
     readonly players: readonly string[];
 }
@@ -171,8 +173,7 @@ const fullStat = (sessionId: number, status: QueryStatus): Buffer => {
         ['map', status.map],
         ['numplayers', String(status.onlinePlayers)],
         ['maxplayers', String(status.maxPlayers)],
-        // TODO: report `whitelist` as `on` or `off`, as PocketMine-MP and Bedrock Dedicated
-        // Server do, once the server has an allow-list to report.
+        ['whitelist', status.allowList ? 'on' : 'off'],
         ['hostport', String(status.hostPort)],
         ['hostip', status.hostIp]
     ];

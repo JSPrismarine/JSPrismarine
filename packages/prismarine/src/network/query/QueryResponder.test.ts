@@ -14,6 +14,7 @@ const STATUS: QueryStatus = {
     maxPlayers: 20,
     hostPort: 19_132,
     hostIp: '0.0.0.0',
+    allowList: true,
     players: ['Alex', 'Steve']
 };
 
@@ -100,6 +101,7 @@ describe('network/query/QueryResponder', () => {
             map: 'world',
             numplayers: '2',
             maxplayers: '20',
+            whitelist: 'on',
             hostport: '19132',
             hostip: '0.0.0.0'
         });
@@ -117,6 +119,12 @@ describe('network/query/QueryResponder', () => {
             server_engine: 'JSPrismarine v0.19.2',
             plugins: 'JSPrismarine v0.19.2'
         });
+    });
+
+    it('reports an allow list that is off', () => {
+        const { keys } = fullStat(new QueryResponder(() => ({ ...STATUS, allowList: false })));
+
+        expect(keys.whitelist).toBe('off');
     });
 
     it('ignores a stat request without the sender token', () => {
