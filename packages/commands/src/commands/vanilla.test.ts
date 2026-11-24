@@ -106,7 +106,9 @@ describe('the command set', () => {
         // `execute if items` then took its block form, and Java's `item_predicate` argument, a
         // string to Bedrock, then read brackets and quotes with spaces in them, as the item of
         // `execute if slots <slots> <item>` does.
-        expect(digest).toBe('baa5eb96850569a70e76799a911c36573ca2351b');
+        // `execute if slots` then took Java's block and entity forms, and `minecraft:slot_source`,
+        // a string to Bedrock, read SNBT with spaces in it.
+        expect(digest).toBe('df78f60aeaff01cb60dbe3642eb1b385b6554c92');
     });
 });
 
@@ -1112,16 +1114,20 @@ describe('the data-driven commands', () => {
         expect(seen).toEqual([{ slot: { name: 'weapon.mainhand' }, modifier: 'mypack:sharpen' }]);
     });
 
-    it('execute if items reads a block or every entity, and an item predicate with spaces in it', () => {
+    it('execute if items and if slots read a block or every entity, and arguments with spaces in them', () => {
         const pig = testEntity({ id: 'pig', name: 'Pig', type: 'minecraft:pig', isPlayer: false });
         const cow = testEntity({ id: 'cow', name: 'Cow', type: 'minecraft:cow', isPlayer: false });
         const seen: unknown[] = [];
         const overrides: TestCommandHostOverrides = {
             entities: { select: () => [pig, cow] },
             data: {
-                countSlotItems: (sources, slot, predicate) => {
-                    seen.push({ sources: sources.map((source) => source.kind), slot, predicate });
+                countSlotItems: (sources, slots, predicate) => {
+                    seen.push({ sources: sources.map((source) => source.kind), slots, predicate });
                     return 3;
+                },
+                countSlots: (sources, slots) => {
+                    seen.push({ sources: sources.map((source) => source.kind), slots });
+                    return 2;
                 }
             }
         };
@@ -1131,12 +1137,18 @@ describe('the data-driven commands', () => {
         expect(run('execute unless items entity @e armor.* minecraft:stone', overrides).results).toEqual([0]);
         // The executor's own slots, which is all this older form reads.
         expect(run('execute if slots weapon.mainhand stone', overrides, { entity: pig }).results).toEqual([1]);
+        expect(
+            run('execute if slots entity @e {type: "limit_slots", limit: 1, slot_source: "armor.*"}', overrides).results
+        ).toEqual([2]);
+        expect(run('execute unless slots block 1 2 3 mypack:hoppers', overrides).results).toEqual([0]);
 
         expect(seen).toEqual([
-            { sources: ['block'], slot: { name: 'container.*' }, predicate: '*[custom_name="a b"]' },
-            { sources: ['entity', 'entity'], slot: { name: 'armor.*' }, predicate: '#minecraft:trimmable_armor' },
-            { sources: ['entity', 'entity'], slot: { name: 'armor.*' }, predicate: 'minecraft:stone' },
-            { sources: ['entity'], slot: { name: 'weapon.mainhand' }, predicate: 'stone' }
+            { sources: ['block'], slots: 'container.*', predicate: '*[custom_name="a b"]' },
+            { sources: ['entity', 'entity'], slots: 'armor.*', predicate: '#minecraft:trimmable_armor' },
+            { sources: ['entity', 'entity'], slots: 'armor.*', predicate: 'minecraft:stone' },
+            { sources: ['entity'], slots: 'weapon.mainhand', predicate: 'stone' },
+            { sources: ['entity', 'entity'], slots: '{type: "limit_slots", limit: 1, slot_source: "armor.*"}' },
+            { sources: ['block'], slots: 'mypack:hoppers' }
         ]);
     });
 

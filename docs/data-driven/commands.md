@@ -314,11 +314,23 @@ modifier on `/item … from` runs over each stack on its way. A stack keeps its 
 enchantments, durability and contents through the modifier, and a name no datapack declares
 fails with `Unknown item modifier: <id>`.
 
-`execute if items entity <targets> <slots> <item_predicate>` and its `block <pos>` form count the
-items in the slots a name covers that match Java's item predicate: an id, a `#tag` or `*`, with
-optional component tests in brackets, such as `*[custom_name, damage~{damage:{min:1}}]`. A comma
-joins tests that must all pass, `|` joins alternatives, and `!` negates a test. Run on its own,
-`if` returns the count and `unless` returns 1 when it is zero.
+`execute if slots entity <targets> <slots>` and its `block <pos>` form count the slots a slot
+source selects, and `execute if items entity <targets> <slots> <item_predicate>` and its block form
+count the items in them that match Java's item predicate. Run on its own, `if` returns the count
+and `unless` returns 1 when it is zero.
+
+A slot source is a slot name such as `weapon.mainhand` or `container.*`, the id or `#tag` of a
+file under a datapack's `slot_source/`, or one written as SNBT, such as
+`{type: "limit_slots", limit: 1, slot_source: {type: "slot_range", slots: "hotbar.*"}}`. All six of
+Java's types work: `empty`, `group`, `slot_range`, `filtered`, `limit_slots` and `contents`. A
+`slot_range` selects empty slots too, so `execute if slots entity @s hotbar.*` counts 9. Its
+`source` is the target or `this`, the entity running the command. `contents` reads a shulker box's
+`minecraft:container`; bundles and charged projectiles hold nothing here. Inside a source, a string
+is an id, not a slot name.
+
+An item predicate is an id, a `#tag` or `*`, with optional component tests in brackets, such as
+`*[custom_name, damage~{damage:{min:1}}]`. A comma joins tests that must all pass, `|` joins
+alternatives, and `!` negates a test.
 
 `horse.chest` and `player.crafting.N` refuse with `Slot <name> is not one this server can reach
 yet` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)).
@@ -577,8 +589,7 @@ item slots, and `Inventory` and `SelectedItem` on a player. A block entity reads
 drops any other key, so `{NoAI: 1b}` reports a change and does nothing
 ([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). A player's data cannot be
 written (`Unable to modify player data`), and a block with no block entity is refused with `The
-target block is not a block entity`, as in Java. `execute if slots <source> <slot_source>` answers 0
-([#3679](https://github.com/JSPrismarine/JSPrismarine/issues/3679)).
+target block is not a block entity`, as in Java.
 
 **`execute if predicate` refuses.** The datapack predicate evaluator is not wired to the command
 host, even though `@jsprismarine/predicates` compiles predicates for loot and advancements.

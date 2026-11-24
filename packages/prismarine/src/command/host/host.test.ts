@@ -1234,6 +1234,16 @@ describe('the server command host', () => {
              */
             const modifierContent = (): ServerContent => {
                 const definitions = definitionsOf({
+                    slotSources: new Map([
+                        [
+                            'mypack:hotbar_stone',
+                            definitionOf('slotSources', 'mypack:hotbar_stone', {
+                                type: 'minecraft:filtered',
+                                slot_source: { type: 'minecraft:slot_range', slots: 'hotbar.*' },
+                                item_filter: { items: 'minecraft:stone' }
+                            })
+                        ]
+                    ]),
                     tags: new Map([
                         [
                             'item/mypack:blades',
@@ -1360,6 +1370,29 @@ describe('the server command host', () => {
                     fixture.run('execute if items entity @a weapon.mainhand *[!custom_name|custom_name="Dull"]')
                 ).resolves.toBe(0);
                 await expect(fixture.run('execute if items entity @a weapon.mainhand * run say yes')).resolves.toBe(1);
+            });
+
+            it('counts the slots a slot source selects, as execute if slots and if items read it', async () => {
+                playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                fixture.useContent(modifierContent());
+                await fixture.run('item replace entity @a hotbar.1 with minecraft:stone 5');
+                await fixture.run('item replace entity @a hotbar.2 with minecraft:dirt 2');
+
+                // A slot name is a range, which selects empty slots too, as Java's does.
+                await expect(fixture.run('execute if slots entity @a hotbar.*')).resolves.toBe(9);
+                await expect(fixture.run('execute if slots entity @a mypack:hotbar_stone')).resolves.toBe(1);
+                // Inside a source a string is an id, so each range is written out.
+                await expect(
+                    fixture.run(
+                        'execute if slots entity @a {type: "limit_slots", limit: 2, slot_source: [{type: "slot_range", slots: "hotbar.*"}, {type: "slot_range", slots: "armor.*"}]}'
+                    )
+                ).resolves.toBe(2);
+                await expect(fixture.run('execute if slots entity @a {type: "empty"}')).resolves.toBe(0);
+                await expect(fixture.run('execute unless slots entity @a {type: "empty"}')).resolves.toBe(1);
+                await expect(fixture.run('execute if items entity @a mypack:hotbar_stone *')).resolves.toBe(5);
+                await expect(fixture.run('execute if slots entity @a mypack:nothing')).rejects.toThrow(
+                    'Unknown slot source: mypack:nothing'
+                );
             });
 
             it('refuses a modifier no datapack declares', async () => {

@@ -11,35 +11,14 @@
  * tags and the component predicates are the ones the datapacks declare, as a loot table's are.
  */
 import type { LootRegistry } from '@jsprismarine/loot';
-import { NbtErrors } from '@jsprismarine/errors/nbt';
-import { parseSnbt } from '@jsprismarine/nbt/snbt';
-import type { NbtTag } from '@jsprismarine/nbt/tag';
-import type { Predicate, ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
+import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import { namespaced } from '@jsprismarine/predicates';
 
+import { jsonOfSnbt } from './snbtJson';
 import { refuse } from './support';
 
 /** Whether a stack passes a compiled item predicate. */
 export type ItemStackTest = (stack: PredicateItemStack) => boolean;
-
-/** A tag as the JSON a datapack would have written for it. */
-const jsonOf = (tag: NbtTag): unknown => {
-    switch (tag.type) {
-        case 'compound':
-            return Object.fromEntries(Object.entries(tag.value).map(([key, entry]) => [key, jsonOf(entry)]));
-        case 'list':
-            return tag.value.map(jsonOf);
-        case 'byte_array':
-        case 'int_array':
-            return [...tag.value];
-        case 'long_array':
-            return [...tag.value].map(Number);
-        case 'long':
-            return Number(tag.value);
-        default:
-            return tag.value;
-    }
-};
 
 /** Splits text at a separator that sits outside quotes and brackets. */
 const splitTopLevel = (text: string, separator: string): readonly string[] => {
@@ -65,6 +44,24 @@ const splitTopLevel = (text: string, separator: string): readonly string[] => {
     }
     parts.push(text.slice(start));
     return parts.map((part) => part.trim());
+};
+
+/**
+ * Compiles Java's `ItemPredicate` JSON, the shape a `match_tool` condition and a slot source's
+ * `item_filter` hold, into a test over the content's tags and component predicates.
+ *
+ * @param label - What the predicate came from, which a diagnostic and a refusal name.
+ * @throws {CommandSyntaxException} When it does not compile: a part that reports an error would
+ *   otherwise read as true and match every stack.
+ */
+export const itemPredicateTest = (predicate: unknown, loot: LootRegistry, label: string): ItemStackTest => {
+    const before = loot.diagnostics.entries.length;
+    const compiled = loot.predicate({ type: 'minecraft:match_tool', predicate }, `item_predicate/${label}`);
+    const error = loot.diagnostics.entries.slice(before).find((entry) => entry.severity === 'error');
+    if (error !== undefined) refuse(`Invalid item predicate ${label}: ${error.message}`);
+    // Any set that provides `tool` does, since a `match_tool` reads nothing else.
+    return (stack) =>
+        compiled(loot.context(undefined, { parameterSet: 'enchanted_item', parameters: { tool: stack } }));
 };
 
 /** A component name, then `=` or `~` and the value when the test has one. */
@@ -101,24 +98,12 @@ const compileItemPredicate = (text: string, loot: LootRegistry): ItemStackTest =
     if (head.length === 0) refuse(`Invalid item predicate: ${text}`);
     if (open >= 0 && !text.trimEnd().endsWith(']')) refuse(`Invalid item predicate: ${text}`);
 
-    const compile = (predicate: unknown): Predicate => {
-        const before = loot.diagnostics.entries.length;
-        const compiled = loot.predicate({ type: 'minecraft:match_tool', predicate }, `item_predicate/${text}`);
-        // A part that does not compile reads as true, which would match every stack.
-        const error = loot.diagnostics.entries.slice(before).find((entry) => entry.severity === 'error');
-        if (error !== undefined) refuse(`Invalid item predicate ${text}: ${error.message}`);
-        return compiled;
-    };
-    const run =
-        (predicate: Predicate): ItemStackTest =>
-        (stack) =>
-            // Any set that provides `tool` does, since a `match_tool` reads nothing else.
-            predicate(loot.context(undefined, { parameterSet: 'enchanted_item', parameters: { tool: stack } }));
+    const test = (predicate: unknown): ItemStackTest => itemPredicateTest(predicate, loot, text);
 
     const item =
         head === '*'
             ? undefined
-            : run(compile({ items: head.startsWith('#') ? `#${namespaced(head.slice(1))}` : namespaced(head) }));
+            : test({ items: head.startsWith('#') ? `#${namespaced(head.slice(1))}` : namespaced(head) });
 
     const testOf = (written: string): ItemStackTest => {
         const negated = written.startsWith('!');
@@ -127,20 +112,14 @@ const compileItemPredicate = (text: string, loot: LootRegistry): ItemStackTest =
         const [, name = '', operator, value = ''] = match;
         const component = namespaced(name);
 
-        let test: ItemStackTest;
+        let result: ItemStackTest;
         if (operator === undefined) {
-            test = (stack) => stack.components.has(component);
+            result = (stack) => stack.components.has(component);
         } else {
-            let json: unknown;
-            try {
-                json = jsonOf(parseSnbt(value.trim()));
-            } catch (error) {
-                if (error instanceof NbtErrors.SnbtSyntax) refuse(error.message);
-                throw error;
-            }
-            test = run(compile(operator === '=' ? { components: { [name]: json } } : { predicates: { [name]: json } }));
+            const json = jsonOfSnbt(value.trim());
+            result = test(operator === '=' ? { components: { [name]: json } } : { predicates: { [name]: json } });
         }
-        return negated ? (stack) => !test(stack) : test;
+        return negated ? (stack) => !result(stack) : result;
     };
 
     const body =

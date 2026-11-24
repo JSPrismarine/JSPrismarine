@@ -29,7 +29,6 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { dropOfRolledStack, rolledStackOfDrop, withBedrockFields } from '../../item/lootStack';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt } from './containers';
-import { parseItemPredicateArgument } from './itemPredicate';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolveTarget, worldOf } from './support';
 
 /** One target opened for a command: what its slot names resolve against, and its slots. */
@@ -245,47 +244,11 @@ export const setItemSlot = (
  *
  * @param drop - The stack as a drop, when the caller already made one.
  */
-const predicateStackOf = (item: Item, drop: ItemDrop | undefined = dropOfItem(item)): PredicateItemStack => {
+export const predicateStackOf = (item: Item, drop: ItemDrop | undefined = dropOfItem(item)): PredicateItemStack => {
     const declared = item.asPredicateStack();
     if (drop === undefined) return declared;
     const rolled = rolledStackOfDrop(drop);
     return { ...rolled, components: new Map([...declared.components, ...rolled.components]) };
-};
-
-/**
- * Counts the items in the slots a name covers on every source that pass an item predicate,
- * which is `execute if items`.
- *
- * Java's `ExecuteCommand.countItems`: the counts of the matching stacks, summed over the
- * sources. A source without the slot adds nothing rather than failing the condition.
- *
- * @param predicate - Java's `item_predicate` argument.
- * @throws {CommandSyntaxException} When the predicate cannot be read, or a block source is not
- *   a container.
- */
-export const countSlotItems = (
-    server: Server,
-    sources: readonly SlotTarget[],
-    slot: ItemSlot,
-    predicate: string
-): number => {
-    const matches = parseItemPredicateArgument(predicate, server.getContent().loot);
-
-    let count = 0;
-    eachHolding(
-        server,
-        sources,
-        slot,
-        { role: 'source' },
-        (opened, slots) => {
-            for (const held of slots) {
-                const item = opened.get(held);
-                if (item !== null && matches(predicateStackOf(item))) count += item.getAmount();
-            }
-        },
-        false
-    );
-    return count;
 };
 
 /**

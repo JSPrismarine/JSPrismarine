@@ -532,6 +532,13 @@ export const lootPredicateArgument = (): BedrockDescribedType<string> =>
 export const itemPredicateArgument = (): BedrockDescribedType<string> =>
     unrepresentable('Bedrock has no item_predicate parameter type', readNbtPath);
 
+/**
+ * `minecraft:slot_source`, a slot name, the id or `#tag` of a datapack's slot source, or one
+ * written as SNBT, which may hold spaces inside its quotes and brackets.
+ */
+export const slotSourceArgument = (): BedrockDescribedType<string> =>
+    unrepresentable('Bedrock has no slot_source parameter type', readNbtPath);
+
 /** `minecraft:loot_table`, the argument of `/loot`. */
 export const lootTableArgument = (): BedrockDescribedType<string> =>
     unrepresentable('Bedrock has no loot_table parameter type', readToken);
