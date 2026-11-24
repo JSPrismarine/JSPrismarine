@@ -173,6 +173,7 @@ export const contentResolver = (definitions: Definitions, tags: ContentTags): Re
         loot_table: definitions.lootTablesJava,
         predicate: definitions.predicates,
         item_modifier: definitions.itemModifiers,
+        slot_source: definitions.slotSources,
         recipe: definitions.recipesJava,
         advancement: definitions.advancements,
         enchantment: definitions.enchantments

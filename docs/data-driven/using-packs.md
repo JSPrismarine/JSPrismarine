@@ -100,7 +100,7 @@ covers the setting, the preview release and the error messages.
   declaration order, each overriding whole files.
 - **Directory names.** Files route into registries by the singular directory names Java has used since 1.21 under
   `data/<namespace>/`: `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`,
-  `predicate`, `item_modifier`, `function`, `dimension_type`, `dimension`, `tags`, and the
+  `predicate`, `item_modifier`, `slot_source`, `function`, `dimension_type`, `dimension`, `tags`, and the
   `worldgen/<kind>` directories the package README lists. A file like
   `data/minecraft/loot_table/blocks/stone.json` registers as `minecraft:blocks/stone` in
   `lootTablesJava`, and `data/minecraft/worldgen/world_preset/normal.json` registers as

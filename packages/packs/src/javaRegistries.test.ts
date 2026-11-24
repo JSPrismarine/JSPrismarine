@@ -34,6 +34,10 @@ describe('routeDatapackPath', () => {
             registry: 'itemModifiers',
             identifier: 'mypack:sharpen'
         });
+        expect(routeDatapackPath('data/mypack/slot_source/hotbar.json')).toEqual({
+            registry: 'slotSources',
+            identifier: 'mypack:hotbar'
+        });
     });
 
     it('routes an mcfunction, which is the one datapack file that is not JSON', () => {
@@ -208,6 +212,7 @@ describe('structuralValidator for Java registries', () => {
     it('accepts array roots where Java allows them and rejects them elsewhere', () => {
         expect(structuralValidator({ registry: 'predicates', path: 'p', data: [] })).toEqual([]);
         expect(structuralValidator({ registry: 'itemModifiers', path: 'p', data: [] })).toEqual([]);
+        expect(structuralValidator({ registry: 'slotSources', path: 'p', data: [] })).toEqual([]);
         expect(structuralValidator({ registry: 'recipesJava', path: 'p', data: [] })).toMatchObject([
             { severity: 'error', code: 'definition.not-an-object' }
         ]);
