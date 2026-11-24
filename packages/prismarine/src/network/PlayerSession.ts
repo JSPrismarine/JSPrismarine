@@ -157,6 +157,16 @@ import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network
  */
 const CHUNKS_PER_FLUSH = 4;
 const MAX_QUEUED_CHUNK_BYTES = 8 * 1024 * 1024;
+
+/**
+ * How many failed batches a chunk is queued again after, before the session waits for the
+ * player's view to change.
+ *
+ * A batch fails as a whole, so a chunk that can never be sent takes the chunks queued beside it
+ * down too, and retrying without a limit would fail and log once per scheduler pass for as long
+ * as the player stands there.
+ */
+const CHUNK_SEND_RETRIES = 3;
 const chunkBatchCache = new ChunkBatchCache();
 
 interface QueuedChunk {
@@ -374,6 +384,9 @@ interface PublishedView {
 }
 
 /** Whether a chunk lies inside a published view, which the client keeps; never before the first. */
+/** The view in effect when a chunk went out, and how many views its flush had seen published by then. */
+type SentUnder = { readonly view: PublishedView | null; readonly later: number };
+
 const insideView = (view: PublishedView | null, x: number, z: number): boolean =>
     view !== null && view.area.contains(x - view.x, z - view.z);
 
@@ -451,6 +464,8 @@ export default class PlayerSession {
     private readonly chunkSender = new ChunkSender();
     private readonly loadedChunks = new Map<number, { readonly x: number; readonly z: number }>();
     private readonly loadingChunks = new Map<number, { readonly x: number; readonly z: number }>();
+    /** Failed batches by chunk hash since the chunk last reached the client: see {@link CHUNK_SEND_RETRIES}. */
+    private readonly failedChunkSends = new Map<number, number>();
 
     /**
      * The chunk the last `NetworkChunkPublisherUpdate` was centered on, and the radius it named
@@ -884,7 +899,9 @@ export default class PlayerSession {
             if (epoch !== this.chunkEpoch) return;
             if (this.chunkSendQueue.length >= CHUNKS_PER_FLUSH) await this.flushChunkBatch();
         } catch (error: unknown) {
-            this.loadingChunks.delete(Chunk.packXZ(x, z));
+            // Unless a failed flush queued it again, which keeps it loading so `needNewChunks`
+            // can still forget the retry when the player walks away.
+            if (!this.chunkSender.has(x, z)) this.loadingChunks.delete(Chunk.packXZ(x, z));
             throw error;
         }
     }
@@ -1285,6 +1302,13 @@ export default class PlayerSession {
         const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
         const laterViews: PublishedView[] = [];
         this.publishedViewWatchers.add(laterViews);
+        // For each chunk, the view in effect when it went out and how many views the flush
+        // had seen published by then: the ones after it can make the client drop it too.
+        const sentUnder: SentUnder[] = [];
+        // How many sends completed, and whether the chunks were settled after them: a failure
+        // settles the first like a successful flush and retries only the rest.
+        let sent = 0;
+        let settled = false;
 
         try {
             await publisherSend;
@@ -1296,9 +1320,6 @@ export default class PlayerSession {
             // shorter, but the sub chunk answers that follow use the cache, and the server this
             // was captured from never mixes the two for one client.
             const cached = requestMode && this.clientCacheEnabled;
-            // For each chunk, the view in effect when it went out and how many views the flush
-            // had seen published by then: the ones after it can make the client drop it too.
-            const sentUnder: { readonly view: PublishedView | null; readonly later: number }[] = [];
             for (const { chunk, payload, revision, subChunkCount: queuedSubChunkCount } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
                 // the old world's, and the client has already been told it is somewhere else.
@@ -1343,50 +1364,91 @@ export default class PlayerSession {
                     false,
                     batch.packetBuffers
                 );
+                sent += 1;
             }
 
             // A world change happened while the batch was compressing. These were the old world's
             // chunks; the sets were cleared for the new one and the hashes must not come back.
             if (epoch !== this.chunkEpoch) return;
 
-            // Loaded only once it is actually on the wire, and only when the client kept it: it
-            // was inside the view in effect when it was sent and inside every view published
-            // since. The client drops a chunk outside either, so counting that one as held would
-            // leave a hole that is never sent again while the player stays in view of it. Such a
-            // chunk is forgotten instead, so the next `needNewChunks` that covers it asks again,
-            // unless it has already been queued anew.
             for (const [index, { chunk }] of chunksToSend.entries()) {
-                const x = chunk.getX();
-                const z = chunk.getZ();
-                const hash = Chunk.packXZ(x, z);
-                const sent = sentUnder[index];
-                const kept =
-                    sent !== undefined &&
-                    insideView(sent.view, x, z) &&
-                    laterViews.slice(sent.later).every((view) => insideView(view, x, z));
-                if (kept) {
-                    this.loadedChunks.set(hash, { x, z });
-                    this.loadingChunks.delete(hash);
-                } else if (!this.chunkSender.has(x, z)) {
-                    this.loadingChunks.delete(hash);
-                    // A `needNewChunks` that ran while it was on its way skipped it as loading,
-                    // so a player who came back to it and stopped would never ask again.
-                    if (this.inCurrentView(x, z)) this.enqueueChunkCoordinate(hash, x, z);
-                }
+                this.settleSentChunk(chunk, sentUnder[index], laterViews);
             }
+            settled = true;
 
             // The spawn status waits for this, not the other way round.
             await this.announceSpawnIfReady();
             await this.answerRespawnIfReady();
         } catch (error: unknown) {
-            // Nothing is marked loaded unless every batch reached the ordered send path. If a
-            // later chunk in this partial group fails, re-requesting earlier chunks is harmless.
-            for (const { chunk } of chunksToSend) this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+            // A chunk whose send completed is settled as if the flush had succeeded, not sent
+            // again: in sub chunk request mode a second `LevelChunk` resets the column the client
+            // holds, and a player standing on it falls through. After a world change the sets
+            // belong to the new world, and these hashes must not touch them.
+            if (!settled && epoch === this.chunkEpoch) {
+                for (const [index, { chunk }] of chunksToSend.entries()) {
+                    if (index < sent) this.settleSentChunk(chunk, sentUnder[index], laterViews);
+                    else this.retryUnsentChunk(chunk);
+                }
+            }
             throw error;
         } finally {
             this.publishedViewWatchers.delete(laterViews);
             this.releaseChunkQueueBytes(payloadBytes);
         }
+    }
+
+    /**
+     * Records a chunk whose send completed.
+     *
+     * Loaded only once it is actually on the wire, and only when the client kept it: it was
+     * inside the view in effect when it was sent and inside every view published since. The
+     * client drops a chunk outside either, so counting that one as held would leave a hole that
+     * is never sent again while the player stays in view of it. Such a chunk is forgotten
+     * instead, so the next `needNewChunks` that covers it asks again, unless it has already been
+     * queued anew.
+     */
+    private settleSentChunk(chunk: Chunk, sent: SentUnder | undefined, laterViews: readonly PublishedView[]): void {
+        const x = chunk.getX();
+        const z = chunk.getZ();
+        const hash = Chunk.packXZ(x, z);
+        const kept =
+            sent !== undefined &&
+            insideView(sent.view, x, z) &&
+            laterViews.slice(sent.later).every((view) => insideView(view, x, z));
+        if (kept) {
+            this.loadedChunks.set(hash, { x, z });
+            this.loadingChunks.delete(hash);
+            this.failedChunkSends.delete(hash);
+        } else if (!this.chunkSender.has(x, z)) {
+            this.loadingChunks.delete(hash);
+            // A `needNewChunks` that ran while it was on its way skipped it as loading,
+            // so a player who came back to it and stopped would never ask again.
+            if (this.inCurrentView(x, z)) this.enqueueChunkCoordinate(hash, x, z);
+        }
+    }
+
+    /**
+     * Queues again a chunk whose batch failed before its send completed.
+     *
+     * Forgetting it alone waits for the next `needNewChunks`, which runs only when the player
+     * crosses into another chunk, so a player standing still kept the hole, and one arriving in
+     * another dimension sat on the loading screen until its timeout.
+     */
+    private retryUnsentChunk(chunk: Chunk): void {
+        const x = chunk.getX();
+        const z = chunk.getZ();
+        const hash = Chunk.packXZ(x, z);
+        if (this.chunkSender.has(x, z)) return;
+        this.loadingChunks.delete(hash);
+        if (!this.inCurrentView(x, z)) return;
+        const failures = (this.failedChunkSends.get(hash) ?? 0) + 1;
+        // Out of retries, it waits for a view change, which starts it a fresh count.
+        if (failures > CHUNK_SEND_RETRIES) {
+            this.failedChunkSends.delete(hash);
+            return;
+        }
+        this.failedChunkSends.set(hash, failures);
+        this.enqueueChunkCoordinate(hash, x, z);
     }
 
     /**
@@ -1508,6 +1570,7 @@ export default class PlayerSession {
         for (const [hash, { x, z }] of this.loadingChunks) {
             if (outOfView(x!, z!)) {
                 this.loadingChunks.delete(hash);
+                this.failedChunkSends.delete(hash);
 
                 // And out of the queue too, not only out of the bookkeeping.
                 //
@@ -1654,6 +1717,7 @@ export default class PlayerSession {
         this.chunkEpoch += 1;
         this.loadedChunks.clear();
         this.loadingChunks.clear();
+        this.failedChunkSends.clear();
         this.chunkSender.clear();
         const abandonedBytes = this.chunkSendQueue.reduce((total, { memoryBytes }) => total + memoryBytes, 0);
         this.chunkSendQueue.length = 0;
