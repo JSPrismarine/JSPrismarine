@@ -36,7 +36,9 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // when the overlay gave each per-state light dampening a permutation too, and when copper
         // torches and lanterns moved to the torch and lantern families, and when the rails took a
         // scheduled tick for the detector rail, which sets their flag, and when the three command
-        // blocks moved from the inert family to their own, whose hooks set their flags.
-        expect(digest).toBe('72c31e25ba557605c97fdc57637d6148294b6a1d65b6c02360541501e21b9212');
+        // blocks moved from the inert family to their own, whose hooks set their flags, and when
+        // the bubble column joined the liquid family and the sulfur spike the dripstone family,
+        // so both break without their support.
+        expect(digest).toBe('573a9a00a7923f1dde4c14a7d1d8834bba3663afa9ff20f5451586964a642411');
     });
 });
