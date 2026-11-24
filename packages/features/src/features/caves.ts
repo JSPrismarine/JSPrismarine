@@ -422,9 +422,9 @@ const dripstoneHeight = (xzDistanceFromCenter: number, radius: number, scale: nu
 const isCircleMostlyEmbeddedInStone = (world: FeatureWorld, center: BlockPos, radius: number): boolean => {
     if (isEmptyOrWaterOrLava(world.getBlock(center), world)) return false;
     const increment = f32(6 / radius);
-    for (let angle = 0; angle < Math.PI * 2; angle = f32(angle + increment)) {
-        const dx = Math.trunc(mthCos(angle) * radius);
-        const dz = Math.trunc(mthSin(angle) * radius);
+    for (let angle = 0; angle < f32(Math.PI * 2); angle = f32(angle + increment)) {
+        const dx = Math.trunc(f32(mthCos(angle) * radius));
+        const dz = Math.trunc(f32(mthSin(angle) * radius));
         if (isEmptyOrWaterOrLava(world.getBlock(offset(center, dx, 0, dz)), world)) return false;
     }
     return true;
@@ -477,8 +477,8 @@ export const largeDripstone = (
         if (suitable(stalactite) && suitable(stalagmite)) {
             const speed = config.windSpeed.sample(random);
             const direction = f32(random.nextFloat() * f32(Math.PI));
-            const windX = mthCos(direction) * speed;
-            const windZ = mthSin(direction) * speed;
+            const windX = f32(mthCos(direction) * speed);
+            const windZ = f32(mthSin(direction) * speed);
             const maxOffset = 16 - radius;
             wind = (position) => {
                 const dy = origin.y - position.y;
@@ -514,7 +514,10 @@ export const largeDripstone = (
                     let height = Math.trunc(dripstoneHeight(currentRadius, cone.radius, cone.scale, cone.bluntness));
                     if (height <= 0) continue;
                     if (random.nextFloat() < 0.2) {
-                        height = Math.trunc(height * f32(f32(random.nextFloat() * f32(0.2)) + 0.8));
+                        // Java's Mth.randomBetween(random, 0.8F, 1.0F): the span is the float
+                        // difference 1.0F - 0.8F, which is a little under 0.2F.
+                        const factor = f32(f32(random.nextFloat() * f32(1 - f32(0.8))) + f32(0.8));
+                        height = Math.trunc(f32(height * factor));
                     }
 
                     let position = offset(cone.root, dx, 0, dz);
@@ -526,7 +529,9 @@ export const largeDripstone = (
                         const target = offsetByWind(position);
                         if (isEmptyOrWaterOrLava(world.getBlock(target), world)) {
                             hasBeenOutOfStone = true;
-                            world.setBlock(target, config.baseBlock);
+                            // Java places the base block's default state, whatever properties the
+                            // configuration names.
+                            world.setBlock(target, blockState(config.baseBlock.name));
                         } else if (
                             hasBeenOutOfStone &&
                             world.blocks.hasTag(world.getBlock(target), 'minecraft:base_stone_overworld')
