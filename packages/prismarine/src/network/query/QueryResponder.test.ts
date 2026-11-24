@@ -5,8 +5,10 @@ import type { QueryStatus } from './QueryResponder';
 
 const STATUS: QueryStatus = {
     motd: 'A JSPrismarine server',
+    gameId: 'MINECRAFTPE',
     version: '1.26.51',
     software: 'JSPrismarine v0.19.2',
+    plugins: ['tps-bar 0.3.0', 'warps 1.2.0'],
     map: 'world',
     onlinePlayers: 2,
     maxPlayers: 20,
@@ -38,6 +40,19 @@ const handshake = (responder: QueryResponder, address = '192.0.2.1', port = 50_0
 
 /** Splits a reply body on its null terminators. */
 const strings = (body: Buffer): string[] => body.toString('latin1').split('\0');
+
+/** Runs a full stat and reads back its key-value section and its player section. */
+const fullStat = (responder: QueryResponder): { keys: Record<string, string | undefined>; players: string } => {
+    const token = handshake(responder);
+    const reply = responder.respond(request(0x00, 5, int32(token), Buffer.alloc(4)), '192.0.2.1', 50_000)!;
+
+    const body = reply.subarray(5);
+    expect(body.subarray(0, 11).toString('latin1')).toBe('splitnum\0\x80\0');
+    const [pairs, players] = body.subarray(11).toString('latin1').split('\0\0\x01player_\0\0');
+    const fields = pairs!.split('\0');
+    const keys = Object.fromEntries(fields.flatMap((field, i) => (i % 2 === 0 ? [[field, fields[i + 1]]] : [])));
+    return { keys, players: players! };
+};
 
 describe('network/query/QueryResponder', () => {
     const responder = new QueryResponder(() => STATUS, Buffer.alloc(32, 7));
@@ -73,21 +88,15 @@ describe('network/query/QueryResponder', () => {
     });
 
     it('answers a full stat with every key and the player names', () => {
-        const token = handshake(responder);
-        const reply = responder.respond(request(0x00, 5, int32(token), Buffer.alloc(4)), '192.0.2.1', 50_000)!;
+        const { keys, players } = fullStat(responder);
 
-        const body = reply.subarray(5);
-        expect(body.subarray(0, 11).toString('latin1')).toBe('splitnum\0\x80\0');
-        const [pairs, players] = body.subarray(11).toString('latin1').split('\0\0\x01player_\0\0');
-        const fields = pairs!.split('\0');
-        const keys = Object.fromEntries(fields.flatMap((field, i) => (i % 2 === 0 ? [[field, fields[i + 1]]] : [])));
         expect(keys).toStrictEqual({
             hostname: 'A JSPrismarine server',
             gametype: 'SMP',
             game_id: 'MINECRAFTPE',
             version: '1.26.51',
             server_engine: 'JSPrismarine v0.19.2',
-            plugins: 'JSPrismarine v0.19.2',
+            plugins: 'JSPrismarine v0.19.2: tps-bar 0.3.0; warps 1.2.0',
             map: 'world',
             numplayers: '2',
             maxplayers: '20',
@@ -95,6 +104,19 @@ describe('network/query/QueryResponder', () => {
             hostip: '0.0.0.0'
         });
         expect(players).toBe('Alex\0Steve\0\0');
+    });
+
+    it('speaks for the edition it is given, and names the software alone without addons', () => {
+        const { keys } = fullStat(
+            new QueryResponder(() => ({ ...STATUS, gameId: 'MINECRAFT', version: '26.3', plugins: [] }))
+        );
+
+        expect(keys).toMatchObject({
+            game_id: 'MINECRAFT',
+            version: '26.3',
+            server_engine: 'JSPrismarine v0.19.2',
+            plugins: 'JSPrismarine v0.19.2'
+        });
     });
 
     it('ignores a stat request without the sender token', () => {

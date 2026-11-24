@@ -226,6 +226,7 @@ describe('AddonManager', () => {
             }
         });
         expect(addons.packDirectories()).toEqual([path.join(directory, 'addons', 'tps-bar')]);
+        expect(addons.loadedAddons()).toEqual([{ name: 'tps-bar', version: '1.1.0' }]);
         expect(reloads).toBe(1);
         expect(logged).toContain(
             `Installed tps-bar 1.1.0 from ${DEFAULT_ADDON_SOURCE}, checked against its index's SHA-256`
@@ -700,6 +701,7 @@ describe('AddonManager', () => {
         expect(await addons.sync()).toEqual(['tps-bar']);
 
         expect(addons.packDirectories()).toEqual([]);
+        expect(addons.loadedAddons()).toEqual([]);
         expect(reloads).toBe(1);
     });
 

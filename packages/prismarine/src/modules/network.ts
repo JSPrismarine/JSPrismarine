@@ -10,7 +10,8 @@ import {
     WorkerServerSocket
 } from '@jsprismarine/raknet';
 import { DEFAULT_MAX_DECOMPRESSED_LENGTH } from '@jsprismarine/protocol';
-import type { RakNetListenerLike } from '@jsprismarine/raknet';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
+import type { DatagramSource, RakNetListenerLike } from '@jsprismarine/raknet';
 import {
     HttpSignaling,
     joinStatusJson,
@@ -141,8 +142,8 @@ export class ServerNetworking implements Networking {
     private publicIpLookup: AbortController | undefined;
     /** The Java Edition listener and what answers on it; set while `java-enabled` is on. */
     private java: { readonly transport: TcpTransport; readonly connections: JavaConnections } | undefined;
-    /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
-    private querySocket: QuerySocket | undefined;
+    /** The query protocol's own sockets, one for each port query answers on that RakNet does not hold. */
+    private querySockets: QuerySocket[] = [];
     /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
     private sharedPorts: SharedPort[] = [];
     /** The transports {@link ServerNetworking.start} started from the config, in start order. */
@@ -320,8 +321,8 @@ export class ServerNetworking implements Networking {
         this.publicIpLookup = undefined;
         this.signaling?.close();
         this.signaling = undefined;
-        this.querySocket?.close();
-        this.querySocket = undefined;
+        for (const querySocket of this.querySockets) querySocket.close();
+        this.querySockets = [];
         this.java?.transport.close();
         this.java = undefined;
         this.transport?.close();
@@ -458,11 +459,13 @@ export class ServerNetworking implements Networking {
     }
 
     /**
-     * Starts answering the query protocol. A `query-port` equal to `port` answers on the RakNet
-     * listeners beside the game, as Bedrock servers have always done, since query datagrams
-     * never look like RakNet's. With RakNet off, it answers through the port NetherNet shares,
-     * when NetherNet's UDP is on `port`; on any other port, query gets a socket of its own.
-     * `enable-query` is read again per datagram, so a reload that turns it off silences it.
+     * Starts answering the query protocol, in two places. The game port answers for Bedrock, as
+     * PocketMine-MP and other Bedrock servers do: on the RakNet listeners beside the game, since
+     * query datagrams never look like RakNet's, or with RakNet off through the port NetherNet
+     * shares, when NetherNet's UDP is on `port`, or else on a socket of its own. A `query-port`
+     * other than `port` gets a socket of its own as well, and answers for Java Edition there
+     * while `java-enabled` is on, as a Java server's `query.port` does.
+     * `enable-query` is read again per datagram, so a reload that turns it off silences both.
      */
     private startQuery(
         address: string,
@@ -473,54 +476,64 @@ export class ServerNetworking implements Networking {
     ): void {
         const server = this.server;
         const config = server.getConfig();
-        const status = (): QueryStatus => ({
+        const status = (edition: 'bedrock' | 'java'): QueryStatus => ({
             motd: serverName.getMotd(),
-            version: serverName.getVersion(),
+            ...(edition === 'java'
+                ? { gameId: 'MINECRAFT', version: NEWEST_JAVA_RELEASE.minecraftVersion, hostPort: config.getJavaPort() }
+                : { gameId: 'MINECRAFTPE', version: serverName.getVersion(), hostPort: serverName.getPort() }),
             software: softwareLabel(),
+            plugins: server
+                .getAddons()
+                .loadedAddons()
+                .map(({ name, version }) => `${name} ${version}`),
             map: config.getLevelName(),
             onlinePlayers: serverName.getOnlinePlayerCount(),
             maxPlayers: serverName.getMaxPlayerCount(),
-            hostPort: serverName.getPort(),
             hostIp: address,
             players: server
                 .getSessionManager()
                 .getSessions()
                 .map((session) => session.identity.name)
         });
-        const responder = new QueryResponder(() => status());
-        const answer = (datagram: Buffer, from: string, fromPort: number): Buffer | undefined =>
-            server.getConfig().getEnableQuery() ? responder.respond(datagram, from, fromPort) : undefined;
+        const answerer = (edition: 'bedrock' | 'java') => {
+            const responder = new QueryResponder(() => status(edition));
+            return (datagram: Buffer, from: string, fromPort: number): Buffer | undefined =>
+                server.getConfig().getEnableQuery() ? responder.respond(datagram, from, fromPort) : undefined;
+        };
+        const listen = (answer: ReturnType<typeof answerer>, queryPort: number, source?: DatagramSource): void => {
+            const querySocket = new QuerySocket({ respond: answer }, server.getLogger(), source);
+            this.querySockets.push(querySocket);
+            void querySocket.start(address, queryPort).then((bound) => {
+                if (bound !== undefined) server.getLogger().info(`Answering query on UDP port ${bound}`);
+            });
+        };
 
-        const shared = config.getQueryPort() === config.getServerPort();
-        if (shared && rakNet.length > 0) {
+        const bedrock = answerer('bedrock');
+        if (rakNet.length > 0) {
             for (const transport of rakNet) {
                 transport.onRaw((datagram, from) => {
-                    const reply = answer(datagram, from.getAddress(), from.getPort());
+                    const reply = bedrock(datagram, from.getAddress(), from.getPort());
                     if (reply !== undefined) transport.sendRaw(reply, from);
                 });
             }
-            return;
-        }
-
-        // The shared port's unclaimed datagrams go to the RakNet rings, which query reads instead.
-        const source = (() => {
-            if (!shared || sharedPort === undefined) return undefined;
+        } else if (sharedPort !== undefined) {
+            // The shared port's unclaimed datagrams go to the RakNet rings, which query reads instead.
             const family = isIPv6(address) ? 6 : 4;
             const rings = allocateDatagramRings();
-            return new RingDatagramSource(rings, family, sharedPort.port, (wakePort) =>
-                sharedPort.attach(family, rings, wakePort)
+            listen(
+                bedrock,
+                port,
+                new RingDatagramSource(rings, family, sharedPort.port, (wakePort) =>
+                    sharedPort.attach(family, rings, wakePort)
+                )
             );
-        })();
-        const querySocket = new QuerySocket(
-            { respond: (datagram, from, fromPort) => answer(datagram, from, fromPort) },
-            server.getLogger(),
-            source
-        );
-        this.querySocket = querySocket;
-        const queryPort = shared ? port : config.getQueryPort();
-        void querySocket.start(address, queryPort).then((bound) => {
-            if (bound !== undefined) server.getLogger().info(`Answering query on UDP port ${bound}`);
-        });
+        } else {
+            listen(bedrock, port);
+        }
+
+        if (config.getQueryPort() !== config.getServerPort()) {
+            listen(answerer(config.getJavaEnabled() ? 'java' : 'bedrock'), config.getQueryPort());
+        }
     }
 
     /**

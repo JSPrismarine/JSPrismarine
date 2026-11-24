@@ -83,7 +83,7 @@ const COMMENTS = {
         'The layout of this file. The server upgrades a file an older version wrote and keeps the original beside it.',
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
     'server-port':
-        "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132.",
+        "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports is set, RakNet's IPv4 listener, NetherNet's players and Bedrock's query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132.",
     'server-portv6':
         'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133. It may equal server-port.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
@@ -136,7 +136,7 @@ const COMMENTS = {
         'Prototype: reuse independently compressed packet fragments. Requires retail client validation.',
     'enable-query': 'Whether to answer the GameSpy4 query protocol that server lists and status tools use.',
     'query-port':
-        'The UDP port the query protocol answers on. Unset, or the same as server-port, query shares the RakNet socket with the game.',
+        "The UDP port query answers on for Java Edition, as a Java server's query.port: 25565 when unset. Query always answers for Bedrock on server-port, beside the game, whatever this says. With java-enabled off, this port answers for Bedrock too. Set it to server-port to answer on that port alone.",
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking':
         'Whether the world ticks. Off is only for tests, which step the ticks by hand with Server.advanceTick. Until one does, nothing a tick runs happens: no chunks go out, so a joining client never spawns.',
@@ -298,9 +298,8 @@ const DEFAULTS = {
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
     'packet-full-flush-fragments': false,
     'enable-query': true,
-    // Unset, query-port follows the port the server binds, and a fresh config does not write it;
-    // this is that port's default, for anything that lists defaults.
-    'query-port': 19132,
+    // A fresh config does not write query-port; unset, it is the port Java status tools query.
+    'query-port': 25565,
     'enable-process-title': true,
     'enable-ticking': true,
     'log-excluded-packets': [],
@@ -514,7 +513,7 @@ export class Config {
     };
 
     /** The UDP port the query protocol answers on; equal to {@link port} to share RakNet's socket. */
-    /** `query-port` as the file sets it, or undefined when it follows the server port. */
+    /** `query-port` as the file sets it, or undefined when it is left at its default. */
     private queryPortSetting: number | undefined;
 
     /**
@@ -1243,18 +1242,18 @@ export class Config {
     }
 
     /**
-     * The UDP port the query protocol answers on, as Java Edition's `query.port`. When it is
-     * the same as {@link getServerPort}, query answers on the RakNet socket beside the game,
-     * which is what an unset one does; any other port gets a socket of its own.
+     * The UDP port the query protocol answers on for Java Edition, as Java Edition's
+     * `query.port`, 25565 when unset. Query answers for Bedrock on {@link getServerPort} as
+     * well; a query port equal to it answers there alone.
      * @returns The query port.
      */
     public getQueryPort(): number {
-        return this.queryPortSetting ?? this.port;
+        return this.queryPortSetting ?? DEFAULTS['query-port'];
     }
 
     /**
      * `query-port` as the config sets it.
-     * @returns The port, or undefined when query answers on the port the server binds.
+     * @returns The port, or undefined when the config leaves it at its default.
      */
     public getQueryPortSetting(): number | undefined {
         return this.queryPortSetting;

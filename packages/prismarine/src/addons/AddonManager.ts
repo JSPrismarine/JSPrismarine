@@ -64,6 +64,12 @@ export interface InstalledAddon {
     readonly locked?: LockedAddon;
 }
 
+/** An installed addon's name and version, as its lock records them. */
+export interface LoadedAddon {
+    readonly name: string;
+    readonly version: string;
+}
+
 /** What a resolution produced: the lock entry and the pack's files, or a folder to link. */
 interface Resolved {
     readonly locked: LockedAddon;
@@ -97,6 +103,8 @@ export class AddonManager {
     private readonly fetcher: typeof fetch;
     /** The keys whose folder holds the locked addon, in key order. */
     private installed: readonly string[] = [];
+    /** The name and version each installed key locks, in key order. */
+    private loaded: readonly LoadedAddon[] = [];
     private readonly queue = new SerialQueue();
     /**
      * Whether the last reload did not finish, so the running scripts may not be the installed
@@ -120,6 +128,14 @@ export class AddonManager {
      */
     public packDirectories(): readonly string[] {
         return this.installed.map((key) => path.join(this.addonsDirectory, key));
+    }
+
+    /**
+     * The installed addons as their locks name them, in key order: what query reports as the
+     * server's plugins. Read from memory, so a status reply never waits on the disk.
+     */
+    public loadedAddons(): readonly LoadedAddon[] {
+        return this.loaded;
     }
 
     /** Every key either file names, with what each says about it. */
@@ -317,7 +333,7 @@ export class AddonManager {
 
             const addons = Object.fromEntries(locks);
             if (changed) await this.write(requested, { ...lock, addons }, failed);
-            else this.installed = await this.presentKeys(addons, failed);
+            else await this.track(addons, failed);
             // A folder that vanished and could not come back leaves the pack list, so the scripts
             // reload even when the folder holds nothing new.
             const listChanged = !sameKeys(active, this.installed);
@@ -332,7 +348,13 @@ export class AddonManager {
      */
     private async write(requested: AddonsFile, lock: AddonsLockFile, failed: readonly string[] = []): Promise<void> {
         await writeAddonFiles(this.options.directory, requested, lock);
-        this.installed = await this.presentKeys(lock.addons, failed);
+        await this.track(lock.addons, failed);
+    }
+
+    /** Records which keys are installed, and the name and version each one locks. */
+    private async track(locks: Readonly<Record<string, LockedAddon>>, failed: readonly string[]): Promise<void> {
+        this.installed = await this.presentKeys(locks, failed);
+        this.loaded = this.installed.map((key) => ({ name: locks[key]!.name, version: locks[key]!.version }));
     }
 
     private async presentKeys(

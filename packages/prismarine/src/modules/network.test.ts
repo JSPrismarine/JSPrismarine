@@ -10,6 +10,7 @@ import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -25,6 +26,7 @@ import {
 import type { Connection } from '@jsprismarine/nethernet';
 import { UnconnectedPing, UnconnectedPong } from '@jsprismarine/raknet';
 import { about } from '../about';
+import type { AddonManager, LoadedAddon } from '../addons/AddonManager';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
@@ -530,8 +532,19 @@ describe('modules/network', () => {
         }
     });
 
-    /** A server running RakNet alone on 127.0.0.1, in socket mode, answering query on the port given. */
-    const queryServer = (serverPort: number, queryPort: number, info: (message: string) => void = () => {}) =>
+    /**
+     * A server running RakNet on 127.0.0.1, in socket mode, answering query on the port given,
+     * with the Java Edition listener on an ephemeral port when `java` is on.
+     */
+    const queryServer = (
+        serverPort: number,
+        queryPort: number,
+        {
+            info = () => {},
+            java = false,
+            addons = []
+        }: { info?: (message: string) => void; java?: boolean; addons?: readonly LoadedAddon[] } = {}
+    ) =>
         stub<Server>({
             getKernel: kernelDouble,
             getConfig: () =>
@@ -546,9 +559,11 @@ describe('modules/network', () => {
                     getOnlineMode: () => false,
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
-                    getJavaEnabled: () => false,
+                    getJavaEnabled: () => java,
+                    getJavaPort: () => 0,
                     getUseRakNetWorker: () => false
                 }),
+            getAddons: () => stub<AddonManager>({ loadedAddons: () => addons }),
             getLogger: () =>
                 stub<Logger>({
                     debug: () => {},
@@ -592,6 +607,24 @@ describe('modules/network', () => {
         }
     };
 
+    /** A full stat's keys: the section opens with `splitnum` and its padding, and ends at an empty key. */
+    const statKeys = (fields: readonly string[]): Record<string, string | undefined> => {
+        const pairs = fields.slice(2, fields.indexOf('', 2));
+        return Object.fromEntries(pairs.flatMap((field, i) => (i % 2 === 0 ? [[field, pairs[i + 1]]] : [])));
+    };
+
+    /** A log that resolves `bound` with the port query reports binding a socket of its own on. */
+    const queryPortLog = (): { info: (message: string) => void; bound: Promise<number> } => {
+        const { promise, resolve } = Promise.withResolvers<number>();
+        return {
+            info: (message) => {
+                const match = /^Answering query on UDP port (\d+)$/.exec(message);
+                if (match) resolve(Number(match[1]));
+            },
+            bound: promise
+        };
+    };
+
     it('answers query on the RakNet socket when query-port is the game port', async () => {
         // The config says 19132 for both; the listener binds an ephemeral port, as bootstrap may.
         const networking = new ServerNetworking(queryServer(19_132, 19_132));
@@ -608,21 +641,22 @@ describe('modules/network', () => {
         }
     });
 
-    it('answers a full stat with the version, software and players every other surface reports', async () => {
-        const networking = new ServerNetworking(queryServer(19_132, 19_132));
+    it('answers a full stat with the version, software, addons and players every other surface reports', async () => {
+        const networking = new ServerNetworking(
+            queryServer(19_132, 19_132, { addons: [{ name: 'warps', version: '1.2.0' }] })
+        );
 
         try {
             await networking.start('127.0.0.1', 0);
             const fields = await queryStat(networking.getServerName()!.getPort(), true);
 
-            // The key-value section opens with `splitnum` and its padding, and ends at an empty key.
-            const pairs = fields.slice(2, fields.indexOf('', 2));
-            const keys = Object.fromEntries(pairs.flatMap((field, i) => (i % 2 === 0 ? [[field, pairs[i + 1]]] : [])));
+            const keys = statKeys(fields);
             expect(keys).toMatchObject({
                 hostname: 'query server',
+                game_id: 'MINECRAFTPE',
                 version: about().minecraftVersion,
                 server_engine: softwareLabel(),
-                plugins: softwareLabel(),
+                plugins: `${softwareLabel()}: warps 1.2.0`,
                 numplayers: '0',
                 maxplayers: '5'
             });
@@ -633,22 +667,38 @@ describe('modules/network', () => {
         }
     });
 
-    it('answers query on a socket of its own when query-port differs', async () => {
-        const bound: number[] = [];
-        const networking = new ServerNetworking(
-            queryServer(19_132, 0, (message) => {
-                const match = /^Answering query on UDP port (\d+)$/.exec(message);
-                if (match) bound.push(Number(match[1]));
-            })
-        );
+    it('answers for Java on a query-port of its own, and for Bedrock on the game port still', async () => {
+        const { info, bound } = queryPortLog();
+        const networking = new ServerNetworking(queryServer(19_132, 0, { info, java: true }));
 
         try {
             await networking.start('127.0.0.1', 0);
-            await vi.waitFor(() => expect(bound).toHaveLength(1));
-            expect(bound[0]).not.toBe(networking.getServerName()!.getPort());
+            const queryPort = await bound;
+            const gamePort = networking.getServerName()!.getPort();
+            expect(queryPort).not.toBe(gamePort);
 
-            const [motd] = await queryStat(bound[0]!);
-            expect(motd).toBe('query server');
+            expect(statKeys(await queryStat(queryPort, true))).toMatchObject({
+                hostname: 'query server',
+                game_id: 'MINECRAFT',
+                version: NEWEST_JAVA_RELEASE.minecraftVersion,
+                plugins: softwareLabel()
+            });
+            expect(statKeys(await queryStat(gamePort, true))).toMatchObject({
+                game_id: 'MINECRAFTPE',
+                version: about().minecraftVersion
+            });
+        } finally {
+            networking.kill();
+        }
+    });
+
+    it('answers for Bedrock on a query-port of its own while Java is off', async () => {
+        const { info, bound } = queryPortLog();
+        const networking = new ServerNetworking(queryServer(19_132, 0, { info }));
+
+        try {
+            await networking.start('127.0.0.1', 0);
+            expect(statKeys(await queryStat(await bound, true))).toMatchObject({ game_id: 'MINECRAFTPE' });
         } finally {
             networking.kill();
         }
@@ -752,6 +802,7 @@ describe('modules/network', () => {
                     getEnableServerPublicIpLookup: () => false,
                     getLevelName: () => 'world'
                 }),
+            getAddons: () => stub<AddonManager>({ loadedAddons: () => [] }),
             getLogger: () =>
                 stub<Logger>({
                     debug: () => {},

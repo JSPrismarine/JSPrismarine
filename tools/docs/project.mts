@@ -88,6 +88,8 @@ export interface ProjectData {
     defaultPort: number;
     /** The TCP port a server with Java Edition on listens on for Java clients. */
     javaPort: number;
+    /** The UDP port query answers on for Java Edition when the config leaves `query-port` out. */
+    queryPort: number;
     demo: DemoServer;
     engines: { node: string; pnpm: string };
     /** The SPDX license expression the workspace is released under, such as `(MIT OR MPL-2.0)`. */
@@ -204,6 +206,12 @@ export function loadProject(): ProjectData {
         'the default Java Edition port'
     );
 
+    const [, queryPort] = fromSource(
+        path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
+        /^\s+'query-port': (\d+),$/m,
+        'the default query port'
+    );
+
     const netherNetDefaults = path.join(
         packagesDir,
         'prismarine',
@@ -248,6 +256,7 @@ export function loadProject(): ProjectData {
         netherNetIdentityFile,
         defaultPort: Number(port),
         javaPort: Number(javaPort),
+        queryPort: Number(queryPort),
         demo: demoServer,
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         license: root.license ?? '',

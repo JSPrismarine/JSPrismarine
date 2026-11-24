@@ -1499,6 +1499,7 @@ export async function loadFacts(): Promise<Facts> {
             'server.version': project.version,
             'server.port': String(project.defaultPort),
             'server.javaPort': String(project.javaPort),
+            'server.queryPort': String(project.queryPort),
             'demo.address': project.demo.address,
             'demo.port': String(project.demo.port),
             'demo.sponsor': project.demo.sponsor.name,
