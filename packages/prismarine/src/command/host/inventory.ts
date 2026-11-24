@@ -14,16 +14,21 @@
  * target had it, with the sentence the resolver wrote for the last one.
  */
 import type { ItemSlot, SlotTarget, SlotWriteMode } from '@jsprismarine/commands';
+import type { ItemModifier, PredicateContext } from '@jsprismarine/predicates';
 
 import type Server from '../../Server';
+import type { ServerContent } from '../../content/ServerContent';
 import type { DataEntity } from '../../entity/data/DataEntity';
 import { dropOfItem, itemOfDrop } from '../../inventory/persistence';
 import type { HeldSlot, SlotHolder, SlotNameOptions, SlotRole } from '../../inventory/slotAddress';
 import { SLOT_OFFSET_LIMIT, mobSlotHolder, resolveSlotName } from '../../inventory/slotAddress';
+import { bedrockItemDrops } from '../../item/bedrockDrops';
 import type { Item } from '../../item/Item';
 import { itemFromContent } from '../../item/itemFromContent';
+import { dropOfRolledStack, rolledStackOfDrop, withBedrockFields } from '../../item/lootStack';
+import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt } from './containers';
-import { blockPositionOf, carryOut, refuse, resolveEntity, resolveTarget, unsupported, worldOf } from './support';
+import { blockPositionOf, carryOut, refuse, resolveEntity, resolveTarget, worldOf } from './support';
 
 /** One target opened for a command: what its slot names resolve against, and its slots. */
 interface OpenedHolder {
@@ -155,7 +160,7 @@ const eachHolding = (
     targets: readonly SlotTarget[],
     slot: ItemSlot,
     options: SlotNameOptions,
-    visit: (opened: OpenedHolder, slots: readonly HeldSlot[]) => void,
+    visit: (opened: OpenedHolder, slots: readonly HeldSlot[], target: SlotTarget) => void,
     required = true
 ): void => {
     let refusal: string | undefined;
@@ -169,7 +174,7 @@ const eachHolding = (
             continue;
         }
         held = true;
-        visit(opened, resolved.slots);
+        visit(opened, resolved.slots, target);
         opened.finish();
     }
     if (required && !held && refusal !== undefined) refuse(refusal);
@@ -212,12 +217,100 @@ export const setItemSlot = (
 };
 
 /**
+ * A datapack's item modifier, compiled for one command.
+ *
+ * @throws {CommandSyntaxException} When no loaded datapack declares it, which is Java's
+ *   refusal of an unknown id.
+ */
+const itemModifierNamed = (server: Server, id: string): ItemModifier => {
+    const name = id.includes(':') ? id : `minecraft:${id}`;
+    const content = server.getContent();
+    if (!content.definitions.itemModifiers.has(name)) refuse(`Unknown item modifier: ${name}`);
+    return content.loot.itemModifier(name, `item_modifier/${name}`);
+};
+
+/**
+ * The context a modifier runs in for a slot on one target: Java's `command` parameter set,
+ * with the origin at the target, since the host is not told where the command ran.
+ */
+const modifierContext = (content: ServerContent, server: Server, target: SlotTarget): PredicateContext => {
+    const { dimension, position } = target.kind === 'block' ? target : target.entity;
+    return content.loot.context(undefined, {
+        parameterSet: 'command',
+        parameters: { origin: { x: position.x, y: position.y, z: position.z } },
+        level: lootLevelOf(worldOf(server, dimension))
+    });
+};
+
+/**
+ * A stack run through an item modifier, which is Java's `ItemCommands.applyModifier`.
+ *
+ * The stack goes out as the loot grammar reads one and comes back through the same translation
+ * a rolled drop takes, so a name, lore, enchantments, durability and a shulker box's contents
+ * survive the trip. What Bedrock keeps on a stack that Java has no component for here, such as
+ * the blocks it may be placed on and its lock, is carried across from the stack as it was.
+ *
+ * @returns The modified stack, cut down to the item's stack size as Java cuts it, or null when
+ *   the modifier emptied it.
+ */
+const modifiedItem = (server: Server, modifier: ItemModifier, item: Item, target: SlotTarget): Item | null => {
+    const drop = dropOfItem(item);
+    if (drop === undefined) return null;
+    const content = server.getContent();
+
+    const rolled = rolledStackOfDrop(drop);
+    // What the item type declares, such as its maximum durability, which `set_damage` reads.
+    const stack = { ...rolled, components: new Map([...item.asPredicateStack().components, ...rolled.components]) };
+    const result = modifier(stack, modifierContext(content, server, target));
+    if (result === undefined || result.count <= 0) return null;
+
+    const [translated] = bedrockItemDrops([dropOfRolledStack(result)]);
+    if (translated === undefined) return null;
+    // The fields the translation does not carry, which a modifier cannot have changed.
+    const modified = itemOfDrop(withBedrockFields(drop, translated), content);
+    if (modified === null || modified.getAmount() <= modified.getMaxAmount()) return modified;
+    return modified.withCount(modified.getMaxAmount());
+};
+
+/**
+ * Runs an item modifier over the stacks in the slots a name covers, on every target, which is
+ * `/item modify`.
+ *
+ * An empty slot is left alone: there is no stack for the modifier to change.
+ *
+ * @returns How many slots were written.
+ * @throws {CommandSyntaxException} When the name is not a slot, no target has it, a block target
+ *   is not a container, or no datapack declares the modifier.
+ */
+export const modifyItemSlots = (
+    server: Server,
+    targets: readonly SlotTarget[],
+    slot: ItemSlot,
+    modifier: string
+): number => {
+    const named = itemModifierNamed(server, modifier);
+
+    let written = 0;
+    eachHolding(server, targets, slot, {}, (opened, slots, target) => {
+        for (const held of slots) {
+            const item = opened.get(held);
+            if (item === null) continue;
+            opened.set(held, modifiedItem(server, named, item, target));
+            written += 1;
+        }
+    });
+    return written;
+};
+
+/**
  * Copies the stacks in the slots one name covers on the sources into the slots another covers
  * on every target, which is `/item replace|fill|override … from`.
  *
  * @returns How many slots were written.
+ * @param modifier - The id of an item modifier each stack goes through on the way, which runs
+ *   at the source the stack came from.
  * @throws {CommandSyntaxException} When a name is not a slot, no source or no target has it, a
- *   block is not a container, or a modifier was named, which needs item modifiers on stacks.
+ *   block is not a container, or no datapack declares the modifier.
  */
 export const copyItemSlots = (
     server: Server,
@@ -228,12 +321,15 @@ export const copyItemSlots = (
     mode: Exclude<SlotWriteMode, 'destroy' | 'keep'> = 'replace',
     modifier?: string
 ): number => {
-    if (modifier !== undefined) unsupported('item modifiers for /item');
+    const named = modifier === undefined ? undefined : itemModifierNamed(server, modifier);
 
     // Every source slot, empty ones included, so copying an empty hand empties the target.
     const stacks: (Item | null)[] = [];
-    eachHolding(server, sources, fromSlot, { role: 'source' }, (opened, slots) => {
-        for (const slot of slots) stacks.push(opened.get(slot));
+    eachHolding(server, sources, fromSlot, { role: 'source' }, (opened, slots, source) => {
+        for (const slot of slots) {
+            const held = opened.get(slot);
+            stacks.push(held === null || named === undefined ? held : modifiedItem(server, named, held, source));
+        }
     });
 
     let written = 0;
