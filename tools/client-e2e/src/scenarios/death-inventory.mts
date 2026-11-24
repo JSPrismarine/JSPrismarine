@@ -55,7 +55,9 @@ export const deathInventory: Scenario = {
                 assert.equal(level, 0, `keepInventory false kept level ${level}`);
             }
             log(`keepInventory ${String(keep)}: ${stone} stone and level ${level} after the respawn`);
+            // The death's orbs lie where the next round stands, and a player now collects them.
             server.command('kill @e[type=item]');
+            server.command('kill @e[type=xp_orb]');
         }
         server.command('gamerule keepInventory false');
     }

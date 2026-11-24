@@ -12,6 +12,7 @@ import { scriptWorldMessage } from './scenarios/script-world-message.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
+import { experienceOrbs } from './scenarios/experience-orbs.mts';
 import { itemRestShape } from './scenarios/item-rest-shape.mts';
 import { fallingBlockWater } from './scenarios/falling-block-water.mts';
 import { farmland } from './scenarios/farmland.mts';
@@ -135,6 +136,7 @@ export const suites: ScenarioSuite[] = [
             miningDrops,
             spectatorPickup,
             itemDropPickup,
+            experienceOrbs,
             itemRestShape,
             edgeChunkBlockChange,
             subChunkBlockChanges,
