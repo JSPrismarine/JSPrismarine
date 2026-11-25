@@ -20,7 +20,7 @@ import type { SessionPhase } from './SessionPhase';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
 import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
-import { INPUT_ADMISSION_BUDGET_PER_TICK, InputQueue } from './InputQueue';
+import { INPUT_ADMISSION_BUDGET_PER_TICK, InputQueue } from '../input/InputQueue';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';

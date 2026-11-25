@@ -6,7 +6,7 @@ import { stub } from '../testing/stub.test.helper';
 import type { HandlerConfig, HandlerServices, InputContext } from './handler/HandlerContext';
 import type { InputLaneHandler, ReadLaneHandler } from './handler/SessionHandler';
 import PacketHandlerRegistry from './PacketHandlerRegistry';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 describe('network', () => {
     describe('PacketHandlerRegistry', () => {

@@ -9,7 +9,7 @@ import ModalFormResponsePacket, {
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import ModalFormResponseHandler, { MALFORMED_FORM_RESPONSE } from './ModalFormResponseHandler';
 
 /** A session whose answers go to scripts that take them, or to none when `scripts` is false. */

@@ -35,7 +35,7 @@ import { randomOf } from '../utils/Random';
 import type { KeyedPlayer, PlayerKeySource } from '../keyedPlayer';
 import { playerKeyFrom } from '../keyedPlayer';
 import type Server from '../Server';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /** Where the three rows go: the player's session. */
 type EnchantOptionsRecipient = Pick<PlayerSession, 'send'>;

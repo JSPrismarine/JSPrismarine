@@ -6,7 +6,7 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/bedrock/packet/ContainerOpenPacket';

@@ -2,7 +2,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
-import PlayerSession from '../network/PlayerSession';
+import PlayerSession from '../player/PlayerSession';
 import { entityIds } from '../entity/entityIds';
 import { PlayerComponents } from '../entity/playerComponents';
 import { EYE_HEIGHT } from '../entity/playerEyes';

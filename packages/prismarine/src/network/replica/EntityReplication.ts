@@ -50,13 +50,13 @@ import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
 import { sameSyncedProperties } from '../actorProperties';
 import { encodePacketBatchBySize } from '../encodePacketBatch';
 import type { EncodedPacketBatch } from '../encodePacketBatch';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { EntityRef, HeldEntity, MembershipChange, PlayerIdOf, ShownKind } from './EntityReplica';
 import type { EntityReplica } from './EntityReplica';
 import { equipmentPackets, firstSightPackets } from './firstSight';
-import type { SessionPresenter } from '../presenter/SessionPresenter';
-import { shownEntityStateOf } from '../presenter/shownEntityState';
-import { shownEquipmentOf } from '../presenter/shownInventory';
+import type { SessionPresenter } from '../../player/presenter/SessionPresenter';
+import { shownEntityStateOf } from '../../player/presenter/shownEntityState';
+import { shownEquipmentOf } from '../../player/presenter/shownInventory';
 import type { FirstSight, SightIdentity } from './firstSight';
 import { allSent } from '../allSent';
 

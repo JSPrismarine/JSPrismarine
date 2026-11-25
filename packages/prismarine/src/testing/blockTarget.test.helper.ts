@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type Server from '../Server';
 import { BlockState } from '../block/state/BlockState';
 import type { StorePlayer } from '../entity/storePlayer';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type Chunk from '../world/chunk/Chunk';

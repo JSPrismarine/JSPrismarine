@@ -40,7 +40,7 @@ import { Item } from '../item/Item';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
-import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import { createConnectedPlayer } from '../player/createConnectedPlayer';
 import { sessionsWith } from '../testing/playerSession.test.helper';
 import type ContainerSetDataPacket from '@jsprismarine/protocol/bedrock/packet/ContainerSetDataPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -51,7 +51,7 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemSt
 import type { ItemStackRequest } from '@jsprismarine/protocol';
 import { ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { PermissionManager } from '../permission/PermissionManager';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';

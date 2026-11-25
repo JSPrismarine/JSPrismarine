@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { sessionFor } from '../testing/playerSession.test.helper';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';

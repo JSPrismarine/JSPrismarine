@@ -21,10 +21,10 @@ import type { StubMembers } from '../testing/stub.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
-import type ClientConnection from './ClientConnection';
-import { joinContentPayloads, limitCraftingData } from './contentPayloads';
-import Codec2193 from './codec/Codec2193';
-import Codec2225 from './codec/Codec2225';
+import type ClientConnection from '../network/ClientConnection';
+import { joinContentPayloads, limitCraftingData } from '../network/contentPayloads';
+import Codec2193 from '../network/codec/Codec2193';
+import Codec2225 from '../network/codec/Codec2225';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 

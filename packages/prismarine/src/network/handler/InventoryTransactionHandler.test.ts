@@ -26,7 +26,7 @@ import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type Chunk from '../../world/chunk/Chunk';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type {
     ReleaseItemData,
     ServerInventoryTransaction,

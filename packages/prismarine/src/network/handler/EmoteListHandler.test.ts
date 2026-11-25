@@ -6,7 +6,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import EmoteListPacket from '@jsprismarine/protocol/bedrock/packet/EmoteListPacket';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import EmoteListHandler from './EmoteListHandler';
 
 const setup = () => {

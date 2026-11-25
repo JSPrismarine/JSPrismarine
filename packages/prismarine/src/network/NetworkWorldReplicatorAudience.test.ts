@@ -8,7 +8,7 @@ import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /**
  * Who receives a positional packet.

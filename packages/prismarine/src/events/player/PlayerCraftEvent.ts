@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 
 import type { Item } from '../../item/Item';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { World } from '../../world/World';
 import type { BrokenBlock } from './PlayerBreakBlockEvent';
 import PlayerEvent from './PlayerEvent';

@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
-import type { Arrival } from '@jsprismarine/prismarine/network/PlayerSession';
+import type { Arrival } from '@jsprismarine/prismarine/player/PlayerSession';
 import { fakePlayer } from '@jsprismarine/prismarine/testing/fakePlayer.test.helper';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';

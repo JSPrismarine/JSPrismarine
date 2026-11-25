@@ -4,7 +4,7 @@ import type { CommandExecutor } from '../command/CommandExecutor';
 import ChatEvent from '../events/chat/ChatEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
 import type { Subject } from '../identity/Subject';
-import type { MessageKind } from '../network/presenter/SessionPresenter';
+import type { MessageKind } from '../player/presenter/SessionPresenter';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
 

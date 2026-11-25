@@ -170,10 +170,15 @@
                 "import": "./dist/network/OutboundPacketTrace.js",
                 "module": "./dist/network/OutboundPacketTrace.js"
             },
+            "./player/PlayerSession": {
+                "types": "./dist/player/PlayerSession.d.ts",
+                "import": "./dist/player/PlayerSession.js",
+                "module": "./dist/player/PlayerSession.js"
+            },
             "./network/PlayerSession": {
-                "types": "./dist/network/PlayerSession.d.ts",
-                "import": "./dist/network/PlayerSession.js",
-                "module": "./dist/network/PlayerSession.js"
+                "types": "./dist/player/PlayerSession.d.ts",
+                "import": "./dist/player/PlayerSession.js",
+                "module": "./dist/player/PlayerSession.js"
             },
             "./network/ReplayManifest": {
                 "types": "./dist/network/ReplayManifest.d.ts",
@@ -255,10 +260,15 @@
                 "import": "./dist/scripting/ScriptHttpInputs.js",
                 "module": "./dist/scripting/ScriptHttpInputs.js"
             },
+            "./player/presenter/SessionPresenter": {
+                "types": "./dist/player/presenter/SessionPresenter.d.ts",
+                "import": "./dist/player/presenter/SessionPresenter.js",
+                "module": "./dist/player/presenter/SessionPresenter.js"
+            },
             "./network/presenter/SessionPresenter": {
-                "types": "./dist/network/presenter/SessionPresenter.d.ts",
-                "import": "./dist/network/presenter/SessionPresenter.js",
-                "module": "./dist/network/presenter/SessionPresenter.js"
+                "types": "./dist/player/presenter/SessionPresenter.d.ts",
+                "import": "./dist/player/presenter/SessionPresenter.js",
+                "module": "./dist/player/presenter/SessionPresenter.js"
             },
             "./utils/Service": {
                 "types": "./dist/utils/Service.d.ts",
@@ -690,10 +700,15 @@
                 "import": "./dist/world/portal/DimensionTravel.js",
                 "module": "./dist/world/portal/DimensionTravel.js"
             },
+            "./player/ChunkSender": {
+                "types": "./dist/player/ChunkSender.d.ts",
+                "import": "./dist/player/ChunkSender.js",
+                "module": "./dist/player/ChunkSender.js"
+            },
             "./network/ChunkSender": {
-                "types": "./dist/network/ChunkSender.d.ts",
-                "import": "./dist/network/ChunkSender.js",
-                "module": "./dist/network/ChunkSender.js"
+                "types": "./dist/player/ChunkSender.d.ts",
+                "import": "./dist/player/ChunkSender.js",
+                "module": "./dist/player/ChunkSender.js"
             },
             "./entity/data/storePlayers": {
                 "types": "./dist/entity/data/storePlayers.d.ts",
@@ -960,10 +975,15 @@
                 "import": "./dist/world/BlockMining.js",
                 "module": "./dist/world/BlockMining.js"
             },
+            "./player/sessionPlayers": {
+                "types": "./dist/player/sessionPlayers.d.ts",
+                "import": "./dist/player/sessionPlayers.js",
+                "module": "./dist/player/sessionPlayers.js"
+            },
             "./network/sessionPlayers": {
-                "types": "./dist/network/sessionPlayers.d.ts",
-                "import": "./dist/network/sessionPlayers.js",
-                "module": "./dist/network/sessionPlayers.js"
+                "types": "./dist/player/sessionPlayers.d.ts",
+                "import": "./dist/player/sessionPlayers.js",
+                "module": "./dist/player/sessionPlayers.js"
             },
             "./entity/DeathMessages": {
                 "types": "./dist/entity/DeathMessages.d.ts",
@@ -1878,9 +1898,13 @@
             "jsprismarine:dist": "./dist/network/OutboundPacketTrace.js",
             "default": "./src/network/OutboundPacketTrace.ts"
         },
+        "./player/PlayerSession": {
+            "jsprismarine:dist": "./dist/player/PlayerSession.js",
+            "default": "./src/player/PlayerSession.ts"
+        },
         "./network/PlayerSession": {
-            "jsprismarine:dist": "./dist/network/PlayerSession.js",
-            "default": "./src/network/PlayerSession.ts"
+            "jsprismarine:dist": "./dist/player/PlayerSession.js",
+            "default": "./src/player/PlayerSession.ts"
         },
         "./network/ReplayManifest": {
             "jsprismarine:dist": "./dist/network/ReplayManifest.js",
@@ -2102,9 +2126,13 @@
             "jsprismarine:dist": "./dist/scripting/ScriptHttpInputs.js",
             "default": "./src/scripting/ScriptHttpInputs.ts"
         },
+        "./player/presenter/SessionPresenter": {
+            "jsprismarine:dist": "./dist/player/presenter/SessionPresenter.js",
+            "default": "./src/player/presenter/SessionPresenter.ts"
+        },
         "./network/presenter/SessionPresenter": {
-            "jsprismarine:dist": "./dist/network/presenter/SessionPresenter.js",
-            "default": "./src/network/presenter/SessionPresenter.ts"
+            "jsprismarine:dist": "./dist/player/presenter/SessionPresenter.js",
+            "default": "./src/player/presenter/SessionPresenter.ts"
         },
         "./utils/Service": {
             "jsprismarine:dist": "./dist/utils/Service.js",
@@ -2402,9 +2430,13 @@
             "jsprismarine:dist": "./dist/world/portal/DimensionTravel.js",
             "default": "./src/world/portal/DimensionTravel.ts"
         },
+        "./player/ChunkSender": {
+            "jsprismarine:dist": "./dist/player/ChunkSender.js",
+            "default": "./src/player/ChunkSender.ts"
+        },
         "./network/ChunkSender": {
-            "jsprismarine:dist": "./dist/network/ChunkSender.js",
-            "default": "./src/network/ChunkSender.ts"
+            "jsprismarine:dist": "./dist/player/ChunkSender.js",
+            "default": "./src/player/ChunkSender.ts"
         },
         "./entity/data/storePlayers": {
             "jsprismarine:dist": "./dist/entity/data/storePlayers.js",
@@ -2578,9 +2610,13 @@
             "jsprismarine:dist": "./dist/world/BlockMining.js",
             "default": "./src/world/BlockMining.ts"
         },
+        "./player/sessionPlayers": {
+            "jsprismarine:dist": "./dist/player/sessionPlayers.js",
+            "default": "./src/player/sessionPlayers.ts"
+        },
         "./network/sessionPlayers": {
-            "jsprismarine:dist": "./dist/network/sessionPlayers.js",
-            "default": "./src/network/sessionPlayers.ts"
+            "jsprismarine:dist": "./dist/player/sessionPlayers.js",
+            "default": "./src/player/sessionPlayers.ts"
         },
         "./entity/DeathMessages": {
             "jsprismarine:dist": "./dist/entity/DeathMessages.js",

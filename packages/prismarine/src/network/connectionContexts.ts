@@ -16,9 +16,9 @@ import { playerKeyOf } from '../playerIdentity';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
-import { createConnectedPlayer } from './createConnectedPlayer';
+import { createConnectedPlayer } from '../player/createConnectedPlayer';
 import type { ConnectionContext, JoinOptions, JoinPreparation, LoginServices } from './handler/ConnectionContext';
-import { InputQueue } from './InputQueue';
+import { InputQueue } from '../input/InputQueue';
 import { accountLinksToken } from '../modules/tokens';
 
 /**

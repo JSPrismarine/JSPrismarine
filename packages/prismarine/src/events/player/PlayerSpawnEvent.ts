@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * Fired just before a player of either edition spawns into the world on joining. Cancelling it

@@ -87,7 +87,7 @@ describe('network/handler', () => {
         const file = join(here, 'Example.ts');
         expect(importsServer(file, "import type Server from '../../Server';")).toBe(true);
         expect(importsServer(file, "import { Server as Host } from '@jsprismarine/prismarine';")).toBe(true);
-        expect(importsServer(file, "import type PlayerSession from '../PlayerSession';")).toBe(false);
+        expect(importsServer(file, "import type PlayerSession from '../../player/PlayerSession';")).toBe(false);
         expect(importsServer(file, "import type { SessionContext } from './HandlerContext';")).toBe(false);
         expect(importsServer(file, "import type { ServerContent } from '../../content/ServerContent';")).toBe(false);
         expect(callsGetServer(file, 'const content = session.getServer().getContent();')).toBe(true);

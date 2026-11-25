@@ -17,7 +17,7 @@ import {
     SetCompression
 } from '@jsprismarine/protocol/java/packet/login';
 
-import type { LoginRefusal } from '../../playerAdmission';
+import type { LoginRefusal } from '../../../player/playerAdmission';
 import type { JavaProfile } from '../javaAuth';
 import { decryptFromClient, offlineUuid, serverHash } from '../javaAuth';
 import type { JavaConnection } from '../JavaConnection';

@@ -34,7 +34,7 @@ import { EntityReplication } from './replica/EntityReplication';
 import type { EntityReplicationCounts } from './replica/EntityReplication';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type ClientConnection from './ClientConnection';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFragmentCache } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import ActorEventPacket from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
@@ -61,7 +61,7 @@ import type { BlockTranslation } from './codec/blockTranslation';
 import { CRACK_PARTICLES } from '../entity/playerMining';
 import { allSent } from './allSent';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
-import type { ShownBlockChange, ShownEntityMove } from './presenter/SessionPresenter';
+import type { ShownBlockChange, ShownEntityMove } from '../player/presenter/SessionPresenter';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { isWaterIdentifier } from '../entity/data/navigationView';
 

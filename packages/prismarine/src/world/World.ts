@@ -37,7 +37,7 @@ import type { StoredActor } from '../entity/EntitySerializer';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { storedInventory, storedItem } from '../inventory/persistence';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { keyOfPlayer } from '../playerIdentity';
 import { playerRecordOf } from './playerRecord';
 import type { PlayerRecordSource } from './playerRecord';

@@ -1,4 +1,4 @@
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import PlayerEvent from './PlayerEvent';
 
 /** A button a player's input reports held or let go. */

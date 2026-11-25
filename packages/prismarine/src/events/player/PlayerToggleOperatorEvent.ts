@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * Fired as a player's operator status is changed

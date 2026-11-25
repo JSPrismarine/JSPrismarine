@@ -9,7 +9,7 @@
  */
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { HandlerLog } from '../handler/HandlerContext';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /** The session state a decoder reads. */
 export interface SessionView {

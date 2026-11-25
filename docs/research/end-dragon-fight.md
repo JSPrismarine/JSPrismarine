@@ -285,7 +285,7 @@ nothing in prismarine.
 (`World.ts:2487-2499`) to `DimensionTravel.touch`, delay 0, `leaveEnd`
 (`packages/prismarine/src/world/portal/DimensionTravel.ts:329-352`): a player goes to their
 respawn point, others one block above the Overworld spawn, no credits.
-`PlayerSession.changeWorld(arrival)` (`packages/prismarine/src/network/PlayerSession.ts:1504`)
+`PlayerSession.changeWorld(arrival)` (`packages/prismarine/src/player/PlayerSession.ts:1504`)
 holds one pending change and refuses a second (1509-1518). `END_SPAWN_POINT` (100, 50, 0) and
 the platform writer exist (`DimensionTravel.ts:61`,
 `packages/block-behaviors/src/rules/portal.ts:547-560`). `WorldPersistenceData`

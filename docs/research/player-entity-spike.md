@@ -199,7 +199,7 @@ grep -cE "^    (public|private|protected)( static| readonly| override| async)* [
 git grep -c 'getNetworkSession()' -- packages/prismarine/src ':!*.test.ts'
 
 # Session-to-player reads in PlayerSession, and getPlayer() calls
-grep -oE "this\.player\.[a-zA-Z]+" packages/prismarine/src/network/PlayerSession.ts | sort | uniq -c
+grep -oE "this\.player\.[a-zA-Z]+" packages/prismarine/src/player/PlayerSession.ts | sort | uniq -c
 git grep -c 'getPlayer()' -- packages/prismarine/src ':!*.test.ts'
 
 # Files that name Player

@@ -1,5 +1,5 @@
 import type { InputContext } from '../../network/handler/HandlerContext';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

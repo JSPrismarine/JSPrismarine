@@ -5,7 +5,7 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import CommandOriginData from '@jsprismarine/protocol/bedrock/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/bedrock/wire/structures/CommandOriginType';

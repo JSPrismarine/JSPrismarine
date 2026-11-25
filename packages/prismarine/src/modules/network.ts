@@ -28,7 +28,7 @@ import type { PortRange, UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet'
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
-import { InputQueue } from '../network/InputQueue';
+import { InputQueue } from '../input/InputQueue';
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import { QueryResponder } from '../network/query/QueryResponder';

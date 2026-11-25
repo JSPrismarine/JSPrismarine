@@ -17,7 +17,7 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import type { DataEntity } from '../../entity/data/DataEntity';
 import { explode } from '../../entity/Explosion';
-import { BossBar } from '../../network/BossBar';
+import { BossBar } from '../../player/BossBar';
 import { chunksOfBlockBox } from '../ChunkTickets';
 import type { ChunkCoordinate } from '../ChunkTickets';
 import type { World } from '../World';

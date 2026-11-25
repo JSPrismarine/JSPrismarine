@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { ActorLinkType } from '@jsprismarine/protocol/bedrock/wire/definitions/addActor';
 import type { ActorLink } from '@jsprismarine/protocol/bedrock/wire/definitions/addActor';
 import SetActorLinkPacket from '@jsprismarine/protocol/bedrock/packet/SetActorLinkPacket';

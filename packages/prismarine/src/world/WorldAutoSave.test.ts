@@ -12,7 +12,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { GenericBlockEntity } from '../blockentity/GenericBlockEntity';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';

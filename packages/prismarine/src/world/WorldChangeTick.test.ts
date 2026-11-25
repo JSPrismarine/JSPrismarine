@@ -21,7 +21,7 @@ import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
 import { Item } from '../item/Item';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { blockMiningOf, playerMiningOf } from './BlockMining';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';

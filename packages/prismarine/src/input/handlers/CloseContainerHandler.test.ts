@@ -8,7 +8,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
 import type ClientConnection from '../../network/ClientConnection';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';

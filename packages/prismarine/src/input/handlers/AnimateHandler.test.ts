@@ -6,7 +6,7 @@ import type { World } from '../../world/World';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import AnimateHandler from './AnimateHandler';
 
 const SELF = 7n;

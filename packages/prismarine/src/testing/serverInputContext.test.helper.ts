@@ -1,5 +1,5 @@
 import type { HandlerServices, InputContext } from '../network/handler/HandlerContext';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
 import { stub } from './stub.test.helper';
 

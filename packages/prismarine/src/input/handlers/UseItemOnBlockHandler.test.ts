@@ -2,7 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';

@@ -9,11 +9,11 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import ClientConnection from './ClientConnection';
-import { encodePacketBatch } from './encodePacketBatch';
-import type { TransportConnection } from './transport/Transport';
+import ClientConnection from '../network/ClientConnection';
+import { encodePacketBatch } from '../network/encodePacketBatch';
+import type { TransportConnection } from '../network/transport/Transport';
 import { sessionFor } from '../testing/playerSession.test.helper';
-import Codec2193 from './codec/Codec2193';
+import Codec2193 from '../network/codec/Codec2193';
 
 describe('PlayerSession movement compression', () => {
     it('uses the server compression level when flushing queued movement', async () => {

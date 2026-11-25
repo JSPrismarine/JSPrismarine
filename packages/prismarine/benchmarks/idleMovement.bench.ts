@@ -7,7 +7,7 @@ import type { StorePlayerActor } from '../src/entity/data/storePlayers';
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';
 import type ClientConnection from '../src/network/ClientConnection';
-import type PlayerSession from '../src/network/PlayerSession';
+import type PlayerSession from '../src/player/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
 import { applyClientMovement } from '../src/network/handler/PlayerAuthInputHandler';

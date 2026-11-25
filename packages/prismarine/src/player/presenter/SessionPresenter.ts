@@ -15,8 +15,8 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { Gametype } from '@jsprismarine/minecraft';
 
-import type { ListedPlayer } from '../playerListEntry';
-import type { AbilityTarget } from '../replica/firstSight';
+import type { ListedPlayer } from '../../network/playerListEntry';
+import type { AbilityTarget } from '../../network/replica/firstSight';
 import type { ChunkWire } from '../ChunkView';
 import type PlayerSession from '../PlayerSession';
 import type { ShownEntity } from '../../world/ShownActor';

@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import SetViewDistanceHandler from './SetViewDistanceHandler';
 
 /** Runs the handler against a server with the given view distance and returns what it granted and logged. */

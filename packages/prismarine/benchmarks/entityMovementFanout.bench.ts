@@ -20,7 +20,7 @@ import { Position } from '../src/world/Position';
 import type { ShownActor } from '../src/world/ShownActor';
 import type { World } from '../src/world/World';
 import type ClientConnection from '../src/network/ClientConnection';
-import type PlayerSession from '../src/network/PlayerSession';
+import type PlayerSession from '../src/player/PlayerSession';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
 import { encodePacketBatch } from '../src/network/encodePacketBatch';
 import Codec2193 from '../src/network/codec/Codec2193';

@@ -22,7 +22,7 @@ import type { PermissionManager } from '../../permission/PermissionManager';
 import type { WorldMessages } from '../../world/WorldMessages';
 import type SessionManager from '../../SessionManager';
 import type { WorldReplicators } from '../NetworkWorldReplicator';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { Updates } from '../../modules/updates';
 
 /** The logger levels a handler writes at. */

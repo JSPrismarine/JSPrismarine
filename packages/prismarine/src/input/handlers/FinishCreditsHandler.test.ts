@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import FinishCreditsHandler from './FinishCreditsHandler';
 
 const run = ({ pending = false } = {}) => {

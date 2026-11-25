@@ -5,7 +5,7 @@ import BossEventPacket, {
 } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import { describe, expect, it } from 'vitest';
 
-import { BossBar } from '../../network/BossBar';
+import { BossBar } from '../../player/BossBar';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import QueryBossBarHandler from './QueryBossBarHandler';

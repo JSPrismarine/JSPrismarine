@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SessionPlayer } from './network/sessionPlayers';
+import type { SessionPlayer } from './player/sessionPlayers';
 import SessionManager from './SessionManager';
 import type ClientConnection from './network/ClientConnection';
-import type PlayerSession from './network/PlayerSession';
+import type PlayerSession from './player/PlayerSession';
 import type { PlayerIdentity } from './playerIdentity';
 import { identityNamed } from './testing/sessionIdentity.test.helper';
 import { stub } from './testing/stub.test.helper';

@@ -44,7 +44,7 @@ import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
 import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
 import { nbtBase64Of } from '../nbtBytes';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import PlayerSession from './PlayerSession';
-import { BedrockPresenter } from './presenter/BedrockPresenter';
+import { BedrockPresenter } from '../network/presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import { TextPacketType } from '@jsprismarine/protocol';
 

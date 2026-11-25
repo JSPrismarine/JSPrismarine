@@ -6,7 +6,7 @@ import type {
     SessionContext
 } from '../network/handler/HandlerContext';
 import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { stub } from './stub.test.helper';
 import type { StubMembers } from './stub.test.helper';
 

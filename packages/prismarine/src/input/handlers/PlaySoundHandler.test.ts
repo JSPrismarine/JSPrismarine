@@ -9,7 +9,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { OccurrenceKinds } from '../../world/changelog/ChangeEntry';
 import type { World } from '../../world/World';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import PlaySoundHandler from './PlaySoundHandler';
 

@@ -21,13 +21,13 @@
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
-import type { MoveMode } from '../../network/presenter/SessionPresenter';
+import type { MoveMode } from '../../player/presenter/SessionPresenter';
 
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type Server from '../../Server';
 import type { ExperienceHolder } from '../../entity/Experience';
 import type HumanInventory from '../../inventory/HumanInventory';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import type { StoreActor } from '../../entity/data/storeActors';
 import { dimensionByName } from '../../world/DimensionType';

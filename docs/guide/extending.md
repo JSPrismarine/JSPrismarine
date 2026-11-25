@@ -413,7 +413,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/modules/tokens
 @jsprismarine/prismarine/network/InboundPacketTrace
 @jsprismarine/prismarine/network/OutboundPacketTrace
-@jsprismarine/prismarine/network/PlayerSession
+@jsprismarine/prismarine/player/PlayerSession
 @jsprismarine/prismarine/network/ReplayManifest
 @jsprismarine/prismarine/about
 @jsprismarine/prismarine/stats/StatsMetric
@@ -430,7 +430,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/scripting/LevelScripts
 @jsprismarine/prismarine/scripting/LevelScriptWorld
 @jsprismarine/prismarine/scripting/ScriptHttpInputs
-@jsprismarine/prismarine/network/presenter/SessionPresenter
+@jsprismarine/prismarine/player/presenter/SessionPresenter
 @jsprismarine/prismarine/utils/Service
 @jsprismarine/prismarine/ban/BanManager
 @jsprismarine/prismarine/chat/ChatManager
@@ -517,7 +517,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/entity/data/storeActors
 @jsprismarine/prismarine/entity/DamageSource
 @jsprismarine/prismarine/world/portal/DimensionTravel
-@jsprismarine/prismarine/network/ChunkSender
+@jsprismarine/prismarine/player/ChunkSender
 @jsprismarine/prismarine/entity/data/storePlayers
 @jsprismarine/prismarine/entity/data/facts
 @jsprismarine/prismarine/network/ClientConnection
@@ -571,7 +571,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/WorldSystems
 @jsprismarine/prismarine/world/changelog/ChangeLog
 @jsprismarine/prismarine/world/BlockMining
-@jsprismarine/prismarine/network/sessionPlayers
+@jsprismarine/prismarine/player/sessionPlayers
 @jsprismarine/prismarine/entity/DeathMessages
 @jsprismarine/prismarine/world/generators/datadriven/chunkPipeline
 @jsprismarine/prismarine/world/GameEventListenerRegistry

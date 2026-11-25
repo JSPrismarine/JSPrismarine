@@ -11,7 +11,7 @@ import type { EntityFixture } from '../entity/data/testing';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { NetworkWorldReplicator } from './NetworkWorldReplicator';
+import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 
 /**

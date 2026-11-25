@@ -6,7 +6,7 @@ import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
 import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
-import { BedrockPresenter } from './presenter/BedrockPresenter';
+import { BedrockPresenter } from '../network/presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**

@@ -10,7 +10,7 @@ import { PlayerComponents } from '../entity/playerComponents';
 import type { StatusEffect } from '../entity/StatusEffect';
 import type HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { BlockMining } from '../world/BlockMining';
 import { blockMiningOf } from '../world/BlockMining';
 import BlockPosition from '../world/BlockPosition';

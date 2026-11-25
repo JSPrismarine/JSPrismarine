@@ -6,7 +6,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePacksReadyForValidationPacket';
 import ResourcePacksReadyForValidationHandler from './ResourcePacksReadyForValidationHandler';
 

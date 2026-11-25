@@ -139,8 +139,8 @@ hit crystal exploding and an invulnerable one surviving.
 
 **Goal.** A reusable server-side boss bar over `BossEventPacket`, which nothing sends today.
 
-**Files.** New `packages/prismarine/src/network/BossBar.ts` with test;
-`packages/prismarine/src/network/PlayerSession.ts` only if a send helper is missing.
+**Files.** New `packages/prismarine/src/player/BossBar.ts` with test;
+`packages/prismarine/src/player/PlayerSession.ts` only if a send helper is missing.
 
 **Public API.**
 
@@ -181,7 +181,7 @@ respawn point; the next entry skips the credits. Java's rule set, fight note sec
 `ShowCreditsPacket(StartCredits)`, hold the resolved arrival, set `seenCredits`, and do not call
 `changeWorld` yet), `packages/prismarine/src/network/handler/ShowCreditsHandler.ts` (on
 `EndCredits`, complete the held arrival through `PlayerSession.changeWorld`; an unexpected reply
-is logged and dropped), `packages/prismarine/src/network/PlayerSession.ts` (a
+is logged and dropped), `packages/prismarine/src/player/PlayerSession.ts` (a
 `pendingCredits?: Arrival` beside the pending dimension change at 1509-1518; drop
 `PlayerAuthInput` while it is set, as the pending change already does),
 `packages/prismarine/src/Player.ts` and the player record (`seenCredits` on `WorldPlayerData`

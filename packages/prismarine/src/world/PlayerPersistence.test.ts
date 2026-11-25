@@ -26,7 +26,7 @@ import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
 import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type { ChunkScheduler } from './ChunkScheduler';

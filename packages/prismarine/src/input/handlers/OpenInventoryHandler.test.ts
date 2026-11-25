@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import OpenInventoryHandler from './OpenInventoryHandler';
 
 describe('OpenInventoryHandler', () => {

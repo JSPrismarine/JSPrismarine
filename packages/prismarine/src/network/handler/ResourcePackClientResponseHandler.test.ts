@@ -29,7 +29,7 @@ import Codec2193 from '../codec/Codec2193';
 import { registeredCodecs } from '../codec/CodecRegistry';
 import Codec2225 from '../codec/Codec2225';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';

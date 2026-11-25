@@ -5,7 +5,7 @@ import type { LoggedLines } from '../../testing/blockTarget.test.helper';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import SetPlayerFurnaceOptionsPacket, {
     FurnaceLayout,

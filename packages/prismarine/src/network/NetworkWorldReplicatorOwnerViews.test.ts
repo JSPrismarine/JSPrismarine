@@ -9,8 +9,8 @@ import type { ChangeEntry } from '../world/changelog/ChangeEntry';
 import { Dimensions } from '../world/DimensionType';
 import type { World } from '../world/World';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
-import type { OpenBlockContainer, OpenTrade, TradingActor } from './PlayerSession';
-import type PlayerSession from './PlayerSession';
+import type { OpenBlockContainer, OpenTrade, TradingActor } from '../player/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /**
  * What replication sends a player's own client after the seal: a trader's offers to the players

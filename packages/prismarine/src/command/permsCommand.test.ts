@@ -12,7 +12,7 @@ import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { Subject } from '../identity/Subject';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';

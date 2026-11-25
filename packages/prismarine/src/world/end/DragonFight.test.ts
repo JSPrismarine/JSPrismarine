@@ -26,7 +26,7 @@ import type { DataEntity } from '../../entity/data/DataEntity';
 import { orbViewOf } from '../../entity/data/experienceOrbs';
 import { EntityRuntimes } from '../../entity/data/live';
 import type { LiveEntityRuntime } from '../../entity/data/live';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { Difficulty } from '@jsprismarine/minecraft';

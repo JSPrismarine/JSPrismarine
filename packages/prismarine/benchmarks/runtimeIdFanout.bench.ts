@@ -9,7 +9,7 @@ import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveA
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
 import type { World } from '../src/world/World';
-import PlayerSession from '../src/network/PlayerSession';
+import PlayerSession from '../src/player/PlayerSession';
 
 /** What a session queues a move of. */
 type MovedActor = Parameters<PlayerSession['queueMoveActor']>[0];

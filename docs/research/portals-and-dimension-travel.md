@@ -216,7 +216,7 @@ Blocks and behaviors.
 
 Tests and harnesses.
 - `packages/prismarine/src/Player.test.ts` `fakePlayer()` builds a real `Player` over stubbed `Server`, `World` and `ClientConnection` whose `sendDataPacket` pushes into `sent`, and the `setWorld` tests assert packet order by `findIndex` over `sent`.
-- `packages/prismarine/src/network/PlayerSessionChunks.test.ts` builds a `PlayerSession` over a stub connection and inspects `session.sender`.
+- `packages/prismarine/src/player/PlayerSessionChunks.test.ts` builds a `PlayerSession` over a stub connection and inspects `session.sender`.
 - `packages/prismarine/src/network/handler/PlayerActionHandler.test.ts` has `fakeSession(gametype)`.
 - `packages/block-behaviors/src/harness.ts` runs families against an in-memory world and is the only place `onStepOn` is called today.
 - `packages/client/src/Login.test.ts` boots a real `Server` on 127.0.0.1:19277 with a temp `JSP_DIR` and logs in with the real `Client`; `client.getSession()` is a `ClientSession` emitting `packet` and `packet:<id>`.

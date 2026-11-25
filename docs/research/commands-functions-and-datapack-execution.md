@@ -530,7 +530,7 @@ Of the 262 distinct parameter type names, 236 are enums and **26 are basic types
 
 That is 26 against the 59 parsers Java's 26.3 tree uses. The largest enums show where the packet's weight is: `UnlockableRecipeValues` (4202 values), `Item` (3411), `Block` (2648), `Tool` (2079), `EntityEvents` (479), `features` (286), `EntityType` (229), `featureRules` (170).
 
-Exactly **four enums are soft** (declared with an empty `values` array, filled at runtime over `UpdateSoftEnumPacket`): `ScoreboardObjectives`, `TagValues`, `GameTestName`, `GameTestTag`. That is the complete vanilla soft-enum set. This repository adds a fifth of its own, a soft enum named `Player` carrying online player names (`packages/prismarine/src/network/PlayerSession.ts:902-913`).
+Exactly **four enums are soft** (declared with an empty `values` array, filled at runtime over `UpdateSoftEnumPacket`): `ScoreboardObjectives`, `TagValues`, `GameTestName`, `GameTestTag`. That is the complete vanilla soft-enum set. This repository adds a fifth of its own, a soft enum named `Player` carrying online player names (`packages/prismarine/src/player/PlayerSession.ts:902-913`).
 
 The parse symbol is a 32-bit word. From `packages/prismarine/src/network/type/CommandParameter.ts:11-16`, matching gophertunnel's `protocol/command.go` at protocol 2193:
 

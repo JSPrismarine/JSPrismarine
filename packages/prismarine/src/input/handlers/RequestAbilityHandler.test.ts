@@ -6,7 +6,7 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { ShownPlayer } from '../../world/ShownPlayer';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import RequestAbilityHandler from './RequestAbilityHandler';
 

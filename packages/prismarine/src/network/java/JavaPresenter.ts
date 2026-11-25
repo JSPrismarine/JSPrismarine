@@ -62,9 +62,9 @@ import type {
     ShownRespawn,
     ShownStack,
     ShownVitals
-} from '../presenter/SessionPresenter';
+} from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
-import type { ChunkWire } from '../ChunkView';
+import type { ChunkWire } from '../../player/ChunkView';
 import type { EditionTranslation } from './editionTranslation';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';

@@ -8,7 +8,7 @@ import LecternUpdateHandler from '@jsprismarine/prismarine/network/handler/Lecte
 import PlayerToggleCrafterSlotRequestHandler from '@jsprismarine/prismarine/network/handler/PlayerToggleCrafterSlotRequestHandler';
 import StructureBlockUpdateHandler from '@jsprismarine/prismarine/network/handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from '@jsprismarine/prismarine/network/handler/StructureTemplateDataRequestHandler';
-import type PlayerSession from '@jsprismarine/prismarine/network/PlayerSession';
+import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
 import type { Server } from '@jsprismarine/prismarine';
 import { inertEntityRuntime } from '@jsprismarine/prismarine/testing/entityServer';
 import { sessionContext } from '@jsprismarine/prismarine/testing/handlerContext.test.helper';

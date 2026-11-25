@@ -1,6 +1,6 @@
 import type { InputMode } from '@jsprismarine/protocol';
 
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import PlayerEvent from './PlayerEvent';
 
 /**

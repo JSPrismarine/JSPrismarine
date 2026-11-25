@@ -20,7 +20,7 @@ import type { MerchantSnapshot } from '@jsprismarine/trading';
 import type { LevelView, RandomSource } from '@jsprismarine/predicates';
 
 import type { ServerContent } from '../../content/ServerContent';
-import type { TradeSource } from '../../network/PlayerSession';
+import type { TradeSource } from '../../player/PlayerSession';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { plainOf } from '../../world/changelog/PlainData';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';

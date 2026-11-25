@@ -10,7 +10,7 @@ import BossEventPacket, {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type ClientConnection from '../network/ClientConnection';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { Item } from '../item/Item';
 import { DamageCause } from './DamageCause';

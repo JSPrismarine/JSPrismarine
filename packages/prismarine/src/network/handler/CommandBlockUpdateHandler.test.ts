@@ -23,7 +23,7 @@ import type Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/DimensionType';
 import type { Level } from '../../world/Level';
 import type { World } from '../../world/World';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import CommandBlockUpdateHandler from './CommandBlockUpdateHandler';
 
 const AT = { x: 1, y: 2, z: 3 };

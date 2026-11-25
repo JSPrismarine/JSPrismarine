@@ -6,7 +6,7 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import EatHandler from './EatHandler';
 
 /** The sender in a world that records the actor events it is asked to send. */

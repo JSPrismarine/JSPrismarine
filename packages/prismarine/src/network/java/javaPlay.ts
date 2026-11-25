@@ -13,7 +13,7 @@ import {
 } from '@jsprismarine/protocol/java/packet/play';
 
 import type { TranslationKey } from '../../chat/ConsoleText';
-import { KeepAlive } from '../KeepAlive';
+import { KeepAlive } from '../../player/KeepAlive';
 import type { JavaWorldHost } from './JavaConnections';
 import { javaSpawnInfoOf } from './JavaPresenter';
 import type { JavaContext } from './handler/JavaPacketHandler';

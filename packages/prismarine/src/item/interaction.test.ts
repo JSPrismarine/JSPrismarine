@@ -32,7 +32,7 @@ import type { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { Position } from '../world/Position';
 import { fakeLevel, testWorld } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';

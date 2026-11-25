@@ -7,7 +7,7 @@ import os from 'node:os';
 
 import type Server from '../src/Server';
 import type ClientConnection from '../src/network/ClientConnection';
-import type PlayerSession from '../src/network/PlayerSession';
+import type PlayerSession from '../src/player/PlayerSession';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { MobSpawner } from '../src/blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../src/blockentity/BlockEntityRegistry';

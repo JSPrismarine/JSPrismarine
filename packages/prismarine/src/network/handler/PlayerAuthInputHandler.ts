@@ -21,7 +21,7 @@ import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import PlayerButtonInputEvent from '../../events/player/PlayerButtonInputEvent';
 import type { PlayerInputButton } from '../../events/player/PlayerButtonInputEvent';
 import PlayerInputModeChangeEvent from '../../events/player/PlayerInputModeChangeEvent';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { HandlerServices, InputContext } from './HandlerContext';
 import PlayerActionHandler from './PlayerActionHandler';
 import type { InputLaneHandler } from './SessionHandler';

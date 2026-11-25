@@ -10,7 +10,7 @@ import type { ChatManager } from '../chat/ChatManager';
 import type { Config } from '../config/Config';
 import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';

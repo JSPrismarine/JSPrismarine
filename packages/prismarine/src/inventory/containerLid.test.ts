@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
-import type PlayerSession from '../network/PlayerSession';
-import type { OpenBlockContainer } from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
+import type { OpenBlockContainer } from '../player/PlayerSession';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import type { World } from '../world/World';

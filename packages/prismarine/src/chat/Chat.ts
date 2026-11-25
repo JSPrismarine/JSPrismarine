@@ -1,5 +1,5 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
-import type { MessageKind } from '../network/presenter/SessionPresenter';
+import type { MessageKind } from '../player/presenter/SessionPresenter';
 
 /**
  * How a chat is shown. The values are the Bedrock `TextPacketType` numbers each kind went out as

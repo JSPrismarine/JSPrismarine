@@ -12,7 +12,7 @@ import { bedrockProtocolProvider, describeProtocolProviders, javaProtocolProvide
 import { Config } from './config/Config';
 import { RemoteConsole } from './console/RemoteConsole';
 import { RemoteLogTransport } from './console/RemoteLogTransport';
-import ChunkSender from './network/ChunkSender';
+import ChunkSender from './player/ChunkSender';
 import type { Transport } from './network/transport/Transport';
 import { statsToken } from './modules/tokens';
 import { ServerMetric } from './stats/serverMetrics';

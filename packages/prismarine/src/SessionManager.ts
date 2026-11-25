@@ -1,6 +1,6 @@
 import type ClientConnection from './network/ClientConnection';
-import type PlayerSession from './network/PlayerSession';
-import type { SessionPlayer } from './network/sessionPlayers';
+import type PlayerSession from './player/PlayerSession';
+import type { SessionPlayer } from './player/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
 import type { PlayerIdentity } from './playerIdentity';
 import { sameAccount } from './playerIdentity';

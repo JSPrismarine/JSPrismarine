@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DataEntity } from '../entity/data/DataEntity';
 import type { StoreActors } from '../entity/data/storeActors';
 import { StoreActor } from '../entity/data/storeActors';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';

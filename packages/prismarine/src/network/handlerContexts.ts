@@ -11,7 +11,7 @@ import { applyInputNow } from '../world/inputUnit';
 import { allSent } from './allSent';
 import type { HandlerServices, InputStep, SessionContext } from './handler/HandlerContext';
 import type { InputLaneHandler, SessionHandler } from './handler/SessionHandler';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { updatesToken } from '../modules/tokens';
 
 /** The parts of the server a context is built from. */

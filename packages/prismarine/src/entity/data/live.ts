@@ -49,7 +49,7 @@ import type { ContentItemDrop, ContentPosition } from '../../content/world/adapt
 import type { DataEntity } from './DataEntity';
 import { EntityBossBars } from './bossBars';
 import type { OwnBossBar, ShownBossBar } from './bossBars';
-import { BossBar } from '../../network/BossBar';
+import { BossBar } from '../../player/BossBar';
 import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
@@ -93,7 +93,7 @@ import { PASS, VETO, replaceAmount } from './damagePipeline';
 import type { DamageOutcome, DamageRoute } from './damagePipeline';
 import { intentOfHealthWrite, intentOfLegacyBlow, legacySourceOfIntent, viewableDataEntity } from './legacyDamage';
 import type HumanInventory from '../../inventory/HumanInventory';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { StatusEffect } from '../StatusEffect';
 import { advancementDamage, advancementKill, advancementPickedUpItem } from '../../advancement/triggers';
 import { raiseAdvancement } from '../../advancement/raise';
