@@ -99,8 +99,12 @@ Normalization keeps what the code does and drops what recompiling the same sourc
 - Not the `LineNumberTable`, `LocalVariableTable`, `StackMapTable` or constant-pool order.
 
 A field with a `ConstantValue` attribute fingerprints its value. A static field set in `<clinit>`
-fingerprints the instructions between the previous `putstatic` and its own, which is the
-expression that computes it, such as `UniformInt.of(5, 20)`.
+fingerprints the whole static initializer. A narrower slice, such as the instructions since the
+previous `putstatic`, can miss a value left on the stack across another field's store or a second
+store to the same field, so the field's fingerprint also changes when another static field of
+its class does. Methods carry `synchronized` in their header line when the flag is set, since the
+monitor it takes is in no instruction, and a method handle names its reference kind, which tells
+a `getStatic` of a field from a `putStatic`.
 
 Calls to other classes count by name only. A change inside `Entity.move` does not flag every method
 that calls it. The bring-up report lists those separately (section "On a new release").
@@ -152,9 +156,13 @@ restore from cache. One tracker row per tag spelling:
 
 `pnpm --filter @jsprismarine/bedrock-data run java:sources --update` stamps fingerprints for the
 default release, or
-for `--java <R>`, after a maintainer has re-read the changed sources. It never restamps a source
-whose fingerprint changed without `--reviewed <spelling>` for each one, so a bulk update cannot hide
-a change. `--list <spelling>` prints the listing the fingerprint hashes; listing a source under two
+for `--java <R>`, after a maintainer has re-read the changed sources. A fingerprint that the golden
+records for none of a member's releases is a change, and it is stamped only with
+`--reviewed <spelling>` for that member, so a bulk update cannot hide one. The comparison is with
+every release the golden records rather than only the release being stamped, so the first stamp
+for a new release, which has nothing of its own to compare with, goes through the same gate: a
+member that changed between 26.3 and 26.4 differs from 26.3's fingerprint. A fingerprint some
+release already has was reviewed when that release was stamped. `--list <spelling>` prints the listing the fingerprint hashes; listing a source under two
 releases' `--java` and diffing the output shows what changed.
 
 ## On a new release
@@ -192,8 +200,9 @@ default matters, and its own regression test either way.
    tags on 31 members. Tagging it found three citations that no longer named a 26.3 member:
    `FarmBlock` is `FarmlandBlock`, `SpreadingSnowyBlock.canBeGrass` is `canStayAlive`, and pointed
    dripstone's `canSurvive` moved up to `SpeleothemBlock`. Its four citations that name a member
-   without copying it carry `@javaSee`, so its baseline is empty. The experience orb code that
-   landed in `prismarine` while this slice was open carries five more `@javaSource` tags. A
+   without copying it carry `@javaSee`, so its baseline is empty. The experience orb and map code
+   that landed in `prismarine` while this slice was open carries 16 more `@javaSource` tags and
+   two `@javaSee` tags. A
    hand-edited golden hash fails the row, naming the TypeScript site and both fingerprints.
 3. **Convert the citations** ([#3703](https://github.com/JSPrismarine/JSPrismarine/issues/3703)). A codemod reads each ``Java's `X.y` `` citation in a JSDoc comment,
    resolves it in the jar, and adds the tag when it resolves to one member. Run it a package

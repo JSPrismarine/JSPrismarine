@@ -70,7 +70,7 @@ export interface OrbTuning {
     /**
      * How far past a player's box sideways an orb is taken, Java's `Player.aiStep` inflation.
      *
-     * @javaSource Player.aiStep
+     * @javaSee Player.aiStep
      */
     readonly pickupReach: number;
     /** How far above and below a player's box an orb is taken. */
@@ -79,7 +79,7 @@ export interface OrbTuning {
      * Ticks between two orbs one player takes, Java's `Player.takeXpDelay`, which
      * `ExperienceOrb.playerTouch` sets.
      *
-     * @javaSource ExperienceOrb.playerTouch
+     * @javaSee ExperienceOrb.playerTouch
      */
     readonly takeDelay: number;
 }
@@ -397,6 +397,9 @@ export class ExperienceOrbs {
      * Gives one of the orb's orbs to each player whose box, grown by the pickup reach, crosses the
      * orb's and who has waited out the take delay since the last orb it took, Java's
      * `Player.touch` and `ExperienceOrb.playerTouch`.
+     *
+     * @javaSource ExperienceOrb.playerTouch
+     * @javaSee Player.touch
      */
     private pickUp(orb: DataEntity, start: OrbView, tuning: OrbTuning): OrbView {
         let view = start;
@@ -413,7 +416,12 @@ export class ExperienceOrbs {
         return view;
     }
 
-    /** Whether a player's box grown by the pickup reach strictly crosses the orb's box. */
+    /**
+     * Whether a player's box grown by the pickup reach strictly crosses the orb's box, as the box
+     * Java's `Player.aiStep` inflates before it touches what lies in it.
+     *
+     * @javaSource Player.aiStep
+     */
     private touches(orb: DataEntity, player: OrbTaker, tuning: OrbTuning): boolean {
         const { x, y, z } = orb.position;
         const { width, height } = orb.facts.box;
