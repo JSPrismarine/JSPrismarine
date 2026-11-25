@@ -405,6 +405,104 @@ describe('PlayerSession.changeWorld', () => {
         expect(levelChunks()).toBe(queued);
     });
 
+    describe('sent ahead of its arrival', () => {
+        const levelChunks = (sent: unknown[]) => sent.filter((p) => p instanceof LevelChunkPacket);
+        const columnsOf = (sent: unknown[]) =>
+            levelChunks(sent).map((p): [number, number] => [
+                p.getPacketData()?.chunkX ?? Number.NaN,
+                p.getPacketData()?.chunkZ ?? Number.NaN
+            ]);
+
+        it('holds its columns, screen opened or not, until the arrival lands, then sends them', async () => {
+            const { session, server, sent, level } = fakePlayer();
+            const screens = new ServerboundLoadingScreenHandler();
+            const nether = worldOf(Dimensions.Nether, [], level);
+
+            await session.changeWorld(arrivalIn(nether), { holdArrival: true });
+            const id = session.pendingDimensionChange()!.loadingScreenId;
+            expect(session.awaitsArrival(id)).toBe(true);
+            const queued = await drain(session);
+            expect(queued).toBeGreaterThan(0);
+
+            await reportScreen(screens, screenOpened(id), { session, server });
+            session.update(40);
+            await session.flush();
+            expect(levelChunks(sent)).toHaveLength(0);
+
+            expect(
+                await session.landHeldArrival(id, arrivalIn(nether, { position: new Vector3(101.5, 40, -19.5) }))
+            ).toBe(true);
+            await drain(session);
+            expect(levelChunks(sent).length).toBeGreaterThan(0);
+            expect(session.awaitsArrival(id)).toBe(false);
+
+            // The teleport that closes the change carries where the trip landed.
+            sent.length = 0;
+            expect(await session.completeDimensionChange(id)).toBe(true);
+            const move = sent.find(
+                (p): p is MovePlayerPacket =>
+                    p instanceof MovePlayerPacket && p.getPacketData()?.mode === PositionMode.Teleport
+            );
+            expect(move?.getPacketData()?.position.getX()).toBe(101.5);
+            expect(move?.getPacketData()?.position.getY()).toBeCloseTo(40 + EYE_HEIGHT);
+        });
+
+        it('queues the columns around a landing in another column, and none around where it waited', async () => {
+            const { session, server, sent } = fakePlayer();
+            const screens = new ServerboundLoadingScreenHandler();
+            const nether = worldOf(Dimensions.Nether);
+
+            await session.changeWorld(arrivalIn(nether), { holdArrival: true });
+            const id = session.pendingDimensionChange()!.loadingScreenId;
+            await drain(session);
+            await reportScreen(screens, screenOpened(id), { session, server });
+
+            await session.landHeldArrival(id, arrivalIn(nether, { position: new Vector3(1000.5, 40, 1000.5) }));
+            await drain(session);
+
+            const columns = columnsOf(sent);
+            expect(columns.length).toBeGreaterThan(0);
+            // The landing is in column (62, 62); the wait was in (6, -2).
+            expect(columns.every(([x, z]) => Math.abs(x - 62) <= 8 && Math.abs(z - 62) <= 8)).toBe(true);
+        });
+
+        it('is not finished for the client while it waits, and the minute starts when it lands', async () => {
+            const { session, logged, level } = fakePlayer();
+            const nether = worldOf(Dimensions.Nether, [], level);
+
+            await session.changeWorld(arrivalIn(nether), { holdArrival: true });
+            const id = session.pendingDimensionChange()!.loadingScreenId;
+
+            session.update(5000);
+            expect(session.awaitsArrival(id)).toBe(true);
+            expect(logged.some((line) => line.includes('never closed loading screen'))).toBe(false);
+
+            await session.landHeldArrival(id, arrivalIn(nether));
+            session.update(1199);
+            expect(session.pendingDimensionChange()?.loadingScreenId).toBe(id);
+            session.update(1200);
+            expect(session.pendingDimensionChange()).toBeUndefined();
+        });
+
+        it('lands nothing for another screen, another world, or a change that was not held', async () => {
+            const { session } = fakePlayer();
+            const nether = worldOf(Dimensions.Nether);
+            const end = worldOf(Dimensions.TheEnd);
+
+            await session.changeWorld(arrivalIn(nether), { holdArrival: true });
+            const id = session.pendingDimensionChange()!.loadingScreenId;
+            expect(await session.landHeldArrival(id + 1, arrivalIn(nether))).toBe(false);
+            expect(await session.landHeldArrival(id, arrivalIn(end))).toBe(false);
+            expect(session.awaitsArrival(id)).toBe(true);
+
+            const other = fakePlayer().session;
+            await other.changeWorld(arrivalIn(nether));
+            const plain = other.pendingDimensionChange()!.loadingScreenId;
+            expect(other.awaitsArrival(plain)).toBe(false);
+            expect(await other.landHeldArrival(plain, arrivalIn(nether))).toBe(false);
+        });
+    });
+
     it('drops the client input until the screen it was given closes, and ignores another id', async () => {
         const { session, player, server, sent, logged, level } = fakePlayer();
         const inputs = new PlayerAuthInputHandler();
