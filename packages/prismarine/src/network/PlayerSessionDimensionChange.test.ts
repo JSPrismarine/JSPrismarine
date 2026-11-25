@@ -653,7 +653,7 @@ describe('PlayerSession.changeWorld', () => {
         expect(respawnStates()).toEqual([]);
 
         session['chunkSendQueue'].length = 0;
-        session['loadingChunks'].clear();
+        session['chunks']['loading'].clear();
         await session['answerRespawnIfReady']();
         expect(respawnStates()).toEqual([PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]);
 
@@ -737,7 +737,7 @@ describe('PlayerSession.changeWorld', () => {
         await inFlight;
 
         // The batch was the old world's chunk (0, 0). The new world's (0, 0) still has to be sent.
-        expect(session['loadedChunks'].has(Chunk.packXZ(0, 0))).toBe(false);
+        expect(session['chunks'].holds(0, 0)).toBe(false);
     });
 
     it("sends none of the old world's chunks still in the batch once the change is under way", async () => {

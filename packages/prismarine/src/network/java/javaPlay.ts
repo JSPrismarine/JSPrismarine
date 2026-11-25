@@ -1,32 +1,29 @@
 /**
- * A Java player's way into the world and the chunks it is shown of it: the login packet, its
- * position, the chunks around it, and the keep-alives that hold the connection open.
+ * A Java player's way into the world: the login packet, its position, the chunks around it, which
+ * the session sends as it sends a Bedrock player's, and the keep-alives that hold the connection
+ * open.
  */
-import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
-    ChunkBatchFinished,
-    ChunkBatchStart,
     ClientboundKeepAlive,
     GameEvent,
     PlayDisconnect,
     PlayLogin,
-    SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
 } from '@jsprismarine/protocol/java/packet/play';
 
 import type { TranslationKey } from '../../chat/ConsoleText';
 import { KeepAlive } from '../KeepAlive';
-import type { JavaConnection } from './JavaConnection';
 import type { JavaWorldHost } from './JavaConnections';
 import { javaSpawnInfoOf } from './JavaPresenter';
-import type { JavaContext, JavaServices } from './handler/JavaPacketHandler';
+import type { JavaContext } from './handler/JavaPacketHandler';
 
 /**
  * Shows a player who reached play the world around spawn, in the order vanilla sends it: the
- * login, the position, the event that tells the client to wait for chunks, the chunk its view
- * centers on, then the chunks around it as one batch, and tells everyone the player joined. Keep-alives start, and a client that leaves
- * one unanswered for a whole interval is dropped, as vanilla drops it.
+ * login, the position, and the event that tells the client to wait for chunks. The session then
+ * sends the chunks around the player nearest first, as it does a Bedrock player's, and everyone is
+ * told the player joined. Keep-alives start, and a client that leaves one unanswered for a whole
+ * interval is dropped, as vanilla drops it.
  * @param context - The connection that finished its configuration.
  * @param world - The world it joins.
  */
@@ -40,8 +37,7 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
         async (reason) => {
             connection.send(PlayDisconnect, { reason });
             await connection.close();
-        },
-        (at) => respawned(connection, services, world, at)
+        }
     );
     // The join ended before the player was in the world, and hung up on the client.
     if (joined === undefined) return;
@@ -81,8 +77,7 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
         flags: 0
     });
     connection.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
-    connection.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
-    streamChunks(connection, services, world);
+    connection.queue(world.players.showWorld(session, world.viewDistance()));
     // Once the client has a world to show the message in, as Bedrock's join ends with it.
     connection.queue(world.players.announce(session));
 
@@ -96,73 +91,4 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
         }
     });
     connection.keepAlive.start();
-};
-
-/**
- * Starts the client's view again where a respawn put the player: a client spawned again, into the
- * same dimension or another, is sent every chunk around it afresh, as vanilla's new player is.
- */
-const respawned = (
-    connection: JavaConnection,
-    services: JavaServices,
-    world: JavaWorldHost,
-    feet: { x: number; y: number; z: number }
-): void => {
-    // Before play begins, the login's own position and first batch come next anyway.
-    const pose = connection.pose;
-    if (pose === undefined) return;
-    pose.x = feet.x;
-    pose.y = feet.y;
-    pose.z = feet.z;
-    connection.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
-    streamChunks(connection, services, world);
-};
-
-/**
- * Centers the client's view on its chunk and sends every chunk around it the client has not had,
- * nearest first, as one batch, from the world the player is in. A respawn meanwhile ends the
- * batch, whose chunks may be of the world the player left.
- */
-const sendChunksAround = async (
-    connection: JavaConnection,
-    services: JavaServices,
-    world: JavaWorldHost
-): Promise<void> => {
-    const view = connection.view!;
-    const session = connection.session!;
-    const radius = world.viewDistance();
-    connection.send(SetCenterChunk, { x: view.x, z: view.z });
-    const missing: { x: number; z: number }[] = [];
-    for (let dx = -radius; dx <= radius; dx++) {
-        for (let dz = -radius; dz <= radius; dz++) {
-            const key = `${view.x + dx},${view.z + dz}`;
-            if (!view.sent.has(key)) missing.push({ x: view.x + dx, z: view.z + dz });
-        }
-    }
-    if (missing.length === 0) return;
-    missing.sort((a, b) => Math.hypot(a.x - view.x, a.z - view.z) - Math.hypot(b.x - view.x, b.z - view.z));
-    connection.send(ChunkBatchStart, {});
-    let sent = 0;
-    for (const { x, z } of missing) {
-        const chunk = await world.chunk(session, x, z);
-        if (connection.view !== view) break;
-        view.sent.add(`${x},${z}`);
-        connection.send(LevelChunkWithLight, services.chunks.columnOf(chunk, world.light(session)));
-        sent++;
-    }
-    connection.send(ChunkBatchFinished, { batchSize: sent });
-};
-
-/**
- * Sends the chunks the view lacks after any sends already queued, without holding up the
- * connection's packets: a join's first batch takes as long as the world takes to load it, and the
- * client keeps moving, answering keep-alives and loading in meanwhile.
- * @param connection - The connection in play.
- * @param services - What the connections share.
- * @param world - The world the player is in.
- */
-export const streamChunks = (connection: JavaConnection, services: JavaServices, world: JavaWorldHost): void => {
-    connection.streaming = (connection.streaming ?? Promise.resolve())
-        .then(() => sendChunksAround(connection, services, world))
-        .catch((error: unknown) => connection.failed(error));
 };

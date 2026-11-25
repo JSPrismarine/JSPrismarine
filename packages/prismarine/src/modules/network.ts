@@ -57,9 +57,6 @@ import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { gameRuleValue } from '../content/world/gameRules';
 import { GameRules } from '../world/GameRuleManager';
 
-/** The most chunks out from a Java player they are sent, while each batch goes at once. */
-const JAVA_JOIN_RADIUS = 8;
-
 /** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
 const IPV4_WILDCARD = '0.0.0.0';
 /** Every IPv6 interface, where the IPv6 listener binds. */
@@ -398,16 +395,9 @@ export class ServerNetworking implements Networking {
             log: logger,
             world: {
                 players: javaPlayersOf(server, inputs),
-                chunk: (session, x, z) => session.getWorld().getChunk(x, z),
-                light: (session) => {
-                    const systems = session.getWorld().getSystems();
-                    return {
-                        sky: (x, y, z) => systems.getSkyLight(x, y, z),
-                        block: (x, y, z) => systems.getBlockLight(x, y, z)
-                    };
-                },
-                // Each batch is sent at once, so a modest radius until batches are paced.
-                viewDistance: () => Math.min(config.getViewDistance(), JAVA_JOIN_RADIUS),
+                // The session paces the chunks through the server's scheduler, as it does a
+                // Bedrock player's, so a Java player sees as far as a Bedrock one.
+                viewDistance: () => config.getViewDistance(),
                 maxPlayers: () => config.getMaxPlayers(),
                 joinSettings: (session) => {
                     const world = session.getWorld();

@@ -9,8 +9,12 @@
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
+import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
     AddEntity,
+    ChunkBatchFinished,
+    ChunkBatchStart,
+    SetCenterChunk,
     BlockUpdate,
     CHANGE_GAME_MODE,
     ContainerSetContent,
@@ -60,7 +64,10 @@ import type {
     ShownVitals
 } from '../presenter/SessionPresenter';
 import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
+import type { ChunkWire } from '../ChunkView';
 import type { EditionTranslation } from './editionTranslation';
+import type { JavaChunkLight } from './javaChunk';
+import { JavaChunkTranslator } from './javaChunk';
 import {
     javaBlockTranslation,
     javaEntityTranslation,
@@ -224,16 +231,42 @@ export class JavaPresenter implements SessionPresenter {
      * @param ownRuntimeId - The session's own player, whose moves its client is told.
      * @param blocks - Bedrock runtime ids to Java state ids, which every Java session can share.
      * @param items - Bedrock item identifiers to Java item ids, which every Java session can share.
-     * @param respawned - Told where the player stands once its client was spawned again, so the
-     *   connection sends the chunks around it afresh.
+     * @param columns - The world's chunks as a Java client is sent them, which every Java session
+     *   can share.
      */
     public constructor(
         private readonly send: JavaSend,
         private readonly ownRuntimeId: bigint,
         private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation(),
         private readonly items: EditionTranslation<string, number | undefined> = javaItemTranslation(),
-        private readonly respawned: (feet: ShownRespawn['feet']) => void = () => {}
+        private readonly columns: JavaChunkTranslator = new JavaChunkTranslator(blocks)
     ) {}
+
+    /** The chunk the client's view was last centered on, which a center only moves. */
+    private center: { readonly x: number; readonly z: number } | undefined;
+
+    /**
+     * Chunks as vanilla sends them: `Set Center Chunk` when the view moves, and each batch between
+     * `Chunk Batch Start` and `Chunk Batch Finished`, with the light the server's light engine
+     * keeps. The session decides which chunks, and when.
+     */
+    public readonly chunkWire: ChunkWire = {
+        center: async (x, z) => {
+            if (this.center?.x === x && this.center.z === z) return;
+            this.center = { x, z };
+            this.send(SetCenterChunk, { x, z });
+        },
+        send: async (chunks, session) => {
+            const systems = session.getWorld().getSystems();
+            const light: JavaChunkLight = {
+                sky: (x, y, z) => systems.getSkyLight(x, y, z),
+                block: (x, y, z) => systems.getBlockLight(x, y, z)
+            };
+            this.send(ChunkBatchStart, {});
+            for (const chunk of chunks) this.send(LevelChunkWithLight, this.columns.columnOf(chunk, light));
+            this.send(ChunkBatchFinished, { batchSize: chunks.length });
+        }
+    };
 
     /**
      * The window's state id, which the client echoes with each click so the server can tell a click
@@ -472,7 +505,7 @@ export class JavaPresenter implements SessionPresenter {
      * The client keeps the chunks it holds when `Respawn` names the dimension it is already in,
      * so a move between two worlds of one dimension goes through another dimension first.
      */
-    public async showRespawn({ gamemode, dimension, feet, keepData, replacesWorld }: ShownRespawn): Promise<void> {
+    public async showRespawn({ gamemode, dimension, keepData, replacesWorld }: ShownRespawn): Promise<void> {
         const dataToKeep = keepData ? KEEP_ALL_DATA : 0;
         if (replacesWorld) {
             const away = dimension.id === NETHER ? OVERWORLD : NETHER;
@@ -480,7 +513,8 @@ export class JavaPresenter implements SessionPresenter {
         }
         this.send(Respawn, { ...javaSpawnInfoOf(dimension, gamemode), dataToKeep });
         this.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
-        this.respawned(feet);
+        // A client spawned again holds no chunks, so the next center is sent whatever it is.
+        this.center = undefined;
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */

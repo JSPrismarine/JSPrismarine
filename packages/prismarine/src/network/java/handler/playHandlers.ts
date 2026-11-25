@@ -34,7 +34,6 @@ import { EYE_HEIGHT } from '../../../entity/playerEyes';
 import type { Intent, IntentKind } from '../../../input/Intent';
 import type PlayerSession from '../../PlayerSession';
 import type { JavaWorldHost } from '../JavaConnections';
-import { streamChunks } from '../javaPlay';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from '../javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from '../javaMining';
 import { javaUseItemOnIntentOf } from '../javaUseItemOn';
@@ -94,7 +93,8 @@ const acknowledgedHandler = <D extends JavaPacketDefinition>(
     });
 
 /**
- * One move packet, as the movement a Bedrock input reports, and the chunks it brings into view.
+ * One move packet, as the movement a Bedrock input reports; the session brings the chunks it moves
+ * the player toward into view, as it does a Bedrock player's.
  * Each move packet carries part of the pose, and the rest is the last move's.
  */
 const moveHandler = <D extends JavaPacketDefinition>(
@@ -107,7 +107,7 @@ const moveHandler = <D extends JavaPacketDefinition>(
 ): JavaPacketHandler<D> =>
     javaHandler(packet, (payload, context) => {
         const { session, world } = inWorld(context, packet);
-        const { connection, services } = context;
+        const { connection } = context;
         const pose = connection.pose!;
         const { position, rotation, flags } = read(payload);
         if (position !== undefined) {
@@ -132,15 +132,6 @@ const moveHandler = <D extends JavaPacketDefinition>(
                 handledTeleport
             })
         );
-
-        const view = connection.view!;
-        const chunkX = Math.floor(pose.x) >> 4;
-        const chunkZ = Math.floor(pose.z) >> 4;
-        if (chunkX !== view.x || chunkZ !== view.z) {
-            view.x = chunkX;
-            view.z = chunkZ;
-            streamChunks(connection, services, world);
-        }
     });
 
 /**
@@ -151,8 +142,11 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     javaHandler(ServerboundKeepAlive, ({ id }, { connection }) => {
         connection.keepAlive?.answered(id);
     }),
-    javaHandler(ConfirmTeleportation, (_confirmed, { connection }) => {
+    // The position the client accepted, which a respawn or a teleport moved it to, is where its
+    // next move that leaves the position out starts from.
+    javaHandler(ConfirmTeleportation, ({ x, y, z, yaw, pitch }, { connection }) => {
         connection.teleportHandled = true;
+        if (connection.pose !== undefined) Object.assign(connection.pose, { x, y, z, yaw, pitch });
     }),
     intentHandler(PlayerLoaded, () => ({ kind: 'playerInitialized' })),
     intentHandler(ChatMessage, ({ message }) => ({ kind: 'chat', message })),

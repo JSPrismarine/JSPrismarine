@@ -11,6 +11,7 @@ import type ClientConnection from '../network/ClientConnection';
 import PlayerSession from '../network/PlayerSession';
 import type SessionManager from '../SessionManager';
 import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from '../network/sessionPlayers';
+import type { SessionPresenter } from '../network/presenter/SessionPresenter';
 import type { World } from '../world/World';
 import type { StubMembers } from './stub.test.helper';
 import { stub } from './stub.test.helper';
@@ -52,14 +53,19 @@ export const sessionFor = (
     server: Server,
     connection: ClientConnection,
     player: SessionPlayer,
-    ref: Partial<SessionPlayerRef> & { readonly world?: World; readonly joined?: boolean } = {}
+    ref: Partial<SessionPlayerRef> & {
+        readonly world?: World;
+        readonly joined?: boolean;
+        readonly presenter?: SessionPresenter;
+    } = {}
 ): PlayerSession => {
     const session = new PlayerSession(
         server,
         connection,
         { runtimeId: ref.runtimeId ?? -1n, identity: ref.identity ?? TESTER },
         sessionPlayerFields(player).players,
-        ref.world ?? stub<World>()
+        ref.world ?? stub<World>(),
+        ref.presenter
     );
     // As `PlayerSession.join` leaves a player that finished joining.
     if (ref.joined === true) session['joined'] = true;

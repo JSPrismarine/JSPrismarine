@@ -78,8 +78,7 @@ describe('network', () => {
                     2,
                     new InetAddress('127.0.0.1', 50_000),
                     () => {},
-                    async () => {},
-                    () => {}
+                    async () => {}
                 );
                 await settle();
 
