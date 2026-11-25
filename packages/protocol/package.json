@@ -1016,6 +1016,11 @@
                 "import": "./dist/java/versions/26.3/registries.js",
                 "module": "./dist/java/versions/26.3/registries.js"
             },
+            "./java/versions/26.3/lang": {
+                "types": "./dist/java/versions/26.3/lang.d.ts",
+                "import": "./dist/java/versions/26.3/lang.js",
+                "module": "./dist/java/versions/26.3/lang.js"
+            },
             "./package.json": "./package.json",
             "./bedrock/packet/LevelEventGenericPacket": {
                 "types": "./dist/bedrock/packet/LevelEventGenericPacket.d.ts",
@@ -1901,6 +1906,10 @@
         "./java/versions/26.3/registries": {
             "jsprismarine:dist": "./dist/java/versions/26.3/registries.js",
             "default": "./src/java/versions/26.3/registries.ts"
+        },
+        "./java/versions/26.3/lang": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/lang.js",
+            "default": "./src/java/versions/26.3/lang.ts"
         },
         "./package.json": "./package.json",
         "./bedrock/packet/LevelEventGenericPacket": {

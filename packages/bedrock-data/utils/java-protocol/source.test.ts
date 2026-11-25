@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { packetTableSource, releaseSource } from './source.ts';
+import { langSource, packetTableSource, releaseSource } from './source.ts';
 
 describe('dump:java-protocol sources', () => {
     it('writes each phase, direction and packet in name order, without the namespace', () => {
@@ -41,5 +41,22 @@ describe('dump:java-protocol sources', () => {
         expect(releaseSource('26.3', 777)).toContain(
             "export const RELEASE: JavaRelease = { minecraftVersion: '26.3', protocolVersion: 777 };"
         );
+    });
+
+    it('keeps the English of the keys under the prefixes, in key order', () => {
+        const lang = {
+            'death.attack.lava': '%1$s tried to swim in lava',
+            'block.minecraft.stone': 'Stone',
+            'death.attack.drown': '%1$s drowned'
+        };
+
+        expect(JSON.parse(langSource(lang, ['death.']))).toEqual({
+            'death.attack.drown': '%1$s drowned',
+            'death.attack.lava': '%1$s tried to swim in lava'
+        });
+        expect(Object.keys(JSON.parse(langSource(lang, ['death.'])))).toEqual([
+            'death.attack.drown',
+            'death.attack.lava'
+        ]);
     });
 });
