@@ -593,6 +593,11 @@ export default class PlayerSession {
               sinceTick: number;
               /** Whether the arrival columns may go out; see {@link PlayerSession.releaseArrivalChunks}. */
               arrivalReleased?: boolean;
+              /**
+               * Whether the change still waits for where it lands, so its columns are held
+               * whatever the client reports; see {@link PlayerSession.landHeldArrival}.
+               */
+              awaitingArrival?: boolean;
           })
         | undefined;
     /**
@@ -1105,7 +1110,13 @@ export default class PlayerSession {
      */
     public update(tick: number): void {
         const pending = this.pendingChange;
-        if (pending !== undefined && tick - pending.sinceTick >= LOADING_SCREEN_TIMEOUT_TICKS) {
+        // A change still waiting for its arrival is not overdue: the client cannot close a screen
+        // it has no terrain for, and whoever holds the change lands it. The minute starts then.
+        if (
+            pending !== undefined &&
+            pending.awaitingArrival !== true &&
+            tick - pending.sinceTick >= LOADING_SCREEN_TIMEOUT_TICKS
+        ) {
             this.server
                 .getLogger()
                 .warn(
@@ -2726,12 +2737,18 @@ export default class PlayerSession {
      * @param arrival - The world, feet position and rotation the player lands at.
      * @param options - What to do with this arrival when a change is already pending, and what
      *   follows the change: `then` runs once the change is carried out, so a held change takes it
-     *   along and a dropped one drops it.
+     *   along and a dropped one drops it. `holdArrival` opens the client's loading screen at a
+     *   provisional arrival and keeps its columns back until {@link PlayerSession.landHeldArrival}
+     *   names where the player really lands, for a destination still being prepared.
      * @returns Settles once the transport has framed the packets.
      */
     public changeWorld(
         arrival: Arrival,
-        options: { readonly whenPending?: 'queue' | 'drop'; readonly then?: () => void } = {}
+        options: {
+            readonly whenPending?: 'queue' | 'drop';
+            readonly then?: () => void;
+            readonly holdArrival?: boolean;
+        } = {}
     ): Promise<void> {
         const player = this.getPlayer();
         const { world } = arrival;
@@ -2812,7 +2829,13 @@ export default class PlayerSession {
         // it, the `Respawn` exchange that follows settles it. Held as pending, it blocked every
         // later change, a `/tp` into another dimension among them, for the whole timeout.
         if (arrival.closesLoadingScreen !== false) {
-            this.pendingChange = { loadingScreenId, arrival, left: left.name, sinceTick: this.server.getTick() };
+            this.pendingChange = {
+                loadingScreenId,
+                arrival,
+                left: left.name,
+                sinceTick: this.server.getTick(),
+                ...(options.holdArrival === true ? { awaitingArrival: true } : {})
+            };
         }
         sends.push(
             this.send(
@@ -3011,7 +3034,74 @@ export default class PlayerSession {
     /** Whether a pending dimension change is holding its columns back. */
     private holdsArrivalChunks(): boolean {
         const pending = this.pendingChange;
-        return pending !== undefined && pending.arrivalReleased !== true;
+        return pending !== undefined && (pending.arrivalReleased !== true || pending.awaitingArrival === true);
+    }
+
+    /**
+     * Whether the pending dimension change was opened with `holdArrival` and still waits for
+     * {@link PlayerSession.landHeldArrival}.
+     * @param loadingScreenId - The change's loading screen, so a caller holding an older change
+     *   does not land a newer one.
+     */
+    public awaitsArrival(loadingScreenId: number): boolean {
+        const pending = this.pendingChange;
+        return pending !== undefined && pending.loadingScreenId === loadingScreenId && pending.awaitingArrival === true;
+    }
+
+    /**
+     * Lands a change {@link PlayerSession.changeWorld} opened with `holdArrival`, once its
+     * destination is ready.
+     *
+     * The client has been on the loading screen since the change went out, with every column
+     * held. The player moves to where they really land, without a broadcast, as the change
+     * placed them; when that is another column, the chunks queued around the provisional
+     * arrival are dropped and the ones around this one queued instead. The columns then go out
+     * if the client has opened the screen, and on its report otherwise, and the teleport that
+     * closes the change carries this position. The loading screen timeout starts now.
+     * @param loadingScreenId - The change's loading screen.
+     * @param arrival - Where the player lands, in the world the change took them to.
+     * @returns Settles once the transport has framed what this queued, the released columns
+     *   included; false when no change of that screen waits for its arrival, or the arrival names
+     *   another world, and nothing changed.
+     */
+    public landHeldArrival(loadingScreenId: number, arrival: Arrival): Promise<boolean> {
+        const pending = this.pendingChange;
+        if (!this.awaitsArrival(loadingScreenId) || pending === undefined || arrival.world !== this.world) {
+            return Promise.resolve(false);
+        }
+
+        const sends: Promise<void>[] = [];
+        const eyes = eyePositionAt(arrival.position);
+        const before = this.own().getPosition();
+        const moved =
+            CoordinateUtils.fromBlockToChunk(before.getX()) !== CoordinateUtils.fromBlockToChunk(eyes.getX()) ||
+            CoordinateUtils.fromBlockToChunk(before.getZ()) !== CoordinateUtils.fromBlockToChunk(eyes.getZ());
+        sends.push(
+            this.setPlayerPosition(
+                {
+                    position: Position.fromVector3(eyes, arrival.world),
+                    type: 'teleport',
+                    pitch: arrival.pitch,
+                    yaw: arrival.yaw,
+                    headYaw: arrival.yaw
+                },
+                false
+            )
+        );
+        if (moved) {
+            this.clearChunks();
+            sends.push(this.sendInitialSpawnChunks());
+        }
+
+        this.pendingChange = {
+            ...pending,
+            arrival: { ...pending.arrival, position: arrival.position, yaw: arrival.yaw, pitch: arrival.pitch },
+            sinceTick: this.server.getTick(),
+            awaitingArrival: false
+        };
+        // Chunk delivery, which the caller hands to work outside the tick rather than waiting for.
+        if (pending.arrivalReleased === true) sends.push(this.flush());
+        return allSent(sends).then(() => true);
     }
 
     /**
