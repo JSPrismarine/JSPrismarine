@@ -1,11 +1,13 @@
 /**
- * Writes `packages/protocol/src/java/versions/<release>/release.ts`, `packets.ts` and
- * `blockStates.json` and `registries.json`: the Java Edition release's protocol number, its packet
- * ids by phase and direction, the rows every block state id follows from, and the static registries
- * a play packet names entries of by number.
+ * Writes `packages/protocol/src/java/versions/<release>/release.ts`, `packets.ts`,
+ * `blockStates.json`, `registries.json` and `lang.json`: the Java Edition release's protocol
+ * number, its packet ids by phase and direction, the rows every block state id follows from, the
+ * static registries a play packet names entries of by number, and the English of the keys the
+ * server sends or prints.
  *
  * The protocol number is the server jar's `version.json`, and the ids are the data generator's
- * `reports/packets.json`, which `ensure:worldgen` leaves in the cache. This is a capture-time
+ * `reports/packets.json`, which `ensure:worldgen` leaves in the cache, as it leaves the jar's
+ * `en_us.json`. This is a capture-time
  * task, run on a Java version bump: `pnpm --filter @jsprismarine/bedrock-data run
  * dump:java-protocol [--java <release>]`.
  */
@@ -14,10 +16,13 @@ import { join, resolve } from 'node:path';
 
 import { isRecord } from '../isRecord.ts';
 import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
+import { extractJavaLang, javaLangPath } from '../java/extract-lang.ts';
 import { javaServerJarPath, packageDir, worldgenCachePaths } from '../java/worldgen-cache.ts';
 import {
     blockStateRows,
     blockStatesSource,
+    LANG_PREFIXES,
+    langSource,
     packetTableSource,
     releaseSource,
     STATIC_REGISTRIES,
@@ -70,6 +75,15 @@ const registriesPath = join(worldgenCachePaths(release.version).reports, 'report
 // Extracted game data: parsed, never executed.
 const registries: unknown = JSON.parse(readFileSync(registriesPath, 'utf8'));
 writeFileSync(join(outDir, 'registries.json'), staticRegistriesSource(registries, STATIC_REGISTRIES));
+
+// The English of the keys the server sends or prints, which the console and a client without the
+// key show.
+const langPath = javaLangPath(release.version);
+if (!existsSync(langPath)) await extractJavaLang(javaServerJarPath(release), langPath);
+// Extracted game data: parsed, never executed.
+const lang: unknown = JSON.parse(readFileSync(langPath, 'utf8'));
+writeFileSync(join(outDir, 'lang.json'), langSource(lang, LANG_PREFIXES));
+
 console.log(
     `Wrote ${release.version}'s release, packet ids and ${rows.length} blocks' states (protocol ${jar.protocol_version}) to ${outDir}`
 );

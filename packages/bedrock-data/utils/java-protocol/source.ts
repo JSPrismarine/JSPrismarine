@@ -1,4 +1,5 @@
 /** The TypeScript `dump:java-protocol` writes, kept apart from the run so it can be tested. */
+import { isRecord } from '../isRecord.ts';
 
 /** Packet ids by phase, then direction, then Mojang's packet name. */
 export type PacketTable = Record<string, Record<string, Record<string, number>>>;
@@ -139,4 +140,30 @@ export const staticRegistriesSource = (report: unknown, names: readonly string[]
         out.push(`    "${name.replace(/^minecraft:/, '')}": ${JSON.stringify(entries.map(([entry]) => entry))}`);
     }
     return `{\n${out.join(',\n')}\n}\n`;
+};
+
+/**
+ * The English strings the server itself sends or prints, by key prefix: why a client is
+ * disconnected, who joined and left, and how a player died. The console prints them, and a client
+ * that has no translation of a key is shown them.
+ */
+export const LANG_PREFIXES = ['multiplayer.disconnect.', 'multiplayer.player.', 'death.'] as const;
+
+/**
+ * The JSON of the English strings under the given prefixes, in key order.
+ * @param lang - The release's `en_us.json`.
+ * @param prefixes - The prefixes of the keys to keep.
+ * @returns The file text.
+ * @throws Error for a file that is not an object of strings.
+ */
+export const langSource = (lang: unknown, prefixes: readonly string[]): string => {
+    if (!isRecord(lang)) throw new Error('en_us.json is not an object of strings');
+    const kept: Record<string, string> = {};
+    for (const key of Object.keys(lang).sort()) {
+        if (!prefixes.some((prefix) => key.startsWith(prefix))) continue;
+        const text = lang[key];
+        if (typeof text !== 'string') throw new Error(`en_us.json gives ${key} no string`);
+        kept[key] = text;
+    }
+    return `${JSON.stringify(kept, null, 4)}\n`;
 };
