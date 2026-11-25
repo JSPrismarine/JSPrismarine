@@ -275,7 +275,19 @@ export const landingY = (
     canStandOnPowderSnow = false
 ): number => sweepAxis(bodyBounds(position, box), 'y', -drop, bodyShape(blocks, canStandOnPowderSnow)) ?? position.y;
 
-/** Moves one axis in short checked steps, stopping at the first collision. */
+/** How many halvings {@link moveOnAxis} takes to find a blocking face, to within a millionth of a block. */
+const CLEARANCE_HALVINGS = 20;
+
+/**
+ * Moves one axis in short checked steps, then bisects the step that would collide, so the body
+ * ends within a millionth of a block of the face that stops it, as Java's `Entity.collide` clips a
+ * move flush against the shape ahead.
+ *
+ * Stopping at the last free step instead left a body up to a fifth of a block short of a wall. A
+ * mob walking into a wall or a corner then crept the rest of the way over the next ticks, turning
+ * between the blocked axis and the free one, and shook from side to side.
+ * @javaSee Entity.collide
+ */
 export const moveOnAxis = (
     from: EntityPosition,
     target: number,
@@ -286,39 +298,25 @@ export const moveOnAxis = (
     const steps = Math.ceil(Math.abs(delta) / MAX_COLLISION_STEP);
     if (steps === 0) return from;
 
-    let moved = from;
+    let free = from[axis];
     for (let step = 1; step <= steps; step += 1) {
-        const position = { ...from, [axis]: from[axis] + (delta * step) / steps };
-        if (!canOccupy(position)) break;
-        moved = position;
+        const at = from[axis] + (delta * step) / steps;
+        if (!canOccupy({ ...from, [axis]: at })) {
+            // A fall stops at its last free step and lets `landingY` put the feet exactly on the
+            // floor; a bisection would leave them a hair inside it.
+            if (axis === 'y' && delta < 0) break;
+            let hit = at;
+            for (let halving = 0; halving < CLEARANCE_HALVINGS; halving += 1) {
+                const middle = (free + hit) / 2;
+                if (canOccupy({ ...from, [axis]: middle })) free = middle;
+                else hit = middle;
+            }
+            break;
+        }
+        free = at;
     }
 
-    return moved;
-};
-
-/** How many halvings {@link riseWithin} takes to find the head room, to within a millionth of a block. */
-const CLEARANCE_HALVINGS = 20;
-
-/**
- * Rises toward `target` as far as the head room allows: {@link moveOnAxis}'s steps, then a
- * bisection of the step that would hit the ceiling, so the rise ends within a millionth of a
- * block of it rather than up to a fifth of a block short.
- */
-const riseWithin = (
-    from: EntityPosition,
-    target: number,
-    canOccupy: (position: EntityPosition) => boolean
-): EntityPosition => {
-    const stepped = moveOnAxis(from, target, 'y', canOccupy);
-    if (stepped.y >= target) return stepped;
-    let free = stepped.y;
-    let hit = Math.min(target, free + MAX_COLLISION_STEP);
-    for (let halving = 0; halving < CLEARANCE_HALVINGS; halving += 1) {
-        const middle = (free + hit) / 2;
-        if (canOccupy({ ...from, y: middle })) free = middle;
-        else hit = middle;
-    }
-    return { ...from, y: free };
+    return free === from[axis] ? from : { ...from, [axis]: free };
 };
 
 /**
@@ -338,7 +336,7 @@ export const stepUp = (
     maxStep: number,
     canOccupy: (position: EntityPosition) => boolean
 ): EntityPosition => {
-    const raised = riseWithin(from, from.y + maxStep, canOccupy);
+    const raised = moveOnAxis(from, from.y + maxStep, 'y', canOccupy);
     if (raised.y === from.y) return blocked;
     let stepped = moveOnAxis(raised, proposed.x, 'x', canOccupy);
     stepped = moveOnAxis(stepped, proposed.z, 'z', canOccupy);

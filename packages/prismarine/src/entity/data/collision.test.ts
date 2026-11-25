@@ -14,6 +14,7 @@ import {
     hasLineOfSight,
     isSupported,
     landingY,
+    moveOnAxis,
     stepUp,
     sweepAxis
 } from './collision';
@@ -231,7 +232,7 @@ describe('stepUp', () => {
         const canOccupy = (at: { x: number; y: number; z: number }) => bodyCanOccupy(at, box, blocks);
         const from = { x: 0.6, y: 0, z: 0.5 };
         const proposed = { x: 0.9, y: 0, z: 0.5 };
-        return stepUp(from, proposed, from, 0.6, canOccupy);
+        return stepUp(from, proposed, moveOnAxis(from, proposed.x, 'x', canOccupy), 0.6, canOccupy);
     };
 
     it('steps a walker onto a carpet in the open', () => {
@@ -262,12 +263,43 @@ describe('stepUp', () => {
         expect(stepUp(from, { x: 0.9, y: 0.5, z: 0.5 }, from, 0.6, canOccupy).x).toBeCloseTo(0.9, 9);
     });
 
-    it('stays put against a full block', () => {
+    it('stops flush against a full block', () => {
         const wall: BodyBlocks = {
             collisionAt: ({ x, y, z }) => (x === 1 && y === 0 && z === 0 ? FULL_CUBE_SHAPE : []),
             blockAt: () => undefined
         };
-        expect(walk(wall).x).toBe(0.6);
+        expect(walk(wall).x).toBeCloseTo(0.7, 6);
+        expect(walk(wall).y).toBe(0);
+    });
+});
+
+describe('moveOnAxis', () => {
+    const box = { width: 0.6, height: 1.7 };
+    const wall: BodyBlocks = {
+        collisionAt: ({ x, y }) => (x === 1 && y === 0 ? FULL_CUBE_SHAPE : []),
+        blockAt: () => undefined
+    };
+    const canOccupy = (at: { x: number; y: number; z: number }) => bodyCanOccupy(at, box, wall);
+
+    it('ends a move into a wall flush against its face, not a step short of it', () => {
+        // From 0.5 the free steps run to 0.66; the wall's face stops the box's edge at 0.7.
+        const moved = moveOnAxis({ x: 0.5, y: 0, z: 0.5 }, 0.9, 'x', canOccupy);
+        expect(moved.x).toBeCloseTo(0.7, 6);
+        expect(canOccupy(moved)).toBe(true);
+    });
+
+    it('does not move a body already flush against the wall', () => {
+        const flush = moveOnAxis({ x: 0.5, y: 0, z: 0.5 }, 0.9, 'x', canOccupy);
+        expect(moveOnAxis(flush, flush.x + 0.1, 'x', canOccupy).x).toBeCloseTo(flush.x, 6);
+    });
+
+    it('leaves a fall at its last free step for landingY to settle', () => {
+        const floor: BodyBlocks = {
+            collisionAt: ({ y }) => (y === -1 ? FULL_CUBE_SHAPE : []),
+            blockAt: () => undefined
+        };
+        const fall = (at: { x: number; y: number; z: number }) => bodyCanOccupy(at, box, floor);
+        expect(moveOnAxis({ x: 0.5, y: 0.3, z: 0.5 }, -0.1, 'y', fall).y).toBeCloseTo(0.1, 9);
     });
 });
 
