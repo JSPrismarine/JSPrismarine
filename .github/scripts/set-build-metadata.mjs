@@ -1,5 +1,7 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 
+import { defaultUpdateSourceOf, UPSTREAM_REPOSITORY } from '../../packages/prismarine/src/updates/feed.ts';
+
 const serverPackage = JSON.parse(readFileSync(new URL('../../packages/server/package.json', import.meta.url), 'utf8'));
 const buildType = process.env.BUILD_TYPE;
 
@@ -49,7 +51,9 @@ const metadata = {
     BUILD_GIT_HASH: buildGitHash,
     BUILD_VERSION: buildVersion,
     BUILD_FLAVOR: 'JSPrismarine',
-    BUILD_TYPE: buildType
+    BUILD_TYPE: buildType,
+    // A fork's builds read the feed its own workflows publish, not JSPrismarine's.
+    BUILD_UPDATE_SOURCE: defaultUpdateSourceOf(process.env.GITHUB_REPOSITORY ?? UPSTREAM_REPOSITORY)
 };
 const lines = Object.entries(metadata).map(([name, value]) => `${name}=${value}`);
 

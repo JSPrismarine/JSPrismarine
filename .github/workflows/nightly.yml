@@ -185,6 +185,13 @@ jobs:
                   # Git fetches a blob a command needs on demand.
                   filter: blob:none
 
+            # The build metadata and feed scripts load TypeScript from the server package, which
+            # needs the Node the repository pins rather than the runner's.
+            - name: 🟢 Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: .nvmrc
+
             # Checked again: another run may have published while this one was building.
             - name: 🕕 Check nightly release interval
               id: release_cadence
@@ -224,3 +231,10 @@ jobs:
                           --latest=false \
                           --notes-file dist/highlights.md
                   fi
+
+            # Servers on the nightly channel read this file.
+            - name: 📡 Publish the nightly update feed
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
+              env:
+                  UPDATE_FEED_SIGNING_KEY: ${{ secrets.UPDATE_FEED_SIGNING_KEY }}
+              run: node scripts/write-update-feed.mts --channel nightly --version "$BUILD_VERSION" --commit "$GITHUB_SHA" --dist dist
