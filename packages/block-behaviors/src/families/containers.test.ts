@@ -53,17 +53,62 @@ describe('containerFamily', () => {
         }
     });
 
-    it('pairs with the chest beside it, both ways', () => {
-        const harness = bindFamily(containerFamily, 'minecraft:chest');
-        const partner = { x: 1, y: 0, z: 0 };
-        harness.dimension.set(partner, 'minecraft:chest');
-        harness.dimension.setBlockData(partner, { capacity: 27, items: [] });
-        harness.dimension.set(origin, 'minecraft:chest');
+    describe('pairing', () => {
+        const chest = 'minecraft:chest';
+        // Yaw 0 looks south, so a chest placed by this placer faces north.
+        const placer = { identifier: 'minecraft:player', position: origin, yaw: 0 };
+        const east = { x: origin.x + 1, y: origin.y, z: origin.z };
+        const south = { x: origin.x, y: origin.y, z: origin.z + 1 };
+        const setup = (partnerAt: typeof east, partnerFacing: string) => {
+            const harness = bindFamily(containerFamily, chest);
+            harness.dimension.set(partnerAt, chest, { 'minecraft:cardinal_direction': partnerFacing });
+            harness.dimension.setBlockData(partnerAt, { capacity: 27, items: [] });
+            harness.dimension.set(origin, chest, { 'minecraft:cardinal_direction': 'south' });
+            return harness;
+        };
 
-        harness.place(origin);
+        it('joins a chest to its side that faces the same way, both ways', () => {
+            const harness = setup(east, 'north');
+            harness.place(origin, { placedBy: placer, face: 'up' });
 
-        expect(pairedPosition(harness.dimension.getBlockData(origin))).toEqual(partner);
-        expect(pairedPosition(harness.dimension.getBlockData(partner))).toEqual(origin);
+            expect(pairedPosition(harness.dimension.getBlockData(origin))).toEqual(east);
+            expect(pairedPosition(harness.dimension.getBlockData(east))).toEqual(origin);
+        });
+
+        it('leaves a chest beside it that faces another way, and one in front or behind', () => {
+            const turned = setup(east, 'east');
+            turned.place(origin, { placedBy: placer, face: 'up' });
+            expect(pairedPosition(turned.dimension.getBlockData(origin))).toBeUndefined();
+
+            const behind = setup(south, 'north');
+            behind.place(origin, { placedBy: placer, face: 'up' });
+            expect(pairedPosition(behind.dimension.getBlockData(origin))).toBeUndefined();
+        });
+
+        it('joins nothing beside it when its placer sneaks', () => {
+            const harness = setup(east, 'north');
+            harness.place(origin, { placedBy: placer, face: 'up', sneaking: true });
+
+            expect(pairedPosition(harness.dimension.getBlockData(origin))).toBeUndefined();
+            expect(pairedPosition(harness.dimension.getBlockData(east))).toBeUndefined();
+        });
+
+        it("joins the chest a sneaking placer clicked the side of, turning to face that chest's way", () => {
+            // The placer clicks the west face of a chest facing south, so the new chest lands
+            // west of it and turns from north to south to match.
+            const harness = setup(east, 'south');
+            harness.place(origin, { placedBy: placer, face: 'west', sneaking: true });
+
+            expect(pairedPosition(harness.dimension.getBlockData(origin))).toEqual(east);
+            expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('south');
+        });
+
+        it("joins nothing when a sneaking placer clicked a chest's front", () => {
+            const harness = setup(east, 'east');
+            harness.place(origin, { placedBy: placer, face: 'west', sneaking: true });
+
+            expect(pairedPosition(harness.dimension.getBlockData(origin))).toBeUndefined();
+        });
     });
 
     it('spills a chest and keeps a shulker box packed', () => {

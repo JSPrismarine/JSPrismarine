@@ -3,11 +3,12 @@
  * furnaces, the cauldron, the composter, the flower pot, and the utility
  * blocks that open a screen.
  */
-import type { BlockPosition } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { DEFAULT_PROVIDER_CONTEXT, evaluateNumberProvider } from '@jsprismarine/items';
 
 import { defineFamily } from '../family';
-import { compassDirectionOf, HORIZONTAL_FACES, offset, opposite } from '../geometry';
+import type { HorizontalFace } from '../geometry';
+import { axisOfFace, compassDirectionOf, HORIZONTAL_FACES, offset, opposite } from '../geometry';
 import { placementFacing } from '../rules/placement';
 import { isWater } from '../identifiers';
 import { attachmentFaceOf, popWithoutSupport } from '../rules/support';
@@ -72,6 +73,61 @@ const LIQUID_SOUNDS: Readonly<Record<string, { readonly fill: string; readonly e
 const liquidSounds = (liquid: string): { readonly fill: string; readonly empty: string } =>
     LIQUID_SOUNDS[liquid] ?? { fill: 'bucket.fill_water', empty: 'bucket.empty_water' };
 
+/** The horizontal face a quarter turn clockwise from each, seen from above. */
+const CLOCKWISE: Readonly<Record<HorizontalFace, HorizontalFace>> = {
+    north: 'east',
+    east: 'south',
+    south: 'west',
+    west: 'north'
+};
+
+/** The way a chest faces, from Bedrock's `minecraft:cardinal_direction`. */
+const chestFacingOf = (block: HookBlock): HorizontalFace | undefined => {
+    const facing = stateString(block, 'minecraft:cardinal_direction');
+    return HORIZONTAL_FACES.find((face) => face === facing);
+};
+
+/** A chest of a kind at a position that has no partner yet, which is Java's single chest. */
+const singleChestAt = (world: WorldActions, position: BlockPosition, identifier: string): HookBlock | undefined => {
+    const block = world.getBlock(position);
+    if (block === undefined || block.identifier !== identifier) return undefined;
+    return world.getBlockData(position)?.['pairedWith'] === undefined ? block : undefined;
+};
+
+/**
+ * The chest a newly placed one joins, and the way the pair faces.
+ *
+ * A placer who sneaks and clicks the side of a single chest joins that chest, whichever way the
+ * placer looks, and the new chest turns to face its way; clicking its front or back joins
+ * nothing. A placer who does not sneak joins a single chest to the new one's left or right that
+ * faces the same way. A sneaking placer never joins a chest beside the one clicked.
+ *
+ * @javaSource ChestBlock.getStateForPlacement
+ */
+const chestPartnerOf = (
+    world: WorldActions,
+    block: HookBlock,
+    face: BlockFace | undefined,
+    sneaking: boolean
+): { readonly position: BlockPosition; readonly facing: HorizontalFace } | undefined => {
+    if (sneaking) {
+        if (face === undefined || face === 'up' || face === 'down') return undefined;
+        const position = offset(block.position, opposite(face));
+        const clicked = singleChestAt(world, position, block.identifier);
+        const facing = clicked === undefined ? undefined : chestFacingOf(clicked);
+        if (facing === undefined || axisOfFace(facing) === axisOfFace(face)) return undefined;
+        return { position, facing };
+    }
+    const facing = chestFacingOf(block);
+    if (facing === undefined) return undefined;
+    for (const side of [CLOCKWISE[facing], opposite(CLOCKWISE[facing])]) {
+        const position = offset(block.position, side);
+        const beside = singleChestAt(world, position, block.identifier);
+        if (beside !== undefined && chestFacingOf(beside) === facing) return { position, facing };
+    }
+    return undefined;
+};
+
 /**
  * Chests, barrels, shulker boxes and decorated pots.
  *
@@ -81,7 +137,7 @@ const liquidSounds = (liquid: string): { readonly fill: string; readonly empty: 
  */
 export const containerFamily = defineFamily(
     'jsprismarine:container',
-    'Gives a container its block entity, pairs a chest with the chest beside it, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it.',
+    'Gives a container its block entity, pairs a chest with a same-facing chest to its side or, for a sneaking placer, only with the chest clicked, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it.',
     {
         onPlace: (event, world) => {
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
@@ -108,20 +164,17 @@ export const containerFamily = defineFamily(
             world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (!bareName(event.block.identifier).endsWith('chest')) return;
 
-            for (const face of HORIZONTAL_FACES) {
-                const partnerPosition = offset(event.block.position, face);
-                const partner = world.getBlock(partnerPosition);
-                if (partner === undefined || partner.identifier !== event.block.identifier) continue;
-                const partnerData = world.getBlockData(partnerPosition);
-                if (partnerData?.['pairedWith'] !== undefined) continue;
-
-                world.setBlockData(partnerPosition, { ...partnerData, pairedWith: event.block.position });
-                world.setBlockData(event.block.position, {
-                    ...emptyContainer(event.block.identifier),
-                    pairedWith: partnerPosition
-                });
-                return;
+            const placed = world.getBlock(event.block.position) ?? event.block;
+            const partner = chestPartnerOf(world, placed, event.face, event.sneaking === true);
+            if (partner === undefined) return;
+            if (partner.facing !== chestFacingOf(placed)) {
+                setStates(world, placed, { 'minecraft:cardinal_direction': partner.facing });
             }
+            world.setBlockData(partner.position, {
+                ...world.getBlockData(partner.position),
+                pairedWith: placed.position
+            });
+            world.setBlockData(placed.position, { ...emptyContainer(placed.identifier), pairedWith: partner.position });
         },
         onPlayerInteract: (event, world) => {
             if (hasState(event.block, 'open_bit')) {

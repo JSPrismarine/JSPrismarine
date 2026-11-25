@@ -734,6 +734,30 @@ describe('useItemOnBlock', () => {
         expect(world.loadedBlockAt(2, 65, 2)?.name).toBe('minecraft:wooden_door');
     });
 
+    it('does not open a chest for a sneaking player holding an item that places nothing', async () => {
+        place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+        click(playerHolding(world, 'minecraft:chest'), { x: 4, y: 63, z: 4 });
+
+        const sneaking = playerHolding(world, 'minecraft:stick', true);
+        click(sneaking, { x: 4, y: 64, z: 4 });
+        await Promise.resolve();
+        expect(sessionOf(sneaking).opened).toEqual([]);
+
+        const emptyHanded = playerHolding(world, 'minecraft:air', true);
+        click(emptyHanded, { x: 4, y: 64, z: 4 });
+        await Promise.resolve();
+        expect(sessionOf(emptyHanded).opened).toHaveLength(1);
+    });
+
+    it('opens a door for a sneaking player with empty hands', () => {
+        place(chunk, { x: 2, y: 63, z: 2 }, 'minecraft:stone');
+        place(chunk, { x: 2, y: 64, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: false, open_bit: false });
+        place(chunk, { x: 2, y: 65, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: true, open_bit: false });
+
+        expect(click(playerHolding(world, 'minecraft:air', true), { x: 2, y: 64, z: 2 })).toBe('handled');
+        expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
+    });
+
     describe('useItemInAir', () => {
         /** Where the world says the stronghold is, or nothing, which stands in for the generator. */
         const strongholdAt = (found: { x: number; y: number; z: number } | undefined) =>
