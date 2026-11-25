@@ -956,6 +956,132 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
             }))
     },
     {
+        name: 'speleothem-placement',
+        java: "Pointed dripstone points away from where its placer looks, or the other way when only that way has support, and takes the column's thickness: base, middle, frustum and tip, or a merged tip where two tips meet.",
+        reference: 'Java SpeleothemBlock.getStateForPlacement, calculateTipDirection and calculateSpeleothemThickness',
+        subjects: () => tagMembers('minecraft:speleothems'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const placer = (pitch: number) => ({ identifier: 'minecraft:player', position: ORIGIN, pitch });
+            const at = (y: number) => ({ x: 0, y, z: 0 });
+            const mapped = (properties: Readonly<Record<string, string>>) =>
+                javaBlockStateToBedrock(subject.javaId, { ...properties, waterlogged: 'false' });
+            // Each case is the column's blocks from the top down, the placer's pitch, and the
+            // Java state the new segment at y 5 takes.
+            const cases: readonly (readonly [
+                name: string,
+                build: (harness: FamilyHarness) => void,
+                pitch: number,
+                java: Readonly<Record<string, string>>
+            ])[] = [
+                [
+                    'looking up under a ceiling with a floor below',
+                    (harness) => {
+                        harness.dimension.set(at(6), 'minecraft:stone');
+                        harness.dimension.set(at(4), 'minecraft:stone');
+                    },
+                    -45,
+                    { vertical_direction: 'down', thickness: 'tip' }
+                ],
+                [
+                    'looking down with a ceiling and a floor',
+                    (harness) => {
+                        harness.dimension.set(at(6), 'minecraft:stone');
+                        harness.dimension.set(at(4), 'minecraft:stone');
+                    },
+                    45,
+                    { vertical_direction: 'up', thickness: 'tip' }
+                ],
+                [
+                    'looking down with only a ceiling',
+                    (harness) => harness.dimension.set(at(6), 'minecraft:stone'),
+                    45,
+                    { vertical_direction: 'down', thickness: 'tip' }
+                ],
+                [
+                    'looking up at a ceiling over a stalagmite tip',
+                    (harness) => {
+                        harness.dimension.set(at(6), 'minecraft:stone');
+                        harness.dimension.set(at(3), 'minecraft:stone');
+                        const tip = mapped({ vertical_direction: 'up', thickness: 'tip' });
+                        if (tip.kind === 'mapped') harness.dimension.set(at(4), tip.bedrock.name, tip.bedrock.states);
+                    },
+                    -45,
+                    { vertical_direction: 'down', thickness: 'tip_merge' }
+                ],
+                [
+                    'looking up under a stalactite above a tip',
+                    (harness) => {
+                        harness.dimension.set(at(7), 'minecraft:stone');
+                        const base = mapped({ vertical_direction: 'down', thickness: 'base' });
+                        const tip = mapped({ vertical_direction: 'down', thickness: 'tip' });
+                        if (base.kind === 'mapped')
+                            harness.dimension.set(at(6), base.bedrock.name, base.bedrock.states);
+                        if (tip.kind === 'mapped') harness.dimension.set(at(4), tip.bedrock.name, tip.bedrock.states);
+                    },
+                    -45,
+                    { vertical_direction: 'down', thickness: 'frustum' }
+                ]
+            ];
+            for (const [name, build, pitch, java] of cases) {
+                const expected = mapped(java);
+                if (expected.kind !== 'mapped') return `Java's ${JSON.stringify(java)} maps to no Bedrock state`;
+                const harness = bind(subject);
+                build(harness);
+                harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+                if (harness.beforePlace(ORIGIN, 'north', placer(pitch))) return `${name}, it refused the placement`;
+                harness.place(ORIGIN, { face: 'north', placedBy: placer(pitch) });
+                const placed = harness.block(ORIGIN).states;
+                const differs = Object.entries(expected.bedrock.states).find(
+                    ([state, value]) => paletteValue(placed[state]) !== paletteValue(value)
+                );
+                if (differs !== undefined) {
+                    return `${name}, its ${differs[0]} is ${String(placed[differs[0]])}, Java's is ${String(differs[1])}`;
+                }
+            }
+            const floating = bind(subject);
+            floating.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            if (!floating.beforePlace(ORIGIN, 'north', placer(45))) return 'it placed with nothing above or below';
+            return undefined;
+        }
+    },
+    {
+        name: 'stalactite-falls',
+        java: 'A stalactite whose ceiling goes falls as a block, with every segment hanging from it down to its tip, on a scheduled tick, and each segment breaks into its item where it lands.',
+        reference: 'Java SpeleothemBlock.updateShape, tick and spawnFallingStalactite',
+        subjects: () => tagMembers('minecraft:speleothems'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const tip = javaBlockStateToBedrock(subject.javaId, {
+                vertical_direction: 'down',
+                thickness: 'tip',
+                waterlogged: 'false'
+            });
+            if (tip.kind !== 'mapped') return "Java's stalactite tip maps to no Bedrock state";
+            const harness = bind(subject);
+            const floor = { x: 0, y: 1, z: 0 };
+            harness.dimension.set(floor, 'minecraft:stone');
+            harness.dimension.set(ORIGIN, tip.bedrock.name, tip.bedrock.states);
+            harness.neighborChanged(ORIGIN, 'up');
+            if (harness.dimension.identifierAt(ORIGIN) !== tip.bedrock.name)
+                return 'it broke at once, Java waits a tick';
+            if (harness.dimension.scheduled.length === 0) return 'it scheduled no tick to fall on';
+            for (let y = ORIGIN.y; y > floor.y; y -= 1) {
+                const position = { x: 0, y, z: 0 };
+                if (harness.dimension.identifierAt(position) === tip.bedrock.name) harness.tick(position);
+            }
+            for (let y = ORIGIN.y; y > floor.y; y -= 1) {
+                if (harness.dimension.identifierAt({ x: 0, y, z: 0 }) !== 'minecraft:air') {
+                    return `it stayed at y ${y}, Java's falling block breaks where it lands`;
+                }
+            }
+            const drops = harness.dimension.drops.map(({ drop }) => drop.identifier);
+            return drops.length === 1 && drops[0] === subject.bedrock
+                ? undefined
+                : `it dropped ${JSON.stringify(drops)} on landing, Java drops one of itself`;
+        }
+    },
+    {
         name: 'pops-without-support',
         classify: () => ({
             kind: 'defect',
@@ -1125,6 +1251,8 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'pillar-axis': ['placement'],
     'pops-without-support': ['support'],
     'stairs-placement': ['placement'],
+    'speleothem-placement': ['placement', 'neighbor-update'],
+    'stalactite-falls': ['support', 'falling', 'scheduled-tick'],
     'slab-placement': ['placement']
 };
 

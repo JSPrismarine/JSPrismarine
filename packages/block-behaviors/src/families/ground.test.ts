@@ -401,6 +401,145 @@ describe('dripstoneFamily', () => {
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:air');
     });
 
+    const lookingUp = { identifier: 'minecraft:player', position: { x: 0, y: 0, z: 0 }, pitch: -60 };
+    const lookingDown = { ...lookingUp, pitch: 60 };
+    const segment = (harness: ReturnType<typeof bindFamily>, y: number) => {
+        const block = harness.block({ x: 0, y, z: 0 });
+        return { identifier: block.identifier, ...block.states };
+    };
+
+    it('stands on the floor for a placer looking down and hangs from the ceiling for one looking up', () => {
+        const floor = bindFamily(dripstoneFamily, dripstone);
+        floor.dimension.set(below, 'minecraft:stone');
+        floor.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+        floor.place(origin, { placedBy: lookingDown, face: 'up' });
+        expect(floor.block(origin).states).toMatchObject({ hanging: false, dripstone_thickness: 'tip' });
+
+        const ceiling = bindFamily(dripstoneFamily, dripstone);
+        ceiling.dimension.set(above, 'minecraft:stone');
+        ceiling.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+        ceiling.place(origin, { placedBy: lookingUp, face: 'down' });
+        expect(ceiling.block(origin).states).toMatchObject({ hanging: true, dripstone_thickness: 'tip' });
+    });
+
+    it('stands on the only support there is for a placer whose pitch is unknown', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(below, 'minecraft:stone');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: origin }, face: 'up' });
+
+        expect(harness.block(origin).states).toMatchObject({ hanging: false });
+    });
+
+    it('points the other way when only that way has support', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, 'minecraft:stone');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+
+        harness.place(origin, { placedBy: lookingDown, face: 'north' });
+
+        expect(harness.block(origin).states).toMatchObject({ hanging: true });
+    });
+
+    it('refuses a placement with nothing above or below to hold it', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+        expect(harness.beforePlace(origin, 'north', lookingDown)).toBe(true);
+
+        harness.dimension.set(above, 'minecraft:stone');
+        expect(harness.beforePlace(origin, 'down', lookingUp)).toBe(false);
+    });
+
+    it('thickens a column from base to tip as segments join it', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set({ x: 0, y: 7, z: 0 }, 'minecraft:stone');
+        for (const y of [6, 5, 4, 3]) {
+            harness.dimension.set({ x: 0, y, z: 0 }, dripstone, { dripstone_thickness: 'tip', hanging: true });
+        }
+
+        for (const y of [3, 4, 5, 6]) harness.neighborChanged({ x: 0, y, z: 0 }, 'down');
+
+        expect([6, 5, 4, 3].map((y) => harness.block({ x: 0, y, z: 0 }).states['dripstone_thickness'])).toEqual([
+            'base',
+            'middle',
+            'frustum',
+            'tip'
+        ]);
+    });
+
+    it('merges a placed stalactite with the stalagmite tip it meets', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, 'minecraft:stone');
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:stone');
+        harness.dimension.set(below, dripstone, { dripstone_thickness: 'tip', hanging: false });
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+
+        harness.place(origin, { placedBy: lookingUp, face: 'down' });
+        harness.neighborChanged(below, 'up');
+
+        expect(segment(harness, 4)).toMatchObject({ hanging: true, dripstone_thickness: 'merge' });
+        expect(segment(harness, 3)).toMatchObject({ hanging: false, dripstone_thickness: 'merge' });
+    });
+
+    it('ignores a change beside a segment', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.neighborChanged(origin, 'north');
+
+        expect(harness.dimension.identifierAt(origin)).toBe(dripstone);
+        expect(harness.dimension.scheduled).toEqual([]);
+    });
+
+    it('drops a stalactite whose ceiling is gone, with the column hanging from it, until it lands', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        const top = { x: 0, y: 6, z: 0 };
+        harness.dimension.set({ x: 0, y: 1, z: 0 }, 'minecraft:stone');
+        harness.dimension.set(top, dripstone, { dripstone_thickness: 'base', hanging: true });
+        harness.dimension.set(above, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.neighborChanged(top, 'up');
+        expect(harness.dimension.scheduled).toEqual([{ position: top, delay: FALL_DELAY }]);
+        expect(harness.dimension.identifierAt(top)).toBe(dripstone);
+        expect(harness.dimension.drops).toEqual([]);
+
+        harness.tick(top);
+        expect(harness.dimension.identifierAt(top)).toBe(AIR);
+        expect(segment(harness, 5)).toMatchObject({ dripstone_thickness: 'base', hanging: true });
+        expect(segment(harness, 4)).toMatchObject({ dripstone_thickness: 'tip', hanging: true });
+
+        for (const y of [5, 4, 3]) harness.tick({ x: 0, y, z: 0 });
+
+        expect(harness.dimension.identifierAt({ x: 0, y: 3, z: 0 })).toBe(AIR);
+        expect(harness.dimension.identifierAt({ x: 0, y: 2, z: 0 })).toBe(AIR);
+        expect(harness.dimension.drops.map(({ drop }) => drop)).toEqual([
+            { identifier: dripstone, count: 1 },
+            { identifier: dripstone, count: 1 }
+        ]);
+    });
+
+    it('drops a stalactite whose segment above was broken', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set({ x: 0, y: 6, z: 0 }, 'minecraft:stone');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.neighborChanged(origin, 'up');
+
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: FALL_DELAY }]);
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('keeps a stalactite whose support came back before its tick', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, 'minecraft:stone');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.tick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe(dripstone);
+    });
+
     it('pops a sulfur spike whose ground is gone, as Java does for pointed dripstone', () => {
         const harness = bindFamily(dripstoneFamily, 'minecraft:sulfur_spike');
         harness.dimension.set(below, 'minecraft:stone');

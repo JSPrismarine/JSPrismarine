@@ -8,7 +8,7 @@
  * is what the package used before the event carried a face, and it is still
  * right for a horizontally facing block.
  */
-import type { BlockPlaceEvent } from '@jsprismarine/blocks';
+import type { BlockPlaceEvent, HookActor } from '@jsprismarine/blocks';
 
 import type { HorizontalFace } from '../geometry';
 import { axisOfFace, facingFrom, facingFromYaw } from '../geometry';
@@ -69,3 +69,17 @@ export const placedHalf = (event: BlockPlaceEvent): BlockHalf | undefined => {
  * @returns Undefined for a placement the world itself performed.
  */
 export const placementFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => placementFacingOf(event);
+
+/**
+ * The vertical direction the placer looks nearest to, Java's
+ * `BlockPlaceContext.getNearestLookingVerticalDirection`: up for a placer looking above the
+ * horizon and down otherwise.
+ *
+ * @returns Undefined when the placer's pitch is unknown or there is no placer.
+ * @javaSource BlockPlaceContext.getNearestLookingVerticalDirection
+ */
+export const placementLookingVertical = (placer: HookActor | undefined): 'up' | 'down' | undefined => {
+    const pitch = placer?.pitch;
+    if (pitch === undefined || !Number.isFinite(pitch)) return undefined;
+    return pitch < 0 ? 'up' : 'down';
+};

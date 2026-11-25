@@ -2,18 +2,28 @@
  * The ground families: soil and the blocks that fall, ice, snow and the
  * dripstone and amethyst cluster.
  */
-import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPlaceEvent, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { offset, opposite } from '../geometry';
 import { AIR, isWater, WATER } from '../identifiers';
-import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
+import {
+    canDripstoneSurvive,
+    DRIPSTONE_THICKNESS,
+    dripstoneThickness,
+    fallStalactite,
+    isDripstone,
+    placedTipDirection,
+    tipDirectionOf
+} from '../rules/dripstone';
+import { FALL_DELAY, fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
 import { hasSilkTouch } from '../rules/heldItem';
 import { fluidAt } from '../rules/fluid';
 import { dampensLightMoreThan } from '../rules/light';
-import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
-import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
+import { placementLookingVertical } from '../rules/placement';
+import { breakBlock, isSolidSupport, popBlock, popWithoutSupport } from '../rules/support';
+import { bareName, hasState, setStates, sibling, stateNumber, stateString } from '../state';
 import type { WorldActions } from '../world';
 import { dropSelf } from './shared';
 
@@ -324,32 +334,51 @@ export const AMETHYST_STAGES: readonly string[] = [
 ];
 
 /**
- * Pops pointed dripstone that lost what holds it, Java's `SpeleothemBlock.canSurvive`.
+ * Rewrites a segment's thickness from the column around it, or reacts to losing its support: a
+ * stalactite falls on a scheduled tick and a stalagmite breaks. Java's `SpeleothemBlock.updateShape`
+ * only looks along the column, so a change beside the segment does nothing.
  *
- * A stalactite (`hanging`) hangs from the block above it and a stalagmite stands on the block
- * below. Another pointed dripstone pointing the same way holds it too, which is how a column
- * longer than one block stays up although a piston would pop every segment of it.
- *
- * @javaSource SpeleothemBlock.canSurvive
+ * @javaSource SpeleothemBlock.updateShape
  */
-const popUnsupportedDripstone = (world: WorldActions, block: HookBlock): void => {
-    const hanging = stateBoolean(block, 'hanging');
-    const support = hanging ? 'up' : 'down';
-    const neighbor = world.getBlock(offset(block.position, support));
-    if (
-        neighbor !== undefined &&
-        neighbor.identifier === block.identifier &&
-        stateBoolean(neighbor, 'hanging') === hanging
-    ) {
+const updateDripstone = (world: WorldActions, block: HookBlock, face: BlockFace): void => {
+    if (face !== 'up' && face !== 'down') return;
+    const tip = tipDirectionOf(block);
+    if (!canDripstoneSurvive(world, block, tip)) {
+        if (tip === 'down') world.scheduleTick(block.position, FALL_DELAY);
+        else popBlock(world, block);
         return;
     }
-    popWithoutSupport(world, block, support);
+    const mergeOpposingTips = stateString(block, DRIPSTONE_THICKNESS) === 'merge';
+    setStates(world, block, { [DRIPSTONE_THICKNESS]: dripstoneThickness(world, block, tip, mergeOpposingTips) });
+};
+
+/**
+ * Points a placed segment away from where the placer looks, or the other way when only that
+ * one has support, and gives it its thickness. The placement guard has already refused a
+ * segment with support neither way.
+ *
+ * @javaSource SpeleothemBlock.getStateForPlacement
+ */
+const placeDripstone = (world: WorldActions, event: BlockPlaceEvent): void => {
+    // A placement the world made, such as `/setblock`, keeps the state it was given, as Java's
+    // does; only its neighbors update.
+    if (event.placedBy === undefined) return;
+    // Without a pitch the placer looks down, which still lands on whichever way has support.
+    const looking = placementLookingVertical(event.placedBy) ?? 'down';
+    const block = event.block;
+    const tip = placedTipDirection(world, block, looking) ?? tipDirectionOf(block);
+    // Java turns merging off for a sneaking placer; the event does not carry sneaking, so a
+    // placement always merges with an opposing tip.
+    setStates(world, block, {
+        hanging: tip === 'down',
+        [DRIPSTONE_THICKNESS]: dripstoneThickness(world, block, tip, true)
+    });
 };
 
 /** Dripstone, the sulfur spike, amethyst and budding amethyst. */
 export const dripstoneFamily = defineFamily(
     'jsprismarine:dripstone',
-    'Pops pointed dripstone, a sulfur spike or an amethyst bud without the block it grows from, grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster.',
+    'Points placed dripstone and sulfur spikes away from where the placer looks, joins them into columns, drops a stalactite that lost its support and pops a stalagmite or an amethyst bud without the block it grows from, grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster.',
     {
         onRandomTick: (event, world) => {
             const name = bareName(event.block.identifier);
@@ -377,9 +406,26 @@ export const dripstoneFamily = defineFamily(
             if (next === undefined) return;
             world.setBlock(event.block.position, sibling(event.block.identifier, next), event.block.states);
         },
+        beforeOnPlayerPlace: (event, world) => {
+            // Java's placement returns no state when neither direction has support. Which way the
+            // placer looks only orders the two checks, so either order answers this.
+            if (!isDripstone(event.block)) return undefined;
+            return placedTipDirection(world, event.block, 'down') === undefined ? true : undefined;
+        },
+        onPlace: (event, world) => {
+            if (isDripstone(event.block)) placeDripstone(world, event);
+        },
+        onTick: (event, world) => {
+            if (!isDripstone(event.block)) return;
+            if (tipDirectionOf(event.block) === 'down') {
+                fallStalactite(world, event.block);
+                return;
+            }
+            if (!canDripstoneSurvive(world, event.block, 'up')) popBlock(world, event.block);
+        },
         onNeighborChanged: (event, world) => {
             if (!hasState(event.block, 'minecraft:block_face')) {
-                if (hasState(event.block, 'dripstone_thickness')) popUnsupportedDripstone(world, event.block);
+                if (isDripstone(event.block)) updateDripstone(world, event.block, event.face);
                 return;
             }
             // `minecraft:block_face` names the face the cluster grows out
