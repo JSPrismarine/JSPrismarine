@@ -361,7 +361,8 @@ const placeBlock = (
         placedBy,
         itemStack: contentStackOf(content, placed),
         face,
-        faceLocation: interaction.faceLocation
+        faceLocation: interaction.faceLocation,
+        sneaking: player.isSneaking()
     });
     // After the hook, which gave a container an empty record: a shulker box put back down
     // holds what it was carrying rather than what a fresh one holds.

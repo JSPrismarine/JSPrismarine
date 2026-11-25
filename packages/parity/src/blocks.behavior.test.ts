@@ -972,7 +972,8 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 name: string,
                 build: (harness: FamilyHarness) => void,
                 pitch: number,
-                java: Readonly<Record<string, string>>
+                java: Readonly<Record<string, string>>,
+                sneaking?: boolean
             ])[] = [
                 [
                     'looking up under a ceiling with a floor below',
@@ -1010,6 +1011,18 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
                     { vertical_direction: 'down', thickness: 'tip_merge' }
                 ],
                 [
+                    'sneaking and looking up at a ceiling over a stalagmite tip',
+                    (harness) => {
+                        harness.dimension.set(at(6), 'minecraft:stone');
+                        harness.dimension.set(at(3), 'minecraft:stone');
+                        const tip = mapped({ vertical_direction: 'up', thickness: 'tip' });
+                        if (tip.kind === 'mapped') harness.dimension.set(at(4), tip.bedrock.name, tip.bedrock.states);
+                    },
+                    -45,
+                    { vertical_direction: 'down', thickness: 'tip' },
+                    true
+                ],
+                [
                     'looking up under a stalactite above a tip',
                     (harness) => {
                         harness.dimension.set(at(7), 'minecraft:stone');
@@ -1023,14 +1036,14 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
                     { vertical_direction: 'down', thickness: 'frustum' }
                 ]
             ];
-            for (const [name, build, pitch, java] of cases) {
+            for (const [name, build, pitch, java, sneaking] of cases) {
                 const expected = mapped(java);
                 if (expected.kind !== 'mapped') return `Java's ${JSON.stringify(java)} maps to no Bedrock state`;
                 const harness = bind(subject);
                 build(harness);
                 harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
                 if (harness.beforePlace(ORIGIN, 'north', placer(pitch))) return `${name}, it refused the placement`;
-                harness.place(ORIGIN, { face: 'north', placedBy: placer(pitch) });
+                harness.place(ORIGIN, { face: 'north', placedBy: placer(pitch), sneaking });
                 const placed = harness.block(ORIGIN).states;
                 const differs = Object.entries(expected.bedrock.states).find(
                     ([state, value]) => paletteValue(placed[state]) !== paletteValue(value)

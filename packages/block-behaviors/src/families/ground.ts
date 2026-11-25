@@ -367,11 +367,10 @@ const placeDripstone = (world: WorldActions, event: BlockPlaceEvent): void => {
     const looking = placementLookingVertical(event.placedBy) ?? 'down';
     const block = event.block;
     const tip = placedTipDirection(world, block, looking) ?? tipDirectionOf(block);
-    // Java turns merging off for a sneaking placer; the event does not carry sneaking, so a
-    // placement always merges with an opposing tip.
+    // A sneaking placer keeps a new tip from merging with the opposing tip it meets.
     setStates(world, block, {
         hanging: tip === 'down',
-        [DRIPSTONE_THICKNESS]: dripstoneThickness(world, block, tip, true)
+        [DRIPSTONE_THICKNESS]: dripstoneThickness(world, block, tip, event.sneaking !== true)
     });
 };
 

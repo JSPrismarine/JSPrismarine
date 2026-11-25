@@ -383,7 +383,8 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                     placedBy: placement?.placedBy,
                     itemStack: placement?.itemStack,
                     face: placement?.face,
-                    faceLocation: placement?.faceLocation
+                    faceLocation: placement?.faceLocation,
+                    sneaking: placement?.sneaking
                 });
             }
 

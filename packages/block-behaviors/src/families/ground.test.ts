@@ -468,6 +468,17 @@ describe('dripstoneFamily', () => {
         ]);
     });
 
+    it('keeps a tip from merging when its placer sneaks', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, 'minecraft:stone');
+        harness.dimension.set(below, dripstone, { dripstone_thickness: 'tip', hanging: false });
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+
+        harness.place(origin, { placedBy: lookingUp, face: 'down', sneaking: true });
+
+        expect(segment(harness, 4)).toMatchObject({ hanging: true, dripstone_thickness: 'tip' });
+    });
+
     it('merges a placed stalactite with the stalagmite tip it meets', () => {
         const harness = bindFamily(dripstoneFamily, dripstone);
         harness.dimension.set(above, 'minecraft:stone');
