@@ -1087,8 +1087,9 @@ export default class Server {
                 warn: (message) => this.logger.warn(message),
                 error: (message) => this.logger.error(message)
             },
-            // An update replaces an addon's folder in place, so the manifests are read again.
-            reload: () => this.reloadScripts({ restart: true })
+            // An update replaces an addon's folder in place, so the manifests are read again; a
+            // `/reload` that changed no addon reloads the scripts in place, as it always has.
+            reload: (options) => this.reloadScripts(options)
         });
         return this.addons;
     }

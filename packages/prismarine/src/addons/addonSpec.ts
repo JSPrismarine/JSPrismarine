@@ -16,18 +16,39 @@ export interface AddonSpec {
     readonly key?: string;
 }
 
-/** Whether an argument is a path rather than an addon name: it starts like one, or names an `.mcpack`. */
+/** Whether a file name is a pack archive: an `.mcpack`, or an `.mcaddon` of several packs. */
+export const isPackFile = (file: string): boolean => /\.(?:mcpack|mcaddon)$/i.test(file);
+
+/** Whether an argument is a path rather than an addon name: it starts like one, or names a pack archive. */
 const isPath = (spec: string): boolean =>
-    /^(?:\.{1,2}[\\/]|[\\/]|~[\\/]|[A-Za-z]:[\\/])/.test(spec) || spec.toLowerCase().endsWith('.mcpack');
+    /^(?:\.{1,2}[\\/]|[\\/]|~[\\/]|[A-Za-z]:[\\/])/.test(spec) || isPackFile(spec);
 
 /**
  * The key a pack file's name gives: `tps-bar-1.0.0.mcpack` is `tps-bar`, the way the build names
- * packs, and `warps.mcpack` is `warps`.
+ * packs, and `warps.mcaddon` is `warps`.
  */
 const keyOfPackFile = (file: string): string | undefined => {
-    const base = file.replace(/\.mcpack$/i, '');
+    const base = file.replace(/\.(?:mcpack|mcaddon)$/i, '');
     const match = /^(.+)-(\d+\.\d+\.\d+)$/.exec(base);
     const key = match && isAddonVersion(match[2]!) ? match[1]! : base;
+    return isAddonName(key) ? key : undefined;
+};
+
+/**
+ * The key a pack file dropped into `addons/` installs under. Its name rarely is a local name
+ * already, so `Furniture_Pack v2.mcaddon` becomes `furniture-pack-v2`: lowercase, with each run
+ * of other characters a hyphen.
+ *
+ * @returns The key, or undefined when the name has no letter or digit to make one from.
+ */
+export const keyOfDroppedPack = (file: string): string | undefined => {
+    const exact = keyOfPackFile(file);
+    if (exact !== undefined) return exact;
+    const key = file
+        .replace(/\.(?:mcpack|mcaddon)$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
     return isAddonName(key) ? key : undefined;
 };
 
@@ -37,7 +58,7 @@ const keyOfPackFile = (file: string): string | undefined => {
  * - `tps-bar` or `tps-bar@^1.0.0`: an addon from JSPrismarine's own source.
  * - `owner/repo/name[@range]`: an addon from another repository's `addons` release.
  * - `https://example.com/warps.mcpack`: a pack at a URL, with no index and no hash to check.
- * - `./my-addon`, `/srv/packs/warps.mcpack`: a folder or a pack on disk.
+ * - `./my-addon`, `/srv/packs/warps.mcpack`, `./warps.mcaddon`: a folder or a pack on disk.
  *
  * @param spec - The argument as typed.
  * @param serverDirectory - The server's folder; a path is stored relative to it when it is inside.
@@ -57,7 +78,7 @@ export const parseAddonSpec = (spec: string, serverDirectory: string, cwd: strin
         const outside = relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
         const stored = outside ? absolute : relative;
         const file = path.basename(absolute);
-        const key = file.toLowerCase().endsWith('.mcpack') ? keyOfPackFile(file) : isAddonName(file) ? file : undefined;
+        const key = isPackFile(file) ? keyOfPackFile(file) : isAddonName(file) ? file : undefined;
         return { request: { path: stored === '' ? '.' : stored }, ...optionalKey(key) };
     }
 

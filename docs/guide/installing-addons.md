@@ -36,7 +36,7 @@ came from.
 | `someone/their-addons/warps`   | The addon `warps` from the GitHub repository `someone/their-addons`. |
 | `tps-bar@~1.2.0`               | Either of the above, within a version range.                         |
 | `https://example.com/x.mcpack` | A pack at an `https:` URL, which no index lists.                     |
-| `./my-addon`                   | A folder or an `.mcpack` on the server's machine.                    |
+| `./my-addon`                   | A folder, an `.mcpack` or an `.mcaddon` on the server's machine.     |
 
 A bare name installs from <!-- fact:addons.defaultSource -->`JSPrismarine/JSPrismarine`<!-- /fact -->.
 A name with an owner and a repository installs from that repository's
@@ -70,11 +70,32 @@ that no hash checked the download, and the lock records the hash of what was dow
 on, the server refuses a download from that URL that no longer matches, until `addon update`
 takes the new pack and locks its hash.
 
-A path starts with `./`, `../`, `/` or `~/`, or ends in `.mcpack`. A relative path is relative to
+A path starts with `./`, `../`, `/` or `~/`, or ends in `.mcpack` or `.mcaddon`. A relative path is relative to
 the folder you started the server from, and the server stores it relative to the server's folder
 when it is inside that folder. A folder installs as a link to it rather than a copy, so an edit to
 its scripts shows after `/reload`. [Writing an addon](writing-addons.md#test-it-on-a-server) uses
 that to test a pack while you write it.
+
+### An `.mcaddon`
+
+An `.mcaddon` holds several packs, each a nested `.mcpack` or a folder with its own
+`manifest.json`. An addon is one behavior pack, so the server installs the one pack that has data
+or script modules and leaves out the rest, such as a resource pack, and the console names what it
+left out. An `.mcaddon` with no behavior pack, or with more than one, does not install.
+
+### Drop a file into `addons/`
+
+You can also install an `.mcaddon` or `.mcpack` without the console: copy it into the
+<!-- fact:addons.directory -->`addons/`<!-- /fact --> folder and start the server, run `/reload` or
+run `addon sync`. The server creates the folder at startup when it is missing. A file that
+`addons.json` does not name yet joins it as a path, as `addon install ./addons/<file>` would add
+it, under a local name made from the file's name: `Furniture_Pack v2.mcaddon` installs as
+`furniture-pack-v2`. When another addon already has that name, the console says so and the file
+waits until you rename it.
+
+Replace the file with a new one and the next sync installs it. Delete the file and the next sync
+removes the addon. `addon remove` deletes the file as well, since the next sync would otherwise
+install it again.
 
 ### Choose the local name with `as`
 
@@ -157,7 +178,7 @@ linked folder has no hash, since its files change as you edit them. A path to an
 one, like a URL.
 
 Keep both files with the server, in a backup or in version control, as you keep `config.json`.
-The `addons/` folder can always be rebuilt from them.
+The `addons/` folder can be rebuilt from them, except the pack files you placed in it yourself.
 
 ## List, update and remove
 
@@ -196,11 +217,16 @@ at startup. Run it after you edit `addons.json` by hand.
 
 Before the server loads its packs, it does what `addon sync` does:
 
+- It adds each `.mcaddon` and `.mcpack` in `addons/` that `addons.json` does not name, and takes
+  out an entry whose file in `addons/` is gone.
 - It removes a locked addon that `addons.json` no longer names.
 - It installs a locked addon whose folder is missing, or holds another version, from the URL in
   the lock, and refuses a download whose SHA-256 is no longer the one locked.
 - It resolves an entry of `addons.json` that has no lock, or whose lock its range no longer
-  allows, installs it and locks it.
+  allows, installs it and locks it. A file in `addons/` whose hash is no longer the one locked
+  installs again.
+
+`/reload` runs the same sync before it reloads the scripts.
 
 An addon that cannot install doesn't stop the others or the server. The console logs why, and the
 server starts without it. The check compares the version in each folder's `manifest.json` with
@@ -212,7 +238,8 @@ Installed addons load after the packs in `content-world-packs`, in the order of 
 ## Move a server
 
 To move a server to another machine, or to restore one from a backup, copy `config.json`,
-`addons.json`, `addons.lock.json` and the worlds. The `addons/` folder can stay behind: on its
+`addons.json`, `addons.lock.json`, the worlds and any `.mcaddon` or `.mcpack` you placed in
+`addons/`. The rest of the `addons/` folder can stay behind: on its
 first start, the server downloads every locked addon again, checks each against the hash in the
 lock, and installs the same versions. A server whose addon is no longer downloadable from its
 locked URL logs that addon as failed and starts without it.

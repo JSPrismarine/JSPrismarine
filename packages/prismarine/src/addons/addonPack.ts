@@ -12,9 +12,11 @@ import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
 import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { parseLenientJson } from '@jsprismarine/packs/lenientJson';
 import { parseManifest } from '@jsprismarine/packs/manifest';
-import { readZip } from '@jsprismarine/packs/zip';
+import type { ZipBudget } from '@jsprismarine/packs/zip';
+import { createZipBudget, readZip } from '@jsprismarine/packs/zip';
 
 import { isHttpsUrl } from './addonFiles';
+import { isRecord } from '../utils/isRecord';
 
 /**
  * What a pack may hold and still load without a restart: the manifest, the addon's own files and
@@ -134,18 +136,111 @@ export const downloadPack = async (
     }
 };
 
+/** A pack archive's files, and what else an `.mcaddon` held beside the behavior pack it installs. */
+export interface UnpackedPack {
+    /** The behavior pack's files, by their path inside the addon. */
+    readonly files: Map<string, Uint8Array>;
+    /** The `.mcaddon`'s other packs, such as its resource pack, by their name in the archive. */
+    readonly skipped: readonly string[];
+}
+
 /**
  * The files of an `.mcpack`, by their path inside the addon. A pack zipped with its folder, so
  * that `manifest.json` sits under one top-level folder, is read from inside that folder.
  *
+ * An `.mcaddon` holds several packs, each a nested `.mcpack` or a top-level folder with its own
+ * `manifest.json`. An addon is one behavior pack, so the one pack with a data or script module
+ * installs and the rest, such as a resource pack, are listed as skipped.
+ *
  * @throws {PrismarineAddonErrors.InvalidAddonPack} When the archive does not read, has no
- * manifest, or names a path that would land outside the addon's folder.
+ * manifest, holds no behavior pack or more than one, or names a path that would land outside the
+ * addon's folder.
  */
-export const unpackPack = (key: string, bytes: Uint8Array): Map<string, Uint8Array> => {
+export const unpackPack = (key: string, bytes: Uint8Array): UnpackedPack => {
+    const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonPack({ key, problem });
+    // One budget for the archive and every pack nested in it, so nesting cannot multiply it.
+    const budget = createZipBudget();
+    const entries = readPackZip(key, bytes, budget);
+    const single = packRootOf(entries);
+    if (single !== undefined) return { files: single, skipped: [] };
+
+    const packs = new Map<string, Map<string, Uint8Array>>();
+    for (const [name, data] of entries) {
+        if (name.includes('/') || !/\.mcpack$/i.test(name)) continue;
+        const nested = packRootOf(readPackZip(key, data, budget));
+        if (nested !== undefined) packs.set(name, nested);
+    }
+    for (const root of new Set([...entries.keys()].filter((name) => name.includes('/')).map(rootOf))) {
+        if (entries.has(`${root}/manifest.json`)) packs.set(`${root}/`, inside(entries, root));
+    }
+    if (packs.size === 0) throw fail('it has no manifest.json');
+
+    const behavior = [...packs].filter(([, files]) => isBehaviorPack(files));
+    const [chosen] = behavior;
+    if (chosen === undefined) throw fail('its packs hold no data or script module');
+    if (behavior.length > 1)
+        throw fail(
+            `it holds ${behavior.length} behavior packs, ${behavior.map(([name]) => name).join(', ')}, and an addon is one`
+        );
+    return {
+        files: chosen[1],
+        skipped: [...packs.keys()].filter((name) => name !== chosen[0]).sort()
+    };
+};
+
+/** The first segment of a path in an archive. */
+const rootOf = (name: string): string => name.split('/')[0]!;
+
+/** The entries under one top-level folder, with that folder taken off their paths. */
+const inside = (entries: ReadonlyMap<string, Uint8Array>, root: string): Map<string, Uint8Array> =>
+    new Map(
+        [...entries]
+            .filter(([name]) => name.startsWith(`${root}/`))
+            .map(([name, data]) => [name.slice(root.length + 1), data])
+    );
+
+/**
+ * One pack's files: the archive itself when `manifest.json` is at its root, or the inside of its
+ * only top-level folder when the manifest is there. Undefined for anything else, such as an
+ * `.mcaddon`.
+ */
+const packRootOf = (entries: Map<string, Uint8Array>): Map<string, Uint8Array> | undefined => {
+    if (entries.has('manifest.json')) return entries;
+    const roots = new Set([...entries.keys()].map(rootOf));
+    const [root] = roots;
+    if (roots.size !== 1 || !entries.has(`${root}/manifest.json`)) return undefined;
+    return inside(entries, root!);
+};
+
+/**
+ * Whether a pack's manifest lists a data or script module, as a behavior pack's does. A manifest
+ * that does not read counts as no behavior pack here; the pack chosen is checked in full later.
+ */
+const isBehaviorPack = (files: ReadonlyMap<string, Uint8Array>): boolean => {
+    const bytes = files.get('manifest.json');
+    if (bytes === undefined) return false;
+    let manifest: unknown;
+    try {
+        manifest = parseLenientJson(new TextDecoder().decode(bytes));
+    } catch {
+        return false;
+    }
+    if (!isRecord(manifest) || !Array.isArray(manifest.modules)) return false;
+    return manifest.modules.some(
+        (module: unknown) =>
+            isRecord(module) && typeof module.type === 'string' && ADDON_MODULE_TYPES.includes(module.type)
+    );
+};
+
+/**
+ * Reads a pack archive and checks every name in it.
+ * @throws {PrismarineAddonErrors.InvalidAddonPack} When the archive does not read or a name is unsafe.
+ */
+const readPackZip = (key: string, bytes: Uint8Array, budget: ZipBudget): Map<string, Uint8Array> => {
     const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonPack({ key, problem });
     let entries: Map<string, Uint8Array>;
     try {
-        entries = readZip(bytes);
+        entries = readZip(bytes, { budget });
     } catch (cause) {
         if (isJSPrismarineError(cause))
             throw new PrismarineAddonErrors.InvalidAddonPack({ key, problem: cause.message }, { cause });
@@ -164,12 +259,7 @@ export const unpackPack = (key: string, bytes: Uint8Array): Map<string, Uint8Arr
         if (seen.has(folded)) throw fail(`${name} names a file another entry already names`);
         seen.add(folded);
     }
-    if (entries.has('manifest.json')) return entries;
-
-    const roots = new Set([...entries.keys()].map((name) => name.split('/')[0]!));
-    const [root] = roots;
-    if (roots.size !== 1 || !entries.has(`${root}/manifest.json`)) throw fail('it has no manifest.json');
-    return new Map([...entries].map(([name, data]) => [name.slice(root!.length + 1), data]));
+    return entries;
 };
 
 /** What an installer reads off a pack before it trusts it. */

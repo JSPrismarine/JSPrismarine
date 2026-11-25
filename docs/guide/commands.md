@@ -115,8 +115,12 @@ remote console, so nobody adds code to a server from inside the game.
   range, the install records `^` and the version it installed.
 - An `https:` URL of an `.mcpack`. No index lists it, so the console says that no hash checked the
   download, and the lock records the hash of what was downloaded.
-- A path that starts with `./`, `../` or `/`, or ends in `.mcpack`. A folder is linked rather than
-  copied, so an edit to it shows after `/reload`.
+- A path that starts with `./`, `../` or `/`, or ends in `.mcpack` or `.mcaddon`. A folder is
+  linked rather than copied, so an edit to it shows after `/reload`. An `.mcaddon` installs its
+  behavior pack.
+
+An `.mcaddon` or `.mcpack` you place in the `addons/` folder installs at the next start, `/reload`
+or `addon sync`, as if you had installed its path.
 
 The server's folder holds what was asked for and what it resolved to, beside `config.json`:
 <!-- fact:addons.requestFile -->`addons.json`<!-- /fact --> keys each addon by its local name with the source and range
@@ -128,7 +132,7 @@ install side by side when the second takes `as <name>`.
 `addon update` changes a locked version. So does a sync after you edit `addons.json`: an entry
 whose source, name or range no longer allows its lock resolves again and locks the newest version
 it allows, so changing `^1.0.0` to `^2.0.0` moves the addon to `2.x` on the next sync or start.
-At startup, and on `addon sync`, the server installs a locked addon whose folder is missing from
+At startup, on `/reload` and on `addon sync`, the server installs a locked addon whose folder is missing from
 its locked URL and refuses a download whose hash is no longer the one locked. It resolves and
 locks an entry of `addons.json` with no lock, and removes a locked addon `addons.json` no longer
 names. A server copied to another machine without its

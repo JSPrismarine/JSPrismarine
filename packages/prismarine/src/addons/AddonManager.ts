@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, realpath, stat, symlink } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, realpath, rm, stat, symlink } from 'node:fs/promises';
 import path from 'node:path';
 
 import { addonVersionsInRange, isAddonName, satisfiesAddonRange } from '@jsprismarine/addon-tools/addonIndex';
@@ -29,7 +29,7 @@ import {
     unpackPack,
     writePackFolder
 } from './addonPack';
-import { parseAddonSpec } from './addonSpec';
+import { isPackFile, keyOfDroppedPack, parseAddonSpec } from './addonSpec';
 import { SerialQueue } from '../utils/serialQueue';
 
 /** Where the installer writes what it does. */
@@ -53,8 +53,12 @@ export interface AddonManagerOptions {
      */
     readonly fetch?: typeof fetch;
     readonly log: AddonLog;
-    /** Loads the pack list again after an install, an update or a removal changed it. */
-    readonly reload?: () => Promise<void>;
+    /**
+     * Loads the pack list again after an install, an update or a removal changed it, or when a
+     * sync asked for it. `restart` says an addon changed, so each pack's manifest must be read
+     * again rather than the scripts reloaded in place.
+     */
+    readonly reload?: (options: { readonly restart: boolean }) => Promise<void>;
 }
 
 /** One installed addon, as `addon list` shows it. */
@@ -76,6 +80,8 @@ interface Resolved {
     readonly summary: PackSummary;
     readonly files?: ReadonlyMap<string, Uint8Array>;
     readonly folder?: string;
+    /** The other packs of an `.mcaddon`, which do not install. */
+    readonly skipped?: readonly string[];
 }
 
 /** The warning for a deprecated addon, or undefined when its lock says nothing of one. */
@@ -243,9 +249,9 @@ export class AddonManager {
     }
 
     /**
-     * `addon remove`: deletes the addon's folder, takes it out of both files and unloads it. The
-     * folder goes first, so a deletion that fails leaves both files naming the addon, and the
-     * removal can run again.
+     * `addon remove`: deletes the addon's folder, and its file when it was a pack dropped into
+     * `addons/`, takes it out of both files and unloads it. The folder goes first, so a deletion
+     * that fails leaves both files naming the addon, and the removal can run again.
      */
     public remove(key: string): Promise<void> {
         return this.queue.run(async () => {
@@ -255,6 +261,10 @@ export class AddonManager {
                 throw new PrismarineAddonErrors.AddonNotInstalled({ key });
             const summary = await this.summaryOf(key);
             await removeAddonFolder(path.join(this.addonsDirectory, key));
+            // A pack dropped into addons/ would install again on the next sync while its file stays.
+            const request = own(requested.addons, key);
+            const dropped = request === undefined ? undefined : this.droppedPackOf(request);
+            if (dropped !== undefined) await rm(dropped, { force: true });
             await this.write(
                 { addons: without(requested.addons, key) },
                 { ...lock, addons: without(lock.addons, key) }
@@ -269,9 +279,15 @@ export class AddonManager {
     }
 
     /**
-     * `addon sync`, which the server also runs at startup: brings `addons/` in line with the two
-     * files. A locked addon whose folder is missing, or holds another version, installs again from
-     * its locked URL, and one whose download no longer matches its hash is refused. An entry of
+     * `addon sync`, which the server also runs at startup and on `/reload`: brings `addons/` in
+     * line with the two files. It creates `addons/` first when it is missing.
+     *
+     * An `.mcaddon` or `.mcpack` dropped into `addons/` installs as if `addon install` had been
+     * given its path: it joins `addons.json` under a key made from its file name. One whose file
+     * was replaced installs again, and one whose file is gone leaves `addons.json` and is removed.
+     *
+     * A locked addon whose folder is missing, or holds another version, installs again from its
+     * locked URL, and one whose download no longer matches its hash is refused. An entry of
      * `addons.json` with no lock, or whose lock it no longer allows, resolves and locks. A locked
      * addon `addons.json` no longer names is removed.
      *
@@ -280,12 +296,16 @@ export class AddonManager {
      * lock, so the next sync tries again. A reload that failed, here or in another operation, runs
      * again on the next sync that reloads.
      *
-     * @param options - `reload: false` at startup, where the content build loads the packs.
+     * @param options - `reload: false` at startup, where the content build loads the packs, and
+     *   `'always'` on `/reload`, which reloads the scripts whether or not an addon changed.
      * @returns The keys that could not be installed or removed.
      */
-    public sync(options: { readonly reload?: boolean } = {}): Promise<readonly string[]> {
+    public sync(options: { readonly reload?: boolean | 'always' } = {}): Promise<readonly string[]> {
         return this.queue.run(async () => {
-            const { requested, lock } = await readAddonFiles(this.options.directory);
+            await mkdir(this.addonsDirectory, { recursive: true });
+            const files = await readAddonFiles(this.options.directory);
+            const { lock } = files;
+            const requested = await this.adoptDroppedPacks(files.requested);
             // A Map rather than a copy of the record: deleting a key from an object changes its
             // shape, which leaves Bun's AOT compiler unable to type objects that share it.
             const locks = new Map(Object.entries(lock.addons));
@@ -311,7 +331,11 @@ export class AddonManager {
                 const request = requested.addons[key]!;
                 const locked = locks.get(key);
                 try {
-                    if (locked !== undefined && allows(key, request, locked)) {
+                    if (
+                        locked !== undefined &&
+                        allows(key, request, locked) &&
+                        !(await this.droppedPackReplaced(request, locked))
+                    ) {
                         if (await this.isPresent(key, locked)) continue;
                         const resolved = await this.fromLock(key, locked);
                         await this.place(key, resolved);
@@ -321,7 +345,7 @@ export class AddonManager {
                         const resolved = await this.resolve(key, request);
                         await this.place(key, resolved);
                         locks.set(key, resolved.locked);
-                        this.report('Installed', key, resolved);
+                        this.report(locked === undefined ? 'Installed' : `Updated ${locked.version} to`, key, resolved);
                         this.reportOutgoing(key, outgoing);
                     }
                     changed = true;
@@ -332,12 +356,13 @@ export class AddonManager {
             }
 
             const addons = Object.fromEntries(locks);
-            if (changed) await this.write(requested, { ...lock, addons }, failed);
+            // A dropped pack that failed to install stays in addons.json, so the next sync tries again.
+            if (changed || requested !== files.requested) await this.write(requested, { ...lock, addons }, failed);
             else await this.track(addons, failed);
             // A folder that vanished and could not come back leaves the pack list, so the scripts
             // reload even when the folder holds nothing new.
-            const listChanged = !sameKeys(active, this.installed);
-            if ((changed || listChanged || this.reloadPending) && options.reload !== false) await this.reload();
+            const restart = changed || !sameKeys(active, this.installed) || this.reloadPending;
+            if (options.reload === 'always' || (restart && options.reload !== false)) await this.reload(restart);
             return failed;
         });
     }
@@ -368,11 +393,74 @@ export class AddonManager {
         return keys;
     }
 
-    private async reload(): Promise<void> {
+    /** @param restart - Whether an addon changed, so the scripts start over from the manifests. */
+    private async reload(restart = true): Promise<void> {
         if (this.options.reload === undefined) return;
         this.reloadPending = true;
-        await this.options.reload();
+        await this.options.reload({ restart });
         this.reloadPending = false;
+    }
+
+    /**
+     * The pack file in `addons/` a request installs, or undefined when it names none: a pack
+     * dropped into `addons/` is requested by its path there.
+     */
+    private droppedPackOf(request: AddonRequest): string | undefined {
+        if (!('path' in request)) return undefined;
+        const file = path.resolve(this.options.directory, request.path);
+        return path.dirname(file) === path.resolve(this.addonsDirectory) && isPackFile(file) ? file : undefined;
+    }
+
+    /**
+     * Brings `addons.json` in line with the pack files in `addons/`: each file no entry names joins
+     * it, and each entry whose file is gone leaves it.
+     *
+     * @returns The new `addons.json`, or the one given when nothing changed.
+     */
+    private async adoptDroppedPacks(requested: AddonsFile): Promise<AddonsFile> {
+        const dropped = (await readdir(this.addonsDirectory, { withFileTypes: true }))
+            .filter((entry) => entry.isFile() && isPackFile(entry.name))
+            .map((entry) => entry.name)
+            .sort();
+        const kept = Object.entries(requested.addons).filter(([key, request]) => {
+            const file = this.droppedPackOf(request);
+            if (file === undefined || dropped.includes(path.basename(file))) return true;
+            this.options.log.info(`${key}'s file ${path.basename(file)} is gone from ${ADDONS_DIRECTORY}/`);
+            return false;
+        });
+        const claimed = new Set(
+            kept.map(([, request]) => this.droppedPackOf(request)).filter((file) => file !== undefined)
+        );
+        const addons = Object.fromEntries(kept);
+        let changed = kept.length !== Object.keys(requested.addons).length;
+        for (const file of dropped) {
+            if (claimed.has(path.resolve(this.addonsDirectory, file))) continue;
+            const key = keyOfDroppedPack(file);
+            if (key === undefined) {
+                this.options.log.warn(
+                    `${ADDONS_DIRECTORY}/${file} has no letter or digit in its name to install it under; rename it`
+                );
+                continue;
+            }
+            if (own(addons, key) !== undefined) {
+                this.options.log.warn(
+                    `${ADDONS_DIRECTORY}/${file} would install as ${key}, which is already installed; rename the file`
+                );
+                continue;
+            }
+            addons[key] = { path: path.join(ADDONS_DIRECTORY, file) };
+            changed = true;
+            this.options.log.info(`Found ${file} in ${ADDONS_DIRECTORY}/, installing it as ${key}`);
+        }
+        return changed ? { addons } : requested;
+    }
+
+    /** Whether a dropped pack's file is no longer the one its lock hashed, so it installs again. */
+    private async droppedPackReplaced(request: AddonRequest, locked: LockedAddon): Promise<boolean> {
+        const file = this.droppedPackOf(request);
+        if (file === undefined || !isPathLock(locked) || locked.sha256 === undefined) return false;
+        const bytes = await readFile(file).catch(() => undefined);
+        return bytes !== undefined && sha256Of(new Uint8Array(bytes)) !== locked.sha256;
     }
 
     /** Warns when an addon's author has deprecated the version it locks. */
@@ -382,9 +470,13 @@ export class AddonManager {
     }
 
     /** Logs an install, where it came from, whether it is deprecated and what in it waits for a restart. */
-    private report(verb: string, key: string, { locked, summary }: Resolved): void {
+    private report(verb: string, key: string, { locked, summary, skipped }: Resolved): void {
         this.options.log.info(`${verb} ${key} ${locked.version} from ${originOf(locked)}`);
         this.warnDeprecated(key, locked);
+        if (skipped !== undefined && skipped.length > 0)
+            this.options.log.warn(
+                `${key} also holds ${skipped.join(', ')}, which the server does not install: an addon is its behavior pack`
+            );
         if (summary.needsRestart.length > 0)
             this.options.log.warn(
                 `${key} also has ${summary.needsRestart.join(', ')}, which load when the server restarts`
@@ -457,12 +549,13 @@ export class AddonManager {
         }
         if ('url' in request) {
             const bytes = await downloadPack(this.fetcher, request.url);
-            const files = unpackPack(key, bytes);
+            const { files, skipped } = unpackPack(key, bytes);
             const summary = this.checked(key, summarizeFiles(key, files));
             return {
                 locked: { url: request.url, name: key, version: summary.version, sha256: sha256Of(bytes) },
                 summary,
-                files
+                files,
+                skipped
             };
         }
         return this.fromPath(key, request.path);
@@ -489,7 +582,7 @@ export class AddonManager {
                 expected: locked.sha256,
                 recordedBy
             });
-        const files = unpackPack(key, bytes);
+        const { files, skipped } = unpackPack(key, bytes);
         const summary = this.checked(key, summarizeFiles(key, files));
         // A matching hash says these are the bytes the index or the lock vouched for, not that
         // they are the version it lists, and a folder whose version differs would never count
@@ -501,7 +594,7 @@ export class AddonManager {
                 expected: locked.version,
                 recordedBy
             });
-        return { locked, summary, files };
+        return { locked, summary, files, skipped };
     }
 
     /** A folder, which installs as a link to it, or an `.mcpack` on disk. */
@@ -524,9 +617,9 @@ export class AddonManager {
                 expected,
                 recordedBy: ADDONS_LOCK_FILE
             });
-        const files = unpackPack(key, bytes);
+        const { files, skipped } = unpackPack(key, bytes);
         const summary = this.checked(key, summarizeFiles(key, files));
-        return { locked: { path: stored, name: key, version: summary.version, sha256 }, summary, files };
+        return { locked: { path: stored, name: key, version: summary.version, sha256 }, summary, files, skipped };
     }
 
     /** Refuses a pack whose `addon.json` asks for a newer server than this one. */
