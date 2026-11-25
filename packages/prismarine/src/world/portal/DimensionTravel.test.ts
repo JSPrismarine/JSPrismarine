@@ -1246,6 +1246,120 @@ describe('DimensionTravel as messages', () => {
         await scene.level.disable();
     }, 60_000);
 
+    /**
+     * Runs input steps, chunk admissions then trips as the ticker does, until no trip is left,
+     * and answers each step's view of the player: its world, whether its change waits for the
+     * arrival, and how many trips are filed.
+     */
+    const stepUntilLanded = async (scene: Awaited<ReturnType<typeof buildScene>>, player: PlayerSession) => {
+        const steps: { world: World; awaiting: boolean; pending: number }[] = [];
+        for (let tick = 2; scene.travel.pending > 0 && tick < 200; tick += 1) {
+            await runInTick(async () => {
+                await scene.completions.admissions.admit(tick);
+                scene.travel.admit();
+            });
+            const id = player.pendingDimensionChange()?.loadingScreenId;
+            steps.push({
+                world: player.getWorld(),
+                awaiting: id !== undefined && player.awaitsArrival(id),
+                pending: scene.travel.pending
+            });
+            // Lets the generation the step did not wait for finish before the next step.
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+        return steps;
+    };
+
+    it("sends a player's change ahead while the Nether's arrival chunks load, then lands them in the portal it builds", async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const sent: unknown[] = [];
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5), sent);
+        player.getPlayer().gamemode = Gametype.CREATIVE;
+        await scene.overworld.addPlayer(player);
+        scene.completions.activate();
+
+        // Creative goes through on its first contact tick.
+        await scene.overworld.update(1);
+        expect(scene.travel.pending).toBe(1);
+        const steps = await stepUntilLanded(scene, player);
+
+        // The first step finds the Nether's chunks not in yet and sends the change, and the trip
+        // stays filed behind it until a later step lands it.
+        expect(steps[0]).toEqual({ world: scene.nether, awaiting: true, pending: 1 });
+        expect(steps.at(-1)).toEqual({ world: scene.nether, awaiting: false, pending: 0 });
+        const changes = sent.filter(
+            (packet): packet is ChangeDimensionPacket => packet instanceof ChangeDimensionPacket
+        );
+        expect(changes).toHaveLength(1);
+        // It waited in the target's column above the build height, where nothing suffocates.
+        const waited = changes[0]?.getPacketData()?.position;
+        // 80 / 8: the scaled target's column, where the search for the exit portal starts.
+        expect(waited?.getX()).toBe(10);
+        expect(waited?.getY()).toBeGreaterThanOrEqual(Dimensions.Nether.minY + Dimensions.Nether.height);
+
+        // Landed in the portal the trip built, as a trip that waited in the Overworld does.
+        const feet = player.getPlayer().getPosition();
+        expect(nameAt(scene.nether, Math.floor(feet.getX()), Math.floor(feet.getY() - 1.62), 0)).toBe(
+            'minecraft:portal'
+        );
+        expect(player.pendingDimensionChange()?.arrival.position.getY()).toBe(70);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    });
+
+    it("sends a player's change into the End ahead, then lands them on the platform it writes", async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        player.getPlayer().gamemode = Gametype.CREATIVE;
+        await scene.overworld.addPlayer(player);
+        scene.completions.activate();
+
+        expect(
+            scene.travel.depart(player.getActor()!, {
+                world: scene.overworld,
+                position: new Vector3(80, 64, 0),
+                block: 'minecraft:end_portal'
+            })
+        ).toBe(true);
+        const steps = await stepUntilLanded(scene, player);
+
+        expect(steps[0]).toEqual({ world: scene.end, awaiting: true, pending: 1 });
+        expect(steps.at(-1)).toEqual({ world: scene.end, awaiting: false, pending: 0 });
+        expect(nameAt(scene.end, 100, 48, 0)).toBe('minecraft:obsidian');
+        expect(player.pendingDimensionChange()?.arrival.position.getY()).toBe(49);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    });
+
+    it('leaves a player in the portal, and drops the trip, when the change sent ahead is canceled', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addPlayer(player);
+        scene.server.on('playerChangeDimension', (event) => event.preventDefault());
+        scene.completions.activate();
+
+        scene.travel.depart(player.getActor()!, {
+            world: scene.overworld,
+            position: new Vector3(80, 64, 0),
+            block: 'minecraft:end_portal'
+        });
+        await runInTick(async () => {
+            await scene.completions.admissions.admit(2);
+            scene.travel.admit();
+        });
+
+        expect(scene.travel.pending).toBe(0);
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.pendingDimensionChange()).toBeUndefined();
+        expect(player.getPlayer().getPortalCooldown()).toBe(0);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    });
+
     it("holds a trip's arrival chunks with a ticket from its preparation until it lands", async () => {
         const scene = await buildScene();
         const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
