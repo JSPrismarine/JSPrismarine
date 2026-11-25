@@ -410,6 +410,9 @@ export const runPacksOnHeadlessServer = async (run: HeadlessServerRun): Promise<
             join(root, 'config.json'),
             JSON.stringify({
                 'online-mode': false,
+                // Java Edition's listener takes a fixed TCP port, so a second server running at the
+                // same time, as the families' files do in parallel, would fail to start (#3710).
+                'java-enabled': false,
                 'preload-radius': 1,
                 'view-distance': 1,
                 'enable-ticking': false,
