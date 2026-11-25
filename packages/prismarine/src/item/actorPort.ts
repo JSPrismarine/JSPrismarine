@@ -30,6 +30,7 @@ import { DamageSource } from '../entity/DamageSource';
 import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { eyePositionAt } from '../entity/playerEyes';
 import { Item } from './Item';
+import { blankSavedMap } from '../world/savedMap';
 import { itemFromContent } from './itemFromContent';
 import type HumanInventory from '../inventory/HumanInventory';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
@@ -143,7 +144,6 @@ const UNWRITTEN_SYSTEMS = {
     'shear-entity': 'the entity components that hold it',
     brush: 'the brush system',
     fishing: 'the fishing system',
-    map: 'the map system',
     'open-screen': 'the open-screen system'
 } as const satisfies Partial<Record<ActorItemAction['kind'], string>>;
 
@@ -490,6 +490,51 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     };
 
     /**
+     * Makes a map of the area the player stands in, Java's `EmptyMapItem.use`: a blank map at
+     * zoom 0 centered on the grid cell of the player's block, which tracks its holders.
+     *
+     * The last empty map in the hand becomes the filled map, as Java's `heldItemTransformedTo`
+     * does; the behavior's write of the spent stack back to the hand then finds no empty map
+     * there and leaves it. Otherwise the map goes into the inventory, or on the ground when there
+     * is no room.
+     */
+    const createMap = (source: ItemSource): void => {
+        const player = playerOf(source);
+        const entity = entityOf(source);
+        const loaded = world();
+        if (player === undefined || entity === null || loaded === undefined) return;
+
+        const position = entity.getPosition();
+        const id = loaded.getLevel().addMap(
+            blankSavedMap({
+                dimension: loaded.getDimension().id,
+                x: Math.floor(position.getX()),
+                z: Math.floor(position.getZ()),
+                scale: 0
+            })
+        );
+        const map = new Item({
+            name: 'minecraft:filled_map',
+            count: 1,
+            mapId: id,
+            content: loaded.getServer().getContent()
+        });
+
+        const inventory = player.getInventory();
+        const held = inventory.equipment('mainhand');
+        const creative = player.gamemode === Gametype.CREATIVE;
+        if (!creative && held?.getName() === 'minecraft:empty_map' && held.getAmount() === 1) {
+            inventory.setEquipment('mainhand', map);
+        } else if (inventory.container('inventory').add(map) > 0) {
+            entities.drop(
+                { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
+                { identifier: 'minecraft:filled_map', count: 1, mapId: id }
+            );
+        }
+        loaded.playNamedSoundAt(position, 'ui.cartography_table.take_result');
+    };
+
+    /**
      * Throws an eye of ender.
      *
      * Java's `EnderEyeItem.use` after the search: the eye starts at `player.getY(0.5)`, half the
@@ -674,6 +719,12 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             case 'signal':
                 signal(action);
                 return;
+            case 'map':
+                // An empty map is the only item that asks; a cartography table copies, zooms and
+                // locks maps through its screen rather than through an item behavior.
+                if (action.operation === 'create') createMap(action.source);
+                else missing(action, `a map ${action.operation} outside a cartography table`);
+                return;
             case 'blocking':
             case 'disable-shield':
                 // The entity runtime decides both on the damage path: a shield is raised while its
@@ -684,7 +735,6 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             case 'shear-entity':
             case 'brush':
             case 'fishing':
-            case 'map':
             case 'open-screen':
                 return missing(action, UNWRITTEN_SYSTEMS[action.kind]);
         }

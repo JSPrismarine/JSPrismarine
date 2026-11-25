@@ -826,15 +826,67 @@ describe('useItemOnBlock', () => {
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
-        it('keeps an empty map, since this server draws no maps, and tells the client', () => {
-            // The behavior asks `supports('map')` before it spends the map. The client took one
-            // out of its own hand the moment it clicked, so the inventory goes back as it is.
-            const player = playerHolding(world, new Item({ name: 'minecraft:empty_map', count: 2, content }));
+        /** A player holding empty maps, in the entity index where the port finds whoever used one. */
+        const emptyMaps = (count: number, gamemode: Gametype = Gametype.SURVIVAL) => {
+            const player = playerHolding(
+                world,
+                new Item({ name: 'minecraft:empty_map', count, content }),
+                false,
+                gamemode
+            );
+            Object.assign(world, {
+                getActor: (runtimeId: bigint) =>
+                    runtimeId === player.getRuntimeId() ? (player.getActor() ?? null) : null,
+                players: new Map([[Number(player.getRuntimeId()), player]])
+            });
+            return player;
+        };
+
+        /** Every filled map the player carries, with the saved map its id names. */
+        const filledMaps = (player: PlayerSession) =>
+            player
+                .getInventory()
+                .container('inventory')
+                .stacks()
+                .filter((stack) => stack.getName() === 'minecraft:filled_map')
+                .map((stack) => ({ stack, map: world.getLevel().getMap(stack.getMapId() ?? -1) }));
+
+        it('turns the last empty map in the hand into a blank map of the area the player stands in', () => {
+            const player = emptyMaps(1);
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(2);
+            const held = player.getInventory().equipment('mainhand');
+            expect(held?.getName()).toBe('minecraft:filled_map');
+            const map = world.getLevel().getMap(held?.getMapId() ?? -1);
+            // The player stands at (1.5, 1.5), in the zoom 0 grid cell centered on the origin.
+            expect(map).toMatchObject({ dimension: DIMENSION, centerX: 0, centerZ: 0, scale: 0, locked: false });
+            expect(map?.colors?.every((color) => color === 0)).toBe(true);
+            expect(sounds()).toContain('ui.cartography_table.take_result');
             expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('spends one of several empty maps and puts the map in the inventory', () => {
+            const player = emptyMaps(3);
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            expect(player.getInventory().equipment('mainhand')).toMatchObject({ name: 'minecraft:empty_map' });
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(2);
+            const made = filledMaps(player);
+            expect(made).toHaveLength(1);
+            expect(made[0]?.map).toBeDefined();
+        });
+
+        it('makes a new map each use, and spends no empty map in a creative hand', () => {
+            const player = emptyMaps(1, Gametype.CREATIVE);
+
+            useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player });
+            useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player });
+
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(1);
+            const ids = filledMaps(player).map(({ stack }) => stack.getMapId());
+            expect(new Set(ids).size).toBe(2);
         });
 
         it('keeps a snowball while no projectile runtime is attached, and tells the client', () => {

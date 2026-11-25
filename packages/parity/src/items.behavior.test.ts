@@ -668,6 +668,24 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
         }
     },
     {
+        name: 'empty-map-makes-map',
+        aspects: () => ['use'],
+        java: 'Using an empty map spends one and makes a map of the area the player stands in.',
+        reference: 'Java 26.3 EmptyMapItem.use and MapItem.create',
+        subjects: () => javaItems().filter((item) => item.javaId === 'minecraft:map'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            current = createTestWorld();
+            const stack = new ItemStack(registry().holder(subject.bedrock), 2);
+            const used = stack.type.hooks.dispatchFirst('onUse', { itemStack: stack, source: player, useDuration: 0 });
+            const made = current.performed('map')[0];
+            if (made === undefined) return 'using it made no map';
+            if (made.operation !== 'create') return `using it asks for a map ${made.operation}, Java makes a new map`;
+            if (used?.stack?.count !== 1) return `using it leaves ${String(used?.stack?.count)} of 2, Java spends one`;
+            return undefined;
+        }
+    },
+    {
         name: 'equips-on-use',
         aspects: () => ['minecraft:equippable'],
         java: 'Using a swappable wearable puts it in the slot its `minecraft:equippable` component names.',

@@ -39,6 +39,8 @@ import { World } from '../world/World';
 import type { WorldExperiment } from '../world/WorldExperiments';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
 import { structureReferenceKey } from '../world/WorldPersistence';
+import { newSavedMap } from '../world/savedMap';
+import type { SavedMap } from '../world/savedMap';
 import { testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
@@ -134,6 +136,13 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     });
 
     const referenced = new Set<string>();
+    // The level's maps by id, numbered as a real level numbers them.
+    const maps = new Map<number, SavedMap>();
+    const addMap = (map: SavedMap): number => {
+        const id = maps.size + 1;
+        maps.set(id, map);
+        return id;
+    };
     return stub<Level>({
         name: options.name ?? 'test',
         seed: options.seed ?? 0n,
@@ -158,6 +167,9 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         setSpawn: (at) => {
             spawn = at;
         },
+        addMap,
+        createMap: (request) => addMap(newSavedMap(request)),
+        getMap: (id) => maps.get(id),
         isStructureReferenced: (start) => referenced.has(structureReferenceKey(start)),
         referenceStructure: (start) => {
             referenced.add(structureReferenceKey(start));

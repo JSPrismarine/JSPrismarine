@@ -945,8 +945,16 @@ export class Level {
      * map's center, scale, dimension and markers, saved with the level under that id.
      */
     public createMap(request: NewSavedMap): number {
+        return this.addMap(newSavedMap(request));
+    }
+
+    /**
+     * Saves a map under a fresh id and answers the id, as Java's `ServerLevel.setMapData` with
+     * `getFreeMapId` does for a map made from an empty map or at a cartography table.
+     */
+    public addMap(map: SavedMap): number {
         const id = this.nextMapId();
-        this.maps.set(id, newSavedMap(request));
+        this.maps.set(id, map);
         return id;
     }
 
