@@ -17,12 +17,11 @@ import {
 import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 
+import { englishOf } from '../../../chat/ConsoleText';
 import { beginPlay } from '../javaPlay';
+import { outOfTurn } from './loginHandlers';
 import type { JavaContext, JavaPacketHandler } from './JavaPacketHandler';
 import { javaHandler } from './JavaPacketHandler';
-
-/** The reason the join ends with as it reaches play, when the server shows Java clients no world. */
-const JOIN_REFUSAL = 'This server does not take Java Edition players yet.';
 
 /**
  * Opens the configuration phase as a vanilla server does: the brand, the feature flags, and the
@@ -65,14 +64,18 @@ export const CONFIGURATION_HANDLERS: readonly JavaPacketHandler[] = [
         }
         connection.send(UpdateTags, { registries: CONFIGURATION.tags });
         connection.send(FinishConfiguration, {});
+        connection.configured = true;
     }),
 
     javaHandler(AcknowledgeFinishConfiguration, async (_acknowledged, context) => {
         const { connection, services } = context;
+        // Before the registries, the client could not read a play packet.
+        if (connection.configured !== true) throw outOfTurn(connection, AcknowledgeFinishConfiguration);
         connection.phase = 'play';
         const world = services.options.world;
         if (world === undefined) {
-            connection.send(PlayDisconnect, { reason: JOIN_REFUSAL });
+            // The join ends as it reaches play when the server shows Java clients no world.
+            connection.send(PlayDisconnect, { reason: englishOf('jsprismarine.disconnect.java_not_taken') });
             return connection.close();
         }
         await beginPlay(context, world);

@@ -217,7 +217,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             if (typeof value === 'string') return;
             level.getGameRuleManager().setGameRule(name, value, true);
         },
-        isHardcore: () => false,
+        isHardcore: () => level.isHardcore(),
         seed: () => level.seed.toString(),
         allowCheats: () => settings.allowCheats,
         setAllowCheats: (allow) => {

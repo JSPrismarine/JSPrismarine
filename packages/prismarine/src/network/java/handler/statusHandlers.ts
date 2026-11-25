@@ -15,14 +15,15 @@ import { javaHandler } from './JavaPacketHandler';
 /**
  * The JSON of `status` as a `Status Response` carries it.
  * @param status - The server's name, MOTD and counts.
+ * @param enforcesSecureChat - Whether chat must be signed.
  * @returns The JSON.
  */
-export const statusJson = (status: JavaStatusSource): string =>
+export const statusJson = (status: JavaStatusSource, enforcesSecureChat: boolean): string =>
     JSON.stringify({
         version: { name: NEWEST_JAVA_RELEASE.minecraftVersion, protocol: NEWEST_JAVA_RELEASE.protocolVersion },
         players: { max: status.getMaxPlayerCount(), online: status.getOnlinePlayerCount() },
         description: { text: status.getMotd() },
-        enforcesSecureChat: false
+        enforcesSecureChat
     });
 
 /** The handshake, the status request and the ping. */
@@ -45,7 +46,9 @@ export const STATUS_HANDLERS: readonly JavaPacketHandler[] = [
         await refuseLogin(connection, translated(key, NEWEST_JAVA_RELEASE.minecraftVersion));
     }),
     javaHandler(StatusRequest, (_request, { connection, services }) =>
-        connection.send(StatusResponse, { json: statusJson(services.options.status) })
+        connection.send(StatusResponse, {
+            json: statusJson(services.options.status, services.options.enforcesSecureChat())
+        })
     ),
     javaHandler(PingRequest, async (ping, { connection }) => {
         connection.send(PongResponse, ping);

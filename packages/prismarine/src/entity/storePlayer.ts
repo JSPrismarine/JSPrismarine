@@ -302,6 +302,11 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return new Vector3(x, y + EYE_HEIGHT, z);
     }
 
+    /** How fast the player moves, in blocks a tick; at rest while the player is in no store. */
+    public getVelocity(): { readonly x: number; readonly y: number; readonly z: number } {
+        return this.attached?.body.velocity ?? { x: 0, y: 0, z: 0 };
+    }
+
     public get pitch(): number {
         return this.attached?.body.pitch ?? this.held.pitch;
     }

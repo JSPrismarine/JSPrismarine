@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it } from 'vitest';
 
@@ -84,6 +84,32 @@ describe('network', () => {
                 await settle();
 
                 expect(events).toEqual(['replaced', 'spawn read']);
+            });
+
+            it('holds a Java player inputs under its connection, which a replacing login removes it behind', async () => {
+                const inputs = new InputQueue(() => true);
+                const sources: unknown[] = [];
+                const hold = inputs.hold.bind(inputs);
+                inputs.hold = (source, apply) => {
+                    sources.push(source);
+                    return hold(source, apply);
+                };
+                const connection = stub<ClientConnection>({});
+                const session = stub<PlayerSession>({ getConnection: () => connection });
+                const players = javaPlayersOf(stub<Server>({ getLogger: () => stub<Logger>({}) }), inputs);
+                const movement = {
+                    position: new Vector3(0, 0, 0),
+                    pitch: 0,
+                    yaw: 0,
+                    headYaw: 0,
+                    onGround: true,
+                    handledTeleport: false
+                };
+
+                void players.move(session, movement);
+                void players.intent(session, { kind: 'selectHotbarSlot', slot: 1 });
+
+                expect(sources).toEqual([connection, connection]);
             });
 
             it("tells a Java client replaced by another login vanilla's duplicate login message", () => {

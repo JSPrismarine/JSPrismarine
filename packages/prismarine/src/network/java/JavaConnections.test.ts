@@ -71,6 +71,14 @@ const ClientInformationProbe = defineJavaPacket(
     {}
 );
 
+/** What the test worlds tell a joining client: vanilla's three dimensions and the default rules. */
+const JOIN_SETTINGS = {
+    hardcore: false,
+    dimensions: ['minecraft:overworld', 'minecraft:the_nether', 'minecraft:the_end'],
+    reducedDebugInfo: false,
+    showDeathScreen: true,
+    doLimitedCrafting: false
+};
 const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
 const quiet = { debug: () => {}, info: () => {} };
 const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63 };
@@ -92,6 +100,8 @@ describe('JavaConnections', () => {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => onlineMode,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
             hasJoined: async (name, hash) => {
                 asked.push({ name, hash });
                 return mojang;
@@ -199,6 +209,8 @@ describe('JavaConnections', () => {
                 stub<SessionPlayer>({
                     yaw: 90,
                     pitch: 0,
+                    // Falling, which the client is told along with where it stands.
+                    getVelocity: () => ({ x: 0, y: -0.0784, z: 0 }),
                     gamemode: Gametype.CREATIVE,
                     getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
                 })
@@ -207,6 +219,8 @@ describe('JavaConnections', () => {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => false,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
             log: quiet,
             world: {
                 players: {
@@ -234,7 +248,8 @@ describe('JavaConnections', () => {
                 },
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 1,
-                maxPlayers: () => 20
+                maxPlayers: () => 20,
+                joinSettings: () => JOIN_SETTINGS
             }
         });
         await transport.listen('127.0.0.1', 0);
@@ -262,9 +277,11 @@ describe('JavaConnections', () => {
             dimension: 'minecraft:the_nether',
             gameMode: 1,
             previousGameMode: null,
-            seaLevel: 32
+            seaLevel: 32,
+            dimensions: JOIN_SETTINGS.dimensions
         });
         expect(position).toMatchObject({ teleportId: 1, x: 8.5, y: -60, z: 8.5, yaw: 90 });
+        expect(position.velocityY).toBeCloseTo(-0.0784);
         expect(event).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
         expect(center).toEqual({ x: 0, z: 0 });
         // The chunk under the player first, then the eight around it.
@@ -324,6 +341,7 @@ describe('JavaConnections', () => {
                 stub<SessionPlayer>({
                     yaw: 0,
                     pitch: 0,
+                    getVelocity: () => ({ x: 0, y: 0, z: 0 }),
                     gamemode: Gametype.CREATIVE,
                     getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
                 })
@@ -337,6 +355,8 @@ describe('JavaConnections', () => {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => false,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
             log: quiet,
             world: {
                 players: {
@@ -350,7 +370,8 @@ describe('JavaConnections', () => {
                 chunk: async (_session, x, z) => new Chunk(x, z),
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 0,
-                maxPlayers: () => 20
+                maxPlayers: () => 20,
+                joinSettings: () => JOIN_SETTINGS
             }
         });
         await transport.listen('127.0.0.1', 0);
@@ -395,6 +416,7 @@ describe('JavaConnections', () => {
                 stub<SessionPlayer>({
                     yaw: 0,
                     pitch: 0,
+                    getVelocity: () => ({ x: 0, y: 0, z: 0 }),
                     gamemode: Gametype.CREATIVE,
                     getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
                 })
@@ -403,6 +425,8 @@ describe('JavaConnections', () => {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => false,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
             log: quiet,
             world: {
                 players: {
@@ -419,7 +443,8 @@ describe('JavaConnections', () => {
                 chunk: async (_session, x, z) => new Chunk(x, z),
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 0,
-                maxPlayers: () => 20
+                maxPlayers: () => 20,
+                joinSettings: () => JOIN_SETTINGS
             }
         });
         await transport.listen('127.0.0.1', 0);
@@ -509,6 +534,8 @@ describe('JavaConnections', () => {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => false,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
             log: quiet,
             world: {
                 players: {
@@ -525,7 +552,8 @@ describe('JavaConnections', () => {
                 chunk: async (_session, x, z) => new Chunk(x, z),
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 0,
-                maxPlayers: () => 20
+                maxPlayers: () => 20,
+                joinSettings: () => JOIN_SETTINGS
             }
         });
         await transport.listen('127.0.0.1', 0);
@@ -582,6 +610,18 @@ describe('JavaConnections', () => {
         await java.closed;
     });
 
+    it('hangs up on a client that acknowledges a configuration the server has not finished', async () => {
+        const port = await listen();
+        const java = await configuring(port);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        await java.receive(ClientboundKnownPacks);
+
+        java.send(AcknowledgeFinishConfiguration, {});
+
+        await java.closed;
+    });
+
     it('hangs up on a packet its phase has no place for', async () => {
         const port = await listen();
         const java = await javaClient(port);
@@ -592,10 +632,46 @@ describe('JavaConnections', () => {
     });
 });
 
+describe('JavaConnections compression', () => {
+    it('compresses nothing when the threshold is 0, as for Bedrock', async () => {
+        const transport = new TcpTransport(new ConnectionIds(), quiet);
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            compressionThreshold: () => 0,
+            enforcesSecureChat: () => false,
+            log: quiet
+        });
+        await transport.listen('127.0.0.1', 0);
+        const port = transport.port()!;
+        const java = await javaClient(port);
+
+        java.send(Intention, {
+            protocolVersion: NEWEST_JAVA_RELEASE.protocolVersion,
+            serverAddress: 'localhost',
+            serverPort: port,
+            intent: ClientIntent.Login
+        });
+        java.send(LoginStart, { name: 'Steve', profileId: offlineUuid('Steve') });
+
+        expect((await java.receive(LoginSuccess)).username).toBe('Steve');
+        java.destroy();
+        transport.close();
+    });
+});
+
 describe('JavaConnections session id', () => {
     it('gives every login on one server the same session id', async () => {
         const transport = new TcpTransport(new ConnectionIds(), quiet);
-        new JavaConnections(transport, { status, brand: 'JSPrismarine', onlineMode: () => false, log: quiet });
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            compressionThreshold: () => 256,
+            enforcesSecureChat: () => false,
+            log: quiet
+        });
         await transport.listen('127.0.0.1', 0);
         const port = transport.port()!;
         const loginAs = async (name: string) => {
