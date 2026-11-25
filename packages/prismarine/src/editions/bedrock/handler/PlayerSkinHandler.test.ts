@@ -1,0 +1,240 @@
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it, vi } from 'vitest';
+
+import type SessionManager from '../../../SessionManager';
+import { inputContext } from '../../../testing/handlerContext.test.helper';
+import { identityNamed } from '../../../testing/sessionIdentity.test.helper';
+import type { StorePlayer } from '../../../entity/storePlayer';
+import { stub } from '../../../testing/stub.test.helper';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
+import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import type PlayerSession from '../../../player/PlayerSession';
+import type ClientConnection from '../../../network/ClientConnection';
+import type { SessionPhase } from '../../../network/SessionPhase';
+import PlayerSkinPacket from '@jsprismarine/protocol/bedrock/packet/PlayerSkinPacket';
+import PlayerSkinHandler from './PlayerSkinHandler';
+import type { ListedPlayer } from '../../../network/playerListEntry';
+
+const SENDER_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
+
+type ClientData = Parameters<typeof Skin.fromJWT>[0];
+
+/** A one-pixel classic skin with no geometry, the shape a login skin without extras takes. */
+const classicSkin = (id: string, overrides: Partial<ClientData> = {}) =>
+    Skin.fromJWT({
+        SkinId: id,
+        CapeId: '',
+        SkinResourcePatch: '',
+        PlayFabId: '',
+        SkinImageHeight: 1,
+        SkinImageWidth: 1,
+        SkinGeometryData: '',
+        SkinAnimationData: '',
+        CapeImageHeight: 0,
+        CapeImageWidth: 0,
+        CapeOnClassicSkin: false,
+        SkinData: Buffer.from([0, 0, 0, 255]).toString('base64'),
+        CapeData: '',
+        PremiumSkin: false,
+        PersonaSkin: false,
+        SkinColor: '#0',
+        ArmSize: 'wide',
+        AnimatedImageData: [],
+        PersonaPieces: [],
+        PieceTintColors: [],
+        ...overrides
+    });
+
+/** An online player, as its store player, whose session records what it is sent. */
+const onlinePlayer = (name: string, runtimeId: bigint, phase: SessionPhase = 'play') => {
+    const send = vi.fn(async () => {});
+    const player = stub<StorePlayer>({ skin: classicSkin(`${name}-old`) });
+    const connection = stub<ClientConnection>({ phase });
+    const session = stub<PlayerSession>({ runtimeId, send, getConnection: () => connection });
+    return { player, session, send };
+};
+
+const skinChange = (uuid: string, skin = classicSkin('new-skin')) =>
+    Object.assign(new PlayerSkinPacket(), {
+        uuid: UUID.fromString(uuid),
+        skin,
+        newSkinName: 'New',
+        oldSkinName: 'Old'
+    });
+
+const setUp = () => {
+    const sender = onlinePlayer('runner', 7n);
+    const alice = onlinePlayer('alice', 8n);
+    const bob = onlinePlayer('bob', 9n);
+    // Online since its login, still in the resource pack exchange.
+    const joining = onlinePlayer('joining', 10n, 'resourcePacks');
+    const debug = vi.fn();
+
+    // The entry built at login, which `sendPlayerList` hands to whoever joins later.
+    const loginEntry: ListedPlayer = {
+        uuid: UUID.fromString(SENDER_UUID),
+        runtimeId: 7n,
+        name: 'runner',
+        xuid: '2535400000000000',
+        platformChatId: '',
+        buildPlatform: 8,
+        skin: sender.player.skin!
+    };
+    const playerList = new Map([[SENDER_UUID, loginEntry]]);
+
+    const sessions = stub<SessionManager>({
+        getSessions: () => [sender.session, alice.session, bob.session, joining.session],
+        getPlayerList: () => playerList
+    });
+    const session = stub<PlayerSession>({
+        runtimeId: 7n,
+        identity: identityNamed('runner', SENDER_UUID),
+        getPlayer: () => sender.player
+    });
+    const { context, outputs, settled } = inputContext(session, {
+        log: stub<Logger>({ debug }),
+        services: { sessions }
+    });
+    return { sender, alice, bob, joining, debug, context, outputs, settled, playerList, loginEntry };
+};
+
+/** The one packet a session was sent, typed for the assertions that follow. */
+const sentPacket = (send: ReturnType<typeof vi.fn>): PlayerSkinPacket => {
+    expect(send).toHaveBeenCalledOnce();
+    const [packet] = send.mock.calls[0] ?? [];
+    expect(packet).toBeInstanceOf(PlayerSkinPacket);
+    if (!(packet instanceof PlayerSkinPacket)) throw new Error('unreachable');
+    return packet;
+};
+
+describe('PlayerSkinHandler', () => {
+    it('stores the skin on the sender and relays a fresh packet to everyone else', async () => {
+        const { sender, alice, bob, debug, context, outputs, settled } = setUp();
+        const packet = skinChange(SENDER_UUID);
+
+        new PlayerSkinHandler().handle(packet, context);
+        // The two relays go to the input step, which waits for them before the next input.
+        expect(outputs).toHaveLength(2);
+        await settled();
+
+        expect(sender.player.skin).toBe(packet.skin);
+        expect(sender.send).not.toHaveBeenCalled();
+
+        // A new packet for the server's writer to encode, not the client's bytes forwarded.
+        for (const other of [alice, bob]) {
+            const relay = sentPacket(other.send);
+            expect(relay).not.toBe(packet);
+            expect(relay.getEncoded()).toBe(false);
+            expect(relay.uuid.equals(packet.uuid)).toBe(true);
+            expect(relay.skin).toBe(packet.skin);
+            expect(relay.newSkinName).toBe('New');
+            expect(relay.oldSkinName).toBe('Old');
+        }
+
+        expect(debug).toHaveBeenCalledOnce();
+        expect(debug.mock.calls[0]?.[0]).toContain('runner');
+        expect(debug.mock.calls[0]?.[0]).toContain('new-skin');
+    });
+
+    it('relays nothing to a client still in the resource pack exchange', async () => {
+        const { joining, context, settled } = setUp();
+
+        new PlayerSkinHandler().handle(skinChange(SENDER_UUID), context);
+        await settled();
+
+        expect(joining.send).not.toHaveBeenCalled();
+    });
+
+    it('puts the new skin on the player list entry and keeps the rest of it', async () => {
+        const { context, settled, playerList, loginEntry } = setUp();
+        const packet = skinChange(SENDER_UUID);
+
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
+
+        const entry = playerList.get(SENDER_UUID);
+        expect(entry).toBeDefined();
+        expect(entry).not.toBe(loginEntry);
+        expect(entry).toEqual({ ...loginEntry, skin: packet.skin });
+        expect(loginEntry.skin.getId()).toBe('runner-old');
+    });
+
+    it('drops a packet that names another player', async () => {
+        // The relay names the UUID the client sent, so a client naming someone else's would
+        // change that player's skin on every other screen.
+        const { sender, alice, bob, debug, context, settled, playerList, loginEntry } = setUp();
+        const packet = skinChange('11111111-1111-4111-8111-111111111111');
+
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
+
+        expect(sender.player.skin?.getId()).toBe('runner-old');
+        expect(playerList.get(SENDER_UUID)).toBe(loginEntry);
+        expect(alice.send).not.toHaveBeenCalled();
+        expect(bob.send).not.toHaveBeenCalled();
+        expect(debug).toHaveBeenCalledOnce();
+        expect(debug.mock.calls[0]?.[0]).toContain('Dropped');
+    });
+
+    it.each([
+        {
+            problem: 'image bytes that do not fill its size',
+            overrides: { SkinImageWidth: 2, SkinImageHeight: 2 } satisfies Partial<ClientData>,
+            reason: '16'
+        },
+        {
+            problem: 'a cape whose bytes do not fill its size',
+            overrides: { CapeImageWidth: 1, CapeImageHeight: 1 } satisfies Partial<ClientData>,
+            reason: 'cape image'
+        },
+        {
+            problem: 'an image more than 4096 pixels a side',
+            overrides: { SkinImageWidth: 4097, SkinImageHeight: 1 } satisfies Partial<ClientData>,
+            reason: '4096'
+        },
+        {
+            problem: 'an animation whose bytes do not fill its size',
+            overrides: {
+                AnimatedImageData: [
+                    { ImageWidth: 1, ImageHeight: 1, Image: '', Frames: 1, Type: 1, AnimationExpression: 0 }
+                ]
+            } satisfies Partial<ClientData>,
+            reason: 'animation 0'
+        },
+        {
+            problem: 'geometry that is not JSON',
+            overrides: { SkinGeometryData: Buffer.from('not json').toString('base64') } satisfies Partial<ClientData>,
+            reason: 'not JSON'
+        }
+    ])('drops a skin with $problem', async ({ overrides, reason }) => {
+        const { sender, alice, bob, debug, context, settled, playerList, loginEntry } = setUp();
+        const packet = skinChange(SENDER_UUID, classicSkin('bad-skin', overrides));
+
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
+
+        expect(sender.player.skin?.getId()).toBe('runner-old');
+        expect(playerList.get(SENDER_UUID)).toBe(loginEntry);
+        expect(alice.send).not.toHaveBeenCalled();
+        expect(bob.send).not.toHaveBeenCalled();
+        expect(debug).toHaveBeenCalledOnce();
+        expect(debug.mock.calls[0]?.[0]).toContain('Dropped');
+        expect(debug.mock.calls[0]?.[0]).toContain(reason);
+    });
+
+    it('accepts a skin whose geometry is JSON', async () => {
+        const { sender, alice, context, settled } = setUp();
+        const packet = skinChange(
+            SENDER_UUID,
+            classicSkin('geometry-skin', {
+                SkinGeometryData: Buffer.from('{"format_version":"1.12.0"}').toString('base64')
+            })
+        );
+
+        new PlayerSkinHandler().handle(packet, context);
+        await settled();
+
+        expect(sender.player.skin).toBe(packet.skin);
+        expect(alice.send).toHaveBeenCalledOnce();
+    });
+});

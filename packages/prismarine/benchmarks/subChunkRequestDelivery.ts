@@ -7,7 +7,7 @@ import SubChunkPosOffset from '@jsprismarine/protocol/bedrock/structure/SubChunk
 import { performance } from 'node:perf_hooks';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import { ClientBlobCache } from '../src/network/ClientBlobCache';
+import { ClientBlobCache } from '../src/editions/bedrock/ClientBlobCache';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { encodePacketBatchAsync } from '../src/network/encodePacketBatch';
 import { Dimensions } from '../src/world/DimensionType';

@@ -1,6 +1,6 @@
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 
-import type { InputContext } from '../../network/handler/HandlerContext';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

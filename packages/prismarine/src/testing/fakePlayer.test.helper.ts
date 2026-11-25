@@ -38,8 +38,8 @@ import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
 import { sessionsWith } from './playerSession.test.helper';
 import { stub } from './stub.test.helper';
-import type { JavaSend } from '../network/java/JavaPresenter';
-import { JavaPresenter } from '../network/java/JavaPresenter';
+import type { JavaSend } from '../editions/java/JavaPresenter';
+import { JavaPresenter } from '../editions/java/JavaPresenter';
 import { replicateEntities } from './changeTicks.test.helper';
 
 /** What a test says about the player's surroundings. */

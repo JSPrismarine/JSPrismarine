@@ -1,0 +1,1013 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../../../events/ServerEvents';
+import type { Logger } from '@jsprismarine/logger';
+import { CommandPermissionLevel, DisconnectReason } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
+import type { InetAddress } from '@jsprismarine/raknet';
+import { generateKeyPairSync, sign } from 'node:crypto';
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import Codec2193 from '../../../network/codec/Codec2193';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
+import type Server from '../../../Server';
+import SessionManager from '../../../SessionManager';
+import type PlayerSession from '../../../player/PlayerSession';
+import type AllowList from '../../../allowlist/AllowList';
+import type BanManager from '../../../ban/BanManager';
+import type { Config } from '../../../config/Config';
+import type { PermissionManager } from '../../../permission/PermissionManager';
+import { stubPlayerPort } from '../../../testing/playerPort.test.helper';
+import { identityNamed } from '../../../testing/sessionIdentity.test.helper';
+import { stub } from '../../../testing/stub.test.helper';
+import { StorePlayers } from '../../../entity/data/storePlayers';
+import { plainCapabilities } from '../../../testing/manualTransport.test.helper';
+import type { ChunkScheduler } from '../../../world/ChunkScheduler';
+import type { World } from '../../../world/World';
+import type WorldManager from '../../../world/WorldManager';
+import type ClientConnection from '../../../network/ClientConnection';
+import { ConnectionContexts } from '../../../player/context/connectionContexts';
+import { InputQueue } from '../../../input/InputQueue';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import LoginPacket from '@jsprismarine/protocol/bedrock/packet/LoginPacket';
+import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
+import ResourcePacksInfoPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePacksInfoPacket';
+import ServerToClientHandshakePacket from '@jsprismarine/protocol/bedrock/packet/ServerToClientHandshakePacket';
+import type { EncryptionCodec } from '@jsprismarine/protocol';
+import type ClientToServerHandshakePacket from '@jsprismarine/protocol/bedrock/packet/ClientToServerHandshakePacket';
+import ClientToServerHandshakeHandler from './ClientToServerHandshakeHandler';
+import LoginHandler from './LoginHandler';
+import { TOKEN_ISSUER } from '@jsprismarine/auth/protocol';
+import { useLoginKeys } from '@jsprismarine/auth/server';
+import { testContent } from '../../../testing/entityServer';
+import { fakeLevel } from '../../../testing/level';
+import { ChatManager } from '../../../chat/ChatManager';
+import { testKernel } from '../../../testing/kernel.test.helper';
+import { AccountLinks } from '../../../identity/AccountLinks';
+
+/** A well-formed client identity; every real login carries one. */
+const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
+
+const jwt = (claims: Record<string, unknown>): string =>
+    `e30.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
+
+/** The client data a login carries, before it is signed or framed. */
+const clientDataOf = (displayName: string, identity: string | null = null): Record<string, unknown> => {
+    const clientData: Record<string, unknown> = {
+        DeviceId: '00000000-0000-0000-0000-000000000000',
+        DeviceOS: 7,
+        DeviceModel: 'test',
+        CurrentInputMode: 1,
+        GuiScale: 0,
+        ThirdPartyName: displayName,
+        ServerAddress: 'localhost',
+        LanguageCode: 'en_US',
+        ClientRandomId: 1,
+        SkinId: 'test',
+        SkinData: '',
+        SkinImageWidth: 0,
+        SkinImageHeight: 0,
+        SkinResourcePatch: '',
+        SkinGeometryData: '',
+        SkinAnimationData: '',
+        SkinColor: '#0',
+        ArmSize: 'wide',
+        PlayFabId: '',
+        AnimatedImageData: [],
+        CapeId: '',
+        CapeData: '',
+        CapeImageWidth: 0,
+        CapeImageHeight: 0,
+        PremiumSkin: false,
+        PersonaSkin: false,
+        CapeOnClassicSkin: false,
+        PersonaPieces: [],
+        PieceTintColors: []
+    };
+
+    if (identity !== null) clientData.SelfSignedId = identity;
+    return clientData;
+};
+
+const loginPacket = (
+    displayName = 'runner',
+    identity: string | null = IDENTITY,
+    protocolVersion = Codec2193.protocolVersion,
+    cpk?: string
+): LoginPacket =>
+    new LoginPacket({
+        protocolVersion,
+        chainData: JSON.stringify({ chain: cpk === undefined ? [] : [jwt({ identityPublicKey: cpk })] }),
+        clientData: jwt(clientDataOf(displayName, identity))
+    });
+
+/**
+ * The context the dispatcher hands a handler before the session, over a test's server. Inputs are
+ * applied when they are held unless a test passes a queue it steps itself.
+ */
+const contextOf = (server: Server, connection: ClientConnection, inputs?: InputQueue) =>
+    ConnectionContexts.of(server).contextOf(connection, inputs);
+describe('network', () => {
+    describe('handler', () => {
+        describe('LoginHandler', () => {
+            let onlineMode = false;
+            let sessions = new SessionManager();
+            beforeEach(() => {
+                sessions = new SessionManager();
+            });
+
+            // `createConnectedPlayer` enables the session, which is what puts it in the
+            // chunk rotation - the constructor no longer does it.
+            const chunkScheduler = (): ChunkScheduler => stub<ChunkScheduler>({ add: () => {}, remove: () => {} });
+
+            // A refusal says what it refused, so a handler that turns one down logs.
+            const logger = (): Logger => stub<Logger>({ debug: () => {}, verbose: () => {}, warn: () => {} });
+
+            const sessionManager = (): SessionManager => sessions;
+
+            const world = (): World =>
+                stub<World>({
+                    // The handler resolves where the player starts before building one,
+                    // now that an entity has to be given somewhere to be.
+                    getSpawnPosition: async () => new Vector3(0, 64, 0),
+                    getName: () => 'test-world',
+                    getServer: () => server,
+                    // The login reads the player's record through the world's level: see
+                    // `lastPlayerRecord`.
+                    getLevel: () => fakeLevel({ server }),
+                    // Announcing a move is the world's job now, not the entity's.
+                    broadcastMove: async () => {},
+                    getPlayerData: async () => ({ position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } })
+                });
+
+            const config = (): Config =>
+                stub<Config>({
+                    getOnlineMode: () => onlineMode,
+                    getMaxPlayers: () => 2,
+                    getGamemode: () => 'survival',
+                    getProximityBroadcast: () => true,
+                    getEntityTrackingHysteresis: () => 2,
+                    getEntityTrackingInterval: () => 4
+                });
+
+            const permissionManager = (): PermissionManager =>
+                stub<PermissionManager>({
+                    nodesOf: () => [],
+                    has: () => false,
+                    commandLevelOf: () => CommandPermissionLevel.ANY,
+                    isOp: () => false,
+                    claimLegacy: () => false
+                });
+
+            const banManager = (): BanManager =>
+                stub<BanManager>({ isBanned: () => false, claimLegacy: async () => false });
+
+            // Where `createConnectedPlayer` files each login's store player.
+            const storePlayers = new StorePlayers();
+            const server: Server = stub<Server>({
+                getChatManager: () => chat,
+                getChunkScheduler: chunkScheduler,
+                // No pack stack, so a restored inventory resolves no item through the content.
+                getContent: () => testContent(),
+                getLogger: logger,
+                getSessionManager: sessionManager,
+                getStorePlayers: () => storePlayers,
+                getWorldManager: () => stub<WorldManager>({ getEntryWorld: world, returningLevelOf: () => undefined }),
+                getConfig: config,
+                getPermissionManager: permissionManager,
+                getBanManager: banManager,
+                getAllowList: () => stub<AllowList>({ allows: () => true, ignoresPlayerLimit: () => false }),
+                getTick: () => 0,
+                // What a session posts `playerConnect` on.
+                getKernel: () => kernel,
+                on: vi.fn(),
+                removeListener: vi.fn()
+            });
+            const kernel = testKernel();
+            const chat = new ChatManager(new KernelEventBus<ServerEvents>());
+
+            // The session is built by `createConnectedPlayer` now, not mocked in: the
+            // connection is handed the real one and only has to accept it.
+            const connection: ClientConnection = stub<ClientConnection>({
+                codec: Codec2193,
+                getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                sendDataPacket: async () => {},
+                attachPlayerSession: vi.fn(),
+                closePlayerSession: async () => {},
+                disconnect: async () => {}
+            });
+
+            it('handle with non-banned', async () => {
+                const pk = loginPacket();
+
+                const handler = new LoginHandler();
+                await handler.handle(pk, contextOf(server, connection));
+
+                // The pair was joined and the connection was given the session, which is what
+                // makes the client a connected player rather than a bare handshake.
+                expect(connection.attachPlayerSession).toHaveBeenCalledOnce();
+            });
+
+            it('sends nothing but PlayStatus and ResourcePacksInfo during login', async () => {
+                // The settings, abilities and a MovePlayer per player used to go out from
+                // `Player.enable`, here, before the client had even been told it was in. A
+                // retail client at 2193 drops that with `InitialConnection-90`: it is still
+                // logging in and treats a game packet as malformed.
+                const pk = loginPacket();
+
+                const sent: string[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+
+                await new LoginHandler().handle(pk, contextOf(server, quiet));
+
+                expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
+            });
+
+            describe('online mode', () => {
+                const issuer = generateKeyPairSync('rsa', { modulusLength: 2048 });
+                const account = generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
+                const accountKey = account.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+                const segment = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url');
+
+                const signedToken = (claims: Record<string, unknown> = {}): string => {
+                    const head = segment({ alg: 'RS256', kid: 'k' });
+                    const body = segment({
+                        iss: TOKEN_ISSUER,
+                        exp: Date.now() / 1000 + 3600,
+                        xid: '2535400000000001',
+                        xname: 'Steve',
+                        cpk: accountKey,
+                        ...claims
+                    });
+                    const signature = sign('RSA-SHA256', Buffer.from(`${head}.${body}`), issuer.privateKey);
+                    return `${head}.${body}.${signature.toString('base64url')}`;
+                };
+
+                const signedLogin = (request: Record<string, unknown>): LoginPacket => {
+                    const head = segment({ alg: 'ES384', x5u: accountKey });
+                    const body = segment(clientDataOf('Steve'));
+                    const signature = sign('sha384', Buffer.from(`${head}.${body}`), {
+                        key: account.privateKey,
+                        dsaEncoding: 'ieee-p1363'
+                    });
+                    return new LoginPacket({
+                        protocolVersion: Codec2193.protocolVersion,
+                        chainData: JSON.stringify(request),
+                        clientData: `${head}.${body}.${signature.toString('base64url')}`
+                    });
+                };
+
+                const quiet = (provesKey = true) => {
+                    const disconnects: Array<[string, DisconnectReason | undefined]> = [];
+                    const stubbed = stub<ClientConnection>({
+                        codec: Codec2193,
+                        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                        phase: 'login',
+                        resumeLogin: null,
+                        transportCapabilities: plainCapabilities,
+                        provesIdentityKey: async (key) => provesKey && key === accountKey,
+                        sendDataPacket: async () => {},
+                        startEncryption: () => {},
+                        attachPlayerSession: vi.fn(),
+                        closePlayerSession: async () => {},
+                        disconnect: async (reason, _hide, code) => void disconnects.push([reason ?? '', code])
+                    });
+                    return { connection: stubbed, disconnects };
+                };
+
+                const kicked: string[] = [];
+                // Steve, signed in on another connection.
+                const existing = stubPlayerPort({
+                    getName: () => 'Steve',
+                    getXUID: () => '2535400000000001',
+                    getUUID: () => UUID.fromString('00000000-0000-4000-8000-0000000000aa'),
+                    isOnline: () => true
+                });
+                const existingSession = stub<PlayerSession>({
+                    getPlayer: () => existing,
+                    isConnected: () => true,
+                    kick: async (reason) => void kicked.push(reason ?? ''),
+                    identity: {
+                        name: 'Steve',
+                        xuid: '2535400000000001',
+                        uuid: '00000000-0000-4000-8000-0000000000aa',
+                        subject: { kind: 'xbox', xuid: '2535400000000001' }
+                    }
+                });
+                const chainClaiming = (xuid: string, name: string) => ({
+                    chain: [
+                        `${segment({})}.${segment({ extraData: { XUID: xuid, identity: 'x', displayName: name } })}.sig`
+                    ]
+                });
+
+                const restore: Array<() => void> = [];
+                const arrange = () => {
+                    onlineMode = true;
+                    kicked.length = 0;
+                    sessions.add(99, stub<ClientConnection>({ getPlayerSession: () => existingSession }));
+                    restore.push(useLoginKeys({ keyFor: async (kid) => (kid === 'k' ? issuer.publicKey : undefined) }));
+                };
+                afterEach(() => {
+                    onlineMode = false;
+                    for (const undo of restore.splice(0)) undo();
+                });
+
+                it('lets a verified account in and then replaces its other session', async () => {
+                    arrange();
+                    const { connection: held, disconnects } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        contextOf(server, held)
+                    );
+                    // The account is verified, so the handshake is under way; the other session is
+                    // still connected until the client answers it.
+                    expect(kicked).toEqual([]);
+                    await held.resumeLogin?.();
+
+                    expect(disconnects).toEqual([]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                    expect(kicked).toEqual(['Logged in from another location']);
+                });
+
+                it('takes the account from the token, not from the claims the client wrote', async () => {
+                    arrange();
+                    const { connection: held } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken(), ...chainClaiming('999', 'Notch') }),
+                        contextOf(server, held)
+                    );
+                    await held.resumeLogin?.();
+
+                    // Notch and 999 match nobody; Steve, whom the token names, is replaced.
+                    expect(kicked).toEqual(['Logged in from another location']);
+                });
+
+                it('replaces the Java session of the account a linked Xbox account plays as', async () => {
+                    arrange();
+                    // Only the Java session is online, so the server has room for the login.
+                    sessions.remove(99);
+                    const javaUuid = '0f1e2d3c-4b5a-4968-8776-655443322110';
+                    const links = new AccountLinks(
+                        {
+                            load: async () => [
+                                {
+                                    account: { kind: 'xbox', xuid: '2535400000000001' },
+                                    primary: { kind: 'java', uuid: javaUuid },
+                                    primaryName: 'Alex',
+                                    primaryXuid: ''
+                                }
+                            ],
+                            save: async () => {}
+                        },
+                        () => true
+                    );
+                    await links.load();
+                    const linkedServer = stub<Server>({ ...server, getKernel: () => testKernel(undefined, links) });
+                    const replaced: Array<DisconnectReason | undefined> = [];
+                    const javaSession = stub<PlayerSession>({
+                        isConnected: () => true,
+                        kick: async (_reason, code) => void replaced.push(code),
+                        identity: { name: 'Alex', xuid: '', uuid: javaUuid, subject: { kind: 'java', uuid: javaUuid } }
+                    });
+                    sessions.add(98, stub<ClientConnection>({ getPlayerSession: () => javaSession }));
+                    const { connection: held } = quiet();
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        contextOf(linkedServer, held)
+                    );
+                    await held.resumeLogin?.();
+
+                    expect(replaced).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                });
+
+                it("refuses a verified login on a connection that did not prove the login's key", async () => {
+                    // The login is real, and so replayable: over NetherNet no encryption handshake
+                    // shows that whoever sent it holds its key.
+                    arrange();
+                    const { connection: replayed, disconnects } = quiet(false);
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: signedToken() }),
+                        contextOf(server, replayed)
+                    );
+
+                    expect(disconnects).toEqual([
+                        ['You must be logged in with Xbox Live to join.', DisconnectReason.NOT_AUTHENTICATED]
+                    ]);
+                    expect(replayed.attachPlayerSession).not.toHaveBeenCalled();
+                    expect(kicked).toEqual([]);
+                });
+
+                it('refuses a forged token and leaves the named account connected', async () => {
+                    arrange();
+                    const { connection: held, disconnects } = quiet();
+                    const [head, , signature] = signedToken().split('.');
+                    const claims = {
+                        iss: TOKEN_ISSUER,
+                        exp: Date.now() / 1000 + 3600,
+                        xid: '2535400000000001',
+                        xname: 'Steve',
+                        cpk: accountKey,
+                        forged: true
+                    };
+
+                    await new LoginHandler().handle(
+                        signedLogin({ AuthenticationType: 0, Token: `${head}.${segment(claims)}.${signature}` }),
+                        contextOf(server, held)
+                    );
+
+                    expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
+                    expect(kicked).toEqual([]);
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('refuses a self-signed login and a claimed XUID with no token', async () => {
+                    arrange();
+
+                    for (const request of [
+                        { AuthenticationType: 2 },
+                        { AuthenticationType: 0, ...chainClaiming('2535400000000001', 'Steve') }
+                    ]) {
+                        const { connection: held, disconnects } = quiet();
+                        await new LoginHandler().handle(signedLogin(request), contextOf(server, held));
+
+                        expect(disconnects.map(([, code]) => code)).toEqual([DisconnectReason.NOT_AUTHENTICATED]);
+                        expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                    }
+                    expect(kicked).toEqual([]);
+                });
+
+                it('does not verify anything when online mode is off', async () => {
+                    arrange();
+                    onlineMode = false;
+                    const { connection: held, disconnects } = quiet();
+
+                    await new LoginHandler().handle(loginPacket(), contextOf(server, held));
+
+                    expect(disconnects).toEqual([]);
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                });
+            });
+
+            describe('encryption handshake', () => {
+                const identityKey = generateKeyPairSync('ec', { namedCurve: 'secp384r1' })
+                    .publicKey.export({ type: 'spki', format: 'der' })
+                    .toString('base64');
+
+                const encrypting = (transportEncrypts = false) => {
+                    const sent: string[] = [];
+                    const started: EncryptionCodec[] = [];
+                    const stubbed = stub<ClientConnection>({
+                        codec: Codec2193,
+                        phase: 'login',
+                        resumeLogin: null,
+                        transportCapabilities: { ...plainCapabilities, encrypted: transportEncrypts },
+                        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                        sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
+                        startEncryption: (codec) => void started.push(codec),
+                        attachPlayerSession: vi.fn(),
+                        closePlayerSession: async () => {},
+                        disconnect: vi.fn(async () => {})
+                    });
+                    return { connection: stubbed, sent, started };
+                };
+
+                it('answers a login that names an identity key with ServerToClientHandshake and waits', async () => {
+                    const { connection: held, sent, started } = encrypting();
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        contextOf(server, held)
+                    );
+
+                    expect(sent).toEqual([ServerToClientHandshakePacket.name]);
+                    expect(started).toHaveLength(1);
+                    expect(held.phase).toBe('encryption');
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('sends the handshake but leaves encryption off when the transport encrypts the wire', async () => {
+                    // Bedrock Dedicated Server over NetherNet: the handshake, then batches in the clear.
+                    const { connection: held, sent, started } = encrypting(true);
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        contextOf(server, held)
+                    );
+
+                    expect(sent).toEqual([ServerToClientHandshakePacket.name]);
+                    expect(started).toHaveLength(0);
+                    expect(held.phase).toBe('encryption');
+                    expect(held.attachPlayerSession).not.toHaveBeenCalled();
+                });
+
+                it('finishes the login when the client answers the handshake', async () => {
+                    const { connection: held, sent } = encrypting();
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        contextOf(server, held)
+                    );
+
+                    await new ClientToServerHandshakeHandler().handle(
+                        stub<ClientToServerHandshakePacket>({}),
+                        contextOf(server, held)
+                    );
+
+                    expect(held.attachPlayerSession).toHaveBeenCalledOnce();
+                    expect(sent).toEqual([
+                        ServerToClientHandshakePacket.name,
+                        'PlayStatusPacket',
+                        'ResourcePacksInfoPacket'
+                    ]);
+                    expect(held.resumeLogin).toBeNull();
+                });
+
+                it('refuses a login whose identity key is not usable', async () => {
+                    const { connection: held, sent, started } = encrypting();
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, 'bm90IGEga2V5'),
+                        contextOf(server, held)
+                    );
+
+                    expect(sent).toEqual([]);
+                    expect(started).toEqual([]);
+                    expect(held.disconnect).toHaveBeenCalledWith(
+                        'Invalid identity!',
+                        false,
+                        DisconnectReason.INVALID_PLAYER
+                    );
+                });
+            });
+
+            it('sends the ResourcePacksInfo a server with no packs sends', async () => {
+                // No packs are configurable yet, so the packet is the fixed one a Bedrock
+                // Dedicated Server sends for a world with no packs and no template: every
+                // flag off, an all-zero template uuid with an empty version, and a zero count.
+                const pk = loginPacket();
+
+                const sent: NetworkPacket[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+
+                await new LoginHandler().handle(pk, contextOf(server, quiet));
+
+                const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
+                assert(info instanceof ResourcePacksInfoPacket);
+                expect(info.getPacketData()).toEqual({
+                    resourcePackRequired: false,
+                    hasAddonPacks: false,
+                    hasScripts: false,
+                    forceDisableVibrantVisuals: false,
+                    worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+                    resourcePackEntries: []
+                });
+            });
+
+            /** A login the server lets past the identity checks and then refuses for who it is. */
+            const refused = async (overrides: Partial<Server>, pk: LoginPacket) => {
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    disconnect,
+                    attachPlayerSession: vi.fn()
+                });
+
+                await new LoginHandler().handle(pk, contextOf(stub<Server>({ ...server, ...overrides }), rejected));
+
+                expect(rejected.attachPlayerSession).not.toHaveBeenCalled();
+                return disconnect;
+            };
+
+            const login = () => {
+                return loginPacket();
+            };
+
+            it('refuses a banned player with NOT_ALLOWED and no reason', async () => {
+                const banned = {
+                    getBanManager: () => stub<BanManager>({ isBanned: () => '', claimLegacy: async () => false })
+                };
+
+                const disconnect = await refused(banned, login());
+
+                expect(disconnect).toHaveBeenCalledWith('You have been banned!', false, DisconnectReason.NOT_ALLOWED);
+            });
+
+            it('refuses a banned player with NOT_ALLOWED and the reason', async () => {
+                const banned = {
+                    getBanManager: () =>
+                        stub<BanManager>({ isBanned: () => 'griefing', claimLegacy: async () => false })
+                };
+
+                const disconnect = await refused(banned, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'You have been banned for reason: griefing!',
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
+            });
+
+            it('refuses a player the allow list does not have, while it is on, with NOT_ALLOWED', async () => {
+                const asked: unknown[] = [];
+                const closed = {
+                    getAllowList: () =>
+                        stub<AllowList>({
+                            allows: (player) => {
+                                asked.push(player);
+                                return false;
+                            }
+                        })
+                };
+
+                const disconnect = await refused(closed, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'You are not invited to this server.',
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
+                expect(asked).toHaveLength(1);
+            });
+
+            it('lets the operator list and the ban list claim an entry keyed before subjects, then checks the ban', async () => {
+                const claimed: string[] = [];
+                const banned = {
+                    getBanManager: () =>
+                        stub<BanManager>({
+                            isBanned: (player) => {
+                                claimed.push(`isBanned ${player.subject.kind} ${player.name}`);
+                                return 'griefing';
+                            },
+                            claimLegacy: async (identity) => {
+                                claimed.push(`ban ${identity.uuid}`);
+                                return true;
+                            }
+                        }),
+                    getPermissionManager: () =>
+                        stub<PermissionManager>({
+                            claimLegacy: (identity) => {
+                                claimed.push(`op ${identity.uuid} ${identity.subject.kind} ${identity.name}`);
+                                return true;
+                            }
+                        })
+                };
+
+                await refused(banned, login());
+
+                const uuid = UUID.fromString(IDENTITY).toString();
+                expect(claimed).toEqual([`op ${uuid} offline runner`, `ban ${uuid}`, 'isBanned offline runner']);
+            });
+
+            it('refuses a login with no XUID on a server in online mode with NOT_AUTHENTICATED', async () => {
+                const online = { getConfig: () => stub<Config>({ ...config(), getOnlineMode: () => true }) };
+
+                const disconnect = await refused(online, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'Please sign in to Xbox Live to join.',
+                    false,
+                    DisconnectReason.NOT_AUTHENTICATED
+                );
+            });
+
+            it('refuses a login carrying no username', async () => {
+                const pk = loginPacket('', IDENTITY);
+
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
+                await new LoginHandler().handle(pk, contextOf(server, rejected));
+
+                expect(disconnect).toHaveBeenCalledWith('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
+            });
+
+            it('refuses a login carrying no identity', async () => {
+                // It used to be let through on a randomly generated uuid, which meant a
+                // player in the list under an id the client itself did not know.
+                const pk = loginPacket('runner', null);
+
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
+                await new LoginHandler().handle(pk, contextOf(server, rejected));
+
+                expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
+            });
+
+            /**
+             * The status the client renders as "outdated client". Nothing else is read from the
+             * packet. The docs end a failed status by terminating the connection, so a disconnect
+             * with `OutdatedClient` follows; the status alone left the connection open.
+             */
+            it('answers an older client with LoginFailed_ClientOld, then hangs up', async () => {
+                const pk = loginPacket('runner', IDENTITY, Codec2193.protocolVersion - 10);
+
+                const sent: NetworkPacket[] = [];
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    codec: Codec2193,
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    disconnect
+                });
+                await new LoginHandler().handle(pk, contextOf(server, connection));
+
+                const [status] = sent;
+                assert(status instanceof PlayStatusPacket);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ClientOld);
+                expect(sent).toHaveLength(1);
+                expect(disconnect).toHaveBeenCalledWith(
+                    `Outdated client! Please use ${Codec2193.minecraftVersions.at(-1)}`,
+                    false,
+                    DisconnectReason.OUTDATED_CLIENT
+                );
+            });
+
+            /** Two players online, which is a full server at `getMaxPlayers: () => 2`. */
+            const fillServer = (): void => {
+                for (const id of [91, 92])
+                    sessions.add(
+                        id,
+                        stub<ClientConnection>({
+                            getPlayerSession: () =>
+                                stub<PlayerSession>({
+                                    isConnected: () => true,
+                                    identity: identityNamed(`player-${id}`, `00000000-0000-0000-0000-0000000000${id}`)
+                                })
+                        })
+                    );
+            };
+
+            it('refuses a login once the server is full', async () => {
+                const pk = loginPacket('late', '11111111-2222-3333-4444-555555555555');
+
+                const sent: NetworkPacket[] = [];
+                fillServer();
+                const fullServer = stub<Server>({
+                    ...server,
+                    getConfig: () => stub<Config>({ ...config(), getMaxPlayers: () => 2 })
+                });
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    codec: Codec2193,
+                    sendDataPacket: async (packet) => {
+                        sent.push(packet);
+                    },
+                    attachPlayerSession: vi.fn(),
+                    disconnect
+                });
+
+                await new LoginHandler().handle(pk, contextOf(fullServer, connection));
+
+                expect(sent).toHaveLength(1);
+                const [status] = sent;
+                expect(status).toBeInstanceOf(PlayStatusPacket);
+                assert(status instanceof PlayStatusPacket);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
+                expect(disconnect).toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
+                expect(connection.attachPlayerSession).not.toHaveBeenCalled();
+            });
+
+            it('lets a player whose allow list entry ignores the player limit into a full server', async () => {
+                const asked: unknown[] = [];
+                fillServer();
+                const fullServer = stub<Server>({
+                    ...server,
+                    getConfig: () => stub<Config>({ ...config(), getMaxPlayers: () => 2 }),
+                    getAllowList: () =>
+                        stub<AllowList>({
+                            allows: () => true,
+                            ignoresPlayerLimit: (player) => {
+                                asked.push(player);
+                                return true;
+                            }
+                        })
+                });
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async () => {},
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(fullServer, connection));
+
+                expect(asked).toEqual([{ name: 'runner' }]);
+                expect(disconnect).not.toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
+                expect(connection.attachPlayerSession).toHaveBeenCalled();
+            });
+
+            /** The status the client renders as "outdated server", then a disconnect with `OutdatedServer`. */
+            it('answers a newer client with LoginFailed_ServerOld, then hangs up', async () => {
+                const pk = loginPacket('runner', IDENTITY, Codec2193.protocolVersion + 10);
+
+                const sent: NetworkPacket[] = [];
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    codec: Codec2193,
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    disconnect
+                });
+                await new LoginHandler().handle(pk, contextOf(server, connection));
+
+                const [status] = sent;
+                assert(status instanceof PlayStatusPacket);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerOld);
+                expect(sent).toHaveLength(1);
+                expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
+            });
+
+            describe('a second login of the same account', () => {
+                /** A connection that keeps the session it is handed and records how it was let go. */
+                const liveConnection = (sessions: SessionManager, id: number) => {
+                    let session: PlayerSession | null = null;
+                    const disconnects: Array<DisconnectReason | undefined> = [];
+                    const connection: ClientConnection = stub<ClientConnection>({
+                        codec: Codec2193,
+                        phase: 'login',
+                        resumeLogin: null,
+                        transportCapabilities: plainCapabilities,
+                        getConnectionId: () => id,
+                        getAddress: () => stub<InetAddress>({ toToken: () => `token-${id}` }),
+                        sendDataPacket: async () => {},
+                        startEncryption: () => {},
+                        attachPlayerSession: (attached) => void (session = attached),
+                        getPlayerSession: () => session,
+                        closePlayerSession: async () => void (session = null),
+                        disconnect: async (_reason, _hide, code) => {
+                            disconnects.push(code);
+                            await connection.closePlayerSession();
+                        }
+                    });
+                    sessions.add(id, connection);
+                    return { connection, disconnects };
+                };
+
+                /**
+                 * A server whose player records are read only when the test lets them be, so a
+                 * login can be held part way through `Player.enable`.
+                 */
+                const holdingServer = () => {
+                    const sessions = new SessionManager();
+                    const held: Array<() => void> = [];
+                    let holding = false;
+                    const holdingWorld = stub<World>({
+                        ...world(),
+                        getPlayerData: async () => {
+                            if (holding) await new Promise<void>((release) => held.push(release));
+                            return { position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } };
+                        }
+                    });
+                    const holdingServer = stub<Server>({
+                        ...server,
+                        getSessionManager: () => sessions,
+                        getWorldManager: () =>
+                            stub<WorldManager>({ getEntryWorld: () => holdingWorld, returningLevelOf: () => undefined })
+                    });
+                    return {
+                        server: holdingServer,
+                        sessions,
+                        hold: () => void (holding = true),
+                        releaseAll: () => {
+                            holding = false;
+                            for (const release of held.splice(0)) release();
+                        }
+                    };
+                };
+
+                /** Lets every promise that can settle without a timer settle. */
+                const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+                it('kicks the first login when it is still joining', async () => {
+                    const { server: joining, sessions, hold, releaseAll } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    hold();
+                    const firstLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, first.connection)
+                    );
+                    await settle();
+                    // The first login is reading its record: it has a player, but not an online one.
+                    expect(first.connection.getPlayerSession()).not.toBeNull();
+                    expect(sessions.getAllPlayers()).toEqual([]);
+
+                    const secondLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, second.connection)
+                    );
+                    await settle();
+                    releaseAll();
+                    await Promise.all([firstLogin, secondLogin]);
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers().map((player) => player.getName())).toEqual(['runner']);
+                    expect(sessions.getAllPlayers()[0]).toBe(second.connection.getPlayerSession()?.getPlayer());
+                });
+
+                it('kicks the first login when it is waiting for the encryption handshake', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+                    const identityKey = generateKeyPairSync('ec', { namedCurve: 'secp384r1' })
+                        .publicKey.export({ type: 'spki', format: 'der' })
+                        .toString('base64');
+
+                    await new LoginHandler().handle(
+                        loginPacket('runner', IDENTITY, undefined, identityKey),
+                        contextOf(joining, first.connection)
+                    );
+                    expect(first.connection.phase).toBe('encryption');
+
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, second.connection));
+                    // The first client answering after it was replaced lets nobody in.
+                    await first.connection.resumeLogin?.();
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(first.connection.getPlayerSession()).toBeNull();
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers()).toHaveLength(1);
+                });
+
+                it('kicks a joined player who shares only the UUID', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
+                    await new LoginHandler().handle(loginPacket('walker'), contextOf(joining, second.connection));
+
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(second.disconnects).toEqual([]);
+                });
+
+                it('applies what the replaced client sent before removing its player', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
+
+                    // An input the first client sent before the second login, waiting for the step.
+                    const inputs = new InputQueue();
+                    const applied: Array<'input' | 'removed'> = [];
+                    void inputs.hold(first.connection, () => {
+                        applied.push(first.connection.getPlayerSession() === null ? 'removed' : 'input');
+                    });
+
+                    const secondLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, second.connection, inputs)
+                    );
+                    await settle();
+                    // The removal waits for the step, behind the input.
+                    expect(first.connection.getPlayerSession()).not.toBeNull();
+                    expect(first.disconnects).toEqual([]);
+
+                    expect(inputs.admit()).toBe(2);
+                    await secondLogin;
+
+                    expect(applied).toEqual(['input']);
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(first.connection.getPlayerSession()).toBeNull();
+                    expect(sessions.getAllPlayers()[0]).toBe(second.connection.getPlayerSession()?.getPlayer());
+                });
+
+                it('leaves a different offline player alone, though neither has an XUID', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
+                    await new LoginHandler().handle(
+                        loginPacket('walker', '11111111-2222-3333-4444-555555555555'),
+                        contextOf(joining, second.connection)
+                    );
+
+                    expect(first.disconnects).toEqual([]);
+                    expect(second.disconnects).toEqual([]);
+                    expect(sessions.getAllPlayers()).toHaveLength(2);
+                });
+            });
+        });
+    });
+});

@@ -2,6 +2,14 @@
 
 Status: accepted direction, started 2026-11-25. Slices land as stacked pull requests, one each.
 
+Progress:
+
+- Slice 1, the player layer: [#3737](https://github.com/JSPrismarine/JSPrismarine/pull/3737).
+- Slice 2, the edition folders: under review. The handler contexts went to `player/context/` rather
+  than an edition, since the intent handlers use them, and `BlockTarget` and `contentUseOnBlock`
+  to `input/handlers/`. `applyClientMovement` and `replaceOtherLogins`, which both editions call,
+  came out of their Bedrock handlers into `player/`.
+
 ## Problem
 
 `packages/prismarine/src/network/` holds the transport and the wire, and also most of what a

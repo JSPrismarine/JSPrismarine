@@ -1,7 +1,7 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
-import type { InputContext } from '../../network/handler/HandlerContext';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

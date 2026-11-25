@@ -722,7 +722,7 @@ and `stem: LevelStem`, loses `seed`, `provider` and `generator` as required inpu
 2761, `getProvider` 2769, `getSeed` 2791 forward), `packages/prismarine/src/world/index.ts`,
 `packages/prismarine/src/world/contentAdapter.ts` (sea level from the stem's noise settings via
 `NoiseGeneratorSettings.seaLevel`, replacing the interim table from chunk 8),
-`packages/prismarine/src/network/startGameData.ts` only where it reads `world.getSeed()` (no
+`packages/prismarine/src/editions/bedrock/startGameData.ts` only where it reads `world.getSeed()` (no
 behavior change here; chunk 17 changes the fields).
 
 **Public API.**
@@ -831,9 +831,9 @@ portal note's section 3 order, holds a pending change keyed by loading screen id
 **Files.** `packages/prismarine/src/player/PlayerSession.ts` (`beginLoadingScreen` 1404,
 `endLoadingScreen` 1416, `flushQueuedChunks` 480, `clearChunks`), `packages/prismarine/src/Player.ts`
 (`setWorld` 517 to 566 becomes `return this.getNetworkSession().changeWorld(world, arrival)`),
-`packages/prismarine/src/network/handler/PlayerActionHandler.ts` (`ChangeDimensionAck` at 315),
-`packages/prismarine/src/network/handler/ServerboundLoadingScreenHandler.ts`,
-`packages/prismarine/src/network/handler/PlayerAuthInputHandler.ts` (`handle` at 130),
+`packages/prismarine/src/editions/bedrock/handler/PlayerActionHandler.ts` (`ChangeDimensionAck` at 315),
+`packages/prismarine/src/editions/bedrock/handler/ServerboundLoadingScreenHandler.ts`,
+`packages/prismarine/src/editions/bedrock/handler/PlayerAuthInputHandler.ts` (`handle` at 130),
 `Player.test.ts` (`setWorld` tests at 658 to 720), new `PlayerSessionDimensionChange.test.ts`.
 
 **Public API.**
@@ -878,9 +878,9 @@ loading-screen chunk requirements, and retail-client behavior remain open.
 **Goal.** `StartGame` fields from the `Level`, `DimensionData` for custom types, `SetSpawnPosition`
 resent when the spawn is in another dimension.
 
-**Files.** `packages/prismarine/src/network/startGameData.ts` (lines 64 to 80: `dimension` from the
+**Files.** `packages/prismarine/src/editions/bedrock/startGameData.ts` (lines 64 to 80: `dimension` from the
 join world's `bedrockId`, `generator` from the Overworld stem's overlay `generatorType`, drop the
-`Flat` import at 17), `packages/prismarine/src/network/handler/ResourcePackClientResponseHandler.ts`
+`Flat` import at 17), `packages/prismarine/src/editions/bedrock/handler/ResourcePackClientResponseHandler.ts`
 (the `SetSpawnPosition` at 272; send `DimensionData` after `StartGame` and before chunks when
 `level.customDimensionDefinitions()` is non-empty), `packages/prismarine/src/world/RespawnPoint.ts`
 (`StoredSpawnPoint.dimension` already present), their tests.

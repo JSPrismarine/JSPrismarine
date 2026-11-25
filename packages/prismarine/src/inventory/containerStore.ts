@@ -40,7 +40,7 @@ type RecordItem = NonNullable<NonNullable<BlockEntityData['items']>[number]>;
 /**
  * The slots one open screen owns, read on first use and written back once.
  *
- * Every member is synchronous, because {@link import('../network/handler/ItemStackRequestHandler')}
+ * Every member is synchronous, because {@link import('../editions/bedrock/handler/ItemStackRequestHandler')}
  * applies a whole request without awaiting: a refusal has to be able to roll the request back
  * before anything else runs.
  */

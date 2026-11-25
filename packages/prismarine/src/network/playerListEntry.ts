@@ -3,7 +3,7 @@ import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin'
 import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type { ShownPlayer } from '../world/ShownPlayer';
-import { playerListAddOf, playerListRemoveOf } from './presenter/bedrockPlayerList';
+import { playerListAddOf, playerListRemoveOf } from '../editions/bedrock/presenter/bedrockPlayerList';
 
 /**
  * A player as every client's player list shows it, which is how every other client learns its

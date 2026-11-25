@@ -31,7 +31,7 @@ import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Att
 import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
-import { syncedPropertiesOf } from '../../network/actorProperties';
+import { syncedPropertiesOf } from '../../editions/bedrock/actorProperties';
 import type Server from '../../Server';
 import type { PortalBlockRef } from '../../world/portal/DimensionTravel';
 import { portalRuleOf } from '../../world/portal/rules';

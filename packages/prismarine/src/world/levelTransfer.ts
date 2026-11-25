@@ -16,7 +16,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { scoreboardPackets } from '../command/host/scoreboard';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import { EYE_HEIGHT } from '../entity/playerEyes';
-import { customDimensionData } from '../network/customDimensionData';
+import { customDimensionData } from '../editions/bedrock/customDimensionData';
 import type PlayerSession from '../player/PlayerSession';
 import { keyOfPlayer } from '../playerIdentity';
 import type Server from '../Server';

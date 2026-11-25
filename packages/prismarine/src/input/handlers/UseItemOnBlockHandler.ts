@@ -1,9 +1,9 @@
 import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 
-import { MAX_BLOCK_TARGET_DISTANCE } from '../../network/handler/BlockTarget';
-import { contentUseOnBlock } from '../../network/handler/contentUseOnBlock';
-import type { InputContext } from '../../network/handler/HandlerContext';
+import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
+import { contentUseOnBlock } from './contentUseOnBlock';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

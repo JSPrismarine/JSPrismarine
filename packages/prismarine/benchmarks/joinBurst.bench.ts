@@ -19,14 +19,14 @@ import JigsawStructureDataPacket from '@jsprismarine/protocol/bedrock/packet/Jig
 
 import { buildServerContent } from '../src/content/ServerContent';
 import type { ServerContent } from '../src/content/ServerContent';
-import { joinContentPayloads, limitCraftingData } from '../src/network/contentPayloads';
+import { joinContentPayloads, limitCraftingData } from '../src/editions/bedrock/contentPayloads';
 import { encodePacketBatch } from '../src/network/encodePacketBatch';
-import { syncActorPropertyPacket } from '../src/network/actorProperties';
-import { cachedJoinPacketBatch } from '../src/network/joinPacketCache';
+import { syncActorPropertyPacket } from '../src/editions/bedrock/actorProperties';
+import { cachedJoinPacketBatch } from '../src/editions/bedrock/joinPacketCache';
 import { stub } from '../src/testing/stub.test.helper';
 import Codec2193 from '../src/network/codec/Codec2193';
 import Codec2225 from '../src/network/codec/Codec2225';
-import { craftingRecipeCount } from '../src/network/contentPayloads';
+import { craftingRecipeCount } from '../src/editions/bedrock/contentPayloads';
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const COMPRESSION_LEVEL = Number.parseInt(argumentsAfterScript[0] ?? '7', 10);
 const RECIPE_LIMIT = Number.parseInt(argumentsAfterScript[1] ?? '-1', 10);

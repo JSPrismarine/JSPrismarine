@@ -16,12 +16,12 @@ import {
     ItemUseActionType,
     ItemUseOnActorActionType
 } from '@jsprismarine/protocol';
-import type { ServerInventoryTransaction } from '../InventoryTransactionAdapter';
+import type { ServerInventoryTransaction } from '../../editions/bedrock/InventoryTransactionAdapter';
 import {
     InventoryAction,
     inventoryTransactionFromProtocol,
     inventoryTransactionToProtocol
-} from '../InventoryTransactionAdapter';
+} from '../../editions/bedrock/InventoryTransactionAdapter';
 import Codec2193 from '../codec/Codec2193';
 
 /**

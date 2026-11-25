@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import Codec2193 from '../network/codec/Codec2193';
 import Codec2225 from '../network/codec/Codec2225';
 import { itemData2193 } from '../network/codec/itemData';
-import { buildNetworkContentPayloads } from '../network/contentPayloads';
+import { buildNetworkContentPayloads } from '../editions/bedrock/contentPayloads';
 import { buildServerContent } from './ServerContent';
 import { fixtureContentOptions } from './testing';
 import { contentMissingAt, withheldNames } from './withheldContent';

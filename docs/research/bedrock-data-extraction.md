@@ -449,7 +449,7 @@ Tests pin about 60 vanilla numbers across nine files (zombie health 20, sheep 0.
 
 - Drops resolve through the class registry, so coal ore (`block/blocks/CoalOre.ts:26`) and beds (`block/blocks/WhiteBed.ts:40`) drop nothing today, because no `Coal` or `Bed` item class exists.
 - `getBlastResistance`, `getLightLevel`, `getFlammability`, `getFuelTime`, `getLightFilter` and `isTransparent` are declared on `Block` and never called; the features that would use them read the name sets instead.
-- Break time is computed bare-handed (`network/handler/PlayerActionHandler.ts:149`).
+- Break time is computed bare-handed (`editions/bedrock/handler/PlayerActionHandler.ts:149`).
 - `packages/bedrock-data/src/resources/blocks.json` (21 MB, 22091 per-state rows from the CloudburstMC submodule, Apache-2.0) already carries `hardness`, `explosionResistance`, `friction`, `isSolid`, `requiresCorrectToolForDrops`, `lightEmission`, `lightDampening`, `burnOdds`, `flameOdds`, `translucency`, `mapColor` and collision geometry per state. Nothing reads it; `packages/bedrock-data/vite.config.ts:20-24` excludes it from the bundle. The same submodule has `biome_definitions.json` (climate, tags) and `voxel_shapes.json`, also unread.
 
 ### Obstacles a data-driven loader has to clear

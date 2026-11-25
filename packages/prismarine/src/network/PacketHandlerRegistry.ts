@@ -1,16 +1,16 @@
-import * as Handlers from './Handlers';
-import * as Decoders from './decoder/Decoders';
+import * as Handlers from '../editions/bedrock/Handlers';
+import * as Decoders from '../editions/bedrock/decoder/Decoders';
 
 import type Server from '../Server';
 import type { IntentKind } from '../input/Intent';
 import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
 import Timer from '../utils/Timer';
-import { decodedHandler } from './decoder/decodedHandler';
-import type { PacketDecoder, PacketDecoderClass } from './decoder/PacketDecoder';
-import type { ConnectionHandler } from './handler/ConnectionContext';
+import { decodedHandler } from '../editions/bedrock/decoder/decodedHandler';
+import type { PacketDecoder, PacketDecoderClass } from '../editions/bedrock/decoder/PacketDecoder';
+import type { ConnectionHandler } from '../player/context/ConnectionContext';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
-import type { InputContext, SessionContext } from './handler/HandlerContext';
-import type { SessionHandler } from './handler/SessionHandler';
+import type { InputContext, SessionContext } from '../player/context/HandlerContext';
+import type { SessionHandler } from '../player/context/SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** Handler kind stored by the server; phases determine which one receives a packet. */

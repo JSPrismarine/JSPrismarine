@@ -1,0 +1,1586 @@
+import type { Logger } from '@jsprismarine/logger';
+import { Vector3 } from '@jsprismarine/math';
+import { WindowTypes } from '@jsprismarine/minecraft';
+import { vanillaItemDefinitions } from '@jsprismarine/items';
+import { describe, expect, it } from 'vitest';
+
+import type Server from '../../../Server';
+import { definitionOf, definitionsOf } from '../../../content/ContentOptions';
+import { buildServerContent } from '../../../content/ServerContent';
+import {
+    fixtureBlockPalette,
+    fixtureContentOptions,
+    fixtureDefinitions,
+    fixtureItemDefinitions,
+    fixtureRecipeContent
+} from '../../../content/testing';
+import CraftingInput from '../../../crafting/CraftingInput';
+import type CreativeInventory from '../../../inventory/CreativeInventory';
+import HumanInventory from '../../../inventory/HumanInventory';
+import type { PlayerInventoryContainer } from '../../../inventory/EntityInventory';
+import { ItemContainer } from '../../../inventory/ItemContainer';
+import { Item } from '../../../item/Item';
+import { stubPlayerPort } from '../../../testing/playerPort.test.helper';
+import { stub } from '../../../testing/stub.test.helper';
+import { serverInputContext } from '../../../testing/serverInputContext.test.helper';
+import type PlayerSession from '../../../player/PlayerSession';
+import type { OpenBlockContainer } from '../../../player/PlayerSession';
+import type { World } from '../../../world/World';
+import { joinContentPayloads } from '../contentPayloads';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket, {
+    ItemStackResponseResult
+} from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
+import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
+import { ContainerUiId, ItemStackRequestActionType, newestRelease } from '@jsprismarine/protocol';
+import ItemStackRequestHandler from './ItemStackRequestHandler';
+import { testContent } from '../../../testing/entityServer';
+import { testKernel } from '../../../testing/kernel.test.helper';
+
+/**
+ * A slot of the inventory's own two by two grid, as the client numbers it.
+ *
+ * Not from zero: the four are 28 to 31 and a table's nine are 32 to 40. This took an index
+ * and passed it straight through, so every crafting test ran against slot numbers no client
+ * has ever sent - and the handler, which rejected anything above eight, looked correct while
+ * refusing every real request.
+ * @see https://github.com/pmmp/BedrockProtocol/blob/35.0.0%2Bbedrock-1.21.40/src/types/inventory/UIInventorySlotOffset.php
+ */
+const craftSlot = (index: number): ItemStackRequestSlotInfo => ({
+    container: { containerId: ContainerUiId.CRAFTING_INPUT, dynamicId: null },
+    slotId: 28 + index,
+    stackNetId: 0
+});
+
+/** The same, for a crafting table's three by three. */
+const tableSlot = (index: number): ItemStackRequestSlotInfo => ({
+    container: { containerId: ContainerUiId.CRAFTING_INPUT, dynamicId: null },
+    slotId: 32 + index,
+    stackNetId: 0
+});
+
+/** Where a craft or a creative pick puts what it made, before a step moves it; the client numbers it 50. */
+const createdOutput: ItemStackRequestSlotInfo = {
+    container: { containerId: ContainerUiId.CREATED_OUTPUT, dynamicId: null },
+    slotId: 50,
+    stackNetId: 0
+};
+
+const slot = (slotId: number, containerId = ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY): ItemStackRequestSlotInfo => ({
+    container: { containerId, dynamicId: null },
+    slotId,
+    stackNetId: 0
+});
+
+/**
+ * A server whose creative menu is the items given, so a pick can be checked by name.
+ *
+ * The menu is a double rather than the real one built over a stub registry: what is under
+ * test is which list a pick is read against, and the vanilla list is 1980 entries of
+ * irrelevance.
+ */
+const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
+    const entries = creative.map((item) => ({ item, group: 0 }));
+    const menu = stub<CreativeInventory>({
+        getEntries: () => entries,
+        getItems: () => creative,
+        get: (netId: number) => entries[netId - 1]?.item ?? null
+    });
+
+    // A refusal says why it refused, and says it through the logger.
+    return stub<Server>({
+        // A bus no one listens on.
+        getKernel: () => testKernel(),
+        getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
+        getContent: () => testContent(),
+        getCreativeInventory: () => menu,
+        ...overrides
+    });
+};
+
+/** A server whose content holds the fixture recipes plus `recipes`, keyed by Java recipe id. */
+const recipeServer = (recipes: Readonly<Record<string, unknown>>): Server => {
+    const content = fixtureRecipeContent(recipes);
+    return fakeServer([], { getContent: () => content });
+};
+
+/** The net id the crafting packet gave a recipe, which is what a request names it by. */
+const netIdOf = (server: Server, id: string): number => {
+    const netId = server.getContent().recipes.netIds.get(id);
+    if (netId === undefined) throw new Error(`the content has no recipe ${id}`);
+    return netId;
+};
+
+/** Two oak planks make sticks, in whatever count `count` says. */
+const sticksRecipe = (count = 1) => ({
+    'test:sticks': {
+        type: 'minecraft:crafting_shapeless',
+        ingredients: ['minecraft:oak_planks', 'minecraft:oak_planks'],
+        result: { id: 'minecraft:stick', count }
+    }
+});
+
+/** Vanilla's crafting table: any four planks in a square. */
+const craftingTableRecipe = {
+    'minecraft:crafting_table': {
+        type: 'minecraft:crafting_shaped',
+        pattern: ['PP', 'PP'],
+        key: { P: '#minecraft:planks' },
+        result: { id: 'minecraft:crafting_table' }
+    }
+};
+
+const run = async (
+    requests: ItemStackRequest[],
+    inventory: HumanInventory,
+    server: Server,
+    craftingInput = new CraftingInput(),
+    options: { open?: OpenBlockContainer; world?: World } = {}
+) => {
+    const sent: NetworkPacket[] = [];
+    const player = stubPlayerPort({ getInventory: () => inventory, getCraftingInput: () => craftingInput });
+    const session = stub<PlayerSession>({
+        getOpenBlockContainer: () => options.open,
+        getPlayer: () => player,
+        // A finished craft raises `recipe_crafted`, which asks the
+        // server whether any content is loaded. These doubles load none.
+        getServer: () => server,
+        getWorld: () => options.world ?? stub<World>(),
+        send: async (packet) => void sent.push(packet)
+    });
+
+    const { context, settled } = serverInputContext(server, session);
+    // Stamped the way a session's codec stamps it: the client speaks the release the server
+    // targets, whose numbering the content build below defaults to.
+    const packet = Object.assign(new ItemStackRequestPacket(), {
+        requests,
+        codecProtocol: newestRelease.protocolVersion
+    });
+    new ItemStackRequestHandler().handle(packet, context);
+    await settled();
+
+    const response = sent.find((pk): pk is ItemStackResponsePacket => pk instanceof ItemStackResponsePacket);
+    if (!response) throw new Error('no ItemStackResponsePacket was sent');
+
+    return response;
+};
+
+describe('network', () => {
+    describe('ItemStackRequestHandler', () => {
+        it('puts a creative pick in the slot it was dropped on', async () => {
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
+            const inventory = new HumanInventory();
+
+            const response = await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 64,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.container('inventory').get(3)?.getName()).toBe('minecraft:oak_planks');
+            expect(inventory.container('inventory').get(3)?.getAmount()).toBe(64);
+
+            // Answered, and answered about the slot that changed - the client holds its own
+            // change back until it hears this.
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(response.responses[0]?.requestId).toBe(-7);
+            expect(response.responses[0]?.containers[0]?.slots.map((s) => s.slot)).toEqual([3]);
+        });
+
+        it('drops the requested stack into the world', async () => {
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 3 }));
+            const dropped: Item[] = [];
+            const world = stub<World>({
+                dropFromPlayer: async (_player, contents) => {
+                    for (const content of contents) if (content instanceof Item) dropped.push(content);
+                }
+            });
+            const server = fakeServer([]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [{ type: ItemStackRequestActionType.DROP, count: 1, source: slot(0) }],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { world }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
+            expect(dropped.map((item) => [item.getName(), item.getAmount()])).toEqual([['minecraft:stone', 1]]);
+        });
+
+        it('does not spawn a drop when a later action refuses the request', async () => {
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 3 }));
+            const dropped: Item[] = [];
+            const world = stub<World>({
+                dropFromPlayer: async (_player, contents) => {
+                    for (const content of contents) if (content instanceof Item) dropped.push(content);
+                }
+            });
+            const server = fakeServer([]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            { type: ItemStackRequestActionType.DROP, count: 1, source: slot(0) },
+                            { type: ItemStackRequestActionType.CRAFTING_LOOM }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { world }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(3);
+            expect(dropped).toEqual([]);
+        });
+
+        it('reads a creative pick off the menu the content build sent', async () => {
+            // The client answers with a position in the list it was shown, so
+            // a server whose menu came from the registries has to read that
+            // one. Here the two disagree on purpose: the captured menu's
+            // first entry is a plank and the content build's is not.
+            const content = buildServerContent(fixtureContentOptions());
+            const payloads = joinContentPayloads(
+                content,
+                stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
+                { clientPalette: fixtureBlockPalette() }
+            );
+            const expected = payloads?.creativeItems[0]?.name;
+            expect(expected).toBeDefined();
+            expect(expected).not.toBe('minecraft:oak_planks');
+
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })], {
+                getContent: () => content
+            });
+            const inventory = new HumanInventory();
+
+            await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.container('inventory').get(3)?.getName()).toBe(expected);
+        });
+
+        it('does not hand the same object to two players', async () => {
+            // The creative list is one set of items shared by everyone; putting one of them
+            // straight into an inventory would give every player the same object to mutate.
+            const shared = new Item({ runtimeId: 5, name: 'minecraft:oak_planks' });
+            const server = fakeServer([shared]);
+
+            const pick = (inventory: HumanInventory) =>
+                run(
+                    [
+                        {
+                            requestId: -1,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CREATIVE_CREATE,
+                                    creativeItemNetId: 1,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 12,
+                                    source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server
+                );
+
+            const first = new HumanInventory();
+            const second = new HumanInventory();
+            await pick(first);
+            await pick(second);
+
+            expect(first.container('inventory').get(0)).not.toBe(second.container('inventory').get(0));
+            expect(shared.getAmount()).toBe(1);
+        });
+
+        it('moves a stack between slots', async () => {
+            const server = fakeServer([]);
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
+
+            await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(5)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.container('inventory').get(5)?.getName()).toBe('minecraft:stone');
+            expect(inventory.container('inventory').get(0)).toBeNull();
+        });
+
+        it('keeps what a stack carries when part of it moves and when it merges', async () => {
+            // Each part was rebuilt from the name, so a split or merged stack lost its
+            // enchantments, its name and the content it reads its components from.
+            const server = fakeServer([]);
+            const inventory = new HumanInventory();
+            const rock = new Item({ name: 'minecraft:stone', count: 10, customName: 'Rock', content: testContent() });
+            inventory.container('inventory').set(0, rock);
+
+            const move = (count: number) => ({
+                requestId: -3,
+                actions: [{ type: ItemStackRequestActionType.PLACE, count, source: slot(0), destination: slot(5) }],
+                filterStrings: [],
+                filterStringCause: 0
+            });
+
+            await run([move(4)], inventory, server);
+
+            expect(inventory.container('inventory').get(5)?.getAmount()).toBe(4);
+            expect(inventory.container('inventory').get(5)?.getCustomName()).toBe('Rock');
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(6);
+            expect(inventory.container('inventory').get(0)?.getCustomName()).toBe('Rock');
+
+            await run([move(2)], inventory, server);
+
+            expect(inventory.container('inventory').get(5)?.getAmount()).toBe(6);
+            expect(inventory.container('inventory').get(5)?.getCustomName()).toBe('Rock');
+        });
+
+        it('hands out a creative pick that reads its tags', async () => {
+            // Built without the server's content, a picked pickaxe matched no
+            // `#minecraft:mineable/pickaxe` rule: it did not harvest stone, and the crack
+            // animation ran at a fist's pace.
+            const server = fakeServer([new Item({ name: 'minecraft:diamond_pickaxe' })]);
+            const inventory = new HumanInventory();
+
+            await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.container('inventory').get(3)?.getName()).toBe('minecraft:diamond_pickaxe');
+            expect(inventory.container('inventory').get(3)?.harvests('minecraft:stone')).toBe(true);
+        });
+
+        it('reads a crafting table through its own slot numbers', async () => {
+            // The same grid store, addressed from 32 rather than from 28. Both were rejected
+            // outright before, so neither size of grid could craft anything.
+            const craftingInput = new CraftingInput();
+            const located = CraftingInput.locate(32)!;
+            craftingInput.useGrid(located.size);
+
+            expect(located.index).toBe(0);
+            expect(craftingInput.gridSize()).toBe(CraftingInput.LARGE);
+            expect(craftingInput.wireSlotOf(0)).toBe(tableSlot(0).slotId);
+        });
+
+        it('crafts a recipe by the net id sent in the content recipe packet', async () => {
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...fixtureDefinitions(),
+                            recipesJava: new Map([
+                                [
+                                    'minecraft:redstone_lamp_from_stone',
+                                    definitionOf('recipesJava', 'minecraft:redstone_lamp_from_stone', {
+                                        type: 'minecraft:crafting_shapeless',
+                                        ingredients: ['minecraft:stone'],
+                                        result: { id: 'minecraft:redstone_lamp' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    })
+                })
+            );
+            const server = fakeServer([], {
+                getContent: () => content
+            });
+            const payloads = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            });
+            const recipe = payloads?.crafting.shapeless.find(({ id }) => id === 'minecraft:redstone_lamp_from_stone');
+            if (recipe === undefined) throw new Error('the redstone lamp recipe was not advertised');
+            const output = recipe.outputs[0];
+            if (output === undefined) throw new Error('the redstone lamp recipe has no output');
+
+            const inventory = new HumanInventory();
+            const craftingInput = new CraftingInput();
+            craftingInput.set(0, new Item({ name: 'minecraft:stone' }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: recipe.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                craftingInput
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:redstone_lamp');
+            expect(inventory.container('inventory').get(0)?.getBlockRuntimeId()).toBe(output.blockRuntimeId);
+        });
+
+        it('crafts a stonecutting recipe from the stonecutter input slot', async () => {
+            const base = fixtureDefinitions();
+            const id = 'minecraft:redstone_lamp_from_stonecutting';
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...base,
+                            recipesJava: new Map([
+                                ...base.recipesJava,
+                                [
+                                    id,
+                                    definitionOf('recipesJava', id, {
+                                        type: 'minecraft:stonecutting',
+                                        ingredient: 'minecraft:stone',
+                                        result: { id: 'minecraft:redstone_lamp' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    })
+                })
+            );
+            const server = fakeServer([], { getContent: () => content });
+            const advertised = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            })?.crafting.shapeless.find((recipe) => recipe.id === id);
+            if (advertised === undefined) throw new Error('the stonecutting recipe was not advertised');
+
+            const open: OpenBlockContainer = {
+                windowId: 1,
+                position: new Vector3(0, 64, 0),
+                identifier: 'minecraft:stonecutter_block',
+                screen: WindowTypes.STONECUTTER,
+                inputs: [new Item({ name: 'minecraft:stone' }), null, null],
+                bookshelfPower: 0
+            };
+            const inventory = new HumanInventory();
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: advertised.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                count: 1,
+                                source: slot(0, ContainerUiId.STONECUTTER_INPUT_CONTAINER)
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { open }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:redstone_lamp');
+            expect(open.inputs[0]).toBeNull();
+        });
+
+        it('crafts a smithing recipe from the smithing table base slot', async () => {
+            const base = fixtureDefinitions();
+            const id = 'minecraft:diamond_sword_from_smithing';
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...base,
+                            recipesJava: new Map([
+                                ...base.recipesJava,
+                                [
+                                    id,
+                                    definitionOf('recipesJava', id, {
+                                        type: 'minecraft:smithing_transform',
+                                        base: 'minecraft:diamond_pickaxe',
+                                        result: { id: 'minecraft:diamond_sword' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    }),
+                    itemDefinitions: [
+                        ...fixtureItemDefinitions(),
+                        ...vanillaItemDefinitions().filter(
+                            (definition) => definition.identifier === 'minecraft:diamond_sword'
+                        )
+                    ]
+                })
+            );
+            const server = fakeServer([], { getContent: () => content });
+            const advertised = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            })?.crafting.smithingTransform.find((recipe) => recipe.id === id);
+            if (advertised === undefined) throw new Error('the smithing recipe was not advertised');
+
+            const open: OpenBlockContainer = {
+                windowId: 1,
+                position: new Vector3(0, 64, 0),
+                identifier: 'minecraft:smithing_table',
+                screen: WindowTypes.SMITHING_TABLE,
+                inputs: [null, new Item({ name: 'minecraft:diamond_pickaxe' }), null],
+                bookshelfPower: 0
+            };
+            const inventory = new HumanInventory();
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: advertised.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                count: 1,
+                                source: slot(0, ContainerUiId.SMITHING_TABLE_INPUT_CONTAINER)
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { open }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:diamond_sword');
+            expect(open.inputs[1]).toBeNull();
+        });
+
+        describe('a recipe the client knows by a built-in entry', () => {
+            /** Content holding the vanilla items `names` and one Java recipe. */
+            const contentWithRecipe = (id: string, recipe: object, names: readonly string[]) => {
+                const base = fixtureDefinitions();
+                return buildServerContent(
+                    fixtureContentOptions({
+                        load: () => ({
+                            definitions: definitionsOf({
+                                ...base,
+                                recipesJava: new Map([
+                                    ...base.recipesJava,
+                                    [id, definitionOf('recipesJava', id, recipe)]
+                                ])
+                            }),
+                            diagnostics: []
+                        }),
+                        itemDefinitions: [
+                            ...fixtureItemDefinitions(),
+                            ...vanillaItemDefinitions().filter((definition) => names.includes(definition.identifier))
+                        ]
+                    })
+                );
+            };
+
+            it('dyes a shulker box by the net id of the entry for its color, keeping what it holds', async () => {
+                const id = 'minecraft:red_shulker_box';
+                const content = contentWithRecipe(
+                    id,
+                    {
+                        type: 'minecraft:crafting_transmute',
+                        input: ['minecraft:shulker_box', 'minecraft:blue_shulker_box'],
+                        material: 'minecraft:red_dye',
+                        result: { id }
+                    },
+                    ['minecraft:undyed_shulker_box', 'minecraft:blue_shulker_box', 'minecraft:red_shulker_box']
+                );
+                const server = fakeServer([], { getContent: () => content });
+                const advertised = joinContentPayloads(content, server.getLogger(), {
+                    clientPalette: fixtureBlockPalette()
+                })?.crafting.userDataShapeless.find((recipe) =>
+                    recipe.ingredients.some(
+                        ({ descriptor }) =>
+                            descriptor?.kind === 'name' && descriptor.name === 'minecraft:blue_shulker_box'
+                    )
+                );
+                if (advertised === undefined) throw new Error('the blue shulker box entry was not advertised');
+                // The first input item's entry has the recipe's own id; this one has an id of its own.
+                expect(advertised.netId).not.toBe(netIdOf(server, id));
+
+                const inventory = new HumanInventory();
+                const craftingInput = new CraftingInput();
+                craftingInput.set(
+                    0,
+                    new Item({
+                        name: 'minecraft:blue_shulker_box',
+                        contents: [new Item({ name: 'minecraft:stone', count: 5 }), null]
+                    })
+                );
+                craftingInput.set(1, new Item({ name: 'minecraft:red_dye' }));
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: advertised.netId,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                const made = inventory.container('inventory').get(0);
+                expect(made?.getName()).toBe('minecraft:red_shulker_box');
+                expect(made?.getContents()[0]?.getName()).toBe('minecraft:stone');
+                expect(made?.getContents()[0]?.getAmount()).toBe(5);
+            });
+
+            it('trims an armor piece through the one trim entry, keeping its enchantments', async () => {
+                const id = 'minecraft:coast_armor_trim_smithing_template_smithing_trim';
+                const content = contentWithRecipe(
+                    id,
+                    {
+                        type: 'minecraft:smithing_trim',
+                        template: 'minecraft:coast_armor_trim_smithing_template',
+                        base: 'minecraft:iron_chestplate',
+                        addition: 'minecraft:redstone',
+                        pattern: 'minecraft:coast'
+                    },
+                    ['minecraft:coast_armor_trim_smithing_template', 'minecraft:iron_chestplate', 'minecraft:redstone']
+                );
+                const server = fakeServer([], { getContent: () => content });
+                const trim = joinContentPayloads(content, server.getLogger(), {
+                    clientPalette: fixtureBlockPalette()
+                })?.crafting.smithingTrim[0];
+                if (trim === undefined) throw new Error('the trim entry was not advertised');
+
+                const open: OpenBlockContainer = {
+                    windowId: 1,
+                    position: new Vector3(0, 64, 0),
+                    identifier: 'minecraft:smithing_table',
+                    screen: WindowTypes.SMITHING_TABLE,
+                    inputs: [
+                        new Item({ name: 'minecraft:coast_armor_trim_smithing_template' }),
+                        new Item({ name: 'minecraft:iron_chestplate', enchantments: { 'minecraft:protection': 2 } }),
+                        new Item({ name: 'minecraft:redstone' })
+                    ],
+                    bookshelfPower: 0
+                };
+                const inventory = new HumanInventory();
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: trim.netId,
+                                    repetitions: 1
+                                },
+                                ...[
+                                    ContainerUiId.SMITHING_TABLE_TEMPLATE_CONTAINER,
+                                    ContainerUiId.SMITHING_TABLE_INPUT_CONTAINER,
+                                    ContainerUiId.SMITHING_TABLE_MATERIAL_CONTAINER
+                                ].map((container) => ({
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 1,
+                                    source: slot(0, container)
+                                })),
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    new CraftingInput(),
+                    { open }
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                const made = inventory.container('inventory').get(0);
+                expect(made?.getName()).toBe('minecraft:iron_chestplate');
+                expect(made?.getEnchantmentLevel('minecraft:protection')).toBe(2);
+                expect(open.inputs).toEqual([null, null, null]);
+            });
+        });
+
+        it('undoes everything when a later step fails', async () => {
+            // A request is all or nothing. Its steps used to be applied as they were read and
+            // a refusal simply returned, so a request that failed on its last action kept what
+            // the earlier ones had done - while the client, told only that the whole request
+            // failed, put all of it back. A plank left in the crafting grid on the server and
+            // not on the screen then made every later craft match a grid nobody could see.
+            const server = fakeServer([]);
+
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }));
+            const craftingInput = new CraftingInput();
+
+            const response = await run(
+                [
+                    {
+                        requestId: -5,
+                        actions: [
+                            // This one would work...
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: craftSlot(0)
+                            },
+                            // ...and this one cannot.
+                            { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 999_999, repetitions: 1 }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                craftingInput
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(craftingInput.isEmpty()).toBe(true);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:oak_planks');
+        });
+
+        it('refuses what it cannot do, instead of leaving the client waiting', async () => {
+            // Silence is what stops a client committing anything at all; a refusal at least
+            // tells it to put back what it had.
+            const server = fakeServer([]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -9,
+                        actions: [{ type: ItemStackRequestActionType.CRAFTING_LOOM }],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.requestId).toBe(-9);
+            expect(response.responses[0]?.containers).toHaveLength(0);
+        });
+
+        it('refuses a slot outside the inventory', async () => {
+            const server = fakeServer([]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -5,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(200)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+        });
+
+        it('crafts what the grid actually holds', async () => {
+            // The whole chain: a recipe registered, a grid filled, the client naming the
+            // recipe by number, and the output landing in the inventory.
+            const planks = () => new Item({ runtimeId: 1, name: 'minecraft:oak_planks' });
+            const server = recipeServer(sticksRecipe());
+
+            const craftingInput = new CraftingInput();
+            craftingInput.set(0, planks());
+            craftingInput.set(1, planks());
+
+            const inventory = new HumanInventory();
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: netIdOf(server, 'test:sticks'),
+                                repetitions: 1
+                            },
+                            { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(0) },
+                            { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(1) },
+                            // The result is taken from the created output, as the retail client
+                            // does it at 1.26.52.
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                craftingInput
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stick');
+            // Spent, and the client told so - otherwise it keeps showing what it used up.
+            expect(craftingInput.isEmpty()).toBe(true);
+        });
+
+        it.each([
+            ['minecraft:jungle_planks', [3, 4, 6, 7]],
+            ['minecraft:crimson_planks', [0, 1, 3, 4]],
+            ['minecraft:warped_planks', [0, 1, 3, 4]],
+            ['minecraft:mangrove_planks', [0, 1, 3, 4]]
+        ])(
+            'crafts a crafting table from %s at table slots %j through the shared plank recipe',
+            async (planks, slots) => {
+                const logs: string[] = [];
+                const content = fixtureRecipeContent(craftingTableRecipe);
+                const server = fakeServer([], {
+                    getContent: () => content,
+                    getLogger: () =>
+                        stub<Logger>({
+                            debug: (...values) => void logs.push(values.map(String).join(' ')),
+                            info: () => {},
+                            warn: () => {},
+                            error: (...values) => void logs.push(values.map(String).join(' '))
+                        })
+                });
+                const craftingInput = new CraftingInput();
+                craftingInput.useGrid(CraftingInput.LARGE);
+                for (const index of slots) craftingInput.set(index, new Item({ name: planks, meta: 0 }));
+                const inventory = new HumanInventory();
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: netIdOf(server, 'minecraft:crafting_table'),
+                                    repetitions: 1
+                                },
+                                ...slots.map((index) => ({
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 1,
+                                    source: tableSlot(index)
+                                })),
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result, logs.join('\n')).toBe(ItemStackResponseResult.OK);
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:crafting_table');
+                expect(craftingInput.isEmpty()).toBe(true);
+            }
+        );
+
+        describe('a crafted stack', () => {
+            /** A server that knows one recipe: a diamond in the grid makes `output`. */
+            const craftingServer = (output: string) =>
+                recipeServer({
+                    'test:diamond': {
+                        type: 'minecraft:crafting_shapeless',
+                        ingredients: ['minecraft:diamond'],
+                        result: { id: output }
+                    }
+                });
+
+            /** One craft, taken into inventory slot 0. */
+            const craftInto = async (server: Server, inventory: HumanInventory) => {
+                const craftingInput = new CraftingInput();
+                craftingInput.set(0, new Item({ name: 'minecraft:diamond' }));
+
+                return run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: netIdOf(server, 'test:diamond'),
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+            };
+
+            it('reads its tags, so a crafted pickaxe harvests stone', async () => {
+                // A recipe's output is built from the catalog with no content behind it, and
+                // that is where an item reads its tags from.
+                const server = craftingServer('minecraft:diamond_pickaxe');
+                const inventory = new HumanInventory();
+
+                await craftInto(server, inventory);
+
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:diamond_pickaxe');
+                expect(inventory.container('inventory').get(0)?.harvests('minecraft:stone')).toBe(true);
+            });
+
+            it('adds a second craft to the stack the first one left', async () => {
+                // The slot's count was raised and its item's was not, and the answer reads the
+                // item's: the client was told the slot still held one.
+                const server = craftingServer('minecraft:stick');
+                const inventory = new HumanInventory();
+
+                await craftInto(server, inventory);
+                const response = await craftInto(server, inventory);
+
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
+                const answered = response.responses[0]?.containers.find(
+                    (container) => container.container.containerId === ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY
+                );
+                expect(answered?.slots[0]?.count).toBe(2);
+            });
+        });
+
+        describe('paying for a craft', () => {
+            /** A server that knows one recipe: two planks side by side make four sticks. */
+            const sticksServer = () => recipeServer(sticksRecipe(4));
+            /** Its net id, which every request below names it by. */
+            const sticksNetId = netIdOf(sticksServer(), 'test:sticks');
+
+            /** A grid holding `count` planks in each of its first two slots. */
+            const planksGrid = (count: number) => {
+                const craftingInput = new CraftingInput();
+                craftingInput.set(0, new Item({ name: 'minecraft:oak_planks', count }));
+                craftingInput.set(1, new Item({ name: 'minecraft:oak_planks', count }));
+                return craftingInput;
+            };
+
+            const craft = (
+                type: ItemStackRequestActionType,
+                repetitions: number,
+                spent: Array<{ slot: number; count: number }>,
+                taken: number
+            ): ItemStackRequest => ({
+                requestId: -3,
+                actions: [
+                    { type, recipeNetId: sticksNetId, repetitions },
+                    ...spent.map(({ slot: index, count }) => ({
+                        type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                        count,
+                        source: craftSlot(index)
+                    })),
+                    {
+                        type: ItemStackRequestActionType.PLACE,
+                        count: taken,
+                        source: createdOutput,
+                        destination: slot(0)
+                    }
+                ],
+                filterStrings: [],
+                filterStringCause: 0
+            });
+
+            it('refuses a craft whose steps spend less than it costs', async () => {
+                // The steps say what is spent, so a client naming one slot of two would have had
+                // four sticks for one plank.
+                const craftingInput = planksGrid(1);
+                const inventory = new HumanInventory();
+
+                const response = await run(
+                    [craft(ItemStackRequestActionType.CRAFTING_RECIPE, 1, [{ slot: 0, count: 1 }], 4)],
+                    inventory,
+                    sticksServer(),
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+                expect(craftingInput.get(0)?.getAmount()).toBe(1);
+                expect(craftingInput.get(1)?.getAmount()).toBe(1);
+                expect(inventory.container('inventory').get(0)).toBeNull();
+            });
+
+            it('crafts as many as an automatic craft repeats, and spends that many', async () => {
+                const craftingInput = planksGrid(3);
+                const inventory = new HumanInventory();
+
+                const response = await run(
+                    [
+                        craft(
+                            ItemStackRequestActionType.CRAFTING_RECIPE_AUTO,
+                            2,
+                            [
+                                { slot: 0, count: 2 },
+                                { slot: 1, count: 2 }
+                            ],
+                            8
+                        )
+                    ],
+                    inventory,
+                    sticksServer(),
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stick');
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(8);
+                expect(craftingInput.get(0)?.getAmount()).toBe(1);
+                expect(craftingInput.get(1)?.getAmount()).toBe(1);
+            });
+
+            it('auto-crafts a recipe from inventory and consumes the requested ingredients', async () => {
+                const inventory = new HumanInventory();
+                inventory.container('inventory').set(0, new Item({ name: 'minecraft:oak_planks', count: 2 }));
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE_AUTO,
+                                    recipeNetId: sticksNetId,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 2,
+                                    source: slot(0)
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 4,
+                                    source: createdOutput,
+                                    destination: slot(1)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    sticksServer()
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(inventory.container('inventory').get(0)).toBeNull();
+                expect(inventory.container('inventory').get(1)?.getName()).toBe('minecraft:stick');
+                expect(inventory.container('inventory').get(1)?.getAmount()).toBe(4);
+            });
+
+            it('takes no more out of the created output than the craft made', async () => {
+                // The step's count was believed, so one craft placed as many sticks as it asked for.
+                const inventory = new HumanInventory();
+
+                await run(
+                    [
+                        craft(
+                            ItemStackRequestActionType.CRAFTING_RECIPE,
+                            1,
+                            [
+                                { slot: 0, count: 1 },
+                                { slot: 1, count: 1 }
+                            ],
+                            64
+                        )
+                    ],
+                    inventory,
+                    sticksServer(),
+                    planksGrid(1)
+                );
+
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(4);
+            });
+        });
+
+        it('answers each slot under the container and number the request named', async () => {
+            // The offhand is slot 1 to the client and the one slot of its own container here, and
+            // a hotbar slot is answered as a hotbar slot rather than as the combined inventory.
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(2, new Item({ name: 'minecraft:torch', count: 5 }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 5,
+                                source: slot(2, ContainerUiId.HOTBAR),
+                                destination: slot(1, ContainerUiId.OFFHAND)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(inventory.container('offhand').get(0)?.getName()).toBe('minecraft:torch');
+            expect(
+                response.responses[0]?.containers.map(({ container, slots }) => ({
+                    container: container.containerId,
+                    slots: slots.map(({ slot: at, count }) => ({ at, count }))
+                }))
+            ).toEqual([
+                { container: ContainerUiId.HOTBAR, slots: [{ at: 2, count: 0 }] },
+                { container: ContainerUiId.OFFHAND, slots: [{ at: 1, count: 5 }] }
+            ]);
+        });
+
+        it('puts what is worn back when a later step fails', async () => {
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:iron_helmet', count: 1 }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -5,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(0, ContainerUiId.ARMOR_CONTAINER)
+                            },
+                            { type: ItemStackRequestActionType.CRAFTING_LOOM }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(inventory.container('armor').isEmpty(0)).toBe(true);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:iron_helmet');
+        });
+
+        it('refuses a recipe the grid does not actually hold', async () => {
+            // Believing the client's number would let a player craft anything by naming it.
+            const server = recipeServer(sticksRecipe());
+
+            const empty = new CraftingInput();
+            const response = await run(
+                [
+                    {
+                        requestId: -9,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: netIdOf(server, 'test:sticks'),
+                                repetitions: 1
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server,
+                empty
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+        });
+
+        it('moves a stack into the crafting grid, which is how anything gets made', async () => {
+            const craftingInput = new CraftingInput();
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }));
+
+            await run(
+                [
+                    {
+                        requestId: -5,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: craftSlot(2)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([]),
+                craftingInput
+            );
+
+            expect(craftingInput.get(2)?.getName()).toBe('minecraft:oak_planks');
+            expect(inventory.container('inventory').get(0)).toBeNull();
+        });
+
+        it('encodes the response it produces', async () => {
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -1,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server
+            );
+
+            expect(() => response.encode()).not.toThrow();
+            expect(response.getBuffer().byteLength).toBeGreaterThan(0);
+        });
+
+        it('refuses a request id no client makes up, and answers under that same id', async () => {
+            // A client's ids are negative and odd. Positive ones are the server's own stack
+            // ids and negative even ones are legacy request ids, so either here is a request
+            // from something other than the game.
+            const server = fakeServer([]);
+            const inventory = new HumanInventory();
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
+
+            for (const requestId of [4, -2]) {
+                const response = await run(
+                    [
+                        {
+                            requestId,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: slot(0),
+                                    destination: slot(5)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server
+                );
+
+                expect(response.responses[0]).toEqual({
+                    result: ItemStackResponseResult.ERROR,
+                    requestId,
+                    containers: []
+                });
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
+            }
+        });
+
+        it('refuses a request with no actions', async () => {
+            const response = await run(
+                [{ requestId: -1, actions: [], filterStrings: [], filterStringCause: 0 }],
+                new HumanInventory(),
+                fakeServer([])
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.requestId).toBe(-1);
+        });
+
+        it('refuses an amount outside one to sixty-four', async () => {
+            const server = fakeServer([]);
+
+            for (const count of [0, 65]) {
+                const inventory = new HumanInventory();
+                inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -1,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count,
+                                    source: slot(0),
+                                    destination: slot(5)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
+            }
+        });
+
+        it('answers a request whose step threw, and puts things back', async () => {
+            // The exception used to escape the handler, so nothing was sent and the client
+            // kept its prediction for a move the server never made.
+            class Breaking extends ItemContainer {
+                public override set(slot: number, item: Item | null): boolean {
+                    if (slot === 0 && item === null) throw new Error(`cannot empty slot ${slot}`);
+                    return super.set(slot, item);
+                }
+            }
+            class Broken extends HumanInventory {
+                private readonly main = new Breaking(36);
+                public override container(name: PlayerInventoryContainer): ItemContainer {
+                    return name === 'inventory' ? this.main : super.container(name);
+                }
+            }
+            const inventory = new Broken();
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -1,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(5)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(response.responses[0]).toEqual({
+                result: ItemStackResponseResult.ERROR,
+                requestId: -1,
+                containers: []
+            });
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
+            expect(inventory.container('inventory').get(5)).toBeNull();
+        });
+
+        it('names only the containers something changed in', async () => {
+            // The two kept stores used to be listed in every answer, slots or no slots.
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 64,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server
+            );
+
+            expect(response.responses[0]?.containers.map((container) => container.container.containerId)).toEqual([
+                ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY
+            ]);
+        });
+    });
+});

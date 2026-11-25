@@ -1,6 +1,6 @@
 import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 
-import type { InputContext } from '../../network/handler/HandlerContext';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { ShownActor } from '../../world/ShownActor';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';

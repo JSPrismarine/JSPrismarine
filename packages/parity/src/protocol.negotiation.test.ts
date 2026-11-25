@@ -6,8 +6,8 @@ import { bedrockProtocolProvider, describeProtocolProviders } from '@jsprismarin
 import { resolveProtocolPolicy } from '@jsprismarine/prismarine/network/codec/ProtocolPolicy';
 import { about } from '@jsprismarine/prismarine/about';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
-import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
-import { ConnectionContexts } from '@jsprismarine/prismarine/network/connectionContexts';
+import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/editions/bedrock/handler/RequestNetworkSettingsHandler';
+import { ConnectionContexts } from '@jsprismarine/prismarine/player/context/connectionContexts';
 import type { NetworkPacket } from '@jsprismarine/protocol';
 import {
     LevelChunkPacket,

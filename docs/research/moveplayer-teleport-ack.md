@@ -128,7 +128,7 @@ says "The expected actions change depending on the ServerAuthMovementMode"
 I infer, without a capture, that a legacy client from 1.19.60 to 1.21.70 acknowledged a teleport
 with this `PlayerAction`. Before 1.19.60 there was no acknowledgment at all, which is why the
 servers in section 3 use position. `PlayerActionHandler` here ignores `HandledTeleport`
-(`packages/prismarine/src/network/handler/PlayerActionHandler.ts:365`).
+(`packages/prismarine/src/editions/bedrock/handler/PlayerActionHandler.ts:365`).
 
 ## 3. Other servers
 

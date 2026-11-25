@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { stub } from '../testing/stub.test.helper';
-import PartyChangedHandler from './handler/PartyChangedHandler';
+import PartyChangedHandler from '../editions/bedrock/handler/PartyChangedHandler';
 import PacketHandlerRegistry from './PacketHandlerRegistry';
 
 describe('PartyChangedHandler registry', () => {

@@ -90,7 +90,7 @@ Measured differences between the 2193 and 2225 captures:
 ## How a session picks its tables
 
 The client's first packet, `RequestNetworkSettings`, names its protocol.
-[`RequestNetworkSettingsHandler`](../../packages/prismarine/src/network/handler/RequestNetworkSettingsHandler.ts)
+[`RequestNetworkSettingsHandler`](../../packages/prismarine/src/editions/bedrock/handler/RequestNetworkSettingsHandler.ts)
 looks it up with `codecForProtocol` in [`CodecRegistry.ts`](../../packages/prismarine/src/network/codec/CodecRegistry.ts),
 stores the codec on the connection, and refuses any protocol it has no codec for. From then on:
 
@@ -98,7 +98,7 @@ stores the codec on the connection, and refuses any protocol it has no codec for
   ([`NetworkDispatcher.ts`](../../packages/prismarine/src/network/NetworkDispatcher.ts)).
 - Outbound packets encode once per codec. [`NetworkWorldReplicator`](../../packages/prismarine/src/network/NetworkWorldReplicator.ts)
   groups viewers by codec and builds each packet once per group, and
-  [`joinPacketCache.ts`](../../packages/prismarine/src/network/joinPacketCache.ts) keys cached
+  [`joinPacketCache.ts`](../../packages/prismarine/src/editions/bedrock/joinPacketCache.ts) keys cached
   join batches by codec.
 - A codec is `createProtocolCodec({ definition, context })`. [`Codec2193.ts`](../../packages/prismarine/src/network/codec/Codec2193.ts)
   and [`Codec2225.ts`](../../packages/prismarine/src/network/codec/Codec2225.ts) fill the
@@ -306,7 +306,7 @@ Repository, as read on 2026-11-18:
   [`block/state/BlockRuntimeIds.ts`](../../packages/prismarine/src/block/state/BlockRuntimeIds.ts),
   [`world/chunk/BlockStorage.ts`](../../packages/prismarine/src/world/chunk/BlockStorage.ts),
   [`network/NetworkWorldReplicator.ts`](../../packages/prismarine/src/network/NetworkWorldReplicator.ts),
-  [`network/handler/RequestNetworkSettingsHandler.ts`](../../packages/prismarine/src/network/handler/RequestNetworkSettingsHandler.ts).
+  [`editions/bedrock/handler/RequestNetworkSettingsHandler.ts`](../../packages/prismarine/src/editions/bedrock/handler/RequestNetworkSettingsHandler.ts).
 - [`packages/bedrock-data/src/v2193.ts`](../../packages/bedrock-data/src/v2193.ts),
   [`v2225.ts`](../../packages/bedrock-data/src/v2225.ts), and the captures under
   `packages/bedrock-data/src/jsp/v2193/` and `v2225/`.

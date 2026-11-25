@@ -33,7 +33,7 @@ import { parseBiomeTags } from '../../content/biomeTags';
 import { explode } from '../../entity/Explosion';
 import { storedItem } from '../../inventory/persistence';
 import { itemFromContent } from '../../item/itemFromContent';
-import { customMusicPacket } from '../../network/customMusic';
+import { customMusicPacket } from '../../editions/bedrock/customMusic';
 import type PlayerSession from '../../player/PlayerSession';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';

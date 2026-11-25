@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import { STEVE } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import type { HandlerConfig, HandlerServices, InputContext } from './handler/HandlerContext';
-import type { InputLaneHandler, ReadLaneHandler } from './handler/SessionHandler';
+import type { HandlerConfig, HandlerServices, InputContext } from '../player/context/HandlerContext';
+import type { InputLaneHandler, ReadLaneHandler } from '../player/context/SessionHandler';
 import PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from '../player/PlayerSession';
 

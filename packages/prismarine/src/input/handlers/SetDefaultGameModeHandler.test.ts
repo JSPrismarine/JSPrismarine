@@ -6,14 +6,14 @@ import { describe, expect, it } from 'vitest';
 
 import { subjectId } from '../../identity/Subject';
 import type ClientConnection from '../../network/ClientConnection';
-import type { HandlerServices } from '../../network/handler/HandlerContext';
+import type { HandlerServices } from '../../player/context/HandlerContext';
 import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import { WorldMessages } from '../../world/WorldMessages';
-import { BedrockPresenter } from '../../network/presenter/BedrockPresenter';
+import { BedrockPresenter } from '../../editions/bedrock/presenter/BedrockPresenter';
 import SetDefaultGameModeHandler from './SetDefaultGameModeHandler';
 
 /**

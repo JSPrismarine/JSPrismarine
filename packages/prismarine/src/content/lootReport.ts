@@ -50,7 +50,7 @@ export const lootSummary = (report: LootBuildReport): string =>
  * What the loot build could not read, or undefined when it read everything.
  *
  * Each clause is left out when its count is zero, the way
- * {@link import('../network/contentPayloads').contentPayloadWarning} does it,
+ * {@link import('../editions/bedrock/contentPayloads').contentPayloadWarning} does it,
  * so anything printed is worth reading. A stock vanilla stack prints the
  * reviewed clause and nothing else.
  */

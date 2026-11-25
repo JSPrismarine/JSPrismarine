@@ -1,5 +1,5 @@
 import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
-import type { InputContext } from '../../network/handler/HandlerContext';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

@@ -17,8 +17,8 @@ import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import type { ServerPlayerAuthInput } from '../PlayerAuthInputAdapter';
-import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
+import type { ServerPlayerAuthInput } from '../../editions/bedrock/PlayerAuthInputAdapter';
+import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../../editions/bedrock/PlayerAuthInputAdapter';
 import Codec2193 from '../codec/Codec2193';
 
 /**
