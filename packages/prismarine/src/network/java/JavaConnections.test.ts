@@ -34,7 +34,6 @@ import {
     SynchronizePlayerPosition
 } from '@jsprismarine/protocol/java/packet/play';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
-import { PACKETS } from '@jsprismarine/protocol/java/versions/26.3/packets';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import {
     EncryptionRequest,
@@ -68,7 +67,7 @@ import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 /** `Client Information`, by id alone: its fields are the client's settings, which the server reads past. */
 const ClientInformationProbe = defineJavaPacket(
     'Client Information',
-    PACKETS.configuration.serverbound.client_information,
+    'configuration/serverbound/client_information',
     {}
 );
 

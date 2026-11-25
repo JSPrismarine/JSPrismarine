@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '../packet/JavaPacket';
+import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from '../packet/JavaPacket';
+import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import { BLOCK_STATES } from '../versions/26.3/blockStates';
 import { CONFIGURATION } from '../versions/26.3/configuration';
 import { decodeSections, encodeSections, LevelChunkWithLight } from './levelChunk';
@@ -19,8 +20,8 @@ const kinds = { blocks: blockStatesKind(BLOCK_STATES.size), biomes: biomesKind(b
 
 /** The fixture read through the packet definition. */
 const read = () => {
-    const frame = Buffer.concat([Buffer.from([LevelChunkWithLight.id]), vanilla]);
-    return decodeJavaPacket(LevelChunkWithLight, readJavaPacketId(frame).body);
+    const frame = Buffer.concat([Buffer.from([javaPacketId(NEWEST_JAVA_RELEASE, LevelChunkWithLight)]), vanilla]);
+    return decodeJavaPacket(NEWEST_JAVA_RELEASE, LevelChunkWithLight, readJavaPacketId(frame).body);
 };
 
 describe('LevelChunkWithLight', () => {
@@ -58,7 +59,10 @@ describe('LevelChunkWithLight', () => {
         const chunk = read();
         const sections = decodeSections(chunk.data, 24, kinds);
 
-        const written = encodeJavaPacket(LevelChunkWithLight, { ...chunk, data: encodeSections(sections, kinds) });
+        const written = encodeJavaPacket(NEWEST_JAVA_RELEASE, LevelChunkWithLight, {
+            ...chunk,
+            data: encodeSections(sections, kinds)
+        });
 
         expect(written.subarray(1)).toEqual(vanilla);
     });

@@ -140,6 +140,16 @@ A Java Edition packet has bytes after the fields this server reads, so the clien
 layout this server does not read. The connection is dropped; a client of another release,
 or a modified one, is the usual cause.
 
+## `PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE`
+
+`Java Edition {release} has no {name} packet`
+
+Thrown as `ProtocolWireErrors.JavaPacketNotInRelease`, which extends `Error`.
+
+A Java Edition packet was sent or read on a connection whose release has no such packet. This
+is a bug in the server's Java handling, which should only use the packets the connection's
+release lists; report it with the stack trace.
+
 ## `PROTOCOL_JAVA_PALETTED_CONTAINER_BITS`
 
 `A paletted container of {entries} entries cannot use {bits} bits per entry`

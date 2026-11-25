@@ -296,22 +296,22 @@ describe('modules/network', () => {
             await once(socket, 'connect');
             socket.write(
                 framed(
-                    encodeJavaPacket(Intention, {
-                        protocolVersion: 777,
+                    encodeJavaPacket(NEWEST_JAVA_RELEASE, Intention, {
+                        protocolVersion: NEWEST_JAVA_RELEASE.protocolVersion,
                         serverAddress: 'localhost',
                         serverPort: port,
                         intent: ClientIntent.Status
                     })
                 )
             );
-            socket.write(framed(encodeJavaPacket(StatusRequest, {})));
+            socket.write(framed(encodeJavaPacket(NEWEST_JAVA_RELEASE, StatusRequest, {})));
             const [chunk] = await once(socket, 'data');
             socket.destroy();
             const read = new JavaFrameReader().push(chunk);
             if (!('frames' in read) || read.frames[0] === undefined) throw new Error('expected a status frame');
             const { body } = readJavaPacketId(read.frames[0]);
 
-            expect(JSON.parse(decodeJavaPacket(StatusResponse, body).json)).toMatchObject({
+            expect(JSON.parse(decodeJavaPacket(NEWEST_JAVA_RELEASE, StatusResponse, body).json)).toMatchObject({
                 players: { max: 1, online: 0 },
                 description: { text: 'test server' }
             });

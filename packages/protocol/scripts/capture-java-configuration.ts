@@ -33,8 +33,9 @@ import {
     UpdateTags
 } from '../src/java/packet/configuration.ts';
 import { ClientIntent, Intention } from '../src/java/packet/handshake.ts';
-import type { JavaPacketDefinition } from '../src/java/packet/JavaPacket.ts';
-import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '../src/java/packet/JavaPacket.ts';
+import type { JavaPacketDefinition, JavaPayload } from '../src/java/packet/JavaPacket.ts';
+import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from '../src/java/packet/JavaPacket.ts';
+import { NEWEST_JAVA_RELEASE } from '../src/java/versions/javaReleases.ts';
 import { LoginAcknowledged, LoginStart, LoginSuccess, SetCompression } from '../src/java/packet/login.ts';
 import type { JavaConfiguration } from '../src/java/versions/javaConfiguration.ts';
 import { compressFrame, decompressFrame } from '../src/java/wire/compression.ts';
@@ -116,8 +117,8 @@ async function captureConfiguration(port: number): Promise<JavaConfiguration> {
         wake?.();
     });
     let compression: number | undefined;
-    const send = <T>(definition: JavaPacketDefinition<T>, value: T) => {
-        const packet = encodeJavaPacket(definition, value);
+    const send = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => {
+        const packet = encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value);
         socket.write(framed(compression === undefined ? packet : compressFrame(packet, compression)));
     };
     const next = async () => {
@@ -125,10 +126,11 @@ async function captureConfiguration(port: number): Promise<JavaConfiguration> {
         const frame = frames.shift()!;
         return readJavaPacketId(compression === undefined ? frame : decompressFrame(frame, compression));
     };
-    const expect = async <T>(definition: JavaPacketDefinition<T>): Promise<T> => {
+    const expect = async <D extends JavaPacketDefinition>(definition: D): Promise<JavaPayload<D>> => {
         const { id, body } = await next();
-        if (id !== definition.id) throw new Error(`expected ${definition.name}, got packet ${id}`);
-        return decodeJavaPacket(definition, body);
+        if (id !== javaPacketId(NEWEST_JAVA_RELEASE, definition))
+            throw new Error(`expected ${definition.name}, got packet ${id}`);
+        return decodeJavaPacket(NEWEST_JAVA_RELEASE, definition, body);
     };
 
     send(Intention, {
@@ -145,22 +147,23 @@ async function captureConfiguration(port: number): Promise<JavaConfiguration> {
     const capture: JavaConfiguration = { features: [], knownPacks: [], registries: [], tags: [] };
     for (;;) {
         const { id, body } = await next();
-        if (id === FeatureFlags.id) capture.features = decodeJavaPacket(FeatureFlags, body).features;
-        else if (id === ClientboundKnownPacks.id) {
-            capture.knownPacks = decodeJavaPacket(ClientboundKnownPacks, body).packs;
+        if (id === javaPacketId(NEWEST_JAVA_RELEASE, FeatureFlags))
+            capture.features = decodeJavaPacket(NEWEST_JAVA_RELEASE, FeatureFlags, body).features;
+        else if (id === javaPacketId(NEWEST_JAVA_RELEASE, ClientboundKnownPacks)) {
+            capture.knownPacks = decodeJavaPacket(NEWEST_JAVA_RELEASE, ClientboundKnownPacks, body).packs;
             send(ServerboundKnownPacks, { packs: capture.knownPacks });
-        } else if (id === RegistryData.id) {
-            const { registry, entries } = decodeJavaPacket(RegistryData, body);
+        } else if (id === javaPacketId(NEWEST_JAVA_RELEASE, RegistryData)) {
+            const { registry, entries } = decodeJavaPacket(NEWEST_JAVA_RELEASE, RegistryData, body);
             capture.registries.push({ registry, entries: entries.map((entry) => entry.id) });
-        } else if (id === UpdateTags.id) {
+        } else if (id === javaPacketId(NEWEST_JAVA_RELEASE, UpdateTags)) {
             // Vanilla walks hash maps to send these, so the order changes from run to run; sorted,
             // a recapture of the same jar writes the same file. Neither order means anything.
             const byName = (a: { name: string }, b: { name: string }) =>
                 a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-            capture.tags = decodeJavaPacket(UpdateTags, body)
+            capture.tags = decodeJavaPacket(NEWEST_JAVA_RELEASE, UpdateTags, body)
                 .registries.map(({ registry, tags }) => ({ registry, tags: [...tags].sort(byName) }))
                 .sort((a, b) => byName({ name: a.registry }, { name: b.registry }));
-        } else if (id === FinishConfiguration.id) break;
+        } else if (id === javaPacketId(NEWEST_JAVA_RELEASE, FinishConfiguration)) break;
     }
     socket.destroy();
     return capture;

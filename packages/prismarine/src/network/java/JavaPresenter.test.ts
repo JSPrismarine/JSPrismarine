@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
-import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
@@ -49,7 +49,7 @@ describe('JavaPresenter', () => {
     /** A presenter for player 7 that records what it sends, by packet name. */
     const presenter = () => {
         const sent: { name: string; value: unknown }[] = [];
-        const send = <T>(definition: JavaPacketDefinition<T>, value: T) =>
+        const send = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) =>
             void sent.push({ name: definition.name, value });
         const respawns: { x: number; y: number; z: number }[] = [];
         const java = new JavaPresenter(send, 7n, undefined, undefined, (feet) => void respawns.push(feet));

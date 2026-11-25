@@ -1,8 +1,13 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
+
+import { varInt } from '../wire/javaTypes';
 
 import { ClientIntent, Intention } from './handshake';
 import { RegistryData } from './configuration';
-import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
+import type { JavaPacketDefinition } from './JavaPacket';
+import { defineJavaPacket, decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from './JavaPacket';
+import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import {
     EncryptionRequest,
     EncryptionResponse,
@@ -13,18 +18,26 @@ import {
     SetCompression
 } from './login';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from './status';
-import { PACKETS } from '../versions/26.3/packets';
+import * as levelChunk from '../chunk/levelChunk';
+import * as configuration from './configuration';
+import * as handshake from './handshake';
+import * as login from './login';
+import * as play from './play';
+import * as status from './status';
 
 describe('Java packets', () => {
     it('reads the handshake a client sends before a server list ping', () => {
-        // Protocol 777, "localhost", port 25565, then intent 1, as a vanilla client writes it.
-        const frame = Buffer.from([0x00, 0x89, 0x06, 0x09, ...Buffer.from('localhost'), 0x63, 0xdd, 0x01]);
+        // The newest release's protocol, "localhost", port 25565, then intent 1, as a vanilla client
+        // writes it.
+        const protocol = new BinaryStream();
+        varInt.write(protocol, NEWEST_JAVA_RELEASE.protocolVersion);
+        const frame = Buffer.from([0x00, ...protocol.getBuffer(), 0x09, ...Buffer.from('localhost'), 0x63, 0xdd, 0x01]);
 
         const { id, body } = readJavaPacketId(frame);
 
-        expect(id).toBe(Intention.id);
-        expect(decodeJavaPacket(Intention, body)).toEqual({
-            protocolVersion: 777,
+        expect(id).toBe(javaPacketId(NEWEST_JAVA_RELEASE, Intention));
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, Intention, body)).toEqual({
+            protocolVersion: NEWEST_JAVA_RELEASE.protocolVersion,
             serverAddress: 'localhost',
             serverPort: 25_565,
             intent: ClientIntent.Status
@@ -66,44 +79,62 @@ describe('Java packets', () => {
         ],
         [LoginAcknowledged.name, LoginAcknowledged, {}]
     ] as const)('round-trips %s', (_name, definition, value) => {
-        const { id, body } = readJavaPacketId(encodeJavaPacket<object>(definition, value));
+        const { id, body } = readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value));
 
-        expect(id).toBe(definition.id);
-        expect(decodeJavaPacket<object>(definition, body)).toEqual(value);
+        expect(id).toBe(javaPacketId(NEWEST_JAVA_RELEASE, definition));
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, definition, body)).toEqual(value);
     });
 
     it('refuses a packet with bytes after its fields', () => {
         const { body } = readJavaPacketId(Buffer.from([0x00, 0x2a]));
 
-        expect(() => decodeJavaPacket(StatusRequest, body)).toThrow(
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, StatusRequest, body)).toThrow(
             'Status Request has 1 unread bytes after its fields'
         );
     });
 });
 
-describe('the packets every release shares', () => {
-    it.each([
-        ['handshake', 'serverbound', 'intention', Intention],
-        ['status', 'serverbound', 'status_request', StatusRequest],
-        ['status', 'clientbound', 'status_response', StatusResponse],
-        ['status', 'serverbound', 'ping_request', PingRequest],
-        ['status', 'clientbound', 'pong_response', PongResponse],
-        ['login', 'clientbound', 'login_disconnect', LoginDisconnect]
-    ] as const)('give %s %s %s the id the data generator reports', (phase, direction, name, definition) => {
-        const table: Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, number>>>>>> = PACKETS;
+describe('packet ids', () => {
+    it('come from the release the connection speaks', () => {
+        const release = { ...NEWEST_JAVA_RELEASE, packets: { status: { clientbound: { pong_response: 9 } } } };
 
-        expect(table[phase]?.[direction]?.[name]).toBe(definition.id);
+        expect(readJavaPacketId(encodeJavaPacket(release, PongResponse, { timestamp: 1n })).id).toBe(9);
+    });
+
+    it('keep a slash in Mojang names, as in debug/block_value', () => {
+        const blockValue = defineJavaPacket('Debug Block Value', 'play/clientbound/debug/block_value', {});
+
+        expect(blockValue.key).toBe('debug/block_value');
+        expect(javaPacketId(NEWEST_JAVA_RELEASE, blockValue)).toBe(
+            NEWEST_JAVA_RELEASE.packets.play?.clientbound?.['debug/block_value']
+        );
+    });
+
+    it('refuse a packet the release lacks', () => {
+        const release = { ...NEWEST_JAVA_RELEASE, packets: {} };
+
+        expect(() => javaPacketId(release, PongResponse)).toThrow('Java Edition 26.3 has no Pong Response packet');
+    });
+
+    it.each(
+        [handshake, status, login, configuration, play, levelChunk].flatMap((module) =>
+            Object.values(module).filter(
+                (value): value is JavaPacketDefinition => typeof value === 'object' && value !== null && 'key' in value
+            )
+        )
+    )('name a packet of the newest release: $name', (definition) => {
+        expect(() => javaPacketId(NEWEST_JAVA_RELEASE, definition)).not.toThrow();
     });
 });
 
 describe('Registry Data', () => {
     it('lists entries without their data, and refuses an entry that carries some', () => {
-        const frame = encodeJavaPacket(RegistryData, {
+        const frame = encodeJavaPacket(NEWEST_JAVA_RELEASE, RegistryData, {
             registry: 'minecraft:dimension_type',
             entries: [{ id: 'minecraft:overworld', data: null }]
         });
         const { body } = readJavaPacketId(frame);
-        expect(decodeJavaPacket(RegistryData, body)).toEqual({
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, RegistryData, body)).toEqual({
             registry: 'minecraft:dimension_type',
             entries: [{ id: 'minecraft:overworld', data: null }]
         });
@@ -111,7 +142,7 @@ describe('Registry Data', () => {
         // The same entry with its presence flag set.
         const withData = Buffer.from(frame);
         withData[withData.byteLength - 1] = 1;
-        expect(() => decodeJavaPacket(RegistryData, readJavaPacketId(withData).body)).toThrow(
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, RegistryData, readJavaPacketId(withData).body)).toThrow(
             'A registry entry carries data, which this server does not read'
         );
     });

@@ -19,7 +19,7 @@ More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismari
 Code that embeds the server or uses a package on its own reads the same two values from the error
 it catches, as `error.code` and `error.docs`.
 
-There are <!-- fact:errors.count -->1391<!-- /fact --> errors, one page per package. A package that throws many, such as
+There are <!-- fact:errors.count -->1392<!-- /fact --> errors, one page per package. A package that throws many, such as
 `@jsprismarine/prismarine`, has a page per catalog module as well, which its page lists:
 
 <!-- fact:errors.domains -->
@@ -59,7 +59,7 @@ There are <!-- fact:errors.count -->1391<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/packs`](packs.md)                       | 38     |
 | [`@jsprismarine/predicates`](predicates.md)             | 2      |
 | [`@jsprismarine/prismarine`](prismarine.md)             | 434    |
-| [`@jsprismarine/protocol`](protocol.md)                 | 143    |
+| [`@jsprismarine/protocol`](protocol.md)                 | 144    |
 | [`@jsprismarine/raknet`](raknet.md)                     | 30     |
 | [`@jsprismarine/script-host`](script-host.md)           | 89     |
 | [`@jsprismarine/server`](server.md)                     | 23     |

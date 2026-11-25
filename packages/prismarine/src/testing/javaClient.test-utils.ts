@@ -2,11 +2,17 @@ import type { Cipheriv, Decipheriv } from 'node:crypto';
 import { createCipheriv, createDecipheriv } from 'node:crypto';
 import { connect } from 'node:net';
 
-import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import {
+    decodeJavaPacket,
+    encodeJavaPacket,
+    readJavaPacketId,
+    javaPacketId
+} from '@jsprismarine/protocol/java/packet/JavaPacket';
 
 import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 
 /**
  * A Java Edition client on a loopback socket, as far as a login needs one: it frames, compresses
@@ -39,17 +45,19 @@ export const javaClient = async (port: number) => {
     return {
         closed,
         next,
-        send: <T>(definition: JavaPacketDefinition<T>, value: T): void => {
-            const packet = encodeJavaPacket(definition, value);
+        send: <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>): void => {
+            const packet = encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value);
             const bytes = framed(compression === undefined ? packet : compressFrame(packet, compression));
             socket.write(cipher === undefined ? bytes : cipher.out.update(bytes));
         },
         /** The next packet, which must be `definition`. */
-        receive: async <T>(definition: JavaPacketDefinition<T>): Promise<T> => {
+        receive: async <D extends JavaPacketDefinition>(definition: D): Promise<JavaPayload<D>> => {
             const { id, body } = await next();
-            if (id !== definition.id)
-                throw new Error(`expected ${definition.name} (${definition.id}), got packet ${id}`);
-            return decodeJavaPacket(definition, body);
+            if (id !== javaPacketId(NEWEST_JAVA_RELEASE, definition))
+                throw new Error(
+                    `expected ${definition.name} (${javaPacketId(NEWEST_JAVA_RELEASE, definition)}), got packet ${id}`
+                );
+            return decodeJavaPacket(NEWEST_JAVA_RELEASE, definition, body);
         },
         /** Encrypts both ways from here on, as a client does once it has sent its encryption response. */
         encrypt: (secret: Buffer): void => {

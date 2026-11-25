@@ -3,14 +3,14 @@
  * decode into ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
 import { Gametype } from '@jsprismarine/minecraft';
-import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { PlayerAction } from '@jsprismarine/protocol/java/packet/play';
 import { PlayerActionStatus } from '@jsprismarine/protocol/java/packet/play';
 
 import type { Intent, MiningStep } from '../../input/Intent';
 
 /** The `Player Action` fields, as the packet decodes. */
-type PlayerActionFields = typeof PlayerAction extends JavaPacketDefinition<infer T> ? T : never;
+type PlayerActionFields = JavaPayload<typeof PlayerAction>;
 
 /**
  * The mining step a status stands for. A creative player's start is the whole break, as a Java
