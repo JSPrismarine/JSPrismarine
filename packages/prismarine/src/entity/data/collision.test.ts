@@ -8,6 +8,7 @@ import { FULL_CUBE_SHAPE } from '@jsprismarine/blocks/geometry';
 import type { BodyBlocks, BoxBounds, CellShape } from './collision';
 import {
     bodyCanOccupy,
+    bodyCanOccupyFrom,
     bodyIntersectsMedia,
     closestOpenFace,
     hasLineOfSight,
@@ -184,6 +185,38 @@ describe('mob bodies against partial shapes', () => {
 
     it('finds where a falling body lands on a fence post', () => {
         expect(landingY({ x: 0.5, y: 2, z: 0.5 }, box, bodyBlocks(FENCE_POST), 1)).toBe(1.5);
+    });
+});
+
+describe('bodyCanOccupyFrom', () => {
+    const box = { width: 0.6, height: 1.8 };
+    /** A full block at the origin cell and another at x 3, with air everywhere else. */
+    const blocks: BodyBlocks = {
+        collisionAt: ({ x, y, z }) => ((x === 0 || x === 3) && y === 0 && z === 0 ? FULL_CUBE_SHAPE : []),
+        blockAt: () => undefined
+    };
+    // Half its width inside the origin block, as a mob that spawned into a spawner's side stands.
+    const stuck = { x: 1.1, y: 0, z: 0.5 };
+
+    it('lets a body move out of a block it already stands partly inside', () => {
+        const fits = bodyCanOccupyFrom(stuck, box, blocks);
+
+        expect(bodyCanOccupy(stuck, box, blocks)).toBe(false);
+        expect(fits({ x: 1.5, y: 0, z: 0.5 })).toBe(true);
+        expect(fits({ x: 1.2, y: 0, z: 0.5 })).toBe(true);
+    });
+
+    it('still stops it at a block it was not inside', () => {
+        const fits = bodyCanOccupyFrom(stuck, box, blocks);
+
+        expect(fits({ x: 2.8, y: 0, z: 0.5 })).toBe(false);
+    });
+
+    it('is the plain test for a body that starts clear', () => {
+        const fits = bodyCanOccupyFrom({ x: 1.5, y: 0, z: 0.5 }, box, blocks);
+
+        expect(fits({ x: 1.1, y: 0, z: 0.5 })).toBe(false);
+        expect(fits({ x: 1.6, y: 0, z: 0.5 })).toBe(true);
     });
 });
 

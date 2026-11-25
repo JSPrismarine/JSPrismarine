@@ -183,6 +183,7 @@ import { isCushion, updateCushion } from './cushionFire';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
+    bodyCanOccupyFrom,
     bodyIntersectsMedia,
     bodyTouchesBlock,
     floorUnder,
@@ -7333,11 +7334,16 @@ export class EntityRuntime implements EntityScene {
         const canOccupy = (at: EntityPosition) =>
             !componentFacts.hasCollision ||
             bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow);
+        // Sideways, a block the body is already inside does not hold it, so a push or a knockback
+        // can still carry it out. Its fall keeps the strict test, so a body sunk a hair into the
+        // floor lands on it rather than dropping through.
+        const fits = bodyCanOccupyFrom(position, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow);
+        const canMoveAcross = (at: EntityPosition) => !componentFacts.hasCollision || fits(at);
         const travelX = velocity.x * horizontalShare;
         const travelZ = velocity.z * horizontalShare;
-        let next = moveOnAxis(position, position.x + travelX, 'x', canOccupy);
+        let next = moveOnAxis(position, position.x + travelX, 'x', canMoveAcross);
         const hitHorizontalX = Math.abs(next.x - (position.x + travelX)) > MOVEMENT_EPSILON;
-        next = moveOnAxis(next, position.z + travelZ, 'z', canOccupy);
+        next = moveOnAxis(next, position.z + travelZ, 'z', canMoveAcross);
         const hitHorizontalZ = Math.abs(next.z - (position.z + travelZ)) > MOVEMENT_EPSILON;
         if (hitHorizontalX || hitHorizontalZ) this.horizontalCollisions.add(entity.id);
         const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
@@ -8303,6 +8309,12 @@ export class EntityRuntime implements EntityScene {
         // `PhantomMoveControl` steers it in three dimensions.
         const glides = entity.instance.hasComponent('minecraft:movement.glide');
         const turnShare = JAVA_EASED_TURNS.get(entity.identifier);
+        const fits = bodyCanOccupyFrom(
+            entity.position,
+            entity.facts.box,
+            navigation,
+            profile.canStandOnPowderSnow === true
+        );
         entity.step({
             ...(maxTurn === undefined ? {} : { maxTurn }),
             ...(turnShare === undefined ? {} : { turnShare }),
@@ -8328,10 +8340,7 @@ export class EntityRuntime implements EntityScene {
                   }
                 : {}),
             canOccupy(position: EntityPosition): boolean {
-                return (
-                    !componentFacts.hasCollision ||
-                    bodyCanOccupy(position, entity.facts.box, navigation, profile.canStandOnPowderSnow === true)
-                );
+                return !componentFacts.hasCollision || fits(position);
             }
         });
     }
