@@ -137,6 +137,11 @@ interface PortalTrip {
      * the player's name until it answers.
      */
     respawnFor: PlayerSession | undefined;
+    /**
+     * The player's change, once {@link DimensionTravel.admit} has sent it ahead of the arrival: the
+     * session, already in the destination world on its loading screen, and that screen's id.
+     */
+    opened: { readonly session: PlayerSession; readonly loadingScreenId: number } | undefined;
 }
 
 /** What a ready trip's arrival says while the arrival still waits, such as for a respawn search. */
@@ -445,7 +450,8 @@ export class DimensionTravel {
             preparing: undefined,
             ticket: `travel:${this.nextTicket++}`,
             released: false,
-            respawnFor: undefined
+            respawnFor: undefined,
+            opened: undefined
         };
         this.trips.push(trip);
         this.prepare(trip);
@@ -456,7 +462,7 @@ export class DimensionTravel {
     public isDeparting(entity: StoreActor): boolean {
         const world = entity.getWorld();
         const id = entity.getRuntimeId();
-        return this.trips.some((trip) => trip.from === world && trip.entity === id);
+        return this.trips.some((trip) => trip.opened === undefined && trip.from === world && trip.entity === id);
     }
 
     /**
@@ -512,8 +518,10 @@ export class DimensionTravel {
      * world and enters the other through {@link DimensionTravel.transfer}, so both changes land
      * in the tick this step opens. A trip whose traveler left its world in the meantime is
      * dropped. A trip out of the End also waits for the respawn search, or the world's spawn,
-     * which it asks again at each step. Nothing here waits: what a trip lacks it asks for, and a
-     * later step lands it.
+     * which it asks again at each step. A player whose destination world is built but whose
+     * arrival is not ready yet changes world at once, onto the loading screen, and the trip lands
+     * them where it resolves at a later step. Nothing here waits: what a trip lacks it asks for,
+     * and a later step lands it.
      *
      * @returns How many moves and trips landed.
      */
@@ -523,6 +531,11 @@ export class DimensionTravel {
         const due = this.trips;
         this.trips = [];
         for (const trip of due) {
+            if (trip.opened !== undefined) {
+                landed += this.admitOpened(trip, trip.opened);
+                continue;
+            }
+
             const traveler = trip.from.getActor(trip.entity);
             if (traveler === null) {
                 this.release(trip);
@@ -533,6 +546,7 @@ export class DimensionTravel {
             if (to === undefined) {
                 this.trips.push(trip);
                 this.prepare(trip);
+                this.openAhead(trip, traveler);
                 continue;
             }
 
@@ -556,6 +570,106 @@ export class DimensionTravel {
     }
 
     /**
+     * Sends a player's change ahead of its arrival, so the client waits for the destination on
+     * its loading screen rather than standing in the portal.
+     *
+     * Only once the destination world is built, since the change moves the player into it, and
+     * only for a trip whose arrival is known up to where the search lands it: into the Nether
+     * the scaled target, into the End the platform. A trip out of the End waits for the respawn
+     * search, and a first exit for the credits, so it is sent when it lands, as is every other
+     * traveler. The player leaves the portal's world here, raises `playerChangeDimension` with
+     * the provisional arrival, and takes the 10 tick cooldown, as {@link DimensionTravel.transfer}
+     * does; the arrival chunks stay held until {@link DimensionTravel.admitOpened} lands the trip.
+     */
+    private openAhead(trip: PortalTrip, traveler: StoreActor): void {
+        const { route } = trip;
+        if (route.kind === 'leave-end' || trip.opened !== undefined) return;
+        const to = trip.from.getLevel().readyWorld(route.to);
+        const session = sessionOf(traveler);
+        if (to === undefined || session === undefined) return;
+
+        const provisional: Arrival =
+            route.kind === 'nether' ? this.netherWaitingArrival(route, to) : this.endArrival(route, to);
+        const event = new PlayerChangeDimensionEvent(session, trip.from, to, provisional);
+        this.server.getKernel().events.post('playerChangeDimension', event);
+        if (event.isCanceled()) {
+            this.trips = this.trips.filter((filed) => filed !== trip);
+            this.release(trip);
+            return;
+        }
+
+        session.getPlayer().setPortalCooldown(PORTAL_COOLDOWN_TICKS.player);
+        session.released(session.changeWorld(provisional, { whenPending: 'drop', holdArrival: true }));
+        const pending = session.pendingDimensionChange();
+        // A change already pending drops this one; the trip then lands as it would have.
+        if (pending === undefined || pending.arrival !== provisional) return;
+        trip.opened = { session, loadingScreenId: pending.loadingScreenId };
+        this.server
+            .getLogger()
+            .debug(
+                `Sent ${session.identity.name} to ${to.getName()} ahead of the arrival, on loading screen ${pending.loadingScreenId}`
+            );
+    }
+
+    /**
+     * Where a player sent ahead into another dimension waits for the portal search: the scaled
+     * target's column, at the top of the dimension's build height.
+     *
+     * Not the target itself, which is usually inside the Nether's rock: the player is ticked
+     * there while the client sits on its loading screen, and once the column loaded they would
+     * take suffocation damage until the trip landed. Above the build height there is no block to
+     * stand in, and the teleport that closes the change moves them to the portal.
+     */
+    private netherWaitingArrival(route: NetherRoute, to: World): Arrival {
+        const dimension = to.getDimension();
+        const top = dimension.minY + dimension.height;
+        return {
+            world: to,
+            position: new Vector3(route.target.getX(), top, route.target.getZ()),
+            yaw: route.yaw,
+            pitch: route.pitch
+        };
+    }
+
+    /**
+     * An input step's turn for a trip whose change went ahead: lands it once the destination is
+     * ready, and keeps it filed until then.
+     *
+     * @returns 1 when the trip landed, otherwise 0.
+     */
+    private admitOpened(trip: PortalTrip, opened: NonNullable<PortalTrip['opened']>): number {
+        const { session, loadingScreenId } = opened;
+        // A player who disconnected, or whose change something else finished, has nothing left
+        // to land.
+        if (!session.isConnected() || !session.awaitsArrival(loadingScreenId)) {
+            this.release(trip);
+            return 0;
+        }
+
+        const to = this.readyDestination(trip);
+        if (to === undefined) {
+            this.trips.push(trip);
+            this.prepare(trip);
+            return 0;
+        }
+
+        try {
+            const { route } = trip;
+            const arrival = route.kind === 'nether' ? this.throughNetherPortal(route, to) : this.enterEnd(route, to);
+            // Landed before the release, which would otherwise land the provisional arrival.
+            if (arrival !== undefined)
+                session.released(session.landHeldArrival(loadingScreenId, arrival).then(() => {}));
+            this.release(trip);
+            return arrival === undefined ? 0 : 1;
+        } catch (error: unknown) {
+            this.release(trip);
+            this.server.getLogger().error(`A trip from ${trip.from.getName()} to ${trip.route.to} failed`);
+            this.server.getLogger().error(error);
+            return 0;
+        }
+    }
+
+    /**
      * Gives up the tickets a trip that landed or was dropped holds: its own on the arrival chunks,
      * and the respawn search's for a trip out of the End.
      */
@@ -563,6 +677,17 @@ export class DimensionTravel {
         // While the destination is still being built there is no ticket to give up here, so the
         // flag stops the preparation from taking one once the build finishes.
         trip.released = true;
+        // A change sent ahead that never got its arrival lands where it was sent, so the client
+        // is not left on its loading screen. That is above the build height for a nether trip,
+        // which only happens when resolving the arrival threw; landing them anywhere is better
+        // than a screen that never closes.
+        const opened = trip.opened;
+        const held = opened?.session.pendingDimensionChange();
+        if (opened !== undefined && held !== undefined && opened.session.awaitsArrival(opened.loadingScreenId)) {
+            opened.session.released(
+                opened.session.landHeldArrival(opened.loadingScreenId, held.arrival).then(() => {})
+            );
+        }
         trip.from.getLevel().readyWorld(trip.route.to)?.chunkTickets().release(trip.ticket);
         // The search gives up its ticket when it answers, which a dropped trip never asks again for.
         trip.respawnFor?.abandonRespawnPoint(trip.from.getLevel());
@@ -782,7 +907,11 @@ export class DimensionTravel {
             this.server.getContent().world.blockWorld.at(end.getDimension().name, end.getLevel().name),
             END_PLATFORM_CENTER
         );
+        return this.endArrival(route, end);
+    }
 
+    /** Where a trip into the End lands, without the platform {@link DimensionTravel.enterEnd} writes. */
+    private endArrival(route: TripRoute, end: World): PortalArrival {
         // A `ServerPlayer` has `(0, 1, 0)` subtracted, so players stand on the platform at 49
         // and everything else arrives at 50.
         const y = route.player ? END_SPAWN_POINT.y - 1 : END_SPAWN_POINT.y;

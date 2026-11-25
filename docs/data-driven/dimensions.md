@@ -510,8 +510,11 @@ Two events cover a trip, both cancelable and both reachable the way every other 
   that has to look something up first can still cancel. Canceling opens no contact; the world
   asks again on the next tick the body still overlaps the portal.
 - `playerChangeDimension` carries a `PlayerChangeDimensionEvent` with the player, the world they
-  are leaving, the world they arrive in and the resolved arrival position and facing, raised just
-  before the client sequence starts. Canceling leaves the player where they stand, with no
+  are leaving, the world they arrive in and the arrival position and facing, raised just before
+  the client sequence starts. A trip that goes ahead of its arrival (see
+  [What the client sees](#what-the-client-sees)) raises it with the place the player waits: the
+  scaled target's column at the top of the build height through a nether portal, and the
+  platform through an end portal. Canceling leaves the player where they stand, with no
   cooldown set and nothing sent to the client. Entities that are not players raise no second
   event; they move the moment their trip resolves. A data-driven mob keeps its runtime record
   across the trip: the record is written onto its body before it leaves, as a save would write
@@ -545,6 +548,19 @@ the exact arrival position, re-sends the attributes and the inventory, which a d
 not known to keep, sends `SetSpawnPosition` with the spawn point's dimension so the compass and
 maps point the right way, and raises the changed-dimension advancement hook. Effects are not
 re-sent.
+
+A player's portal trip does not wait in the portal for its destination. Once the destination
+world is built, a trip whose arrival chunks are not loaded yet sends the change at once: the
+server moves the player into the destination, sends `ChangeDimension` and the rest of the
+sequence, and holds every column back, so the client shows its loading screen while the server
+generates the terrain and finds or builds the exit portal. The player waits in the scaled
+target's column above the build height through a nether portal, where no block can suffocate
+them, and at the platform through an end portal. When the chunks are in, the trip resolves its
+arrival as it would have in the portal, moves the player there, queues the columns around it in
+place of the ones around where they waited, and releases them, and the teleport that closes the
+change carries the real arrival. The one-minute loading screen timeout starts at that point. A
+trip out of the End, which waits for the respawn search or the credits, and every traveler that
+is not a player still change world when the arrival is ready.
 
 One case needs more. A client sent `ChangeDimension` to the dimension it is already in never
 closes the screen, so a move between two worlds with the same Bedrock id, such as `/tp` between two
