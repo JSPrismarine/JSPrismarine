@@ -9,9 +9,10 @@
  * belongs to the parity family that reads it.
  *
  * `--update` reads the jar of the default release, or of `--java <release>`, resolves every tag,
- * stamps the fingerprint of each new member and drops the names and members no tag uses. It
- * refuses to restamp a member whose fingerprint changed unless `--reviewed <spelling>` names it,
- * after someone has read the new bytecode against the TypeScript that copies it.
+ * stamps the fingerprint of each new member and drops the names and members no tag uses. A
+ * fingerprint the golden records for no release of an already recorded member is a change, even
+ * for a release stamped for the first time, and it is stamped only when `--reviewed <spelling>`
+ * names it, after someone has read the new bytecode against the TypeScript that copies it.
  *
  * `--list <spelling>` prints the normalized listing the fingerprint hashes, for that review. Two
  * releases' listings diff cleanly:
@@ -32,6 +33,7 @@ import { javaSourceFingerprint, javaSourceKey, javaSourceListing } from '@jspris
 import type { JavaClassIndex, JavaSourceGolden, JavaSourceTag } from '@jsprismarine/java-classfile/sources';
 import {
     formatJavaSourceGolden,
+    needsReview,
     readJavaSourceGolden,
     resolveJavaSource,
     scanRepository
@@ -88,8 +90,7 @@ const update = async (tags: readonly JavaSourceTag[], golden: JavaSourceGolden, 
             const member = resolveJavaSource(tag.spelling, index);
             const key = javaSourceKey(member);
             const fingerprint = javaSourceFingerprint(javaSourceListing(index.load, member));
-            const stamped = golden.sources[key]?.[version];
-            if (stamped !== undefined && stamped !== fingerprint && !reviewed.has(tag.spelling)) {
+            if (needsReview(golden.sources[key], fingerprint) && !reviewed.has(tag.spelling)) {
                 problems.push(
                     `${tag.file}:${tag.line}: ${tag.spelling} changed in ${version}; read the new bytecode against the code, then pass --reviewed ${tag.spelling}`
                 );

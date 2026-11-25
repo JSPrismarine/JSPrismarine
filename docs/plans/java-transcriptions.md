@@ -185,22 +185,24 @@ default matters, and its own regression test either way.
    compilations of one small class that differ in a private helper and an added lambda.
    `bedrock-data`'s goal dump and `parity` read class files through it, and the goal dump's capture
    test still matches the committed `entity_goals.json`.
-2. **Tag, golden and checks.** Done. `@javaSource` and `@javaVerified` are in the API docs
+2. **Tag, golden and checks.** Done. `@javaSource`, `@javaSee` and `@javaVerified` are in the API docs
    build's block tags, `scripts/check-java-sources.mts` lints the tags without the jar,
    `bedrock-data`'s `java:sources` stamps the golden and prints listings, and the
    `java.transcriptions` family checks the golden against the jar. `block-behaviors` carries 32
    tags on 31 members. Tagging it found three citations that no longer named a 26.3 member:
    `FarmBlock` is `FarmlandBlock`, `SpreadingSnowyBlock.canBeGrass` is `canStayAlive`, and pointed
-   dripstone's `canSurvive` moved up to `SpeleothemBlock`. A hand-edited golden hash fails the row,
-   naming the TypeScript site and both fingerprints.
+   dripstone's `canSurvive` moved up to `SpeleothemBlock`. Its four citations that name a member
+   without copying it carry `@javaSee`, so its baseline is empty. The experience orb code that
+   landed in `prismarine` while this slice was open carries five more `@javaSource` tags. A
+   hand-edited golden hash fails the row, naming the TypeScript site and both fingerprints.
 3. **Convert the citations** ([#3703](https://github.com/JSPrismarine/JSPrismarine/issues/3703)). A codemod reads each ``Java's `X.y` `` citation in a JSDoc comment,
    resolves it in the jar, and adds the tag when it resolves to one member. Run it a package
    at a time, review the ambiguous and unresolved ones by hand, and lower the baseline after each.
    Constants typed in by hand with a "read from the jar" comment are tagged on the constant. A
-   citation that compares with Java rather than copying it, such as an interface member that
-   describes what its host does, stays untagged. Done when every remaining citation in
-   `entity-brains`, `entity-goals` and `features` is that kind. `prismarine` follows; it is the
-   largest and does not block slice 4.
+   citation that names a member without copying it, such as an interface member that describes
+   what its host does, gets `@javaSee`. Done when the baseline is empty for `entity-brains`,
+   `entity-goals` and `features`. `prismarine` follows; it is the largest and does not block
+   slice 4.
 4. **Bring-up stage** ([#3704](https://github.com/JSPrismarine/JSPrismarine/issues/3704)). Add the `transcriptions` stage, the delta-note section with listing diffs,
    and the preview fingerprints, and update the java-bringup skill. Exercise it on the
    pinned 26.4 preview against 26.3. Done when the 26.4 delta note lists every changed tagged source
@@ -222,8 +224,9 @@ All four were accepted as recommended on 2026-11-25.
 3. **One golden in `packages/parity/goldens/`**, beside `behavior-gaps.json` and the family that
    reads it, rather than one per package, which would spread the bring-up report over a dozen
    files.
-4. **An ADR after slice 2** ([#3706](https://github.com/JSPrismarine/JSPrismarine/issues/3706)). Once the tag is the required way to cite Java code, it is a lasting
-   rule and belongs in an ADR next to [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) and
+4. **An ADR after slice 2** ([#3706](https://github.com/JSPrismarine/JSPrismarine/issues/3706)).
+   Once the tag is the required way to cite Java code, it is a lasting rule and belongs in an ADR
+   next to [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) and
    [ADR 0024](../adr/0024-java-decides-server-decided-goal-parameters.md). Write it after the tag's
    shape has been used on a real package.
 

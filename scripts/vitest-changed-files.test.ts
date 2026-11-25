@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { packagesToRerun } from './vitest-changed-files.ts';
+import { JAVA_TRANSCRIPTIONS_TEST, packagesToRerun, testsToRerun } from './vitest-changed-files.ts';
 
 const roots = ['packages/raknet', 'packages/server', 'tools/client-e2e', 'packages/server/fixtures/pack'];
 
@@ -38,5 +38,23 @@ describe('packagesToRerun', () => {
 
     it('ignores a file outside every package', () => {
         expect(packagesToRerun(['package.json', 'docs/guide/running.md', 'packages/README.md'], roots)).toEqual([]);
+    });
+});
+
+describe('testsToRerun', () => {
+    it('selects java.transcriptions for a package source file, whose tags it reads from disk', () => {
+        expect(testsToRerun(['packages/block-behaviors/src/families/ground.ts'])).toEqual([JAVA_TRANSCRIPTIONS_TEST]);
+    });
+
+    it('selects nothing for a test, a generated file or a file outside the scan', () => {
+        expect(
+            testsToRerun([
+                'packages/block-behaviors/src/families/ground.test.ts',
+                'packages/bedrock-data/src/generated/item_table.ts',
+                'packages/parity/src/javaClassFile.ts',
+                'tools/docs/facts.mts',
+                'docs/plans/java-transcriptions.md'
+            ])
+        ).toEqual([]);
     });
 });

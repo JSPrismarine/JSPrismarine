@@ -69,6 +69,7 @@
             "@inheritdoc",
             "@interface",
             "@internal",
+            "@javaSee",
             "@javaSource",
             "@javaVerified",
             "@license",

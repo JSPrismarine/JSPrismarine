@@ -59,6 +59,6 @@ if (import.meta.filename === process.argv[1]) {
         updateCommand: 'node scripts/check-java-sources.mts --update-baseline',
         added: (files) =>
             `${files} files cite Java code in a JSDoc comment with no ${JAVA_SOURCE_TAG} tag. Tag the member the code copies; the baseline never grows.`,
-        passed: `${tags.length} ${JAVA_SOURCE_TAG} tags read, and no new untagged Java citations`
+        passed: `${tags.length} ${JAVA_SOURCE_TAG} and ${scans.values().reduce((sum, scan) => sum + scan.references.length, 0)} @javaSee tags read, and no new untagged Java citations`
     });
 }

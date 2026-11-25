@@ -220,19 +220,22 @@ resolves to and a fingerprint of that member's bytecode for each Java release. T
 hashes a listing that drops what recompiling the same source can change, and it includes the
 private methods and lambdas of the same class the member reaches.
 
-`java.transcriptions` resolves every tag in the pinned jar and fails a row when the member is
-gone or its fingerprint differs from the golden's, naming the code that copies it. After adding
-or removing a tag, run `pnpm --filter @jsprismarine/bedrock-data run java:sources --update` to
-stamp it.
+A comment that names a Java member without copying it, such as an interface member that describes
+what its host does, uses `@javaSee Class.member` instead. The checks resolve it and do not
+fingerprint it.
+
+`java.transcriptions` resolves every tag in the pinned jar. It fails a row when a `@javaSource`
+member is gone or its fingerprint differs from the golden's, naming the code that copies it, and
+when a `@javaSee` member no longer resolves. After adding or removing a `@javaSource`, run
+`pnpm --filter @jsprismarine/bedrock-data run java:sources --update` to stamp it.
 `pnpm run lint:java-sources` checks the tags against the golden without the jar. It also counts
-the citations of the form ``Java's `Class.member` `` in JSDoc comments that carry no tag, against a
-baseline that only shrinks.
+the citations of the form ``Java's `Class.member` `` in JSDoc comments that carry neither tag,
+against a baseline that only shrinks.
 
 When a release changes a member, print its listing with `java:sources --list <spelling>` under
-each release's `--java`, read
-the change against the TypeScript, fix the copy if Java's behavior changed, and restamp with
-`--update --reviewed <spelling>`. The [Java transcriptions plan](../plans/java-transcriptions.md)
-covers the design.
+each release's `--java`, read the change against the TypeScript, fix the copy if Java's behavior
+changed, and restamp with `--update --reviewed <spelling>`. The
+[Java transcriptions plan](../plans/java-transcriptions.md) covers the design.
 
 ### Keeping the claim honest
 

@@ -5,7 +5,14 @@ import { describe, expect, it } from 'vitest';
 
 import { parseJavaClass } from './classFile.mts';
 import { JavaSourceError } from './fingerprint.mts';
-import { formatJavaSourceGolden, goldenProblems, resolveJavaSource, scanJavaSources } from './sources.mts';
+import {
+    formatJavaSourceGolden,
+    goldenProblems,
+    needsReview,
+    readJavaSourceGolden,
+    resolveJavaSource,
+    scanJavaSources
+} from './sources.mts';
 import type { JavaClassIndex } from './sources.mts';
 
 const sponge = parseJavaClass(readFileSync(join(import.meta.dirname, '..', 'fixtures', 'v1', 'Sponge.class')));
@@ -38,6 +45,45 @@ describe('scanJavaSources', () => {
             { file: 'a.ts', line: 10, spelling: 'Sponge.overload(I)I', verified: undefined }
         ]);
         expect(scan.untaggedCitations).toBe(2);
+        expect(scan.problems).toEqual([]);
+    });
+
+    it('reads a @javaSee reference, and does not count the citations beside it', () => {
+        const scan = scanJavaSources(
+            'b.ts',
+            [
+                '/**',
+                " * Mirrors Java's `Sponge.describe` for the host.",
+                ' *',
+                ' * @javaSee Sponge.describe',
+                ' */'
+            ].join('\n')
+        );
+
+        expect(scan.references).toEqual([{ file: 'b.ts', line: 4, spelling: 'Sponge.describe' }]);
+        expect(scan.tags).toEqual([]);
+        expect(scan.untaggedCitations).toBe(0);
+    });
+
+    it('accepts a package path, a nested class and a descriptor, and rejects a malformed path', () => {
+        const spellings = [
+            'net/minecraft/world/level/block/SpongeBlock.absorb',
+            'MapItemSavedData$HoldingPlayer.step',
+            'Sponge.overload(I)I',
+            'net/Minecraft/Sponge.absorb',
+            'Sponge.overload(I',
+            'Sponge.'
+        ];
+        const scan = scanJavaSources('d.ts', spellings.map((spelling) => `/** @javaSee ${spelling} */`).join('\n'));
+
+        expect(scan.references.map((reference) => reference.spelling)).toEqual(spellings.slice(0, 3));
+        expect(scan.problems.map((problem) => problem.line)).toEqual([4, 5, 6]);
+    });
+
+    it('ignores an unclosed comment, however many openings the file repeats', () => {
+        const scan = scanJavaSources('c.ts', `/** @javaSource Sponge.absorb */\n${'a/**'.repeat(20_000)}`);
+
+        expect(scan.tags.map((tag) => tag.spelling)).toEqual(['Sponge.absorb']);
         expect(scan.problems).toEqual([]);
     });
 
@@ -93,5 +139,27 @@ describe('resolveJavaSource', () => {
         expect(resolveJavaSource('Sponge.overload(J)I', index).descriptor).toBe('(J)I');
         expect(() => resolveJavaSource('Water.flow', index)).toThrow(/ambiguous/);
         expect(() => resolveJavaSource('Sponge.missing', index)).toThrow(JavaSourceError);
+    });
+});
+
+describe('needsReview', () => {
+    it('lets a new member and a fingerprint some release already has through', () => {
+        expect(needsReview(undefined, 'sha256:a')).toBe(false);
+        expect(needsReview({ '26.3': 'sha256:a' }, 'sha256:a')).toBe(false);
+        expect(needsReview({ '26.3': 'sha256:a', '26.4': 'sha256:b' }, 'sha256:b')).toBe(false);
+    });
+
+    it("stops a changed fingerprint, even for a release's first stamp", () => {
+        expect(needsReview({ '26.3': 'sha256:a' }, 'sha256:b')).toBe(true);
+    });
+});
+
+describe('readJavaSourceGolden', () => {
+    it('reads a missing golden as empty, and passes any other read error on', () => {
+        expect(readJavaSourceGolden(join(import.meta.dirname, 'no-such-golden.json'))).toEqual({
+            names: {},
+            sources: {}
+        });
+        expect(() => readJavaSourceGolden(import.meta.dirname)).toThrow(/EISDIR/);
     });
 });

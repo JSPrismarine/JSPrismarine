@@ -8,15 +8,6 @@
     "packages/bedrock-data/src/index.ts": {
         "untaggedJavaCitation": 1
     },
-    "packages/block-behaviors/src/families/ground.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/block-behaviors/src/rules/fluid.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/block-behaviors/src/world.ts": {
-        "untaggedJavaCitation": 2
-    },
     "packages/chunkgen/src/ChunkHolder.ts": {
         "untaggedJavaCitation": 1
     },

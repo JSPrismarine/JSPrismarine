@@ -117,6 +117,8 @@ export const liquidStateOf = (block: Pick<HookBlock, 'identifier' | 'states'> | 
  * Java's `BlockState.getFluidState` answers for a waterlogged block with a water source, and
  * every rule that asks a neighbor what fluid it holds asks that. Bedrock keeps that water in the
  * position's second layer, so a block whose own state holds no fluid falls back to it.
+ *
+ * @javaSee BlockBehaviour$BlockStateBase.getFluidState
  */
 export const fluidAt = (world: WorldActions, at: BlockPosition): LiquidState | undefined =>
     liquidStateOf(world.getBlock(at)) ?? liquidStateOf(world.getLiquid?.(at));
