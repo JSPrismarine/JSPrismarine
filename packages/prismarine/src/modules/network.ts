@@ -392,6 +392,7 @@ export class ServerNetworking implements Networking {
             brand: serverName.getName(),
             onlineMode: () => config.getOnlineMode(),
             compressionThreshold: () => config.getPacketCompressionThreshold(),
+            keepAliveIntervalMs: () => config.getKeepAliveIntervalMs(),
             // TODO: a setting once the server checks chat signatures; until then chat is unsigned.
             enforcesSecureChat: () => false,
             log: logger,

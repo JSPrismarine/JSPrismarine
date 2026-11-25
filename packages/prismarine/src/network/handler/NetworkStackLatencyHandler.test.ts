@@ -13,11 +13,16 @@ import NetworkStackLatencyHandler from './NetworkStackLatencyHandler';
 const fakeSession = () => {
     const logged: string[] = [];
     const sent: NetworkPacket[] = [];
-    const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+    let answers = 0;
+    const connection = stub<ClientConnection>({
+        sendDataPacket: async (packet) => void sent.push(packet),
+        keepAliveAnswered: () => void answers++
+    });
 
     return {
         logged,
         sent,
+        answers: () => answers,
         context: sessionContext(stub<PlayerSession>({ identity: STEVE, getConnection: () => connection }), {
             log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         })
@@ -25,13 +30,14 @@ const fakeSession = () => {
 };
 
 describe('NetworkStackLatencyHandler', () => {
-    it('logs a ping that asks for nothing and sends nothing back', async () => {
-        const { logged, sent, context } = fakeSession();
+    it("takes a ping that asks for nothing as the answer to the server's keep-alive, and sends nothing back", async () => {
+        const { logged, sent, answers, context } = fakeSession();
         const packet = Object.assign(new NetworkStackLatencyPacket(), { creationTime: 42n, isFromServer: false });
 
         await new NetworkStackLatencyHandler().handle(packet, context);
 
         expect(sent).toEqual([]);
+        expect(answers()).toBe(1);
         expect(logged).toEqual(['Steve pinged at 42']);
     });
 
@@ -47,5 +53,17 @@ describe('NetworkStackLatencyHandler', () => {
         if (!(answer instanceof NetworkStackLatencyPacket)) return;
         expect(answer.creationTime).toBe(42n);
         expect(answer.isFromServer).toBe(false);
+    });
+
+    it("takes a ping with the flag set as the answer to the server's keep-alive too, as a game client sends it", async () => {
+        const { answers, context } = fakeSession();
+        const packet = Object.assign(new NetworkStackLatencyPacket(), {
+            creationTime: 42_000_000n,
+            isFromServer: true
+        });
+
+        await new NetworkStackLatencyHandler().handle(packet, context);
+
+        expect(answers()).toBe(1);
     });
 });

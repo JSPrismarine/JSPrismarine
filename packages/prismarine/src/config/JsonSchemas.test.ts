@@ -76,6 +76,7 @@ describe('JSON schemas', () => {
                 'server-authoritative-block-breaking': true,
                 'entity-tracking-hysteresis': 2,
                 'entity-tracking-interval': 4,
+                'keep-alive-interval': 15,
                 'online-mode': false,
                 'use-raknet-worker': true,
                 'packet-compression-level': 7,

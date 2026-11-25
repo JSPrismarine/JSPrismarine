@@ -74,6 +74,7 @@ import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import { subChunkRequestDelivery } from './scenarios/subchunk-request-delivery.mts';
 import { tpsBar } from './scenarios/tps-bar.mts';
+import { keepAlive } from './scenarios/keep-alive.mts';
 import { multiverse } from './scenarios/multiverse.mts';
 import { tabList } from './scenarios/tab-list.mts';
 
@@ -186,5 +187,8 @@ export const suites: ScenarioSuite[] = [
     // Its own suite, because the second level is a world every other scenario would also tick.
     { name: 'levels', scenarios: [levelIsolation, secondLevelSummon, levelTransfer] },
     // Its own suite: a kicked client is gone, so nothing can run after it.
-    { name: 'kick', scenarios: [kick] }
+    { name: 'kick', scenarios: [kick] },
+    // On its own: the short interval it runs with would drop the client of a scenario that stalls
+    // the server for longer than one interval.
+    { name: 'keep-alive', scenarios: [keepAlive] }
 ];

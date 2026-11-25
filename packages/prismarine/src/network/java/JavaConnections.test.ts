@@ -101,6 +101,7 @@ describe('JavaConnections', () => {
             brand: 'JSPrismarine',
             onlineMode: () => onlineMode,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             hasJoined: async (name, hash) => {
                 asked.push({ name, hash });
@@ -220,6 +221,7 @@ describe('JavaConnections', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet,
             world: {
@@ -356,6 +358,7 @@ describe('JavaConnections', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet,
             world: {
@@ -426,6 +429,7 @@ describe('JavaConnections', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet,
             world: {
@@ -535,6 +539,7 @@ describe('JavaConnections', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet,
             world: {
@@ -640,6 +645,7 @@ describe('JavaConnections compression', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 0,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet
         });
@@ -669,6 +675,7 @@ describe('JavaConnections session id', () => {
             brand: 'JSPrismarine',
             onlineMode: () => false,
             compressionThreshold: () => 256,
+            keepAliveIntervalMs: () => 15_000,
             enforcesSecureChat: () => false,
             log: quiet
         });

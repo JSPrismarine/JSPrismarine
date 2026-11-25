@@ -88,6 +88,8 @@ const harness = ({
     const packets: NetworkPacket[] = [];
     const record = (name: string) => async () => void sent.push(name);
     const kick = vi.fn(async (_reason: string, _code?: DisconnectReason) => {});
+    /** The keep-alive intervals the connection was started with. */
+    const keepAlives: number[] = [];
     const debug = vi.fn((_message: string, _context?: string) => {});
 
     /** The store whose unit a test applies the response in; with no tick open, there is none. */
@@ -125,6 +127,7 @@ const harness = ({
         phase: 'resourcePacks',
         getAddress: () => new InetAddress('127.0.0.1', 19132),
         getTransport: () => TransportNames.raknet,
+        startKeepAlive: (intervalMs: number) => void keepAlives.push(intervalMs),
         sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);
@@ -179,7 +182,8 @@ const harness = ({
             getDifficulty: () => 1,
             getCraftingRecipeLimit: () => -1,
             getPacketCompressionLevel: () => 1,
-            getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
+            getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking,
+            getKeepAliveIntervalMs: () => 15_000
         },
         services: {
             content,
@@ -195,7 +199,7 @@ const harness = ({
         tick: 100
     };
 
-    return { sent, packets, announce, kick, debug, parts, session, store };
+    return { sent, packets, announce, kick, debug, parts, session, store, keepAlives };
 };
 
 const response = (status: ResourcePackStatus, packIds: string[] = []) =>
@@ -621,6 +625,14 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(kick).not.toHaveBeenCalled();
         expect(announce).not.toHaveBeenCalled();
         expect(debug).toHaveBeenCalledOnce();
+    });
+
+    it('starts the keep-alive with the configured interval once the client is in play', async () => {
+        const { keepAlives, parts, session } = harness();
+
+        await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
+
+        expect(keepAlives).toEqual([15_000]);
     });
 
     it('starts the join once, however many times the client says it completed', async () => {
