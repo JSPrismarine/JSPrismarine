@@ -695,6 +695,21 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 .join('; ') || undefined
     }),
     goalScenario({
+        name: 'silverfish-merge-stroll',
+        goals: ['silverfish_merge_with_stone'],
+        java: 'A silverfish with no target and no block beside it to hide in wanders, since its merge goal extends RandomStrollGoal and strolls whenever it does not merge.',
+        reference:
+            'Java Silverfish.SilverfishMergeWithStoneGoal, which extends RandomStrollGoal(mob, 1.0, 10) and calls super.canUse and super.start when doMerge is false',
+        run: (subject) =>
+            probeGoals(subject, ['silverfish_merge_with_stone'], { random: [0.9, 0.01, 0.8, 0.5, 0.2] }, (probe) => {
+                // Dirt under and around it, which cannot host a silverfish, so it never hides.
+                probe.fill([-12, -1, -12], [12, -1, 12], 'minecraft:dirt');
+                const moved = movedOver(probe, 200);
+                if (probe.entity.removed !== undefined) return 'it hid in a block that cannot host it';
+                return moved < 1 ? `it moved ${moved.toFixed(2)} blocks in 200 ticks and never wandered` : undefined;
+            })
+    }),
+    goalScenario({
         goals: ['silverfish_wake_up_friends'],
         java: 'A silverfish hurt by an attacker waits 20 ticks, then breaks the infested blocks within 10 blocks across and 5 up or down, each releasing a silverfish.',
         reference:

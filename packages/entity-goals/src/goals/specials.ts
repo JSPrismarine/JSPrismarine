@@ -10,6 +10,7 @@ import type { GoalSupport } from '../support';
 import type { GoalMob } from '../world';
 import type { DragonPhaseName } from './dragonPhases';
 import { dragonPhasesOf } from './dragonPhases';
+import { strollGoal } from './movement';
 import { SLIME_HOP_REACH, slimeHeadingOf } from './slimeHeading';
 
 /**
@@ -408,48 +409,70 @@ const FACES: readonly (readonly [number, number, number])[] = [
 ];
 
 /**
+ * Java's `SilverfishMergeWithStoneGoal` stroll: `super(mob, 1.0, 10)` over `RandomStrollGoal`'s
+ * default box, 10 blocks across and 7 up and down.
+ */
+const SILVERFISH_STROLL = { speedMultiplier: 1, xzDistance: 10, yDistance: 7, interval: 10 } as const;
+
+/**
  * `minecraft:behavior.silverfish_merge_with_stone`, which the silverfish carries. Java's
  * `SilverfishMergeWithStoneGoal`: with no target and nothing to walk to, one goal check in five
  * looks at the block on one random face and, when it can host a silverfish, the silverfish turns
- * it into the infested block and disappears.
+ * it into the infested block and disappears. The Java goal extends `RandomStrollGoal`, so a check
+ * that finds nothing to hide in wanders instead, one check in five with `mobGriefing` off too.
  */
 export const silverfishMergeWithStone = goal<GoalBody>({
     name: 'minecraft:behavior.silverfish_merge_with_stone',
     controlFlags: ['move'],
     schema: bodySchema((body) => body),
     create: (_params, support) => {
+        const stroll = strollGoal(SILVERFISH_STROLL, support);
         let host: { readonly position: EntityPosition; readonly infested: string } | undefined;
+        /** The infested block on one random face, when that face can host a silverfish. */
+        const findHost = (): typeof host => {
+            if (support.world.gameRule?.('mobGriefing') === false) return undefined;
+            // reducedTickDelay(10) is 5 goal checks, one in which succeeds.
+            if (support.randomInt(5) !== 0) return undefined;
+            const [dx, dy, dz] = FACES[support.randomInt(FACES.length)] ?? [0, -1, 0];
+            const here = support.position();
+            const cell = {
+                x: Math.floor(here.x) + dx,
+                y: Math.floor(here.y + 0.5) + dy,
+                z: Math.floor(here.z) + dz
+            };
+            const found = (
+                support.world.blocks?.({ identifiers: [...INFESTED_BY_HOST.keys()], range: 1, height: 1 }) ?? []
+            ).find(
+                (block) =>
+                    Math.floor(block.position.x) === cell.x &&
+                    Math.floor(block.position.y) === cell.y &&
+                    Math.floor(block.position.z) === cell.z
+            );
+            const infested = found === undefined ? undefined : INFESTED_BY_HOST.get(found.identifier);
+            return found === undefined || infested === undefined ? undefined : { position: found.position, infested };
+        };
         return {
             canStart: () => {
                 host = undefined;
                 if (support.target() !== undefined || support.navigator.walking) return false;
-                if (support.world.gameRule?.('mobGriefing') === false) return false;
-                // reducedTickDelay(10) is 5 goal checks, one in which succeeds.
-                if (support.randomInt(5) !== 0) return false;
-                const [dx, dy, dz] = FACES[support.randomInt(FACES.length)] ?? [0, -1, 0];
-                const here = support.position();
-                const cell = {
-                    x: Math.floor(here.x) + dx,
-                    y: Math.floor(here.y + 0.5) + dy,
-                    z: Math.floor(here.z) + dz
-                };
-                const found = (
-                    support.world.blocks?.({ identifiers: [...INFESTED_BY_HOST.keys()], range: 1, height: 1 }) ?? []
-                ).find(
-                    (block) =>
-                        Math.floor(block.position.x) === cell.x &&
-                        Math.floor(block.position.y) === cell.y &&
-                        Math.floor(block.position.z) === cell.z
-                );
-                const infested = found === undefined ? undefined : INFESTED_BY_HOST.get(found.identifier);
-                if (found === undefined || infested === undefined) return false;
-                host = { position: found.position, infested };
-                return true;
+                host = findHost();
+                return host !== undefined || stroll.canStart();
             },
+            canContinue: () => host === undefined && (stroll.canContinue?.() ?? false),
             start: () => {
-                if (host === undefined) return;
+                if (host === undefined) {
+                    stroll.start?.();
+                    return;
+                }
                 support.world.setBlock?.(host.position, host.infested);
                 support.entity.remove('minecraft:behavior.silverfish_merge_with_stone');
+            },
+            tick: () => {
+                if (host === undefined) stroll.tick?.();
+            },
+            stop: () => {
+                if (host === undefined) stroll.stop?.();
+                host = undefined;
             }
         };
     }
