@@ -44,7 +44,13 @@ export const inputContext = (session: PlayerSession, parts: ContextParts = {}) =
     const context: InputContext = {
         ...sessionContext(session, parts),
         // A bus no one listens on and the built-in intent handlers, unless the test hands its own.
-        services: stub<HandlerServices>({ events: { post: () => 0 }, intents: builtInIntents(), ...parts.services }),
+        services: stub<HandlerServices>({
+            events: { post: () => 0 },
+            intents: builtInIntents(),
+            // No update is known, so a player who joins hears about none.
+            updates: { welcome: async () => undefined },
+            ...parts.services
+        }),
         step: {
             tick: parts.tick ?? 0,
             output: (send) => void outputs.push(send)

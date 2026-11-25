@@ -4,6 +4,7 @@ declare const BUILD_VERSION: string | undefined;
 declare const BUILD_TYPE: string | undefined;
 /** True in the package's `vite build` output when CI made it, which is the code npm installs. */
 declare const BUILD_DIST: boolean | undefined;
+declare const BUILD_UPDATE_SOURCE: string | undefined;
 
 /** The software name this server reports beside its version. */
 export const SOFTWARE_NAME = 'JSPrismarine';
@@ -16,6 +17,11 @@ export interface BuildDefines {
     readonly type?: string | undefined;
     /** `BUILD_DIST`, true in the package build CI makes for npm. */
     readonly dist?: boolean | undefined;
+    /**
+     * `BUILD_UPDATE_SOURCE`, where a release or nightly executable reads the update feed: the site
+     * for JSPrismarine's builds, the fork's `owner/repo` for a fork's.
+     */
+    readonly updateSource?: string | undefined;
 }
 
 /**
@@ -25,7 +31,8 @@ export interface BuildDefines {
 export const buildDefines = (): BuildDefines => ({
     version: typeof BUILD_VERSION === 'undefined' ? undefined : BUILD_VERSION,
     type: typeof BUILD_TYPE === 'undefined' ? undefined : BUILD_TYPE,
-    dist: typeof BUILD_DIST === 'undefined' ? undefined : BUILD_DIST
+    dist: typeof BUILD_DIST === 'undefined' ? undefined : BUILD_DIST,
+    updateSource: typeof BUILD_UPDATE_SOURCE === 'undefined' ? undefined : BUILD_UPDATE_SOURCE
 });
 
 /**

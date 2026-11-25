@@ -32,8 +32,10 @@ import { TPS_AVERAGE_MINUTES } from '../modules/ticker';
 import { describeProtocolProviders } from '../protocolProviders';
 import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
 import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
-import { softwareLabel } from '../version';
+import { serverVersion, softwareLabel } from '../version';
 import { registerAddonCommand } from './addonCommand';
+import { updatesToken } from '../modules/tokens';
+import { describeUpdateStatus } from '../updates/status';
 import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
@@ -243,8 +245,12 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     registry.register(
         lit('version').executes(
             command((context) => {
-                source(context).sendFeedback(
+                const current = source(context);
+                current.sendFeedback(
                     `This server is running ${softwareLabel(true)} for Minecraft: ${describeProtocolProviders(server.getProtocolProviders(), true).join('; ')}`
+                );
+                current.sendFeedback(
+                    describeUpdateStatus(server.getKernel().get(updatesToken).status(), serverVersion())
                 );
                 return RAN;
             })
