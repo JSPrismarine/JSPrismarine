@@ -64,6 +64,12 @@ export type ValueOf<S> = S extends FieldSpec<infer T> ? T : never;
 /** The payload shape a definition's field list implies. */
 export type PayloadOf<D> = D extends PacketDefinition<infer F> ? { -readonly [K in keyof F]: ValueOf<F[K]> } : never;
 
+/**
+ * Which way a packet travels, in either edition: to the client or to the server. A Bedrock packet
+ * may travel both ways, and a Java packet travels one.
+ */
+export type PacketBound = 'clientbound' | 'serverbound';
+
 /** A packet's declarative description: its wire name and its ordered field list. */
 export interface PacketDefinition<F extends Record<string, FieldSpec<unknown>> = Record<string, FieldSpec<unknown>>> {
     /** The packet's name in the id tables, e.g. `AnimatePacket`. */

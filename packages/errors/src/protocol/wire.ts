@@ -1821,6 +1821,33 @@ class JavaPacketHasTrailingBytes extends JSPrismarineError {
 }
 
 /**
+ * A Java Edition packet was sent or read on a connection whose release has no such packet. This
+ * is a bug in the server's Java handling, which should only use the packets the connection's
+ * release lists; report it with the stack trace.
+ */
+class JavaPacketNotInRelease extends JSPrismarineError {
+    public static readonly code = 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE';
+    public static readonly domain = 'protocol';
+    public static readonly module = 'wire';
+    public static readonly template = 'Java Edition {release} has no {name} packet';
+    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release';
+
+    public override readonly code = 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE';
+    public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release';
+    readonly #params: { readonly release: unknown; readonly name: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly release: unknown; readonly name: unknown }, options?: ErrorOptions) {
+        super(`Java Edition ${String(params?.release)} has no ${String(params?.name)} packet`, options);
+        this.#params = params ?? { release: undefined, name: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
  * A Java Edition client sent a text component that is not plain text, which the server does
  * not read yet. The connection is dropped.
  */
@@ -2146,6 +2173,7 @@ export const ProtocolWireErrors = Object.freeze({
     InvalidUuidLength,
     JavaStringTooLong,
     JavaPacketHasTrailingBytes,
+    JavaPacketNotInRelease,
     JavaTextComponentNotString,
     JavaRegistryEntryHasData,
     JavaFrameLengthOutOfRange,

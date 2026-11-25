@@ -399,6 +399,12 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      */
     JavaPacketHasTrailingBytes: '{name} has {unread} unread bytes after its fields',
     /**
+     * A Java Edition packet was sent or read on a connection whose release has no such packet. This
+     * is a bug in the server's Java handling, which should only use the packets the connection's
+     * release lists; report it with the stack trace.
+     */
+    JavaPacketNotInRelease: 'Java Edition {release} has no {name} packet',
+    /**
      * A Java Edition client sent a text component that is not plain text, which the server does
      * not read yet. The connection is dropped.
      */

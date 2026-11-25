@@ -2,14 +2,14 @@
  * A Java client's `Use Item On` as the `useItemOnBlock` intent
  * ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
-import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { UseItemOn } from '@jsprismarine/protocol/java/packet/play';
 import { JavaHand } from '@jsprismarine/protocol/java/packet/play';
 
 import type { Intent } from '../../input/Intent';
 
 /** The `Use Item On` fields, as the packet decodes. */
-type UseItemOnFields = typeof UseItemOn extends JavaPacketDefinition<infer T> ? T : never;
+type UseItemOnFields = JavaPayload<typeof UseItemOn>;
 
 /**
  * The intent a `Use Item On` decodes into.

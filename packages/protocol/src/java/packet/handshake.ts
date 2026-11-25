@@ -18,7 +18,7 @@ export enum ClientIntent {
 }
 
 /** `Intention` (serverbound): the client's protocol, the address it dialed and what it wants. */
-export const Intention = defineJavaPacket('Intention', 0x00, {
+export const Intention = defineJavaPacket('Intention', 'handshake/serverbound/intention', {
     protocolVersion: varInt,
     serverAddress: javaString(255),
     serverPort: unsignedShort,

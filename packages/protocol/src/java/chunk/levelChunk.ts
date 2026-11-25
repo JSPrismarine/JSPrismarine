@@ -13,7 +13,6 @@ import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 import type { WireType } from '../../wire/fieldTypes';
 import { byteArray, custom, list, record } from '../../wire/fieldTypes';
 import { defineJavaPacket } from '../packet/JavaPacket';
-import { PACKETS } from '../versions/26.3/packets';
 import { int, long, varInt } from '../wire/javaTypes';
 import type { PalettedContainerKind } from './palettedContainer';
 import { readPalettedContainer, writePalettedContainer } from './palettedContainer';
@@ -113,7 +112,7 @@ export enum JavaHeightmapType {
 /** `Chunk Data and Update Light` (clientbound). */
 export const LevelChunkWithLight = defineJavaPacket(
     'Chunk Data and Update Light',
-    PACKETS.play.clientbound.level_chunk_with_light,
+    'play/clientbound/level_chunk_with_light',
     {
         x: int,
         z: int,

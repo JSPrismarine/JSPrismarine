@@ -8,6 +8,7 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import Chunk from '../../world/chunk/Chunk';
 import { JAVA_BIOMES } from './editionTranslation';
 import { JAVA_SECTION_KINDS, JavaChunkTranslator } from './javaChunk';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 
 /** A chunk of a default flat world: bedrock, two dirt and grass, from the bottom of the overworld. */
 const flatChunk = (): Chunk => {
@@ -28,8 +29,9 @@ describe('JavaChunkTranslator', () => {
         const column = new JavaChunkTranslator().columnOf(flatChunk());
         // Through the wire and back, as the client reads it.
         const read = decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
             LevelChunkWithLight,
-            readJavaPacketId(encodeJavaPacket(LevelChunkWithLight, column)).body
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, LevelChunkWithLight, column)).body
         );
         const sections = decodeSections(read.data, 24, JAVA_SECTION_KINDS);
         const bottom = sections[0]!;

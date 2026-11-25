@@ -6,7 +6,6 @@
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 import { bool, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
-import { PACKETS } from '../versions/26.3/packets';
 import {
     blockPosition,
     double,
@@ -27,7 +26,7 @@ import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
 /** `Disconnect (play)` (clientbound): ends the connection, with the reason as a text component. */
-export const PlayDisconnect = defineJavaPacket('Disconnect (play)', PACKETS.play.clientbound.disconnect, {
+export const PlayDisconnect = defineJavaPacket('Disconnect (play)', 'play/clientbound/disconnect', {
     reason: textComponent
 });
 
@@ -48,7 +47,7 @@ const SPAWN_INFO = {
 };
 
 /** `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings. */
-export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbound.login, {
+export const PlayLogin = defineJavaPacket('Login (play)', 'play/clientbound/login', {
     entityId: int,
     hardcore: bool,
     dimensions: list(identifier),
@@ -66,7 +65,7 @@ export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbou
 /** `Synchronize Player Position` (clientbound): moves the client's own player, which confirms it by id. */
 export const SynchronizePlayerPosition = defineJavaPacket(
     'Synchronize Player Position',
-    PACKETS.play.clientbound.player_position,
+    'play/clientbound/player_position',
     {
         teleportId: varInt,
         x: double,
@@ -83,14 +82,17 @@ export const SynchronizePlayerPosition = defineJavaPacket(
 );
 
 /** `Confirm Teleportation` (serverbound): the client applied a position, and where it put the player. */
-export const ConfirmTeleportation = defineJavaPacket(
-    'Confirm Teleportation',
-    PACKETS.play.serverbound.accept_teleportation,
-    { teleportId: varInt, x: double, y: double, z: double, yaw: float, pitch: float }
-);
+export const ConfirmTeleportation = defineJavaPacket('Confirm Teleportation', 'play/serverbound/accept_teleportation', {
+    teleportId: varInt,
+    x: double,
+    y: double,
+    z: double,
+    yaw: float,
+    pitch: float
+});
 
 /** `Game Event` (clientbound): a change of state the client applies, by event number. */
-export const GameEvent = defineJavaPacket('Game Event', PACKETS.play.clientbound.game_event, {
+export const GameEvent = defineJavaPacket('Game Event', 'play/clientbound/game_event', {
     event: uint8,
     value: float
 });
@@ -99,51 +101,39 @@ export const GameEvent = defineJavaPacket('Game Event', PACKETS.play.clientbound
 export const START_WAITING_FOR_LEVEL_CHUNKS = 13;
 
 /** `Set Center Chunk` (clientbound): the chunk the client's view is centered on. */
-export const SetCenterChunk = defineJavaPacket('Set Center Chunk', PACKETS.play.clientbound.set_chunk_cache_center, {
+export const SetCenterChunk = defineJavaPacket('Set Center Chunk', 'play/clientbound/set_chunk_cache_center', {
     x: varInt,
     z: varInt
 });
 
 /** `Chunk Batch Start` (clientbound): chunks follow, which the client times. */
-export const ChunkBatchStart = defineJavaPacket('Chunk Batch Start', PACKETS.play.clientbound.chunk_batch_start, {});
+export const ChunkBatchStart = defineJavaPacket('Chunk Batch Start', 'play/clientbound/chunk_batch_start', {});
 
 /** `Chunk Batch Finished` (clientbound): how many chunks the batch held. */
-export const ChunkBatchFinished = defineJavaPacket(
-    'Chunk Batch Finished',
-    PACKETS.play.clientbound.chunk_batch_finished,
-    { batchSize: varInt }
-);
+export const ChunkBatchFinished = defineJavaPacket('Chunk Batch Finished', 'play/clientbound/chunk_batch_finished', {
+    batchSize: varInt
+});
 
 /** `Chunk Batch Received` (serverbound): how many chunks a tick the client would like next. */
-export const ChunkBatchReceived = defineJavaPacket(
-    'Chunk Batch Received',
-    PACKETS.play.serverbound.chunk_batch_received,
-    { chunksPerTick: float }
-);
+export const ChunkBatchReceived = defineJavaPacket('Chunk Batch Received', 'play/serverbound/chunk_batch_received', {
+    chunksPerTick: float
+});
 
 /** `Clientbound Keep Alive (play)`: a number the client must send back, or the server drops it. */
-export const ClientboundKeepAlive = defineJavaPacket(
-    'Clientbound Keep Alive (play)',
-    PACKETS.play.clientbound.keep_alive,
-    {
-        id: long
-    }
-);
+export const ClientboundKeepAlive = defineJavaPacket('Clientbound Keep Alive (play)', 'play/clientbound/keep_alive', {
+    id: long
+});
 
 /** `Serverbound Keep Alive (play)`: the number the server sent. */
-export const ServerboundKeepAlive = defineJavaPacket(
-    'Serverbound Keep Alive (play)',
-    PACKETS.play.serverbound.keep_alive,
-    {
-        id: long
-    }
-);
+export const ServerboundKeepAlive = defineJavaPacket('Serverbound Keep Alive (play)', 'play/serverbound/keep_alive', {
+    id: long
+});
 
 /** The flags byte the move packets end with: on the ground, and against a wall. */
 const moveFlags = uint8;
 
 /** `Set Player Position` (serverbound). */
-export const MovePlayerPos = defineJavaPacket('Set Player Position', PACKETS.play.serverbound.move_player_pos, {
+export const MovePlayerPos = defineJavaPacket('Set Player Position', 'play/serverbound/move_player_pos', {
     x: double,
     y: double,
     z: double,
@@ -153,12 +143,12 @@ export const MovePlayerPos = defineJavaPacket('Set Player Position', PACKETS.pla
 /** `Set Player Position and Rotation` (serverbound). */
 export const MovePlayerPosRot = defineJavaPacket(
     'Set Player Position and Rotation',
-    PACKETS.play.serverbound.move_player_pos_rot,
+    'play/serverbound/move_player_pos_rot',
     { x: double, y: double, z: double, yaw: float, pitch: float, flags: moveFlags }
 );
 
 /** `Set Player Rotation` (serverbound). */
-export const MovePlayerRot = defineJavaPacket('Set Player Rotation', PACKETS.play.serverbound.move_player_rot, {
+export const MovePlayerRot = defineJavaPacket('Set Player Rotation', 'play/serverbound/move_player_rot', {
     yaw: float,
     pitch: float,
     flags: moveFlags
@@ -167,7 +157,7 @@ export const MovePlayerRot = defineJavaPacket('Set Player Rotation', PACKETS.pla
 /** `Set Player Movement Flags` (serverbound). */
 export const MovePlayerStatusOnly = defineJavaPacket(
     'Set Player Movement Flags',
-    PACKETS.play.serverbound.move_player_status_only,
+    'play/serverbound/move_player_status_only',
     { flags: moveFlags }
 );
 
@@ -175,7 +165,7 @@ export const MovePlayerStatusOnly = defineJavaPacket(
 export const MOVE_ON_GROUND = 0x01;
 
 /** `System Chat Message` (clientbound): text the client shows in chat, or over the hotbar when `overlay`. */
-export const SystemChat = defineJavaPacket('System Chat Message', PACKETS.play.clientbound.system_chat, {
+export const SystemChat = defineJavaPacket('System Chat Message', 'play/clientbound/system_chat', {
     content: textComponent,
     overlay: bool
 });
@@ -195,7 +185,7 @@ const acknowledged = custom<Buffer>(
 );
 
 /** `Chat Message` (serverbound): what the player typed, with the secure chat fields this server does not check. */
-export const ChatMessage = defineJavaPacket('Chat Message', PACKETS.play.serverbound.chat, {
+export const ChatMessage = defineJavaPacket('Chat Message', 'play/serverbound/chat', {
     message: javaString(256),
     timestamp: long,
     salt: long,
@@ -206,7 +196,7 @@ export const ChatMessage = defineJavaPacket('Chat Message', PACKETS.play.serverb
 });
 
 /** `Chat Command` (serverbound): a command the player typed, without its slash. */
-export const ChatCommand = defineJavaPacket('Chat Command', PACKETS.play.serverbound.chat_command, {
+export const ChatCommand = defineJavaPacket('Chat Command', 'play/serverbound/chat_command', {
     command: javaString(32_767)
 });
 
@@ -214,7 +204,7 @@ export const ChatCommand = defineJavaPacket('Chat Command', PACKETS.play.serverb
 export const CHANGE_GAME_MODE = 3;
 
 /** `Player Loaded` (serverbound): the client has the world around it and shows the player. */
-export const PlayerLoaded = defineJavaPacket('Player Loaded', PACKETS.play.serverbound.player_loaded, {});
+export const PlayerLoaded = defineJavaPacket('Player Loaded', 'play/serverbound/player_loaded', {});
 
 /** An angle as one byte: 256 steps to a turn. */
 const angle = custom<number>(
@@ -238,7 +228,7 @@ const restingVelocity = custom<null>(
 );
 
 /** `Spawn Entity` (clientbound): an entity coming into view, by type id, at rest. */
-export const AddEntity = defineJavaPacket('Spawn Entity', PACKETS.play.clientbound.add_entity, {
+export const AddEntity = defineJavaPacket('Spawn Entity', 'play/clientbound/add_entity', {
     entityId: varInt,
     uuid,
     type: varInt,
@@ -253,12 +243,12 @@ export const AddEntity = defineJavaPacket('Spawn Entity', PACKETS.play.clientbou
 });
 
 /** `Remove Entities` (clientbound): entities leaving view. */
-export const RemoveEntities = defineJavaPacket('Remove Entities', PACKETS.play.clientbound.remove_entities, {
+export const RemoveEntities = defineJavaPacket('Remove Entities', 'play/clientbound/remove_entities', {
     entityIds: list(varInt)
 });
 
 /** `Teleport Entity` (clientbound): an entity's absolute position and facing. */
-export const TeleportEntity = defineJavaPacket('Teleport Entity', PACKETS.play.clientbound.teleport_entity, {
+export const TeleportEntity = defineJavaPacket('Teleport Entity', 'play/clientbound/teleport_entity', {
     entityId: varInt,
     x: double,
     y: double,
@@ -274,7 +264,7 @@ export const TeleportEntity = defineJavaPacket('Teleport Entity', PACKETS.play.c
 });
 
 /** `Set Head Rotation` (clientbound): where an entity's head faces. */
-export const RotateHead = defineJavaPacket('Set Head Rotation', PACKETS.play.clientbound.rotate_head, {
+export const RotateHead = defineJavaPacket('Set Head Rotation', 'play/clientbound/rotate_head', {
     entityId: varInt,
     headYaw: angle
 });
@@ -289,18 +279,18 @@ export enum PlayerInfoAction {
  * `Player Info Update` (clientbound) adding players to the tab list: their profile, and listed.
  * The action set is fixed to adding and listing, whose fields each entry carries in that order.
  */
-export const PlayerInfoAdd = defineJavaPacket('Player Info Update', PACKETS.play.clientbound.player_info_update, {
+export const PlayerInfoAdd = defineJavaPacket('Player Info Update', 'play/clientbound/player_info_update', {
     actions: uint8,
     players: list(record({ uuid, name: javaString(16), properties: list(profileProperty), listed: bool }))
 });
 
 /** `Player Info Remove` (clientbound): players leaving the tab list. */
-export const PlayerInfoRemove = defineJavaPacket('Player Info Remove', PACKETS.play.clientbound.player_info_remove, {
+export const PlayerInfoRemove = defineJavaPacket('Player Info Remove', 'play/clientbound/player_info_remove', {
     uuids: list(uuid)
 });
 
 /** `Block Update` (clientbound): one block's new state, by its state id. */
-export const BlockUpdate = defineJavaPacket('Block Update', PACKETS.play.clientbound.block_update, {
+export const BlockUpdate = defineJavaPacket('Block Update', 'play/clientbound/block_update', {
     position: blockPosition,
     state: varInt
 });
@@ -325,11 +315,10 @@ const sectionBlock = custom<SectionBlock>(
 );
 
 /** `Update Section Blocks` (clientbound): several blocks of one section at once. */
-export const SectionBlocksUpdate = defineJavaPacket(
-    'Update Section Blocks',
-    PACKETS.play.clientbound.section_blocks_update,
-    { section: sectionPosition, blocks: list(sectionBlock) }
-);
+export const SectionBlocksUpdate = defineJavaPacket('Update Section Blocks', 'play/clientbound/section_blocks_update', {
+    section: sectionPosition,
+    blocks: list(sectionBlock)
+});
 
 /**
  * `Player Action` (serverbound) statuses, by the order of vanilla's `ServerboundPlayerActionPacket.Action`.
@@ -352,7 +341,7 @@ export enum PlayerActionStatus {
  * direction's 3D data value, 0 to 5 for down, up, north, south, west and east, and `sequence` is
  * what the server's `Block Changed Ack` answers.
  */
-export const PlayerAction = defineJavaPacket('Player Action', PACKETS.play.serverbound.player_action, {
+export const PlayerAction = defineJavaPacket('Player Action', 'play/serverbound/player_action', {
     status: varInt,
     position: blockPosition,
     face: uint8,
@@ -360,13 +349,9 @@ export const PlayerAction = defineJavaPacket('Player Action', PACKETS.play.serve
 });
 
 /** `Acknowledge Block Change` (clientbound): the client's block predictions up to `sequence` are answered. */
-export const BlockChangedAck = defineJavaPacket(
-    'Acknowledge Block Change',
-    PACKETS.play.clientbound.block_changed_ack,
-    {
-        sequence: varInt
-    }
-);
+export const BlockChangedAck = defineJavaPacket('Acknowledge Block Change', 'play/clientbound/block_changed_ack', {
+    sequence: varInt
+});
 
 /** An item stack as plain data: an item's network id and how many. */
 export interface JavaItemStack {
@@ -430,14 +415,15 @@ const untrustedItemStack = custom<JavaItemStack | null>(
  * Window 0 is the player's own inventory: 0 the crafting result, 1 to 4 the crafting grid, 5 to 8
  * the armor from the head down, 9 to 35 the main inventory, 36 to 44 the hotbar and 45 the off hand.
  */
-export const ContainerSetContent = defineJavaPacket(
-    'Set Container Content',
-    PACKETS.play.clientbound.container_set_content,
-    { window: varInt, stateId: varInt, items: list(itemStack), carried: itemStack }
-);
+export const ContainerSetContent = defineJavaPacket('Set Container Content', 'play/clientbound/container_set_content', {
+    window: varInt,
+    stateId: varInt,
+    items: list(itemStack),
+    carried: itemStack
+});
 
 /** `Set Container Slot` (clientbound): one slot of a window. */
-export const ContainerSetSlot = defineJavaPacket('Set Container Slot', PACKETS.play.clientbound.container_set_slot, {
+export const ContainerSetSlot = defineJavaPacket('Set Container Slot', 'play/clientbound/container_set_slot', {
     window: varInt,
     stateId: varInt,
     slot: short,
@@ -445,19 +431,19 @@ export const ContainerSetSlot = defineJavaPacket('Set Container Slot', PACKETS.p
 });
 
 /** `Set Held Item` (clientbound): the hotbar slot the player holds, 0 to 8. */
-export const SetHeldSlot = defineJavaPacket('Set Held Item', PACKETS.play.clientbound.set_held_slot, {
+export const SetHeldSlot = defineJavaPacket('Set Held Item', 'play/clientbound/set_held_slot', {
     slot: varInt
 });
 
 /** `Set Held Item` (serverbound): the hotbar slot the player moved its hand to, 0 to 8. */
-export const SetCarriedItem = defineJavaPacket('Set Held Item', PACKETS.play.serverbound.set_carried_item, {
+export const SetCarriedItem = defineJavaPacket('Set Held Item', 'play/serverbound/set_carried_item', {
     slot: short
 });
 
 /** `Set Creative Mode Slot` (serverbound): a creative player put a stack in a slot of its inventory, or emptied it. */
 export const SetCreativeModeSlot = defineJavaPacket(
     'Set Creative Mode Slot',
-    PACKETS.play.serverbound.set_creative_mode_slot,
+    'play/serverbound/set_creative_mode_slot',
     { slot: short, item: untrustedItemStack }
 );
 
@@ -473,7 +459,7 @@ export enum JavaHand {
  * and `worldBorderHit` that the click landed on the world border. `sequence` is what the server's
  * `Acknowledge Block Change` answers.
  */
-export const UseItemOn = defineJavaPacket('Use Item On', PACKETS.play.serverbound.use_item_on, {
+export const UseItemOn = defineJavaPacket('Use Item On', 'play/serverbound/use_item_on', {
     hand: varInt,
     position: blockPosition,
     face: varInt,
@@ -486,14 +472,14 @@ export const UseItemOn = defineJavaPacket('Use Item On', PACKETS.play.serverboun
 });
 
 /** `Set Health` (clientbound): the player's own health, food level and saturation. */
-export const SetHealth = defineJavaPacket('Set Health', PACKETS.play.clientbound.set_health, {
+export const SetHealth = defineJavaPacket('Set Health', 'play/clientbound/set_health', {
     health: float,
     food: varInt,
     saturation: float
 });
 
 /** `Combat Death` (clientbound): a player died, which opens its client's death screen with the message. */
-export const PlayerCombatKill = defineJavaPacket('Combat Death', PACKETS.play.clientbound.player_combat_kill, {
+export const PlayerCombatKill = defineJavaPacket('Combat Death', 'play/clientbound/player_combat_kill', {
     playerId: varInt,
     message: textComponent
 });
@@ -506,7 +492,7 @@ export enum ClientCommandAction {
 }
 
 /** `Client Command` (serverbound): the death screen's respawn button, and requests for statistics. */
-export const ClientCommand = defineJavaPacket('Client Command', PACKETS.play.serverbound.client_command, {
+export const ClientCommand = defineJavaPacket('Client Command', 'play/serverbound/client_command', {
     action: varInt
 });
 
@@ -515,7 +501,7 @@ export const ClientCommand = defineJavaPacket('Client Command', PACKETS.play.ser
  * change of dimension send. `dataToKeep` keeps the attributes (1) and the entity data (2) the
  * client had; a respawn after death keeps neither.
  */
-export const Respawn = defineJavaPacket('Respawn', PACKETS.play.clientbound.respawn, {
+export const Respawn = defineJavaPacket('Respawn', 'play/clientbound/respawn', {
     ...SPAWN_INFO,
     dataToKeep: uint8
 });
@@ -561,7 +547,7 @@ const equipmentList = custom<JavaEquipment[]>(
 );
 
 /** `Set Equipment` (clientbound): what an entity holds and wears, slot by slot; at least one slot. */
-export const SetEquipment = defineJavaPacket('Set Equipment', PACKETS.play.clientbound.set_equipment, {
+export const SetEquipment = defineJavaPacket('Set Equipment', 'play/clientbound/set_equipment', {
     entityId: varInt,
     equipment: equipmentList
 });
@@ -609,7 +595,7 @@ const entityData = custom<JavaEntityDataEntry[]>(
 );
 
 /** `Set Entity Metadata` (clientbound): some of an entity's data, by index. */
-export const SetEntityData = defineJavaPacket('Set Entity Metadata', PACKETS.play.clientbound.set_entity_data, {
+export const SetEntityData = defineJavaPacket('Set Entity Metadata', 'play/clientbound/set_entity_data', {
     entityId: varInt,
     entries: entityData
 });

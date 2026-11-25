@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { JavaPacketDefinition } from './JavaPacket';
-import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
+import type { JavaPacketDefinition, JavaPayload } from './JavaPacket';
+import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from './JavaPacket';
+import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import {
     BlockChangedAck,
     ClientCommand,
@@ -38,17 +39,17 @@ const VANILLA = {
 };
 
 /** Reads `hex` as `definition`, and checks that writing the result gives the same bytes. */
-const readBack = <T>(definition: JavaPacketDefinition<T>, hex: string): T => {
+const readBack = <D extends JavaPacketDefinition>(definition: D, hex: string): JavaPayload<D> => {
     const frame = Buffer.concat([idOf(definition), Buffer.from(hex, 'hex')]);
-    const value = decodeJavaPacket(definition, readJavaPacketId(frame).body);
-    expect(encodeJavaPacket(definition, value)).toEqual(frame);
+    const value = decodeJavaPacket(NEWEST_JAVA_RELEASE, definition, readJavaPacketId(frame).body);
+    expect(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).toEqual(frame);
     return value;
 };
 
 /** A packet id as the VarInt that starts a frame. */
-const idOf = (definition: JavaPacketDefinition<unknown>): Buffer => {
+const idOf = (definition: JavaPacketDefinition): Buffer => {
     const bytes: number[] = [];
-    let id = definition.id;
+    let id = javaPacketId(NEWEST_JAVA_RELEASE, definition);
     do {
         bytes.push((id & 0x7f) | (id > 0x7f ? 0x80 : 0));
         id >>>= 7;
@@ -91,8 +92,12 @@ describe('play packets against vanilla 26.3', () => {
 
 describe('block packets', () => {
     /** Writes a packet and reads it back. */
-    const roundTrip = <T>(definition: JavaPacketDefinition<T>, value: T): T =>
-        decodeJavaPacket(definition, readJavaPacketId(encodeJavaPacket(definition, value)).body);
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>): JavaPayload<D> =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
 
     it('carries one block by its packed position and its state id', () => {
         const update = { position: { x: -30_000_000, y: -64, z: 29_999_999 }, state: 27_000 };
@@ -108,7 +113,9 @@ describe('block packets', () => {
                 { state: 29_000, x: 0, y: 15, z: 15 }
             ]
         };
-        const body = encodeJavaPacket(SectionBlocksUpdate, update).subarray(idOf(SectionBlocksUpdate).length);
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, SectionBlocksUpdate, update).subarray(
+            idOf(SectionBlocksUpdate).length
+        );
 
         // After the section's long: the count, then 1 << 12 | 15 << 8 | 3 << 4 as a VarLong.
         expect([...body.subarray(8, 11)]).toEqual([0x02, 0xb0, 0x3e]);
@@ -122,7 +129,7 @@ describe('block packets', () => {
 
         const frame = Buffer.concat([idOf(PlayerAction), body]);
 
-        expect(decodeJavaPacket(PlayerAction, readJavaPacketId(frame).body)).toEqual({
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, PlayerAction, readJavaPacketId(frame).body)).toEqual({
             status: PlayerActionStatus.StopDestroyBlock,
             position: { x: 1, y: -60, z: -2 },
             face: 1,
@@ -134,7 +141,7 @@ describe('block packets', () => {
 
 describe('inventory packets', () => {
     /** A frame of `definition` with `body` after its id. */
-    const frameOf = (definition: JavaPacketDefinition<unknown>, body: number[]) =>
+    const frameOf = (definition: JavaPacketDefinition, body: number[]) =>
         readJavaPacketId(Buffer.concat([idOf(definition), Buffer.from(body)])).body;
 
     it('writes a window as plain stacks, empty slots as a zero count, and reads it back', () => {
@@ -144,18 +151,22 @@ describe('inventory packets', () => {
             items: [null, { item: 1, count: 64 }, null],
             carried: null
         };
-        const body = encodeJavaPacket(ContainerSetContent, content).subarray(idOf(ContainerSetContent).length);
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, ContainerSetContent, content).subarray(
+            idOf(ContainerSetContent).length
+        );
 
         // Window, state, three slots: empty, then 64 of item 1 with no components, then empty; no cursor.
         expect([...body]).toEqual([0, 1, 3, 0, 64, 1, 0, 0, 0, 0]);
-        expect(decodeJavaPacket(ContainerSetContent, frameOf(ContainerSetContent, [...body]))).toEqual(content);
+        expect(
+            decodeJavaPacket(NEWEST_JAVA_RELEASE, ContainerSetContent, frameOf(ContainerSetContent, [...body]))
+        ).toEqual(content);
     });
 
     it('reads past the components of a creative stack, each behind its length', () => {
         // Slot 36, 1 of item 900, one added component (type 5, three bytes), one removed (type 7).
         const body = [0x00, 0x24, 0x01, 0x84, 0x07, 0x01, 0x01, 0x05, 0x03, 0xaa, 0xbb, 0xcc, 0x07];
 
-        expect(decodeJavaPacket(SetCreativeModeSlot, frameOf(SetCreativeModeSlot, body))).toEqual({
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, SetCreativeModeSlot, frameOf(SetCreativeModeSlot, body))).toEqual({
             slot: 36,
             item: { item: 900, count: 1 }
         });
@@ -164,7 +175,7 @@ describe('inventory packets', () => {
     it('refuses a stack from a server that carries components, rather than misread what follows', () => {
         const body = [0x00, 0x01, 0x00, 0x24, 0x01, 0x05, 0x01, 0x00, 0x01, 0x00];
 
-        expect(() => decodeJavaPacket(ContainerSetSlot, frameOf(ContainerSetSlot, body))).toThrow(
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, ContainerSetSlot, frameOf(ContainerSetSlot, body))).toThrow(
             'An item stack carries 1 data components'
         );
     });
@@ -185,7 +196,7 @@ describe('Use Item On', () => {
         body.writeFloatBE(0.25, 18);
         const frame = Buffer.concat([idOf(UseItemOn), body]);
 
-        expect(decodeJavaPacket(UseItemOn, readJavaPacketId(frame).body)).toEqual({
+        expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, UseItemOn, readJavaPacketId(frame).body)).toEqual({
             hand: 0,
             position: { x: 1, y: -61, z: -2 },
             face: 1,
@@ -200,11 +211,15 @@ describe('Use Item On', () => {
 });
 
 describe('health and respawn packets', () => {
-    const roundTrip = <T>(definition: JavaPacketDefinition<T>, value: T): T =>
-        decodeJavaPacket(definition, readJavaPacketId(encodeJavaPacket(definition, value)).body);
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>): JavaPayload<D> =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
 
     it('writes health and saturation as floats around a VarInt food level', () => {
-        const body = encodeJavaPacket(SetHealth, { health: 20, food: 18, saturation: 5 }).subarray(
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, SetHealth, { health: 20, food: 18, saturation: 5 }).subarray(
             idOf(SetHealth).length
         );
 
@@ -231,8 +246,10 @@ describe('health and respawn packets', () => {
             portalCooldown: 0,
             seaLevel: 63
         };
-        const respawn = encodeJavaPacket(Respawn, { ...spawn, dataToKeep: 3 }).subarray(idOf(Respawn).length);
-        const login = encodeJavaPacket(PlayLogin, {
+        const respawn = encodeJavaPacket(NEWEST_JAVA_RELEASE, Respawn, { ...spawn, dataToKeep: 3 }).subarray(
+            idOf(Respawn).length
+        );
+        const login = encodeJavaPacket(NEWEST_JAVA_RELEASE, PlayLogin, {
             entityId: 1,
             hardcore: false,
             dimensions: [],
@@ -262,12 +279,16 @@ describe('Set Equipment', () => {
                 { slot: 5, item: null }
             ]
         };
-        const body = encodeJavaPacket(SetEquipment, equipment).subarray(idOf(SetEquipment).length);
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, SetEquipment, equipment).subarray(idOf(SetEquipment).length);
 
         // Entity 9; main hand (0x80 | 0) with one of item 1; head (5), last, empty.
         expect([...body]).toEqual([9, 0x80, 1, 1, 0, 0, 5, 0]);
         expect(
-            decodeJavaPacket(SetEquipment, readJavaPacketId(encodeJavaPacket(SetEquipment, equipment)).body)
+            decodeJavaPacket(
+                NEWEST_JAVA_RELEASE,
+                SetEquipment,
+                readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, SetEquipment, equipment)).body
+            )
         ).toEqual(equipment);
     });
 });
@@ -281,11 +302,15 @@ describe('Set Entity Metadata', () => {
                 { index: 6, serializer: 20, value: 5 }
             ]
         };
-        const body = encodeJavaPacket(SetEntityData, data).subarray(idOf(SetEntityData).length);
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, SetEntityData, data).subarray(idOf(SetEntityData).length);
 
         expect([...body]).toEqual([3, 0, 0, 0x02, 6, 20, 5, 0xff]);
-        expect(decodeJavaPacket(SetEntityData, readJavaPacketId(encodeJavaPacket(SetEntityData, data)).body)).toEqual(
-            data
-        );
+        expect(
+            decodeJavaPacket(
+                NEWEST_JAVA_RELEASE,
+                SetEntityData,
+                readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, SetEntityData, data)).body
+            )
+        ).toEqual(data);
     });
 });

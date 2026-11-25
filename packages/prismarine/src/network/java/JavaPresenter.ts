@@ -7,7 +7,7 @@
  * each saying which slice of `docs/plans/java-multiprotocol.md` brings it.
  */
 import { Gametype } from '@jsprismarine/minecraft';
-import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
 import {
     AddEntity,
@@ -130,7 +130,7 @@ export const javaEntityDataOf = (state: ShownEntityState) => {
 };
 
 /** Sends one Java packet to the session's client. */
-export type JavaSend = <T>(definition: JavaPacketDefinition<T>, value: T) => void;
+export type JavaSend = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => void;
 
 /** Java's game modes, by Bedrock's numbers: Bedrock's spectator is 6, Java's is 3. */
 export const javaGameModeOf = (gamemode: Gametype): number =>
