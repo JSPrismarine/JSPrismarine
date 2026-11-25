@@ -1,5 +1,20 @@
 # @jsprismarine/client
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`0e3e886`](https://github.com/JSPrismarine/JSPrismarine/commit/0e3e8864d57489ad93922a285bb0f2b05aac5233)]:
+  - @jsprismarine/auth@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/logger@0.26.0
+  - @jsprismarine/math@0.26.0
+  - @jsprismarine/minecraft@0.26.0
+  - @jsprismarine/nethernet@0.26.0
+  - @jsprismarine/protocol@0.26.0
+  - @jsprismarine/raknet@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

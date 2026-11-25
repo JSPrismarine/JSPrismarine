@@ -1,5 +1,26 @@
 # @jsprismarine/blocks
 
+## 0.26.0
+
+### Minor Changes
+
+- [`ea601a5`](https://github.com/JSPrismarine/JSPrismarine/commit/ea601a5497b38b1357c3c83d23e202921ef5b698) Thanks [@filiphsps](https://github.com/filiphsps)! - `bedrockBlockPropertiesOf` answers `mapColor`, the block state's Java `MapColor` by its constant's name in lower case, such as `grass`, `water` or `none`, and `waterloggedMapColor` for the barrier and the light blocks, whose waterlogged states Java gives `water`. Both are the block's own color, before a map draws a waterlogged block without a sturdy top as its water. `BedrockBlockProperties` requires `mapColor`, so code that builds one needs it: a `BlockPropertySource` passed to `generateVanillaOverlay` in `@jsprismarine/blocks` has to return it from `propertiesOf`. `BEDROCK_ONLY_FALLBACK` gives `none`.
+
+### Patch Changes
+
+- [#3687](https://github.com/JSPrismarine/JSPrismarine/pull/3687) [`b2406b9`](https://github.com/JSPrismarine/JSPrismarine/commit/b2406b966f2ffafa7ab2ec5511821b8296d80dd5) Thanks [@filiphsps](https://github.com/filiphsps)! - Break the last blocks that floated without support, as Java does. A sculk vein pops once no face it covers is held, a sulfur spike pops without the block it grows from, as pointed dripstone does, and a bell on a wall pops without that wall. A bubble column now follows the block below it: it drags down over magma, pushes up over soul sand, and turns back into water over anything else.
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3727](https://github.com/JSPrismarine/JSPrismarine/pull/3727) [`caf9c62`](https://github.com/JSPrismarine/JSPrismarine/commit/caf9c62fb12a14400caeecbc2e9b4a916aa30143) Thanks [@filiphsps](https://github.com/filiphsps)! - Say in a placement event whether the placer was sneaking, as Java's `isSecondaryUseActive` does. Pointed dripstone placed by a sneaking player keeps its tip rather than merging with the tip it meets.
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd), [`ea601a5`](https://github.com/JSPrismarine/JSPrismarine/commit/ea601a5497b38b1357c3c83d23e202921ef5b698), [`6d89071`](https://github.com/JSPrismarine/JSPrismarine/commit/6d89071895723672f4ecc0bbf86e3bbf3d06cb3a)]:
+  - @jsprismarine/content@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/mapping@0.26.0
+  - @jsprismarine/minecraft@0.26.0
+  - @jsprismarine/molang@0.26.0
+  - @jsprismarine/packs@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

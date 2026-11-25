@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/kernel",
-    "version": "0.25.0",
+    "version": "0.26.0",
     "description": "Module kernel: lifecycle, a token-keyed service registry, and the event bus that modules plug into",
     "sideEffects": false,
     "publishConfig": {

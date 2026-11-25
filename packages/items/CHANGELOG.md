@@ -1,5 +1,20 @@
 # @jsprismarine/items
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3695](https://github.com/JSPrismarine/JSPrismarine/pull/3695) [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f) Thanks [@filiphsps](https://github.com/filiphsps)! - Explorer maps show their marker on a Bedrock client. `LevelView.newMapId` now receives the map to make (a `NewMap`: a position it covers, its zoom and its decorations), which `exploration_map` passes when it falls back to the level. `ItemDrop` gains `mapId`. The mapping gives each of the 16 Java structure locator maps its Bedrock aux value (`EXPLORER_MAP_DATA`), so a buried treasure map is a Treasure Map. `@jsprismarine/protocol` exports `ClientboundMapItemDataPacket`. The server saves each map a level makes (center, scale, dimension and markers, placed as Java's `MapItemSavedData` places them) under the LevelDB key `jsprismarine:maps`, and the structures explorer maps point at under `jsprismarine:structure_references`, both as NBT lists that a provider's `LevelRecords` carry as `maps` and `referencedStructures`; it carries the id on the stack as `map_uuid` in its NBT and its client user data, keeps two maps with different ids in separate slots, and answers `MapInfoRequest` with the map's markers and Java's biome preview. Cartographer trades offer the Bedrock filled map with its id. With `skip_existing_chunks`, a search also passes over the structure it starts in, as Java 26.3's `claimStructureAt` does.
+
+- [#3692](https://github.com/JSPrismarine/JSPrismarine/pull/3692) [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd) Thanks [@filiphsps](https://github.com/filiphsps)! - The Java preview is now 26.4 Pre-Release 1 (`26.4-pre-1`), data pack format 128.1, in place of 26.4 Snapshot 10. `sources.json` pins its server jar, `fetch:sources --java 26.4-pre-1` downloads it, and the mapping and item type tables for the preview move to `26.4-pre-1`, still mapped onto Bedrock preview protocol 2259. A server whose `content-java-version` names `26.4-snapshot-10` now stops at startup and needs `26.4-pre-1`.
+  
+  The preview's Java goal capture lists no goals for the camel and camel husk, as Java's `Camel.registerGoals` registers none.
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b)]:
+  - @jsprismarine/content@0.26.0
+  - @jsprismarine/errors@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

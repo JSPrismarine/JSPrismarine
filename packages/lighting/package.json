@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/lighting",
-    "version": "0.25.0",
+    "version": "0.26.0",
     "description": "Server-internal block light and sky light engine for Bedrock worlds",
     "sideEffects": false,
     "publishConfig": {

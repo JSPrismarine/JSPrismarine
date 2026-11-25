@@ -1,5 +1,20 @@
 # @jsprismarine/loot
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3688](https://github.com/JSPrismarine/JSPrismarine/pull/3688) [`8612a62`](https://github.com/JSPrismarine/JSPrismarine/commit/8612a624714205d633c17fb9dc8cd12cfca922f3) Thanks [@filiphsps](https://github.com/filiphsps)! - Explorer maps get a destination. `LevelView` gains `nearestStructure` and `newMapId`, and an `exploration_map` modifier with no `structures` locator or `mapIds` allocator of its own now uses them, searching from the roll's `origin`. The `mapIds` option receives the roll's context. The server answers both from the world the roll happens in: the search is the one `/locate structure` runs, and map ids come from a counter each level saves. With `skip_existing_chunks`, Java's default, a search passes over a structure an earlier explorer map found, so each map points at a different one; the level saves which structures are taken. Shipwreck and ocean ruin chests, abandoned camp chests and cartographer trades now give a map with a `minecraft:map_id` that points at a structure, instead of dropping the map.
+
+- [#3695](https://github.com/JSPrismarine/JSPrismarine/pull/3695) [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f) Thanks [@filiphsps](https://github.com/filiphsps)! - Explorer maps show their marker on a Bedrock client. `LevelView.newMapId` now receives the map to make (a `NewMap`: a position it covers, its zoom and its decorations), which `exploration_map` passes when it falls back to the level. `ItemDrop` gains `mapId`. The mapping gives each of the 16 Java structure locator maps its Bedrock aux value (`EXPLORER_MAP_DATA`), so a buried treasure map is a Treasure Map. `@jsprismarine/protocol` exports `ClientboundMapItemDataPacket`. The server saves each map a level makes (center, scale, dimension and markers, placed as Java's `MapItemSavedData` places them) under the LevelDB key `jsprismarine:maps`, and the structures explorer maps point at under `jsprismarine:structure_references`, both as NBT lists that a provider's `LevelRecords` carry as `maps` and `referencedStructures`; it carries the id on the stack as `map_uuid` in its NBT and its client user data, keeps two maps with different ids in separate slots, and answers `MapInfoRequest` with the map's markers and Java's biome preview. Cartographer trades offer the Bedrock filled map with its id. With `skip_existing_chunks`, a search also passes over the structure it starts in, as Java 26.3's `claimStructureAt` does.
+
+- [#3680](https://github.com/JSPrismarine/JSPrismarine/pull/3680) [`6d89071`](https://github.com/JSPrismarine/JSPrismarine/commit/6d89071895723672f4ecc0bbf86e3bbf3d06cb3a) Thanks [@filiphsps](https://github.com/filiphsps)! - A datapack's `slot_source/` files load into a new `slotSources` registry, and a loot reference or a `#slot_source` tag resolves them, as it does an item modifier.
+- Updated dependencies [[`ab601c6`](https://github.com/JSPrismarine/JSPrismarine/commit/ab601c6924c6f6fa754434e4225e93461fcef1f5), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`8612a62`](https://github.com/JSPrismarine/JSPrismarine/commit/8612a624714205d633c17fb9dc8cd12cfca922f3), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f)]:
+  - @jsprismarine/predicates@0.26.0
+  - @jsprismarine/errors@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

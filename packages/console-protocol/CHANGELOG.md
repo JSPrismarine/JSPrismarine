@@ -1,5 +1,18 @@
 # @jsprismarine/console-protocol
 
+## 0.26.0
+
+### Minor Changes
+
+- [#3712](https://github.com/JSPrismarine/JSPrismarine/pull/3712) [`fb5d208`](https://github.com/JSPrismarine/JSPrismarine/commit/fb5d20894a3f27f87eebf212d52f7005367ed6c2) Thanks [@filiphsps](https://github.com/filiphsps)! - The console gets `update check`, which checks for a newer JSPrismarine now, and `restart`, which stops the server and starts it again in a new process. Only the console runs them, unless a player's permission entry names `jsprismarine.command.update` or `jsprismarine.command.restart` itself: an operator's `*` doesn't grant them. `ServerMessage` gains `restart`, which a server sends to ask its host to restart it; the host's supervisor honors it with or without `--watch`. `Server.requestRestart()` sends it and returns false for a server with no host, and `PlayerCommandSender` gains `getPermissions()`.
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b)]:
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/logger@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

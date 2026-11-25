@@ -1,5 +1,27 @@
 # @jsprismarine/protocol
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3695](https://github.com/JSPrismarine/JSPrismarine/pull/3695) [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f) Thanks [@filiphsps](https://github.com/filiphsps)! - Explorer maps show their marker on a Bedrock client. `LevelView.newMapId` now receives the map to make (a `NewMap`: a position it covers, its zoom and its decorations), which `exploration_map` passes when it falls back to the level. `ItemDrop` gains `mapId`. The mapping gives each of the 16 Java structure locator maps its Bedrock aux value (`EXPLORER_MAP_DATA`), so a buried treasure map is a Treasure Map. `@jsprismarine/protocol` exports `ClientboundMapItemDataPacket`. The server saves each map a level makes (center, scale, dimension and markers, placed as Java's `MapItemSavedData` places them) under the LevelDB key `jsprismarine:maps`, and the structures explorer maps point at under `jsprismarine:structure_references`, both as NBT lists that a provider's `LevelRecords` carry as `maps` and `referencedStructures`; it carries the id on the stack as `map_uuid` in its NBT and its client user data, keeps two maps with different ids in separate slots, and answers `MapInfoRequest` with the map's markers and Java's biome preview. Cartographer trades offer the Bedrock filled map with its id. With `skip_existing_chunks`, a search also passes over the structure it starts in, as Java 26.3's `claimStructureAt` does.
+
+- [#3693](https://github.com/JSPrismarine/JSPrismarine/pull/3693) [`0e3e886`](https://github.com/JSPrismarine/JSPrismarine/commit/0e3e8864d57489ad93922a285bb0f2b05aac5233) Thanks [@filiphsps](https://github.com/filiphsps)! - The server advertises Java's special recipes, transmutes and armor trims to a joining client, and crafts them when the client names their net id. Repairing, fireworks, map extending and cloning, book cloning, banner duplicating and the decorated pot go out as the multi recipe UUIDs the Bedrock Dedicated Server sends. Each `crafting_transmute`, such as dyeing a shulker box or a bundle, goes out as one user data shapeless entry per input item, and a dyed shulker box keeps its contents. Every `smithing_trim` recipe goes out as the server's one trim entry.
+  
+  `buildCraftingData` in `@jsprismarine/protocol/bedrock/payload` fills `multi`, `userDataShapeless` and the new `recipesByNetId`, which names the Java recipes behind each net id. `NetworkContentPayloads` carries the same map. `ContentPayloadReport` no longer has `smithingTrimRecipes`, since trims are no longer held back.
+- Updated dependencies [[`b2406b9`](https://github.com/JSPrismarine/JSPrismarine/commit/b2406b966f2ffafa7ab2ec5511821b8296d80dd5), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`caf9c62`](https://github.com/JSPrismarine/JSPrismarine/commit/caf9c62fb12a14400caeecbc2e9b4a916aa30143), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd), [`ea601a5`](https://github.com/JSPrismarine/JSPrismarine/commit/ea601a5497b38b1357c3c83d23e202921ef5b698)]:
+  - @jsprismarine/blocks@0.26.0
+  - @jsprismarine/binaryutils@0.26.0
+  - @jsprismarine/content@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/items@0.26.0
+  - @jsprismarine/math@0.26.0
+  - @jsprismarine/minecraft@0.26.0
+  - @jsprismarine/nbt@0.26.0
+  - @jsprismarine/recipes@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes

@@ -1,5 +1,15 @@
 # @jsprismarine/enchantments
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3697](https://github.com/JSPrismarine/JSPrismarine/pull/3697) [`c3acfe7`](https://github.com/JSPrismarine/JSPrismarine/commit/c3acfe7095eb385d656fcd120695d84df6e8c7d3) Thanks [@filiphsps](https://github.com/filiphsps)! - Experience orbs work as Java's `ExperienceOrb` does. A payout splits into Java's orb sizes and joins an orb of the same value lying at the spot, orbs of one value merge every 20 ticks, an orb follows the nearest player within 8 blocks, and a player standing against orbs takes one every second tick. Mending repairs damaged gear before the rest becomes experience, an orb is gone after 6000 ticks, and clients see each orb at the size its value gives it. The ender dragon's experience now drops as orbs only, instead of also being paid to the killer directly. `@jsprismarine/entities` ships the orb definition with its `jsprismarine:experience_orb` host component, and `@jsprismarine/enchantments` adds `slotGroupContains`, Java's `EquipmentSlotGroup.test`.
+- Updated dependencies [[`ab601c6`](https://github.com/JSPrismarine/JSPrismarine/commit/ab601c6924c6f6fa754434e4225e93461fcef1f5), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`8612a62`](https://github.com/JSPrismarine/JSPrismarine/commit/8612a624714205d633c17fb9dc8cd12cfca922f3), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f)]:
+  - @jsprismarine/predicates@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

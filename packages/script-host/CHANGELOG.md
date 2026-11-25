@@ -1,5 +1,18 @@
 # @jsprismarine/script-host
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3686](https://github.com/JSPrismarine/JSPrismarine/pull/3686) [`eaa1407`](https://github.com/JSPrismarine/JSPrismarine/commit/eaa14078182ad95d8c4f60f1d77510cef8e5d5c1) Thanks [@filiphsps](https://github.com/filiphsps)! - The load-time Script API coverage line counts a name only as a member of a class the pack's scripts can reach from what they import, so a name used on another API, such as `@jsprismarine/server`'s `levels`, is no longer reported as an unimplemented member.
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3686](https://github.com/JSPrismarine/JSPrismarine/pull/3686) [`9488d6b`](https://github.com/JSPrismarine/JSPrismarine/commit/9488d6bda10a0543201a988e2551526ed12a9cd8) Thanks [@filiphsps](https://github.com/filiphsps)! - Scripts can read `EnchantWithLevelsFunction.levels` and `treasure`, `EnchantRandomlyFunction.treasure` and `EnchantRandomEquipmentFunction.chance` from a loot table.
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b)]:
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/native-library@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @jsprismarine/nethernet
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b)]:
+  - @jsprismarine/binaryutils@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/logger@0.26.0
+  - @jsprismarine/native-network@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes

@@ -1,5 +1,32 @@
 # @jsprismarine/server
 
+## 0.26.0
+
+### Minor Changes
+
+- [#3683](https://github.com/JSPrismarine/JSPrismarine/pull/3683) [`1a20999`](https://github.com/JSPrismarine/JSPrismarine/commit/1a20999aa5439e500f1a5db928f11f39331203b9) Thanks [@filiphsps](https://github.com/filiphsps)! - Java Edition players show with their own skin. Java clients get the signed `textures` property Mojang's session server returned with each Java player's tab list entry, the player's own included, and Bedrock clients get the skin image the server fetches from Mojang's texture server at login, on the classic or slim arms and with old 64x32 skins converted as the Java client converts them. An offline-mode player, or one whose texture the server cannot read in time, keeps the default skin.
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3682](https://github.com/JSPrismarine/JSPrismarine/pull/3682) [`d9d2fed`](https://github.com/JSPrismarine/JSPrismarine/commit/d9d2fedf89bcb720697e2d105f377574338f2dbf) Thanks [@filiphsps](https://github.com/filiphsps)! - Java Edition players can log in with `online-mode` on under the Bun executables. Bun has no `aes-128-cfb8`, the cipher a Java connection switches to once its login agrees on a secret, so the login ended with "Unknown cipher". The server now builds CFB8 from AES-ECB where the runtime lacks it, and keeps Node's own CFB8 where it has one.
+
+- [#3712](https://github.com/JSPrismarine/JSPrismarine/pull/3712) [`fb5d208`](https://github.com/JSPrismarine/JSPrismarine/commit/fb5d20894a3f27f87eebf212d52f7005367ed6c2) Thanks [@filiphsps](https://github.com/filiphsps)! - The console gets `update check`, which checks for a newer JSPrismarine now, and `restart`, which stops the server and starts it again in a new process. Only the console runs them, unless a player's permission entry names `jsprismarine.command.update` or `jsprismarine.command.restart` itself: an operator's `*` doesn't grant them. `ServerMessage` gains `restart`, which a server sends to ask its host to restart it; the host's supervisor honors it with or without `--watch`. `Server.requestRestart()` sends it and returns false for a server with no host, and `PlayerCommandSender` gains `getPermissions()`.
+- Updated dependencies [[`7a855c8`](https://github.com/JSPrismarine/JSPrismarine/commit/7a855c8d9ef3cb24af4b4871a5027d0630ea9966), [`eaa1407`](https://github.com/JSPrismarine/JSPrismarine/commit/eaa14078182ad95d8c4f60f1d77510cef8e5d5c1), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`caf9c62`](https://github.com/JSPrismarine/JSPrismarine/commit/caf9c62fb12a14400caeecbc2e9b4a916aa30143), [`10f5186`](https://github.com/JSPrismarine/JSPrismarine/commit/10f5186197e2689925f5261adad9e8cdfbc34e71), [`9488d6b`](https://github.com/JSPrismarine/JSPrismarine/commit/9488d6bda10a0543201a988e2551526ed12a9cd8), [`bc7e7c2`](https://github.com/JSPrismarine/JSPrismarine/commit/bc7e7c2d9ded65c6713e4ca5e43b90365b538ef2), [`9184280`](https://github.com/JSPrismarine/JSPrismarine/commit/918428018be06df4cba3c9420ef0553d490152b7), [`c3acfe7`](https://github.com/JSPrismarine/JSPrismarine/commit/c3acfe7095eb385d656fcd120695d84df6e8c7d3), [`8612a62`](https://github.com/JSPrismarine/JSPrismarine/commit/8612a624714205d633c17fb9dc8cd12cfca922f3), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`f8b1cac`](https://github.com/JSPrismarine/JSPrismarine/commit/f8b1cac2f609137037c7af19a5326d12769b0168), [`c59ae85`](https://github.com/JSPrismarine/JSPrismarine/commit/c59ae850f9b6cccbacbadabc233c5ca534234b1f), [`edee175`](https://github.com/JSPrismarine/JSPrismarine/commit/edee1756194ac0dd3b09ca634d92a8d2708cdacb), [`fe6603b`](https://github.com/JSPrismarine/JSPrismarine/commit/fe6603b8be65295dbab4c48bb5117bc50057303d), [`d9d2fed`](https://github.com/JSPrismarine/JSPrismarine/commit/d9d2fedf89bcb720697e2d105f377574338f2dbf), [`b0bf479`](https://github.com/JSPrismarine/JSPrismarine/commit/b0bf47973034ed130fe3680b65579623ed3ed6b2), [`77e30b0`](https://github.com/JSPrismarine/JSPrismarine/commit/77e30b0972c989b4ab0b9745b11b982b41271c68), [`1a20999`](https://github.com/JSPrismarine/JSPrismarine/commit/1a20999aa5439e500f1a5db928f11f39331203b9), [`b7bfc3e`](https://github.com/JSPrismarine/JSPrismarine/commit/b7bfc3e1902a168037f2be7f494396fada126a41), [`33d1cb0`](https://github.com/JSPrismarine/JSPrismarine/commit/33d1cb08bce5b83bbaebcca66e64f4cae3f3f857), [`26de0ed`](https://github.com/JSPrismarine/JSPrismarine/commit/26de0edff980c97c0f31900f8e22cf544bd1f289), [`fb5d208`](https://github.com/JSPrismarine/JSPrismarine/commit/fb5d20894a3f27f87eebf212d52f7005367ed6c2), [`fcd6366`](https://github.com/JSPrismarine/JSPrismarine/commit/fcd6366271844792c6ca1b442cd4bedc4d2019d8), [`6d89071`](https://github.com/JSPrismarine/JSPrismarine/commit/6d89071895723672f4ecc0bbf86e3bbf3d06cb3a), [`064e465`](https://github.com/JSPrismarine/JSPrismarine/commit/064e4656517e009a6522ae3096d7970a37724ec9), [`b609f49`](https://github.com/JSPrismarine/JSPrismarine/commit/b609f49bccb76a7ce8edf691a0a5074698a3b088), [`0e3e886`](https://github.com/JSPrismarine/JSPrismarine/commit/0e3e8864d57489ad93922a285bb0f2b05aac5233), [`6a711a9`](https://github.com/JSPrismarine/JSPrismarine/commit/6a711a94f372685c079333c74f100de658950b76)]:
+  - @jsprismarine/prismarine@0.26.0
+  - @jsprismarine/script-host@0.26.0
+  - @jsprismarine/chunkgen@0.26.0
+  - @jsprismarine/color-parser@0.26.0
+  - @jsprismarine/console-protocol@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/logger@0.26.0
+  - @jsprismarine/minecraft@0.26.0
+  - @jsprismarine/native-network@0.26.0
+  - @jsprismarine/native-worldgen@0.26.0
+  - @jsprismarine/packs@0.26.0
+  - @jsprismarine/raknet@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes
