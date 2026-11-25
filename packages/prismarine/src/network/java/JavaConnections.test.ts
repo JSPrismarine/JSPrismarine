@@ -23,6 +23,7 @@ import {
     GameEvent,
     MOVE_ON_GROUND,
     MovePlayerPos,
+    MovePlayerRot,
     PlayDisconnect,
     PlayerAction,
     PlayerActionStatus,
@@ -55,6 +56,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import type { ShownDimension } from '../presenter/SessionPresenter';
 import type { SessionPlayer } from '../sessionPlayers';
 import { ConnectionIds } from '../transport/ConnectionId';
 import { TcpTransport } from '../transport/TcpTransport';
@@ -72,6 +74,11 @@ const ClientInformationProbe = defineJavaPacket(
 
 const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
 const quiet = { debug: () => {}, info: () => {} };
+const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63 };
+const NETHER: ShownDimension = { id: 'minecraft:the_nether', seaLevel: 32 };
+/** The dimension types the client is configured with, in network id order. */
+const DIMENSION_TYPES =
+    CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
 describe('JavaConnections', () => {
     let transport: TcpTransport | undefined;
@@ -186,6 +193,7 @@ describe('JavaConnections', () => {
         const did: string[] = [];
         let left: () => void = () => {};
         const leaving = new Promise<void>((resolve) => (left = resolve));
+        let respawned: (feet: { x: number; y: number; z: number }) => void = () => {};
         const session = stub<PlayerSession>({
             runtimeId: 7n,
             getPlayer: () =>
@@ -203,9 +211,11 @@ describe('JavaConnections', () => {
             log: quiet,
             world: {
                 players: {
-                    join: async (profile, verified) => {
+                    join: async (profile, verified, _id, _send, _hangUp, onRespawn) => {
                         did.push(`join ${profile.name} ${verified ? 'java' : 'offline'}`);
-                        return { session, feet: { x: 8.5, y: -60, z: 8.5 } };
+                        respawned = onRespawn;
+                        // A player whose record left them in the Nether.
+                        return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: NETHER };
                     },
                     move: async (_session, { position, onGround, handledTeleport }) =>
                         void did.push(
@@ -217,7 +227,7 @@ describe('JavaConnections', () => {
                         left();
                     }
                 },
-                chunk: async (x, z) => {
+                chunk: async (_session, x, z) => {
                     asked.push(`${x},${z}`);
                     return new Chunk(x, z);
                 },
@@ -247,9 +257,11 @@ describe('JavaConnections', () => {
 
         expect(login).toMatchObject({
             entityId: 7,
-            dimension: 'minecraft:overworld',
+            dimensionType: DIMENSION_TYPES.indexOf('minecraft:the_nether'),
+            dimension: 'minecraft:the_nether',
             gameMode: 1,
-            previousGameMode: null
+            previousGameMode: null,
+            seaLevel: 32
         });
         expect(position).toMatchObject({ teleportId: 1, x: 8.5, y: -60, z: 8.5, yaw: 90 });
         expect(event).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
@@ -275,6 +287,17 @@ describe('JavaConnections', () => {
         await java.receive(ChunkBatchStart);
         for (let i = 0; i < 3; i++) await java.receive(LevelChunkWithLight);
         expect(await java.receive(ChunkBatchFinished)).toEqual({ batchSize: 3 });
+
+        // Spawned again elsewhere: every chunk around the new spot comes afresh, and a turn on
+        // the spot moves the player from there.
+        asked.length = 0;
+        respawned({ x: 40.5, y: 70, z: 8.5 });
+        expect(await java.receive(SetCenterChunk)).toEqual({ x: 2, z: 0 });
+        await java.receive(ChunkBatchStart);
+        for (let i = 0; i < 9; i++) await java.receive(LevelChunkWithLight);
+        expect(await java.receive(ChunkBatchFinished)).toEqual({ batchSize: 9 });
+        java.send(MovePlayerRot, { yaw: 0, pitch: 0, flags: MOVE_ON_GROUND });
+        await expect.poll(() => did.at(-1)).toBe('move 40.5 70 true false');
         java.destroy();
         await leaving;
 
@@ -283,11 +306,10 @@ describe('JavaConnections', () => {
             'intent {"kind":"playerInitialized"}',
             'intent {"kind":"chat","message":"hello"}',
             'move 16.5 -60 true true',
+            'move 40.5 70 true false',
             'leave'
         ]);
-        expect(new Set(asked)).toEqual(
-            new Set(['-1,-1', '-1,0', '-1,1', '0,-1', '0,0', '0,1', '1,-1', '1,0', '1,1', '2,-1', '2,0', '2,1'])
-        );
+        expect(new Set(asked)).toEqual(new Set(['1,-1', '1,0', '1,1', '2,-1', '2,0', '2,1', '3,-1', '3,0', '3,1']));
     });
 
     it('reads the next packet while an input waits for its step, and answers a dig once the dig applied', async () => {
@@ -316,12 +338,12 @@ describe('JavaConnections', () => {
             log: quiet,
             world: {
                 players: {
-                    join: async () => ({ session, feet: { x: 8.5, y: -60, z: 8.5 } }),
+                    join: async () => ({ session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD }),
                     move: async () => held('move'),
                     intent: async (_session, intent) => held(intent.kind),
                     leave: async () => {}
                 },
-                chunk: async (x, z) => new Chunk(x, z),
+                chunk: async (_session, x, z) => new Chunk(x, z),
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 0,
                 maxPlayers: () => 20
@@ -382,13 +404,13 @@ describe('JavaConnections', () => {
                 players: {
                     join: async (_profile, _verified, _id, _send, close) => {
                         hangUp = close;
-                        return { session, feet: { x: 8.5, y: -60, z: 8.5 } };
+                        return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD };
                     },
                     move: async () => {},
                     intent: async () => {},
                     leave: async () => left()
                 },
-                chunk: async (x, z) => new Chunk(x, z),
+                chunk: async (_session, x, z) => new Chunk(x, z),
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 0,
                 maxPlayers: () => 20

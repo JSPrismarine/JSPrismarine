@@ -38,6 +38,8 @@ import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
 import { sessionsWith } from './playerSession.test.helper';
 import { stub } from './stub.test.helper';
+import type { JavaSend } from '../network/java/JavaPresenter';
+import { JavaPresenter } from '../network/java/JavaPresenter';
 import { replicateEntities } from './changeTicks.test.helper';
 
 /** What a test says about the player's surroundings. */
@@ -59,6 +61,8 @@ export interface FakePlayerOptions {
      * on, so the player keeps its inventory through a death unless a test turns it off.
      */
     readonly gameRules?: Readonly<Record<string, boolean | number>>;
+    /** Gives the player a Java client, which is sent its packets through this, rather than a Bedrock one. */
+    readonly java?: JavaSend;
 }
 
 /**
@@ -76,7 +80,8 @@ export const fakePlayer = ({
     underwater = false,
     worlds: others = [],
     name = 'Tester',
-    gameRules = {}
+    gameRules = {},
+    java
 }: FakePlayerOptions = {}) => {
     const sent: any[] = [];
     /** Every stack the world was asked to drop, in order. */
@@ -282,7 +287,8 @@ export const fakePlayer = ({
         connection,
         player,
         identity,
-        world
+        world,
+        ...(java === undefined ? {} : { presenter: new JavaPresenter(java, player.getRuntimeId()) })
     });
 
     // `update` does nothing for a player who never finished joining.

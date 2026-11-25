@@ -870,16 +870,22 @@ describe("PlayerSession's player", () => {
     });
 
     describe('respawn point across dimensions', () => {
-        /** A Nether world of named blocks, everything else air, in the same level as the player's. */
-        const netherOf = (blocks: Readonly<Record<string, string>>, level: () => Level) => {
+        /**
+         * A Nether world of named blocks, everything else air, in the same level as the player's.
+         * Given `store`, a player who arrives enters that world's entity store, so it can be
+         * revived there.
+         */
+        const netherOf = (blocks: Readonly<Record<string, string>>, level: () => Level, store?: () => World) => {
             const nameAt = (x: number, y: number, z: number) => blocks[`${x},${y},${z}`] ?? 'minecraft:air';
             return stub<World>({
                 getName: () => 'nether',
                 getLevel: level,
                 getDimension: () => Dimensions.Nether,
+                getSeaLevel: () => 32,
                 getSpawnPosition: async () => new Vector3(8, 70, -3),
                 getKnownSpawnPosition: () => new Vector3(8, 70, -3),
-                addPlayer: async () => {},
+                addPlayer: async (arriving) => void (await store?.().addPlayer(arriving)),
+                dataEntities: () => store!().dataEntities(),
                 broadcastMove: async () => {},
                 // Every chunk is in memory.
                 loadedBlockAt: (x, y, z) => ({ name: nameAt(x, y, z), states: {} }),
@@ -935,6 +941,37 @@ describe("PlayerSession's player", () => {
 
             expect(point.world).toBe(fake.world);
             expect(point.block).toEqual(new Vector3(0, 64, 0));
+        });
+
+        it('spawns a Java client again in the dimension its respawn point is in, and tells it where it stands', async () => {
+            let level: Level | undefined;
+            const nether = netherOf(
+                { '10,64,10': 'minecraft:respawn_anchor' },
+                () => level!,
+                () => fake.world
+            );
+            const java: { name: string; value: unknown }[] = [];
+            const fake = fakePlayer({
+                worlds: [nether],
+                java: (definition, value) => void java.push({ name: definition.name, value })
+            });
+            level = fake.level;
+            fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:nether' });
+            await fake.session.getActor()?.setHealth(0);
+            java.length = 0;
+
+            fake.session.requestRespawn();
+            fake.session.getServer().getRespawnRequests().admit();
+
+            expect(fake.session.getWorld()).toBe(nether);
+            const respawns = java.filter(({ name }) => name === 'Respawn');
+            expect(respawns).toHaveLength(1);
+            expect(respawns[0]?.value).toMatchObject({ dimension: 'minecraft:the_nether', dataToKeep: 0 });
+            const respawn = java.indexOf(respawns[0]!);
+            const position = java.findLastIndex(({ name }) => name === 'Synchronize Player Position');
+            expect(position).toBeGreaterThan(respawn);
+            // Beside the anchor, as `respawnPointOf` finds it.
+            expect(java[position]?.value).toMatchObject({ x: 10, y: 64, z: 11 });
         });
     });
 

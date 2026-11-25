@@ -85,7 +85,7 @@ import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from './javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from './javaMining';
 import { javaUseItemOnIntentOf } from './javaUseItemOn';
 import type { JavaPlayers } from './javaPlayers';
-import { overworldSpawnInfo } from './JavaPresenter';
+import { javaSpawnInfoOf } from './JavaPresenter';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';
 
@@ -115,10 +115,10 @@ export interface JavaLoginOptions {
 export interface JavaWorldHost {
     /** The world's Java players, which a player who reaches play joins. */
     readonly players: JavaPlayers;
-    /** One chunk of the default world, generated or loaded when it has to be. */
-    chunk(x: number, z: number): Promise<Chunk>;
-    /** The world's light, which a chunk carries to a Java client, settled before it is read. */
-    light(): JavaChunkLight;
+    /** One chunk of the world the session's player is in, generated or loaded when it has to be. */
+    chunk(session: PlayerSession, x: number, z: number): Promise<Chunk>;
+    /** The light of the world the session's player is in, which a chunk carries to a Java client, settled before it is read. */
+    light(session: PlayerSession): JavaChunkLight;
     /** How many chunks out from the player the client is sent. */
     viewDistance(): number;
     maxPlayers(): number;
@@ -171,7 +171,10 @@ interface JavaConnectionState {
     streaming?: Promise<void>;
     /** Whether the client confirmed a teleport since its last move, as Bedrock's `HandledTeleport` says. */
     teleportHandled?: boolean;
-    /** The chunk the client's view centers on, and every chunk it has been sent. */
+    /**
+     * The chunk the client's view centers on, and every chunk it has been sent. A respawn
+     * replaces it, and a batch that sees its view replaced stops.
+     */
     view?: { x: number; z: number; readonly sent: Set<string> };
     /** The keep-alive timer, and the id the client has not yet answered, once the player is in play. */
     keepAlive?: { readonly timer: NodeJS.Timeout; awaiting: bigint | undefined };
@@ -417,7 +420,7 @@ export class JavaConnections {
      * leaves one unanswered for a whole interval is dropped, as vanilla drops it.
      */
     private async beginPlay(state: JavaConnectionState, world: JavaWorldHost): Promise<void> {
-        const { session, feet } = await world.players.join(
+        const { session, feet, dimension } = await world.players.join(
             state.profile!,
             state.verified ?? false,
             state.connection.id,
@@ -425,7 +428,8 @@ export class JavaConnections {
             async (reason) => {
                 this.send(state, PlayDisconnect, { reason });
                 await state.connection.close();
-            }
+            },
+            (at) => this.respawned(state, world, at)
         );
         state.session = session;
         const player = session.getPlayer();
@@ -441,7 +445,7 @@ export class JavaConnections {
             reducedDebugInfo: false,
             showDeathScreen: true,
             doLimitedCrafting: false,
-            ...overworldSpawnInfo(player.gamemode),
+            ...javaSpawnInfoOf(dimension, player.gamemode),
             onlineMode: this.options.onlineMode(),
             enforcesSecureChat: false
         });
@@ -478,11 +482,29 @@ export class JavaConnections {
     }
 
     /**
+     * Starts the client's view again where a respawn put the player: a client spawned again,
+     * into the same dimension or another, is sent every chunk around it afresh, as vanilla's
+     * new player is.
+     */
+    private respawned(state: JavaConnectionState, world: JavaWorldHost, feet: { x: number; y: number; z: number }) {
+        // Before play begins, the login's own position and first batch come next anyway.
+        const pose = state.pose;
+        if (pose === undefined) return;
+        pose.x = feet.x;
+        pose.y = feet.y;
+        pose.z = feet.z;
+        state.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
+        this.streamChunks(state, world);
+    }
+
+    /**
      * Centers the client's view on its chunk and sends every chunk around it the client has not
-     * had, nearest first, as one batch.
+     * had, nearest first, as one batch, from the world the player is in. A respawn meanwhile
+     * ends the batch, whose chunks may be of the world the player left.
      */
     private async sendChunksAround(state: JavaConnectionState, world: JavaWorldHost): Promise<void> {
         const view = state.view!;
+        const session = state.session!;
         const radius = world.viewDistance();
         this.send(state, SetCenterChunk, { x: view.x, z: view.z });
         const missing: { x: number; z: number }[] = [];
@@ -495,11 +517,15 @@ export class JavaConnections {
         if (missing.length === 0) return;
         missing.sort((a, b) => Math.hypot(a.x - view.x, a.z - view.z) - Math.hypot(b.x - view.x, b.z - view.z));
         this.send(state, ChunkBatchStart, {});
+        let sent = 0;
         for (const { x, z } of missing) {
+            const chunk = await world.chunk(session, x, z);
+            if (state.view !== view) break;
             view.sent.add(`${x},${z}`);
-            this.send(state, LevelChunkWithLight, this.chunks.columnOf(await world.chunk(x, z), world.light()));
+            this.send(state, LevelChunkWithLight, this.chunks.columnOf(chunk, world.light(session)));
+            sent++;
         }
-        this.send(state, ChunkBatchFinished, { batchSize: missing.length });
+        this.send(state, ChunkBatchFinished, { batchSize: sent });
     }
 
     /**

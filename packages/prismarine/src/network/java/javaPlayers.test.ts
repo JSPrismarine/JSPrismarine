@@ -76,7 +76,8 @@ describe('network', () => {
                     true,
                     2,
                     () => {},
-                    async () => {}
+                    async () => {},
+                    () => {}
                 );
                 await settle();
 

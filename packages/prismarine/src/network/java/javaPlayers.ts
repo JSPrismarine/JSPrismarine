@@ -22,6 +22,7 @@ import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type Server from '../../Server';
 import { entityIds } from '../../entity/entityIds';
+import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { Subject } from '../../identity/Subject';
 import type { Intent, IntentKind } from '../../input/Intent';
 import { laneOfIntents } from '../../input/Intent';
@@ -34,6 +35,7 @@ import { applyClientMovement } from '../handler/PlayerAuthInputHandler';
 import { HandlerContexts } from '../handlerContexts';
 import type { InputQueue } from '../InputQueue';
 import type PlayerSession from '../PlayerSession';
+import type { ShownDimension, ShownRespawn } from '../presenter/SessionPresenter';
 import type { ConnectionId } from '../transport/ConnectionId';
 import { TransportNames } from '../transport/Transport';
 import { accountLinksToken } from '../../modules/tokens';
@@ -127,15 +129,22 @@ export interface JavaPlayers {
      * the spawn the world places a new player at. It replaces any other connection, of either
      * edition, playing as the same account, as a Bedrock login does.
      * @param hangUp - Tells the client why it is disconnected and closes its connection.
-     * @returns The session, and where the player's feet are.
+     * @param respawned - Told where the player stands each time its client is spawned again, after
+     *   a death or into another world.
+     * @returns The session, where the player's feet are, and the dimension they are in.
      */
     join(
         profile: JavaProfile,
         verified: boolean,
         connection: ConnectionId,
         send: JavaSend,
-        hangUp: (reason: JavaText) => Promise<void>
-    ): Promise<{ readonly session: PlayerSession; readonly feet: { x: number; y: number; z: number } }>;
+        hangUp: (reason: JavaText) => Promise<void>,
+        respawned: (feet: ShownRespawn['feet']) => void
+    ): Promise<{
+        readonly session: PlayerSession;
+        readonly feet: { x: number; y: number; z: number };
+        readonly dimension: ShownDimension;
+    }>;
     /** Applies a position the client reported, in the input step. */
     move(session: PlayerSession, movement: ClientMovement): Promise<void>;
     /** Runs an intent the client's packet decoded into, by its lane. */
@@ -166,7 +175,7 @@ export const javaPlayersOf = (
     const items = javaItemTranslation();
 
     return {
-        join: async (profile, verified, id, send, hangUp) => {
+        join: async (profile, verified, id, send, hangUp, respawned) => {
             const connection = new JavaClientConnection(id, server.getLogger(), hangUp);
             connection.codec = latestCodec;
             connection.phase = 'play';
@@ -210,7 +219,7 @@ export const javaPlayersOf = (
                     y: spawn.getY(),
                     z: Math.floor(spawn.getZ()) + 0.5
                 });
-                const presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items);
+                const presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned);
                 const session = createConnectedPlayer({ server, connection, player, identity, world, presenter });
                 try {
                     await session.join();
@@ -225,8 +234,14 @@ export const javaPlayersOf = (
                     name: identity.name,
                     ...(textures === undefined ? {} : { textures })
                 });
-                const feet = session.getPlayer().getPosition();
-                return { session, feet: { x: feet.getX(), y: feet.getY(), z: feet.getZ() } };
+                // The position a player holds is their eyes.
+                const eyes = session.getPlayer().getPosition();
+                // The world the record put the player in, which is not always the level's Overworld.
+                return {
+                    session,
+                    feet: { x: eyes.getX(), y: eyes.getY() - EYE_HEIGHT, z: eyes.getZ() },
+                    dimension: session.shownDimension()
+                };
             } catch (error) {
                 // `leave` runs only for a connection that got a session, so a failed join lets go
                 // of the account here, or a later login would try to replace a closed connection.

@@ -53,7 +53,9 @@ import type {
     ShownEquipment,
     ShownInventory,
     ShownMessage,
+    ShownDimension,
     ShownMove,
+    ShownRespawn,
     ShownStack,
     ShownVitals
 } from '../presenter/SessionPresenter';
@@ -138,24 +140,36 @@ export const javaGameModeOf = (gamemode: Gametype): number =>
 const DIMENSION_TYPES: readonly string[] =
     CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
+/** Java's spelling of the vanilla dimensions, which a `dimension_type` id and its level share. */
+const OVERWORLD = 'minecraft:overworld';
+const NETHER = 'minecraft:the_nether';
+
 /**
- * The world a Java player spawns into, as `Login (play)` and `Respawn` both carry it: the
- * overworld, where every Java player is until dimensions reach Java clients.
+ * The world a Java player spawns into, as `Login (play)` and `Respawn` both carry it. The level
+ * takes the dimension type's name, as vanilla's three do. A type the client was not configured
+ * with, a custom one, is drawn as the Overworld's.
+ * @param dimension - The dimension the player is in.
  * @param gamemode - The player's game mode.
  * @returns The spawn fields.
  */
-export const overworldSpawnInfo = (gamemode: Gametype) => ({
-    dimensionType: Math.max(0, DIMENSION_TYPES.indexOf('minecraft:overworld')),
-    dimension: 'minecraft:overworld',
-    hashedSeed: 0n,
-    gameMode: javaGameModeOf(gamemode),
-    previousGameMode: null,
-    isDebug: false,
-    isFlat: false,
-    deathLocation: null,
-    portalCooldown: 0,
-    seaLevel: 63
-});
+export const javaSpawnInfoOf = ({ id, seaLevel }: ShownDimension, gamemode: Gametype) => {
+    const index = DIMENSION_TYPES.indexOf(id);
+    return {
+        dimensionType: index === -1 ? Math.max(0, DIMENSION_TYPES.indexOf(OVERWORLD)) : index,
+        dimension: id,
+        hashedSeed: 0n,
+        gameMode: javaGameModeOf(gamemode),
+        previousGameMode: null,
+        isDebug: false,
+        isFlat: false,
+        deathLocation: null,
+        portalCooldown: 0,
+        seaLevel
+    };
+};
+
+/** `Respawn`'s `dataToKeep` for a player who lives on: its attributes (1) and its entity data (2). */
+const KEEP_ALL_DATA = 3;
 
 /**
  * A message as Java text. A player's chat takes vanilla's `chat.type.text` translation, which
@@ -210,12 +224,15 @@ export class JavaPresenter implements SessionPresenter {
      * @param ownRuntimeId - The session's own player, whose moves its client is told.
      * @param blocks - Bedrock runtime ids to Java state ids, which every Java session can share.
      * @param items - Bedrock item identifiers to Java item ids, which every Java session can share.
+     * @param respawned - Told where the player stands once its client was spawned again, so the
+     *   connection sends the chunks around it afresh.
      */
     public constructor(
         private readonly send: JavaSend,
         private readonly ownRuntimeId: bigint,
         private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation(),
-        private readonly items: EditionTranslation<string, number | undefined> = javaItemTranslation()
+        private readonly items: EditionTranslation<string, number | undefined> = javaItemTranslation(),
+        private readonly respawned: (feet: ShownRespawn['feet']) => void = () => {}
     ) {}
 
     /**
@@ -448,13 +465,22 @@ export class JavaPresenter implements SessionPresenter {
     }
 
     /**
-     * Sends `Respawn` into the overworld the client already holds, keeping nothing of the dead
-     * player, and the event that has it wait for the chunks around where it comes back, as vanilla
+     * Sends `Respawn` into the player's dimension, keeping the player's data unless it died, and
+     * the event that has the client wait for the chunks around where it comes back, as vanilla
      * does. The position follows from the session.
+     *
+     * The client keeps the chunks it holds when `Respawn` names the dimension it is already in,
+     * so a move between two worlds of one dimension goes through another dimension first.
      */
-    public async showRespawn(gamemode: Gametype): Promise<void> {
-        this.send(Respawn, { ...overworldSpawnInfo(gamemode), dataToKeep: 0 });
+    public async showRespawn({ gamemode, dimension, feet, keepData, replacesWorld }: ShownRespawn): Promise<void> {
+        const dataToKeep = keepData ? KEEP_ALL_DATA : 0;
+        if (replacesWorld) {
+            const away = dimension.id === NETHER ? OVERWORLD : NETHER;
+            this.send(Respawn, { ...javaSpawnInfoOf({ ...dimension, id: away }, gamemode), dataToKeep });
+        }
+        this.send(Respawn, { ...javaSpawnInfoOf(dimension, gamemode), dataToKeep });
         this.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
+        this.respawned(feet);
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */

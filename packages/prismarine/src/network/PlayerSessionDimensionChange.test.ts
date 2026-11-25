@@ -63,6 +63,7 @@ const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level)
         removePlayer: async () => void roster.push('remove'),
         broadcastMove: async () => {},
         getSpawnPosition: async () => new Vector3(8, 70, 8),
+        getSeaLevel: () => 32,
         getChunk: async (x, z) => new Chunk(x, z, new Map(), dimension)
     });
 
@@ -769,5 +770,30 @@ describe('PlayerSession.changeWorld', () => {
                     packet.getPacketData()?.dimension !== Dimensions.Nether.bedrockId
             );
         expect(leaked).toStrictEqual([]);
+    });
+});
+
+describe('PlayerSession.changeWorld for a Java client', () => {
+    /** A player with a Java client, and the names and values of what its client was sent. */
+    const javaPlayer = () => {
+        const java: { name: string; value: unknown }[] = [];
+        const fake = fakePlayer({ java: (definition, value) => void java.push({ name: definition.name, value }) });
+        return { ...fake, java };
+    };
+
+    it('spawns the client again in the new dimension, then moves it to the arrival, with no screen left pending', async () => {
+        const { session, java, level } = javaPlayer();
+        const nether = worldOf(Dimensions.Nether, [], level);
+        java.length = 0;
+
+        await session.changeWorld(arrivalIn(nether));
+
+        expect(session.getWorld()).toBe(nether);
+        expect(session.pendingDimensionChange()).toBeUndefined();
+        const respawn = java.findIndex(({ name }) => name === 'Respawn');
+        const position = java.findIndex(({ name }) => name === 'Synchronize Player Position');
+        expect(java[respawn]?.value).toMatchObject({ dimension: 'minecraft:the_nether', dataToKeep: 3 });
+        expect(position).toBeGreaterThan(respawn);
+        expect(java[position]?.value).toMatchObject({ x: 100.5, y: 70, z: -20.5 });
     });
 });
