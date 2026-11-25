@@ -529,6 +529,14 @@ export class Level {
     }
 
     /**
+     * Whether the level is hardcore, which both editions' clients are told as a player joins.
+     * TODO: read it from the level's settings once the server plays hardcore's rules.
+     */
+    public isHardcore(): boolean {
+        return false;
+    }
+
+    /**
      * The Bedrock experiments the level runs with: the ones its `worlds.<name>` entry lists and the
      * ones its `level.dat` has on, read once the level opens.
      */

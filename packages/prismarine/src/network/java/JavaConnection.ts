@@ -9,6 +9,7 @@ import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaRe
 import { compressFrame } from '@jsprismarine/protocol/java/wire/compression';
 import type { Logger } from '@jsprismarine/logger';
 
+import type { TranslationKey } from '../../chat/ConsoleText';
 import { errorMessage } from '../../utils/errorMessage';
 import type PlayerSession from '../PlayerSession';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
@@ -17,8 +18,13 @@ import type { JavaProfile } from './javaAuth';
 /** Where a connection is in the conversation. */
 export type JavaConnectionPhase = JavaPacketDefinition['phase'];
 
-/** A translated reason, as the login phase's JSON text component. */
-export const translated = (key: string, ...args: string[]): string =>
+/**
+ * A translated reason, as the login phase's JSON text component.
+ * @param key - A key the server has English for, which the client translates itself.
+ * @param args - What fills the key's placeholders.
+ * @returns The JSON.
+ */
+export const translated = (key: TranslationKey, ...args: string[]): string =>
     JSON.stringify(args.length === 0 ? { translate: key } : { translate: key, with: args });
 
 /** One Java Edition connection and its state. */
@@ -34,6 +40,8 @@ export class JavaConnection {
     /** The name and token of a login waiting for its encryption response. */
     public pending?: { readonly name: string; readonly verifyToken: Buffer };
     public profile?: JavaProfile;
+    /** Whether the server sent `Finish Configuration`, which the client's acknowledgement answers. */
+    public configured?: boolean;
     /** Whether Mojang vouched for the profile, which makes the player a `java` subject rather than `offline`. */
     public verified?: boolean;
     /** The player's session, once they are in the world. */
@@ -53,6 +61,8 @@ export class JavaConnection {
      * replaces it, and a batch that sees its view replaced stops.
      */
     public view?: { x: number; z: number; readonly sent: Set<string> };
+    /** Whether the transport closed, after which nothing is started for the connection. */
+    public closed = false;
     /** The keep-alive timer, and the id the client has not yet answered, once the player is in play. */
     public keepAlive?: { readonly timer: NodeJS.Timeout; awaiting: bigint | undefined };
 

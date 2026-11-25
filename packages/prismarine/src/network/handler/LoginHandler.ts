@@ -10,6 +10,7 @@ import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';
 import type { ConnectionContext, ConnectionHandler, LoginIdentity, LoginServices } from './ConnectionContext';
 import { accountOf } from './ConnectionContext';
 import { loginRefusalOf } from '../playerAdmission';
+import { englishOf } from '../../chat/ConsoleText';
 import type { HandlerLog } from './HandlerContext';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { PlayerIdentity } from '../../playerIdentity';
@@ -238,13 +239,19 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
         switch (refusal?.kind) {
             case 'banned':
                 await connection.disconnect(
-                    `You have been banned${refusal.reason ? ` for reason: ${refusal.reason}` : ''}!`,
+                    refusal.reason === ''
+                        ? englishOf('jsprismarine.disconnect.banned')
+                        : englishOf('jsprismarine.disconnect.banned.reason', refusal.reason),
                     false,
                     DisconnectReason.NOT_ALLOWED
                 );
                 return;
             case 'notInvited':
-                await connection.disconnect('You are not invited to this server.', false, DisconnectReason.NOT_ALLOWED);
+                await connection.disconnect(
+                    englishOf('jsprismarine.disconnect.not_invited'),
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
                 return;
             case 'full':
                 // The client renders this status as "server full", so the player learns why
@@ -254,7 +261,11 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                     new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
                     true
                 );
-                await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
+                await connection.disconnect(
+                    englishOf('jsprismarine.disconnect.server_full'),
+                    false,
+                    DisconnectReason.SERVER_FULL
+                );
                 return;
         }
 

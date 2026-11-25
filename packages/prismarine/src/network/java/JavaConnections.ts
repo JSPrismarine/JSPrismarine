@@ -49,11 +49,34 @@ export interface JavaLoginOptions {
     readonly brand: string;
     /** Whether a player must prove to Mojang's session server that they own their name. */
     onlineMode(): boolean;
+    /**
+     * The smallest packet a connection compresses once its login ends, in bytes, which
+     * `packet-compression-threshold` sets for both editions; 0 compresses nothing.
+     */
+    compressionThreshold(): number;
+    /**
+     * Whether chat must be signed. The server does not check chat signatures, so it is off until
+     * it does, and a client that requires secure chat is told so before it joins.
+     */
+    enforcesSecureChat(): boolean;
     /** Asks the session server; {@link hasJoined} against Mojang unless a test gives another. */
     readonly hasJoined?: typeof hasJoined;
     readonly log: Pick<Logger, 'debug' | 'info'>;
     /** The world a player who reaches play is shown; without one, the join ends there. */
     readonly world?: JavaWorldHost;
+}
+
+/** What `Login (play)` tells a client of the level its player joins. */
+export interface JavaJoinSettings {
+    readonly hardcore: boolean;
+    /** Every dimension the level has, custom ones included, by the id a Java client names it by. */
+    readonly dimensions: readonly string[];
+    /** The `reducedDebugInfo` game rule. */
+    readonly reducedDebugInfo: boolean;
+    /** Whether the client shows a death screen, which the `doImmediateRespawn` game rule turns off. */
+    readonly showDeathScreen: boolean;
+    /** The `doLimitedCrafting` game rule. */
+    readonly doLimitedCrafting: boolean;
 }
 
 /** The world a Java player in play joins, and the chunks they are shown of it. */
@@ -66,6 +89,8 @@ export interface JavaWorldHost {
     light(session: PlayerSession): JavaChunkLight;
     /** How many chunks out from the player the client is sent. */
     viewDistance(): number;
+    /** What `Login (play)` tells the client of the world the session's player joins. */
+    joinSettings(session: PlayerSession): JavaJoinSettings;
     maxPlayers(): number;
 }
 
@@ -113,6 +138,7 @@ export class JavaConnections {
         );
         transport.onDisconnect(async (id) => {
             const connection = this.connections.get(id);
+            if (connection !== undefined) connection.closed = true;
             if (connection?.keepAlive !== undefined) clearInterval(connection.keepAlive.timer);
             this.connections.delete(id);
             // Whether or not the join got as far as a session: one that ended early, replaced by a

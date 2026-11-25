@@ -26,12 +26,6 @@ import { beginConfiguration } from './configurationHandlers';
 import type { JavaContext, JavaPacketHandler } from './JavaPacketHandler';
 import { javaHandler } from './JavaPacketHandler';
 
-/**
- * The smallest packet a connection compresses, which the vanilla server's
- * `network-compression-threshold` defaults to.
- */
-const COMPRESSION_THRESHOLD = 256;
-
 /** A player name the vanilla server accepts: one to sixteen letters, digits and underscores. */
 const VALID_NAME = /^[A-Za-z0-9_]{1,16}$/;
 
@@ -90,8 +84,12 @@ const finishLogin = async (
     const refusal = await services.options.world?.players.refusalOf(profile, verified);
     if (refusal !== undefined) return refuseLogin(connection, javaRefusalReason(refusal));
     connection.verified = verified;
-    connection.send(SetCompression, { threshold: COMPRESSION_THRESHOLD });
-    connection.compression = COMPRESSION_THRESHOLD;
+    // A threshold of 0 compresses nothing, as it does for Bedrock, so no `Set Compression` goes.
+    const threshold = services.options.compressionThreshold();
+    if (threshold > 0) {
+        connection.send(SetCompression, { threshold });
+        connection.compression = threshold;
+    }
     connection.profile = profile;
     connection.send(LoginSuccess, {
         uuid: profile.id,

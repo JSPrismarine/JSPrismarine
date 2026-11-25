@@ -54,6 +54,8 @@ import { withCwd } from '../utils/cwd';
 import { errorMessage } from '../utils/errorMessage';
 import { networkToken } from './tokens';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+import { gameRuleValue } from '../content/world/gameRules';
+import { GameRules } from '../world/GameRuleManager';
 
 /** The most chunks out from a Java player they are sent, while each batch goes at once. */
 const JAVA_JOIN_RADIUS = 8;
@@ -389,6 +391,9 @@ export class ServerNetworking implements Networking {
             status: serverName,
             brand: serverName.getName(),
             onlineMode: () => config.getOnlineMode(),
+            compressionThreshold: () => config.getPacketCompressionThreshold(),
+            // TODO: a setting once the server checks chat signatures; until then chat is unsigned.
+            enforcesSecureChat: () => false,
             log: logger,
             world: {
                 players: javaPlayersOf(server, inputs),
@@ -402,7 +407,19 @@ export class ServerNetworking implements Networking {
                 },
                 // Each batch is sent at once, so a modest radius until batches are paced.
                 viewDistance: () => Math.min(config.getViewDistance(), JAVA_JOIN_RADIUS),
-                maxPlayers: () => config.getMaxPlayers()
+                maxPlayers: () => config.getMaxPlayers(),
+                joinSettings: (session) => {
+                    const world = session.getWorld();
+                    const level = world.getLevel();
+                    const rule = (name: string): boolean => gameRuleValue(world.getGameRuleManager(), name) === true;
+                    return {
+                        hardcore: level.isHardcore(),
+                        dimensions: [...level.getStems().keys()],
+                        reducedDebugInfo: rule('reducedDebugInfo'),
+                        showDeathScreen: !rule(GameRules.DoImmediateRespawn),
+                        doLimitedCrafting: rule(GameRules.DoLimitedCrafting)
+                    };
+                }
             }
         });
         listening.push(

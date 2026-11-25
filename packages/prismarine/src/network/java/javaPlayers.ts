@@ -19,6 +19,7 @@ import type { InetAddress } from '@jsprismarine/raknet';
 import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 
 import type Server from '../../Server';
+import type { TranslationKey } from '../../chat/ConsoleText';
 import type { PlayerIdentity } from '../../playerIdentity';
 import type { LoginRefusal } from '../playerAdmission';
 import { loginRefusalOf } from '../playerAdmission';
@@ -89,7 +90,7 @@ const javaSide = (id: ConnectionId, address: InetAddress): TransportConnection =
  */
 export const javaDisconnectReason = (reason: string, code?: DisconnectReason): JavaText =>
     code === DisconnectReason.LOGGED_IN_OTHER_LOCATION
-        ? { translate: 'multiplayer.disconnect.duplicate_login' }
+        ? { translate: 'multiplayer.disconnect.duplicate_login' satisfies TranslationKey }
         : reason;
 
 /**
@@ -238,6 +239,12 @@ export const javaPlayersOf = (
                         (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned))
                 });
                 if (session === null) return undefined;
+                // The client hung up while its player was built, and `leave` found no player to
+                // take out: this one is taken out instead of being let into the world.
+                if (!sessions.has(id)) {
+                    await connection.closePlayerSession();
+                    return undefined;
+                }
                 const arrival = playerArriving({ log: server.getLogger(), events: server.getKernel().events }, session);
                 if (!arrival.joins) {
                     await arrival.leaving;
@@ -271,9 +278,11 @@ export const javaPlayersOf = (
         announce: (session) =>
             announceArrival({ chat: server.getChatManager(), console: server.getConsoleSender() }, session),
 
+        // Held under the connection, as a Bedrock client's inputs are and as a replacing login holds
+        // the player's removal, so the removal applies behind every input the client sent first.
         move: (session, movement) =>
             inputs.hold(
-                session,
+                session.getConnection(),
                 () =>
                     void contexts.runInput(
                         {
@@ -290,7 +299,7 @@ export const javaPlayersOf = (
         intent: (session, intent) => {
             if (laneOfIntents([intent.kind]) === 'input') {
                 return inputs.hold(
-                    session,
+                    session.getConnection(),
                     () =>
                         void contexts.runInput(
                             {

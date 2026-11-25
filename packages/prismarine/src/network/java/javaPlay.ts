@@ -46,33 +46,37 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
     );
     // The join ended before the player was in the world, and hung up on the client.
     if (joined === undefined) return;
+    // The client hung up meanwhile and its disconnect has run, so nothing may start for it now.
+    if (connection.closed) return joined.session.getConnection().closePlayerSession();
     const { session, feet, dimension } = joined;
     connection.session = session;
     const player = session.getPlayer();
     connection.pose = { ...feet, yaw: player.yaw, pitch: player.pitch, onGround: true };
     const radius = world.viewDistance();
+    const settings = world.joinSettings(session);
+    const velocity = player.getVelocity();
     connection.send(PlayLogin, {
         entityId: Number(session.runtimeId),
-        hardcore: false,
-        dimensions: ['minecraft:overworld', 'minecraft:the_nether', 'minecraft:the_end'],
+        hardcore: settings.hardcore,
+        dimensions: [...settings.dimensions],
         maxPlayers: world.maxPlayers(),
         viewDistance: radius,
         simulationDistance: radius,
-        reducedDebugInfo: false,
-        showDeathScreen: true,
-        doLimitedCrafting: false,
+        reducedDebugInfo: settings.reducedDebugInfo,
+        showDeathScreen: settings.showDeathScreen,
+        doLimitedCrafting: settings.doLimitedCrafting,
         ...javaSpawnInfoOf(dimension, player.gamemode),
         onlineMode: services.options.onlineMode(),
-        enforcesSecureChat: false
+        enforcesSecureChat: services.options.enforcesSecureChat()
     });
     connection.send(SynchronizePlayerPosition, {
         teleportId: 1,
         x: feet.x,
         y: feet.y,
         z: feet.z,
-        velocityX: 0,
-        velocityY: 0,
-        velocityZ: 0,
+        velocityX: velocity.x,
+        velocityY: velocity.y,
+        velocityZ: velocity.z,
         yaw: player.yaw,
         pitch: player.pitch,
         flags: 0

@@ -48,7 +48,7 @@ import type { ContextParts } from '../../testing/handlerContext.test.helper';
 import type { HandlerLog } from './HandlerContext';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 import { TransportNames } from '../transport/Transport';
-import { ARRIVAL_REFUSED } from '../playerArrival';
+import { englishOf } from '../../chat/ConsoleText';
 
 /**
  * Records everything the join sends, in order, under one name per packet.
@@ -723,7 +723,10 @@ describe('ResourcePackClientResponseHandler', () => {
 
         await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
-        expect(kick).toHaveBeenCalledExactlyOnceWith(ARRIVAL_REFUSED, DisconnectReason.DISCONNECTED);
+        expect(kick).toHaveBeenCalledExactlyOnceWith(
+            englishOf('jsprismarine.disconnect.join_refused'),
+            DisconnectReason.DISCONNECTED
+        );
         expect(sent).toEqual([]);
         expect(announce).not.toHaveBeenCalled();
     });

@@ -83,7 +83,7 @@ export const createStartGameData = ({
         dimension: world.getDimension().bedrockId,
         generator: startGameGenerator(world),
         worldGamemode: getGametypeId(config.getGamemode()),
-        hardcore: false,
+        hardcore: world.getLevel().isHardcore(),
         difficulty: config.getDifficulty(),
         spawnPosition: {
             x: worldSpawnPosition.getX(),

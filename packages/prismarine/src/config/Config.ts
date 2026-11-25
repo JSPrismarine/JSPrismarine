@@ -133,7 +133,8 @@ const COMMENTS = {
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
-    'packet-compression-threshold': 'The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.',
+    'packet-compression-threshold':
+        'The smallest Bedrock batch body or Java packet to compress, in bytes. 0 leaves everything uncompressed.',
     'packet-full-flush-fragments':
         'Prototype: reuse independently compressed packet fragments. Requires retail client validation.',
     'enable-query': 'Whether to answer the GameSpy4 query protocol that server lists and status tools use.',

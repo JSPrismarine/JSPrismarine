@@ -149,6 +149,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         getName: () => options.name ?? 'test',
         getServer: () => server,
         getExperiments: () => options.experiments ?? [],
+        isHardcore: () => false,
         getProvider: () => {
             if (options.provider === undefined) throw new PrismarineServerErrors.FakeLevelWithoutProvider();
             return options.provider;

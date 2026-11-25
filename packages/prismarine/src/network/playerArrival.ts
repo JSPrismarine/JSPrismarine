@@ -7,15 +7,13 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 
 import { Chat, ChatType } from '../chat/Chat';
+import { englishOf } from '../chat/ConsoleText';
 import type { ChatManager } from '../chat/ChatManager';
 import type { ConsoleSender } from '../command/ConsoleSender';
 import PlayerSpawnEvent from '../events/player/PlayerSpawnEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
 import type { HandlerLog } from './handler/HandlerContext';
 import type PlayerSession from './PlayerSession';
-
-/** What a player whose join a `playerSpawn` listener cancelled is told as it is disconnected. */
-export const ARRIVAL_REFUSED = 'You were not let into the world.';
 
 /** Whether a join goes on, or the player is on the way out because a listener cancelled it. */
 export type Arrival = { readonly joins: true } | { readonly joins: false; readonly leaving: Promise<void> };
@@ -42,7 +40,10 @@ export const playerArriving = (
     const spawnEvent = new PlayerSpawnEvent(session);
     events.post('playerSpawn', spawnEvent);
     if (!spawnEvent.isCanceled()) return { joins: true };
-    return { joins: false, leaving: session.kick(ARRIVAL_REFUSED, DisconnectReason.DISCONNECTED) };
+    return {
+        joins: false,
+        leaving: session.kick(englishOf('jsprismarine.disconnect.join_refused'), DisconnectReason.DISCONNECTED)
+    };
 };
 
 /**
