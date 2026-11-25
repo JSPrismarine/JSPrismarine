@@ -29,6 +29,10 @@ export const COMMAND_PROBES = [
     'gamerule doDaylightCycle notabool',
     'effect @a speed 10 1 notabool',
     'setblock 0 0 0 stone ["a"=1] replace extra',
+    // A filter block only follows `replace`; after another mode the server refuses it.
+    'fill 0 0 0 0 0 0 stone keep dirt',
+    'fill 0 0 0 0 0 0 stone replace dirt extra',
+    'fill 0 0 0 0 0 0 stone replace dirt ["a"=1] extra',
     'weather clear abc',
     'difficulty bogus',
     'allowlist list',

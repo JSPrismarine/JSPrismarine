@@ -36,6 +36,7 @@ import { deathRespawn } from './scenarios/death-respawn.mts';
 import { teleportWhileDead } from './scenarios/teleport-while-dead.mts';
 import { spawnpointRespawn } from './scenarios/spawnpoint-respawn.mts';
 import { summonEntity } from './scenarios/summon-entity.mts';
+import { fillReplaceFilter } from './scenarios/fill-replace-filter.mts';
 import { mobLeavesBlock } from './scenarios/mob-leaves-block.mts';
 import { summonRefused } from './scenarios/summon-refused.mts';
 import { pistonBedrock } from './scenarios/piston-bedrock.mts';
@@ -96,6 +97,7 @@ export const suites: ScenarioSuite[] = [
             pistonBedrock,
             summonEntity,
             summonRefused,
+            fillReplaceFilter,
             mobLeavesBlock,
             deathRespawn,
             deathInventory,

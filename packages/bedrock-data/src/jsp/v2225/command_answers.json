@@ -73,6 +73,21 @@
             "message": "Syntax error: Unexpected \"extra\": at \"] replace >>extra<<\""
         },
         {
+            "command": "fill 0 0 0 0 0 0 stone keep dirt",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"dirt\": at \"tone keep >>dirt<<\""
+        },
+        {
+            "command": "fill 0 0 0 0 0 0 stone replace dirt extra",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"extra\": at \"lace dirt >>extra<<\""
+        },
+        {
+            "command": "fill 0 0 0 0 0 0 stone replace dirt [\"a\"=1] extra",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"extra\": at \"t [\"a\"=1] >>extra<<\""
+        },
+        {
             "command": "weather clear abc",
             "level": "ERROR",
             "message": "Syntax error: Unexpected \"abc\": at \"her clear >>abc<<\""

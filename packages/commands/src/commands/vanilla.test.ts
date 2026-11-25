@@ -6,7 +6,7 @@ import { reportProgress } from '../../../../.test/reportProgress';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import { flattenCommandTree } from '../flatten';
-import type { CommandHost, CommandSource, EntityRef, TickCommandHost } from '../host';
+import type { CommandHost, CommandSource, EntityRef, TickCommandHost, WorldCommandHost } from '../host';
 import { createCommandSource } from '../host';
 import { buildAvailableCommands } from '../packet';
 import { parseSelector } from '../selector';
@@ -108,7 +108,8 @@ describe('the command set', () => {
         // `execute if slots <slots> <item>` does.
         // `execute if slots` then took Java's block and entity forms, and `minecraft:slot_source`,
         // a string to Bedrock, read SNBT with spaces in it.
-        expect(digest).toBe('df78f60aeaff01cb60dbe3642eb1b385b6554c92');
+        // `/fill … replace` then took Bedrock's `Replace` enum and the filter block after it.
+        expect(digest).toBe('e6e5d0b30474098e575e4c987331dc7c6315a7d4');
     });
 });
 
@@ -578,6 +579,38 @@ describe('the world commands', () => {
         const { results } = run('fill 0 0 0 1 1 1 minecraft:stone', { world: { fill: () => 8 } });
 
         expect(results).toEqual([8]);
+    });
+
+    it('/fill replace passes the filter, with its states, to the host', () => {
+        const seen: unknown[] = [];
+        const world: Partial<WorldCommandHost> = {
+            fill: (_dimension, _from, _to, block, mode, filter) => {
+                seen.push({ block: block.identifier, mode, filter });
+                return 0;
+            }
+        };
+
+        run('fill 0 0 0 1 1 1 minecraft:obsidian replace minecraft:obsidian', { world });
+        run('fill 0 0 0 1 1 1 minecraft:air replace minecraft:portal ["portal_axis"="x"]', { world });
+        run('fill 0 0 0 1 1 1 minecraft:stone ["stone_type"="granite"] replace minecraft:dirt', { world });
+        run('fill 0 0 0 1 1 1 minecraft:stone replace', { world });
+
+        expect(seen).toEqual([
+            { block: 'minecraft:obsidian', mode: 'replace', filter: { identifier: 'minecraft:obsidian', states: {} } },
+            {
+                block: 'minecraft:air',
+                mode: 'replace',
+                filter: { identifier: 'minecraft:portal', states: { portal_axis: 'x' } }
+            },
+            { block: 'minecraft:stone', mode: 'replace', filter: { identifier: 'minecraft:dirt', states: {} } },
+            // `replace` on its own replaces everything, as Bedrock's optional filter leaves it.
+            { block: 'minecraft:stone', mode: 'replace', filter: undefined }
+        ]);
+    });
+
+    it('/fill takes a filter after replace and after no other mode', () => {
+        expect(() => run('fill 0 0 0 1 1 1 minecraft:stone keep minecraft:dirt')).toThrow();
+        expect(run('fill 0 0 0 1 1 1 minecraft:stone outline', { world: { fill: () => 3 } }).results).toEqual([3]);
     });
 
     it('/clone passes both modes through', () => {

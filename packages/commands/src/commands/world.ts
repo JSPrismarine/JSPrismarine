@@ -28,7 +28,7 @@ import type { GameRule } from '../gamerules';
 import { JAVA_GAME_RULES, bedrockGameRuleNames } from '../gamerules';
 import type { BlockRef, CommandSource } from '../host';
 import { suggestFromData } from '../suggestions';
-import type { CommandRegistry } from '../tree';
+import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
     FAILED,
@@ -222,8 +222,32 @@ const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRe
     states: statesKey === undefined ? {} : parseBlockStates(value<string>(context, statesKey))
 });
 
-/** `/fill`'s handling of what already stands in the region, which both its overloads end in. */
-const fillModeArgument = () => enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline', 'replace'] as const);
+/** `/fill`'s handling of what already stands in the region, other than `replace`. */
+const fillModeArgument = () => enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline'] as const);
+
+/**
+ * `/fill … replace [replaceTileName] [replaceBlockStates]`, Bedrock's `Replace` overloads: `replace`
+ * on its own replaces every block, and a block after it replaces only the blocks that match it.
+ *
+ * `replace` is an enum of its own beside {@link fillModeArgument}, as in Bedrock's table, because
+ * only it takes a filter. A filter under the shared mode node would also have parsed after `keep`.
+ *
+ * @param statesKey - The argument holding the block's states, when this overload has one.
+ */
+const fillReplaceBranch = (content: ContentRegistryIds, statesKey: string | undefined) =>
+    arg('replace', enumArgument('Replace', ['replace'] as const))
+        .executes(command((context) => fill(context, statesKey, 'replace')))
+        .then(
+            arg('replaceTileName', resourceArgument('minecraft:block', content.blocks))
+                .executes(command((context) => fill(context, statesKey, 'replace', 'replaceTileName')))
+                .then(
+                    arg('replaceBlockStates', blockStatesArgument()).executes(
+                        command((context) =>
+                            fill(context, statesKey, 'replace', 'replaceTileName', 'replaceBlockStates')
+                        )
+                    )
+                )
+        );
 
 /**
  * The rule names Bedrock's `/gamerule` takes `true` or `false` for, in lowercase.
@@ -311,12 +335,14 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
                                         command((context) => fill(context, 'blockStates', value(context, 'mode')))
                                     )
                                 )
+                                .then(fillReplaceBranch(content, 'blockStates'))
                         )
                         .then(
                             arg('mode', fillModeArgument()).executes(
                                 command((context) => fill(context, undefined, value(context, 'mode')))
                             )
                         )
+                        .then(fillReplaceBranch(content, undefined))
                 )
             )
         ),
@@ -602,7 +628,17 @@ const setBlock = (context: Context, statesKey: string | undefined, mode: string)
     return report(current, placed ? 1 : 0, 'Placed the block');
 };
 
-const fill = (context: Context, statesKey: string | undefined, mode: string): number => {
+/**
+ * @param filterKey - The argument naming the block `replace` replaces, when the command gave one.
+ * @param filterStatesKey - The argument holding the filter's states, when it has any.
+ */
+const fill = (
+    context: Context,
+    statesKey: string | undefined,
+    mode: string,
+    filterKey?: string,
+    filterStatesKey?: string
+): number => {
     const current = source(context);
     const filled = current.host.world.fill(
         current.dimension,
@@ -617,7 +653,8 @@ const fill = (context: Context, statesKey: string | undefined, mode: string): nu
                 ? 'keep'
                 : mode === 'outline'
                   ? 'outline'
-                  : 'replace'
+                  : 'replace',
+        filterKey === undefined ? undefined : blockAt(context, filterKey, filterStatesKey)
     );
     return report(current, filled, `Filled ${filled} blocks`);
 };

@@ -129,6 +129,29 @@ const sameBlock = (left: BlockRef | undefined, right: BlockRef | undefined): boo
 };
 
 /**
+ * A state value in the form the block catalog stores it. A bit state such as `open_bit` is a byte,
+ * and `BlockStateSchema.createState` writes `true` and `false` given for one as 1 and 0, so a
+ * filter that spells it either way matches the block `/setblock` would have placed.
+ */
+const storedStateValue = (value: unknown): unknown => (typeof value === 'boolean' ? Number(value) : value);
+
+/**
+ * Whether a block is one a `/fill … replace` or `/clone … filtered` filter names: the same block,
+ * with each state the filter lists present and set as it lists it. A state the filter leaves out
+ * matches any value, so `replace minecraft:portal` finds a portal on either axis, as Bedrock and
+ * Java both read a filter.
+ */
+const matchesFilter = (block: BlockRef | undefined, filter: BlockRef | undefined): boolean => {
+    if (block === undefined || filter === undefined) return false;
+    if (block.identifier !== filter.identifier) return false;
+    return Object.entries(filter.states).every(
+        ([key, wanted]) =>
+            Object.hasOwn(block.states, key) &&
+            String(storedStateValue(block.states[key])) === String(storedStateValue(wanted))
+    );
+};
+
+/**
  * Builds the `world` group.
  *
  * @param server - The live server every verb reads and writes through.
@@ -201,7 +224,7 @@ export const worldCommandHost = (
 
                         const wanted =
                             mode === 'hollow' && !shell ? { identifier: 'minecraft:air', states: {} } : block;
-                        if (filter !== undefined && !sameBlock(readBlock(world, x, y, z), filter)) continue;
+                        if (filter !== undefined && !matchesFilter(readBlock(world, x, y, z), filter)) continue;
 
                         const placement: BlockPlacementMode =
                             mode === 'keep' ? 'keep' : mode === 'destroy' ? 'destroy' : 'replace';
@@ -237,7 +260,7 @@ export const worldCommandHost = (
                         const block = readBlock(world, x, y, z);
                         if (block === undefined) continue;
                         if (maskMode === 'masked' && block.identifier === 'minecraft:air') continue;
-                        if (maskMode === 'filtered' && !sameBlock(block, filter)) continue;
+                        if (maskMode === 'filtered' && !matchesFilter(block, filter)) continue;
                         copied.push({ at: new Vector3(x + shift.x, y + shift.y, z + shift.z), block });
                     }
                 }

@@ -491,6 +491,71 @@ describe('the server command host', () => {
             expect(fixture.blocks.get(key(11, 0, 11))?.name).toBe('minecraft:stone');
         });
 
+        it('replaces only the blocks a replace filter names', async () => {
+            await fixture.run('fill 0 0 0 1 0 0 minecraft:stone');
+            await fixture.run('fill 2 0 0 3 0 0 minecraft:obsidian');
+
+            await expect(fixture.run('fill 0 0 0 3 0 0 minecraft:dirt replace minecraft:stone')).resolves.toBe(2);
+
+            expect(fixture.blocks.get(key(0, 0, 0))?.name).toBe('minecraft:dirt');
+            expect(fixture.blocks.get(key(1, 0, 0))?.name).toBe('minecraft:dirt');
+            expect(fixture.blocks.get(key(2, 0, 0))?.name).toBe('minecraft:obsidian');
+            // Air matches no filter either, so the rest of the region stays empty.
+            expect(fixture.blocks.has(key(0, 1, 0))).toBe(false);
+        });
+
+        it('changes nothing when the filter names the block it fills with', async () => {
+            await fixture.run('fill 0 0 0 1 0 0 minecraft:obsidian');
+
+            await expect(fixture.run('fill 0 0 0 3 1 0 minecraft:obsidian replace minecraft:obsidian')).resolves.toBe(
+                0
+            );
+            expect(fixture.blocks.size).toBe(2);
+        });
+
+        it('matches a filter with no states against every state of its block', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:portal ["portal_axis"="x"]');
+            await fixture.run('setblock 1 0 0 minecraft:portal ["portal_axis"="z"]');
+
+            await expect(fixture.run('fill 0 0 0 1 0 0 minecraft:stone replace minecraft:portal')).resolves.toBe(2);
+        });
+
+        it('matches only the states a filter lists', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:portal ["portal_axis"="x"]');
+            await fixture.run('setblock 1 0 0 minecraft:portal ["portal_axis"="z"]');
+
+            await expect(
+                fixture.run('fill 0 0 0 1 0 0 minecraft:stone replace minecraft:portal ["portal_axis"="z"]')
+            ).resolves.toBe(1);
+            expect(fixture.blocks.get(key(0, 0, 0))?.name).toBe('minecraft:portal');
+            expect(fixture.blocks.get(key(1, 0, 0))?.name).toBe('minecraft:stone');
+        });
+
+        it('matches a true or false filter against a bit state the catalog stores as 1 or 0', async () => {
+            // As the catalog stores a door: `open_bit` is a byte.
+            fixture.blocks.set(key(0, 0, 0), { name: 'minecraft:wooden_door', states: { open_bit: 1 } });
+            fixture.blocks.set(key(1, 0, 0), { name: 'minecraft:wooden_door', states: { open_bit: 0 } });
+
+            await expect(
+                fixture.run('fill 0 0 0 1 0 0 minecraft:stone replace minecraft:wooden_door ["open_bit"=true]')
+            ).resolves.toBe(1);
+            expect(fixture.blocks.get(key(0, 0, 0))?.name).toBe('minecraft:stone');
+
+            await expect(
+                fixture.run('fill 0 0 0 1 0 0 minecraft:stone replace minecraft:wooden_door ["open_bit"=false]')
+            ).resolves.toBe(1);
+            expect(fixture.blocks.get(key(1, 0, 0))?.name).toBe('minecraft:stone');
+        });
+
+        it('matches nothing for a filter state the block does not have', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:portal ["portal_axis"="x"]');
+
+            await expect(
+                fixture.run('fill 0 0 0 0 0 0 minecraft:stone replace minecraft:portal ["missing"="undefined"]')
+            ).resolves.toBe(0);
+            expect(fixture.blocks.get(key(0, 0, 0))?.name).toBe('minecraft:portal');
+        });
+
         it('refuses a region bigger than the block-modification limit', async () => {
             await expect(fixture.run('fill 0 0 0 100 100 100 minecraft:stone')).rejects.toThrow('32768');
         });
