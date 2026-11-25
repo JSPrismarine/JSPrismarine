@@ -8,6 +8,7 @@ import type { ServerContent } from '../content/ServerContent';
 import type PacketHandlerRegistry from '../network/PacketHandlerRegistry';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type { StatsRegistry } from '../stats/StatsRegistry';
+import type { Updates } from './updates';
 import type WorldManager from '../world/WorldManager';
 import type { Networking } from './network';
 import type { Ticker } from './ticker';
@@ -59,3 +60,6 @@ export const commandsToken = createToken<CommandManager>('prismarine:commands');
  * metric here for a value it owns, and the stats providers read snapshots from it.
  */
 export const statsToken = createToken<StatsRegistry>('prismarine:stats');
+
+/** The server's update checks, provided by the `prismarine:updates` module. */
+export const updatesToken = createToken<Updates>('prismarine:updates');

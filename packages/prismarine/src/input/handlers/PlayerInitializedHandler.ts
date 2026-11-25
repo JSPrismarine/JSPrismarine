@@ -13,7 +13,7 @@ export default class PlayerInitializedHandler implements IntentHandler<'playerIn
     public static readonly Kind = 'playerInitialized';
 
     /** Puts the player into its world and sends it the state the client throws away while spawning. */
-    public handle(_intent: Intent<'playerInitialized'>, { session, log, step }: InputContext): undefined {
+    public handle(_intent: Intent<'playerInitialized'>, { session, log, step, services }: InputContext): undefined {
         // The player's own world, which is where `completeSpawn` and everything after it
         // look for them. It is the default world today, because that is the only one a join
         // puts anybody in, but reading it off the session is what keeps the two in step.
@@ -37,6 +37,8 @@ export default class PlayerInitializedHandler implements IntentHandler<'playerIn
         // spawning and loses them - the hunger bar sat empty without this. It writes and queues
         // its packets before it returns, and only the transport's framing is left to the step's
         // outputs.
-        step.output(session.completeSpawn());
+        // The update notice follows it, rather than going out in the join burst, which reaches the
+        // client before it has a player to show a chat line to.
+        step.output(session.completeSpawn().then(() => services.updates.welcome(session)));
     }
 }

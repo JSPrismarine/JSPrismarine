@@ -81,6 +81,7 @@ describe('the config file a boot generates', () => {
         'log-excluded-packets',
         'crafting-recipe-limit',
         'stats',
+        'updates',
         'content-strict',
         'content-world-packs',
         'content-datapacks',

@@ -760,7 +760,8 @@ describe('config', () => {
             'turns bStats off on a read-only file that has no stats section',
             async () => {
                 await boot();
-                const text = read().replace(/,\n {4}\/\/ The services the server reports[\s\S]*\n {4}}\n}\n$/, '\n}\n');
+                // The sections from `stats` to the end of the file, `updates` with it.
+                const text = read().replace(/,\n {4}\/\/ The services the server reports[\s\S]*\n}\n$/, '\n}\n');
                 expect(text).not.toContain('"stats"');
                 writeFileSync(file(), text);
                 chmodSync(file(), 0o444);

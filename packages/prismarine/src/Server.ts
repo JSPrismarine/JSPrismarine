@@ -57,6 +57,7 @@ import type { Transport } from './network/transport/Transport';
 import { permissionsModule } from './modules/permissions';
 import { socialModule } from './modules/social';
 import { statsModule, statsProvidersModule } from './modules/stats';
+import { updatesModule } from './modules/updates';
 import { serverBStatsProvider } from './stats/bstats/serverBStats';
 import { serverMetrics } from './stats/serverMetrics';
 import type { StatsProvider } from './stats/StatsProvider';
@@ -499,6 +500,12 @@ export default class Server {
         kernel.register(worldsModule(this.worldManager, this.chunkScheduler));
         kernel.register(loadFunctionsModule(this.commandManager));
         kernel.register(statsProvidersModule({ providers: [serverBStatsProvider(this.config), ...statsProviders] }));
+        kernel.register(
+            updatesModule({
+                settings: () => this.config.getUpdateSettings(),
+                players: () => this.sessionManager.getSessions()
+            })
+        );
         kernel.register(scriptsModule(this));
     }
 

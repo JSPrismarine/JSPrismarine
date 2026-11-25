@@ -23,6 +23,7 @@ import type { WorldMessages } from '../../world/WorldMessages';
 import type SessionManager from '../../SessionManager';
 import type { WorldReplicators } from '../NetworkWorldReplicator';
 import type PlayerSession from '../PlayerSession';
+import type { Updates } from '../../modules/updates';
 
 /** The logger levels a handler writes at. */
 export type HandlerLog = Pick<Logger, 'silly' | 'debug' | 'verbose' | 'info' | 'warn' | 'error'>;
@@ -101,6 +102,8 @@ export interface HandlerServices {
     readonly defaults: Pick<Config, 'setGamemode'>;
     /** Where a client's answer to a behavior pack script's form goes. */
     readonly scriptForms: ScriptFormInbox;
+    /** The update checks, which tell a player who just spawned about a newer build. */
+    readonly updates: Pick<Updates, 'welcome'>;
 }
 
 /** The behavior pack scripts' side of a form a client answers. */

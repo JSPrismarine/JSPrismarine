@@ -12,6 +12,7 @@ import { allSent } from './allSent';
 import type { HandlerServices, InputStep, SessionContext } from './handler/HandlerContext';
 import type { InputLaneHandler, SessionHandler } from './handler/SessionHandler';
 import type PlayerSession from './PlayerSession';
+import { updatesToken } from '../modules/tokens';
 
 /** The parts of the server a context is built from. */
 export type ContextSource = Pick<
@@ -83,6 +84,9 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     },
     get events() {
         return server.getKernel().events;
+    },
+    get updates() {
+        return server.getKernel().get(updatesToken);
     },
     get intents() {
         return server.getPacketHandlerRegistry().getIntentHandlers();

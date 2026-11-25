@@ -13,6 +13,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { collectAsyncCommands } from './deferred';
+import { kernelWithUpdates } from '../modules/updates.test-utils';
 import { registerJsprismarineCommands } from './jsprismarineCommands';
 import type { ProtocolProvider } from '../protocolProviders';
 import { bedrockProtocolProvider, describeProtocolProviders } from '../protocolProviders';
@@ -30,6 +31,9 @@ const debuggerSettings = (changes: Partial<ScriptDebuggerConfig>): ScriptDebugge
     passcode: '',
     ...changes
 });
+
+/** A kernel whose update checks have not run yet, which `/version` reads. */
+const updatesKernel = await kernelWithUpdates();
 
 describe("this server's own commands", () => {
     let registry: CommandRegistry<CommandSource>;
@@ -52,6 +56,7 @@ describe("this server's own commands", () => {
             kick
         });
         const server = stub<Server>({
+            getKernel: () => updatesKernel,
             getBanManager: () => stub<BanManager>({ setBanned, setUnbanned }),
             getSessionManager: () => stub<SessionManager>({ getSessions: () => [target] }),
             getTPSAverages: () => tpsAverages,
@@ -175,6 +180,7 @@ describe('/script debugger', () => {
             }
         });
         const server = stub<Server>({
+            getKernel: () => updatesKernel,
             getConfig: () =>
                 stub<Config>({
                     getScriptDebugger: () =>

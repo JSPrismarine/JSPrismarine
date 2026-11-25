@@ -14,6 +14,8 @@ import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import { BSTATS_ENDPOINT } from '../stats/bstats/service';
 import type { BStatsConfig, ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
+import { DEFAULT_UPDATE_SETTINGS, readUpdateSettings, UPDATE_INTERVAL_MINUTES } from '../updates/settings';
+import type { UpdateSettings } from '../updates/settings';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 import { DEFAULT_FLUID_REPLACEMENT } from '../content/world/fluidReplacement';
 import type { FluidReplacement } from '../content/world/fluidReplacement';
@@ -143,6 +145,7 @@ const COMMENTS = {
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.',
     stats: 'The services the server reports pseudonymous usage statistics to, one section each.',
+    updates: `How the server checks for a newer JSPrismarine. A key left out follows the build: enabled (on unless the server runs from a checkout), channel (release, or nightly for a nightly build), source (owner/repo or an https URL) and interval (minutes between checks, ${UPDATE_INTERVAL_MINUTES.default} by default and at least ${UPDATE_INTERVAL_MINUTES.minimum}). See https://jsprismarine.dev/guide/updates.`,
     'script-watchdog-enable-shutdown':
         "Whether a hang, a stack overflow or running out of memory in a behavior pack script shuts the server down, as Bedrock Dedicated Server's setting of the same name does.",
     'script-watchdog-hang-threshold':
@@ -313,6 +316,8 @@ const DEFAULTS = {
             endpoint: BSTATS_ENDPOINT
         }
     },
+    // Every key left out, so each follows the build.
+    updates: {},
     // Bedrock Dedicated Server's defaults for the same keys.
     'script-watchdog-enable-shutdown': true,
     'script-watchdog-hang-threshold': 10_000,
@@ -556,6 +561,8 @@ export class Config {
     /** Whether this start wrote the `stats.bstats` section into the file. */
     private bstatsSectionCreated = false;
 
+    private updateSettings: UpdateSettings = DEFAULT_UPDATE_SETTINGS;
+
     /**
      * Creates the server configuration.
      *
@@ -701,6 +708,12 @@ export class Config {
             passcode: readUnwritten<string>('script-debugger-passcode', DEFAULTS['script-debugger-passcode'])
         };
         this.readStats(config);
+        // Written empty, with the comment that names its keys, so each key follows the build
+        // until the owner sets it; a value written now would pin a channel the build later changes.
+        // `set` rather than `read`, which throws on a read-only file: a section that cannot be
+        // written is read as missing, and every key follows the build.
+        if (!config.has('updates')) config.set('updates', DEFAULTS.updates, COMMENTS.updates);
+        this.updateSettings = readUpdateSettings(config.get('updates'));
     }
 
     /**
@@ -1304,6 +1317,15 @@ export class Config {
      */
     public getBStatsSettings(): BStatsSettings {
         return this.bstatsSettings;
+    }
+
+    /**
+     * The `updates` settings as the file holds them. A key it leaves out is undefined and follows
+     * the build; `problems` lists what it holds that the server could not use.
+     * @returns The settings.
+     */
+    public getUpdateSettings(): UpdateSettings {
+        return this.updateSettings;
     }
 
     /**

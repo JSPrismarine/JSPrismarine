@@ -122,6 +122,18 @@ export interface BStatsConfig {
     endpoint?: string;
 }
 
+/** The `updates` section: whether and how the server checks for a newer JSPrismarine. Unset keys follow the build. */
+export interface UpdatesConfig {
+    /** Whether the server checks for updates. Unset, it does unless it runs from a checkout. */
+    enabled?: boolean;
+    /** Which builds to hear about: `release` or `nightly`. Unset, the channel of the running build. */
+    channel?: 'release' | 'nightly';
+    /** Where the feed is: `owner/repo`, or the https URL of a folder that holds the feed files. */
+    source?: string;
+    /** Minutes between checks; values under 60 read as 60. @asType integer @minimum 60 */
+    interval?: number;
+}
+
 /** The `stats` section: one entry per service the server reports usage statistics to. */
 export interface StatsConfig {
     /** bStats, at https://bstats.org. */
@@ -228,6 +240,8 @@ export interface ConfigFile {
     'crafting-recipe-limit'?: number;
     /** The services the server reports pseudonymous usage statistics to. */
     stats?: StatsConfig;
+    /** Whether and how the server checks for a newer JSPrismarine. */
+    updates?: UpdatesConfig;
     /** Whether a hang, a stack overflow or running out of memory in a script shuts the server down. */
     'script-watchdog-enable-shutdown'?: boolean;
     /** How long one script callback may run before it is stopped, in milliseconds, converted to steps. @asType integer @minimum 1 */
@@ -331,6 +345,7 @@ export const CONFIG_KEY_ORDER = [
     'log-excluded-packets',
     'crafting-recipe-limit',
     'stats',
+    'updates',
     'script-watchdog-enable-shutdown',
     'script-watchdog-hang-threshold',
     'script-watchdog-memory-limit',
