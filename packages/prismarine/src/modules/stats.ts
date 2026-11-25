@@ -6,6 +6,7 @@ import type { StatsPlatform } from '../stats/StatsPlatform';
 import type { StatsProvider, StatsProviderContext, StatsTimer } from '../stats/StatsProvider';
 import { StatsRegistry } from '../stats/StatsRegistry';
 import { errorMessage } from '../utils/errorMessage';
+import { unrefTimer } from '../utils/unrefTimer';
 import { statsToken } from './tokens';
 
 /** The metrics the registry starts with and where it reads the host description from. */
@@ -45,12 +46,6 @@ export interface StatsProvidersModuleOptions {
 
 /** How long a provider's `stop` may take before the server carries on without it. */
 export const PROVIDER_STOP_TIMEOUT_MS = 5000;
-
-const unrefTimer: StatsTimer = (callback, delayMs) => {
-    const timer = setTimeout(callback, delayMs);
-    timer.unref();
-    return () => clearTimeout(timer);
-};
 
 /** The providers one kernel start launched, so a stop during that start finds them. */
 interface ProvidersRun {
