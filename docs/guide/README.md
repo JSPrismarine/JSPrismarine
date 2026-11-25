@@ -39,6 +39,8 @@ Start from what you are here to do.
 - [Error reference](../errors/README.md): what an error in the log means, by its code.
 - [Usage statistics](usage-statistics.md): what the server reports to bStats, and how to turn it
   off.
+- [Updates](updates.md): how the server finds out about a newer build, who it tells, and how to
+  follow a fork.
 
 ## Build add-ons and plugins
 

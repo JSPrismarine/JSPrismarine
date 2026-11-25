@@ -277,6 +277,34 @@ export async function loadErrors(): Promise<ErrorDomainData[]> {
     return [...domains.values()];
 }
 
+/**
+ * The one-line doc comment of each key of a config section's interface in `JsonConfigTypes.ts`,
+ * which is also the key's description in the config schema.
+ * @param source - The text of `JsonConfigTypes.ts`.
+ * @param name - The interface, such as `BStatsConfig`.
+ */
+export function configKeyDescriptions(source: string, name: string): Map<string, string> {
+    const body = new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`).exec(source)?.[1] ?? '';
+    return new Map(
+        // A JSON Schema tag such as `@pattern` ends the prose part of a comment.
+        [...body.matchAll(/\/\*\* (.+?) \*\/\n\s+'?([\w-]+)'?\?:/g)].map(([, description, key]) => [
+            key!,
+            description!.replace(/\s*@\w+.*$/, '')
+        ])
+    );
+}
+
+/** The `updates` settings: each key with the doc comment `UpdatesConfig` gives it. */
+export function loadUpdateSettings(): { key: string; description: string }[] {
+    const source = readFileSync(
+        path.join(repoRoot, 'packages', 'prismarine', 'src', 'config', 'JsonConfigTypes.ts'),
+        'utf8'
+    );
+    const descriptions = configKeyDescriptions(source, 'UpdatesConfig');
+    if (descriptions.size === 0) throw new Error('The docs facts no longer find UpdatesConfig in JsonConfigTypes.ts.');
+    return [...descriptions].map(([key, description]) => ({ key: `updates.${key}`, description }));
+}
+
 /** One key of the `stats.bstats` section, as a fresh server writes it. */
 export interface BStatsSettingData {
     /** The full path, such as `stats.bstats.enabled`. */
@@ -301,14 +329,7 @@ export async function loadBStatsSettings(): Promise<BStatsSettingData[]> {
         path.join(repoRoot, 'packages', 'prismarine', 'src', 'config', 'JsonConfigTypes.ts'),
         'utf8'
     );
-    const body = /export interface BStatsConfig \{([\s\S]*?)\n\}/.exec(source)?.[1] ?? '';
-    const descriptions = new Map(
-        // A JSON Schema tag such as `@pattern` ends the prose part of a comment.
-        [...body.matchAll(/\/\*\* (.+?) \*\/\n\s+'?([\w-]+)'?\?:/g)].map(([, description, key]) => [
-            key,
-            description.replace(/\s*@\w+.*$/, '')
-        ])
-    );
+    const descriptions = configKeyDescriptions(source, 'BStatsConfig');
     return Object.entries(section).map(([key, value]) => {
         const description = descriptions.get(key);
         if (!description)
