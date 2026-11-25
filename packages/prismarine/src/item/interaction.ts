@@ -386,6 +386,18 @@ const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): 
     player.getInventory().setEquipmentCount('mainhand', stack.count);
 };
 
+/**
+ * Whether either of a player's hands holds an item, which is what turns a sneaking click from a
+ * use of the block into a use of the item.
+ *
+ * @javaSee ServerPlayerGameMode.useItemOn
+ */
+const holdsSomething = (inventory: HumanInventory): boolean =>
+    (['mainhand', 'offhand'] as const).some((slot) => {
+        const item = inventory.equipment(slot);
+        return item !== null && item !== undefined && item.getName() !== 'minecraft:air' && item.getAmount() > 0;
+    });
+
 /** Sends a player their inventory, without holding up the click that changed it. */
 const resendInventory = (player: InteractingPlayer): void => {
     void player.sendInventory().catch((error: unknown) => player.getServer().getLogger().error(error));
@@ -587,9 +599,11 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     // A block interaction landed on no entity, which is what `targetOf` has to say while the
     // hooks below run. Recorded for the length of the click rather than kept.
     const result = actors.duringInteraction(source, undefined, (): InteractionResult => {
-        // Sneaking with a placeable block skips the block, which is how a player places against
-        // a chest instead of opening it. Other items reach the block hook with their sneak state.
-        const skipBlock = player.isSneaking() && placedBlock !== undefined;
+        // Sneaking with anything in either hand skips the block, Java's `suppressUsingBlock` in
+        // `ServerPlayerGameMode.useItemOn`: it is how a player places against a chest, or uses
+        // flint and steel on a door, instead of opening it. Sneaking with empty hands still
+        // opens it.
+        const skipBlock = player.isSneaking() && holdsSomething(inventory);
 
         if (!skipBlock) {
             const hooks = content.blocks.types.get(block.identifier)?.state(block.states).content.hooks;

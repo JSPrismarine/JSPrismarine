@@ -3,6 +3,7 @@
         "BaseCommandBlock.performCommand": "net/minecraft/world/level/BaseCommandBlock.performCommand(Lnet/minecraft/server/level/ServerLevel;)Z",
         "BlockPlaceContext.getNearestLookingVerticalDirection": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;",
         "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": "net/minecraft/world/level/block/BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V",
+        "ChestBlock.getStateForPlacement": "net/minecraft/world/level/block/ChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CommandBlock.tick": "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
         "DetectorRailBlock.checkPressed": "net/minecraft/world/level/block/DetectorRailBlock.checkPressed(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V",
@@ -102,6 +103,9 @@
         },
         "net/minecraft/world/level/block/BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": {
             "26.3": "sha256:c024a11c85ca993c4bb6279a08bfdb534e4eafed79e6839c50edd7831d852c71"
+        },
+        "net/minecraft/world/level/block/ChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:8c68cec34f224d6f304d3e9c9dddb49488cf7f8ea1da6c7f02820beb53092f20"
         },
         "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V": {
             "26.3": "sha256:c778484264ff35dd69789bb83942b708949966178839f745b72fa93cdf2958dd"
