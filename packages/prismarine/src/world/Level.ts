@@ -934,6 +934,8 @@ export class Level {
     /**
      * A `minecraft:map_id` no map in this level has had, which is Java's `ServerLevel.getFreeMapId`.
      * The counter is saved with the level, so an id is never handed out twice.
+     *
+     * @javaSource ServerLevel.getFreeMapId
      */
     public nextMapId(): number {
         this.lastMapId += 1;
@@ -943,6 +945,8 @@ export class Level {
     /**
      * Makes a map and answers its id, Java's `MapItem.createNewSavedData`: a fresh id and the
      * map's center, scale, dimension and markers, saved with the level under that id.
+     *
+     * @javaSource MapItem.createNewSavedData
      */
     public createMap(request: NewSavedMap): number {
         return this.addMap(newSavedMap(request));
@@ -951,6 +955,8 @@ export class Level {
     /**
      * Saves a map under a fresh id and answers the id, as Java's `ServerLevel.setMapData` with
      * `getFreeMapId` does for a map made from an empty map or at a cartography table.
+     *
+     * @javaSource ServerLevel.setMapData
      */
     public addMap(map: SavedMap): number {
         const id = this.nextMapId();

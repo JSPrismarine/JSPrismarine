@@ -69,6 +69,8 @@ export interface NewSavedMap {
 /**
  * Java's `MapItemSavedData.createFresh` center: the map grid is `128 * 2^scale` blocks a cell,
  * offset by 64 so the world origin sits near a cell's corner, and a map centers on its cell.
+ *
+ * @javaSource MapItemSavedData.createFresh
  */
 const centerOf = (position: number, scale: number): number => {
     const size = MAP_SIZE * (1 << scale);
@@ -169,6 +171,8 @@ export const holderDecorationOnMap = (
 /**
  * An explorer map made around a position, Java's `MapItem.create` with unlimited tracking and the
  * decorations it starts with. Its pixels are the biome preview, drawn later.
+ *
+ * @javaSource MapItem.create
  */
 export const newSavedMap = (request: NewSavedMap): SavedMap => {
     // As given: Java's `MapItemSavedData` stores the zoom a map was made with unclamped.
@@ -185,7 +189,11 @@ export const newSavedMap = (request: NewSavedMap): SavedMap => {
     };
 };
 
-/** Java's `MapItemSavedData.MAX_SCALE`, the furthest a map zooms out. */
+/**
+ * Java's `MapItemSavedData.MAX_SCALE`, the furthest a map zooms out.
+ *
+ * @javaSource MapItemSavedData.MAX_SCALE
+ */
 export const MAX_MAP_SCALE = 4;
 
 /** What a blank map is made from; see {@link blankSavedMap}. */
@@ -200,6 +208,8 @@ export interface BlankSavedMap {
 /**
  * A map with nothing drawn on it, made around a position: Java's `MapItemSavedData.createFresh`
  * as an empty map and a zoomed-out copy make it, tracking its holders within reach of the map.
+ *
+ * @javaSource MapItemSavedData.createFresh
  */
 export const blankSavedMap = (request: BlankSavedMap): SavedMap => {
     const scale = Math.trunc(request.scale);
@@ -243,6 +253,7 @@ const javaSin = (radians: number): number => {
  * of stripes. A dry pixel beside water is drawn brown. The outermost ring of pixels is never
  * drawn.
  *
+ * @javaSource MapItem.renderBiomePreviewMap
  * @param map - The map's center and scale.
  * @param isWater - Whether the biome at a block, sampled at sea level, is outlined as water.
  * @returns Java's packed color ids, `x + z * 128`, with 0 for an undrawn pixel.

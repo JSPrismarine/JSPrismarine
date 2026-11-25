@@ -404,6 +404,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * One of the held stack moves, so its durability, enchantments and name go with it. What the
      * slot held goes to the hand when the hand empties, and to the inventory when it does not. A
      * creative hand keeps its item unless the swap hands it the worn one.
+     *
+     * @javaSource Equippable.swapWithEquipmentSlot
      */
     const swapFromHand = (entity: ItemPlayer, index: number): boolean => {
         const inventory = entity.getInventory();
@@ -497,6 +499,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * does; the behavior's write of the spent stack back to the hand then finds no empty map
      * there and leaves it. Otherwise the map goes into the inventory, or on the ground when there
      * is no room.
+     *
+     * @javaSource EmptyMapItem.use
      */
     const createMap = (source: ItemSource): void => {
         const player = playerOf(source);
@@ -543,6 +547,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * for `eye_of_ender_signal`, so `LAUNCH` resolved to a firework going up. Vanilla Bedrock
      * plays `random.bow` at half volume and a low pitch, Java's `0.4 / (random * 0.4 + 0.8)`,
      * which lands between a third and a half.
+     *
+     * @javaSource EnderEyeItem.use
      */
     const signal = (action: SignalAction): void => {
         const thrower = entityOf(action.source);

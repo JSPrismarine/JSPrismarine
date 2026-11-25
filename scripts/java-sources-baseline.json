@@ -530,9 +530,6 @@
     "packages/prismarine/src/item/Item.ts": {
         "untaggedJavaCitation": 2
     },
-    "packages/prismarine/src/item/actorPort.ts": {
-        "untaggedJavaCitation": 2
-    },
     "packages/prismarine/src/network/PlayerSession.ts": {
         "untaggedJavaCitation": 2
     },
@@ -544,9 +541,6 @@
     },
     "packages/prismarine/src/world/Generator.ts": {
         "untaggedJavaCitation": 5
-    },
-    "packages/prismarine/src/world/Level.ts": {
-        "untaggedJavaCitation": 2
     },
     "packages/prismarine/src/world/SpawnPlacement.ts": {
         "untaggedJavaCitation": 1
@@ -685,9 +679,6 @@
     },
     "packages/prismarine/src/world/randomTickSections.ts": {
         "untaggedJavaCitation": 2
-    },
-    "packages/prismarine/src/world/savedMap.ts": {
-        "untaggedJavaCitation": 3
     },
     "packages/prismarine/src/world/skyDarken.ts": {
         "untaggedJavaCitation": 1

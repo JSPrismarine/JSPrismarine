@@ -32,12 +32,17 @@ export interface MapTerrain {
     column(x: number, z: number): MapColumn;
 }
 
-/** Writes one pixel and answers whether it changed, Java's `MapItemSavedData.updateColor`. */
+/**
+ * Writes one pixel and answers whether it changed, Java's `MapItemSavedData.updateColor`.
+ *
+ * @javaSee MapItemSavedData.updateColor
+ */
 export type MapPainter = (x: number, z: number, packedColor: number) => boolean;
 
 /**
  * Redraws the part of a map near its holder that the holder's step picks.
  *
+ * @javaSee MapItemSavedData$HoldingPlayer.step
  * @param map - The map's center and scale.
  * @param holder - Where the holder stands, in blocks, and its step, which the caller advances once
  *   per call as Java's `HoldingPlayer.step` is.

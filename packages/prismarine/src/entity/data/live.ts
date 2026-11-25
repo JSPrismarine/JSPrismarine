@@ -311,6 +311,8 @@ const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
 /**
  * Gives a live player one experience orb: Mending repairs what it can of the gear, the rest is
  * experience, and the world hears the pickup sound, as Bedrock plays it for a collected orb.
+ *
+ * @javaSource ExperienceOrb.playerTouch
  */
 const takeExperienceOrb = (
     options: LiveEntityOptions,
