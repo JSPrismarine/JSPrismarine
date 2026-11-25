@@ -43,7 +43,14 @@ if (
     );
 }
 
-const buildMetadata = ['BUILD_TIME', 'BUILD_GIT_HASH', 'BUILD_VERSION', 'BUILD_FLAVOR', 'BUILD_TYPE'];
+const buildMetadata = [
+    'BUILD_TIME',
+    'BUILD_GIT_HASH',
+    'BUILD_VERSION',
+    'BUILD_FLAVOR',
+    'BUILD_TYPE',
+    'BUILD_UPDATE_SOURCE'
+];
 /**
  * Worker-thread entrypoints the executable embeds beside the server, one for every worker the
  * server starts: the generation pool's worker and the pipeline modules it imports dynamically,

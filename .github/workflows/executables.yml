@@ -206,7 +206,7 @@ jobs:
                   # with the system toolchain.
                   node_version="$(cat .nvmrc)"
                   docker run --rm -v "$PWD:$PWD" -w "$PWD" \
-                      -e BUILD_TIME -e BUILD_GIT_HASH -e BUILD_VERSION -e BUILD_FLAVOR -e BUILD_TYPE -e BUILD_TARGET \
+                      -e BUILD_TIME -e BUILD_GIT_HASH -e BUILD_VERSION -e BUILD_FLAVOR -e BUILD_TYPE -e BUILD_UPDATE_SOURCE -e BUILD_TARGET \
                       "node:${node_version%.x}-alpine" sh -euc '
                           apk add --no-cache libstdc++ libgcc build-base
                           arch="$(uname -m)"

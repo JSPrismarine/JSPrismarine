@@ -338,3 +338,22 @@ jobs:
                           --latest="$latest" \
                           --notes-file dist/highlights.md
                   fi
+
+            # The feed script loads TypeScript from the server package, which needs the Node the
+            # repository pins rather than the runner's.
+            - name: 🟢 Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: .nvmrc
+
+            # Servers on the release channel read this file. It never moves back a version, so a
+            # recovery of an older release leaves it alone.
+            - name: 📡 Publish the release update feed
+              env:
+                  UPDATE_FEED_SIGNING_KEY: ${{ secrets.UPDATE_FEED_SIGNING_KEY }}
+              run: |
+                  commit="$GITHUB_SHA"
+                  if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                      commit="$(git rev-list -n 1 "@jsprismarine/server@${RELEASE_VERSION}")"
+                  fi
+                  node scripts/write-update-feed.mts --channel release --version "$RELEASE_VERSION" --commit "$commit" --dist dist

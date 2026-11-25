@@ -178,6 +178,7 @@ const buildReport = (): string => {
                     BUILD_VERSION: '0.0.0',
                     BUILD_FLAVOR: 'explain',
                     BUILD_TYPE: 'nightly',
+                    BUILD_UPDATE_SOURCE: 'JSPrismarine/JSPrismarine',
                     ...process.env,
                     AOT_EXPLAIN_REPORT: reportPath
                 }
