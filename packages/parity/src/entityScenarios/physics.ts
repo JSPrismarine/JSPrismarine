@@ -646,6 +646,31 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     },
     {
+        name: 'walks-out-of-block',
+        java: 'A mob standing partly inside a block walks out of it: collision only stops a body at a shape ahead of it, not at one it already overlaps.',
+        reference: 'Java Entity.collide and Shapes.collide, which skip a shape the moving box already intersects',
+        subjects: () => ['minecraft:zombie', 'minecraft:silverfish'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:collision_box'],
+        run: (subject) => {
+            const { world } = realStack();
+            const at = lane();
+            // A two-block pillar, which the mob's box reaches a fifth of a block into from the east.
+            for (let dy = 0; dy <= 1; dy += 1)
+                world.setBlock({ x: at.x + 2, y: GROUND + dy, z: at.z }, 'minecraft:stone');
+            const width = serverContent().entities.registry.get(subject.bedrock)?.params(collisionBox)?.width ?? 1;
+            const start = at.x + 3 + width / 2 - 0.2;
+            return withEntity(subject.bedrock, { x: start, y: GROUND, z: at.z + 0.5 }, (entity) => {
+                for (let index = 0; index < 20; index += 1) {
+                    entity.body.moveTo({ x: at.x + 8.5, y: GROUND, z: at.z + 0.5 }, 1);
+                    tick();
+                }
+                const moved = entity.position.x - start;
+                return moved > 0.5 ? undefined : `it moved ${format(moved)} blocks away from the block it stood in`;
+            });
+        }
+    },
+    {
         name: 'stands-on-powder-snow',
         java: "A mob in Java's powder_snow_walkable_mobs tag stands on powder snow.",
         reference:

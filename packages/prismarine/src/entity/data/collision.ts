@@ -48,6 +48,47 @@ export const bodyCanOccupy = (
 ): boolean => boundsHitSolid(bodyBounds(position, box), bodyShape(blocks, canStandOnPowderSnow)) === false;
 
 /**
+ * {@link bodyCanOccupy} for one move that starts at `from`, where a block box the body already
+ * overlaps there does not count.
+ *
+ * Java's `Shapes.collide` only stops a box at a shape ahead of it, so a mob that ended up
+ * partly inside a block, such as one that spawned into a spawner's side before the spawn box was
+ * checked, walks out of it. Counting that block would refuse every step, and the mob would stand
+ * there with its goals running and never move.
+ * @javaSee Shapes.collide
+ * @param canStandOnPowderSnow - Whether powder snow counts as a collision surface.
+ */
+export const bodyCanOccupyFrom = (
+    from: EntityPosition,
+    box: EntityBox,
+    blocks: BodyBlocks,
+    canStandOnPowderSnow = false
+): ((position: EntityPosition) => boolean) => {
+    const shape = bodyShape(blocks, canStandOnPowderSnow);
+    const start = bodyBounds(from, box);
+    const inside = new Set<string>();
+    visitBoxes(start, shape, (cell, cellBox) => {
+        if (overlaps(start, cell, cellBox)) inside.add(boxKey(cell, cellBox));
+        return false;
+    });
+    if (inside.size === 0) return (position) => bodyCanOccupy(position, box, blocks, canStandOnPowderSnow);
+    return (position) => {
+        const bounds = bodyBounds(position, box);
+        return (
+            visitBoxes(
+                bounds,
+                shape,
+                (cell, cellBox) => overlaps(bounds, cell, cellBox) && !inside.has(boxKey(cell, cellBox))
+            ) === false
+        );
+    };
+};
+
+/** One block collision box, by its cell and its extent within it. */
+const boxKey = (cell: EntityPosition, box: BedrockCollisionBox): string =>
+    `${cell.x},${cell.y},${cell.z}:${box.join()}`;
+
+/**
  * Checks whether a body intersects water and lava in one scan of its bounds.
  * @param containsWater - The active world's water classifier.
  * @param containsLava - The active world's lava classifier.
@@ -366,14 +407,11 @@ const overlapsOn = (
  * @returns Undefined when a cell the box reaches is not loaded and no box before it overlapped.
  */
 export const boundsHitSolid = (bounds: BoxBounds, shape: CellShape): boolean | undefined =>
-    visitBoxes(
-        bounds,
-        shape,
-        (cell, box) =>
-            overlapsOn(bounds, cell, box, 'x') &&
-            overlapsOn(bounds, cell, box, 'y') &&
-            overlapsOn(bounds, cell, box, 'z')
-    );
+    visitBoxes(bounds, shape, (cell, box) => overlaps(bounds, cell, box));
+
+/** Whether a cell's box and a region overlap on all three axes by more than a touch. */
+const overlaps = (bounds: BoxBounds, cell: EntityPosition, box: BedrockCollisionBox): boolean =>
+    overlapsOn(bounds, cell, box, 'x') && overlapsOn(bounds, cell, box, 'y') && overlapsOn(bounds, cell, box, 'z');
 
 /**
  * Moves a box along one axis until the first block collision box in the way stops it, flush
