@@ -166,16 +166,22 @@ export const randomStroll = goal<WanderParams>({
     name: 'minecraft:behavior.random_stroll',
     controlFlags: ['move'],
     schema: bodySchema((body) => wanderFrom(body)),
-    create: (params, support) =>
-        walkTo(support, {
-            find: () => support.navigator.randomTarget(params.xzDistance, params.yDistance, () => support.random()),
-            // Java checks this before drawing RandomStrollGoal's start interval.
-            canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME,
-            speedMultiplier: params.speedMultiplier,
-            interval: params.interval,
-            goalRadius: DEFAULT_GOAL_RADIUS
-        })
+    create: (params, support) => strollGoal(params, support)
 });
+
+/**
+ * Java's `RandomStrollGoal` as a goal body, for a goal whose Java class extends it and falls back
+ * to the stroll when its own behavior does not start, as the silverfish's merge goal does.
+ */
+export const strollGoal = (params: WanderParams, support: GoalSupport): Goal =>
+    walkTo(support, {
+        find: () => support.navigator.randomTarget(params.xzDistance, params.yDistance, () => support.random()),
+        // Java checks this before drawing RandomStrollGoal's start interval.
+        canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME,
+        speedMultiplier: params.speedMultiplier,
+        interval: params.interval,
+        goalRadius: DEFAULT_GOAL_RADIUS
+    });
 
 /**
  * `minecraft:behavior.random_swim`, the wander the 12 water mobs carry. It is

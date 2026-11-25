@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GoalHarness, testMob } from '../harness';
+import { voxelGrid } from '../navigation/voxelGrid';
 import type { GoalMob, GoalWorld } from '../world';
 import { dragonPhaseState } from './dragonPhases';
 
@@ -558,6 +559,56 @@ describe('the silverfish goals', () => {
         harness.tick(10);
 
         expect(writes).toEqual([]);
+    });
+
+    it('wander when no face neighbor can host a silverfish, as the stroll the Java goal extends', () => {
+        let draw = 0;
+        const floor = Array.from({ length: 16 }, () => '#'.repeat(16));
+        const air = Array.from({ length: 16 }, () => '.'.repeat(16));
+        const view = voxelGrid([floor, air, air]);
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.silverfish_merge_with_stone': { priority: 5 } },
+            components: { 'minecraft:collision_box': { width: 0.4, height: 0.3 }, 'minecraft:navigation.walk': {} },
+            world: { navigation: () => view, blocks: () => [] },
+            at: { x: 8.5, y: 1, z: 8.5 },
+            // The one-in-five checks pass, and the stroll draws a spot four blocks south east,
+            // in the silverfish's own layer.
+            randomInt: () => 0,
+            random: () => [0.7, 0.5, 0.7][draw++ % 3] ?? 0.5
+        });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.silverfish_merge_with_stone');
+        expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
+    });
+
+    it('still wander with mobGriefing off, which only stops the hiding', () => {
+        let draw = 0;
+        const writes: string[] = [];
+        const floor = Array.from({ length: 16 }, () => '#'.repeat(16));
+        const air = Array.from({ length: 16 }, () => '.'.repeat(16));
+        const view = voxelGrid([floor, air, air]);
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.silverfish_merge_with_stone': { priority: 5 } },
+            components: { 'minecraft:collision_box': { width: 0.4, height: 0.3 }, 'minecraft:navigation.walk': {} },
+            world: {
+                navigation: () => view,
+                gameRule: (name) => name !== 'mobGriefing',
+                blocks: () => [{ position: { x: 8, y: 0, z: 8 }, identifier: 'minecraft:stone' }],
+                setBlock: (_position, identifier) => writes.push(identifier)
+            },
+            at: { x: 8.5, y: 1, z: 8.5 },
+            // The one-in-five checks pass, and the stroll draws a spot four blocks south east,
+            // in the silverfish's own layer.
+            randomInt: () => 0,
+            random: () => [0.7, 0.5, 0.7][draw++ % 3] ?? 0.5
+        });
+
+        harness.tick();
+
+        expect(writes).toEqual([]);
+        expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
     });
 
     it('wake the nests 20 ticks after the blow, not before', () => {
