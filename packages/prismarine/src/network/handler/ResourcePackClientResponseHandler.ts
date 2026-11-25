@@ -212,7 +212,13 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
      */
     private startJoin(context: InputContext): void {
         const { session, log, services, step } = context;
-        if (!playerArriving({ log, events: services.events }, session)) return;
+        const arrival = playerArriving({ log, events: services.events }, session);
+        if (!arrival.joins) {
+            // The kick takes the player off in this input's unit; the step lets the connection
+            // close without waiting for it.
+            step.output(arrival.leaving);
+            return;
+        }
 
         // The burst reads the spawn of the world the player joins and the level's Overworld
         // spawn, which placing a new player found before this. A world that has not found its
