@@ -1,6 +1,7 @@
 /** The scenario suites a run chooses from, each one server and client the runner starts. */
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
+import { portals } from './scenarios/portals.mts';
 import { commandSyntaxError } from './scenarios/command-syntax-error.mts';
 import { permissionsReload } from './scenarios/permissions-reload.mts';
 import { scriptForm } from './scenarios/script-form.mts';
@@ -161,6 +162,7 @@ export const suites: ScenarioSuite[] = [
             placementOverlap,
             enderDragon,
             dimensionsScenario,
+            portals,
             spawnpointRespawn,
             fallingBlockWater,
             // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
