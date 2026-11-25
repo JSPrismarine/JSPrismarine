@@ -4,6 +4,8 @@
  * Each edition calls these at its own point of the join: Bedrock's resource pack exchange, and
  * Java's step into play.
  */
+import { DisconnectReason } from '@jsprismarine/minecraft';
+
 import { Chat, ChatType } from '../chat/Chat';
 import type { ChatManager } from '../chat/ChatManager';
 import type { ConsoleSender } from '../command/ConsoleSender';
@@ -12,16 +14,25 @@ import type { ServerEventBus } from '../events/ServerEvents';
 import type { HandlerLog } from './handler/HandlerContext';
 import type PlayerSession from './PlayerSession';
 
+/** What a player whose join a `playerSpawn` listener cancelled is told as it is disconnected. */
+export const ARRIVAL_REFUSED = 'You were not let into the world.';
+
+/** Whether a join goes on, or the player is on the way out because a listener cancelled it. */
+export type Arrival = { readonly joins: true } | { readonly joins: false; readonly leaving: Promise<void> };
+
 /**
- * Logs that a player is joining, and from where, and posts `playerSpawn`.
+ * Logs that a player is joining, and from where, and posts `playerSpawn`. A listener that cancels
+ * the event disconnects the player, on either edition, rather than leave its client waiting on a
+ * world that never comes.
  * @param services - The log, and the events a listener hears it on.
  * @param session - The joining player.
- * @returns False when a listener cancelled the join.
+ * @returns Whether the join goes on; when it does not, the disconnect, which settles once the
+ *   connection is closed.
  */
 export const playerArriving = (
     { log, events }: { readonly log: Pick<HandlerLog, 'info'>; readonly events: Pick<ServerEventBus, 'post'> },
     session: PlayerSession
-): boolean => {
+): Arrival => {
     const { identity } = session;
     const connection = session.getConnection();
     const address = connection.getAddress();
@@ -30,7 +41,8 @@ export const playerArriving = (
     );
     const spawnEvent = new PlayerSpawnEvent(session);
     events.post('playerSpawn', spawnEvent);
-    return !spawnEvent.isCanceled();
+    if (!spawnEvent.isCanceled()) return { joins: true };
+    return { joins: false, leaving: session.kick(ARRIVAL_REFUSED, DisconnectReason.DISCONNECTED) };
 };
 
 /**

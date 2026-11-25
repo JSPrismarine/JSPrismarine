@@ -238,8 +238,9 @@ export const javaPlayersOf = (
                         (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned))
                 });
                 if (session === null) return undefined;
-                if (!playerArriving({ log: server.getLogger(), events: server.getKernel().events }, session)) {
-                    await connection.disconnect();
+                const arrival = playerArriving({ log: server.getLogger(), events: server.getKernel().events }, session);
+                if (!arrival.joins) {
+                    await arrival.leaving;
                     return undefined;
                 }
                 session.released(session.addToPlayerList());

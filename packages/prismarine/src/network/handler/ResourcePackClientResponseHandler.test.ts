@@ -48,6 +48,7 @@ import type { ContextParts } from '../../testing/handlerContext.test.helper';
 import type { HandlerLog } from './HandlerContext';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 import { TransportNames } from '../transport/Transport';
+import { ARRIVAL_REFUSED } from '../playerArrival';
 
 /**
  * Records everything the join sends, in order, under one name per packet.
@@ -717,11 +718,12 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(outputs).toHaveLength(1);
     });
 
-    it('sends nothing when a subscriber cancels the spawn', async () => {
-        const { sent, announce, parts, session } = harness({ cancelSpawn: true });
+    it('disconnects the player and sends nothing when a subscriber cancels the spawn', async () => {
+        const { sent, kick, announce, parts, session } = harness({ cancelSpawn: true });
 
         await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
+        expect(kick).toHaveBeenCalledExactlyOnceWith(ARRIVAL_REFUSED, DisconnectReason.DISCONNECTED);
         expect(sent).toEqual([]);
         expect(announce).not.toHaveBeenCalled();
     });
