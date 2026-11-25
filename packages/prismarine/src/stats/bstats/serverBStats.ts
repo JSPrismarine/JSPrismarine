@@ -1,5 +1,6 @@
 import type { BStatsSettings, Config } from '../../config/Config';
 import { loadOrCreateServerUuid } from '../../serverUuid';
+import { ENV_SWITCH_VALUES, readEnvSwitch } from '../../utils/envSwitch';
 import { isTestRunner } from '../../utils/isTestRunner';
 import type { Environment } from '../../utils/isTestRunner';
 import { BStatsProvider } from './BStatsProvider';
@@ -15,16 +16,13 @@ export type BStatsConfigSource = Pick<Config, 'getBStatsSettings' | 'wasBStatsSe
 export const BSTATS_OPT_OUT = {
     variable: 'JSP_BSTATS',
     /** Turn bStats off. The first is the one the docs show. */
-    off: ['0', 'false', 'off', 'no'],
+    off: ENV_SWITCH_VALUES.off,
     /** Leave the decision to `stats.bstats.enabled`, as an unset variable does. */
-    on: ['1', 'true', 'on', 'yes']
+    on: ENV_SWITCH_VALUES.on
 } as const;
 
 /** The environment variable CI services set, which turns bStats off. The docs quote it. */
 export const CI_VARIABLE = 'CI';
-
-const OFF_VALUES: ReadonlySet<string> = new Set(BSTATS_OPT_OUT.off);
-const ON_VALUES: ReadonlySet<string> = new Set(BSTATS_OPT_OUT.on);
 
 /** Why bStats does not report on this start. */
 export type BStatsOffReason =
@@ -48,9 +46,9 @@ export interface BStatsDecisionInputs {
 export const bstatsOffReason = ({ env, settings }: BStatsDecisionInputs): BStatsOffReason | undefined => {
     if (isTestRunner(env)) return 'test-runner';
     if (env[CI_VARIABLE] !== undefined) return 'ci';
-    const optOut = env[BSTATS_OPT_OUT.variable]?.toLowerCase();
-    if (optOut !== undefined && OFF_VALUES.has(optOut)) return 'environment';
-    if (optOut !== undefined && !ON_VALUES.has(optOut)) return 'invalid-environment';
+    const optOut = readEnvSwitch(env[BSTATS_OPT_OUT.variable]);
+    if (optOut === 'off') return 'environment';
+    if (optOut === 'invalid') return 'invalid-environment';
     if (settings.problem !== undefined) return 'invalid-config';
     if (!settings.enabled) return 'disabled';
     return undefined;

@@ -1,12 +1,10 @@
+import type { CancelableTimer } from '../utils/unrefTimer';
 import type { KernelLogger } from '@jsprismarine/kernel';
 
 import type { StatsRegistry } from './StatsRegistry';
 
-/**
- * Runs a callback once after a delay. Returns a function that cancels the callback if it has
- * not run yet, so a provider holds no timer handle type.
- */
-export type StatsTimer = (callback: () => void, delayMs: number) => () => void;
+/** Runs a callback once after a delay, and returns a function that cancels it. */
+export type StatsTimer = CancelableTimer;
 
 /**
  * What the stats module hands a provider when it starts. The timer is injected, so a test drives
