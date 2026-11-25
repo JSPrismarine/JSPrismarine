@@ -28,7 +28,7 @@ export const duplicateLogin: Scenario = {
         // which login reaches the server first, which the order of two `connect` calls does not.
         // Before #2951 the server looked only at players who had finished joining and let both in.
         const [first, second] = await Promise.all([launchClient(TWIN), launchClient(TWIN)]);
-        const firstJoining = server.waitForLine(new RegExp(`${TWIN}\\S* is attempting to join`), 120_000);
+        const firstJoining = server.waitForLine(new RegExp(`${TWIN}\\S* is joining over`), 120_000);
         // Not awaited: over NetherNet a connect waits out the trust prompt, which can last until the
         // client is in the world, and the second login has to arrive while the first still joins.
         // The first client may be dropped before its connect settles, which is the point.

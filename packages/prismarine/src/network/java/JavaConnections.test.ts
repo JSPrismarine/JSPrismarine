@@ -210,7 +210,8 @@ describe('JavaConnections', () => {
             log: quiet,
             world: {
                 players: {
-                    join: async (profile, verified, _id, _send, _hangUp, onRespawn) => {
+                    refusalOf: async () => undefined,
+                    join: async (profile, verified, _id, _address, _send, _hangUp, onRespawn) => {
                         did.push(`join ${profile.name} ${verified ? 'java' : 'offline'}`);
                         respawned = onRespawn;
                         // A player whose record left them in the Nether.
@@ -220,6 +221,7 @@ describe('JavaConnections', () => {
                         void did.push(
                             `move ${position.getX()} ${position.getY() - EYE_HEIGHT} ${onGround} ${handledTeleport}`
                         ),
+                    announce: async () => void did.push('announce'),
                     intent: async (_session, intent) => void did.push(`intent ${JSON.stringify(intent)}`),
                     leave: async () => {
                         did.push('leave');
@@ -302,6 +304,7 @@ describe('JavaConnections', () => {
 
         expect(did).toEqual([
             'join Steve offline',
+            'announce',
             'intent {"kind":"playerInitialized"}',
             'intent {"kind":"chat","message":"hello"}',
             'move 16.5 -60 true true',
@@ -337,7 +340,9 @@ describe('JavaConnections', () => {
             log: quiet,
             world: {
                 players: {
+                    refusalOf: async () => undefined,
                     join: async () => ({ session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD }),
+                    announce: async () => {},
                     move: async () => held('move'),
                     intent: async (_session, intent) => held(intent.kind),
                     leave: async () => {}
@@ -401,10 +406,12 @@ describe('JavaConnections', () => {
             log: quiet,
             world: {
                 players: {
-                    join: async (_profile, _verified, _id, _send, close) => {
+                    refusalOf: async () => undefined,
+                    join: async (_profile, _verified, _id, _address, _send, close) => {
                         hangUp = close;
                         return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD };
                     },
+                    announce: async () => {},
                     move: async () => {},
                     intent: async () => {},
                     leave: async () => left()
@@ -493,6 +500,47 @@ describe('JavaConnections', () => {
         });
         expect(asked).toEqual([{ name: 'Notch', hash: serverHash('', secret, request.publicKey) }]);
         java.destroy();
+    });
+
+    it('refuses a login the server turns away in vanilla words, before compression', async () => {
+        transport = new TcpTransport(new ConnectionIds(), quiet);
+        const joins: string[] = [];
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            log: quiet,
+            world: {
+                players: {
+                    refusalOf: async () => ({ kind: 'banned', reason: 'griefing' }),
+                    join: async (profile) => {
+                        joins.push(profile.name);
+                        return undefined;
+                    },
+                    announce: async () => {},
+                    move: async () => {},
+                    intent: async () => {},
+                    leave: async () => {}
+                },
+                chunk: async (_session, x, z) => new Chunk(x, z),
+                light: () => ({ sky: () => 15, block: () => 0 }),
+                viewDistance: () => 0,
+                maxPlayers: () => 20
+            }
+        });
+        await transport.listen('127.0.0.1', 0);
+        const port = transport.port()!;
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Login, port));
+        java.send(LoginStart, { name: 'Steve', profileId: offlineUuid('Steve') });
+
+        expect(JSON.parse((await java.receive(LoginDisconnect)).reason)).toEqual({
+            translate: 'multiplayer.disconnect.banned.reason',
+            with: ['griefing']
+        });
+        await java.closed;
+        expect(joins).toEqual([]);
     });
 
     it('refuses a player Mojang has no record of joining', async () => {

@@ -867,7 +867,7 @@ export default class PlayerSession {
                     chat.send(
                         new Chat({
                             sender: this.server.getConsoleSender(),
-                            // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
+                            // The bare translation key, for the reason given in `announceArrival`.
                             message: `%multiplayer.player.left`,
                             parameters: [this.identity.name],
                             needsTranslation: true,

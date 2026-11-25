@@ -26,16 +26,17 @@ const KEEP_ALIVE_INTERVAL_MS = 15_000;
 /**
  * Shows a player who reached play the world around spawn, in the order vanilla sends it: the
  * login, the position, the event that tells the client to wait for chunks, the chunk its view
- * centers on, then the chunks around it as one batch. Keep-alives start, and a client that leaves
+ * centers on, then the chunks around it as one batch, and tells everyone the player joined. Keep-alives start, and a client that leaves
  * one unanswered for a whole interval is dropped, as vanilla drops it.
  * @param context - The connection that finished its configuration.
  * @param world - The world it joins.
  */
 export const beginPlay = async ({ connection, services }: JavaContext, world: JavaWorldHost): Promise<void> => {
-    const { session, feet, dimension } = await world.players.join(
+    const joined = await world.players.join(
         connection.profile!,
         connection.verified ?? false,
         connection.transport.id,
+        connection.transport.address,
         (definition, value) => connection.send(definition, value),
         async (reason) => {
             connection.send(PlayDisconnect, { reason });
@@ -43,6 +44,9 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
         },
         (at) => respawned(connection, services, world, at)
     );
+    // The join ended before the player was in the world, and hung up on the client.
+    if (joined === undefined) return;
+    const { session, feet, dimension } = joined;
     connection.session = session;
     const player = session.getPlayer();
     connection.pose = { ...feet, yaw: player.yaw, pitch: player.pitch, onGround: true };
@@ -76,6 +80,8 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
     connection.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
     connection.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
     streamChunks(connection, services, world);
+    // Once the client has a world to show the message in, as Bedrock's join ends with it.
+    connection.queue(world.players.announce(session));
 
     const keepAlive = {
         awaiting: undefined as bigint | undefined,

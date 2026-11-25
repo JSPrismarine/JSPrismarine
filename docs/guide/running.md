@@ -567,10 +567,11 @@ does, and refuses one it cannot verify; with it off, a player is known by the UU
 and the connection is not encrypted, as on a vanilla server. The server configures the client as
 vanilla 26.3 does, with the same registries and tags; a client without vanilla's own data pack of
 that release, which those registries come from, is turned away with a message that names the pack.
-The player then joins as a player like any other: their record is saved and loaded under their
-own name, they come back in the world and dimension they left, they stand at the default world's
-spawn when they are new, and they are sent
-the world around them, up to 8 chunks out or the view distance if that is less, with the blocks
+The ban list, the allow list and `max-players` turn a Java player away as they do a Bedrock one,
+with vanilla's own message for each. The player then joins as a player like any other: the
+server's `playerSpawn` event fires for them, everyone is told they joined and left, their record is
+saved and loaded under their own name, they come back in the world and dimension they left, they
+stand at the default world's spawn when they are new, and they are sent the world around them, up to 8 chunks out or the view distance if that is less, with the blocks
 and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
 chunks they come into view of follow. Their chat reaches every player and the console, and other
 players' chat, the server's messages and command output reach them; their commands run as any
@@ -899,7 +900,8 @@ a name.
 ### The allow list
 
 With `allow-list` on, only the players in `allowlist.json` may join; anybody else is turned away
-with "You are not invited to this server." The file is Bedrock Dedicated Server's: a list of
+with "You are not invited to this server.", or a Java player with vanilla's "You are not
+white-listed on this server!" The file is Bedrock Dedicated Server's: a list of
 entries, each with a `name`, a `xuid` or both, and `ignoresPlayerLimit`. A name matches exactly,
 case and all, and a xuid matches the signed-in account. The server writes an empty file on its
 first start. A behavior pack script with `@minecraft/server-admin` reads and changes the list
