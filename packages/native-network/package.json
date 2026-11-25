@@ -57,7 +57,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/native-network",
     "devDependencies": {
         "@jsprismarine/raknet": "workspace:*",
-        "@types/node": "26.6.6",
+        "@types/node": "26.6.7",
         "glob": "14.0.6",
         "rimraf": "6.1.4",
         "tsx": "4.23.15",

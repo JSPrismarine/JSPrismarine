@@ -94,7 +94,7 @@
     "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/auth",
     "devDependencies": {
-        "@types/node": "26.6.6",
+        "@types/node": "26.6.7",
         "glob": "14.0.6",
         "prismarine-auth": "3.1.1",
         "rimraf": "6.1.4",

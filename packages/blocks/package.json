@@ -94,7 +94,7 @@
         "@jsprismarine/packs": "workspace:*"
     },
     "devDependencies": {
-        "@types/node": "26.6.6",
+        "@types/node": "26.6.7",
         "glob": "14.0.6",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",

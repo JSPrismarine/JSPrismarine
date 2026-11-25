@@ -85,7 +85,7 @@
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
-        "@types/node": "26.6.6",
+        "@types/node": "26.6.7",
         "glob": "14.0.6",
         "prettier": "3.10.1",
         "rimraf": "6.1.4",
