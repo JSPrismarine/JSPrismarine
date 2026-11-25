@@ -374,7 +374,11 @@ the one ahead of it has already left.
 
 `/setblock replace`, `/setblock keep`, `/fill` outside its `destroy` mode and `/clone` write
 straight through and drop nothing. That is also Java's behavior, and it is the reason those
-commands are safe to use on a region full of chests.
+commands are safe to use on a region full of chests. A block those commands place gets the empty
+block entity it carries, as Java's `Level.setBlock` gives one: a chest is a container `/data`
+reads, and a spawner, a beacon or a command block has one to tick. `/clone` copies the source
+block's block entity instead, even onto the same block. A double chest stays paired when both
+halves are cloned, and one half cloned alone becomes a single chest.
 
 ## Light
 

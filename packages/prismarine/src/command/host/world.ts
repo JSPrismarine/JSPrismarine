@@ -18,8 +18,13 @@ import { gameRule } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
+import { Types } from '@jsprismarine/nbt';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 
 import type Server from '../../Server';
+import { bedrockBlockEntityIdOf } from '../../blockentity/bedrockBlockEntityIds';
+import { writeBlockEntity } from '../../blockentity/blockEntityWrite';
+import { blockEntityCompound } from '../../blockentity/contentRecord';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
@@ -176,19 +181,99 @@ export const worldCommandHost = (
      * `destroy` breaks what is there first, so the block yields its drops and
      * the client gets the break particles, and only then writes.
      */
-    const writeBlock = (world: World, at: Vector3, block: BlockRef, mode: BlockPlacementMode): boolean => {
+    const writeBlock = (
+        world: World,
+        at: Vector3,
+        block: BlockRef,
+        mode: BlockPlacementMode,
+        blockEntity?: NBTTagCompound
+    ): boolean => {
         const [x, y, z] = [at.getX(), at.getY(), at.getZ()];
         const existing = readBlock(world, x, y, z);
         if (existing === undefined) return false;
         if (mode === 'keep' && existing.identifier !== 'minecraft:air') return false;
 
+        let written: boolean;
         if (mode === 'destroy') {
             world.breakBlock(new Vector3(x, y, z));
             world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);
-            return existing.identifier !== 'minecraft:air' || !sameBlock(existing, block);
+            written = existing.identifier !== 'minecraft:air' || !sameBlock(existing, block);
+        } else {
+            written = world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);
         }
+        // A copied block entity lands even when the block was already there: `/clone` of a chest
+        // onto a chest facing the same way changes no block, but the copy still brings its items.
+        const landed = written || (blockEntity !== undefined && sameBlock(readBlock(world, x, y, z), block));
+        if (landed) placeBlockEntity(world, x, y, z, block.identifier, blockEntity);
+        return written;
+    };
 
-        return world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);
+    /**
+     * Gives a block the command just wrote the block entity it carries, as Java asks every block
+     * whose class implements `EntityBlock` for a new one when it is placed.
+     *
+     * The write cleared whatever block entity stood there before. Without a new one an empty chest
+     * is not a block entity to `/data`, and a spawner, a beacon or a command block has nothing to
+     * tick or read. A behavior the write woke may already have filed one, such as a chest pairing
+     * with its neighbor, and that one stays.
+     *
+     * @param copied - The block entity `/clone` read at the source, already moved to this
+     *   position; absent, the block's empty one is made.
+     * @javaSee EntityBlock.newBlockEntity
+     */
+    const placeBlockEntity = (
+        world: World,
+        x: number,
+        y: number,
+        z: number,
+        identifier: string,
+        copied: NBTTagCompound | undefined
+    ): void => {
+        if (bedrockBlockEntityIdOf(identifier) === undefined) return;
+        const chunk = world.getLoadedChunk(x >> 4, z >> 4);
+        if (chunk === null || chunk === undefined) return;
+        const standing = chunk.getBlockEntity(x, y, z);
+        if (standing !== null && copied === undefined) return;
+        writeBlockEntity(world, copied ?? blockEntityCompound(null, { x, y, z }, identifier));
+    };
+
+    /**
+     * The block entity at a position as `/clone` carries it to another, or undefined when none
+     * stands there.
+     *
+     * Its own `x`, `y` and `z` move with it. A double chest's `pairx` and `pairz` name the other
+     * half by position. When the clone copies that half too, both move by the same offset, so the
+     * copies pair with each other rather than with the originals. When it does not, the pair is
+     * dropped: the client draws a double chest from those tags, and the copy would show a second
+     * half where no chest stands.
+     *
+     * @param copies - Whether the clone copies the block at a source position.
+     */
+    const movedBlockEntity = (
+        world: World,
+        from: { readonly x: number; readonly y: number; readonly z: number },
+        by: { readonly x: number; readonly y: number; readonly z: number },
+        copies: (x: number, y: number, z: number) => boolean
+    ): NBTTagCompound | undefined => {
+        const nbt = world
+            .getLoadedChunk(from.x >> 4, from.z >> 4)
+            ?.getBlockEntity(from.x, from.y, from.z)
+            ?.toNBT();
+        if (nbt === undefined) return undefined;
+        nbt.addValue('x', new Types.NumberVal(from.x + by.x));
+        nbt.addValue('y', new Types.NumberVal(from.y + by.y));
+        nbt.addValue('z', new Types.NumberVal(from.z + by.z));
+        if (nbt.has('pairx') && nbt.has('pairz')) {
+            const pairX = nbt.getNumber('pairx', 0);
+            const pairZ = nbt.getNumber('pairz', 0);
+            if (copies(pairX, from.y, pairZ)) {
+                nbt.addValue('pairx', new Types.NumberVal(pairX + by.x));
+                nbt.addValue('pairz', new Types.NumberVal(pairZ + by.z));
+            } else {
+                for (const tag of ['pairx', 'pairz', 'pairlead']) nbt.remove(tag);
+            }
+        }
+        return nbt;
     };
 
     const soundTo = (listeners: readonly EntityRef[], build: () => PlaySoundPacket | StopSoundPacket): number => {
@@ -253,7 +338,7 @@ export const worldCommandHost = (
             // destination would otherwise copy blocks this same call had
             // already written, which is the bug `force` exists to permit and
             // `normal` exists to refuse.
-            const copied: { at: Vector3; block: BlockRef }[] = [];
+            const sources: { x: number; y: number; z: number; block: BlockRef }[] = [];
             for (let x = region.minX; x <= region.maxX; x += 1) {
                 for (let y = region.minY; y <= region.maxY; y += 1) {
                     for (let z = region.minZ; z <= region.maxZ; z += 1) {
@@ -261,14 +346,21 @@ export const worldCommandHost = (
                         if (block === undefined) continue;
                         if (maskMode === 'masked' && block.identifier === 'minecraft:air') continue;
                         if (maskMode === 'filtered' && !matchesFilter(block, filter)) continue;
-                        copied.push({ at: new Vector3(x + shift.x, y + shift.y, z + shift.z), block });
+                        sources.push({ x, y, z, block });
                     }
                 }
             }
+            const copiedPositions = new Set(sources.map(({ x, y, z }) => `${x},${y},${z}`));
+            const copies = (x: number, y: number, z: number) => copiedPositions.has(`${x},${y},${z}`);
+            const copied = sources.map(({ x, y, z, block }) => ({
+                at: new Vector3(x + shift.x, y + shift.y, z + shift.z),
+                block,
+                blockEntity: movedBlockEntity(world, { x, y, z }, shift, copies)
+            }));
 
             let changed = 0;
-            for (const { at, block } of copied) {
-                if (writeBlock(world, at, block, 'replace')) changed += 1;
+            for (const { at, block, blockEntity } of copied) {
+                if (writeBlock(world, at, block, 'replace', blockEntity)) changed += 1;
             }
 
             // `move` empties the source once the copy has landed.

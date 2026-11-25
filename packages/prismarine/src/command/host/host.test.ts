@@ -11,6 +11,8 @@ import type { CommandSource } from '@jsprismarine/commands';
 import type { BlockType } from '@jsprismarine/blocks';
 import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { Types } from '@jsprismarine/nbt';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { formatSnbt } from '@jsprismarine/nbt/snbt';
 import { floatTag } from '@jsprismarine/nbt/tag';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
@@ -47,6 +49,8 @@ import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
+import { writeBlockEntity } from '../../blockentity/blockEntityWrite';
+import Chunk from '../../world/chunk/Chunk';
 import { CommandStorage } from '../../world/CommandStorage';
 import { Scoreboard } from '../../world/Scoreboard';
 import { Dimensions } from '../../world/DimensionType';
@@ -100,6 +104,8 @@ interface Fixture {
     /** The travel service a cross-dimension `/tp` files its move with. */
     readonly travel: DimensionTravel;
     readonly blocks: BlockTable;
+    /** The block entity standing at a position, as its compound. */
+    blockEntityAt(x: number, y: number, z: number): NBTTagCompound | undefined;
     readonly rules: Map<string, GameRuleEntry>;
     readonly entities: StoreActor[];
     readonly players: PlayerSession[];
@@ -119,6 +125,16 @@ const DEBUG: GeneratorDefinition = { type: 'minecraft:debug' };
 
 const buildFixture = (): Fixture => {
     const blocks: BlockTable = new Map();
+    // Real chunks, made as a position first reaches one, so a block entity has somewhere to stand.
+    const chunks = new Map<string, Chunk>();
+    const chunkAt = (chunkX: number, chunkZ: number): Chunk => {
+        const id = `${chunkX},${chunkZ}`;
+        const existing = chunks.get(id);
+        if (existing !== undefined) return existing;
+        const made = new Chunk(chunkX, chunkZ);
+        chunks.set(id, made);
+        return made;
+    };
     const rules = new Map<string, GameRuleEntry>([
         ['sendCommandFeedback', [true, true]],
         ['fallDamage', [true, true]],
@@ -193,9 +209,12 @@ const buildFixture = (): Fixture => {
             const existing = blocks.get(key(x, y, z));
             if (existing?.name === block.name) return false;
             blocks.set(key(x, y, z), { name: block.name, states: { ...block.states } });
+            // As a real write does: the block entity belonged to the block that went away.
+            chunkAt(x >> 4, z >> 4).removeBlockEntity(x, y, z);
             return true;
         },
-        getLoadedChunk: () => null,
+        getLoadedChunk: chunkAt,
+        blockEntityChanged: () => {},
         getSeed: () => 1n,
         // Inert, which declares no entity types for `/summon` to build.
         dataEntities: () => inertEntityRuntime(),
@@ -310,6 +329,10 @@ const buildFixture = (): Fixture => {
         nether,
         travel,
         blocks,
+        blockEntityAt: (x, y, z) =>
+            chunkAt(x >> 4, z >> 4)
+                .getBlockEntity(x, y, z)
+                ?.toNBT(),
         rules,
         entities,
         players,
@@ -554,6 +577,98 @@ describe('the server command host', () => {
                 fixture.run('fill 0 0 0 0 0 0 minecraft:stone replace minecraft:portal ["missing"="undefined"]')
             ).resolves.toBe(0);
             expect(fixture.blocks.get(key(0, 0, 0))?.name).toBe('minecraft:portal');
+        });
+
+        it('gives a placed block the block entity it carries, of its own type', async () => {
+            await fixture.run('setblock 1 2 3 minecraft:mob_spawner');
+            await fixture.run('setblock 2 2 3 minecraft:chest');
+            await fixture.run('setblock 3 2 3 minecraft:standing_sign');
+
+            expect(fixture.blockEntityAt(1, 2, 3)?.getString('id', '')).toBe('MobSpawner');
+            expect(fixture.blockEntityAt(2, 2, 3)?.getString('id', '')).toBe('Chest');
+            // Bedrock files a standing sign under `Sign`, not the block's own name.
+            expect(fixture.blockEntityAt(3, 2, 3)?.getString('id', '')).toBe('Sign');
+            // Filed where the block is, which is where a client and the next save read it.
+            expect(fixture.blockEntityAt(1, 2, 3)?.getNumber('y', -1)).toBe(2);
+        });
+
+        it('makes an empty chest a block entity /data reads, as Java answers it', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:chest');
+
+            await expect(fixture.run('data get block 0 0 0 Items')).resolves.toBe(0);
+        });
+
+        it('gives no block entity to a block that carries none', async () => {
+            await fixture.run('setblock 1 2 3 minecraft:stone');
+
+            expect(fixture.blockEntityAt(1, 2, 3)).toBeUndefined();
+        });
+
+        it('gives every block a fill places its block entity', async () => {
+            await fixture.run('fill 0 0 0 1 0 0 minecraft:mob_spawner');
+
+            expect(fixture.blockEntityAt(0, 0, 0)?.getString('id', '')).toBe('MobSpawner');
+            expect(fixture.blockEntityAt(1, 0, 0)?.getString('id', '')).toBe('MobSpawner');
+        });
+
+        it('clones a block entity with its contents, moved with the block', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:chest');
+            const source = fixture.blockEntityAt(0, 0, 0);
+            source?.addValue('CustomName', new Types.StringVal('loot'));
+            if (source !== undefined) writeBlockEntity(fixture.world, source);
+
+            await fixture.run('clone 0 0 0 0 0 0 10 0 10');
+
+            const copy = fixture.blockEntityAt(10, 0, 10);
+            expect(copy?.getString('CustomName', '')).toBe('loot');
+            expect(copy?.getNumber('x', -1)).toBe(10);
+            expect(copy?.getNumber('z', -1)).toBe(10);
+            // The source keeps its own.
+            expect(fixture.blockEntityAt(0, 0, 0)?.getString('CustomName', '')).toBe('loot');
+        });
+
+        it("moves a cloned double chest's pair with it, so the copies pair with each other", async () => {
+            await fixture.run('setblock 0 0 0 minecraft:chest');
+            await fixture.run('setblock 1 0 0 minecraft:chest');
+            const half = fixture.blockEntityAt(0, 0, 0);
+            half?.addValue('pairx', new Types.NumberVal(1));
+            half?.addValue('pairz', new Types.NumberVal(0));
+            if (half !== undefined) writeBlockEntity(fixture.world, half);
+
+            await fixture.run('clone 0 0 0 1 0 0 10 0 10');
+
+            expect(fixture.blockEntityAt(10, 0, 10)?.getNumber('pairx', -1)).toBe(11);
+            expect(fixture.blockEntityAt(10, 0, 10)?.getNumber('pairz', -1)).toBe(10);
+        });
+
+        it('drops the pair of a cloned chest half whose partner the clone leaves behind', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:chest');
+            await fixture.run('setblock 1 0 0 minecraft:chest');
+            const half = fixture.blockEntityAt(0, 0, 0);
+            half?.addValue('pairx', new Types.NumberVal(1));
+            half?.addValue('pairz', new Types.NumberVal(0));
+            half?.addValue('pairlead', new Types.ByteVal(1));
+            if (half !== undefined) writeBlockEntity(fixture.world, half);
+
+            await fixture.run('clone 0 0 0 0 0 0 10 0 10');
+
+            const copy = fixture.blockEntityAt(10, 0, 10);
+            expect(copy?.getString('id', '')).toBe('Chest');
+            expect(copy?.has('pairx')).toBe(false);
+            expect(copy?.has('pairz')).toBe(false);
+            expect(copy?.has('pairlead')).toBe(false);
+        });
+
+        it('clones a block entity onto the same block standing at the destination', async () => {
+            await fixture.run('setblock 0 0 0 minecraft:chest');
+            await fixture.run('setblock 10 0 10 minecraft:chest');
+            const source = fixture.blockEntityAt(0, 0, 0);
+            source?.addValue('CustomName', new Types.StringVal('loot'));
+            if (source !== undefined) writeBlockEntity(fixture.world, source);
+
+            await fixture.run('clone 0 0 0 0 0 0 10 0 10');
+
+            expect(fixture.blockEntityAt(10, 0, 10)?.getString('CustomName', '')).toBe('loot');
         });
 
         it('refuses a region bigger than the block-modification limit', async () => {
