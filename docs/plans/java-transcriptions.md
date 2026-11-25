@@ -224,11 +224,10 @@ All four were accepted as recommended on 2026-11-25.
 3. **One golden in `packages/parity/goldens/`**, beside `behavior-gaps.json` and the family that
    reads it, rather than one per package, which would spread the bring-up report over a dozen
    files.
-4. **An ADR after slice 2** ([#3706](https://github.com/JSPrismarine/JSPrismarine/issues/3706)).
-   Once the tag is the required way to cite Java code, it is a lasting rule and belongs in an ADR
-   next to [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) and
-   [ADR 0024](../adr/0024-java-decides-server-decided-goal-parameters.md). Write it after the tag's
-   shape has been used on a real package.
+4. **An ADR after slice 2.** Done:
+   [ADR 0031](../adr/0031-copied-java-code-names-its-source.md) records the tags and the checks,
+   with `@javaSee` for a comment that names a Java member without copying it, which came out of
+   tagging `block-behaviors`.
 
 ## Risks
 

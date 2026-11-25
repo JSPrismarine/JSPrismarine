@@ -157,6 +157,15 @@ commit messages and comments.
   surface, extend `packages/parity` with a test under a declared family. Exercise the public
   behavior through the parity suite's real data fixtures, and keep the family represented by a
   tested dashboard row. CI fails when a declared family has no test.
+- Code that copies a Java method, field or constant out of the jar names it in its JSDoc with
+  `@javaSource Class.member`; a comment that only names a Java member uses `@javaSee`
+  ([ADR 0031](docs/adr/0031-copied-java-code-names-its-source.md)). After adding or removing a
+  `@javaSource`, stamp it with `pnpm --filter @jsprismarine/bedrock-data run java:sources --update`.
+  After tagging a citation, lower the untagged-citation baseline with
+  `node scripts/check-java-sources.mts --update-baseline`.
+  When `java.transcriptions` reports a changed member, read its new bytecode
+  (`java:sources --list <spelling>`) against the copy, fix the copy if Java's behavior changed,
+  and restamp with `--reviewed <spelling>`.
 - When you find a Java parity gap, fixed or not, add a parity test that exercises it: a scenario
   under the matching family in `packages/parity` whose row fails while the gap exists. Record a gap
   you leave open in `packages/parity/goldens/behavior-gaps.json` (run the family with
