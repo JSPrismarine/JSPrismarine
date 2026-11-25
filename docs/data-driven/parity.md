@@ -222,7 +222,7 @@ private methods and lambdas of the same class the member reaches.
 
 A comment that names a Java member without copying it, such as an interface member that describes
 what its host does, uses `@javaSee Class.member` instead. The checks resolve it and do not
-fingerprint it.
+fingerprint it. [ADR 0031](../adr/0031-copied-java-code-names-its-source.md) records the rule.
 
 `java.transcriptions` resolves every tag in the pinned jar. It fails a row when a `@javaSource`
 member is gone or its fingerprint differs from the golden's, naming the code that copies it, and
@@ -230,7 +230,9 @@ when a `@javaSee` member no longer resolves. After adding or removing a `@javaSo
 `pnpm --filter @jsprismarine/bedrock-data run java:sources --update` to stamp it.
 `pnpm run lint:java-sources` checks the tags against the golden without the jar. It also counts
 the citations of the form ``Java's `Class.member` `` in JSDoc comments that carry neither tag,
-against a baseline that only shrinks.
+against a baseline that only shrinks. It fails when a file has fewer citations than the baseline
+allows as well as more, so after tagging a citation, lower the baseline with
+`node scripts/check-java-sources.mts --update-baseline`.
 
 When a release changes a member, print its listing with `java:sources --list <spelling>` under
 each release's `--java`, read the change against the TypeScript, fix the copy if Java's behavior
