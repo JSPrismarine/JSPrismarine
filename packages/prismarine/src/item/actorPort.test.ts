@@ -481,7 +481,7 @@ describe('the item actor port', () => {
     it('says which actions this server performs, so a behavior can keep its item', () => {
         const { port } = portUnderTest();
         expect(port.supports('feed')).toBe(true);
-        expect(port.supports('map')).toBe(false);
+        expect(port.supports('map')).toBe(true);
         expect(port.supports('open-screen')).toBe(false);
         // A projectile needs the live entity runtime, which this port was built without.
         expect(port.supports('launch-projectile')).toBe(false);
