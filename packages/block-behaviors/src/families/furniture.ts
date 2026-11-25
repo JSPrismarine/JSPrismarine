@@ -5,15 +5,16 @@
  * Four of them hang on something and pop when it goes, which is the rule
  * they share; the rest each own one small state machine.
  */
-import type { BlockFace } from '@jsprismarine/blocks';
+import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
 import { isWater } from '../identifiers';
 import { isHoneycomb, isIgniter } from '../rules/heldItem';
-import { placementFacing } from '../rules/placement';
-import { breakBlock, popWithoutSupport } from '../rules/support';
+import { placementFacing, placementLookingVertical } from '../rules/placement';
+import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
+import type { WorldActions } from '../world';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 
 /** How many bites a cake takes before it is gone. */
@@ -247,11 +248,33 @@ export const torchFamily = defineFamily(
     }
 );
 
-/** Lanterns and chains, which sit on a block or hang from one. */
+/**
+ * Whether a lantern hangs, Java's `LanternBlock.getStateForPlacement`: it tries the vertical
+ * direction the placer looks nearest to first, hanging when that is up, and takes the first
+ * of the two with a block to hold it.
+ *
+ * @returns Undefined when neither the block above nor the one below can hold it.
+ * @javaSource LanternBlock.getStateForPlacement
+ */
+const placedLanternHanging = (world: WorldActions, block: HookBlock, looking: 'up' | 'down'): boolean | undefined => {
+    const order: readonly ('up' | 'down')[] = looking === 'up' ? ['up', 'down'] : ['down', 'up'];
+    const support = order.find((face) => isSolidSupport(world, offset(block.position, face)));
+    return support === undefined ? undefined : support === 'up';
+};
+
+/** Lanterns, which sit on a block or hang from one. */
 export const lanternFamily = defineFamily(
     'jsprismarine:lantern',
-    'Checks the block above when it hangs and the one below when it stands, and waxes, scrapes and oxidizes when it is copper.',
+    'Hangs when the placer looks up and a block above holds it, checks the block above when it hangs and the one below when it stands, and waxes, scrapes and oxidizes when it is copper.',
     {
+        beforeOnPlayerPlace: (event, world) =>
+            placedLanternHanging(world, event.block, 'down') === undefined ? true : undefined,
+        onPlace: (event, world) => {
+            const looking = placementLookingVertical(event.placedBy);
+            if (looking === undefined || !hasState(event.block, 'hanging')) return;
+            const hanging = placedLanternHanging(world, event.block, looking);
+            if (hanging !== undefined) setStates(world, event.block, { hanging });
+        },
         onNeighborChanged: (event, world) => {
             popWithoutSupport(world, event.block, stateBoolean(event.block, 'hanging') ? 'up' : 'down');
         },

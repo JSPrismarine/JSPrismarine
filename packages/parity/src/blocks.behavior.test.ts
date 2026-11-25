@@ -1082,6 +1082,39 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'lantern-placement',
+        java: 'A lantern hangs when the vertical direction its placer looks nearest to is up and a block above holds it, and otherwise stands on the block below; with neither it is not placed.',
+        reference: 'Java LanternBlock.getStateForPlacement',
+        subjects: () =>
+            Object.keys(blocksTable.blocks)
+                .filter((javaId) => javaBlockIsA(javaId, 'LanternBlock'))
+                .flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const placer = (pitch: number) => ({ identifier: 'minecraft:player', position: ORIGIN, pitch });
+            const above = { x: 0, y: 6, z: 0 };
+            for (const [name, supports, pitch, hanging] of [
+                ['looking up between a ceiling and a floor', [above, BELOW], -45, 'true'],
+                ['looking down between a ceiling and a floor', [above, BELOW], 45, 'false'],
+                ['looking down under only a ceiling', [above], 45, 'true'],
+                ['looking up over only a floor', [BELOW], -45, 'false']
+            ] as const) {
+                const expected = javaBlockStateToBedrock(subject.javaId, { hanging, waterlogged: 'false' });
+                if (expected.kind !== 'mapped') return `Java's hanging ${hanging} maps to no Bedrock state`;
+                const harness = bind(subject);
+                for (const support of supports) harness.dimension.set(support, 'minecraft:stone');
+                harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+                harness.place(ORIGIN, { face: 'north', placedBy: placer(pitch) });
+                const placed = paletteValue(harness.block(ORIGIN).states['hanging']);
+                const wanted = paletteValue(expected.bedrock.states['hanging']);
+                if (placed !== wanted) return `${name}, it hangs ${String(placed)}, Java's is ${String(wanted)}`;
+            }
+            const floating = bind(subject);
+            floating.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            return floating.beforePlace(ORIGIN, 'north', placer(45)) ? undefined : 'it placed with nothing to hold it';
+        }
+    },
+    {
         name: 'pops-without-support',
         classify: () => ({
             kind: 'defect',
@@ -1253,6 +1286,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'stairs-placement': ['placement'],
     'speleothem-placement': ['placement', 'neighbor-update'],
     'stalactite-falls': ['support', 'falling', 'scheduled-tick'],
+    'lantern-placement': ['placement'],
     'slab-placement': ['placement']
 };
 

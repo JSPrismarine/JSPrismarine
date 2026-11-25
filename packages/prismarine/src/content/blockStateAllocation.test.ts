@@ -38,7 +38,9 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // scheduled tick for the detector rail, which sets their flag, and when the three command
         // blocks moved from the inert family to their own, whose hooks set their flags, and when
         // the bubble column joined the liquid family and the sulfur spike the dripstone family,
-        // so both break without their support.
-        expect(digest).toBe('573a9a00a7923f1dde4c14a7d1d8834bba3663afa9ff20f5451586964a642411');
+        // so both break without their support, and when the dripstone family took a scheduled
+        // tick and a placement guard for its falling stalactites and the lantern family a
+        // placement and its guard for hanging.
+        expect(digest).toBe('f115e704e7e7708b8310f030daa55256ab3224d7ad342c5a7f7b9bdcbb4d6d4b');
     });
 });

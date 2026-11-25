@@ -231,6 +231,42 @@ describe('lanternFamily', () => {
         expect(standing.dimension.identifierAt(block)).toBe(AIR);
     });
 
+    it('hangs for a placer looking up at a block above, and stands otherwise', () => {
+        const lookingUp = { identifier: 'minecraft:player', position: { x: 0, y: 0, z: 0 }, pitch: -60 };
+        const lookingDown = { ...lookingUp, pitch: 60 };
+        const ceiling = { x: 0, y: 2, z: 0 };
+        const floor = { x: 0, y: 0, z: 0 };
+
+        const hanging = bindFamily(lanternFamily, 'minecraft:lantern');
+        hanging.dimension.set(ceiling, 'minecraft:stone');
+        hanging.dimension.set(floor, 'minecraft:stone');
+        hanging.dimension.set(block, 'minecraft:lantern', { hanging: false });
+        hanging.place(block, { placedBy: lookingUp, face: 'down' });
+        expect(hanging.block(block).states['hanging']).toBe(true);
+
+        const standing = bindFamily(lanternFamily, 'minecraft:lantern');
+        standing.dimension.set(ceiling, 'minecraft:stone');
+        standing.dimension.set(floor, 'minecraft:stone');
+        standing.dimension.set(block, 'minecraft:lantern', { hanging: true });
+        standing.place(block, { placedBy: lookingDown, face: 'up' });
+        expect(standing.block(block).states['hanging']).toBe(false);
+
+        const onlyAbove = bindFamily(lanternFamily, 'minecraft:lantern');
+        onlyAbove.dimension.set(ceiling, 'minecraft:stone');
+        onlyAbove.dimension.set(block, 'minecraft:lantern', { hanging: false });
+        onlyAbove.place(block, { placedBy: lookingDown, face: 'north' });
+        expect(onlyAbove.block(block).states['hanging']).toBe(true);
+    });
+
+    it('refuses a placement with nothing above or below to hold it', () => {
+        const harness = bindFamily(lanternFamily, 'minecraft:lantern');
+        harness.dimension.set(block, 'minecraft:lantern', { hanging: false });
+        expect(harness.beforePlace(block, 'north')).toBe(true);
+
+        harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:stone');
+        expect(harness.beforePlace(block, 'up')).toBe(false);
+    });
+
     it('oxidizes a copper lantern', () => {
         const harness = bindFamily(lanternFamily, 'minecraft:copper_lantern');
         harness.dimension.set(block, 'minecraft:copper_lantern', { hanging: false });
