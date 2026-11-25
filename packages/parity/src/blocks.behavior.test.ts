@@ -11,7 +11,7 @@ import type { BlockFace } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
-import { DYE_INDEX_FIELD } from '@jsprismarine/prismarine/blockentity/contentRecord';
+import { DYE_INDEX_FIELD, blockEntityIdFor } from '@jsprismarine/prismarine/blockentity/contentRecord';
 import { needsSupport } from '@jsprismarine/prismarine/world/physics/BlockRules';
 import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { expect, it } from 'vitest';
@@ -20,7 +20,7 @@ import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { blockPropertyScenarios, hasMapColor, javaBlockRows } from './blockScenarios/properties.ts';
-import { javaBlockBehaviors, javaBlockIsA } from './javaBlockClasses.ts';
+import { javaBlockBehaviors, javaBlockHasBlockEntity, javaBlockIsA } from './javaBlockClasses.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -840,6 +840,29 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'carries-block-entity',
+        java: "Placing a block whose class implements EntityBlock gives it a block entity, as Level.setBlock asks the new state's block for one; /setblock, /fill and /clone place it that way.",
+        reference: 'Java EntityBlock.newBlockEntity and LevelChunk.setBlockState',
+        subjects: () =>
+            Object.keys(javaBlockRows())
+                .filter((javaId) => javaBlockHasBlockEntity(javaId))
+                .flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        // A block Bedrock keeps no block entity on gets this server's own namespace, which no
+        // client reads.
+        run: (subject) =>
+            blockEntityIdFor(subject.bedrock).startsWith('jsprismarine:')
+                ? `${subject.bedrock} names no Bedrock block entity, so a command places it without one`
+                : undefined,
+        classify: (subject) =>
+            subject.javaId === 'minecraft:potent_sulfur'
+                ? {
+                      kind: 'intentional',
+                      reason: "Bedrock has no counterpart for Java's potent_sulfur block entity, so the block it maps to carries none."
+                  }
+                : undefined
+    },
+    {
         name: 'piston-pushes',
         java: 'A piston receiving power pushes the block in front of it one position.',
         reference: 'Java PistonBaseBlock.checkIfExtend and moveBlocks',
@@ -1098,6 +1121,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'observer-pulse-delay': ['neighbor-update'],
     'torch-inversion-delay': ['neighbor-update'],
     'lamp-off-delay': ['neighbor-update', 'scheduled-tick'],
+    'carries-block-entity': ['block-entity'],
     'pillar-axis': ['placement'],
     'pops-without-support': ['support'],
     'stairs-placement': ['placement'],
