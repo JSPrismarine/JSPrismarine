@@ -20,6 +20,7 @@
 import { BLOCK_FACES, collisionBox, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { facingFromYaw, opposite } from '@jsprismarine/block-behaviors';
+import { placedStateOf, withClickedHalf } from '@jsprismarine/block-behaviors/rules/javaPlacement';
 import { relative } from '@jsprismarine/engine-systems';
 import { consumable, food } from '@jsprismarine/items';
 import type { ItemSource } from '@jsprismarine/items';
@@ -303,14 +304,15 @@ const placementOverlapsPlayer = (
  * against the clicked face. Resolved component and tag data decide whether a block can be
  * replaced. A face position occupied by a nonreplaceable block, or a click on air, is refused.
  *
- * @returns Where the block went down, or undefined when the placement is refused.
+ * @returns Where the block went down and which block it was, a wall sign for a sign in hand on
+ *   a wall, or undefined when the placement is refused.
  */
 const placeBlock = (
     interaction: BlockInteraction,
     placed: Item,
-    identifier: string,
+    held: string,
     face: BlockFace
-): ContentPosition | undefined => {
+): { readonly at: ContentPosition; readonly identifier: string } | undefined => {
     const { player, content } = interaction;
     const rotation = interaction.rotation ?? { pitch: player.pitch, yaw: player.yaw };
     const world = player.getWorld();
@@ -327,7 +329,25 @@ const placeBlock = (
     const standing = world.loadedBlockAt(target.x, target.y, target.z);
     if (standing === undefined || !canReplace(standing)) return undefined;
 
-    const states = placementStatesOf(content, identifier, rotation, face);
+    // Java's `getStateForPlacement`: which way the block faces, whether it goes on a wall, and
+    // whether it can go here at all. A block no rule there decides keeps the states the trait
+    // and the special cases above give it.
+    const decided = placedStateOf(held, placementStatesOf(content, held, rotation, face), {
+        world: blocks,
+        position: target,
+        face,
+        yaw: rotation.yaw,
+        pitch: rotation.pitch,
+        sneaking: player.isSneaking(),
+        replacingClicked: target === interaction.position
+    });
+    if (decided === null) return undefined;
+    const identifier = decided?.identifier ?? held;
+    const states = withClickedHalf(
+        decided?.states ?? placementStatesOf(content, held, rotation, face),
+        face,
+        interaction.faceLocation
+    );
     if (placementOverlapsPlayer(content, player, target, identifier, states)) return undefined;
 
     const playerPosition = player.getPosition();
@@ -371,7 +391,7 @@ const placeBlock = (
     // server says so. A named sound `place` played nothing, as no client has a sound by that name.
     world.playBlockSound(new Vector3(target.x, target.y, target.z), LevelSoundEvent.PLACE);
     events.post('playerBlockPlaced', new PlayerBlockPlacedEvent(player.getRuntimeId(), world, placing));
-    return target;
+    return { at: target, identifier };
 };
 
 /**
@@ -661,14 +681,15 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
 
         if (placedBlock === undefined) return 'declined';
 
-        const placedAt = placeBlock(interaction, held, placedBlock, face);
-        if (placedAt === undefined) {
+        const placement = placeBlock(interaction, held, placedBlock, face);
+        if (placement === undefined) {
             refusePlacement(interaction, face);
             return 'handled';
         }
 
         // Java's order: the trigger sees the stack the block came out of, then the stack pays.
-        advancementPlacedBlock(player, { origin: placedAt, block: placedBlock, tool: held });
+        // The block that went down, which may be a wall sign rather than the sign in hand.
+        advancementPlacedBlock(player, { origin: placement.at, block: placement.identifier, tool: held });
         spendHeldItem(player);
         resendInventory(player);
         return 'handled';

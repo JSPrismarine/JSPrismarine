@@ -26,6 +26,11 @@
                 "import": "./dist/rules/fluid.js",
                 "module": "./dist/rules/fluid.js"
             },
+            "./rules/javaPlacement": {
+                "types": "./dist/rules/javaPlacement.d.ts",
+                "import": "./dist/rules/javaPlacement.js",
+                "module": "./dist/rules/javaPlacement.js"
+            },
             "./rules/piston": {
                 "types": "./dist/rules/piston.d.ts",
                 "import": "./dist/rules/piston.js",
@@ -58,6 +63,10 @@
         "./rules/fluid": {
             "jsprismarine:dist": "./dist/rules/fluid.js",
             "default": "./src/rules/fluid.ts"
+        },
+        "./rules/javaPlacement": {
+            "jsprismarine:dist": "./dist/rules/javaPlacement.js",
+            "default": "./src/rules/javaPlacement.ts"
         },
         "./rules/piston": {
             "jsprismarine:dist": "./dist/rules/piston.js",

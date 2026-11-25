@@ -6,14 +6,17 @@
  * they share; the rest each own one small state machine.
  */
 import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
+import { bedrockBlockStateToJava } from '@jsprismarine/mapping';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
 import { isWater } from '../identifiers';
 import { isHoneycomb, isIgniter } from '../rules/heldItem';
+import { placedRotationSegment } from '../rules/javaPlacement';
 import { placementFacing, placementLookingVertical } from '../rules/placement';
 import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
+import type { HorizontalFace } from '../geometry';
 import type { WorldActions } from '../world';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 
@@ -100,13 +103,24 @@ export const bannerFamily = defineFamily(
     }
 );
 
+/** Degrees in one of a head's sixteen rotation steps. */
+const HEAD_ROTATION_STEP = 360 / 16;
+
 /** Heads and skulls, which hold a rotation or a profile. */
 export const headFamily = defineFamily(
     'jsprismarine:head',
-    'Keeps its rotation and profile in a block entity and pops when the block it sits on goes.',
+    "Turns a standing head toward its placer in its block entity's rotation, keeps its profile there, and pops when the block it sits on goes.",
     {
         onPlace: (event, world) => {
-            world.setBlockData(event.block.position, { rotation: 0 });
+            // Bedrock keeps a standing head's sixteen-way rotation in its block entity, in
+            // degrees; a head on a wall faces away from it and keeps 0.
+            const yaw = event.placedBy?.yaw;
+            const standing = stateNumber(event.block, 'facing_direction', 1) === 1;
+            const rotation =
+                standing && yaw !== undefined && Number.isFinite(yaw)
+                    ? placedRotationSegment(yaw) * HEAD_ROTATION_STEP
+                    : 0;
+            world.setBlockData(event.block.position, { rotation });
         },
         onNeighborChanged: (event, world) => {
             const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction', 1));
@@ -122,10 +136,17 @@ export const headFamily = defineFamily(
     }
 );
 
+/** The way a bed faces, Java's `facing`, read through the state mapping since Bedrock numbers it. */
+const bedFacingOf = (block: HookBlock): HorizontalFace | undefined => {
+    const java = bedrockBlockStateToJava(block.identifier, block.states);
+    const facing = java.kind === 'mapped' ? java.java.properties['facing'] : undefined;
+    return (['north', 'south', 'west', 'east'] as const).find((face) => face === facing);
+};
+
 /** Beds: two blocks, a color and an occupant. */
 export const bedFamily = defineFamily(
     'jsprismarine:bed',
-    'Places the head half, marks occupied_bit while a player sleeps, breaks with its other half, and explodes in the nether and the end.',
+    'Places the head half, marks occupied_bit while a player sleeps, breaks when the half the way it faces is gone, and explodes in the nether and the end.',
     {
         onPlace: (event, world) => {
             if (stateBoolean(event.block, 'head_piece_bit')) return;
@@ -148,15 +169,16 @@ export const bedFamily = defineFamily(
             return true;
         },
         onNeighborChanged: (event, world) => {
-            const otherHalf = offset(
-                event.block.position,
-                stateBoolean(event.block, 'head_piece_bit') ? 'north' : 'south'
-            );
-            const other = world.getBlock(otherHalf);
-            if (other !== undefined && other.identifier === event.block.identifier) return;
-            // Pairing the two halves needs the facing the bed was placed
-            // with, which no state carries once it is down, so the support
-            // check below is what stays reliable.
+            // The head lies the way the bed faces from its foot.
+            const facing = bedFacingOf(event.block);
+            if (facing !== undefined) {
+                const head = stateBoolean(event.block, 'head_piece_bit');
+                const other = world.getBlock(offset(event.block.position, head ? opposite(facing) : facing));
+                if (other === undefined || other.identifier !== event.block.identifier) {
+                    breakBlock(world, event.block);
+                    return;
+                }
+            }
             popWithoutSupport(world, event.block);
         },
         onBreak: (event, world) => {

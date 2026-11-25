@@ -75,6 +75,20 @@ describe('bannerFamily and headFamily', () => {
     });
 });
 
+describe('headFamily rotation', () => {
+    it('turns a standing head toward its placer, in degrees, and leaves a wall head at 0', () => {
+        const head = bindFamily(headFamily, 'minecraft:skeleton_skull');
+        head.dimension.set(block, 'minecraft:skeleton_skull', { facing_direction: facingDirectionOf('up') });
+        head.place(block, { placedBy: { identifier: 'minecraft:player', position: block, yaw: 90 } });
+        // Looking west, the head turns east: Java's segment 12 of 16.
+        expect(head.dimension.getBlockData(block)).toEqual({ rotation: 270 });
+
+        head.dimension.set(block, 'minecraft:skeleton_skull', { facing_direction: facingDirectionOf('north') });
+        head.place(block, { placedBy: { identifier: 'minecraft:player', position: block, yaw: 90 } });
+        expect(head.dimension.getBlockData(block)).toEqual({ rotation: 0 });
+    });
+});
+
 describe('bedFamily', () => {
     it('places the head half away from the player', () => {
         const harness = bindFamily(bedFamily, 'minecraft:bed');
@@ -85,6 +99,22 @@ describe('bedFamily', () => {
 
         expect(harness.dimension.identifierAt({ x: 0, y: 1, z: 1 })).toBe('minecraft:bed');
         expect(harness.dimension.stateAt({ x: 0, y: 1, z: 1 }, 'head_piece_bit')).toBe(true);
+    });
+
+    it('breaks a half whose other half, the way the bed faces, is gone', () => {
+        // Bedrock's direction 2 is Java's north, so the head lies north of the foot.
+        const harness = bindFamily(bedFamily, 'minecraft:bed');
+        const head = { x: 0, y: 1, z: -1 };
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(block, 'minecraft:bed', { head_piece_bit: false, occupied_bit: false, direction: 2 });
+        harness.dimension.set(head, 'minecraft:bed', { head_piece_bit: true, occupied_bit: false, direction: 2 });
+
+        harness.neighborChanged(block, 'north');
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:bed');
+
+        harness.dimension.set(head, AIR);
+        harness.neighborChanged(block, 'north');
+        expect(harness.dimension.identifierAt(block)).toBe(AIR);
     });
 
     it('is occupied when a player sleeps in the dark', () => {

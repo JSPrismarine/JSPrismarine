@@ -3,6 +3,7 @@ import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { performPull, performPush, planPush } from '@jsprismarine/block-behaviors/rules/piston';
 import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
+import { PLACEMENT_RULE_NAMES, placementRuleOf } from '@jsprismarine/block-behaviors/rules/javaPlacement';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
 import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
@@ -165,6 +166,13 @@ const SURVIVES_IN_AIR: readonly string[] = ['FarmlandBlock', 'PathBlock'];
 /** A state value as the palette holds it, where a boolean is 0 or 1. */
 const paletteValue = (value: string | number | boolean | undefined): string | number | undefined =>
     typeof value === 'boolean' ? Number(value) : value;
+
+/** The Java class whose getStateForPlacement a block runs: the nearest class that overrides it. */
+const javaPlacementClassOf = (javaId: string): string | undefined =>
+    javaBlockBehaviors(javaId)
+        .find(({ kind }) => kind.aspect === 'placement')
+        ?.evidence.find((member) => member.endsWith('.getStateForPlacement'))
+        ?.split('.')[0];
 
 /** Minecraft yaws for a placer looking each horizontal way: 0 is south and 90 is west. */
 const LOOKING: readonly (readonly [facing: string, yaw: number])[] = [
@@ -956,6 +964,29 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
             }))
     },
     {
+        name: 'placement-rule-matches-java-class',
+        java: "A block a player places takes its state from its Java class's getStateForPlacement: the class whose override the block runs picks the server's placement rule.",
+        reference: 'Each Java block class that overrides getStateForPlacement, read from the pinned server jar',
+        subjects: () =>
+            Object.keys(blocksTable.blocks).flatMap((javaId) => {
+                const subject = subjectOf(javaId);
+                const javaClass = javaPlacementClassOf(javaId);
+                const covered = javaClass !== undefined && PLACEMENT_RULE_NAMES.includes(javaClass);
+                return subject !== undefined && (covered || placementRuleOf(javaId) !== undefined) ? [subject] : [];
+            }),
+        idOf: (subject) => subject.javaId,
+        // Which rule a block runs is not its placement, so a right answer evidences nothing.
+        guard: true,
+        covers: () => undefined,
+        run: (subject) => {
+            const javaClass = javaPlacementClassOf(subject.javaId);
+            const rule = placementRuleOf(subject.javaId);
+            return rule === javaClass
+                ? undefined
+                : `it runs the ${String(rule)} rule, Java runs ${String(javaClass)}'s`;
+        }
+    },
+    {
         name: 'speleothem-placement',
         java: "Pointed dripstone points away from where its placer looks, or the other way when only that way has support, and takes the column's thickness: base, middle, frustum and tip, or a merged tip where two tips meet.",
         reference: 'Java SpeleothemBlock.getStateForPlacement, calculateTipDirection and calculateSpeleothemThickness',
@@ -1312,6 +1343,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'pops-without-support': ['support'],
     'stairs-placement': ['placement'],
     'speleothem-placement': ['placement', 'neighbor-update'],
+    'placement-rule-matches-java-class': ['placement'],
     'stalactite-falls': ['support', 'falling', 'scheduled-tick'],
     'lantern-placement': ['placement'],
     'slab-placement': ['placement']

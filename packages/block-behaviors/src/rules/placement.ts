@@ -53,7 +53,7 @@ export const placementAxis = (event: BlockPlaceEvent): 'x' | 'y' | 'z' | undefin
  *
  * @returns Undefined when the event has no face to read the half off.
  */
-export const placedHalf = (event: BlockPlaceEvent): BlockHalf | undefined => {
+export const placedHalf = (event: Pick<BlockPlaceEvent, 'face' | 'faceLocation'>): BlockHalf | undefined => {
     if (event.face === undefined) return undefined;
     if (event.face === 'down') return 'top';
     if (event.face === 'up') return 'bottom';
