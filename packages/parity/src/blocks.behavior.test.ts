@@ -1060,38 +1060,52 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
     },
     {
         name: 'stalactite-falls',
-        java: 'A stalactite whose ceiling goes falls as a block, with every segment hanging from it down to its tip, on a scheduled tick, and each segment breaks into its item where it lands.',
+        java: "A stalactite whose ceiling goes becomes falling blocks on a scheduled tick, one per segment down to its tip, each carrying its state and breaking into its item where it lands; the tip hurts what it lands in by the column's length, at least 6, per block fallen, up to 40.",
         reference: 'Java SpeleothemBlock.updateShape, tick and spawnFallingStalactite',
         subjects: () => tagMembers('minecraft:speleothems'),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
-            const tip = javaBlockStateToBedrock(subject.javaId, {
-                vertical_direction: 'down',
-                thickness: 'tip',
-                waterlogged: 'false'
-            });
-            if (tip.kind !== 'mapped') return "Java's stalactite tip maps to no Bedrock state";
+            const segment = (thickness: string) =>
+                javaBlockStateToBedrock(subject.javaId, {
+                    vertical_direction: 'down',
+                    thickness,
+                    waterlogged: 'false'
+                });
+            const base = segment('base');
+            const tip = segment('tip');
+            if (base.kind !== 'mapped' || tip.kind !== 'mapped') return "Java's stalactite maps to no Bedrock state";
             const harness = bind(subject);
-            const floor = { x: 0, y: 1, z: 0 };
-            harness.dimension.set(floor, 'minecraft:stone');
-            harness.dimension.set(ORIGIN, tip.bedrock.name, tip.bedrock.states);
+            const below = { x: 0, y: ORIGIN.y - 1, z: 0 };
+            harness.dimension.set(ORIGIN, base.bedrock.name, base.bedrock.states);
+            harness.dimension.set(below, tip.bedrock.name, tip.bedrock.states);
             harness.neighborChanged(ORIGIN, 'up');
-            if (harness.dimension.identifierAt(ORIGIN) !== tip.bedrock.name)
+            if (harness.dimension.identifierAt(ORIGIN) !== base.bedrock.name)
                 return 'it broke at once, Java waits a tick';
             if (harness.dimension.scheduled.length === 0) return 'it scheduled no tick to fall on';
-            for (let y = ORIGIN.y; y > floor.y; y -= 1) {
-                const position = { x: 0, y, z: 0 };
-                if (harness.dimension.identifierAt(position) === tip.bedrock.name) harness.tick(position);
-            }
-            for (let y = ORIGIN.y; y > floor.y; y -= 1) {
-                if (harness.dimension.identifierAt({ x: 0, y, z: 0 }) !== 'minecraft:air') {
-                    return `it stayed at y ${y}, Java's falling block breaks where it lands`;
+            harness.tick(ORIGIN);
+            if (
+                harness.dimension.identifierAt(ORIGIN) !== 'minecraft:air' ||
+                harness.dimension.identifierAt(below) !== 'minecraft:air'
+            )
+                return 'its column stayed where it hung';
+            if (harness.dimension.drops.length > 0)
+                return 'it dropped items where it hung, Java drops them where it lands';
+            const falling = harness.dimension.entities.filter(
+                (entity) => entity.identifier === 'minecraft:falling_block'
+            );
+            const expected = [
+                { block: base.bedrock.name, states: base.bedrock.states, breaks_on_landing: true },
+                {
+                    block: tip.bedrock.name,
+                    states: tip.bedrock.states,
+                    breaks_on_landing: true,
+                    hurts: { per_block: 6, max: 40, cause: 'stalactite' }
                 }
-            }
-            const drops = harness.dimension.drops.map(({ drop }) => drop.identifier);
-            return drops.length === 1 && drops[0] === subject.bedrock
+            ];
+            const carried = falling.map((entity) => entity.data);
+            return JSON.stringify(carried) === JSON.stringify(expected)
                 ? undefined
-                : `it dropped ${JSON.stringify(drops)} on landing, Java drops one of itself`;
+                : `its falling blocks carry ${JSON.stringify(carried)}, Java's are ${JSON.stringify(expected)}`;
         }
     },
     {

@@ -12,8 +12,7 @@ import { offset } from '../geometry';
 import { AIR } from '../identifiers';
 import { hasState, stateBoolean, stateString } from '../state';
 import type { WorldActions } from '../world';
-import { FALL_DELAY, isFallThrough } from './gravity';
-import { breakBlock, isSolidSupport } from './support';
+import { isSolidSupport } from './support';
 
 /** The state Bedrock keeps a segment's thickness in. */
 export const DRIPSTONE_THICKNESS = 'dripstone_thickness';
@@ -109,49 +108,51 @@ export const dripstoneThickness = (
     return isSegmentPointing(behind, tip) ? 'middle' : 'base';
 };
 
+/** The entity a falling block becomes, Java's `FallingBlockEntity`. */
+export const FALLING_BLOCK = 'minecraft:falling_block';
+
+/** The most a falling stalactite's tip hurts, Java's `setHurtsEntities(damage, 40)`. */
+export const STALACTITE_MAX_DAMAGE = 40;
+
+/** The fewest blocks Java counts a falling column as when it sizes the tip's damage. */
+const STALACTITE_MIN_SIZE = 6;
+
 /**
  * Brings down a stalactite that lost what held it, with every segment hanging from it down to
- * its tip, one position per tick as `fallOneStep` carries sand.
+ * its tip, each as a falling block entity.
  *
- * Java turns each segment into a falling block, and a falling stalactite cannot stand where it
- * lands, so each segment breaks into its item when the tip reaches something solid. A segment
- * that still has its support stays put, since the tick may be stale.
+ * Each entity carries the segment's states and says it breaks into its item where it lands,
+ * since a falling stalactite has nothing above it to hang from there. The tip also hurts what
+ * it lands in, by the column's length (at least six) for each block fallen, up to
+ * {@link STALACTITE_MAX_DAMAGE}. A segment that still has its support stays put, since the
+ * tick may be stale.
  *
- * @returns Whether the column moved.
+ * @returns The number of segments that fell.
  * @javaSource SpeleothemBlock.spawnFallingStalactite
  */
-export const fallStalactite = (world: WorldActions, block: HookBlock): boolean => {
-    if (tipDirectionOf(block) !== 'down' || canDripstoneSurvive(world, block, 'down')) return false;
+export const fallStalactite = (world: WorldActions, block: HookBlock): number => {
+    if (tipDirectionOf(block) !== 'down' || canDripstoneSurvive(world, block, 'down')) return 0;
 
-    const column: HookBlock[] = [];
+    const fallen: HookBlock[] = [];
     let segment: HookBlock | undefined = block;
     while (isSegmentPointing(segment, 'down')) {
-        column.push(segment);
         const thickness = stateString(segment, DRIPSTONE_THICKNESS);
-        if (thickness === 'tip' || thickness === 'merge') break;
+        const tip = thickness === 'tip' || thickness === 'merge';
+        const size = Math.max(1 + block.position.y - segment.position.y, STALACTITE_MIN_SIZE);
+        // Java's `FallingBlockEntity.fall` takes the block out and spawns the entity in the
+        // middle of its cell; the neighbors hear about it once the whole column is out.
+        world.setBlock(segment.position, AIR, undefined, false);
+        const { x, y, z } = segment.position;
+        world.spawnEntity({ x: x + 0.5, y, z: z + 0.5 }, FALLING_BLOCK, {
+            block: segment.identifier,
+            states: segment.states,
+            breaks_on_landing: true,
+            ...(tip ? { hurts: { per_block: size, max: STALACTITE_MAX_DAMAGE, cause: 'stalactite' } } : {})
+        });
+        fallen.push(segment);
+        if (tip) break;
         segment = world.getBlock(offset(segment.position, 'down'));
     }
-    const tip = column.at(-1);
-    if (tip === undefined) return false;
-
-    const below = world.getBlock(offset(tip.position, 'down'));
-    if (below !== undefined && isFallThrough(world, below)) {
-        // Bottom first, so each write lands in a position its segment has already left.
-        for (let index = column.length - 1; index >= 0; index--) {
-            const moving = column[index];
-            if (moving === undefined) continue;
-            world.setBlock(offset(moving.position, 'down'), moving.identifier, moving.states, false);
-        }
-        world.setBlock(block.position, AIR, undefined, false);
-        world.notifyNeighbors(block.position);
-        world.notifyNeighbors(offset(tip.position, 'down'));
-        world.scheduleTick(offset(block.position, 'down'), FALL_DELAY);
-        return true;
-    }
-
-    for (const landed of column) {
-        breakBlock(world, landed, [{ identifier: landed.identifier, count: 1 }], false);
-    }
-    for (const landed of column) world.notifyNeighbors(landed.position);
-    return false;
+    for (const gone of fallen) world.notifyNeighbors(gone.position);
+    return fallen.length;
 };

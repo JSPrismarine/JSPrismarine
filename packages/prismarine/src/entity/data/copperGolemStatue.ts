@@ -16,6 +16,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 
 import type { DataEntity } from './DataEntity';
+import { blockStatesOf } from './blockStatesOf';
 import { blockPositionOf } from './position';
 
 /** The goal whose body names the statue, its chance and its event. */
@@ -64,12 +65,7 @@ const tuningOf = (entity: DataEntity): StatueTuning | undefined => {
     const placeable = Array.isArray(params['placeableBlocks']) ? params['placeableBlocks'] : [];
     const statues = placeable.flatMap((entry): Statue[] => {
         if (!isRecord(entry) || typeof entry['name'] !== 'string') return [];
-        const states: Record<string, string | number | boolean> = {};
-        if (isRecord(entry['states']))
-            for (const [key, value] of Object.entries(entry['states']))
-                if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
-                    states[key] = value;
-        return [{ name: entry['name'], states }];
+        return [{ name: entry['name'], states: blockStatesOf(entry['states']) }];
     });
     const onPlace = params['onPlace'];
     return {

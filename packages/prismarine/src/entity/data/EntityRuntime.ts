@@ -68,6 +68,7 @@ import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
+import { blockStatesOf } from './blockStatesOf';
 import { isFullCubeShape } from '@jsprismarine/blocks/geometry';
 import { isLovedItem, PIGLIN, wantsToPickUp as wantsToPickUpAsPiglin } from '@jsprismarine/entity-brains/mobs/piglin';
 import { wardenHearsVibration } from '@jsprismarine/entity-brains/mobs/warden';
@@ -7930,6 +7931,11 @@ export class EntityRuntime implements EntityScene {
      * component names in `hurts_entities`, the anvils, hurts every living thing it lands in by its
      * damage per block fallen past the first, up to its cap, as `FallingBlockEntity.causeFallDamage`
      * does.
+     *
+     * The spawn data can say more about one falling block than the component says about its kind:
+     * `states` is the state it lands in, `breaks_on_landing` drops it as an item wherever it lands,
+     * which is a falling stalactite that has nothing to hang from there, and `hurts` gives its own
+     * damage, as Java's `setHurtsEntities` does for a stalactite's tip.
      */
     private coastFallingBlock(entity: DataEntity, params: Record<string, unknown>): void {
         const blockName = entity.spawnData?.['block'];
@@ -7980,9 +7986,11 @@ export class EntityRuntime implements EntityScene {
             this.remove(entity.id, 'landed');
             this.hurtLandedOn(entity, blockName, params, state.startY - landing.y, landing.y);
             const tags = javaBlockTagsForBedrock(this.content().tags, resting.identifier, resting.states);
-            if (resting.identifier === AIR || tags.includes(REPLACEABLE_TAG)) {
+            const breaks = entity.spawnData?.['breaks_on_landing'] === true;
+            if (!breaks && (resting.identifier === AIR || tags.includes(REPLACEABLE_TAG))) {
                 if (resting.identifier !== AIR) this.world.blocks.destroy?.(landing);
-                this.world.blocks.set(landing, { identifier: blockName, states: {} }, true);
+                const states = blockStatesOf(entity.spawnData?.['states']);
+                this.world.blocks.set(landing, { identifier: blockName, states }, true);
             } else {
                 this.host.drop(
                     { x: landing.x + 0.5, y: landing.y + 0.5, z: landing.z + 0.5 },
@@ -8007,10 +8015,16 @@ export class EntityRuntime implements EntityScene {
         fallen: number,
         floorY: number
     ): void {
-        const hurting = isRecord(params['hurts_entities']) ? params['hurts_entities'][blockName] : undefined;
+        const own = entity.spawnData?.['hurts'];
+        const hurting = isRecord(own)
+            ? own
+            : isRecord(params['hurts_entities'])
+              ? params['hurts_entities'][blockName]
+              : undefined;
         if (!isRecord(hurting)) return;
         const perBlock = typeof hurting['per_block'] === 'number' ? hurting['per_block'] : 0;
         const max = typeof hurting['max'] === 'number' ? hurting['max'] : 0;
+        const cause = typeof hurting['cause'] === 'string' ? hurting['cause'] : 'anvil';
         const blocks = Math.ceil(fallen - 1);
         if (blocks < 0) return;
         const damage = Math.min(Math.floor(blocks * perBlock), max);
@@ -8024,7 +8038,7 @@ export class EntityRuntime implements EntityScene {
         );
         for (const target of reached) {
             if (target.id === entity.id || target.instance.attributes.get('health') === undefined) continue;
-            this.hurt(target, undefined, 'anvil', damage, { route: 'area_attack' });
+            this.hurt(target, undefined, cause, damage, { route: 'area_attack' });
         }
     }
 
