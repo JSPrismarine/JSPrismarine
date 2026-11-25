@@ -14,6 +14,11 @@ describe('bedrockBlockEntityIdOf', () => {
         expect(bedrockBlockEntityIdOf('minecraft:vault')).toBe('Vault');
     });
 
+    it('names an item frame block after the entity Bedrock keeps in it', () => {
+        expect(bedrockBlockEntityIdOf('minecraft:frame')).toBe('ItemFrame');
+        expect(bedrockBlockEntityIdOf('minecraft:glow_frame')).toBe('GlowItemFrame');
+    });
+
     it('takes a bare name as well as a namespaced one', () => {
         expect(bedrockBlockEntityIdOf('decorated_pot')).toBe('DecoratedPot');
     });
