@@ -8,7 +8,6 @@
  * client's are: waiting a tick on each one let a lagging server fall further behind the client with
  * every packet.
  */
-import { Vector3 } from '@jsprismarine/math';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import {
     BlockChangedAck,
@@ -23,6 +22,10 @@ import {
     MovePlayerRot,
     MovePlayerStatusOnly,
     PlayerAction,
+    PlayerCommand,
+    PlayerCommandAction,
+    PlayerInput,
+    PlayerInputFlag,
     PlayerLoaded,
     ServerboundKeepAlive,
     SetCarriedItem,
@@ -110,6 +113,8 @@ const moveHandler = <D extends JavaPacketDefinition>(
         const { connection } = context;
         const pose = connection.pose!;
         const { position, rotation, flags } = read(payload);
+        const wasOnGround = pose.onGround;
+        const fromY = pose.y;
         if (position !== undefined) {
             pose.x = position.x;
             pose.y = position.y;
@@ -122,9 +127,11 @@ const moveHandler = <D extends JavaPacketDefinition>(
         pose.onGround = (flags & MOVE_ON_GROUND) !== 0;
         const handledTeleport = connection.teleportHandled === true;
         connection.teleportHandled = false;
+        const { players } = world;
         connection.queue(
-            world.players.move(session, {
-                position: new Vector3(pose.x, pose.y + EYE_HEIGHT, pose.z),
+            players.intent(session, {
+                kind: 'move',
+                position: { x: pose.x, y: pose.y + EYE_HEIGHT, z: pose.z },
                 pitch: pose.pitch,
                 yaw: pose.yaw,
                 headYaw: pose.yaw,
@@ -132,6 +139,10 @@ const moveHandler = <D extends JavaPacketDefinition>(
                 handledTeleport
             })
         );
+        // A Java client sends no jump of its own: a player that left the ground going up jumped.
+        // @javaSee ServerGamePacketListenerImpl.handleMovePlayer
+        if (wasOnGround && !pose.onGround && pose.y > fromY)
+            connection.queue(players.intent(session, { kind: 'jump' }));
     });
 
 /**
@@ -165,6 +176,31 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     intentHandler(ClientCommand, ({ action }) =>
         action === ClientCommandAction.PerformRespawn ? { kind: 'pressRespawn' } : undefined
     ),
+    // Sprinting starts and stops by command; getting out of bed is one too. The rest, a riding
+    // jump, a ridden inventory and a glide, wait for riding and elytra.
+    intentHandler(PlayerCommand, ({ action }) => {
+        switch (action) {
+            case PlayerCommandAction.StartSprinting:
+                return { kind: 'setSprinting', sprinting: true };
+            case PlayerCommandAction.StopSprinting:
+                return { kind: 'setSprinting', sprinting: false };
+            case PlayerCommandAction.StopSleeping:
+                return { kind: 'setSleeping', sleeping: false };
+            default:
+                return undefined;
+        }
+    }),
+    // The held keys, each time they change: the jump and sneak buttons scripts hear of, and the
+    // sneak itself, which a Java client says only here.
+    javaHandler(PlayerInput, ({ flags }, context) => {
+        const { session, world } = inWorld(context, PlayerInput);
+        const sneak = (flags & PlayerInputFlag.Shift) !== 0;
+        const { connection } = context;
+        connection.queue(
+            world.players.intent(session, { kind: 'holdButtons', jump: (flags & PlayerInputFlag.Jump) !== 0, sneak })
+        );
+        connection.queue(world.players.intent(session, { kind: 'setSneaking', sneaking: sneak }));
+    }),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
         intent: javaMiningIntentOf(action, session.getPlayer().gamemode),

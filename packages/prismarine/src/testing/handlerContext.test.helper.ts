@@ -11,7 +11,7 @@ import { stub } from './stub.test.helper';
 import type { StubMembers } from './stub.test.helper';
 
 /** The built-in intent handlers, as a started server has them. */
-const builtInIntents = (): IntentHandlerRegistry => {
+export const builtInIntents = (): IntentHandlerRegistry => {
     const registry = new IntentHandlerRegistry({ debug: () => {}, verbose: () => {} });
     registry.enable();
     return registry;

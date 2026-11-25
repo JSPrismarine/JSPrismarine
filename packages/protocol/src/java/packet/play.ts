@@ -161,6 +161,41 @@ export const MovePlayerStatusOnly = defineJavaPacket(
     { flags: moveFlags }
 );
 
+/** `Player Command` (serverbound) actions, by the order of vanilla's `ServerboundPlayerCommandPacket.Action`. */
+export enum PlayerCommandAction {
+    StopSleeping = 0,
+    StartSprinting = 1,
+    StopSprinting = 2,
+    StartRidingJump = 3,
+    StopRidingJump = 4,
+    OpenInventory = 5,
+    StartFallFlying = 6
+}
+
+/**
+ * `Player Command` (serverbound): the player got out of bed, started or stopped sprinting, or
+ * jumped with or opened the inventory of what it rides. `data` is a riding jump's strength.
+ */
+export const PlayerCommand = defineJavaPacket('Player Command', 'play/serverbound/player_command', {
+    entityId: varInt,
+    action: varInt,
+    data: varInt
+});
+
+/** The bits of `Player Input`'s flags, as vanilla's `Input` writes them. */
+export enum PlayerInputFlag {
+    Forward = 0x01,
+    Backward = 0x02,
+    Left = 0x04,
+    Right = 0x08,
+    Jump = 0x10,
+    Shift = 0x20,
+    Sprint = 0x40
+}
+
+/** `Player Input` (serverbound): the movement keys the player holds, sent each time they change. */
+export const PlayerInput = defineJavaPacket('Player Input', 'play/serverbound/player_input', { flags: uint8 });
+
 /** The move flags' bit for a player standing on the ground. */
 export const MOVE_ON_GROUND = 0x01;
 

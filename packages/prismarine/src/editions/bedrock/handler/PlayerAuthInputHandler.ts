@@ -11,28 +11,24 @@ import {
 import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import type PlayerAuthInputPacket from '@jsprismarine/protocol/bedrock/packet/PlayerAuthInputPacket';
 
-import BlockPosition from '../../../world/BlockPosition';
 import { inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
 import { playerAuthInputFromProtocol } from '../PlayerAuthInputAdapter';
 import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
-import PlayerButtonInputEvent from '../../../events/player/PlayerButtonInputEvent';
-import type { PlayerInputButton } from '../../../events/player/PlayerButtonInputEvent';
 import PlayerInputModeChangeEvent from '../../../events/player/PlayerInputModeChangeEvent';
 import type PlayerSession from '../../../player/PlayerSession';
 import type { InputContext } from '../../../player/context/HandlerContext';
-import PlayerActionHandler from './PlayerActionHandler';
+import PlayerActionHandler, { MOVEMENT_INTENTS_OF } from './PlayerActionHandler';
+import type { Intent } from '../../../input/Intent';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
 import { recordPlayerInput } from '../../../scripting/entities/playerInputs';
-import { applyClientMovement } from '../../../player/clientMovement';
 
 /**
  * The flags that are an action in their own right, and the action each one is.
  *
  * A jump, a sprint and a sneak used to arrive as `PlayerActionPacket`s of their own; with
- * server authoritative movement they are bits in the input, and the actions they map to are
- * the same ones, so they are handled by the same code.
+ * server authoritative movement they are bits in the input, and they are the same intents.
  */
 const FLAG_ACTIONS: ReadonlyArray<readonly [PlayerAuthInputData, PlayerActionType]> = [
     [PlayerAuthInputData.START_JUMPING, PlayerActionType.StartJump],
@@ -58,38 +54,20 @@ const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
     PlayerActionType.CreativeDestroyBlock
 ]);
 
-/** What a player's last input reported of the buttons and the input mode. */
-interface ReportedInput {
-    readonly mode: InputMode;
-    readonly held: Readonly<Record<PlayerInputButton, boolean>>;
-}
-
-const reported = new WeakMap<PlayerSession, ReportedInput>();
+/** The input mode each player's last input reported: touch, mouse or gamepad, which only Bedrock has. */
+const reportedModes = new WeakMap<PlayerSession, InputMode>();
 
 /**
- * Raises `playerInputModeChange` and `playerButtonInput` for what changed since the player's last
- * input. The first input of a session sets what later ones are compared with, and a button held
- * in it counts as pressed.
+ * Raises `playerInputModeChange` when the input mode changed since the player's last input. The
+ * first input of a session sets what later ones are compared with.
  */
-const reportInputChanges = (
-    { session, services }: InputContext,
-    mode: InputMode,
-    held: Readonly<Record<PlayerInputButton, boolean>>
-): void => {
-    const before = reported.get(session);
-    reported.set(session, { mode, held });
-    const { events } = services;
-    if (before !== undefined && before.mode !== mode) {
-        events.post('playerInputModeChange', new PlayerInputModeChangeEvent(session, before.mode, mode));
-    }
-    for (const button of ['Jump', 'Sneak'] as const) {
-        if ((before?.held[button] ?? false) === held[button]) continue;
-        events.post('playerButtonInput', new PlayerButtonInputEvent(session, button, held[button]));
+const reportModeChange = ({ session, services }: InputContext, mode: InputMode): void => {
+    const before = reportedModes.get(session);
+    reportedModes.set(session, mode);
+    if (before !== undefined && before !== mode) {
+        services.events.post('playerInputModeChange', new PlayerInputModeChangeEvent(session, before, mode));
     }
 };
-
-/** Where an action that concerns no block says it happened. */
-const NOWHERE = new BlockPosition(0, 0, 0);
 
 const isFiniteVector = (vector: Vector3): boolean =>
     Number.isFinite(vector.getX()) && Number.isFinite(vector.getY()) && Number.isFinite(vector.getZ());
@@ -190,8 +168,14 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
 
         if (!session.isConnected()) return;
 
-        applyClientMovement(context, {
-            position: input.position,
+        const { intents } = context.services;
+        const run = (intent: Intent): void => {
+            const result = intents.handle(intent, context);
+            if (result instanceof Promise) context.step.output(result);
+        };
+        run({
+            kind: 'move',
+            position: { x: input.position.getX(), y: input.position.getY(), z: input.position.getZ() },
             pitch: input.pitch,
             yaw: input.yaw,
             headYaw: input.headYaw,
@@ -201,15 +185,16 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
             handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
         });
 
-        reportInputChanges(context, input.inputMode, {
-            Jump: input.inputData.has(PlayerAuthInputData.JUMP_DOWN),
-            Sneak: input.inputData.has(PlayerAuthInputData.SNEAK_DOWN)
+        reportModeChange(context, input.inputMode);
+        run({
+            kind: 'holdButtons',
+            jump: input.inputData.has(PlayerAuthInputData.JUMP_DOWN),
+            sneak: input.inputData.has(PlayerAuthInputData.SNEAK_DOWN)
         });
 
         for (const [flag, action] of FLAG_ACTIONS) {
-            if (input.inputData.has(flag)) {
-                this.actions.handleAction(action, NOWHERE, 0, context);
-            }
+            const intent = MOVEMENT_INTENTS_OF.get(action);
+            if (input.inputData.has(flag) && intent !== undefined) run(intent);
         }
 
         if (

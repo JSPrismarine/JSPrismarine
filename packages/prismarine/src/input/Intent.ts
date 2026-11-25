@@ -168,6 +168,32 @@ export interface IntentPayloads {
         readonly slot: number;
         readonly item: { readonly name: string; readonly count: number } | null;
     };
+    /**
+     * Where the client says its player is and which way it faces. The server does not simulate
+     * movement, so it takes the client's word, through the `playerMove` event.
+     */
+    readonly move: {
+        /** The player's eyes, as every client reports them. */
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly pitch: number;
+        readonly yaw: number;
+        readonly headYaw: number;
+        readonly onGround: boolean;
+        /** Whether the client says it handled the last teleport, so the move is from after it. */
+        readonly handledTeleport: boolean;
+    };
+    /** The player jumped. */
+    readonly jump: Record<never, never>;
+    /** The player started or stopped sprinting. */
+    readonly setSprinting: { readonly sprinting: boolean };
+    /** The player started or stopped sneaking. */
+    readonly setSneaking: { readonly sneaking: boolean };
+    /** The player started or stopped flying, which the server allows or refuses. */
+    readonly setFlying: { readonly flying: boolean };
+    /** The player lay down in a bed or got out of one. */
+    readonly setSleeping: { readonly sleeping: boolean };
+    /** Which of the buttons scripts hear of the player holds: the jump and sneak buttons. */
+    readonly holdButtons: { readonly jump: boolean; readonly sneak: boolean };
 }
 
 /** What the table declares about one intent. */
@@ -221,7 +247,17 @@ export const Intents = {
     // Writes the inventory, which replication shows the players that see the sender.
     setCreativeSlot: { lane: 'input' },
     // Places blocks and runs the block's and the item's behaviors in the world.
-    useItemOnBlock: { lane: 'input' }
+    useItemOnBlock: { lane: 'input' },
+    // Moves the player, which replication shows the players that see it.
+    move: { lane: 'input' },
+    // Tires the player.
+    jump: { lane: 'input' },
+    setSprinting: { lane: 'input' },
+    setSneaking: { lane: 'input' },
+    setFlying: { lane: 'input' },
+    setSleeping: { lane: 'input' },
+    // Raised on the input lane so the scripts hear it in the tick it arrived in.
+    holdButtons: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

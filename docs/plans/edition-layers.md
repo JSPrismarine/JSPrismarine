@@ -4,11 +4,16 @@ Status: accepted direction, started 2026-11-25. Slices land as stacked pull requ
 
 Progress:
 
-- Slice 1, the player layer: [#3737](https://github.com/JSPrismarine/JSPrismarine/pull/3737).
-- Slice 2, the edition folders: under review. The handler contexts went to `player/context/` rather
-  than an edition, since the intent handlers use them, and `BlockTarget` and `contentUseOnBlock`
-  to `input/handlers/`. `applyClientMovement` and `replaceOtherLogins`, which both editions call,
+- Slice 1, the player layer: merged in [#3737](https://github.com/JSPrismarine/JSPrismarine/pull/3737).
+- Slice 2, the edition folders: merged in [#3738](https://github.com/JSPrismarine/JSPrismarine/pull/3738).
+  The handler contexts went to `player/context/` rather than an edition, since the intent handlers
+  use them, and `BlockTarget` and `contentUseOnBlock` to `input/handlers/`. `applyClientMovement` and `replaceOtherLogins`, which both editions call,
   came out of their Bedrock handlers into `player/`.
+- Slice 3.1, movement: under review. A move, a jump, a sprint, a sneak, a flight, a bed and the held
+  buttons are intents. Bedrock's `PlayerAuthInput` and `PlayerAction` decode into them, and so do
+  Java's move packets, `Player Command` and `Player Input`. Java sends no jump, so a Java move that
+  leaves the ground going up is one, as vanilla's `handleMovePlayer` decides. Bedrock's input mode
+  stays Bedrock's, since only Bedrock has touch, mouse and gamepad modes.
 
 ## Problem
 
