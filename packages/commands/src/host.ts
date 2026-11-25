@@ -212,7 +212,11 @@ export interface EntityCommandHost {
 export interface WorldCommandHost {
     getBlock(dimension: string, position: Vector3): BlockRef | undefined;
     setBlock(dimension: string, position: Vector3, block: BlockRef, mode: BlockPlacementMode): boolean;
-    /** @returns How many blocks changed. */
+    /**
+     * @param filter - With `replace`, the only blocks to replace: those of this block whose states
+     *   match each state the filter lists. Absent, every block is replaced.
+     * @returns How many blocks changed.
+     */
     fill(
         dimension: string,
         from: Vector3,
