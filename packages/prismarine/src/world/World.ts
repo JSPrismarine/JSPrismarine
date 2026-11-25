@@ -103,6 +103,7 @@ import { furnaceScreenData, tickFurnace } from './cooking';
 import { tickInhabitedTime } from './inhabitedTime';
 import type { InhabitingPlayer } from './inhabitedTime';
 import { tickSpawner } from './spawners';
+import { boxOf } from '../entity/data/facts';
 import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
@@ -1155,7 +1156,11 @@ export class World implements Service {
                 return count;
             },
             canSpawnAt: (x, y, z) =>
-                view.isPassable(x, y, z) && view.isPassable(x, y + 1, z) && view.isSolid(x, y - 1, z)
+                view.isPassable(x, y, z) && view.isPassable(x, y + 1, z) && view.isSolid(x, y - 1, z),
+            isClear: (identifier, x, y, z) => {
+                const box = boxOf(this.dataEntities().runtime.content().entities.registry, identifier);
+                return !view.blocksBox(x, y, z, box.width, box.height);
+            }
         };
     }
 
