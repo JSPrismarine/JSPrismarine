@@ -139,9 +139,11 @@ const main = async (): Promise<void> => {
             'Usage: write-update-feed.mts --channel release|nightly --version <v> --commit <sha> --dist <dir>, with GITHUB_REPOSITORY set'
         );
     }
+    // Only plain files: the merged artifacts also hold directories, such as the unzipped macOS app bundle.
     const files = fs
-        .readdirSync(values.dist)
-        .map((name) => ({ name, bytes: fs.readFileSync(path.join(values.dist!, name)) }));
+        .readdirSync(values.dist, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => ({ name: entry.name, bytes: fs.readFileSync(path.join(values.dist!, entry.name)) }));
     const feed = buildUpdateFeed({
         channel,
         version: values.version,
