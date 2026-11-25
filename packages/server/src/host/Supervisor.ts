@@ -144,7 +144,13 @@ export class Supervisor {
         for (const listener of this.linkListeners) listener(child.link);
 
         child.link.onMessage((message) => {
-            if (message.type !== 'lifecycle' || child !== this.child) return;
+            if (child !== this.child) return;
+            // Honored with or without the watcher: `canRestart` only decides what a crash does.
+            if (message.type === 'restart') {
+                this.restart('the server asked to restart');
+                return;
+            }
+            if (message.type !== 'lifecycle') return;
             if (message.state === 'running') this.setState('running');
             else if (message.state === 'stopping' && this.currentState !== 'stopping') this.setState('stopping');
         });

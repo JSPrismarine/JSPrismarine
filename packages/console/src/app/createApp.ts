@@ -1279,6 +1279,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'command.result':
             case 'complete.result':
             case 'commands.result':
+            // The host acts on it; the supervisor's state shows the restart.
+            case 'restart':
                 return;
         }
     }

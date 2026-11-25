@@ -43,6 +43,7 @@ import type { RandomSequencesState } from './host/randomSequences';
 import type { ScriptCommandSet } from '@jsprismarine/script-host/host/world';
 
 import { JSPRISMARINE_COMMAND_PERMISSIONS, registerJsprismarineCommands } from './jsprismarineCommands';
+import { consoleFirstNodeOf, namesNode } from './updateCommands';
 import type { ScriptCommandsOf } from './scriptCommands';
 import { registerScriptCommands, SCRIPT_COMMAND_FAILED } from './scriptCommands';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
@@ -55,6 +56,8 @@ export interface PlayerCommandSender extends CommandExecutor, ReferencedEntity {
     isOp(): boolean;
     /** Whether the sender holds a node after resolution. */
     hasPermission(node: string): boolean;
+    /** Every node that applies to the sender, as the permission entries name them. */
+    getPermissions(): string[];
     /** The level the sender runs commands at: the `level` meta, or 4 for an operator. */
     getCommandLevel(): CommandPermissionLevel;
 }
@@ -889,6 +892,19 @@ export class CommandManager implements Service {
     ): boolean {
         const vanilla = this.vanillaRegistry();
         const metadata = vanilla.getMetadata(name)!;
+
+        // Asked before the node check, which an operator's `*` passes: these need the node by name.
+        const consoleFirst = consoleFirstNodeOf(name);
+        if (consoleFirst !== undefined && isPlayerSender(sender) && !namesNode(sender, consoleFirst)) {
+            started.push(
+                Promise.resolve(
+                    sender.sendMessage(
+                        `§cOnly the console runs /${name}, unless a permission entry names ${consoleFirst}`
+                    )
+                )
+            );
+            return false;
+        }
 
         if (isPlayerSender(sender) && !this.isScriptCommand(name)) {
             if (!this.server.getPermissionManager().can(sender).execute(commandPermissionOf(name))) {

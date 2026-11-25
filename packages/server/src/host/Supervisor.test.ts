@@ -167,6 +167,28 @@ describe('Supervisor', () => {
         expect(exit).not.toHaveBeenCalled();
     });
 
+    it('restarts when the server asks, even without the watcher', async () => {
+        const { supervisor, children, states, exit } = setup({ canRestart: false });
+        await supervisor.start();
+        await children[0]?.running();
+
+        const stopping = Promise.withResolvers<void>();
+        supervisor.onEvent((event) => {
+            if (event.type === 'supervisor.state' && event.state === 'stopping') stopping.resolve();
+        });
+        children[0]?.server.send({ type: 'restart', v: 1 });
+        await stopping.promise;
+        expect(children[0]?.stop).toHaveBeenCalledTimes(1);
+
+        const restarted = nextChildLink(supervisor);
+        children[0]?.exit(0);
+        await restarted;
+
+        expect(children).toHaveLength(2);
+        expect(states()).toEqual(['1:starting', '1:running', '1:stopping', '1:restarting', '2:starting']);
+        expect(exit).not.toHaveBeenCalled();
+    });
+
     it('queues one restart while a spawn is in flight', async () => {
         const { supervisor, children } = setup();
         const started = supervisor.start();

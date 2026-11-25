@@ -420,7 +420,8 @@ describe('AvailableCommandsPacket', () => {
             getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
             getPermissionManager: () =>
                 stub<PermissionManager>({
-                    can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
+                    can: () => ({ execute: () => true, not: () => ({ execute: () => false }) }),
+                    nodesOf: () => []
                 }),
             getCommandManager: () => commandManager,
             // Read once by the session's constructor.

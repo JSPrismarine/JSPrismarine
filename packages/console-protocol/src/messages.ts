@@ -97,7 +97,9 @@ export type ServerMessage =
     | (Envelope<'boot'> & { step: string; state: BootState })
     | (Envelope<'command.result'> & { id: string; ok: boolean; error?: string })
     | (Envelope<'complete.result'> & { id: string; completions: readonly string[]; replace: string })
-    | (Envelope<'commands.result'> & { id: string; commands: readonly CommandInfo[] });
+    | (Envelope<'commands.result'> & { id: string; commands: readonly CommandInfo[] })
+    /** Asks the host to stop the server and start it again in a new process, as `restart` does. */
+    | Envelope<'restart'>;
 
 /** Messages the console sends to the server. */
 export type ConsoleMessage =
@@ -203,7 +205,8 @@ const SERVER_FIELDS = {
     boot: { step: 'string', state: isBootState },
     'command.result': { id: 'string', ok: 'boolean' },
     'complete.result': { id: 'string', completions: 'array', replace: 'string' },
-    'commands.result': { id: 'string', commands: 'array' }
+    'commands.result': { id: 'string', commands: 'array' },
+    restart: {}
 } as const satisfies FieldTable<ServerMessage>;
 
 const CONSOLE_FIELDS = {

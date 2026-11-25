@@ -47,7 +47,7 @@ const packetSentTo = async ({
         // No pack stack, so the command layer offers the commands a server without one has.
         getContent: () => testContent(),
         getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
-        getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
+        getPermissionManager: () => stub<PermissionManager>({ can: canExecute, nodesOf: () => [] }),
         getCommandManager: () => commandManager,
         // Read once by the session's constructor.
         getConfig: () =>
@@ -196,7 +196,7 @@ describe('PlayerSession', () => {
                 getLogger: () => logger,
                 getContent: () => testContent(),
                 getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
-                getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
+                getPermissionManager: () => stub<PermissionManager>({ can: canExecute, nodesOf: () => [] }),
                 getCommandManager: () => commandManager,
                 getConfig: () =>
                     stub<Config>({
