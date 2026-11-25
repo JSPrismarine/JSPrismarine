@@ -11,6 +11,7 @@ import { siteIconHead } from '../../brand-assets.mts';
 import { markdownHeaders, markdownPages, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
 import { loadGeneratedCopies } from '../../llmsPages.mts';
 import { loadProject } from '../../project.mts';
+import { updateFeedRedirects } from '../../updateFeed.mts';
 import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
@@ -176,6 +177,7 @@ export default defineConfig({
                 ...markdownHeaders
             ].join('\n')
         );
+        writeFileSync(path.join(siteConfig.outDir, '_redirects'), updateFeedRedirects());
     },
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description, URL and image, so shared links preview the page itself. */
