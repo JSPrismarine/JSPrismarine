@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { nextTurn, SlowHost } from './slowHost.test.helper';
@@ -48,6 +50,26 @@ describe('SlowHost', () => {
 
         await turns(32);
         expect(ran).toBe(1);
+    });
+
+    // PermissionManager reloads `permissions.json` this way: a debounced unref'd timer starts a
+    // read and awaits it. The read completes after the timer's callback has returned, and the
+    // work its continuation starts is still the timer's (#3711).
+    it("does not count an I/O completion, or the work after it, that an unref'd timer started", async () => {
+        SlowHost.start();
+        let done = false;
+        setTimeout(() => {
+            void (async () => {
+                await fs.promises.readFile(import.meta.filename, 'utf8');
+                await fs.promises.readFile(import.meta.filename, 'utf8');
+                done = true;
+            })();
+        }, 0).unref();
+
+        while (!done) {
+            expect(SlowHost.held().filter(({ origin }) => fromHere(origin))).toEqual([]);
+            await nextTurn();
+        }
     });
 
     it('counts work a timer that keeps the process alive started', async () => {

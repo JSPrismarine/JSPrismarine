@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createRequire, syncBuiltinESMExports } from 'node:module';
 import { webcrypto } from 'node:crypto';
 
@@ -47,18 +48,20 @@ let active = false;
 const holding = new Set<HeldWork>();
 /** Held work an unref'd timer started, which nothing waits for. */
 const holdingInBackground = new Set<HeldWork>();
-/** True while a callback that continues an unref'd timer runs. */
-let inBackground = false;
+/**
+ * Set in the asynchronous context of an unref'd timer's callback. An async context rather than a
+ * flag, so it follows the work the callback starts: a read it awaits completes after the callback
+ * has returned, and the code after that `await` is still the timer's work (#3711).
+ */
+const backgroundWork = new AsyncLocalStorage<true>();
+
+/** Whether the running code continues an unref'd timer. */
+const inBackground = (): boolean => backgroundWork.getStore() === true;
 
 /** Runs `callback` as background work when `background` is set, and as its caller's otherwise. */
 const runAs = (background: boolean, callback: () => void): void => {
-    const previous = inBackground;
-    inBackground ||= background;
-    try {
-        callback();
-    } finally {
-        inBackground = previous;
-    }
+    if (background && !inBackground()) backgroundWork.run(true, callback);
+    else callback();
 };
 const timers = new Map<NodeJS.Timeout, HeldWork>();
 /** How to cancel each held immediate, by the handle `setImmediate` returned for it. */
@@ -86,11 +89,12 @@ const workspaceOrigin = (): string | undefined => {
 
 /**
  * Delivers `deliver` after the hold, counting it as held meanwhile.
+ * @param background - Whether background work started it, read when it started: by the time it
+ *   completes, the code that started it has returned.
  * @returns Cancels the delivery, as `clearImmediate` does an immediate that has not run.
  */
-const hold = (api: string, origin: string, deliver: () => void): (() => void) => {
+const hold = (api: string, origin: string, background: boolean, deliver: () => void): (() => void) => {
     const work: HeldWork = { api, origin };
-    const background = inBackground;
     const set = background ? holdingInBackground : holding;
     set.add(work);
     let turns = 0;
@@ -123,7 +127,9 @@ const holdCallback = (api: string, original: AnyFunction): AnyFunction =>
         const callback = args.at(-1);
         const origin = active && isFunction(callback) ? workspaceOrigin() : undefined;
         if (origin === undefined || !isFunction(callback)) return original.apply(this, args);
-        args[args.length - 1] = (...results: unknown[]) => hold(api, origin, () => void callback(...results));
+        const background = inBackground();
+        args[args.length - 1] = (...results: unknown[]) =>
+            hold(api, origin, background, () => void callback(...results));
         return original.apply(this, args);
     };
 
@@ -133,10 +139,11 @@ const holdPromise = (api: string, original: AnyFunction): AnyFunction =>
         const origin = active ? workspaceOrigin() : undefined;
         const result = original.apply(this, args);
         if (origin === undefined || !(result instanceof Promise)) return result;
+        const background = inBackground();
         return new Promise((resolve, reject) => {
             result.then(
-                (value: unknown) => hold(api, origin, () => resolve(value)),
-                (error: unknown) => hold(api, origin, () => reject(error))
+                (value: unknown) => hold(api, origin, background, () => resolve(value)),
+                (error: unknown) => hold(api, origin, background, () => reject(error))
             );
         });
     };
@@ -247,7 +254,7 @@ Reflect.set(
             const origin = active ? workspaceOrigin() : undefined;
             if (origin === undefined) return originalSetImmediate(callback, ...args);
             // Counted as held from the call, so a harness that does not wait for it cannot miss it.
-            const cancel = hold('setImmediate', origin, () => {
+            const cancel = hold('setImmediate', origin, inBackground(), () => {
                 immediates.delete(handle);
                 callback(...args);
             });
