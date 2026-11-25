@@ -47,6 +47,7 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import type { ContextParts } from '../../testing/handlerContext.test.helper';
 import type { HandlerLog } from './HandlerContext';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
+import { TransportNames } from '../transport/Transport';
 
 /**
  * Records everything the join sends, in order, under one name per packet.
@@ -122,6 +123,7 @@ const harness = ({
         codec,
         phase: 'resourcePacks',
         getAddress: () => new InetAddress('127.0.0.1', 19132),
+        getTransport: () => TransportNames.raknet,
         sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);

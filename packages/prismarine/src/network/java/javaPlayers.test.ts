@@ -1,6 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
+import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it } from 'vitest';
 
 import { AccountLinks } from '../../identity/AccountLinks';
@@ -75,6 +76,7 @@ describe('network', () => {
                     { id: JAVA_UUID, name: 'Alex', properties: [] },
                     true,
                     2,
+                    new InetAddress('127.0.0.1', 50_000),
                     () => {},
                     async () => {},
                     () => {}

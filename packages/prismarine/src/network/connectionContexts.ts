@@ -17,11 +17,9 @@ import type Server from '../Server';
 import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import { createConnectedPlayer } from './createConnectedPlayer';
-import type { ConnectionContext, JoinPreparation, LoginIdentity, LoginServices } from './handler/ConnectionContext';
-import { accountOf } from './handler/ConnectionContext';
+import type { ConnectionContext, JoinOptions, JoinPreparation, LoginServices } from './handler/ConnectionContext';
 import { InputQueue } from './InputQueue';
 import { accountLinksToken } from '../modules/tokens';
-import type PlayerSession from './PlayerSession';
 
 /**
  * The world a joining player is built in: the Overworld of the attached level they last left
@@ -34,13 +32,11 @@ export const returningWorldOf = (server: Server, playerKey: string): World => {
 
 /** The login's preparation of a player, in the level they left from or the entry level. */
 const joinPreparationOf = (server: Server): JoinPreparation => ({
-    async prepare(connection: ClientConnection, identity: LoginIdentity): Promise<PlayerSession | null> {
+    async prepare(connection, account, { dress, presenterOf }: JoinOptions = {}) {
         // Resolved here because this is where a world is first available and awaiting is
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.
-        // A linked account plays as the account it is linked to: the primary's record, key and name.
         const links = server.getKernel().get(accountLinksToken);
-        const account = links.resolve(accountOf(identity));
         if (account.linkedFrom === undefined) await links.noteLogin(account);
         // A player who logged out in another level comes back in it, and anyone else in the
         // entry level; the level's record then puts them in the dimension they left.
@@ -50,9 +46,7 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
         // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
         // filed below, so a login rejected before then leaves nothing behind.
         const player = new StorePlayer(entityIds.next(), { ...account, uuid: UUID.fromString(account.uuid) });
-        player.skin = identity.skin;
-        player.device = identity.device;
-        if (identity.languageCode !== undefined && identity.languageCode !== '') player.locale = identity.languageCode;
+        await dress?.(player);
         // The spawn is where the eyes go, as a client reports its position.
         player.standAt({ x: spawn.getX(), y: spawn.getY() - EYE_HEIGHT, z: spawn.getZ() });
 
@@ -73,7 +67,8 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
             connection,
             player,
             identity: account,
-            world
+            world,
+            ...(presenterOf === undefined ? {} : { presenter: presenterOf(player) })
         });
         try {
             await session.join();
@@ -122,7 +117,31 @@ export class ConnectionContexts {
      */
     public contextOf(connection: ClientConnection, inputs = new InputQueue(() => false)): ConnectionContext {
         const server = this.server;
-        const login: LoginServices = {
+        const login = this.loginServices(inputs);
+        return {
+            connection,
+            get log() {
+                return server.getLogger();
+            },
+            get config() {
+                return server.getConfig();
+            },
+            get protocols() {
+                return server.getProtocolPolicy();
+            },
+            login
+        };
+    }
+
+    /**
+     * What a login of either edition reads and claims: the sessions, the lists, the account links
+     * and where its player is built.
+     *
+     * @param inputs - Where the dispatcher holds inputs, as for {@link ConnectionContexts.contextOf}.
+     */
+    public loginServices(inputs = new InputQueue(() => false)): LoginServices {
+        const server = this.server;
+        return {
             get sessions() {
                 return server.getSessionManager();
             },
@@ -156,19 +175,6 @@ export class ConnectionContexts {
                 }
                 await removed;
             }
-        };
-        return {
-            connection,
-            get log() {
-                return server.getLogger();
-            },
-            get config() {
-                return server.getConfig();
-            },
-            get protocols() {
-                return server.getProtocolPolicy();
-            },
-            login
         };
     }
 }

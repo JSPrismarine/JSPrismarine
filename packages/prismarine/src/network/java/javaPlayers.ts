@@ -5,9 +5,8 @@
  * Bedrock client's does: intents run by the same handlers, in the same input step, and movement
  * through `applyClientMovement` ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
-import { ConnectionContexts, returningWorldOf } from '../connectionContexts';
+import { ConnectionContexts } from '../connectionContexts';
 import { replaceOtherLogins } from '../handler/LoginHandler';
-import { playerKeyOf } from '../../playerIdentity';
 import {
     createDefaultSkinImage,
     DEFAULT_SKIN_RESOURCE_PATCH,
@@ -16,20 +15,19 @@ import {
 } from '@jsprismarine/auth/DefaultSkin';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
-import { InetAddress } from '@jsprismarine/raknet';
+import type { InetAddress } from '@jsprismarine/raknet';
 import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
-import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type Server from '../../Server';
-import { entityIds } from '../../entity/entityIds';
+import type { PlayerIdentity } from '../../playerIdentity';
+import type { LoginRefusal } from '../playerAdmission';
+import { loginRefusalOf } from '../playerAdmission';
+import { announceArrival, playerArriving } from '../playerArrival';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
-import type { Subject } from '../../identity/Subject';
 import type { Intent, IntentKind } from '../../input/Intent';
 import { laneOfIntents } from '../../input/Intent';
-import { StorePlayer } from '../../entity/storePlayer';
 import ClientConnection from '../ClientConnection';
 import { latestCodec } from '../codec/CodecRegistry';
-import { createConnectedPlayer } from '../createConnectedPlayer';
 import type { ClientMovement } from '../handler/PlayerAuthInputHandler';
 import { applyClientMovement } from '../handler/PlayerAuthInputHandler';
 import { HandlerContexts } from '../handlerContexts';
@@ -38,7 +36,6 @@ import type PlayerSession from '../PlayerSession';
 import type { ShownDimension, ShownRespawn } from '../presenter/SessionPresenter';
 import type { ConnectionId } from '../transport/ConnectionId';
 import { TransportNames } from '../transport/Transport';
-import { accountLinksToken } from '../../modules/tokens';
 import type { TransportConnection } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
 import { javaBlockTranslation, javaItemTranslation } from './editionTranslation';
@@ -77,9 +74,9 @@ export const javaPlayerSkin = (): Skin =>
     });
 
 /** A transport connection no Bedrock packet leaves by: the Java client reads Java packets only. */
-const javaSide = (id: ConnectionId): TransportConnection => ({
+const javaSide = (id: ConnectionId, address: InetAddress): TransportConnection => ({
     id,
-    address: new InetAddress('0.0.0.0', 0),
+    address,
     capabilities: { encrypted: false, reliableOrdered: true, maxFrameSize: Number.MAX_SAFE_INTEGER },
     transport: TransportNames.java,
     sendFrame: () => {},
@@ -103,10 +100,11 @@ export const javaDisconnectReason = (reason: string, code?: DisconnectReason): J
 class JavaClientConnection extends ClientConnection {
     public constructor(
         id: ConnectionId,
+        address: InetAddress,
         logger: ConstructorParameters<typeof ClientConnection>[1],
         private readonly hangUp: (reason: JavaText) => Promise<void>
     ) {
-        super(javaSide(id), logger);
+        super(javaSide(id, address), logger);
     }
 
     public override async disconnect(
@@ -125,26 +123,41 @@ class JavaClientConnection extends ClientConnection {
 /** Java players in the world, for the connections that log them in. */
 export interface JavaPlayers {
     /**
-     * Logs a Java player into the default world, as a Bedrock login does: their saved record, or
-     * the spawn the world places a new player at. It replaces any other connection, of either
-     * edition, playing as the same account, as a Bedrock login does.
+     * Whether a login is let in, as a Bedrock login is: the ban list, the allow list and the
+     * player limit.
+     * @returns Why it is refused, or undefined when it is let in.
+     */
+    refusalOf(profile: JavaProfile, verified: boolean): Promise<LoginRefusal | undefined>;
+    /**
+     * Logs a Java player into the world, as a Bedrock login does: their saved record, or the
+     * spawn the world places a new player at. It replaces any other connection, of either
+     * edition, playing as the same account, as a Bedrock login does, and posts `playerSpawn`.
+     * @param address - Where the client connected from.
      * @param hangUp - Tells the client why it is disconnected and closes its connection.
      * @param respawned - Told where the player stands each time its client is spawned again, after
      *   a death or into another world.
-     * @returns The session, where the player's feet are, and the dimension they are in.
+     * @returns The session, where the player's feet are, and the dimension they are in; undefined
+     *   when the join ended before the player was in the world, because a later login of the same
+     *   account replaced it or a `playerSpawn` listener cancelled it.
      */
     join(
         profile: JavaProfile,
         verified: boolean,
         connection: ConnectionId,
+        address: InetAddress,
         send: JavaSend,
         hangUp: (reason: JavaText) => Promise<void>,
         respawned: (feet: ShownRespawn['feet']) => void
-    ): Promise<{
-        readonly session: PlayerSession;
-        readonly feet: { x: number; y: number; z: number };
-        readonly dimension: ShownDimension;
-    }>;
+    ): Promise<
+        | {
+              readonly session: PlayerSession;
+              readonly feet: { x: number; y: number; z: number };
+              readonly dimension: ShownDimension;
+          }
+        | undefined
+    >;
+    /** Tells everyone the player joined, once its client has the world to show the message in. */
+    announce(session: PlayerSession): Promise<void>;
     /** Applies a position the client reported, in the input step. */
     move(session: PlayerSession, movement: ClientMovement): Promise<void>;
     /** Runs an intent the client's packet decoded into, by its lane. */
@@ -152,6 +165,18 @@ export interface JavaPlayers {
     /** Takes the player out of the world when the connection ends, saving their record. */
     leave(connection: ConnectionId): Promise<void>;
 }
+
+/**
+ * The account a Java login proved, before any link is resolved.
+ * @param profile - The profile the login names.
+ * @param verified - Whether Mojang vouched for it, which makes the player a `java` subject rather than `offline`.
+ */
+const accountOf = (profile: JavaProfile, verified: boolean): PlayerIdentity => ({
+    name: profile.name,
+    xuid: '',
+    uuid: profile.id,
+    subject: verified ? { kind: 'java', uuid: profile.id } : { kind: 'offline', name: profile.name }
+});
 
 /**
  * The server's Java players.
@@ -175,17 +200,20 @@ export const javaPlayersOf = (
     const items = javaItemTranslation();
 
     return {
-        join: async (profile, verified, id, send, hangUp, respawned) => {
-            const connection = new JavaClientConnection(id, server.getLogger(), hangUp);
+        refusalOf: (profile, verified) =>
+            loginRefusalOf(
+                ConnectionContexts.of(server).loginServices(inputs),
+                accountOf(profile, verified),
+                server.getConfig().getMaxPlayers()
+            ),
+
+        join: async (profile, verified, id, address, send, hangUp, respawned) => {
+            const connection = new JavaClientConnection(id, address, server.getLogger(), hangUp);
             connection.codec = latestCodec;
             connection.phase = 'play';
-            const subject: Subject = verified
-                ? { kind: 'java', uuid: profile.id }
-                : { kind: 'offline', name: profile.name };
+            const login = ConnectionContexts.of(server).loginServices(inputs);
             // A linked account plays as the account it is linked to: the primary's record, key and name.
-            const links = server.getKernel().get(accountLinksToken);
-            const identity = links.resolve({ name: profile.name, xuid: '', uuid: profile.id, subject });
-            if (identity.linkedFrom === undefined) await links.noteLogin(identity);
+            const account = login.links.resolve(accountOf(profile, verified));
             const sessions = server.getSessionManager();
             sessions.add(id, connection);
             let settle!: () => void;
@@ -194,44 +222,31 @@ export const javaPlayersOf = (
             });
             try {
                 // Before the record is read, so the replaced session has saved it.
-                await replaceOtherLogins(
-                    ConnectionContexts.of(server).contextOf(connection, inputs).login,
-                    connection,
-                    identity,
-                    joined
-                );
-                // In the level they last left from, as a Bedrock login is.
-                const world = returningWorldOf(server, playerKeyOf(identity));
-                const player = new StorePlayer(entityIds.next(), {
-                    uuid: UUID.fromString(profile.id),
-                    name: identity.name,
-                    xuid: identity.xuid,
-                    subject: identity.subject
-                });
-                // Read before the player is listed, so every client is shown the player's own skin from
-                // the start; a texture the server cannot read in time leaves the default one.
+                await replaceOtherLogins(login, connection, account, joined);
                 const textures = texturesPropertyOf(profile);
-                player.javaTextures = textures;
-                player.skin = (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();
-                const spawn = await world.getSpawnPosition();
-                player.standAt({
-                    x: Math.floor(spawn.getX()) + 0.5,
-                    y: spawn.getY(),
-                    z: Math.floor(spawn.getZ()) + 0.5
+                let presenter!: JavaPresenter;
+                const session = await login.players.prepare(connection, account, {
+                    // Read before the player is listed, so every client is shown the player's own
+                    // skin from the start; a texture the server cannot read in time leaves the
+                    // default one.
+                    dress: async (player) => {
+                        player.javaTextures = textures;
+                        player.skin =
+                            (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();
+                    },
+                    presenterOf: (player) =>
+                        (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned))
                 });
-                const presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned);
-                const session = createConnectedPlayer({ server, connection, player, identity, world, presenter });
-                try {
-                    await session.join();
-                } catch (error) {
-                    await connection.closePlayerSession();
-                    throw error;
+                if (session === null) return undefined;
+                if (!playerArriving({ log: server.getLogger(), events: server.getKernel().events }, session)) {
+                    await connection.disconnect();
+                    return undefined;
                 }
                 session.released(session.addToPlayerList());
                 // The client draws its own player's skin from its own tab list entry.
                 presenter.listProfile({
                     uuid: profile.id,
-                    name: identity.name,
+                    name: account.name,
                     ...(textures === undefined ? {} : { textures })
                 });
                 // The position a player holds is their eyes.
@@ -251,6 +266,9 @@ export const javaPlayersOf = (
                 settle();
             }
         },
+
+        announce: (session) =>
+            announceArrival({ chat: server.getChatManager(), console: server.getConsoleSender() }, session),
 
         move: (session, movement) =>
             inputs.hold(

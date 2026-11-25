@@ -22,6 +22,8 @@ import type SessionManager from '../../SessionManager';
 import type ClientConnection from '../ClientConnection';
 import type { parseLoginIdentity } from '../LoginIdentity';
 import type PlayerSession from '../PlayerSession';
+import type { SessionPresenter } from '../presenter/SessionPresenter';
+import type { StorePlayer } from '../../entity/storePlayer';
 import type { PlayerIdentity } from '../../playerIdentity';
 import { loginSubject } from '../../identity/Subject';
 import type { SessionPhase } from '../SessionPhase';
@@ -52,20 +54,34 @@ export type ConnectionConfig = Pick<
     'getPacketCompressionAlgorithm' | 'getPacketCompressionThreshold' | 'getMaxPlayers' | 'getOnlineMode'
 >;
 
-/** Builds a login's player in front of its join. */
+/** What a login's edition sets on the player it builds, such as its skin, before anyone sees it. */
+export interface JoinOptions {
+    /** Sets what the login carried on the player, before the player is filed. */
+    dress?(player: StorePlayer): void | Promise<void>;
+    /** What the session's client is shown through; the Bedrock presenter over the connection unless given. */
+    presenterOf?(player: StorePlayer): SessionPresenter;
+}
+
+/** Builds a login's player in front of its join, for either edition. */
 export interface JoinPreparation {
     /**
      * Builds the player of a login that holds its account and joins it to the connection: reads
-     * the default world's spawn, builds the store player standing there, attaches a session for
-     * it and loads its record, which may move it to the world the record names. Sends nothing.
+     * the spawn of the world the player returns to, builds the store player standing there,
+     * attaches a session for it and loads its record, which may move it to the world the record
+     * names. Sends nothing.
      *
      * @param connection - The connection logging in.
-     * @param identity - Who the login names.
+     * @param account - The account the player plays as, with any link resolved.
+     * @param options - What the edition sets on the player, and its presenter.
      * @returns The session, or null when a later login of the same account took it while the
      *   spawn was read.
      * @throws The error loading the record threw, after the session is torn down again.
      */
-    prepare(connection: ClientConnection, identity: LoginIdentity): Promise<PlayerSession | null>;
+    prepare(
+        connection: ClientConnection,
+        account: PlayerIdentity,
+        options?: JoinOptions
+    ): Promise<PlayerSession | null>;
 }
 
 /** The server-wide services a login uses. */

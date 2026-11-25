@@ -9,6 +9,7 @@ import { verifyLogin } from '@jsprismarine/auth/server';
 import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';
 import type { ConnectionContext, ConnectionHandler, LoginIdentity, LoginServices } from './ConnectionContext';
 import { accountOf } from './ConnectionContext';
+import { loginRefusalOf } from '../playerAdmission';
 import type { HandlerLog } from './HandlerContext';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { PlayerIdentity } from '../../playerIdentity';
@@ -232,37 +233,29 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             return;
         }
 
-        // An operator entry or a ban written before subjects existed is keyed by what this login
-        // carries; claimed here, it is this account's from now on.
         const account = accountOf(identity);
-        login.permissions.claimLegacy(account);
-        await login.bans.claimLegacy(account);
-        const reason = login.bans.isBanned(account);
-        if (reason !== false) {
-            await connection.disconnect(
-                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
-                false,
-                DisconnectReason.NOT_ALLOWED
-            );
-            return;
-        }
-        const listed = { name: identity.displayName, ...(identity.xuid ? { xuid: identity.xuid } : {}) };
-        if (!login.allowList.allows(listed)) {
-            await connection.disconnect('You are not invited to this server.', false, DisconnectReason.NOT_ALLOWED);
-            return;
-        }
-
-        // The client renders this status as "server full", so the player learns why without
-        // the server building a player it would only tear down again. The disconnect that
-        // follows carries `ServerFull` and hangs up. Checked once the account is the verified
-        // one, since an allow list entry that ignores the player limit lets its player in anyway.
-        if (sessions.getSessions().length >= config.getMaxPlayers() && !login.allowList.ignoresPlayerLimit(listed)) {
-            await connection.sendDataPacket(
-                new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
-                true
-            );
-            await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
-            return;
+        const refusal = await loginRefusalOf(login, account, config.getMaxPlayers());
+        switch (refusal?.kind) {
+            case 'banned':
+                await connection.disconnect(
+                    `You have been banned${refusal.reason ? ` for reason: ${refusal.reason}` : ''}!`,
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
+                return;
+            case 'notInvited':
+                await connection.disconnect('You are not invited to this server.', false, DisconnectReason.NOT_ALLOWED);
+                return;
+            case 'full':
+                // The client renders this status as "server full", so the player learns why
+                // without the server building a player it would only tear down again. The
+                // disconnect that follows carries `ServerFull` and hangs up.
+                await connection.sendDataPacket(
+                    new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
+                    true
+                );
+                await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
+                return;
         }
 
         let settle!: () => void;
@@ -270,18 +263,31 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             settle = resolve;
         });
         try {
-            await replaceOtherLogins(login, connection, login.links.resolve(account), joined);
-            await LoginHandler.join(identity, context);
+            const resolved = login.links.resolve(account);
+            await replaceOtherLogins(login, connection, resolved, joined);
+            await LoginHandler.join(identity, resolved, context);
         } finally {
             settle();
         }
     }
 
     /** Builds the player for a login that holds its account and lets it into the resource pack exchange. */
-    private static async join(identity: LoginIdentity, { connection, login }: ConnectionContext): Promise<void> {
+    private static async join(
+        identity: LoginIdentity,
+        account: PlayerIdentity,
+        { connection, login }: ConnectionContext
+    ): Promise<void> {
         // Nothing but PlayStatus and ResourcePacksInfo leaves here; the rest waits for
         // `ResourcePackClientResponseHandler`.
-        const session = await login.players.prepare(connection, identity);
+        const session = await login.players.prepare(connection, account, {
+            dress: (player) => {
+                player.skin = identity.skin;
+                player.device = identity.device;
+                if (identity.languageCode !== undefined && identity.languageCode !== '') {
+                    player.locale = identity.languageCode;
+                }
+            }
+        });
         if (session === null) return;
 
         // The login became a player session, so the resource pack exchange owns the

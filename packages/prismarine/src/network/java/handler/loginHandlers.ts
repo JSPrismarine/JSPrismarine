@@ -17,6 +17,7 @@ import {
     SetCompression
 } from '@jsprismarine/protocol/java/packet/login';
 
+import type { LoginRefusal } from '../../playerAdmission';
 import type { JavaProfile } from '../javaAuth';
 import { decryptFromClient, offlineUuid, serverHash } from '../javaAuth';
 import type { JavaConnection } from '../JavaConnection';
@@ -59,8 +60,35 @@ export const outOfTurn = (connection: JavaConnection, definition: JavaPacketDefi
         phase: connection.phase
     });
 
-/** Sends compression and the profile, which ends the login on the server's side. */
-const finishLogin = ({ connection, services }: JavaContext, profile: JavaProfile, verified: boolean): void => {
+/**
+ * A refusal in the words vanilla uses for it.
+ * @param refusal - Why the login is turned away.
+ * @returns The reason, as a JSON text component.
+ */
+export const javaRefusalReason = (refusal: LoginRefusal): string => {
+    switch (refusal.kind) {
+        case 'banned':
+            return refusal.reason === ''
+                ? translated('multiplayer.disconnect.banned')
+                : translated('multiplayer.disconnect.banned.reason', refusal.reason);
+        case 'notInvited':
+            return translated('multiplayer.disconnect.not_whitelisted');
+        case 'full':
+            return translated('multiplayer.disconnect.server_full');
+    }
+};
+
+/**
+ * Lets the login in, as a Bedrock login is let in, then sends compression and the profile, which
+ * ends the login on the server's side. Refused before compression, as vanilla refuses it.
+ */
+const finishLogin = async (
+    { connection, services }: JavaContext,
+    profile: JavaProfile,
+    verified: boolean
+): Promise<void> => {
+    const refusal = await services.options.world?.players.refusalOf(profile, verified);
+    if (refusal !== undefined) return refuseLogin(connection, javaRefusalReason(refusal));
     connection.verified = verified;
     connection.send(SetCompression, { threshold: COMPRESSION_THRESHOLD });
     connection.compression = COMPRESSION_THRESHOLD;
@@ -71,7 +99,6 @@ const finishLogin = ({ connection, services }: JavaContext, profile: JavaProfile
         properties: [...profile.properties],
         sessionId: services.sessionId
     });
-    services.options.log.info(`Java Edition player ${profile.name} (${profile.id}) logged in`);
 };
 
 /** The login's three serverbound packets, each at its point of the login. */
@@ -113,7 +140,7 @@ export const LOGIN_HANDLERS: readonly JavaPacketHandler[] = [
         if (profile === undefined) {
             return refuseLogin(connection, translated('multiplayer.disconnect.unverified_username'));
         }
-        finishLogin(context, profile, true);
+        await finishLogin(context, profile, true);
     }),
 
     javaHandler(LoginAcknowledged, (_acknowledged, context) => {

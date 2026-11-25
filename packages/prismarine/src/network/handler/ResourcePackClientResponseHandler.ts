@@ -1,4 +1,3 @@
-import { Chat, ChatType } from '../../chat/Chat';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 
@@ -8,7 +7,7 @@ import StartGamePacket from '@jsprismarine/protocol/bedrock/packet/StartGamePack
 import type PlayerSession from '../PlayerSession';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
-import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
+import { announceArrival, playerArriving } from '../playerArrival';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/bedrock/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/bedrock/packet/BiomeDefinitionListPacket';
 import FeatureRegistryPacket from '@jsprismarine/protocol/bedrock/packet/FeatureRegistryPacket';
@@ -213,15 +212,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
      */
     private startJoin(context: InputContext): void {
         const { session, log, services, step } = context;
-        const { identity } = session;
-        const address = session.getConnection().getAddress();
-        log.info(
-            `§b${identity.name}§f is attempting to join with id §b${identity.uuid}§f (§b${session.runtimeId}§f) from ${address.getAddress()}:${address.getPort()}`
-        );
-
-        const spawnEvent = new PlayerSpawnEvent(session);
-        services.events.post('playerSpawn', spawnEvent);
-        if (spawnEvent.isCanceled()) return;
+        if (!playerArriving({ log, events: services.events }, session)) return;
 
         // The burst reads the spawn of the world the player joins and the level's Overworld
         // spawn, which placing a new player found before this. A world that has not found its
@@ -258,7 +249,6 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         { session, log, config, services, step }: InputContext,
         spawns: { readonly world: Vector3; readonly overworld: Vector3 }
     ): Promise<void> {
-        const { identity } = session;
         const connection = session.getConnection();
         const world = session.getWorld();
         const content = services.content;
@@ -373,20 +363,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             sends.push(connection.sendDataPacket(respawn));
         }
 
-        sends.push(
-            services.chat.send(
-                new Chat({
-                    sender: services.console,
-                    // The bare translation key: a color code in front of the `%` stops the
-                    // client resolving it, and it renders the unresolved string instead.
-                    message: `%multiplayer.player.joined`,
-                    parameters: [identity.name],
-                    needsTranslation: true,
-                    type: ChatType.TRANSLATION
-                })
-            )
-        );
-        session.announcedJoin();
+        sends.push(announceArrival(services, session));
         return allSent(sends);
     }
 }

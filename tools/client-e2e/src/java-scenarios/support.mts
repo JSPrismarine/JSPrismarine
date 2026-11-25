@@ -6,7 +6,7 @@ import type { JavaScenarioContext } from '../java-run.mts';
  * which `gui` says in words once the loading screen has closed over the chunks under the player.
  */
 export const joinWorld = async ({ client, server, javaPort }: JavaScenarioContext): Promise<void> => {
-    const loggedIn = server.waitForLine(/Java Edition player \S+ \([0-9a-f-]+\) logged in/);
+    const loggedIn = server.waitForLine(/\S+ is joining over Java from /);
     client.command(`connect localhost ${javaPort}`);
     await loggedIn;
 

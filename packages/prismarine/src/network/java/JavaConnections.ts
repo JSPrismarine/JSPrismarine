@@ -115,7 +115,9 @@ export class JavaConnections {
             const connection = this.connections.get(id);
             if (connection?.keepAlive !== undefined) clearInterval(connection.keepAlive.timer);
             this.connections.delete(id);
-            if (connection?.session !== undefined) await this.options.world?.players.leave(id);
+            // Whether or not the join got as far as a session: one that ended early, replaced by a
+            // later login or cancelled by a listener, still holds its place among the sessions.
+            if (connection?.phase === 'play') await this.options.world?.players.leave(id);
         });
         transport.onFrame((frame, id) => this.receive(frame, id));
     }
