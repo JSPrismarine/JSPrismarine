@@ -567,8 +567,9 @@ does, and refuses one it cannot verify; with it off, a player is known by the UU
 and the connection is not encrypted, as on a vanilla server. The server configures the client as
 vanilla 26.3 does, with the same registries and tags; a client without vanilla's own data pack of
 that release, which those registries come from, is turned away with a message that names the pack.
-The player then joins the default world as a player like any other: their record is saved and
-loaded under their own name, they stand at the world's spawn when they are new, and they are sent
+The player then joins as a player like any other: their record is saved and loaded under their
+own name, they come back in the world and dimension they left, they stand at the default world's
+spawn when they are new, and they are sent
 the world around them, up to 8 chunks out or the view distance if that is less, with the blocks
 and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
 chunks they come into view of follow. Their chat reaches every player and the console, and other
@@ -581,8 +582,9 @@ return in time, to Bedrock players. Java players see the players and mobs around
 which come and go from their tab list and screen as Bedrock players' do, and move as
 the server moves them, with their equipment and whether they crouch, sprint, swim, glide, sleep or
 burn. A Java player can break and place blocks, set their inventory in creative mode, and has a
-health bar the server keeps current, a death screen and a respawn. They cannot yet move items in a
-survival inventory, see their experience or status effects, or go to the Nether or the End.
+health bar the server keeps current, a death screen and a respawn. They go to the Nether and the
+End through portals and commands, and respawn in the dimension their spawn point is in. They cannot
+yet move items in a survival inventory or see their experience or status effects.
 [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks that work.
 
 When another program holds `java-port`, the server does not start, and its error names the port.

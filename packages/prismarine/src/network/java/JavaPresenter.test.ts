@@ -2,6 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
 import { describe, expect, it } from 'vitest';
 
@@ -50,8 +51,14 @@ describe('JavaPresenter', () => {
         const sent: { name: string; value: unknown }[] = [];
         const send = <T>(definition: JavaPacketDefinition<T>, value: T) =>
             void sent.push({ name: definition.name, value });
-        return { sent, java: new JavaPresenter(send, 7n) };
+        const respawns: { x: number; y: number; z: number }[] = [];
+        const java = new JavaPresenter(send, 7n, undefined, undefined, (feet) => void respawns.push(feet));
+        return { sent, respawns, java };
     };
+    const overworld = { id: 'minecraft:overworld', seaLevel: 63 };
+    const nether = { id: 'minecraft:the_nether', seaLevel: 32 };
+    const dimensionTypes =
+        CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
     it("moves its own player to the feet under the contract's eyes, and leaves another's move alone", async () => {
         const { sent, java } = presenter();
@@ -161,7 +168,13 @@ describe('JavaPresenter', () => {
 
         await java.showVitals({ health: 7.5, food: 17.6, saturation: 2 });
         await java.showDeath({ key: 'death.attack.generic', parameters: ['Steve'] });
-        await java.showRespawn(Gametype.SURVIVAL);
+        await java.showRespawn({
+            gamemode: Gametype.SURVIVAL,
+            dimension: overworld,
+            feet: { x: 0.5, y: 64, z: 0.5 },
+            keepData: false,
+            replacesWorld: false
+        });
 
         expect(sent.map(({ name }) => name)).toEqual(['Set Health', 'Combat Death', 'Respawn', 'Game Event']);
         expect(sent[0]?.value).toEqual({ health: 7.5, food: 18, saturation: 2 });
@@ -170,6 +183,46 @@ describe('JavaPresenter', () => {
             message: { translate: 'death.attack.generic', with: ['Steve'] }
         });
         expect(sent[2]?.value).toMatchObject({ dimension: 'minecraft:overworld', gameMode: 0, dataToKeep: 0 });
+    });
+
+    it('spawns the player again into the dimension of the world it moved to, keeping its data, and says where it stands', async () => {
+        const { sent, respawns, java } = presenter();
+
+        await java.showRespawn({
+            gamemode: Gametype.CREATIVE,
+            dimension: nether,
+            feet: { x: 4.5, y: 70, z: -3.5 },
+            keepData: true,
+            replacesWorld: false
+        });
+
+        expect(sent.map(({ name }) => name)).toEqual(['Respawn', 'Game Event']);
+        expect(sent[0]?.value).toMatchObject({
+            dimensionType: dimensionTypes.indexOf('minecraft:the_nether'),
+            dimension: 'minecraft:the_nether',
+            gameMode: 1,
+            seaLevel: 32,
+            dataToKeep: 3
+        });
+        expect(respawns).toEqual([{ x: 4.5, y: 70, z: -3.5 }]);
+    });
+
+    it('takes a move between two worlds of one dimension through another, so the client drops the chunks it holds', async () => {
+        const { sent, java } = presenter();
+
+        await java.showRespawn({
+            gamemode: Gametype.SURVIVAL,
+            dimension: overworld,
+            feet: { x: 0.5, y: 64, z: 0.5 },
+            keepData: true,
+            replacesWorld: true
+        });
+
+        expect(sent).toMatchObject([
+            { name: 'Respawn', value: { dimension: 'minecraft:the_nether' } },
+            { name: 'Respawn', value: { dimension: 'minecraft:overworld' } },
+            { name: 'Game Event' }
+        ]);
     });
 
     it("tells the client its game mode in Java's numbers", async () => {

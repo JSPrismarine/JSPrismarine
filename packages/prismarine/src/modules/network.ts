@@ -385,7 +385,6 @@ export class ServerNetworking implements Networking {
         const transport = new TcpTransport(ids, logger);
         const server = this.server;
         const config = server.getConfig();
-        const world = () => server.getWorldManager().getEntryWorld();
         const connections = new JavaConnections(transport, {
             status: serverName,
             brand: serverName.getName(),
@@ -393,9 +392,9 @@ export class ServerNetworking implements Networking {
             log: logger,
             world: {
                 players: javaPlayersOf(server, inputs),
-                chunk: (x, z) => world().getChunk(x, z),
-                light: () => {
-                    const systems = world().getSystems();
+                chunk: (session, x, z) => session.getWorld().getChunk(x, z),
+                light: (session) => {
+                    const systems = session.getWorld().getSystems();
                     return {
                         sky: (x, y, z) => systems.getSkyLight(x, y, z),
                         block: (x, y, z) => systems.getBlockLight(x, y, z)

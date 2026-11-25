@@ -142,7 +142,7 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends nothing: the session runs Bedrock's respawn exchange, whose first half opens the screen. */
     public async showDeath(): Promise<void> {}
 
-    /** Sends nothing: the session runs Bedrock's respawn exchange. */
+    /** Sends nothing: the session runs Bedrock's respawn exchange and dimension change. */
     public async showRespawn(): Promise<void> {}
 
     /** Sends one `PlayerList` Add with every entry. */

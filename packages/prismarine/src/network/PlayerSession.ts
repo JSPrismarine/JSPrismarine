@@ -135,7 +135,7 @@ import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActor
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from './presenter/BedrockPresenter';
-import type { MoveMode, SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
+import type { MoveMode, SessionPresenter, ShownDimension, ShownMessage } from './presenter/SessionPresenter';
 import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
 import { VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
@@ -2415,6 +2415,15 @@ export default class PlayerSession {
     }
 
     /**
+     * The dimension of the world this session's player is in, as a client of another edition is
+     * told it.
+     * @returns The dimension.
+     */
+    public shownDimension(): ShownDimension {
+        return { id: this.world.getDimension().id, seaLevel: this.world.getSeaLevel() };
+    }
+
+    /**
      * Where this client sees the world from: its player's eyes, the point chunk streaming,
      * entity tracking and a world's broadcasts measure from.
      * @returns The position.
@@ -2805,6 +2814,25 @@ export default class PlayerSession {
         );
         world.addPlayer(this);
 
+        // A client of another edition has no loading screen to close: it is spawned again into
+        // the new world, and the change is complete at once.
+        if (this.presenter.edition !== 'bedrock') {
+            sends.push(
+                this.presenter.showRespawn({
+                    gamemode: player.gamemode,
+                    dimension: this.shownDimension(),
+                    feet: { x: arrival.position.getX(), y: arrival.position.getY(), z: arrival.position.getZ() },
+                    keepData: arrival.respawn !== true,
+                    replacesWorld: left.id === target.id
+                })
+            );
+            // A death's respawn is moved into place by the respawn that follows.
+            if (arrival.closesLoadingScreen !== false) sends.push(this.arrived(world, left.name));
+            this.postDimensionChanged(from, feetBefore, arrival, left.name);
+            options.then?.();
+            return allSent(sends);
+        }
+
         if (left.bedrockId === target.bedrockId) sends.push(this.detourFrom(target.bedrockId, eyes));
 
         const loadingScreenId = this.beginLoadingScreen();
@@ -2847,16 +2875,20 @@ export default class PlayerSession {
 
         sends.push(this.sendInitialSpawnChunks());
         sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
-        if (left.name !== target.name) {
-            this.server
-                .getKernel()
-                .events.post(
-                    'playerDimensionChanged',
-                    new PlayerDimensionChangedEvent(this, from, feetBefore, world, arrival.position)
-                );
-        }
+        this.postDimensionChanged(from, feetBefore, arrival, left.name);
         options.then?.();
         return allSent(sends);
+    }
+
+    /** Raises `playerDimensionChanged` for a change of world that also changed the dimension. */
+    private postDimensionChanged(from: World, feetBefore: Vector3, arrival: Arrival, left: string): void {
+        if (left === arrival.world.getDimension().name) return;
+        this.server
+            .getKernel()
+            .events.post(
+                'playerDimensionChanged',
+                new PlayerDimensionChangedEvent(this, from, feetBefore, arrival.world, arrival.position)
+            );
     }
 
     /**
@@ -3031,8 +3063,19 @@ export default class PlayerSession {
         const pending = this.pendingChange;
         if (pending === undefined || pending.loadingScreenId !== loadingScreenId) return false;
         this.pendingChange = undefined;
+        this.released(this.arrived(pending.arrival.world, pending.left));
+        this.fileQueuedChange();
+        return true;
+    }
 
-        const { world } = pending.arrival;
+    /**
+     * What ends a change of world once the client is in the new one: the teleport to the exact
+     * arrival, the attributes, the inventory and the spawn point again, and the changed
+     * dimension advancement hook. Every packet is queued before this returns.
+     * @param world - The world the player arrived in.
+     * @param left - The name of the dimension the player left.
+     */
+    private arrived(world: World, left: string): Promise<void> {
         const sends = [this.sendMove(this.shown(), 'teleport'), this.sendAttributes(), this.sendInventory()];
         // The compass and the map point at the spawn across dimensions, so the client needs
         // the spawn's dimension again now that its own has changed. The level knows its spawn
@@ -3050,11 +3093,8 @@ export default class PlayerSession {
                   )
                 : this.send(playerSpawnPositionPacket(this.getPlayer(), world, spawn))
         );
-        advancementChangedDimension(this, pending.left, world.getDimension().name);
-        this.released(allSent(sends));
-
-        this.fileQueuedChange();
-        return true;
+        advancementChangedDimension(this, left, world.getDimension().name);
+        return allSent(sends);
     }
 
     /**
@@ -4103,9 +4143,34 @@ export default class PlayerSession {
         // keeps everything. The answer still goes out: the client repeats the request once a
         // second until it gets one, and silence is what leaves it on the death screen.
         if (player.getHealth() <= 0) {
-            // A Java client is spawned again before it is moved; a Bedrock one came back at the
-            // `ReadyToSpawn` position already.
-            if (this.presenter.edition !== 'bedrock') this.released(this.presenter.showRespawn(player.gamemode));
+            const destination = this.destinationOf(answer);
+            const { eyes } = destination;
+            const bedrock = this.presenter.edition === 'bedrock';
+            // A Java client is spawned again before it is moved, into the world it comes back
+            // in; a Bedrock one came back at the `ReadyToSpawn` position already, after
+            // `RespawnHandler` moved it to that world.
+            if (!bedrock && destination.world !== this.world) {
+                this.released(
+                    this.changeWorld({
+                        world: destination.world,
+                        position: destination.block,
+                        yaw: player.yaw,
+                        pitch: player.pitch,
+                        respawn: true,
+                        closesLoadingScreen: false
+                    })
+                );
+            } else if (!bedrock) {
+                this.released(
+                    this.presenter.showRespawn({
+                        gamemode: player.gamemode,
+                        dimension: this.shownDimension(),
+                        feet: { x: destination.block.getX(), y: destination.block.getY(), z: destination.block.getZ() },
+                        keepData: false,
+                        replacesWorld: false
+                    })
+                );
+            }
             // The entity never left the store: the revival brings it back with the same id at
             // full health, and the player systems reset the attributes, the lungs and the movement
             // flags. Each write is logged.
@@ -4113,9 +4178,9 @@ export default class PlayerSession {
             this.showOwnHealth();
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
-            // Dedicated Server sends none here, and the client is already there.
-            const { eyes } = this.destinationOf(answer);
-            this.released(this.setPlayerPosition({ position: eyes, type: 'respawn' }, false));
+            // Dedicated Server sends none here, and the client is already there. A Java client
+            // has no `ReadyToSpawn`, so it is told where it stands.
+            this.released(this.setPlayerPosition({ position: eyes, type: 'respawn' }, !bedrock));
         }
 
         this.released(this.sendRespawned());

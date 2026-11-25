@@ -88,6 +88,34 @@ export interface ShownBlockChange {
     readonly waterlogged: boolean;
 }
 
+/** The dimension a world is, as plain data. */
+export interface ShownDimension {
+    /** The Java `dimension_type` id, `minecraft:the_nether` for the Nether. */
+    readonly id: string;
+    /** The world's sea level. */
+    readonly seaLevel: number;
+}
+
+/** A player spawned again on its client: after a death, or into another world. */
+export interface ShownRespawn {
+    /** The player's game mode. */
+    readonly gamemode: Gametype;
+    /** The dimension the player is in from now on. */
+    readonly dimension: ShownDimension;
+    /** Where the player's feet are from now on. */
+    readonly feet: { readonly x: number; readonly y: number; readonly z: number };
+    /**
+     * Whether the player lives on, as a change of world keeps it, rather than coming back from a
+     * death, which keeps nothing.
+     */
+    readonly keepData: boolean;
+    /**
+     * Whether the player left another world of the same dimension, such as the Overworld of
+     * another level, whose chunks the client still holds under the same name.
+     */
+    readonly replacesWorld: boolean;
+}
+
 /** A stack as plain data: the item's Bedrock identifier and how many. */
 export interface ShownStack {
     readonly name: string;
@@ -285,12 +313,13 @@ export interface SessionPresenter {
     showDeath(death: ShownDeath): Promise<void>;
 
     /**
-     * Spawns the player again on its client after a death, before the session moves it to where
-     * it comes back, for a client the session's Bedrock respawn exchange does not reach.
+     * Spawns the player again on its client, for a client the session's Bedrock respawn exchange
+     * and dimension change do not reach: after a death, before the session moves it to where it
+     * comes back, and on a change of world, after the session moved it there.
      *
-     * @param gamemode - The player's game mode.
+     * @param respawn - The dimension the player is in and where it stands.
      */
-    showRespawn(gamemode: Gametype): Promise<void>;
+    showRespawn(respawn: ShownRespawn): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.
