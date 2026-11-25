@@ -168,6 +168,16 @@ export class FamilyHarness {
     }
 
     /**
+     * Dispatches `beforeOnPlayerPlace` for the block now at the position, as the guard before a
+     * player's placement is written.
+     *
+     * @returns True when the family refused the placement.
+     */
+    public beforePlace(position: BlockPosition, face: BlockFace = 'up', player: HookActor = TEST_PLAYER): boolean {
+        return this.handlers.beforeOnPlayerPlace?.({ block: this.block(position), player, face }) === true;
+    }
+
+    /**
      * Dispatches `onBreak`, with the block as it was before the break.
      *
      * @param options - What the breaker held, which decides silk touch and

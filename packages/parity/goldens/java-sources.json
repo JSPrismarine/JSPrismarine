@@ -1,6 +1,7 @@
 {
     "names": {
         "BaseCommandBlock.performCommand": "net/minecraft/world/level/BaseCommandBlock.performCommand(Lnet/minecraft/server/level/ServerLevel;)Z",
+        "BlockPlaceContext.getNearestLookingVerticalDirection": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;",
         "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": "net/minecraft/world/level/block/BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V",
         "CommandBlock.tick": "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
@@ -18,6 +19,7 @@
         "FlowingFluid.getSpread": "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;",
         "GrowingPlantHeadBlock.MAX_AGE": "net/minecraft/world/level/block/GrowingPlantHeadBlock.MAX_AGE",
         "GrowingPlantHeadBlock.randomTick": "net/minecraft/world/level/block/GrowingPlantHeadBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
+        "LanternBlock.getStateForPlacement": "net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LeavesBlock.DECAY_DISTANCE": "net/minecraft/world/level/block/LeavesBlock.DECAY_DISTANCE",
         "LightEngine.MAX_LEVEL": "net/minecraft/world/level/lighting/LightEngine.MAX_LEVEL",
         "MapItem.create": "net/minecraft/world/item/MapItem.create(Lnet/minecraft/server/level/ServerLevel;IIBZZ)Lnet/minecraft/world/item/ItemStack;",
@@ -40,7 +42,13 @@
         "ServerGamePacketListenerImpl.handleSetCommandBlock": "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V",
         "ServerLevel.getFreeMapId": "net/minecraft/server/level/ServerLevel.getFreeMapId()Lnet/minecraft/world/level/saveddata/maps/MapId;",
         "ServerLevel.setMapData": "net/minecraft/server/level/ServerLevel.setMapData(Lnet/minecraft/world/level/saveddata/maps/MapId;Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;)V",
-        "SpeleothemBlock.canSurvive": "net/minecraft/world/level/block/SpeleothemBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
+        "SpeleothemBlock.calculateSpeleothemThickness": "net/minecraft/world/level/block/SpeleothemBlock.calculateSpeleothemThickness(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/SpeleothemThickness;",
+        "SpeleothemBlock.calculateTipDirection": "net/minecraft/world/level/block/SpeleothemBlock.calculateTipDirection(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;",
+        "SpeleothemBlock.getStateForPlacement": "net/minecraft/world/level/block/SpeleothemBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "SpeleothemBlock.isSpeleothemWithDirection": "net/minecraft/world/level/block/SpeleothemBlock.isSpeleothemWithDirection(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;)Z",
+        "SpeleothemBlock.isValidSpeleothemPlacement": "net/minecraft/world/level/block/SpeleothemBlock.isValidSpeleothemPlacement(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+        "SpeleothemBlock.spawnFallingStalactite": "net/minecraft/world/level/block/SpeleothemBlock.spawnFallingStalactite(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)V",
+        "SpeleothemBlock.updateShape": "net/minecraft/world/level/block/SpeleothemBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;",
         "SpongeBlock.removeWaterBreadthFirstSearch": "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z",
         "SpreadingSnowyBlock.canPropagate": "net/minecraft/world/level/block/SpreadingSnowyBlock.canPropagate(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "SpreadingSnowyBlock.canStayAlive": "net/minecraft/world/level/block/SpreadingSnowyBlock.canStayAlive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
@@ -67,6 +75,9 @@
         },
         "net/minecraft/world/entity/player/Player.aiStep()V": {
             "26.3": "sha256:fa19c95007cbc7f9487094ca0aafb10e3b63cafda595bd22171940a92230759f"
+        },
+        "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;": {
+            "26.3": "sha256:fe7f0dd7b1084536630575c2f21e223f8ef34b49d9f55aae41867279f7dc872a"
         },
         "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ac32715efe707271607b432252bf1e6e56176c43f9e53ee9a9726074d5c2351b"
@@ -113,6 +124,9 @@
         "net/minecraft/world/level/block/GrowingPlantHeadBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V": {
             "26.3": "sha256:f4dc6d6fa831a500a67f7b415db2e162844c1ca3ecb4fdbf885596e3bac7e865"
         },
+        "net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:93e5888810249951eb0e4738f26776a8515c4aa5cd4147d03a1f32eb077ae9a9"
+        },
         "net/minecraft/world/level/block/LeavesBlock.DECAY_DISTANCE": {
             "26.3": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a"
         },
@@ -128,8 +142,26 @@
         "net/minecraft/world/level/block/piston/PistonMovingBlockEntity.moveCollidedEntities(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;FLnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;)V": {
             "26.3": "sha256:9b5e5fd9a81cb919a432f2732e77f05a962e69dba824954ac51c1958698890db"
         },
-        "net/minecraft/world/level/block/SpeleothemBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:6ddf2295cefb9c7d4e292a32a8ac27bb1b3424b43e094ff5285ab26dac11b89c"
+        "net/minecraft/world/level/block/SpeleothemBlock.calculateSpeleothemThickness(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/SpeleothemThickness;": {
+            "26.3": "sha256:5a30960280a860e9a77f784a7c0a7fb01780c5d7f469daa179d604bc5d7bafd1"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.calculateTipDirection(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;": {
+            "26.3": "sha256:025d8fe68083af62016f75af9724e0be131e03b54feae6f93338d580710d1b7d"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:37b1661c23d419cd215b1a407119c36a8b447c4bdc1339cdcaf26e7d6802881a"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.isSpeleothemWithDirection(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:5d11816386a0536bd9bc25c011cf9c11d247e11793aa07f55322c7733b238b14"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.isValidSpeleothemPlacement(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:36083ea5d48584f1a134d01b2f331094780780637f862126963af4100e1c04b8"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.spawnFallingStalactite(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)V": {
+            "26.3": "sha256:3def02fb8db462b543f23747ac2e7185b0342b615026d94b0170423724cb9913"
+        },
+        "net/minecraft/world/level/block/SpeleothemBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:79cbe9fd1c7ce33098844bd896f239e065bf921ebf0f13b62094d9888816141e"
         },
         "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z": {
             "26.3": "sha256:9ff839bd50bce944b223e54ae19dbb587da81b05bfc0e84def5343b5d190ff38"
