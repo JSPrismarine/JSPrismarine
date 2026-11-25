@@ -51,6 +51,7 @@ import { allSent } from './allSent';
 import { tickCarriedMaps } from './carriedMaps';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
+import { consoleFirstNodeOf, namesNode } from '../command/updateCommands';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
 import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
 import { commandDataOf, commandNameEnumOf } from '../command/availableCommands';
@@ -2383,6 +2384,10 @@ export default class PlayerSession {
         const sent = commandManager.getVanillaCommandList().filter((command) => {
             // A command above an operator's level is the console's alone, such as `addon`.
             if (command.permissionLevel > CommandPermissionLevel.OWNER) return false;
+            // The console's by default, such as `restart`: offered only to a player whose entry
+            // names the node, since the command refuses an operator's `*`.
+            const consoleFirst = consoleFirstNodeOf(command.name);
+            if (consoleFirst !== undefined) return namesNode(this, consoleFirst);
             // A script's command has no permission node: its level alone decides, as on BDS.
             if (commandManager.isScriptCommand(command.name)) return command.permissionLevel <= own;
             return this.server.getPermissionManager().can(this).execute(commandPermissionOf(command.name));

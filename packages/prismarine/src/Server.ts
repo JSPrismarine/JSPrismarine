@@ -732,6 +732,15 @@ export default class Server {
     }
 
     /**
+     * Asks the host process to restart this server in a new process. Only a server a host runs
+     * can restart: one embedded in another program has nothing to start it again.
+     * @returns Whether a host took the request.
+     */
+    public requestRestart(): boolean {
+        return this.remoteConsole?.requestRestart() ?? false;
+    }
+
+    /**
      * Registers something to undo the moment a shutdown begins.
      *
      * For what the callers give up and why, see `ShutdownLifecycle.releaseOnShutdown`.

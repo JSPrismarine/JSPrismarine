@@ -13,6 +13,7 @@ describe('isServerMessage', () => {
             { type: 'command.result', v: 1, id: 'a', ok: true },
             { type: 'command.result', v: 1, id: 'a', ok: false, error: 'nope' },
             { type: 'complete.result', v: 1, id: 'a', completions: ['help'], replace: 'he' },
+            { type: 'restart', v: 1 },
             {
                 type: 'commands.result',
                 v: 1,

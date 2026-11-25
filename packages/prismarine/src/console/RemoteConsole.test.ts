@@ -251,6 +251,21 @@ describe('RemoteConsole', () => {
         await remote.disable();
     });
 
+    it('asks the host to restart, and says when the host is gone', async () => {
+        const { server } = fakeServer();
+        const { serverEnd, consoleEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+        await remote.enable();
+
+        expect(remote.requestRestart()).toBe(true);
+        await setImmediate();
+        consoleEnd.close();
+
+        expect(received.at(-1)).toEqual({ type: 'restart', v });
+        expect(remote.requestRestart()).toBe(false);
+        await remote.disable();
+    });
+
     it('shuts the server down when the host asks', async () => {
         const { server, shutdown } = fakeServer();
         const { serverEnd, consoleEnd } = linked();

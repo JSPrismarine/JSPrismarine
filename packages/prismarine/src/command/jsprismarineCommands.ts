@@ -1,8 +1,9 @@
 /**
  * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
- * `/pardon`, `/perms`, the console's `addon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest`
- * and `/scriptevent`, which the shared command set leaves out because only a server that runs
- * behavior pack scripts has a debugger to attach, GameTests to run and scripts to send an event to.
+ * `/pardon`, `/perms`, the console's `addon`, `update` and `restart`, and Bedrock Dedicated
+ * Server's `/script debugger`, `/gametest` and `/scriptevent`, which the shared command set
+ * leaves out because only a server that runs behavior pack scripts has a debugger to attach,
+ * GameTests to run and scripts to send an event to.
  *
  * They register into the same `CommandRegistry` as the vanilla commands, so one dispatcher
  * parses them, one flattener advertises them and `/help` lists them. Their bodies reach the
@@ -34,6 +35,7 @@ import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDeb
 import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
 import { serverVersion, softwareLabel } from '../version';
 import { registerAddonCommand } from './addonCommand';
+import { CONSOLE_FIRST_COMMAND_PERMISSIONS, registerUpdateCommands } from './updateCommands';
 import { updatesToken } from '../modules/tokens';
 import { describeUpdateStatus } from '../updates/status';
 import { deferCommandWork } from './deferred';
@@ -60,7 +62,8 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
     addon: 'jsprismarine.command.addon',
     perms: PERMS_COMMAND_PERMISSION,
     world: WORLD_COMMAND_PERMISSION,
-    ...LINK_COMMAND_PERMISSIONS
+    ...LINK_COMMAND_PERMISSIONS,
+    ...CONSOLE_FIRST_COMMAND_PERMISSIONS
 };
 
 /**
@@ -413,6 +416,7 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
 
     registerGametestCommand(registry, server);
     registerAddonCommand(registry, server);
+    registerUpdateCommands(registry, server);
     registerPermsCommand(registry, server);
     registerWorldCommand(registry, server);
     registerLinkCommands(registry, server);

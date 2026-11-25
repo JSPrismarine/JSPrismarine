@@ -238,6 +238,15 @@ export class RemoteConsole implements Service {
         this.send(status);
     }
 
+    /**
+     * Asks the host to stop this server and start it again in a new process. The host stops it
+     * the way it stops it for a shutdown, so the worlds save first.
+     * @returns Whether the request went out; false once the link to the host has closed.
+     */
+    public requestRestart(): boolean {
+        return this.link.send({ type: 'restart', v: PROTOCOL_VERSION });
+    }
+
     private sendLifecycle(state: LifecycleState): void {
         this.lastLifecycle = state;
         this.send({ type: 'lifecycle', v: PROTOCOL_VERSION, state });
