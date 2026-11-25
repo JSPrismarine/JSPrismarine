@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { HandlerServices } from '../../network/handler/HandlerContext';
+import type { HandlerServices } from '../../player/context/HandlerContext';
 import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';

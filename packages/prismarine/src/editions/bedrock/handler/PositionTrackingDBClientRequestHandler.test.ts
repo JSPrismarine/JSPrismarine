@@ -1,0 +1,33 @@
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it } from 'vitest';
+
+import { sessionContext } from '../../../testing/handlerContext.test.helper';
+import { stub } from '../../../testing/stub.test.helper';
+import { STEVE } from '../../../testing/sessionIdentity.test.helper';
+import type PlayerSession from '../../../player/PlayerSession';
+import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/bedrock/packet/PositionTrackingDBClientRequestPacket';
+import PositionTrackingDBClientRequestHandler from './PositionTrackingDBClientRequestHandler';
+
+describe('PositionTrackingDBClientRequestHandler', () => {
+    it('logs the tracking id the client asked about', () => {
+        const logged: string[] = [];
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
+        const session = stub<PlayerSession>({ identity: STEVE });
+        const packet = Object.assign(new PositionTrackingDBClientRequestPacket(), { id: 42 });
+
+        new PositionTrackingDBClientRequestHandler().handle(packet, sessionContext(session, { log }));
+
+        expect(logged).toEqual(['Steve asked for tracked position 42. Position tracking is not modeled']);
+    });
+
+    it('drops a request whose action is not Query', () => {
+        const logged: string[] = [];
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
+        const session = stub<PlayerSession>({ identity: STEVE });
+        const packet = Object.assign(new PositionTrackingDBClientRequestPacket(), { action: 7, id: 42 });
+
+        new PositionTrackingDBClientRequestHandler().handle(packet, sessionContext(session, { log }));
+
+        expect(logged).toEqual(['Dropped a position tracking request from Steve with the unknown action 7']);
+    });
+});

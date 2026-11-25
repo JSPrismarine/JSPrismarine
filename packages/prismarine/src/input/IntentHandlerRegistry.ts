@@ -8,7 +8,7 @@
  */
 import type { Logger } from '@jsprismarine/logger';
 import { PrismarineInputErrors } from '@jsprismarine/errors/prismarine/input';
-import type { InputContext, SessionContext } from '../network/handler/HandlerContext';
+import type { InputContext, SessionContext } from '../player/context/HandlerContext';
 import * as IntentHandlers from './IntentHandlers';
 import type { Intent, IntentKind } from './Intent';
 import { Intents, isIntentKind } from './Intent';

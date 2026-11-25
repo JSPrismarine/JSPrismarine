@@ -43,9 +43,9 @@ import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import Chunk from '../world/chunk/Chunk';
 import Codec2193 from '../network/codec/Codec2193';
-import PlayerAuthInputHandler from '../network/handler/PlayerAuthInputHandler';
-import ServerboundLoadingScreenHandler from '../network/handler/ServerboundLoadingScreenHandler';
-import { playerAuthInputToProtocol } from '../network/PlayerAuthInputAdapter';
+import PlayerAuthInputHandler from '../editions/bedrock/handler/PlayerAuthInputHandler';
+import ServerboundLoadingScreenHandler from '../editions/bedrock/handler/ServerboundLoadingScreenHandler';
+import { playerAuthInputToProtocol } from '../editions/bedrock/PlayerAuthInputAdapter';
 import type { Arrival } from './PlayerSession';
 import type PlayerSession from './PlayerSession';
 

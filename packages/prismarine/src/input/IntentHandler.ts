@@ -8,7 +8,7 @@
  * asynchronous. The lane comes from the intent table, not from the handler, so two handlers of
  * one kind cannot disagree about it.
  */
-import type { InputContext, SessionContext } from '../network/handler/HandlerContext';
+import type { InputContext, SessionContext } from '../player/context/HandlerContext';
 import type { Intent, IntentKind, IntentLane } from './Intent';
 
 /** The context a handler of intent kind `K` is handed, chosen by the kind's lane. */

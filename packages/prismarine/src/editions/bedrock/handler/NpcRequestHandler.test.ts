@@ -1,0 +1,36 @@
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it } from 'vitest';
+import * as Handlers from '../Handlers';
+import { sessionContext } from '../../../testing/handlerContext.test.helper';
+import { stub } from '../../../testing/stub.test.helper';
+import { STEVE } from '../../../testing/sessionIdentity.test.helper';
+import type PlayerSession from '../../../player/PlayerSession';
+import NpcRequestPacket, { NpcRequestType } from '@jsprismarine/protocol/bedrock/packet/NpcRequestPacket';
+import NpcRequestHandler from './NpcRequestHandler';
+
+describe('NpcRequestHandler', () => {
+    const run = (requestType: number): string[] => {
+        const logged: string[] = [];
+        const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
+        const session = stub<PlayerSession>({ identity: STEVE });
+        const packet = Object.assign(new NpcRequestPacket(), { npcRuntimeId: 7n, requestType });
+
+        new NpcRequestHandler().handle(packet, sessionContext(session, { log }));
+        return logged;
+    };
+
+    it('names the request type it knows', () => {
+        expect(run(NpcRequestType.ExecuteAction)).toEqual([
+            'Steve sent ExecuteAction to NPC 7, which the server has no NPCs to apply'
+        ]);
+    });
+
+    it('falls back to the raw number for a request type it does not know', () => {
+        expect(run(99)).toEqual(['Steve sent 99 to NPC 7, which the server has no NPCs to apply']);
+    });
+
+    it('is registered for packet 0x62', () => {
+        expect(Handlers.NpcRequestHandler).toBe(NpcRequestHandler);
+        expect(NpcRequestHandler.PacketName).toBe('NpcRequestPacket');
+    });
+});

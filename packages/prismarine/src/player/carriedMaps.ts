@@ -15,7 +15,7 @@ import { updateMapAround } from '../world/mapRender';
 import { mapTerrainOf } from '../world/mapTerrain';
 import type { SavedMap } from '../world/savedMap';
 import { drawnColors } from '../world/savedMap';
-import { mapItemDataOf } from '../network/mapItemData';
+import { mapItemDataOf } from '../editions/bedrock/mapItemData';
 import type PlayerSession from './PlayerSession';
 
 /** The containers Java's `Inventory` holds: the slots, the armor and the off hand, not the ender chest. */

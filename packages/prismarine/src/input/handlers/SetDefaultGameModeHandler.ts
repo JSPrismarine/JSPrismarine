@@ -1,7 +1,7 @@
 import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
-import type { HandlerConfig, HandlerServices, InputContext } from '../../network/handler/HandlerContext';
+import type { HandlerConfig, HandlerServices, InputContext } from '../../player/context/HandlerContext';
 import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';

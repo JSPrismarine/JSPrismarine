@@ -4,7 +4,7 @@ import type {
     HandlerServices,
     InputContext,
     SessionContext
-} from '../network/handler/HandlerContext';
+} from '../player/context/HandlerContext';
 import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
 import type PlayerSession from '../player/PlayerSession';
 import { stub } from './stub.test.helper';

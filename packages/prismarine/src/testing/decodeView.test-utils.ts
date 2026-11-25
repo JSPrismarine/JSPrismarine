@@ -1,7 +1,7 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
-import type { HandlerLog } from '../network/handler/HandlerContext';
-import type { DecodeView } from '../network/decoder/DecodeView';
+import type { HandlerLog } from '../player/context/HandlerContext';
+import type { DecodeView } from '../editions/bedrock/decoder/DecodeView';
 import { stub } from './stub.test.helper';
 
 /** What a test may set on the view {@link decodeView} builds. */

@@ -8,7 +8,7 @@ import { effectHealthChange } from '@jsprismarine/prismarine/entity/StatusEffect
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
-import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/contentPayloads';
+import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/editions/bedrock/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';

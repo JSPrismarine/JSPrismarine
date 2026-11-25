@@ -1,0 +1,64 @@
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it } from 'vitest';
+
+import type { StubMembers } from '../../../testing/stub.test.helper';
+import { sessionContext } from '../../../testing/handlerContext.test.helper';
+import { stub } from '../../../testing/stub.test.helper';
+import { STEVE } from '../../../testing/sessionIdentity.test.helper';
+import { latestCodec } from '../../../network/codec/CodecRegistry';
+import type PlayerSession from '../../../player/PlayerSession';
+import PacketViolationWarningPacket, {
+    PacketViolationSeverity,
+    PacketViolationType
+} from '@jsprismarine/protocol/bedrock/packet/PacketViolationWarningPacket';
+import PacketViolationWarningHandler from './PacketViolationWarningHandler';
+
+describe('PacketViolationWarningHandler', () => {
+    const handleWith = (fields: StubMembers<PacketViolationWarningPacket>): string[] => {
+        const logged: string[] = [];
+        const log = stub<Logger>({ warn: (...message) => void logged.push(message[0] ?? '') });
+        const session = stub<PlayerSession>({ identity: STEVE });
+        const packet = Object.assign(new PacketViolationWarningPacket(), fields);
+
+        new PacketViolationWarningHandler().handle(packet, sessionContext(session, { log }));
+        return logged;
+    };
+
+    it('warns with the rejected packet named from its id', () => {
+        expect(
+            handleWith({
+                type: PacketViolationType.PacketMalformed,
+                severity: PacketViolationSeverity.TerminatingConnection,
+                packetId: latestCodec.ids.StartGamePacket!,
+                message: 'Unexpected end of stream'
+            })
+        ).toEqual([
+            'Steve rejected StartGamePacket (0xb) as PacketMalformed, TerminatingConnection: "Unexpected end of stream"'
+        ]);
+    });
+
+    it('falls back to numbers for an id and members it does not know', () => {
+        expect(
+            handleWith({
+                // @ts-expect-error - a client may report a member the enum does not name, and
+                // the line it produces for one is what this covers.
+                type: 7,
+                // @ts-expect-error - likewise for the severity.
+                severity: 9,
+                packetId: 0x7ff,
+                message: ''
+            })
+        ).toEqual(['Steve rejected an unregistered packet (0x7ff) as type 7, severity 9: ""']);
+    });
+
+    it('names the Unknown members rather than mistaking -1 for a missing name', () => {
+        expect(
+            handleWith({
+                type: PacketViolationType.Unknown,
+                severity: PacketViolationSeverity.Unknown,
+                packetId: latestCodec.ids.TextPacket!,
+                message: 'x'
+            })
+        ).toEqual(['Steve rejected TextPacket (0x9) as Unknown, Unknown: "x"']);
+    });
+});

@@ -304,38 +304,38 @@
     "packages/prismarine/src/player/PlayerSessionPlayer.test.ts": {
         "landmines/no-test-doubles": 6
     },
-    "packages/prismarine/src/network/contentPayloads.test.ts": {
+    "packages/prismarine/src/editions/bedrock/contentPayloads.test.ts": {
         "landmines/no-flake-masking": 7,
         "landmines/no-test-doubles": 4
     },
-    "packages/prismarine/src/network/handler/InventoryTransactionHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/InventoryTransactionHandler.test.ts": {
         "landmines/no-test-doubles": 4
     },
-    "packages/prismarine/src/network/handler/Lane.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/Lane.test.ts": {
         "landmines/colocated-tests": 1
     },
-    "packages/prismarine/src/network/handler/LoginHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/LoginHandler.test.ts": {
         "landmines/no-test-doubles": 1
     },
-    "packages/prismarine/src/network/handler/MovePlayerHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/MovePlayerHandler.test.ts": {
         "landmines/no-test-doubles": 3
     },
-    "packages/prismarine/src/network/handler/PlayerAuthInputHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/PlayerAuthInputHandler.test.ts": {
         "landmines/no-test-doubles": 8
     },
-    "packages/prismarine/src/network/handler/PlayerSkinHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/PlayerSkinHandler.test.ts": {
         "landmines/no-test-doubles": 1
     },
-    "packages/prismarine/src/network/handler/RequestNetworkSettingsHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/RequestNetworkSettingsHandler.test.ts": {
         "landmines/no-test-doubles": 1
     },
-    "packages/prismarine/src/network/handler/ResourcePackChunkRequestHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/ResourcePackChunkRequestHandler.test.ts": {
         "landmines/no-test-doubles": 1
     },
-    "packages/prismarine/src/network/handler/ResourcePackClientResponseHandler.test.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/ResourcePackClientResponseHandler.test.ts": {
         "landmines/no-test-doubles": 3
     },
-    "packages/prismarine/src/network/handler/blockTargetSession.test.helper.ts": {
+    "packages/prismarine/src/editions/bedrock/handler/blockTargetSession.test.helper.ts": {
         "landmines/test-file-names": 1
     },
     "packages/prismarine/src/network/nethernet/HttpSignaling.loopback.test.ts": {

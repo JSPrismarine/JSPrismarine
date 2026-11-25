@@ -12,7 +12,7 @@ import type { ChatManager } from '../chat/ChatManager';
 import type { ConsoleSender } from '../command/ConsoleSender';
 import PlayerSpawnEvent from '../events/player/PlayerSpawnEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
-import type { HandlerLog } from '../network/handler/HandlerContext';
+import type { HandlerLog } from './context/HandlerContext';
 import type PlayerSession from './PlayerSession';
 
 /** Whether a join goes on, or the player is on the way out because a listener cancelled it. */

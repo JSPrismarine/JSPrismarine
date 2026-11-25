@@ -35,7 +35,7 @@ import type { StorePlayers } from './entity/data/storePlayers';
 import type { ServerWorldHandle } from './content/world/serverSource';
 import { CommandManager } from './command/CommandManager';
 import { CreativeInventory } from './inventory/CreativeInventory';
-import { joinContentPayloads } from './network/contentPayloads';
+import { joinContentPayloads } from './editions/bedrock/contentPayloads';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketHandlerRegistry from './network/PacketHandlerRegistry';

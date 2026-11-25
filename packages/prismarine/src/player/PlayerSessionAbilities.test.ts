@@ -16,7 +16,7 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import PlayerSession from './PlayerSession';
-import { BedrockPresenter } from '../network/presenter/BedrockPresenter';
+import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**

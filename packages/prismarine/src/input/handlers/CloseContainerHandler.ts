@@ -1,6 +1,6 @@
 import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
-import type { InputContext, InputStep } from '../../network/handler/HandlerContext';
+import type { InputContext, InputStep } from '../../player/context/HandlerContext';
 import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';

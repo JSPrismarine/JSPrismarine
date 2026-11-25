@@ -22,7 +22,7 @@ import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import type ClientConnection from '../network/ClientConnection';
-import { joinContentPayloads, limitCraftingData } from '../network/contentPayloads';
+import { joinContentPayloads, limitCraftingData } from '../editions/bedrock/contentPayloads';
 import Codec2193 from '../network/codec/Codec2193';
 import Codec2225 from '../network/codec/Codec2225';
 import type { ProtocolCodec } from '@jsprismarine/protocol';

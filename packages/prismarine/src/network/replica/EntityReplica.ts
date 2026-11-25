@@ -46,7 +46,7 @@ import type { SealedTick } from '../../world/changelog/ChangeLog';
 import { estimatePlainBytes } from '../../world/changelog/changeLogCost';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
 import { isPlainRecord } from '../../world/changelog/PlainData';
-import { syncedPropertiesOf } from '../actorProperties';
+import { syncedPropertiesOf } from '../../editions/bedrock/actorProperties';
 
 /** The prefix a leash holder's identity carries when the holder is a player. */
 const PLAYER_HOLDER_PREFIX = 'player:';

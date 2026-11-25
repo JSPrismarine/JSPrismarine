@@ -1,5 +1,5 @@
 import { BossBar } from '../../player/BossBar';
-import type { SessionContext } from '../../network/handler/HandlerContext';
+import type { SessionContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

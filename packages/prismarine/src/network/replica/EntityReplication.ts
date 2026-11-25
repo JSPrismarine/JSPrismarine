@@ -47,7 +47,7 @@ import type { SealedTick } from '../../world/changelog/ChangeLog';
 import { ACTOR_TRACKING_RANGE_CHUNKS, ITEM_TRACKING_RANGE_CHUNKS } from '../../world/ShownActor';
 import type { ShownEntity } from '../../world/ShownActor';
 import { PLAYER_TRACKING_RANGE_CHUNKS } from '../../world/ShownPlayer';
-import { sameSyncedProperties } from '../actorProperties';
+import { sameSyncedProperties } from '../../editions/bedrock/actorProperties';
 import { encodePacketBatchBySize } from '../encodePacketBatch';
 import type { EncodedPacketBatch } from '../encodePacketBatch';
 import type PlayerSession from '../../player/PlayerSession';

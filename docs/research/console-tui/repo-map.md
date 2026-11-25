@@ -73,7 +73,7 @@ All four build a `Chat` whose `sender: CommandExecutor` is `server.getConsole()!
 
 - `packages/prismarine/src/command/CommandManager.ts:309` (command feedback to `*.ops`)
 - `packages/prismarine/src/Player.ts:324` and `:844`
-- `packages/prismarine/src/network/handler/ResourcePackClientResponseHandler.ts:267`
+- `packages/prismarine/src/editions/bedrock/handler/ResourcePackClientResponseHandler.ts:267`
 
 `Chat` keeps `sender: CommandExecutor` (`src/chat/Chat.ts:38,56`). If `Console` leaves the server process, these need a server-side `CommandExecutor` (a "system"/console sender) that is always present, independent of any attached UI.
 

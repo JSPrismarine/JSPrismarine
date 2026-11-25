@@ -24,7 +24,7 @@ import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures
 import { firstSightPackets } from '../network/replica/firstSight';
 import type { FirstSight } from '../network/replica/firstSight';
 import type ClientConnection from '../network/ClientConnection';
-import { BedrockPresenter } from '../network/presenter/BedrockPresenter';
+import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';

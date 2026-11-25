@@ -10,7 +10,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
-import { syncedPropertiesOf } from '../../network/actorProperties';
+import { syncedPropertiesOf } from '../../editions/bedrock/actorProperties';
 import type { StatusEffect } from '../StatusEffect';
 import { actorMetadataProjection } from './actorMetadata';
 import type { ActorMetadataProjection } from './actorMetadata';

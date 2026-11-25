@@ -5,7 +5,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import ChunkBatchCache from '../src/network/ChunkBatchCache';
+import ChunkBatchCache from '../src/editions/bedrock/ChunkBatchCache';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { Dimensions } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';

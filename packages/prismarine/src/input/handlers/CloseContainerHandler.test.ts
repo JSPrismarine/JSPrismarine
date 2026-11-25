@@ -15,7 +15,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { BedrockPresenter } from '../../network/presenter/BedrockPresenter';
+import { BedrockPresenter } from '../../editions/bedrock/presenter/BedrockPresenter';
 import CloseContainerHandler from './CloseContainerHandler';
 
 const planks = (count: number) => new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count });

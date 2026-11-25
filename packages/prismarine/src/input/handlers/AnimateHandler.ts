@@ -1,7 +1,7 @@
 import { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 
 import PlayerSwingEvent from '../../events/player/PlayerSwingEvent';
-import type { InputContext } from '../../network/handler/HandlerContext';
+import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent, PlayerAnimation } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
 

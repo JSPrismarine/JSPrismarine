@@ -6,7 +6,7 @@ import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 
-import { customDimensionData } from '../network/customDimensionData';
+import { customDimensionData } from '../editions/bedrock/customDimensionData';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
 import { primitiveShapes } from '../scripting/debugShapes';

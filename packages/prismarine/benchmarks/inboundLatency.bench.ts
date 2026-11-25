@@ -20,7 +20,7 @@ import type Server from '../src/Server';
 import SessionManager from '../src/SessionManager';
 import { stub } from '../src/testing/stub.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
-import type { ConnectionHandler } from '../src/network/handler/ConnectionContext';
+import type { ConnectionHandler } from '../src/player/context/ConnectionContext';
 import { PacketLogFilter } from '../src/network/PacketLogFilter';
 import NetworkDispatcher from '../src/network/NetworkDispatcher';
 import type PacketHandlerRegistry from '../src/network/PacketHandlerRegistry';
