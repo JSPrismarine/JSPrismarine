@@ -82,13 +82,12 @@ import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
-import type { ChunkViewArea } from '../world/ChunkViewArea';
-import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
+import { chunkViewArea } from '../world/ChunkViewArea';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS, effectiveViewDistance, toChunk } from '../world/Proximity';
 import type { PlayerSpawn } from '../world/SpawnPlacement';
 import { dimensionByBedrockId } from '../world/DimensionType';
 import { maxSubChunk, minSubChunk } from '../world/Dimension';
-import Chunk from '../world/chunk/Chunk';
+import type Chunk from '../world/chunk/Chunk';
 import { translateChunkPayload } from '../world/chunk/translateNetworkPalettes';
 import { blockTranslationFor } from './codec/blockTranslation';
 import type ClientConnection from './ClientConnection';
@@ -141,7 +140,10 @@ import { VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
-import ChunkSender from './ChunkSender';
+import type ChunkSender from './ChunkSender';
+import type { CenteredView } from './ChunkView';
+import { ChunkView, insideView } from './ChunkView';
+import type { ChunkWire } from './ChunkView';
 import ChunkBatchCache from './ChunkBatchCache';
 import { ClientBlobCache } from './ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
@@ -157,17 +159,14 @@ import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network
  * Four queued chunks still fit comfortably inside the tick's generation throughput.
  */
 const CHUNKS_PER_FLUSH = 4;
+
+/** What a chunk an edition's own wire sends counts against the queue's limit, as an estimate. */
+const WIRE_CHUNK_BYTES = 64 * 1024;
+
+/** The payload of a chunk an edition's own wire writes, which the session never serializes. */
+const EMPTY_PAYLOAD = Buffer.alloc(0);
 const MAX_QUEUED_CHUNK_BYTES = 8 * 1024 * 1024;
 
-/**
- * How many failed batches a chunk is queued again after, before the session waits for the
- * player's view to change.
- *
- * A batch fails as a whole, so a chunk that can never be sent takes the chunks queued beside it
- * down too, and retrying without a limit would fail and log once per scheduler pass for as long
- * as the player stands there.
- */
-const CHUNK_SEND_RETRIES = 3;
 const chunkBatchCache = new ChunkBatchCache();
 
 interface QueuedChunk {
@@ -374,19 +373,11 @@ const OWN_SLOT_WINDOWS: Partial<Record<EntityContainer, { readonly windowId: num
         cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
     };
 
-/** Where a `NetworkChunkPublisherUpdate` was centered, in chunks, and the area it named. */
-interface PublishedView {
-    readonly x: number;
-    readonly z: number;
-    readonly area: ChunkViewArea;
-}
+/** Where the client's view was last centered, in chunks, and the area it keeps around that. */
+type PublishedView = CenteredView;
 
-/** Whether a chunk lies inside a published view, which the client keeps; never before the first. */
 /** The view in effect when a chunk went out, and how many views its flush had seen published by then. */
 type SentUnder = { readonly view: PublishedView | null; readonly later: number };
-
-const insideView = (view: PublishedView | null, x: number, z: number): boolean =>
-    view !== null && view.area.contains(x - view.x, z - view.z);
 
 /** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
 export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
@@ -458,12 +449,8 @@ export default class PlayerSession {
     /** Serializes sends when several generated chunks complete at the same time. */
     private chunkBatchFlush: Promise<void> = Promise.resolve();
 
-    /** What this player still has to receive, nearest first. Drained by the server's scheduler. */
-    private readonly chunkSender = new ChunkSender();
-    private readonly loadedChunks = new Map<number, { readonly x: number; readonly z: number }>();
-    private readonly loadingChunks = new Map<number, { readonly x: number; readonly z: number }>();
-    /** Failed batches by chunk hash since the chunk last reached the client: see {@link CHUNK_SEND_RETRIES}. */
-    private readonly failedChunkSends = new Map<number, number>();
+    /** Which chunks the client holds and still has to receive, the same for both editions. */
+    private readonly chunks = new ChunkView();
 
     /**
      * The chunk the last `NetworkChunkPublisherUpdate` was centered on, and the radius it named
@@ -612,12 +599,6 @@ export default class PlayerSession {
      */
     private pendingCredits: Arrival | undefined;
 
-    /**
-     * Bumped by {@link PlayerSession.clearChunks}. A chunk batch compares the value it started
-     * with against this once its send completes, so a batch that was on the wire while the
-     * player changed world does not record the old world's coordinates as loaded in the new.
-     */
-    private chunkEpoch = 0;
     /** The last teleport sent to this client that it has not said it handled, and when. */
     private teleportAwaitingAck: { readonly x: number; readonly z: number; readonly sentAtTick: number } | undefined;
 
@@ -886,28 +867,26 @@ export default class PlayerSession {
 
     /** The queue the scheduler drains - see `ChunkRecipient`. */
     public get sender(): ChunkSender {
-        return this.chunkSender;
+        return this.chunks.sender;
     }
 
     /**
      * Produces one chunk and queues it for the next batch. Called only by the scheduler.
      *
      * The scheduler takes a coordinate off the queue before calling this, so a failure here
-     * has to put the bookkeeping back: `loadingChunks` is what stops `needNewChunks` from
+     * has to put the bookkeeping back: the view's loading set is what stops `needNewChunks` from
      * asking for the same chunk twice, and leaving the hash in it after nothing was sent
      * means that chunk is never requested again - a permanent hole in the player's world for
      * as long as they stay in range of it.
      */
     public async deliver(x: number, z: number): Promise<void> {
-        const epoch = this.chunkEpoch;
+        const epoch = this.chunks.epoch;
         try {
             await this.requestChunk(x, z);
-            if (epoch !== this.chunkEpoch) return;
+            if (epoch !== this.chunks.epoch) return;
             if (this.chunkSendQueue.length >= CHUNKS_PER_FLUSH) await this.flushChunkBatch();
         } catch (error: unknown) {
-            // Unless a failed flush queued it again, which keeps it loading so `needNewChunks`
-            // can still forget the retry when the player walks away.
-            if (!this.chunkSender.has(x, z)) this.loadingChunks.delete(Chunk.packXZ(x, z));
+            this.chunks.produceFailed(x, z);
             throw error;
         }
     }
@@ -1014,8 +993,7 @@ export default class PlayerSession {
             // world evicted between the announcement and the request would stay a hole for as
             // long as the player stood there. Read it back instead; a chunk nobody announced is
             // not loaded on a client's say-so.
-            const hash = Chunk.packXZ(x, z);
-            if (chunk === null && this.loadedChunks.has(hash)) {
+            if (chunk === null && this.chunks.holds(x, z)) {
                 chunk = await world.getChunk(x, z, { urgency: 'immediate' });
             }
             if (chunk === null || chunk.getX() !== x || chunk.getZ() !== z) {
@@ -1089,14 +1067,7 @@ export default class PlayerSession {
 
     /** Queues the chunks around a position, nearest first, without sending anything yet. */
     public queueChunks(centerX: number, centerZ: number, coordinates: Array<[number, number]>): void {
-        this.chunkSender.setCenter(centerX, centerZ);
-
-        for (const [x, z] of coordinates) {
-            const hash = Chunk.packXZ(x, z);
-            if (this.loadedChunks.has(hash) || this.loadingChunks.has(hash)) continue;
-
-            this.enqueueChunkCoordinate(hash, x, z);
-        }
+        this.chunks.queue(centerX, centerZ, coordinates);
     }
 
     /**
@@ -1295,8 +1266,10 @@ export default class PlayerSession {
         if (this.holdsArrivalChunks()) return;
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
-        const epoch = this.chunkEpoch;
+        const epoch = this.chunks.epoch;
         const payloadBytes = chunksToSend.reduce((total, { memoryBytes }) => total + memoryBytes, 0);
+        const wire = this.presenter.chunkWire;
+        if (wire !== undefined) return this.flushThroughWire(wire, chunksToSend, epoch, payloadBytes);
 
         // The publisher update has to come first, and has to be current.
         //
@@ -1335,7 +1308,7 @@ export default class PlayerSession {
             for (const { chunk, payload, revision, subChunkCount: queuedSubChunkCount } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
                 // the old world's, and the client has already been told it is somewhere else.
-                if (epoch !== this.chunkEpoch) return;
+                if (epoch !== this.chunks.epoch) return;
                 const biomes = cached ? this.clientBlobCache.prepareRequestBiomes(chunk) : undefined;
                 if (biomes !== undefined) this.clientBlobCache.track([biomes]);
                 // A request-mode client asks for its sub chunks later and is answered from the
@@ -1366,7 +1339,7 @@ export default class PlayerSession {
                     this.connection.compressionThreshold,
                     biomes !== undefined ? 'request-mode-cached' : requestMode ? 'request-mode' : 'uncached'
                 );
-                if (epoch !== this.chunkEpoch) return;
+                if (epoch !== this.chunks.epoch) return;
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
                 sentUnder.push({ view: this.publishedView, later: laterViews.length });
@@ -1381,7 +1354,7 @@ export default class PlayerSession {
 
             // A world change happened while the batch was compressing. These were the old world's
             // chunks; the sets were cleared for the new one and the hashes must not come back.
-            if (epoch !== this.chunkEpoch) return;
+            if (epoch !== this.chunks.epoch) return;
 
             for (const [index, { chunk }] of chunksToSend.entries()) {
                 this.settleSentChunk(chunk, sentUnder[index], laterViews);
@@ -1396,7 +1369,7 @@ export default class PlayerSession {
             // again: in sub chunk request mode a second `LevelChunk` resets the column the client
             // holds, and a player standing on it falls through. After a world change the sets
             // belong to the new world, and these hashes must not touch them.
-            if (!settled && epoch === this.chunkEpoch) {
+            if (!settled && epoch === this.chunks.epoch) {
                 for (const [index, { chunk }] of chunksToSend.entries()) {
                     if (index < sent) this.settleSentChunk(chunk, sentUnder[index], laterViews);
                     else this.retryUnsentChunk(chunk);
@@ -1405,6 +1378,42 @@ export default class PlayerSession {
             throw error;
         } finally {
             this.publishedViewWatchers.delete(laterViews);
+            this.releaseChunkQueueBytes(payloadBytes);
+        }
+    }
+
+    /**
+     * Sends one queued batch through an edition's own wire, behind the view's center, and settles
+     * it as a Bedrock batch is settled: kept when it was inside the view the client had when it
+     * went out, queued again when the send failed.
+     */
+    private async flushThroughWire(
+        wire: ChunkWire,
+        chunksToSend: readonly QueuedChunk[],
+        epoch: number,
+        payloadBytes: number
+    ): Promise<void> {
+        let settled = false;
+        try {
+            await this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
+            if (epoch !== this.chunks.epoch) return;
+            const view = this.publishedView;
+            await wire.send(
+                chunksToSend.map(({ chunk }) => chunk),
+                this
+            );
+            if (epoch !== this.chunks.epoch) return;
+            for (const { chunk } of chunksToSend) this.settleSentChunk(chunk, { view, later: 0 }, []);
+            settled = true;
+
+            await this.announceSpawnIfReady();
+            await this.answerRespawnIfReady();
+        } catch (error: unknown) {
+            if (!settled && epoch === this.chunks.epoch) {
+                for (const { chunk } of chunksToSend) this.retryUnsentChunk(chunk);
+            }
+            throw error;
+        } finally {
             this.releaseChunkQueueBytes(payloadBytes);
         }
     }
@@ -1422,21 +1431,11 @@ export default class PlayerSession {
     private settleSentChunk(chunk: Chunk, sent: SentUnder | undefined, laterViews: readonly PublishedView[]): void {
         const x = chunk.getX();
         const z = chunk.getZ();
-        const hash = Chunk.packXZ(x, z);
         const kept =
             sent !== undefined &&
             insideView(sent.view, x, z) &&
             laterViews.slice(sent.later).every((view) => insideView(view, x, z));
-        if (kept) {
-            this.loadedChunks.set(hash, { x, z });
-            this.loadingChunks.delete(hash);
-            this.failedChunkSends.delete(hash);
-        } else if (!this.chunkSender.has(x, z)) {
-            this.loadingChunks.delete(hash);
-            // A `needNewChunks` that ran while it was on its way skipped it as loading,
-            // so a player who came back to it and stopped would never ask again.
-            if (this.inCurrentView(x, z)) this.enqueueChunkCoordinate(hash, x, z);
-        }
+        this.chunks.settle(x, z, kept, (x, z) => this.inCurrentView(x, z));
     }
 
     /**
@@ -1447,20 +1446,7 @@ export default class PlayerSession {
      * another dimension sat on the loading screen until its timeout.
      */
     private retryUnsentChunk(chunk: Chunk): void {
-        const x = chunk.getX();
-        const z = chunk.getZ();
-        const hash = Chunk.packXZ(x, z);
-        if (this.chunkSender.has(x, z)) return;
-        this.loadingChunks.delete(hash);
-        if (!this.inCurrentView(x, z)) return;
-        const failures = (this.failedChunkSends.get(hash) ?? 0) + 1;
-        // Out of retries, it waits for a view change, which starts it a fresh count.
-        if (failures > CHUNK_SEND_RETRIES) {
-            this.failedChunkSends.delete(hash);
-            return;
-        }
-        this.failedChunkSends.set(hash, failures);
-        this.enqueueChunkCoordinate(hash, x, z);
+        this.chunks.retry(chunk.getX(), chunk.getZ(), (x, z) => this.inCurrentView(x, z));
     }
 
     /**
@@ -1547,54 +1533,7 @@ export default class PlayerSession {
 
         const viewDistance = this.viewDistance || dist || 0;
 
-        this.chunkSender.setCenter(currentXChunk, currentZChunk);
-
-        // One area decides both what is sent and what is forgotten below. See ChunkViewArea
-        // for why the two must not be tested separately.
-        const area = chunkViewArea(viewDistance);
-        for (const [dx, dz] of offsetsIn(area)) {
-            const x = currentXChunk + dx;
-            const z = currentZChunk + dz;
-            const hash = Chunk.packXZ(x, z);
-
-            if (forceResend) {
-                this.loadedChunks.delete(hash);
-                if (!this.loadingChunks.has(hash)) this.enqueueChunkCoordinate(hash, x, z);
-            } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
-                this.enqueueChunkCoordinate(hash, x, z);
-            }
-        }
-
-        let unloaded = false;
-
-        // The client drops a chunk once it leaves the area, so the session forgets it then too.
-        // A chunk still counted as held after the client dropped it is never sent again when the
-        // player comes back: a hole in the world for as long as they stay in view of it.
-        const outOfView = (x: number, z: number): boolean => !area.contains(x - currentXChunk, z - currentZChunk);
-
-        for (const [hash, { x, z }] of this.loadedChunks) {
-            if (outOfView(x!, z!)) {
-                unloaded = true;
-                this.loadedChunks.delete(hash);
-            }
-        }
-
-        for (const [hash, { x, z }] of this.loadingChunks) {
-            if (outOfView(x!, z!)) {
-                this.loadingChunks.delete(hash);
-                this.failedChunkSends.delete(hash);
-
-                // And out of the queue too, not only out of the bookkeeping.
-                //
-                // These two have to be forgotten together: dropping the hash alone left the
-                // coordinate in the sender, so the scheduler went on to generate and send a
-                // region the player had already walked out of - paid for at the expense of
-                // the chunks in front of them. Worse, `loadingChunks` no longer knew about
-                // it, so walking back in queued it a second time, and a player pacing about
-                // could grow the queue without bound.
-                this.chunkSender.forget(x!, z!);
-            }
-        }
+        const unloaded = this.chunks.need(currentXChunk, currentZChunk, viewDistance, forceResend);
 
         if (!unloaded && this.chunkSendQueue.length !== 0)
             return this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
@@ -1611,20 +1550,14 @@ export default class PlayerSession {
         );
     }
 
-    /** Records queued coordinates once; the sender owns the only nearest-first ordering pass. */
-    private enqueueChunkCoordinate(hash: number, x: number, z: number): void {
-        this.loadingChunks.set(hash, { x, z });
-        this.chunkSender.enqueue(x, z);
-    }
-
     public async requestChunk(x: number, z: number): Promise<void> {
-        const epoch = this.chunkEpoch;
+        const epoch = this.chunks.epoch;
         const chunk = await this.getWorld().getChunk(x, z, { urgency: this.urgencyOf(x, z) });
         await this.queueChunk(chunk, epoch);
     }
 
     private async queueChunk(chunk: Chunk, epoch: number): Promise<void> {
-        while (epoch === this.chunkEpoch) {
+        while (epoch === this.chunks.epoch) {
             const queued = this.prepareQueuedChunk(chunk);
             if (queued.memoryBytes > this.queuedChunkBytesLimit) {
                 throw new PrismarineNetworkErrors.ChunkTooLargeForQueue({
@@ -1670,6 +1603,17 @@ export default class PlayerSession {
     }
 
     private prepareQueuedChunk(chunk: Chunk): QueuedChunk {
+        // An edition that writes its chunks itself is handed the chunk, and its bytes are counted
+        // as an estimate against the queue's limit.
+        if (this.presenter.chunkWire !== undefined) {
+            return {
+                chunk,
+                payload: EMPTY_PAYLOAD,
+                revision: chunk.getNetworkRevision(),
+                subChunkCount: chunk.getNetworkSubChunkCount(),
+                memoryBytes: WIRE_CHUNK_BYTES
+            };
+        }
         const payload = this.usesSubChunkRequests()
             ? chunk.networkSerializeRequestSkeleton()
             : chunk.networkSerialize();
@@ -1726,11 +1670,7 @@ export default class PlayerSession {
      * leftover coordinates against a world where they mean somewhere else entirely.
      */
     public clearChunks(): void {
-        this.chunkEpoch += 1;
-        this.loadedChunks.clear();
-        this.loadingChunks.clear();
-        this.failedChunkSends.clear();
-        this.chunkSender.clear();
+        this.chunks.clear();
         const abandonedBytes = this.chunkSendQueue.reduce((total, { memoryBytes }) => total + memoryBytes, 0);
         this.chunkSendQueue.length = 0;
         this.releaseChunkQueueBytes(abandonedBytes);
@@ -2358,6 +2298,8 @@ export default class PlayerSession {
         };
         this.publishedView = view;
         for (const watcher of this.publishedViewWatchers) watcher.push(view);
+        // An edition with its own wire centers its client's view its own way.
+        if (this.presenter.chunkWire !== undefined) return this.presenter.chunkWire.center(view.x, view.z);
         const pk = new NetworkChunkPublisherUpdatePacket({
             position: { x: position.getX(), y: position.getY(), z: position.getZ() },
             radius: distance << 4,
@@ -2566,7 +2508,7 @@ export default class PlayerSession {
     private answerRespawnIfReady(): Promise<void> {
         const at = this.pendingRespawnAnswer;
         if (at === undefined) return allSent([]);
-        if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return allSent([]);
+        if (this.chunks.isLoading() || this.chunkSendQueue.length > 0) return allSent([]);
 
         this.pendingRespawnAnswer = undefined;
         return allSent([
@@ -2587,7 +2529,7 @@ export default class PlayerSession {
      */
     private async announceSpawnIfReady(): Promise<void> {
         if (!this.spawnChunksPending) return;
-        if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return;
+        if (this.chunks.isLoading() || this.chunkSendQueue.length > 0) return;
 
         this.spawnChunksPending = false;
         await this.sendPlayStatus(PlayStatus.PlayerSpawn);
@@ -4260,6 +4202,8 @@ export default class PlayerSession {
                         replacesWorld: false
                     })
                 );
+                // A client spawned again holds no chunks, so the view around it is sent afresh.
+                this.clearChunks();
             }
             // The entity never left the store: the revival brings it back with the same id at
             // full health, and the player systems reset the attributes, the lungs and the movement

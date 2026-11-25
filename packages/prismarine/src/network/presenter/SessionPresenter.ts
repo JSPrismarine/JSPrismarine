@@ -17,6 +17,7 @@ import type { Gametype } from '@jsprismarine/minecraft';
 
 import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
+import type { ChunkWire } from '../ChunkView';
 import type PlayerSession from '../PlayerSession';
 import type { ShownEntity } from '../../world/ShownActor';
 
@@ -173,6 +174,12 @@ export interface SessionPresenter {
      * plain data instead.
      */
     readonly edition: 'bedrock' | 'java';
+
+    /**
+     * How the client is sent chunks, for an edition that sends them its own way; Bedrock's go out
+     * in the session's own batches. The session's `ChunkView` decides which, either way.
+     */
+    readonly chunkWire?: ChunkWire;
 
     /**
      * Tells the client the world's time of day.

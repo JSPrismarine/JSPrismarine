@@ -16,7 +16,6 @@ import { decodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/
 import { decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
 import { errorMessage } from '../../utils/errorMessage';
-import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
 import type { ConnectionId } from '../transport/ConnectionId';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
@@ -29,8 +28,6 @@ import { LOGIN_HANDLERS } from './handler/loginHandlers';
 import { PLAY_HANDLERS } from './handler/playHandlers';
 import { STATUS_HANDLERS } from './handler/statusHandlers';
 import { hasJoined } from './javaAuth';
-import type { JavaChunkLight } from './javaChunk';
-import { JavaChunkTranslator } from './javaChunk';
 import { JavaConnection } from './JavaConnection';
 import type { JavaPlayers } from './javaPlayers';
 
@@ -81,14 +78,10 @@ export interface JavaJoinSettings {
     readonly doLimitedCrafting: boolean;
 }
 
-/** The world a Java player in play joins, and the chunks they are shown of it. */
+/** The world a Java player in play joins. */
 export interface JavaWorldHost {
     /** The world's Java players, which a player who reaches play joins. */
     readonly players: JavaPlayers;
-    /** One chunk of the world the session's player is in, generated or loaded when it has to be. */
-    chunk(session: PlayerSession, x: number, z: number): Promise<Chunk>;
-    /** The light of the world the session's player is in, which a chunk carries to a Java client, settled before it is read. */
-    light(session: PlayerSession): JavaChunkLight;
     /** How many chunks out from the player the client is sent. */
     viewDistance(): number;
     /** What `Login (play)` tells the client of the world the session's player joins. */
@@ -132,7 +125,6 @@ export class JavaConnections {
             key: { publicDer: publicKey.export({ type: 'spki', format: 'der' }), privateKey },
             askSessionServer: options.hasJoined ?? hasJoined,
             sessionId: randomUUID(),
-            chunks: new JavaChunkTranslator(),
             items: javaItemTranslation()
         };
         transport.onConnect(

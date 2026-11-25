@@ -26,6 +26,7 @@ import { sessionFor } from '../testing/playerSession.test.helper';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { xxHash64 } from './xxHash64';
+import type { SessionPresenter } from './presenter/SessionPresenter';
 
 /**
  * The chunk queue's lifecycle, which is the part of `PlayerSession` a moving player exercises
@@ -161,6 +162,43 @@ describe('network', () => {
             blockX = 16 * 10;
             await walker.needNewChunks();
             expect(walker.sender.has(10, 0)).toBe(true);
+        });
+
+        it('sends the chunks of an edition with its own wire through it, and settles what the client kept', async () => {
+            const near = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            const far = new Chunk(10, 0, new Map(), Dimensions.Overworld);
+            const world = stub<World>({
+                getLoadedChunk: (x, z) => (z !== 0 ? null : x === 0 ? near : x === 10 ? far : null)
+            });
+            const wired: string[] = [];
+            const presenter = stub<SessionPresenter>({
+                edition: 'java',
+                chunkWire: {
+                    center: async (x, z) => void wired.push(`center ${x},${z}`),
+                    send: async (chunks) =>
+                        void wired.push(`send ${chunks.map((chunk) => `${chunk.getX()},${chunk.getZ()}`).join(' ')}`)
+                }
+            });
+            const bedrock: unknown[] = [];
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async (packet) => void bedrock.push(packet),
+                sendSharedCompressedBatchAsync: async (_content, packets) => void bedrock.push(...packets)
+            });
+            const standing = stub<SessionPlayer>({ getPosition: () => new Position(0, 64, 0, world) });
+            const java = sessionFor(server, connection, standing, { world, joined: true, presenter });
+            java['viewDistance'] = 2;
+
+            java.tryDeliverLoaded(0, 0);
+            java.tryDeliverLoaded(10, 0);
+            await java.flush();
+
+            expect(wired).toEqual(['center 0,0', 'send 0,0 10,0']);
+            // Not a Bedrock packet among them: the wire wrote the chunks and the center.
+            expect(bedrock).toEqual([]);
+            // The chunk inside the view the client was centered on is held; the one beyond it is not.
+            expect(java['chunks'].holds(0, 0)).toBe(true);
+            expect(java['chunks'].holds(10, 0)).toBe(false);
         });
 
         it('sends a chunk again that went out beyond its view, though a later update covers it', async () => {

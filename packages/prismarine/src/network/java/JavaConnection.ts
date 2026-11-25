@@ -53,15 +53,8 @@ export class JavaConnection {
      * still wait in the input queue.
      */
     public pose?: { x: number; y: number; z: number; yaw: number; pitch: number; onGround: boolean };
-    /** The chunk sends queued for the connection, one after another, which its packets do not wait on. */
-    public streaming?: Promise<void>;
     /** Whether the client confirmed a teleport since its last move, as Bedrock's `HandledTeleport` says. */
     public teleportHandled?: boolean;
-    /**
-     * The chunk the client's view centers on, and every chunk it has been sent. A respawn
-     * replaces it, and a batch that sees its view replaced stops.
-     */
-    public view?: { x: number; z: number; readonly sent: Set<string> };
     /** Whether the transport closed, after which nothing is started for the connection. */
     public closed = false;
     /** The pings that check the client is still there, once the player is in play. */

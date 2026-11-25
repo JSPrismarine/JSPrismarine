@@ -15,7 +15,6 @@ import type { JavaProtocol } from '@jsprismarine/protocol/java/versions/javaRele
 
 import type { EditionTranslation } from '../editionTranslation';
 import type { hasJoined } from '../javaAuth';
-import type { JavaChunkTranslator } from '../javaChunk';
 import type { JavaConnection, JavaConnectionPhase } from '../JavaConnection';
 import type { JavaLoginOptions } from '../JavaConnections';
 
@@ -28,8 +27,6 @@ export interface JavaServices {
     readonly askSessionServer: typeof hasJoined;
     /** The session id every `Login Success` carries, one for as long as the server runs, as vanilla's is. */
     readonly sessionId: string;
-    /** The world's chunks as Java clients are sent them. */
-    readonly chunks: JavaChunkTranslator;
     /** Java item ids to the world's items, for the stacks a creative client sends. */
     readonly items: EditionTranslation<string, number | undefined>;
 }

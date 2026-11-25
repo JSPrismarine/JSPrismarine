@@ -34,7 +34,7 @@ import { applyClientMovement } from '../handler/PlayerAuthInputHandler';
 import { HandlerContexts } from '../handlerContexts';
 import type { InputQueue } from '../InputQueue';
 import type PlayerSession from '../PlayerSession';
-import type { ShownDimension, ShownRespawn } from '../presenter/SessionPresenter';
+import type { ShownDimension } from '../presenter/SessionPresenter';
 import type { ConnectionId } from '../transport/ConnectionId';
 import { TransportNames } from '../transport/Transport';
 import type { TransportConnection } from '../transport/Transport';
@@ -44,6 +44,7 @@ import type { JavaTexturesProperty } from './javaSkin';
 import { fetchJavaSkin, texturesPropertyOf } from './javaSkin';
 import type { JavaSend } from './JavaPresenter';
 import { JavaPresenter } from './JavaPresenter';
+import { JavaChunkTranslator } from './javaChunk';
 
 /**
  * The skin Bedrock clients are shown for a Java player whose own cannot be had: the plain
@@ -135,8 +136,6 @@ export interface JavaPlayers {
      * edition, playing as the same account, as a Bedrock login does, and posts `playerSpawn`.
      * @param address - Where the client connected from.
      * @param hangUp - Tells the client why it is disconnected and closes its connection.
-     * @param respawned - Told where the player stands each time its client is spawned again, after
-     *   a death or into another world.
      * @returns The session, where the player's feet are, and the dimension they are in; undefined
      *   when the join ended before the player was in the world, because a later login of the same
      *   account replaced it or a `playerSpawn` listener cancelled it.
@@ -147,8 +146,7 @@ export interface JavaPlayers {
         connection: ConnectionId,
         address: InetAddress,
         send: JavaSend,
-        hangUp: (reason: JavaText) => Promise<void>,
-        respawned: (feet: ShownRespawn['feet']) => void
+        hangUp: (reason: JavaText) => Promise<void>
     ): Promise<
         | {
               readonly session: PlayerSession;
@@ -157,6 +155,12 @@ export interface JavaPlayers {
           }
         | undefined
     >;
+    /**
+     * Shows the player the world around it: the session sends the chunks within `viewDistance`
+     * nearest first, paced by the server's scheduler, as it does a Bedrock player's, and keeps
+     * the view up as the player moves, respawns or changes world.
+     */
+    showWorld(session: PlayerSession, viewDistance: number): Promise<void>;
     /** Tells everyone the player joined, once its client has the world to show the message in. */
     announce(session: PlayerSession): Promise<void>;
     /** Applies a position the client reported, in the input step. */
@@ -196,9 +200,10 @@ export const javaPlayersOf = (
     const report = (error: unknown) => server.getLogger().error(error);
     // Read when an intent arrives, as the dispatcher reads its handlers, not when the listener starts.
     const intents = () => server.getPacketHandlerRegistry().getIntentHandlers();
-    // One cache of Java block states and items for every Java session, rather than one each.
+    // One cache of Java block states, items and chunk columns for every Java session, rather than one each.
     const blocks = javaBlockTranslation();
     const items = javaItemTranslation();
+    const columns = new JavaChunkTranslator(blocks);
 
     return {
         refusalOf: (profile, verified) =>
@@ -208,7 +213,7 @@ export const javaPlayersOf = (
                 server.getConfig().getMaxPlayers()
             ),
 
-        join: async (profile, verified, id, address, send, hangUp, respawned) => {
+        join: async (profile, verified, id, address, send, hangUp) => {
             const connection = new JavaClientConnection(id, address, server.getLogger(), hangUp);
             connection.codec = latestCodec;
             connection.phase = 'play';
@@ -236,7 +241,7 @@ export const javaPlayersOf = (
                             (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();
                     },
                     presenterOf: (player) =>
-                        (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, respawned))
+                        (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, columns))
                 });
                 if (session === null) return undefined;
                 // The client hung up while its player was built, and `leave` found no player to
@@ -274,6 +279,10 @@ export const javaPlayersOf = (
                 settle();
             }
         },
+
+        // As a Bedrock client's `RequestChunkRadius` is, in the input step.
+        showWorld: (session, viewDistance) =>
+            inputs.hold(session.getConnection(), () => session.released(session.setViewDistance(viewDistance))),
 
         announce: (session) =>
             announceArrival({ chat: server.getChatManager(), console: server.getConsoleSender() }, session),

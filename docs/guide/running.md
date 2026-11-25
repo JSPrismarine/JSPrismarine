@@ -572,9 +572,10 @@ The ban list, the allow list and `max-players` turn a Java player away as they d
 with vanilla's own message for each. The player then joins as a player like any other: the
 server's `playerSpawn` event fires for them, everyone is told they joined and left, their record is
 saved and loaded under their own name, they come back in the world and dimension they left, they
-stand at the default world's spawn when they are new, and they are sent the world around them, up to 8 chunks out or the view distance if that is less, with the blocks
-and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
-chunks they come into view of follow. Their chat reaches every player and the console, and other
+stand at the default world's spawn when they are new, and they are sent the world around them out
+to `view-distance`, nearest first and paced as a Bedrock player's chunks are, with the blocks and
+biomes a Java client knows and the light the server's light engine keeps. As they walk, the chunks
+they come into view of follow. Their chat reaches every player and the console, and other
 players' chat, the server's messages and command output reach them; their commands run as any
 player's do. Players of both editions see a Java player's own skin: Java players from the signed
 profile Mojang's session server returned, and Bedrock players from the skin image the server

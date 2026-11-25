@@ -8,6 +8,11 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
+import { stub } from '../../testing/stub.test.helper';
+import Chunk from '../../world/chunk/Chunk';
+import type { World } from '../../world/World';
+import type { WorldSystems } from '../../world/WorldSystems';
+import type PlayerSession from '../PlayerSession';
 import type { ShownMessage } from '../presenter/SessionPresenter';
 import type { ShownEntity, ShownEntityFacts } from '../../world/ShownActor';
 import { javaGameModeOf, JavaPresenter, javaTextOf } from './JavaPresenter';
@@ -51,9 +56,8 @@ describe('JavaPresenter', () => {
         const sent: { name: string; value: unknown }[] = [];
         const send = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) =>
             void sent.push({ name: definition.name, value });
-        const respawns: { x: number; y: number; z: number }[] = [];
-        const java = new JavaPresenter(send, 7n, undefined, undefined, (feet) => void respawns.push(feet));
-        return { sent, respawns, java };
+        const java = new JavaPresenter(send, 7n);
+        return { sent, java };
     };
     const overworld = { id: 'minecraft:overworld', seaLevel: 63 };
     const nether = { id: 'minecraft:the_nether', seaLevel: 32 };
@@ -185,8 +189,10 @@ describe('JavaPresenter', () => {
         expect(sent[2]?.value).toMatchObject({ dimension: 'minecraft:overworld', gameMode: 0, dataToKeep: 0 });
     });
 
-    it('spawns the player again into the dimension of the world it moved to, keeping its data, and says where it stands', async () => {
-        const { sent, respawns, java } = presenter();
+    it('spawns the player again into the dimension of the world it moved to, keeping its data, and centers its view afresh', async () => {
+        const { sent, java } = presenter();
+        await java.chunkWire.center(0, 0);
+        sent.length = 0;
 
         await java.showRespawn({
             gamemode: Gametype.CREATIVE,
@@ -204,7 +210,34 @@ describe('JavaPresenter', () => {
             seaLevel: 32,
             dataToKeep: 3
         });
-        expect(respawns).toEqual([{ x: 4.5, y: 70, z: -3.5 }]);
+
+        // A client spawned again holds no chunks, so even the same center goes out again.
+        await java.chunkWire.center(0, 0);
+        expect(sent.at(-1)).toEqual({ name: 'Set Center Chunk', value: { x: 0, z: 0 } });
+    });
+
+    it('centers the view only when it moves, and sends chunks as one batch with their light', async () => {
+        const { sent, java } = presenter();
+        const session = stub<PlayerSession>({
+            getWorld: () =>
+                stub<World>({
+                    getSystems: () => stub<WorldSystems>({ getSkyLight: () => 15, getBlockLight: () => 0 })
+                })
+        });
+
+        await java.chunkWire.center(1, 2);
+        await java.chunkWire.center(1, 2);
+        await java.chunkWire.send([new Chunk(1, 2), new Chunk(0, 2)], session);
+
+        expect(sent.map(({ name }) => name)).toEqual([
+            'Set Center Chunk',
+            'Chunk Batch Start',
+            'Chunk Data and Update Light',
+            'Chunk Data and Update Light',
+            'Chunk Batch Finished'
+        ]);
+        expect(sent[2]?.value).toMatchObject({ x: 1, z: 2 });
+        expect(sent.at(-1)?.value).toEqual({ batchSize: 2 });
     });
 
     it('takes a move between two worlds of one dimension through another, so the client drops the chunks it holds', async () => {
