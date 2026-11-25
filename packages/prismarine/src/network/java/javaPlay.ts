@@ -15,13 +15,12 @@ import {
     SynchronizePlayerPosition
 } from '@jsprismarine/protocol/java/packet/play';
 
+import type { TranslationKey } from '../../chat/ConsoleText';
+import { KeepAlive } from '../KeepAlive';
 import type { JavaConnection } from './JavaConnection';
 import type { JavaWorldHost } from './JavaConnections';
 import { javaSpawnInfoOf } from './JavaPresenter';
 import type { JavaContext, JavaServices } from './handler/JavaPacketHandler';
-
-/** How often the server sends a keep-alive, as vanilla does; a client that misses two is dropped. */
-const KEEP_ALIVE_INTERVAL_MS = 15_000;
 
 /**
  * Shows a player who reached play the world around spawn, in the order vanilla sends it: the
@@ -87,22 +86,16 @@ export const beginPlay = async ({ connection, services }: JavaContext, world: Ja
     // Once the client has a world to show the message in, as Bedrock's join ends with it.
     connection.queue(world.players.announce(session));
 
-    const keepAlive = {
-        awaiting: undefined as bigint | undefined,
-        timer: setInterval(() => {
-            if (keepAlive.awaiting !== undefined) {
-                services.options.log.debug(
-                    `Java connection ${connection.transport.id} missed a keep-alive; closing it`
-                );
-                void connection.close();
-                return;
-            }
-            keepAlive.awaiting = BigInt(Date.now());
-            connection.send(ClientboundKeepAlive, { id: keepAlive.awaiting });
-        }, KEEP_ALIVE_INTERVAL_MS)
-    };
-    keepAlive.timer.unref();
-    connection.keepAlive = keepAlive;
+    connection.keepAlive = new KeepAlive({
+        intervalMs: services.options.keepAliveIntervalMs(),
+        ping: (id) => connection.send(ClientboundKeepAlive, { id }),
+        timedOut: () => {
+            services.options.log.debug(`Java connection ${connection.transport.id} missed a keep-alive; closing it`);
+            connection.send(PlayDisconnect, { reason: { translate: 'disconnect.timeout' satisfies TranslationKey } });
+            void connection.close();
+        }
+    });
+    connection.keepAlive.start();
 };
 
 /**

@@ -54,6 +54,8 @@ export interface JavaLoginOptions {
      * `packet-compression-threshold` sets for both editions; 0 compresses nothing.
      */
     compressionThreshold(): number;
+    /** The time between the pings that check a client is still there, in milliseconds; 0 for none. */
+    keepAliveIntervalMs(): number;
     /**
      * Whether chat must be signed. The server does not check chat signatures, so it is off until
      * it does, and a client that requires secure chat is told so before it joins.
@@ -139,7 +141,7 @@ export class JavaConnections {
         transport.onDisconnect(async (id) => {
             const connection = this.connections.get(id);
             if (connection !== undefined) connection.closed = true;
-            if (connection?.keepAlive !== undefined) clearInterval(connection.keepAlive.timer);
+            connection?.keepAlive?.stop();
             this.connections.delete(id);
             // Whether or not the join got as far as a session: one that ended early, replaced by a
             // later login or cancelled by a listener, still holds its place among the sessions.

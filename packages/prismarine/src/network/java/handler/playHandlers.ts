@@ -149,7 +149,7 @@ const moveHandler = <D extends JavaPacketDefinition>(
  */
 export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     javaHandler(ServerboundKeepAlive, ({ id }, { connection }) => {
-        if (connection.keepAlive?.awaiting === id) connection.keepAlive.awaiting = undefined;
+        connection.keepAlive?.answered(id);
     }),
     javaHandler(ConfirmTeleportation, (_confirmed, { connection }) => {
         connection.teleportHandled = true;

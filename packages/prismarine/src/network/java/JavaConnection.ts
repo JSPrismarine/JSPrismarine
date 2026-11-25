@@ -11,6 +11,7 @@ import type { Logger } from '@jsprismarine/logger';
 
 import type { TranslationKey } from '../../chat/ConsoleText';
 import { errorMessage } from '../../utils/errorMessage';
+import type { KeepAlive } from '../KeepAlive';
 import type PlayerSession from '../PlayerSession';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
@@ -63,8 +64,8 @@ export class JavaConnection {
     public view?: { x: number; z: number; readonly sent: Set<string> };
     /** Whether the transport closed, after which nothing is started for the connection. */
     public closed = false;
-    /** The keep-alive timer, and the id the client has not yet answered, once the player is in play. */
-    public keepAlive?: { readonly timer: NodeJS.Timeout; awaiting: bigint | undefined };
+    /** The pings that check the client is still there, once the player is in play. */
+    public keepAlive?: KeepAlive;
 
     /**
      * @param transport - The TCP connection the packets travel over.

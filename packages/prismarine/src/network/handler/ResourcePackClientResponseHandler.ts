@@ -164,6 +164,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 whenInputCommits(session, () => {
                     this.joined.add(session);
                     session.getConnection().phase = 'play';
+                    session.getConnection().startKeepAlive(context.config.getKeepAliveIntervalMs());
                 });
 
                 this.startJoin(context);

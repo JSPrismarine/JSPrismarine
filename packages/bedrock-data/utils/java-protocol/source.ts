@@ -144,10 +144,10 @@ export const staticRegistriesSource = (report: unknown, names: readonly string[]
 
 /**
  * The English strings the server itself sends or prints, by key prefix: why a client is
- * disconnected, who joined and left, and how a player died. The console prints them, and a client
+ * disconnected or timed out, who joined and left, and how a player died. The console prints them, and a client
  * that has no translation of a key is shown them.
  */
-export const LANG_PREFIXES = ['multiplayer.disconnect.', 'multiplayer.player.', 'death.'] as const;
+export const LANG_PREFIXES = ['disconnect.', 'multiplayer.disconnect.', 'multiplayer.player.', 'death.'] as const;
 
 /**
  * The JSON of the English strings under the given prefixes, in key order.

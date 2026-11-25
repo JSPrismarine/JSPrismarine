@@ -12,6 +12,9 @@ import { RakNetTransportConnection } from './transport/RakNetTransport';
 import type { ConnectionId } from './transport/ConnectionId';
 import type { TransportConnection, TransportName } from './transport/Transport';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import NetworkStackLatencyPacket from '@jsprismarine/protocol/bedrock/packet/NetworkStackLatencyPacket';
+import { englishOf } from '../chat/ConsoleText';
+import { KeepAlive } from './KeepAlive';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -35,6 +38,9 @@ export default class ClientConnection extends MinecraftSession {
      * `ClientToServerHandshakeHandler`.
      */
     public resumeLogin: (() => Promise<void>) | null = null;
+
+    /** The pings that check the client is still there, once its player is in play. */
+    private keepAlive: KeepAlive | undefined;
 
     public constructor(
         private readonly transportConnection: TransportConnection,
@@ -83,11 +89,39 @@ export default class ClientConnection extends MinecraftSession {
      * part fails.
      */
     public closePlayerSession(): void {
+        this.keepAlive?.stop();
         const session = this.playerSession;
         if (session === null) return;
 
         this.playerSession = null;
         session.leave();
+    }
+
+    /**
+     * Starts the pings that check the client is still there, as a Java connection's do, and
+     * disconnects a client that leaves one unanswered until the next. A Bedrock client answers
+     * `NetworkStackLatency` with the flag cleared, and its answer does not always carry the time
+     * the ping did, so any answer counts.
+     * @param intervalMs - The time between pings; 0 sends none.
+     */
+    public startKeepAlive(intervalMs: number): void {
+        this.keepAlive ??= new KeepAlive({
+            intervalMs,
+            ping: (id) => {
+                const ping = new NetworkStackLatencyPacket();
+                ping.creationTime = id;
+                ping.isFromServer = true;
+                // A connection that cannot send has closed, which stops the pings anyway.
+                void this.sendDataPacket(ping).catch(() => {});
+            },
+            timedOut: () => void this.disconnect(englishOf('disconnect.timeout'), false, DisconnectReason.TIMEOUT)
+        });
+        this.keepAlive.start();
+    }
+
+    /** Takes the client's answer to a keep-alive ping. */
+    public keepAliveAnswered(): void {
+        this.keepAlive?.answered();
     }
 
     /**

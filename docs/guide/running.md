@@ -407,7 +407,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->49<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->50<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -435,6 +435,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `fluid-replacement`                   | Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag, keeps flowing fluids out of waterloggable blocks and lets a water source waterlog one, bedrock follows each block's Bedrock liquid reaction.                                                                              |
 | `entity-tracking-hysteresis`          | Chunks past view distance before an entity leaves a player's screen.                                                                                                                                                                                                                                                                             |
 | `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                                                                                                                                                              |
+| `keep-alive-interval`                 | Seconds between the pings that check a client is still there, for both editions. A client that leaves one unanswered until the next is disconnected. 0 sends none.                                                                                                                                                                               |
 | `protocol-window`                     | How many Bedrock releases to accept, counted back from the newest this server supports. 1 accepts the newest only. Upgrading the server moves the window with it.                                                                                                                                                                                |
 | `protocol-content`                    | Which release in protocol-window the world's blocks, items and mobs come from: newest, or oldest so every accepted client has all of them. With newest and a wider window, older clients see a placeholder for what their release lacks.                                                                                                         |
 | `allow-list`                          | Whether only the players in allowlist.json may join, as on Bedrock Dedicated Server.                                                                                                                                                                                                                                                             |

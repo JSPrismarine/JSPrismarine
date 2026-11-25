@@ -37,6 +37,7 @@ export type HandlerConfig = Pick<
     | 'getServerAuthoritativeBlockBreaking'
     | 'getCraftingRecipeLimit'
     | 'getPacketCompressionLevel'
+    | 'getKeepAliveIntervalMs'
 >;
 
 /** What every handler of a player session is handed, and all a connection-lane or read-lane one gets. */

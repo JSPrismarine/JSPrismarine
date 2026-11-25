@@ -54,6 +54,8 @@ export interface Scenario {
         addons?: readonly string[];
         /** The config file of each addon, by name, as the server starts with it. */
         addonConfigs?: Readonly<Record<string, unknown>>;
+        /** The server's `keep-alive-interval`, in seconds; the shortest of a suite's wins. */
+        keepAliveInterval?: number;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }

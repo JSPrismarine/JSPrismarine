@@ -245,6 +245,7 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  * @param options.addons - Addons from the repository's `addons/` folder, by name, that the server
  *   loads as world packs, as an installed addon is. The server loads a built copy in its folder.
  * @param options.addonConfigs - The config file of each addon, by name.
+ * @param options.keepAliveInterval - The server's `keep-alive-interval`, in seconds.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -269,6 +270,8 @@ export const startServer = async (
         addonConfigs?: Readonly<Record<string, unknown>>;
         /** Listens for Java Edition clients on this TCP port, as `java-enabled` and `java-port` do. */
         javaPort?: number;
+        /** The server's `keep-alive-interval`, in seconds. */
+        keepAliveInterval?: number;
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -690,6 +693,7 @@ export const startServer = async (
         // requests to the lookup services.
         'enable-server-public-ip-lookup': false,
         'online-mode': false,
+        ...(options.keepAliveInterval === undefined ? {} : { 'keep-alive-interval': options.keepAliveInterval }),
         // Off unless asked, so concurrent Bedrock runs do not all reach for the Java port.
         ...(options.javaPort === undefined
             ? { 'java-enabled': false }

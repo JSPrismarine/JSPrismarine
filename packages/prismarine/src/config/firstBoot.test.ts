@@ -59,6 +59,7 @@ describe('the config file a boot generates', () => {
         'fluid-replacement',
         'entity-tracking-hysteresis',
         'entity-tracking-interval',
+        'keep-alive-interval',
         'protocol-window',
         'protocol-content',
         'allow-list',

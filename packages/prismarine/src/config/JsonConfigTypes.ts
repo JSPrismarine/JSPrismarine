@@ -190,6 +190,8 @@ export interface ConfigFile {
     'entity-tracking-hysteresis'?: number;
     /** Ticks between entity visibility passes. @asType integer @minimum 1 */
     'entity-tracking-interval'?: number;
+    /** Seconds between the pings that check a client is still there, for both editions; 0 sends none. @minimum 0 */
+    'keep-alive-interval'?: number;
     /** How many Bedrock releases to accept, counted back from the newest this server supports. @asType integer @minimum 1 */
     'protocol-window'?: number;
     /** Which release in the protocol window the world's content comes from: the newest, or the oldest so every accepted client has all of it. */
@@ -320,6 +322,7 @@ export const CONFIG_KEY_ORDER = [
     'fluid-replacement',
     'entity-tracking-hysteresis',
     'entity-tracking-interval',
+    'keep-alive-interval',
     'protocol-window',
     'protocol-content',
     'allow-list',
