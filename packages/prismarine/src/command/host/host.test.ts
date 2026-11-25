@@ -1001,6 +1001,12 @@ describe('the server command host', () => {
                         calls.push('reloadFunctions');
                     }
                 }),
+                getAddons: () => ({
+                    // The real sync reloads the scripts itself when asked to.
+                    sync: async (options: { readonly reload?: boolean | 'always' }) => {
+                        calls.push(`sync ${String(options.reload)}`);
+                    }
+                }),
                 reloadScripts: async () => {
                     calls.push('reloadScripts');
                 },
@@ -1011,8 +1017,30 @@ describe('the server command host', () => {
 
             serverCommandHost(server).server.reload();
 
-            expect(calls).toEqual(['reloadFunctions', 'reloadScripts']);
+            expect(calls).toEqual(['reloadFunctions', 'sync always']);
             expect(permissionReloads).toEqual(['permissions.reload']);
+        });
+
+        it('reloads the scripts though the addons could not sync, and logs why', async () => {
+            const calls: string[] = [];
+            const errors: string[] = [];
+            const server = Object.assign(Object.create(fixture.server), {
+                getCommandManager: () => ({ reloadFunctions: () => {} }),
+                getAddons: () => ({
+                    sync: async () => {
+                        throw new Error('addons.json is invalid');
+                    }
+                }),
+                getLogger: () => ({ error: (message: string) => errors.push(message) }),
+                reloadScripts: async () => {
+                    calls.push('reloadScripts');
+                }
+            });
+
+            await serverCommandHost(server).server.reload();
+
+            expect(calls).toEqual(['reloadScripts']);
+            expect(errors).toEqual(['Could not sync the addons: addons.json is invalid']);
         });
     });
 

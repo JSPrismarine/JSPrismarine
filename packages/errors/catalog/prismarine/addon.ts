@@ -11,7 +11,7 @@ export const PrismarineAddonErrors = defineErrors('prismarine/addon', {
     /**
      * `addon install` takes a bare addon name such as `tps-bar`, `<owner>/<repo>/<name>`, either
      * with an optional `@<range>`, an `https:` URL of an `.mcpack`, or a path that starts with
-     * `./`, `../` or `/` or ends in `.mcpack`. A range is `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix
+     * `./`, `../` or `/` or ends in `.mcpack` or `.mcaddon`. A range is `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix
      * what the message names.
      */
     InvalidAddonSpec: { message: '{spec} is not an addon to install: {problem}', base: TypeError },
@@ -84,7 +84,8 @@ export const PrismarineAddonErrors = defineErrors('prismarine/addon', {
     /**
      * What was installed is not an addon: it has no `manifest.json` at its root or in a single
      * folder, the manifest is not a behavior pack's, or a file in the archive would land outside
-     * the addon's folder.
+     * the addon's folder. An `.mcaddon` must hold exactly one behavior pack, a pack with a data or
+     * script module; split one that holds several into an `.mcaddon` or `.mcpack` each.
      */
     InvalidAddonPack: { message: '{key} is not a behavior pack: {problem}', base: AddonIntegrityError },
     /**

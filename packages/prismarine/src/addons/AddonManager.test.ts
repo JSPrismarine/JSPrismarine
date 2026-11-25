@@ -65,6 +65,40 @@ const packFiles = (
 const pack = (version: string, options?: Parameters<typeof packFiles>[1]): Uint8Array =>
     writeZip(packFiles(version, options));
 
+/** A resource pack's files, which an `.mcaddon` ships beside its behavior pack. */
+const resourcePackFiles = (): Map<string, Uint8Array> =>
+    new Map([
+        [
+            'manifest.json',
+            encoder.encode(
+                JSON.stringify({
+                    format_version: 2,
+                    header: {
+                        name: 'Test resources',
+                        uuid: '8c2b3c4e-0d1a-4c8e-9f00-000000000003',
+                        version: [1, 0, 0],
+                        min_engine_version: [1, 21, 0]
+                    },
+                    modules: [{ type: 'resources', uuid: '8c2b3c4e-0d1a-4c8e-9f00-000000000004', version: [1, 0, 0] }]
+                })
+            )
+        ],
+        ['textures/thing.png', new Uint8Array([1, 2, 3])]
+    ]);
+
+/** An `.mcaddon`: a behavior pack at `version` and a resource pack, each a nested `.mcpack`. */
+const mcaddon = (version: string, options?: Parameters<typeof packFiles>[1]): Uint8Array =>
+    writeZip(
+        new Map([
+            ['behavior.mcpack', pack(version, options)],
+            ['resources.mcpack', writeZip(resourcePackFiles())]
+        ])
+    );
+
+/** The files of a pack under a folder, as an `.mcaddon` may hold them. */
+const inFolder = (folder: string, files: ReadonlyMap<string, Uint8Array>): [string, Uint8Array][] =>
+    [...files].map(([name, data]) => [`${folder}/${name}`, data]);
+
 /**
  * A local HTTP server standing in for GitHub, and the fetch that sends every request to it: an
  * `https://github.com/...` URL is served from the same path here.
@@ -504,6 +538,155 @@ describe('AddonManager', () => {
         await manager().install('mobs');
 
         expect(logged).toContain('warn: mobs also has entities, items, which load when the server restarts');
+    });
+
+    it('installs an .mcaddon’s behavior pack and says its resource pack does not install', async () => {
+        await writeFile(path.join(directory, 'furniture.mcaddon'), mcaddon('1.2.0'));
+
+        await manager().install('./furniture.mcaddon');
+
+        expect(await installedVersion('furniture')).toBe('1.2.0');
+        expect(await exists('addons', 'furniture', 'scripts', 'main.js')).toBe(true);
+        expect(await exists('addons', 'furniture', 'textures')).toBe(false);
+        expect(logged).toContain(
+            'warn: furniture also holds resources.mcpack, which the server does not install: an addon is its behavior pack'
+        );
+    });
+
+    it('reads an .mcaddon whose packs are folders rather than nested .mcpacks', async () => {
+        await writeFile(
+            path.join(directory, 'furniture.mcaddon'),
+            writeZip(new Map([...inFolder('BP', packFiles('1.0.0')), ...inFolder('RP', resourcePackFiles())]))
+        );
+
+        await manager().install('./furniture.mcaddon');
+
+        expect(await installedVersion('furniture')).toBe('1.0.0');
+        expect(logged).toContain(
+            'warn: furniture also holds RP/, which the server does not install: an addon is its behavior pack'
+        );
+    });
+
+    it('refuses an .mcaddon with no behavior pack, or with two', async () => {
+        await writeFile(
+            path.join(directory, 'none.mcaddon'),
+            writeZip(new Map([['resources.mcpack', writeZip(resourcePackFiles())]]))
+        );
+        await writeFile(
+            path.join(directory, 'two.mcaddon'),
+            writeZip(new Map([...inFolder('a', packFiles('1.0.0')), ...inFolder('b', packFiles('1.0.0'))]))
+        );
+        const addons = manager();
+
+        await expect(addons.install('./none.mcaddon')).rejects.toBeInstanceOf(PrismarineAddonErrors.InvalidAddonPack);
+        await expect(addons.install('./two.mcaddon')).rejects.toBeInstanceOf(PrismarineAddonErrors.InvalidAddonPack);
+        expect(await exists('addons', 'none')).toBe(false);
+        expect(await exists('addons', 'two')).toBe(false);
+    });
+
+    it('creates the addons folder on sync though no addon is installed', async () => {
+        await manager().sync({ reload: false });
+
+        expect((await stat(path.join(directory, 'addons'))).isDirectory()).toBe(true);
+    });
+
+    it('installs an .mcaddon dropped into the addons folder, under a key made from its name', async () => {
+        const bytes = mcaddon('1.0.0');
+        await mkdir(path.join(directory, 'addons'));
+        await writeFile(path.join(directory, 'addons', 'Furniture_Pack v2.mcaddon'), bytes);
+        const addons = manager();
+
+        expect(await addons.sync()).toEqual([]);
+
+        expect(await installedVersion('furniture-pack-v2')).toBe('1.0.0');
+        expect(await readJson(ADDONS_FILE)).toEqual({
+            addons: { 'furniture-pack-v2': { path: path.join('addons', 'Furniture_Pack v2.mcaddon') } }
+        });
+        expect(await readJson(ADDONS_LOCK_FILE)).toEqual({
+            lockfileVersion: 1,
+            addons: {
+                'furniture-pack-v2': {
+                    path: path.join('addons', 'Furniture_Pack v2.mcaddon'),
+                    name: 'furniture-pack-v2',
+                    version: '1.0.0',
+                    sha256: sha256Of(bytes)
+                }
+            }
+        });
+        expect(addons.packDirectories()).toEqual([path.join(directory, 'addons', 'furniture-pack-v2')]);
+        expect(reloads).toBe(1);
+
+        // A second sync finds the file it already installed and changes nothing.
+        await addons.sync();
+        expect(reloads).toBe(1);
+    });
+
+    it('installs a dropped pack again when its file is replaced, and removes it when the file is gone', async () => {
+        const file = path.join(directory, 'addons', 'warps.mcaddon');
+        await mkdir(path.dirname(file));
+        await writeFile(file, mcaddon('1.0.0'));
+        const addons = manager();
+        await addons.sync();
+
+        await writeFile(file, mcaddon('1.1.0'));
+        expect(await addons.sync()).toEqual([]);
+        expect(await installedVersion('warps')).toBe('1.1.0');
+        expect(logged).toContain(`Updated 1.0.0 to warps 1.1.0 from ${path.join('addons', 'warps.mcaddon')}`);
+
+        await rm(file);
+        expect(await addons.sync()).toEqual([]);
+        expect(await exists('addons', 'warps')).toBe(false);
+        expect(await readJson(ADDONS_FILE)).toEqual({ addons: {} });
+        expect(await readJson(ADDONS_LOCK_FILE)).toEqual({ lockfileVersion: 1, addons: {} });
+        expect(addons.packDirectories()).toEqual([]);
+    });
+
+    it('deletes a dropped pack’s file on remove, so the next sync does not install it again', async () => {
+        await mkdir(path.join(directory, 'addons'));
+        await writeFile(path.join(directory, 'addons', 'warps.mcpack'), pack('1.0.0'));
+        const addons = manager();
+        await addons.sync();
+
+        await addons.remove('warps');
+        await addons.sync();
+
+        expect(await exists('addons', 'warps.mcpack')).toBe(false);
+        expect(await exists('addons', 'warps')).toBe(false);
+        expect(await readJson(ADDONS_FILE)).toEqual({ addons: {} });
+    });
+
+    it('leaves a dropped pack whose key another addon holds, and says to rename it', async () => {
+        github.publish(DEFAULT_ADDON_SOURCE, [{ name: 'warps', version: '1.0.0', bytes: pack('1.0.0') }]);
+        const addons = manager();
+        await addons.install('warps');
+        await writeFile(path.join(directory, 'addons', 'warps.mcaddon'), mcaddon('2.0.0'));
+
+        await addons.sync();
+
+        expect(await installedVersion('warps')).toBe('1.0.0');
+        expect(logged).toContain(
+            'warn: addons/warps.mcaddon would install as warps, which is already installed; rename the file'
+        );
+    });
+
+    it('reloads the scripts on a sync that asks for it, restarting them only when an addon changed', async () => {
+        const restarts: boolean[] = [];
+        const addons = new AddonManager({
+            directory,
+            serverVersion: '0.22.0',
+            fetch: github.fetcher,
+            log: { info: () => {}, warn: () => {}, error: () => {} },
+            reload: async ({ restart }) => {
+                restarts.push(restart);
+            }
+        });
+
+        await addons.sync({ reload: 'always' });
+        await mkdir(path.join(directory, 'addons'), { recursive: true });
+        await writeFile(path.join(directory, 'addons', 'warps.mcpack'), pack('1.0.0'));
+        await addons.sync({ reload: 'always' });
+
+        expect(restarts).toEqual([false, true]);
     });
 
     it('refuses a pack that would write outside its folder', async () => {

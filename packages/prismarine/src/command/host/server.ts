@@ -19,6 +19,7 @@ import CameraShakePacket, {
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
+import { messageOf } from '../../addons/addonPack';
 import type { MessageKind } from '../../network/presenter/SessionPresenter';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
@@ -175,9 +176,21 @@ export const serverSideCommandHost = (
         },
         // Bedrock's `/reload`: the behavior pack functions compile again from their files, the
         // scripts start over, and the server keeps running. The permission files are read again with them.
+        // The addons sync first, so a pack dropped into or taken out of `addons/` counts, and the
+        // sync reloads the scripts. One that fails to read its files still leaves the scripts reloaded.
         reload: () => {
             server.getCommandManager().reloadFunctions();
-            return carryOut(Promise.all([server.reloadScripts(), server.getPermissionManager().reload()]), undefined);
+            const scripts = server
+                .getAddons()
+                .sync({ reload: 'always' })
+                .then(
+                    () => undefined,
+                    (error: unknown) => {
+                        server.getLogger().error(`Could not sync the addons: ${messageOf(error)}`);
+                        return server.reloadScripts();
+                    }
+                );
+            return carryOut(Promise.all([scripts, server.getPermissionManager().reload()]), undefined);
         },
 
         ticking: {
