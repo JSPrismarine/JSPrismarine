@@ -83,6 +83,8 @@ export interface BlockPlacementContext {
     readonly face?: BlockFace;
     /** Where on the clicked face the player clicked. */
     readonly faceLocation?: FaceLocation;
+    /** Whether the player was sneaking, Java's `isSecondaryUseActive`. */
+    readonly sneaking?: boolean;
 }
 
 /**
@@ -136,6 +138,11 @@ export interface BlockPlaceEvent extends BlockEvent {
      * stair's `upside_down_bit`. Absent when the placement has no face.
      */
     readonly faceLocation: FaceLocation | undefined;
+    /**
+     * Whether the placer was sneaking, Java's `isSecondaryUseActive`, which keeps a pointed
+     * dripstone tip from merging with the one it meets. Absent for a world placement.
+     */
+    readonly sneaking?: boolean;
 }
 
 /** A block was broken. */

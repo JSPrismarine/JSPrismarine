@@ -89,6 +89,8 @@ export interface PlaceOptions {
      * with a face given means the middle of the face.
      */
     readonly faceLocation?: FaceLocation;
+    /** Whether the placer was sneaking. */
+    readonly sneaking?: boolean;
 }
 
 /** The middle of a block face, which is where a test clicks when it says nothing else. */
@@ -163,7 +165,8 @@ export class FamilyHarness {
             placedBy,
             itemStack: options.itemStack,
             face: options.face,
-            faceLocation: options.face === undefined ? undefined : (options.faceLocation ?? FACE_CENTER)
+            faceLocation: options.face === undefined ? undefined : (options.faceLocation ?? FACE_CENTER),
+            ...(options.sneaking === undefined ? {} : { sneaking: options.sneaking })
         });
     }
 
