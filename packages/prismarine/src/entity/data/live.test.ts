@@ -3736,6 +3736,31 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(live.actors.actorOf(id)).toBeUndefined();
             });
 
+            it('shows a falling stalactite in its own state and breaks it where it lands', async () => {
+                useVanillaContent();
+
+                const states = { dripstone_thickness: 'tip', hanging: true };
+                const id = live.runtime
+                    .content()
+                    .world.blockWorld.at(DIMENSION)
+                    .spawnEntity({ x: 2.5, y: GROUND_Y + 4, z: 2.5 }, 'minecraft:falling_block', {
+                        block: 'minecraft:pointed_dripstone',
+                        states,
+                        breaks_on_landing: true
+                    });
+                const shown = live.actors.actorOf(id)?.metadata.getPropertyValue(MetadataFlag.VARIANT);
+
+                expect(shown).toBe(BlockRuntimeIds.tryGetByState('minecraft:pointed_dripstone', states));
+                expect(shown).not.toBe(
+                    BlockRuntimeIds.tryGetByState('minecraft:pointed_dripstone', { ...states, hanging: false })
+                );
+
+                for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+                expect(live.runtime.byId(id)).toBeUndefined();
+                expect((await world.getBlockState(2, GROUND_Y, 2)).name).not.toBe('minecraft:pointed_dripstone');
+            });
+
             it('routes a block falling from its support through the live runtime', async () => {
                 useVanillaContent();
 

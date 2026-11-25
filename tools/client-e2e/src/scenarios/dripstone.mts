@@ -1,6 +1,6 @@
 /**
  * Verifies pointed dripstone a client places stands on the floor it was clicked onto, and that a
- * stalactite whose ceiling goes falls rather than breaking where it hung.
+ * stalactite whose ceiling goes falls as falling blocks and breaks where it lands.
  */
 import assert from 'node:assert/strict';
 
@@ -10,6 +10,9 @@ import { sleep, vec3, waitTicks } from '../scenario.mts';
 type Context = Parameters<Scenario['run']>[0];
 
 const BLOCK_REPLY = /Found the block at|The block is |The \w+ state does not match|That chunk is not loaded/;
+const ENTITY_REPLY = /Found \d+ entit(?:y|ies)|No entity was found/;
+/** The ceiling the stalactite hangs from: high enough that its fall outlasts a console round trip. */
+const CEILING_Y = 90;
 const FIXTURE_X = 80;
 /** The column the stalactite falls down, beside the placement fixture. */
 const COLUMN = { x: FIXTURE_X, z: 6 };
@@ -64,30 +67,40 @@ export const dripstone: Scenario = {
         log('pointed dripstone placed on a floor stands as a stalagmite');
         await client.input({ release_all: true });
 
-        // A two-segment stalactite over a snow layer on stone. Falling, it passes through the snow
-        // layer, which only a falling block replaces; breaking where it hung leaves the snow.
+        // A two-segment stalactite high over a stone floor. Falling, it shows as two falling block
+        // entities for the whole drop; breaking where it hung, it never makes one.
         server.command(`setblock ${COLUMN.x} 64 ${COLUMN.z} minecraft:stone`);
-        server.command(`setblock ${COLUMN.x} 65 ${COLUMN.z} minecraft:snow_layer`);
-        server.command(`setblock ${COLUMN.x} 70 ${COLUMN.z} minecraft:stone`);
+        server.command(`setblock ${COLUMN.x} ${CEILING_Y} ${COLUMN.z} minecraft:stone`);
         server.command(
-            `setblock ${COLUMN.x} 69 ${COLUMN.z} minecraft:pointed_dripstone ["hanging"=true,"dripstone_thickness"="base"]`
+            `setblock ${COLUMN.x} ${CEILING_Y - 1} ${COLUMN.z} minecraft:pointed_dripstone ["hanging"=true,"dripstone_thickness"="base"]`
         );
         server.command(
-            `setblock ${COLUMN.x} 68 ${COLUMN.z} minecraft:pointed_dripstone ["hanging"=true,"dripstone_thickness"="tip"]`
+            `setblock ${COLUMN.x} ${CEILING_Y - 2} ${COLUMN.z} minecraft:pointed_dripstone ["hanging"=true,"dripstone_thickness"="tip"]`
         );
+        server.command('kill @e[type=item]');
         await waitTicks(server, 4);
-        server.command(`setblock ${COLUMN.x} 70 ${COLUMN.z} minecraft:air`);
-        await waitTicks(server, 40);
+        server.command(`setblock ${COLUMN.x} ${CEILING_Y} ${COLUMN.z} minecraft:air`);
+        await waitTicks(server, 6);
 
-        for (const y of [69, 68, 67, 66]) {
+        const falling = server.waitForLine(ENTITY_REPLY, 10_000);
+        server.command('testfor @e[type=minecraft:falling_block]');
+        assert.match(await falling, /Found 2 entities/, 'the stalactite did not turn into two falling blocks');
+        await waitTicks(server, 80);
+
+        for (let y = CEILING_Y - 1; y >= 65; y -= 1) {
             const empty = await blockAt(server, COLUMN.x, y, COLUMN.z, 'minecraft:air');
-            assert.match(empty, /Found the block at/, `the stalactite was still at y ${y}: ${empty}`);
+            assert.match(empty, /Found the block at/, `the stalactite was left at y ${y}: ${empty}`);
         }
-        const snow = await blockAt(server, COLUMN.x, 65, COLUMN.z, 'minecraft:air');
-        assert.match(snow, /Found the block at/, `the stalactite never fell through the snow layer: ${snow}`);
-        log('a stalactite whose ceiling was removed fell and broke where it landed');
+        const landed = server.waitForLine(ENTITY_REPLY, 10_000);
+        server.command('testfor @e[type=minecraft:falling_block]');
+        assert.match(await landed, /No entity was found|Found 0/, 'a falling stalactite never landed');
+        const items = server.waitForLine(ENTITY_REPLY, 10_000);
+        server.command('testfor @e[type=minecraft:item]');
+        // Two pointed dripstone items lying together may merge into one stack, so any count passes.
+        assert.match(await items, /Found [1-9]\d* entit/, 'the stalactite did not break into items where it landed');
+        log('a stalactite whose ceiling was removed fell as falling blocks and broke into items where it landed');
 
-        server.command(`fill ${FIXTURE_X} 63 0 ${FIXTURE_X} 70 ${COLUMN.z} minecraft:air`);
+        server.command(`fill ${FIXTURE_X} 63 0 ${FIXTURE_X} ${CEILING_Y} ${COLUMN.z} minecraft:air`);
         server.command('kill @e[type=item]');
     }
 };

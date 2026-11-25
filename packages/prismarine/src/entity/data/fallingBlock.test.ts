@@ -55,4 +55,57 @@ describe('a falling block', () => {
         const blows = world.commits.filter((commit) => commit.target.id === cow?.id);
         expect(blows.map((blow) => [blow.intent.cause, blow.intent.amount])).toEqual([['anvil', 8]]);
     });
+
+    it('lands in the state its spawn data gives it', () => {
+        const { runtime, world } = fixture();
+        const landing = { x: 0, y: FLOOR_Y + 1, z: 0 };
+        runtime.spawn(
+            FALLING,
+            { x: 0.5, y: FLOOR_Y + 4, z: 0.5 },
+            { data: { block: 'minecraft:stone', states: { stone_type: 'granite' } } }
+        );
+        for (let tick = 1; tick <= 40; tick += 1) runtime.tick(tick);
+
+        expect(world.world.blocks.get(landing)).toMatchObject({
+            identifier: 'minecraft:stone',
+            states: { stone_type: 'granite' }
+        });
+    });
+
+    it('breaks into its item where it lands when its spawn data says it cannot stand there', () => {
+        const { runtime, world } = fixture();
+        const landing = { x: 0, y: FLOOR_Y + 1, z: 0 };
+        runtime.spawn(
+            FALLING,
+            { x: 0.5, y: FLOOR_Y + 4, z: 0.5 },
+            { data: { block: 'minecraft:stone', breaks_on_landing: true } }
+        );
+        for (let tick = 1; tick <= 40; tick += 1) runtime.tick(tick);
+
+        expect(world.world.blocks.get(landing)?.identifier).not.toBe('minecraft:stone');
+        expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:stone']);
+    });
+
+    it('hurts by the damage its spawn data gives it, under the cause it names', () => {
+        const { runtime, world } = fixture();
+        const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        runtime.spawn(
+            FALLING,
+            { x: 0.5, y: FLOOR_Y + 6, z: 0.5 },
+            {
+                data: {
+                    block: 'minecraft:stone',
+                    breaks_on_landing: true,
+                    hurts: { per_block: 6, max: 40, cause: 'stalactite' }
+                }
+            }
+        );
+        for (let tick = 1; tick <= 40; tick += 1) {
+            if (cow !== undefined) cow.body.position = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
+            runtime.tick(tick);
+        }
+
+        const blows = world.commits.filter((commit) => commit.target.id === cow?.id);
+        expect(blows.map((blow) => [blow.intent.cause, blow.intent.amount])).toEqual([['stalactite', 24]]);
+    });
 });

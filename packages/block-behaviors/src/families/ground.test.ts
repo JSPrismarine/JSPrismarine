@@ -503,31 +503,69 @@ describe('dripstoneFamily', () => {
         expect(harness.dimension.scheduled).toEqual([]);
     });
 
-    it('drops a stalactite whose ceiling is gone, with the column hanging from it, until it lands', () => {
+    it('turns a stalactite whose ceiling is gone into falling blocks, down to its tip, on a scheduled tick', () => {
         const harness = bindFamily(dripstoneFamily, dripstone);
         const top = { x: 0, y: 6, z: 0 };
-        harness.dimension.set({ x: 0, y: 1, z: 0 }, 'minecraft:stone');
         harness.dimension.set(top, dripstone, { dripstone_thickness: 'base', hanging: true });
         harness.dimension.set(above, dripstone, { dripstone_thickness: 'tip', hanging: true });
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+        harness.dimension.set(below, 'minecraft:stone');
 
         harness.neighborChanged(top, 'up');
         expect(harness.dimension.scheduled).toEqual([{ position: top, delay: FALL_DELAY }]);
         expect(harness.dimension.identifierAt(top)).toBe(dripstone);
-        expect(harness.dimension.drops).toEqual([]);
+        expect(harness.dimension.entities).toEqual([]);
 
         harness.tick(top);
+
         expect(harness.dimension.identifierAt(top)).toBe(AIR);
-        expect(segment(harness, 5)).toMatchObject({ dripstone_thickness: 'base', hanging: true });
-        expect(segment(harness, 4)).toMatchObject({ dripstone_thickness: 'tip', hanging: true });
-
-        for (const y of [5, 4, 3]) harness.tick({ x: 0, y, z: 0 });
-
-        expect(harness.dimension.identifierAt({ x: 0, y: 3, z: 0 })).toBe(AIR);
-        expect(harness.dimension.identifierAt({ x: 0, y: 2, z: 0 })).toBe(AIR);
-        expect(harness.dimension.drops.map(({ drop }) => drop)).toEqual([
-            { identifier: dripstone, count: 1 },
-            { identifier: dripstone, count: 1 }
+        expect(harness.dimension.identifierAt(above)).toBe(AIR);
+        // The stalagmite under the tip is not part of the falling column.
+        expect(harness.dimension.identifierAt(origin)).toBe(dripstone);
+        expect(harness.dimension.drops).toEqual([]);
+        expect(
+            harness.dimension.entities.map(({ identifier, position, data }) => ({ identifier, position, data }))
+        ).toEqual([
+            {
+                identifier: 'minecraft:falling_block',
+                position: { x: 0.5, y: 6, z: 0.5 },
+                data: {
+                    block: dripstone,
+                    states: { dripstone_thickness: 'base', hanging: true },
+                    breaks_on_landing: true
+                }
+            },
+            {
+                identifier: 'minecraft:falling_block',
+                position: { x: 0.5, y: 5, z: 0.5 },
+                data: {
+                    block: dripstone,
+                    states: { dripstone_thickness: 'tip', hanging: true },
+                    breaks_on_landing: true,
+                    hurts: { per_block: 6, max: 40, cause: 'stalactite' }
+                }
+            }
         ]);
+    });
+
+    it("sizes a long stalactite's tip damage by the column's length", () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        const thicknesses = ['base', 'middle', 'middle', 'middle', 'middle', 'middle', 'frustum', 'tip'];
+        thicknesses.forEach((thickness, index) => {
+            harness.dimension.set({ x: 0, y: 20 - index, z: 0 }, dripstone, {
+                dripstone_thickness: thickness,
+                hanging: true
+            });
+        });
+
+        harness.tick({ x: 0, y: 20, z: 0 });
+
+        expect(harness.dimension.entities).toHaveLength(8);
+        expect(harness.dimension.entities.at(-1)?.data?.['hurts']).toEqual({
+            per_block: 8,
+            max: 40,
+            cause: 'stalactite'
+        });
     });
 
     it('drops a stalactite whose segment above was broken', () => {

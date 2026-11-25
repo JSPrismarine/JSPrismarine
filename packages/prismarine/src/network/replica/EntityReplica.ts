@@ -65,6 +65,8 @@ export type HeldEntity = {
     readonly persistentIdentity: string | undefined;
     /** The `block` the spawn data names, which a falling block shows and nothing writes. */
     readonly spawnBlock: unknown;
+    /** The `states` the spawn data gives that block. */
+    readonly spawnBlockStates?: unknown;
     /** The points its spawn data gives each orb, which an experience orb shows and nothing writes. */
     readonly orbValue: number;
     readonly fields: Map<string, PlainData>;
@@ -296,6 +298,7 @@ export class EntityReplica {
                 beamZ: beam === undefined ? undefined : Math.floor(beam.z),
                 showBottom: bodyFieldValue('showBottom', value('showBottom')) !== false,
                 spawnBlock: held.spawnBlock,
+                spawnBlockStates: held.spawnBlockStates,
                 orbValue: held.orbValue,
                 peek: peekAmountOf(value('component:minecraft:peek'))
             }
@@ -366,6 +369,7 @@ export class EntityReplica {
             shownIdentifier: typeof shownAs === 'string' ? shownAs : identifier,
             persistentIdentity: typeof identity === 'string' ? identity : undefined,
             spawnBlock: spawnData !== undefined && isPlainRecord(spawnData) ? spawnData['block'] : undefined,
+            spawnBlockStates: spawnData !== undefined && isPlainRecord(spawnData) ? spawnData['states'] : undefined,
             orbValue: orbValueOf(spawnData !== undefined && isPlainRecord(spawnData) ? spawnData : undefined),
             fields: loggedFieldsOfSavedForm(saved),
             slots: loggedSlotsOfSavedForm(saved)

@@ -25,6 +25,7 @@ import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { FlagType, MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import { blockStatesOf } from './blockStatesOf';
 import type { DataEntity } from './DataEntity';
 import { EXPERIENCE_ORB_COMPONENT, orbValueOf } from './experienceOrbs';
 
@@ -216,6 +217,8 @@ export interface ActorMetadataState {
     readonly showBottom: boolean;
     /** The `block` its spawn data names, which only a falling block shows. */
     readonly spawnBlock: unknown;
+    /** The `states` its spawn data gives that block, which a falling stalactite needs shown. */
+    readonly spawnBlockStates?: unknown;
     /** The points each of its orbs is worth, which only an experience orb shows; 0 when absent. */
     readonly orbValue?: number;
     /** How far a shulker's shell is open, from 0 to 100, for an entity with `minecraft:peek`. */
@@ -242,6 +245,7 @@ export const actorMetadataStateOf = (entity: DataEntity, leashHolderId?: number)
         beamZ: beam === undefined ? undefined : Math.floor(beam.z),
         showBottom: body.showBottom !== false,
         spawnBlock: entity.spawnData?.['block'],
+        spawnBlockStates: entity.spawnData?.['states'],
         orbValue: orbValueOf(entity.spawnData),
         peek: peekAmount(entity.instance)
     };
@@ -343,7 +347,9 @@ export const projectActorMetadata = (
     if (facts.fallingBlock) {
         const block = state.spawnBlock;
         if (typeof block === 'string') {
-            const runtimeId = BlockRuntimeIds.tryGetByName(block);
+            const runtimeId =
+                BlockRuntimeIds.tryGetByState(block, blockStatesOf(state.spawnBlockStates)) ??
+                BlockRuntimeIds.tryGetByName(block);
             if (runtimeId !== null) properties.push({ kind: 'int', id: MetadataFlag.VARIANT, value: runtimeId });
         }
     } else if (typeof facts.variant === 'number') {
