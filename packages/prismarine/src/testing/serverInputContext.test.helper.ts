@@ -1,6 +1,7 @@
 import type { HandlerServices, InputContext } from '../player/context/HandlerContext';
 import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
+import { builtInIntents } from './handlerContext.test.helper';
 import { stub } from './stub.test.helper';
 
 /**
@@ -22,7 +23,9 @@ export const serverInputContext = (server: Server, session: PlayerSession) => {
         events: { get: () => server.getKernel().events },
         content: { get: () => server.getContent() },
         contentWorld: { get: () => server.getContentWorld() },
-        creativeInventory: { get: () => server.getCreativeInventory() }
+        creativeInventory: { get: () => server.getCreativeInventory() },
+        // The built-in intent handlers, which a packet handler hands what it decodes to.
+        intents: { value: builtInIntents() }
     });
     const context: InputContext = {
         session,

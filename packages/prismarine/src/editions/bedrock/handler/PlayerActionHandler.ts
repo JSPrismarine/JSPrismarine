@@ -1,10 +1,32 @@
 import { PlayerActionType } from '@jsprismarine/protocol';
 import type PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 
-import type { MiningStep } from '../../../input/Intent';
+import type { Intent, MiningStep } from '../../../input/Intent';
 import BlockPosition from '../../../world/BlockPosition';
 import type { InputContext } from '../../../player/context/HandlerContext';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
+
+/**
+ * The actions that are movement, and the intent each one is. A jump, a sprint and a sneak also
+ * arrive as flags of `PlayerAuthInput`, which `PlayerAuthInputHandler` hands to the same intents.
+ */
+export const MOVEMENT_INTENTS_OF: ReadonlyMap<number, Intent<MovementIntentKind>> = new Map<
+    number,
+    Intent<MovementIntentKind>
+>([
+    [PlayerActionType.StartJump, { kind: 'jump' }],
+    [PlayerActionType.StartSprinting, { kind: 'setSprinting', sprinting: true }],
+    [PlayerActionType.StopSprinting, { kind: 'setSprinting', sprinting: false }],
+    [PlayerActionType.StartSneaking, { kind: 'setSneaking', sneaking: true }],
+    [PlayerActionType.StopSneaking, { kind: 'setSneaking', sneaking: false }],
+    [PlayerActionType.StartFlying, { kind: 'setFlying', flying: true }],
+    [PlayerActionType.StopFlying, { kind: 'setFlying', flying: false }],
+    [PlayerActionType.StartSleeping, { kind: 'setSleeping', sleeping: true }],
+    [PlayerActionType.StopSleeping, { kind: 'setSleeping', sleeping: false }]
+]);
+
+/** The intents a movement action decodes into. */
+type MovementIntentKind = 'jump' | 'setSprinting' | 'setSneaking' | 'setFlying' | 'setSleeping';
 
 /**
  * The actions that are steps of mining a block, as the `mineBlock` intent names them. Only these
@@ -99,6 +121,14 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
     ): undefined {
         const { session, log, config, services, step } = context;
 
+        // Movement goes to the intents both editions decode into.
+        const movement = MOVEMENT_INTENTS_OF.get(action);
+        if (movement !== undefined) {
+            const moved = services.intents.handle(movement, context);
+            if (moved instanceof Promise) step.output(moved);
+            return;
+        }
+
         // Mining goes to the intent both editions decode into, through the handlers plugins merge with.
         const miningStep = MINING_STEPS_OF.get(action);
         if (miningStep !== undefined) {
@@ -117,61 +147,10 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             return;
         }
 
-        // The state an action reads, and the runtime that takes the inputs. A sprint, a flight
-        // toggle and a respawn go through the session, which posts their events and orders the
-        // respawn's parts.
-        const player = session.getPlayer();
-        const inputs = session.inputs();
-
         switch (action) {
             case PlayerActionType.Respawn: {
                 const pressed = services.intents.handle({ kind: 'pressRespawn' }, context);
                 if (pressed instanceof Promise) step.output(pressed);
-                return;
-            }
-
-            case PlayerActionType.StartJump: {
-                inputs.playerJumped(player);
-                return;
-            }
-
-            // `setSprinting` waits for nothing; it is asynchronous only by its signature.
-            case PlayerActionType.StartSprinting: {
-                step.output(session.setSprinting(true));
-                return;
-            }
-            case PlayerActionType.StopSprinting: {
-                step.output(session.setSprinting(false));
-                return;
-            }
-
-            case PlayerActionType.StartSneaking: {
-                inputs.setPlayerSneaking(player, true);
-                return;
-            }
-            case PlayerActionType.StopSneaking: {
-                inputs.setPlayerSneaking(player, false);
-                return;
-            }
-
-            case PlayerActionType.StartSleeping: {
-                player.getComponents().set('movement.sleeping', true);
-                return;
-            }
-            case PlayerActionType.StopSleeping: {
-                player.getComponents().set('movement.sleeping', false);
-                return;
-            }
-
-            // The docs expect an `UpdateAbilitiesPacket` back, accepting or refusing the
-            // toggle. `setFlying` sends one either way: the new abilities when the player may
-            // fly, the old ones when they may not. It writes the flight before its first send.
-            case PlayerActionType.StartFlying: {
-                step.output(session.setFlying(true));
-                return;
-            }
-            case PlayerActionType.StopFlying: {
-                step.output(session.setFlying(false));
                 return;
             }
 

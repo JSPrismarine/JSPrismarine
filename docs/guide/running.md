@@ -584,7 +584,9 @@ skin and is shown with a default one, and so is a player whose skin the texture 
 return in time, to Bedrock players. Java players see the players and mobs around them,
 which come and go from their tab list and screen as Bedrock players' do, and move as
 the server moves them, with their equipment and whether they crouch, sprint, swim, glide, sleep or
-burn. A Java player can break and place blocks, set their inventory in creative mode, and has a
+burn. A Java player's own sprinting, sneaking and jumps count as a Bedrock player's do: other
+players see them crouch and sprint, a jump tires them, and scripts hear their jump and sneak
+buttons. A Java player can break and place blocks, set their inventory in creative mode, and has a
 health bar the server keeps current, a death screen and a respawn. They go to the Nether and the
 End through portals and commands, and respawn in the dimension their spawn point is in. They cannot
 yet move items in a survival inventory or see their experience or status effects.

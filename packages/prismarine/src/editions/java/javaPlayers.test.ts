@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
+import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import { AccountLinks } from '../../identity/AccountLinks';
@@ -96,16 +96,15 @@ describe('network', () => {
                 const connection = stub<ClientConnection>({});
                 const session = stub<PlayerSession>({ getConnection: () => connection });
                 const players = javaPlayersOf(stub<Server>({ getLogger: () => stub<Logger>({}) }), inputs);
-                const movement = {
-                    position: new Vector3(0, 0, 0),
+                void players.intent(session, {
+                    kind: 'move',
+                    position: { x: 0, y: 0, z: 0 },
                     pitch: 0,
                     yaw: 0,
                     headYaw: 0,
                     onGround: true,
                     handledTeleport: false
-                };
-
-                void players.move(session, movement);
+                });
                 void players.intent(session, { kind: 'selectHotbarSlot', slot: 1 });
 
                 expect(sources).toEqual([connection, connection]);

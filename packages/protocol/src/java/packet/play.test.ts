@@ -15,6 +15,10 @@ import {
     PlayerAction,
     PlayerActionStatus,
     PlayerCombatKill,
+    PlayerCommand,
+    PlayerCommandAction,
+    PlayerInput,
+    PlayerInputFlag,
     PlayLogin,
     Respawn,
     SectionBlocksUpdate,
@@ -312,5 +316,38 @@ describe('Set Entity Metadata', () => {
                 readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, SetEntityData, data)).body
             )
         ).toEqual(data);
+    });
+});
+
+describe('Player Command and Player Input', () => {
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>): JavaPayload<D> =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
+
+    it('reads a sprint start as vanilla writes it: the entity, the action, then its data', () => {
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, PlayerCommand, {
+            entityId: 7,
+            action: PlayerCommandAction.StartSprinting,
+            data: 0
+        }).subarray(idOf(PlayerCommand).length);
+
+        expect([...body]).toEqual([7, 1, 0]);
+        expect(roundTrip(PlayerCommand, { entityId: 7, action: PlayerCommandAction.StopSleeping, data: 0 })).toEqual({
+            entityId: 7,
+            action: 0,
+            data: 0
+        });
+    });
+
+    it('reads the held keys as one byte of flags', () => {
+        const flags = PlayerInputFlag.Jump | PlayerInputFlag.Shift;
+
+        expect([
+            ...encodeJavaPacket(NEWEST_JAVA_RELEASE, PlayerInput, { flags }).subarray(idOf(PlayerInput).length)
+        ]).toEqual([0x30]);
+        expect(roundTrip(PlayerInput, { flags })).toEqual({ flags });
     });
 });

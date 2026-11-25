@@ -5,11 +5,14 @@ import CloseContainerHandler from './handlers/CloseContainerHandler';
 import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
+import HoldButtonsHandler from './handlers/HoldButtonsHandler';
+import JumpHandler from './handlers/JumpHandler';
 import MineBlockHandler from './handlers/MineBlockHandler';
+import MoveHandler from './handlers/MoveHandler';
 import OpenInventoryHandler from './handlers/OpenInventoryHandler';
 import OpenNpcHandler from './handlers/OpenNpcHandler';
-import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PlaySoundHandler from './handlers/PlaySoundHandler';
+import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PressRespawnHandler from './handlers/PressRespawnHandler';
 import QueryBossBarHandler from './handlers/QueryBossBarHandler';
 import RequestAbilityHandler from './handlers/RequestAbilityHandler';
@@ -19,7 +22,11 @@ import ScriptMessageHandler from './handlers/ScriptMessageHandler';
 import SelectHotbarSlotHandler from './handlers/SelectHotbarSlotHandler';
 import SetCreativeSlotHandler from './handlers/SetCreativeSlotHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
+import SetFlyingHandler from './handlers/SetFlyingHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
+import SetSleepingHandler from './handlers/SetSleepingHandler';
+import SetSneakingHandler from './handlers/SetSneakingHandler';
+import SetSprintingHandler from './handlers/SetSprintingHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
 import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
 
@@ -35,11 +42,14 @@ export {
     EatHandler,
     EmoteHandler,
     FinishCreditsHandler,
+    HoldButtonsHandler,
+    JumpHandler,
     MineBlockHandler,
+    MoveHandler,
     OpenInventoryHandler,
     OpenNpcHandler,
-    PlayerInitializedHandler,
     PlaySoundHandler,
+    PlayerInitializedHandler,
     PressRespawnHandler,
     QueryBossBarHandler,
     RequestAbilityHandler,
@@ -49,7 +59,11 @@ export {
     SelectHotbarSlotHandler,
     SetCreativeSlotHandler,
     SetDefaultGameModeHandler,
+    SetFlyingHandler,
     SetPlayerPermissionHandler,
+    SetSleepingHandler,
+    SetSneakingHandler,
+    SetSprintingHandler,
     SetViewDistanceHandler,
     UseItemOnBlockHandler
 };

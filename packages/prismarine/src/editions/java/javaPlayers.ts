@@ -3,7 +3,7 @@
  * connection that drops the Bedrock packets the session still sends, with a Java presenter for
  * what the contract covers. What a Java client sends reaches the world through the same paths a
  * Bedrock client's does: intents run by the same handlers, in the same input step, and movement
- * through `applyClientMovement` ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
+ * as the `move` intent ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
 import { ConnectionContexts } from '../../player/context/connectionContexts';
 import { replaceOtherLogins } from '../../player/replaceOtherLogins';
@@ -29,8 +29,6 @@ import type { Intent, IntentKind } from '../../input/Intent';
 import { laneOfIntents } from '../../input/Intent';
 import ClientConnection from '../../network/ClientConnection';
 import { latestCodec } from '../../network/codec/CodecRegistry';
-import type { ClientMovement } from '../../player/clientMovement';
-import { applyClientMovement } from '../../player/clientMovement';
 import { HandlerContexts } from '../../player/context/handlerContexts';
 import type { InputQueue } from '../../input/InputQueue';
 import type PlayerSession from '../../player/PlayerSession';
@@ -163,8 +161,6 @@ export interface JavaPlayers {
     showWorld(session: PlayerSession, viewDistance: number): Promise<void>;
     /** Tells everyone the player joined, once its client has the world to show the message in. */
     announce(session: PlayerSession): Promise<void>;
-    /** Applies a position the client reported, in the input step. */
-    move(session: PlayerSession, movement: ClientMovement): Promise<void>;
     /** Runs an intent the client's packet decoded into, by its lane. */
     intent<K extends IntentKind>(session: PlayerSession, intent: Intent<K>): Promise<void>;
     /** Takes the player out of the world when the connection ends, saving their record. */
@@ -289,22 +285,6 @@ export const javaPlayersOf = (
 
         // Held under the connection, as a Bedrock client's inputs are and as a replacing login holds
         // the player's removal, so the removal applies behind every input the client sent first.
-        move: (session, movement) =>
-            inputs.hold(
-                session.getConnection(),
-                () =>
-                    void contexts.runInput(
-                        {
-                            lane: 'input',
-                            phases: ['play'],
-                            handle: (move: ClientMovement, context) => applyClientMovement(context, move)
-                        },
-                        movement,
-                        session,
-                        report
-                    )
-            ),
-
         intent: (session, intent) => {
             if (laneOfIntents([intent.kind]) === 'input') {
                 return inputs.hold(

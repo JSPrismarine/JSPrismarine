@@ -14,7 +14,10 @@ describe('input/Intent', () => {
             'eat',
             'emote',
             'finishCredits',
+            'holdButtons',
+            'jump',
             'mineBlock',
+            'move',
             'openInventory',
             'openNpc',
             'playSound',
@@ -28,7 +31,11 @@ describe('input/Intent', () => {
             'selectHotbarSlot',
             'setCreativeSlot',
             'setDefaultGameMode',
+            'setFlying',
             'setPlayerPermission',
+            'setSleeping',
+            'setSneaking',
+            'setSprinting',
             'setViewDistance',
             'useItemOnBlock'
         ]);

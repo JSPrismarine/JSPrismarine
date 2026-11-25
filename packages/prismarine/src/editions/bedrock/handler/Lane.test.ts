@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import { reportProgress } from '../../../../../../.test/reportProgress';
 import PacketHandlerRegistry from '../../../network/PacketHandlerRegistry';
+import { Intents } from '../../../input/Intent';
 import type { Lane } from '@jsprismarine/protocol/handler/Lane';
 import { LANES, strictestLane } from '@jsprismarine/protocol/handler/Lane';
 
@@ -258,7 +259,8 @@ describe('editions/bedrock/handler/Lane', () => {
             return existsSync(file) && writes.test(readFileSync(file, 'utf8'));
         });
 
-        expect(movers).toEqual(expect.arrayContaining(['PlayerAuthInputHandler']));
+        // The client's own reports reach the position as the `move` intent, which runs in the input step.
+        expect(Intents.move.lane).toBe('input');
         for (const mover of movers) expect(lanes.get(mover), mover).toBe('input');
     });
 

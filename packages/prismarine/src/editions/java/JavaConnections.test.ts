@@ -23,6 +23,10 @@ import {
     MovePlayerRot,
     PlayDisconnect,
     PlayerAction,
+    PlayerCommand,
+    PlayerCommandAction,
+    PlayerInput,
+    PlayerInputFlag,
     PlayerActionStatus,
     PlayerLoaded,
     PlayLogin,
@@ -225,13 +229,14 @@ describe('JavaConnections', () => {
                         // A player whose record left them in the Nether.
                         return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: NETHER };
                     },
-                    move: async (_session, { position, onGround, handledTeleport }) =>
-                        void did.push(
-                            `move ${position.getX()} ${position.getY() - EYE_HEIGHT} ${onGround} ${handledTeleport}`
-                        ),
                     showWorld: async (_session, viewDistance) => void did.push(`show world ${viewDistance}`),
                     announce: async () => void did.push('announce'),
-                    intent: async (_session, intent) => void did.push(`intent ${JSON.stringify(intent)}`),
+                    intent: async (_session, intent) =>
+                        void did.push(
+                            intent.kind === 'move'
+                                ? `move ${intent.position.x} ${intent.position.y - EYE_HEIGHT} ${intent.onGround} ${intent.handledTeleport}`
+                                : `intent ${JSON.stringify(intent)}`
+                        ),
                     leave: async () => {
                         did.push('leave');
                         left();
@@ -288,6 +293,13 @@ describe('JavaConnections', () => {
         java.send(ConfirmTeleportation, { teleportId: 2, x: 40.5, y: 70, z: 8.5, yaw: 0, pitch: 0 });
         java.send(MovePlayerRot, { yaw: 0, pitch: 0, flags: MOVE_ON_GROUND });
         await expect.poll(() => did.at(-1)).toBe('move 40.5 70 true true');
+
+        // Off the ground and up is a jump, which a Java client sends no packet for. The held keys
+        // and a sprint arrive in packets of their own.
+        java.send(MovePlayerPos, { x: 40.5, y: 70.4, z: 8.5, flags: 0 });
+        java.send(PlayerInput, { flags: PlayerInputFlag.Jump | PlayerInputFlag.Shift });
+        java.send(PlayerCommand, { entityId: 7, action: PlayerCommandAction.StartSprinting, data: 0 });
+        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"setSprinting","sprinting":true}');
         java.destroy();
         await leaving;
 
@@ -299,6 +311,11 @@ describe('JavaConnections', () => {
             'intent {"kind":"chat","message":"hello"}',
             'move 16.5 -60 true true',
             'move 40.5 70 true true',
+            'move 40.5 70.4 false false',
+            'intent {"kind":"jump"}',
+            'intent {"kind":"holdButtons","jump":true,"sneak":true}',
+            'intent {"kind":"setSneaking","sneaking":true}',
+            'intent {"kind":"setSprinting","sprinting":true}',
             'leave'
         ]);
     });
@@ -337,7 +354,6 @@ describe('JavaConnections', () => {
                     join: async () => ({ session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD }),
                     showWorld: async () => {},
                     announce: async () => {},
-                    move: async () => held('move'),
                     intent: async (_session, intent) => held(intent.kind),
                     leave: async () => {}
                 },
@@ -408,7 +424,6 @@ describe('JavaConnections', () => {
                     },
                     showWorld: async () => {},
                     announce: async () => {},
-                    move: async () => {},
                     intent: async () => {},
                     leave: async () => left()
                 },
@@ -515,7 +530,6 @@ describe('JavaConnections', () => {
                     },
                     showWorld: async () => {},
                     announce: async () => {},
-                    move: async () => {},
                     intent: async () => {},
                     leave: async () => {}
                 },
