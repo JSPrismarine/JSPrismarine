@@ -24,6 +24,12 @@ export interface SpawnerSurroundings {
     countNearby(identifier: string, range: number): number;
     /** Whether a mob can stand with its feet in this block: open here and above, ground below. */
     canSpawnAt(x: number, y: number, z: number): boolean;
+    /**
+     * Whether the mob's collision box, with its feet at this exact position, overlaps no block:
+     * Java's `level.noCollision(type.getSpawnAABB(x, y, z))`. A mob that spawned overlapping the
+     * spawner or a wall could not walk out of it.
+     */
+    isClear(identifier: string, x: number, y: number, z: number): boolean;
 }
 
 /** Where one spawned mob stands, feet first. */
@@ -90,7 +96,7 @@ export const tickSpawner = (spawner: MobSpawner, around: SpawnerSurroundings): S
         const x = position.getX() + (around.random() - around.random()) * range + 0.5;
         const y = position.getY() + Math.floor(around.random() * SPAWN_ROWS) - 1;
         const z = position.getZ() + (around.random() - around.random()) * range + 0.5;
-        if (!around.canSpawnAt(Math.floor(x), y, Math.floor(z))) continue;
+        if (!around.isClear(identifier, x, y, z) || !around.canSpawnAt(Math.floor(x), y, Math.floor(z))) continue;
 
         spawns.push({ x, y, z });
         nearby += 1;

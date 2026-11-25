@@ -45,6 +45,7 @@ const around = (overrides: Partial<SpawnerSurroundings> = {}, roll = 0.5): Spawn
     isPlayerWithin: () => true,
     countNearby: () => 0,
     canSpawnAt: () => true,
+    isClear: () => true,
     ...overrides
 });
 
@@ -119,6 +120,26 @@ describe('world', () => {
             expect(ticked?.tags.getShort('Delay', -1)).toBe(0);
         });
 
+        it("skips a position where the mob's box would overlap a block", () => {
+            const spawner = spawnerWith({ Delay: 0 });
+            const asked: [string, number, number, number][] = [];
+
+            const ticked = tickSpawner(
+                spawner,
+                around({
+                    isClear: (identifier, x, y, z) => {
+                        asked.push([identifier, x, y, z]);
+                        return false;
+                    }
+                })
+            );
+
+            expect(ticked?.spawns).toEqual([]);
+            // Asked with the exact spot the mob would stand on, not the block it falls in.
+            expect(asked[0]).toEqual(['minecraft:zombie', 10.5, 20, 30.5]);
+            expect(ticked?.tags.getShort('Delay', -1)).toBe(0);
+        });
+
         it('waits instead when MaxNearbyEntities of the mob already stand there', () => {
             const spawner = spawnerWith({ Delay: 0, MaxNearbyEntities: 6, MinSpawnDelay: 100, MaxSpawnDelay: 100 });
             const counted: [string, number][] = [];
@@ -167,7 +188,15 @@ const idOf = (identifier: string): number => {
  * A world built by its own constructor around one chunk: a stone floor at 63, a spawner block at
  * (5, 64, 5) carrying a zombie spawner ready to fire, and a recording data runtime.
  */
-const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: number }) => {
+const worldWithSpawner = ({
+    playerAt,
+    delay = 0,
+    rolls = [0.75, 0.25, 0.5, 0.5, 0.5]
+}: {
+    playerAt: Vector3;
+    delay?: number;
+    rolls?: readonly number[];
+}) => {
     const chunk = new Chunk(0, 0);
     for (let x = 0; x < 16; x++)
         for (let z = 0; z < 16; z++) chunk.setBlockRuntimeId(x, 63, z, idOf('minecraft:stone'));
@@ -190,17 +219,17 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     store.beginTick();
     const runtime = stub<EntityRuntime>({
         store,
-        content: () => ({ entities: { registry: { has: () => true } } }) as never,
+        // No type declares a box, so every mob is the default one block cube.
+        content: () => ({ entities: { registry: { has: () => true, get: () => undefined } } }) as never,
         spawn: (identifier, at) => {
             spawned.push({ identifier, ...at });
             return undefined;
         }
     });
-    // Five rolls per attempt: two for x, one for the row, two for z. Three quarters less a
-    // quarter puts every spawn two blocks east of the block, in its own row, on its own z, so
-    // the spot is open air over the stone floor rather than the spawner block itself. The
+    // Five rolls per attempt: two for x, one for the row, two for z. By default three quarters
+    // less a quarter puts every spawn two blocks east of the block, in its own row, on its own
+    // z, so the spot is open air over the stone floor rather than the spawner block itself. The
     // delay draw that follows reads the first roll again.
-    const rolls = [0.75, 0.25, 0.5, 0.5, 0.5];
     let draws = 0;
     const server = stub<Server>({
         getRandom: () => () => rolls[draws++ % rolls.length] ?? 0.5,
@@ -246,6 +275,19 @@ describe('World', () => {
             assert(standing instanceof MobSpawner);
             expect(standing.getDelay()).toBe(650);
             expect(written()).toEqual(['block-entity']);
+        });
+
+        it('spawns nothing whose box would reach into the spawner block', () => {
+            // 0.55 less 0.4 puts the feet at x 6.1, in the open block east of the spawner, but a
+            // box a block wide reaches back to 5.6, inside the spawner, as Java's spawn box would.
+            const { spawned, tick } = worldWithSpawner({
+                playerAt: new Vector3(8, 64, 8),
+                rolls: [0.55, 0.4, 0.5, 0.5, 0.5]
+            });
+
+            tick();
+
+            expect(spawned).toEqual([]);
         });
 
         it('leaves the spawner alone with no player within sixteen blocks', () => {
