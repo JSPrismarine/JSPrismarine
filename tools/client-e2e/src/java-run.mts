@@ -17,6 +17,7 @@ import type { JspServer } from './jsp-server.mts';
 import { startServer } from './jsp-server.mts';
 import { blocks } from './java-scenarios/blocks.mts';
 import { chat } from './java-scenarios/chat.mts';
+import { dimensions } from './java-scenarios/dimensions.mts';
 import { entities } from './java-scenarios/entities.mts';
 import { equipment } from './java-scenarios/equipment.mts';
 import { inventory } from './java-scenarios/inventory.mts';
@@ -47,7 +48,8 @@ const SCENARIOS: readonly JavaScenario[] = [
     mining,
     inventory,
     placing,
-    respawn
+    respawn,
+    dimensions
 ];
 
 /** A TCP port nothing listens on. */
