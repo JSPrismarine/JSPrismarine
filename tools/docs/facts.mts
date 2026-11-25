@@ -134,6 +134,7 @@ import type { ErrorData, ErrorDomainData } from './code-data.mts';
 import {
     errorCount,
     loadBStatsSettings,
+    loadUpdateSettings,
     loadCommands,
     loadErrors,
     loadOptionalSettings,
@@ -477,6 +478,13 @@ function permissionFacts() {
 /** The command reference: every command the server answers, with its permission and who has it. */
 async function commandReferenceFacts() {
     const commands = (await loadServerCommands()).sort((a, b) => a.name.localeCompare(b.name));
+    const { consoleFirstNodeOf } = await import('../../packages/prismarine/src/command/updateCommands.ts');
+    const grantedTo = (name: string, level: number, everyone: boolean): string => {
+        if (level > CONSOLE_ONLY_ABOVE) return 'The console';
+        // An operator's `*` does not grant these; a permission entry has to name the node.
+        if (consoleFirstNodeOf(name) !== undefined) return 'The console';
+        return everyone && level === 0 ? 'Everyone' : 'Operators';
+    };
     const defaults = commands.filter(({ everyone, level }) => everyone && level === 0);
     return {
         'commands.server': String(commands.length),
@@ -489,7 +497,7 @@ async function commandReferenceFacts() {
                 description,
                 `\`${permission}\``,
                 String(level),
-                level > CONSOLE_ONLY_ABOVE ? 'The console' : everyone && level === 0 ? 'Everyone' : 'Operators'
+                grantedTo(name, level, everyone)
             ])
         )}\n`
     };
@@ -598,6 +606,45 @@ async function bstatsFacts() {
                 `\`${chartId(name)}\``,
                 description
             ])
+        )}\n`
+    };
+}
+
+/** Update check facts, from the feed constants, the settings, the schedule and the commands. */
+async function updateFacts() {
+    const feed = await import('../../packages/prismarine/src/updates/feed.ts');
+    const { UPDATE_INTERVAL_MINUTES } = await import('../../packages/prismarine/src/updates/settings.ts');
+    const { UPDATE_CHECK_OPT_OUT } = await import('../../packages/prismarine/src/updates/decision.ts');
+    const { UPDATE_REQUEST_TIMEOUT_MS, updateUserAgent } =
+        await import('../../packages/prismarine/src/updates/UpdateChecker.ts');
+    const { FIRST_UPDATE_CHECK_DELAY_MS, UPDATE_NOTIFY_PERMISSION } =
+        await import('../../packages/prismarine/src/modules/updates.ts');
+    const { CONSOLE_FIRST_COMMAND_PERMISSIONS } =
+        await import('../../packages/prismarine/src/command/updateCommands.ts');
+    const settings = loadUpdateSettings();
+    const minutes = (count: number) => (count === 1 ? '1 minute' : `${count} minutes`);
+    return {
+        'updates.source': feed.DEFAULT_UPDATE_SOURCE,
+        'updates.releaseFeed': `${feed.DEFAULT_UPDATE_SOURCE}/${feed.updateFeedFileName('release')}`,
+        'updates.repositoryFeed': `https://github.com/<owner>/<repo>/releases/download/${feed.UPDATE_RELEASE_TAG}/`,
+        'updates.releaseTag': feed.UPDATE_RELEASE_TAG,
+        'updates.files': feed.UPDATE_CHANNELS.map((channel) => `\`${feed.updateFeedFileName(channel)}\``).join(' and '),
+        'updates.userAgent': updateUserAgent('<version>'),
+        'updates.timeout': `${UPDATE_REQUEST_TIMEOUT_MS / 1000} seconds`,
+        'updates.firstCheck': minutes(FIRST_UPDATE_CHECK_DELAY_MS / 60_000),
+        'updates.interval': minutes(UPDATE_INTERVAL_MINUTES.default),
+        'updates.intervalMinutes': String(UPDATE_INTERVAL_MINUTES.default),
+        'updates.intervalMinimum': minutes(UPDATE_INTERVAL_MINUTES.minimum),
+        'updates.optOut': `${UPDATE_CHECK_OPT_OUT.variable}=${UPDATE_CHECK_OPT_OUT.off[0]}`,
+        'updates.optOutVariable': UPDATE_CHECK_OPT_OUT.variable,
+        'updates.optOutValues': UPDATE_CHECK_OPT_OUT.off.map((value) => `\`${value}\``).join(', '),
+        'updates.optInValues': UPDATE_CHECK_OPT_OUT.on.map((value) => `\`${value}\``).join(', '),
+        'updates.notifyPermission': UPDATE_NOTIFY_PERMISSION,
+        'updates.updatePermission': CONSOLE_FIRST_COMMAND_PERMISSIONS.update,
+        'updates.restartPermission': CONSOLE_FIRST_COMMAND_PERMISSIONS.restart,
+        'updates.settings': `\n${table(
+            ['Setting', 'What it does'],
+            settings.map(({ key, description }) => [`\`${key}\``, description])
         )}\n`
     };
 }
@@ -1576,6 +1623,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await errorFacts()),
             ...(await configFacts()),
             ...(await bstatsFacts()),
+            ...(await updateFacts()),
             // The ids a `worlds.<name>` entry's `experiments` accepts.
             'world.experiments': WORLD_EXPERIMENTS.join(', '),
             // The one a pack that declares a beta Script API version needs.

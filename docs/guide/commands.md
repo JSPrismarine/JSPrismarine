@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->73<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->75<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -32,7 +32,12 @@ The **level** column is the command's permission level, which follows Java Editi
 at level 0 unless a `level` meta in `permissions.json` raises it, an operator at 4 and the console
 at 5, so a command at level 1 or above needs an operator or a `level` even when a permission node
 allows it. A command at level 5 runs on the console only: no
-player sees it, and an operator who types it is told it needs a higher level. The **granted to**
+player sees it, and an operator who types it is told it needs a higher level. `/update` and
+`/restart` belong to the console too. They sit at level 0 so that you can let a player run one,
+but only a permission entry that names the node does that. An operator's `*` doesn't count,
+because restarting the server is a decision for whoever runs the machine.
+[Updates](updates.md#console-commands) explains both.
+The **granted to**
 column puts the two together for a fresh server: who can run the command before you change
 anything.
 
@@ -184,6 +189,7 @@ does the same thing.
 | `/recipe`                  | Unlocks or locks recipes.                                                                                 | `minecraft.command.recipe`        | 1     | Operators   |
 | `/reload`                  | Reloads the server data.                                                                                  | `minecraft.command.reload`        | 2     | Operators   |
 | `/replaceitem`             | Replaces items in inventories.                                                                            | `minecraft.command.replaceitem`   | 1     | Operators   |
+| `/restart`                 | Stops the server and starts it again in a new process. Only the console runs it by default.               | `jsprismarine.command.restart`    | 0     | The console |
 | `/return`                  | Ends the running function and sets what it returns.                                                       | `minecraft.command.return`        | 1     | Operators   |
 | `/say`                     | Sends a message to everyone.                                                                              | `minecraft.command.say`           | 1     | Operators   |
 | `/schedule`                | Queues a function for later.                                                                              | `minecraft.command.schedule`      | 1     | Operators   |
@@ -212,6 +218,7 @@ does the same thing.
 | `/tps`                     | This command will show TPS (ticks per second) averages of your server from the last 1, 5, and 15 minutes. | `jsprismarine.command.tps`        | 0     | Everyone    |
 | `/transfer`                | Sends players to another server.                                                                          | `minecraft.command.transfer`      | 2     | Operators   |
 | `/unlink`                  | Undoes the link between your Java Edition and Bedrock Edition accounts.                                   | `jsprismarine.command.unlink`     | 0     | Everyone    |
+| `/update`                  | Checks for a newer JSPrismarine now. Only the console runs it by default.                                 | `jsprismarine.command.update`     | 0     | The console |
 | `/version`, `/about`       | Displays general server information.                                                                      | `jsprismarine.command.version`    | 0     | Everyone    |
 | `/weather`                 | Changes the weather.                                                                                      | `minecraft.command.weather`       | 1     | Operators   |
 | `/world`                   | Lists, creates, attaches and detaches the server's levels, and moves players between them.                | `jsprismarine.command.world`      | 0     | Operators   |

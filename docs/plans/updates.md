@@ -1,6 +1,6 @@
 # Updates
 
-Status: proposed, 2026-11-25.
+Status: phase 1 built, 2026-11-25. Phase 2 not started.
 
 A server should tell its owner when a newer JSPrismarine is out, in the console and in game to
 operators, the way Paper and Spigot do. Later it should also be able to download the new
@@ -149,8 +149,9 @@ The owner can override the source in `config.json`, in either form:
 
 ### Settings
 
-A new `updates` section in `config.json`, written in with a comment on the first start, as
-`stats.bstats` is:
+A new `updates` section in `config.json`. The first start writes it empty, with a comment that
+lists the keys, so each key follows the build until the owner sets it. Writing the defaults in
+would pin a channel that the build later changes.
 
 | Setting           | Default                                          | What it does                                                    |
 | ----------------- | ------------------------------------------------ | --------------------------------------------------------------- |
@@ -188,7 +189,7 @@ The checker runs in the server process, in `@jsprismarine/prismarine`, so an emb
 checks too and the operator notice has the players to send it to. The host process doesn't fetch
 anything in the first phase.
 
-- It checks shortly after the server reaches `running`, so a slow or unreachable feed never delays
+- It checks a minute after the server starts, so a slow or unreachable feed never delays
   startup, then every `updates.interval` minutes. The default of six hours matches how often a
   nightly can be published. The floor of an hour keeps a misconfigured server from polling the
   feed host, since every server shares it.
@@ -210,9 +211,9 @@ anything in the first phase.
 ### Operators in game
 
 A player who holds `jsprismarine.updates.notify` sees one chat line on join while an update is
-known, with the version and the notes link. Operators hold the node by default. A check that finds
-a new version while operators are online tells them at once. The [permissions plan](permissions.md)
-decides how a node gets its default; this plan only declares the node.
+known, with the version and the notes link, sent once the client has a player to show it to.
+Operators hold the node through `*`. A check that finds a new version while operators are online
+tells them at once.
 
 ### Console commands
 
@@ -224,13 +225,12 @@ Three commands, which only the console can run by default:
 | `update apply` | 2     | Downloads, verifies and swaps in the newest executable, then restarts onto it. Refuses on a build it can't replace, and says why. |
 | `restart`      | 1     | Stops the server and starts it again in a new process.                                                           |
 
-They follow the `addon` command, which `.requires(isConsoleSource)`. A player can run one only
-when granted its node (`jsprismarine.command.update.check`, `jsprismarine.command.update.apply`,
-`jsprismarine.command.restart`), and operators don't get these nodes by default. Restarting the
-server or replacing its executable is a host owner's decision, not something an operator account
-should get by holding level 4. The [permissions plan](permissions.md) says operators run at level 4
-whatever their groups say, so it needs a node an operator lacks until granted. Slice 5 checks that
-it has one before building on it.
+A player can run one only when a permission entry names its node exactly:
+`jsprismarine.command.update` or `jsprismarine.command.restart`. Restarting the server or replacing
+its executable is a host owner's decision, not something an operator account should get by holding
+`*`, so the wildcard every operator holds doesn't count. The commands sit at level 0, so the level
+check doesn't stop a player who was granted one, and the command list offers them only to such a
+player. `update apply` will need its own node in phase 2.
 
 `restart` needs the host. Today the supervisor restarts the child only under `--watch`
 (`canRestart`). The command sends a new console-protocol message asking the host to restart the
@@ -278,14 +278,20 @@ The updater has problems the checker doesn't, recorded here so they are not disc
 
 Phase 1, the checker:
 
-1. **The feed writer.** `.github/scripts/write-update-feed.mjs` writes a channel's file from the
+Every phase 1 slice is built. The client-e2e scenario in slice 6 is not: the checker reads only
+`https:` feeds, and the e2e harness has no TLS server to serve one. The unit tests drive the join
+notice and the operator notice through the module instead.
+
+1. **The feed writer.** `scripts/write-update-feed.mts` writes a channel's file from the
    release's assets, with each file's SHA-256 and size, signs it with the key in a new repository
-   secret, and uploads both to the `updates` release, creating that release on first use and never marking it latest. It refuses to go back a version
+   secret, and uploads both to the `updates` release, creating that release on first use and never
+   marking it latest. It lives in `scripts/` rather than `.github/scripts/` so its tests run. It
+   refuses to go back a version
    without its override flag. One step in the job "Publish standalone executables" of
    `release.yml` and one in `nightly-release` of `nightly.yml`. No new jobs, and no change to the
    number of jobs a pull request push starts.
-2. **The site redirect.** `buildEnd` writes `_redirects` beside `_headers`, with the repository read
-   from `tools/docs/project.mts`. A test checks the line.
+2. **The site redirect.** `buildEnd` writes `_redirects` beside `_headers`, built from the feed
+   module's source URL, repository and release tag. A test follows the rule.
 3. **Feed parsing and the checker.** `packages/prismarine/src/updates/`: parse and compare the feed,
    the `updates` config section with its comment, the environment opt-out, and the checker with an
    injected clock and `fetch`. Tests count requests and log lines against a fake clock, including
