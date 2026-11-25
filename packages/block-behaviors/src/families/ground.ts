@@ -141,7 +141,11 @@ const GRASS_SPREAD_ATTEMPTS = 4;
  */
 const OPAQUE_DAMPENING = 15;
 
-/** Java's `RandomSource.nextInt(bound)`, over the world's random draw. */
+/**
+ * Java's `RandomSource.nextInt(bound)`, over the world's random draw.
+ *
+ * @javaSee RandomSource.nextInt(I)I
+ */
 const nextInt = (world: WorldActions, bound: number): number => Math.floor(world.random() * bound);
 
 /**

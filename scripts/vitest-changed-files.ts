@@ -5,6 +5,8 @@ import { promisify } from 'node:util';
 import type { VCSProvider } from 'vitest/node';
 import { GitVCSProvider } from 'vitest/node';
 
+import { isScannedSource } from '../tools/java-classfile/src/sources.mts';
+
 const run = promisify(execFile);
 
 /** A TypeScript module, which a suite reaches through its imports or not at all. */
@@ -37,6 +39,22 @@ export const packagesToRerun = (changed: readonly string[], packageRoots: readon
     return [...affected];
 };
 
+/**
+ * The suite that reads every package source file's JSDoc from disk for its `@javaSource` and
+ * `@javaSee` tags, rather than importing the files.
+ */
+export const JAVA_TRANSCRIPTIONS_TEST = 'packages/parity/src/java.transcriptions.test.ts';
+
+/**
+ * The suites a change selects that no import leads to: `java.transcriptions` for any change to a
+ * file whose tags it reads.
+ *
+ * @param changed - Changed files, relative to the repository root, with forward slashes.
+ * @returns Test files, relative to the repository root.
+ */
+export const testsToRerun = (changed: readonly string[]): string[] =>
+    changed.some(isScannedSource) ? [JAVA_TRANSCRIPTIONS_TEST] : [];
+
 const git = async (cwd: string, args: readonly string[]): Promise<string[]> => {
     const { stdout } = await run('git', [...args], { cwd, maxBuffer: 64 * 1024 * 1024 });
     return stdout.split('\0').filter((entry) => entry !== '');
@@ -46,7 +64,7 @@ const builtin = new GitVCSProvider();
 
 /**
  * The changed files `--changed` reads: what Git reports, plus every file of a package that
- * {@link packagesToRerun} names. `experimental.vcsProvider` in `vitest.config.ts` loads it.
+ * {@link packagesToRerun} names and each suite {@link testsToRerun} names. `experimental.vcsProvider` in `vitest.config.ts` loads it.
  */
 const provider: VCSProvider = {
     async findChangedFiles(options) {
@@ -58,10 +76,11 @@ const provider: VCSProvider = {
         const manifests = await git(root, ['ls-files', '-z', '--', '*/package.json']);
         const relative = changed.map((file) => path.relative(root, file).split(path.sep).join('/'));
         const packages = packagesToRerun(relative, manifests.map(path.posix.dirname));
-        if (packages.length === 0) return changed;
+        const tests = testsToRerun(relative);
+        if (packages.length === 0 && tests.length === 0) return changed;
 
-        const files = await git(root, ['ls-files', '-z', '--', ...packages]);
-        return [...new Set([...changed, ...files.map((file) => path.resolve(root, file))])];
+        const files = packages.length === 0 ? [] : await git(root, ['ls-files', '-z', '--', ...packages]);
+        return [...new Set([...changed, ...[...files, ...tests].map((file) => path.resolve(root, file))])];
     }
 };
 

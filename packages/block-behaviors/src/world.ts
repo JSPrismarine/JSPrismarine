@@ -318,7 +318,11 @@ export interface WorldActions {
     moveEntity?(entity: number, by: BlockPosition): void;
     /** Plays a sound event, such as `block.door.open`. */
     playSound(position: BlockPosition, sound: string): void;
-    /** Tells the living entities around a bell that it rang, Java's `BellBlockEntity.onHit`. */
+    /**
+     * Tells the living entities around a bell that it rang, Java's `BellBlockEntity.onHit`.
+     *
+     * @javaSee BellBlockEntity.onHit
+     */
     ringBell?(position: BlockPosition): void;
     /** Emits a particle effect, such as `minecraft:crop_growth_emitter`. */
     spawnParticle(position: BlockPosition, particle: string): void;
@@ -354,6 +358,7 @@ export interface WorldActions {
      * Runs a command as a command block at a position does, Java's `BaseCommandBlock.performCommand`:
      * from the middle of the block, as the block's name, and with operator permission.
      *
+     * @javaSee BaseCommandBlock.performCommand
      * @param name - Who the command runs as in its feedback, the block's custom name or `@`.
      * @returns What it reported, or undefined where command blocks do not run, such as a world
      *   whose host has no command layer or a level that turned them off.
