@@ -1,5 +1,24 @@
 # @jsprismarine/commands
 
+## 0.26.0
+
+### Minor Changes
+
+- [#3680](https://github.com/JSPrismarine/JSPrismarine/pull/3680) [`bc7e7c2`](https://github.com/JSPrismarine/JSPrismarine/commit/bc7e7c2d9ded65c6713e4ca5e43b90365b538ef2) Thanks [@filiphsps](https://github.com/filiphsps)! - `execute if items` counts the items in the slots it names that match Java's item predicate, instead of reading the slot name as an NBT path, and takes its `block <pos>` form and every entity a selector matches. `DataCommandHost` has a new required verb, `countSlotItems`, which a host implements to answer it. The `minecraft:item_predicate` argument reads component tests in brackets, with spaces inside quotes, and is no longer a loot table id.
+
+- [#3680](https://github.com/JSPrismarine/JSPrismarine/pull/3680) [`9184280`](https://github.com/JSPrismarine/JSPrismarine/commit/918428018be06df4cba3c9420ef0553d490152b7) Thanks [@filiphsps](https://github.com/filiphsps)! - `execute if slots (block <pos>|entity <targets>) <slot_source>` counts the slots a slot source selects, instead of answering 0, and `execute if items` reads its slots as a slot source too, as Java 26.3 does. A slot source is a slot name, the id or `#tag` of a datapack's slot source, or one written as SNBT, and all six of Java's types are evaluated. `DataCommandHost` has a new required verb, `countSlots`, which a host implements to answer it.
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3726](https://github.com/JSPrismarine/JSPrismarine/pull/3726) [`c59ae85`](https://github.com/JSPrismarine/JSPrismarine/commit/c59ae850f9b6cccbacbadabc233c5ca534234b1f) Thanks [@filiphsps](https://github.com/filiphsps)! - `/fill … replace <filter>` replaces only the blocks the filter names. The `fill` tree read no filter after `replace`, so the command filled the whole region. It now takes Bedrock's `replaceTileName` and `replaceBlockStates` after `replace`, and refuses a filter after any other mode. A filter with no states matches every state of its block, so `replace minecraft:portal` finds a portal on either axis; one with states matches only the states it lists.
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd), [`ea601a5`](https://github.com/JSPrismarine/JSPrismarine/commit/ea601a5497b38b1357c3c83d23e202921ef5b698)]:
+  - @jsprismarine/brigadier@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/mapping@0.26.0
+  - @jsprismarine/minecraft@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes

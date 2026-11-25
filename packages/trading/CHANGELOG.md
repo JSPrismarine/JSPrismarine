@@ -1,5 +1,16 @@
 # @jsprismarine/trading
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+- Updated dependencies [[`ab601c6`](https://github.com/JSPrismarine/JSPrismarine/commit/ab601c6924c6f6fa754434e4225e93461fcef1f5), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`c3acfe7`](https://github.com/JSPrismarine/JSPrismarine/commit/c3acfe7095eb385d656fcd120695d84df6e8c7d3), [`8612a62`](https://github.com/JSPrismarine/JSPrismarine/commit/8612a624714205d633c17fb9dc8cd12cfca922f3), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`6d89071`](https://github.com/JSPrismarine/JSPrismarine/commit/6d89071895723672f4ecc0bbf86e3bbf3d06cb3a)]:
+  - @jsprismarine/predicates@0.26.0
+  - @jsprismarine/entities@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/packs@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/native-worldgen",
-    "version": "0.25.0",
+    "version": "0.26.0",
     "description": "Terrain generation's hot loops in C, loaded through node:ffi and bun:ffi, with the same bits as @jsprismarine/worldgen",
     "sideEffects": false,
     "publishConfig": {

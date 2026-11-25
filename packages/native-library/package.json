@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/native-library",
-    "version": "0.25.0",
+    "version": "0.26.0",
     "description": "Finds, verifies and installs the prebuilt native libraries JSPrismarine's packages load",
     "sideEffects": false,
     "publishConfig": {

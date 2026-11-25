@@ -1,5 +1,15 @@
 # @jsprismarine/engine-systems
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+- Updated dependencies [[`b2406b9`](https://github.com/JSPrismarine/JSPrismarine/commit/b2406b966f2ffafa7ab2ec5511821b8296d80dd5), [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`caf9c62`](https://github.com/JSPrismarine/JSPrismarine/commit/caf9c62fb12a14400caeecbc2e9b4a916aa30143), [`6b879ba`](https://github.com/JSPrismarine/JSPrismarine/commit/6b879ba04da81bbc81e3d9652c70c8699d91130f), [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd), [`ea601a5`](https://github.com/JSPrismarine/JSPrismarine/commit/ea601a5497b38b1357c3c83d23e202921ef5b698)]:
+  - @jsprismarine/blocks@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/mapping@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

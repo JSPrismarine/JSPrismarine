@@ -1,5 +1,15 @@
 # @jsprismarine/bedrock-data
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3692](https://github.com/JSPrismarine/JSPrismarine/pull/3692) [`42d89cb`](https://github.com/JSPrismarine/JSPrismarine/commit/42d89cb12a2d727d59651fb0b3799e39bc9871bd) Thanks [@filiphsps](https://github.com/filiphsps)! - The Java preview is now 26.4 Pre-Release 1 (`26.4-pre-1`), data pack format 128.1, in place of 26.4 Snapshot 10. `sources.json` pins its server jar, `fetch:sources --java 26.4-pre-1` downloads it, and the mapping and item type tables for the preview move to `26.4-pre-1`, still mapped onto Bedrock preview protocol 2259. A server whose `content-java-version` names `26.4-snapshot-10` now stops at startup and needs `26.4-pre-1`.
+  
+  The preview's Java goal capture lists no goals for the camel and camel husk, as Java's `Camel.registerGoals` registers none.
+
 ## 0.25.0
 
 ### Patch Changes

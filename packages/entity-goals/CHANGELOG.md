@@ -1,5 +1,18 @@
 # @jsprismarine/entity-goals
 
+## 0.26.0
+
+### Patch Changes
+
+- [#3709](https://github.com/JSPrismarine/JSPrismarine/pull/3709) [`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3721](https://github.com/JSPrismarine/JSPrismarine/pull/3721) [`7b743b7`](https://github.com/JSPrismarine/JSPrismarine/commit/7b743b7f3dba21f9e89a395adb71bdbe5f38a49c) Thanks [@filiphsps](https://github.com/filiphsps)! - A silverfish with nothing beside it to hide in now wanders, as Java's `SilverfishMergeWithStoneGoal` falls back to the `RandomStrollGoal` it extends. Before, it stood still until a player came within reach. `strollGoal` in `@jsprismarine/entity-goals/goals/movement` builds that stroll for any goal that extends it.
+- Updated dependencies [[`ec53015`](https://github.com/JSPrismarine/JSPrismarine/commit/ec53015a6a6466cc10c65f7ce3df31238b49ac7b), [`c3acfe7`](https://github.com/JSPrismarine/JSPrismarine/commit/c3acfe7095eb385d656fcd120695d84df6e8c7d3)]:
+  - @jsprismarine/content@0.26.0
+  - @jsprismarine/entities@0.26.0
+  - @jsprismarine/errors@0.26.0
+  - @jsprismarine/math@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes
