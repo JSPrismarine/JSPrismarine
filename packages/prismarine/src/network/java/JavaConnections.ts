@@ -16,7 +16,7 @@ import { decodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/
 import { decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
 import { errorMessage } from '../../utils/errorMessage';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { ConnectionId } from '../transport/ConnectionId';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
 import type { Transport } from '../transport/Transport';

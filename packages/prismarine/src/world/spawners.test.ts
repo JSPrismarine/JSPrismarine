@@ -14,7 +14,7 @@ import type Server from '../Server';
 import { EntityStore } from '../entity/data/EntityStore';
 import { sealBlockKinds } from '../testing/sealedBlocks.test.helper';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import Chunk from './chunk/Chunk';
 import { Position } from './Position';

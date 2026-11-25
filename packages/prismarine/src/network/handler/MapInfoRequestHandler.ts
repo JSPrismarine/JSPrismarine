@@ -3,7 +3,7 @@ import type MapInfoRequestPacket from '@jsprismarine/protocol/bedrock/packet/Map
 
 import { carriersOf } from '../../world/mapCarriers';
 import { drawnColors } from '../../world/savedMap';
-import { mapCarrierOf } from '../carriedMaps';
+import { mapCarrierOf } from '../../player/carriedMaps';
 import { mapItemDataOf, wholeMap } from '../mapItemData';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';

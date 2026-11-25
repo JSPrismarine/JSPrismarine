@@ -3,10 +3,10 @@ import type { Logger } from '@jsprismarine/logger';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type { SessionPlayer } from '../sessionPlayers';
+import type { SessionPlayer } from '../../player/sessionPlayers';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { CommandManager } from '../../command/CommandManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';

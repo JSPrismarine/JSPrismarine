@@ -9,7 +9,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import OpenNpcHandler from './OpenNpcHandler';
 
 const NPC = 20n;

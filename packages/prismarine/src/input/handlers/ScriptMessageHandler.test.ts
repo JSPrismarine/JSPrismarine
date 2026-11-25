@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import PlayerScriptMessageEvent from '../../events/player/PlayerScriptMessageEvent';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';

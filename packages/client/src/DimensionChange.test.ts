@@ -23,7 +23,7 @@ import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ChangeDimensionPayload, NetworkPacket } from '@jsprismarine/protocol';
-import type PlayerSession from '@jsprismarine/prismarine/network/PlayerSession';
+import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 

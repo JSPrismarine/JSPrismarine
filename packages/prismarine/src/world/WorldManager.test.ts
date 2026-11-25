@@ -21,7 +21,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import type { NetworkWorldReplicator, WorldReplicators } from '../network/NetworkWorldReplicator';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type SessionManager from '../SessionManager';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';

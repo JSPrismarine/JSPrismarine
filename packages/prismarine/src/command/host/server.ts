@@ -20,7 +20,7 @@ import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPack
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import { messageOf } from '../../addons/addonPack';
-import type { MessageKind } from '../../network/presenter/SessionPresenter';
+import type { MessageKind } from '../../player/presenter/SessionPresenter';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';

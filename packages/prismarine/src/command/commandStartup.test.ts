@@ -21,7 +21,7 @@ import { openContainerContents } from '../inventory/containerStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { stub } from '../testing/stub.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { World } from '../world/World';
 import { Position } from '../world/Position';
 import type { CommandExecutor } from './CommandExecutor';

@@ -12,7 +12,7 @@ import type { Chat } from '../chat/Chat';
 import { ChatType } from '../chat/Chat';
 import type { Config } from '../config/Config';
 import type { TickControl } from '../modules/ticker';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { ServerEvents } from '../events/ServerEvents';
 import ChatEvent from '../events/chat/ChatEvent';
 import type SessionManager from '../SessionManager';

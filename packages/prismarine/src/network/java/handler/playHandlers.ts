@@ -32,7 +32,7 @@ import {
 
 import { EYE_HEIGHT } from '../../../entity/playerEyes';
 import type { Intent, IntentKind } from '../../../input/Intent';
-import type PlayerSession from '../../PlayerSession';
+import type PlayerSession from '../../../player/PlayerSession';
 import type { JavaWorldHost } from '../JavaConnections';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from '../javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from '../javaMining';

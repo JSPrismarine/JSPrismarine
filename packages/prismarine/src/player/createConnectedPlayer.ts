@@ -2,7 +2,7 @@ import type Server from '../Server';
 import type { StorePlayer } from '../entity/storePlayer';
 import type { PlayerIdentity } from '../playerIdentity';
 import type { World } from '../world/World';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import PlayerSession from './PlayerSession';
 import type { SessionPresenter } from './presenter/SessionPresenter';
 

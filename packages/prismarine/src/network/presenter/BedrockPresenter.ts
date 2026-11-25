@@ -10,13 +10,19 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 
 import type ClientConnection from '../ClientConnection';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { ShownEntity } from '../../world/ShownActor';
 import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
 import { abilitiesPacket } from '../replica/firstSight';
 import { playerListAddOf } from './bedrockPlayerList';
-import type { MessageKind, MoveMode, SessionPresenter, ShownMessage, ShownMove } from './SessionPresenter';
+import type {
+    MessageKind,
+    MoveMode,
+    SessionPresenter,
+    ShownMessage,
+    ShownMove
+} from '../../player/presenter/SessionPresenter';
 
 /**
  * The `Text` type that shows each kind of message. `rawText` is `TextObject`, the one type whose

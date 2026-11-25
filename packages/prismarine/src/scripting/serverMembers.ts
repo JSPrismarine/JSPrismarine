@@ -15,8 +15,8 @@ import type {
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
 
 import { sameSubject } from '../identity/Subject';
-import { BossBar } from '../network/BossBar';
-import type PlayerSession from '../network/PlayerSession';
+import { BossBar } from '../player/BossBar';
+import type PlayerSession from '../player/PlayerSession';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { checkExpiry, checkNode } from '../permission/model';
 import type Server from '../Server';

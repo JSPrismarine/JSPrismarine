@@ -1,6 +1,6 @@
 import PlayerEvent from './PlayerEvent';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * Fired just after a client has connected to the raknet instance

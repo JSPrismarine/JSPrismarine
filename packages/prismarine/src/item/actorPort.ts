@@ -17,7 +17,7 @@
  */
 import { duringItemInteraction } from './interactionContext';
 import { Vector3 } from '@jsprismarine/math';
-import type { MoveMode } from '../network/presenter/SessionPresenter';
+import type { MoveMode } from '../player/presenter/SessionPresenter';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';

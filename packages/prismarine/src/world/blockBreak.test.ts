@@ -24,7 +24,7 @@ import Chunk from './chunk/Chunk';
 import type { World } from './World';
 import { Position } from './Position';
 import { fakeLevel, testWorld } from '../testing/level';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';

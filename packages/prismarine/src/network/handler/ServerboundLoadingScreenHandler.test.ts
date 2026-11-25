@@ -4,8 +4,8 @@ import type { Logger } from '@jsprismarine/logger';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
-import type { Arrival } from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
+import type { Arrival } from '../../player/PlayerSession';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
 } from '@jsprismarine/protocol/bedrock/packet/ServerboundLoadingScreenPacket';

@@ -308,7 +308,7 @@ import {
     merchantIn,
     professionOf
 } from './trading';
-import type { TradeSource } from '../../network/PlayerSession';
+import type { TradeSource } from '../../player/PlayerSession';
 import {
     WILLING_FOOD_POINTS,
     digest,

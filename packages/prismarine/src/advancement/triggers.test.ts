@@ -6,7 +6,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing';
 import type Server from '../Server';
 import type { World } from '../world/World';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import type { StoreActor } from '../entity/data/storeActors';

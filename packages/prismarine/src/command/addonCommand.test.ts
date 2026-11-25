@@ -13,7 +13,7 @@ import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { Level } from '../world/Level';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { StoreActor } from '../entity/data/storeActors';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';

@@ -7,7 +7,7 @@ import { ingredientAccepts, recipeIngredients, recipeResult } from '@jsprismarin
 import type { Ingredient as JavaIngredient } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import { ARMOR_SLOTS } from '../../inventory/EntityInventory';
@@ -31,7 +31,7 @@ import ItemStackResponsePacket, {
 } from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
-import type { OpenBlockContainer } from '../PlayerSession';
+import type { OpenBlockContainer } from '../../player/PlayerSession';
 import type { HandlerLog, HandlerServices, InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { selectTrade } from './tradeScreen';

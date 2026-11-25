@@ -3,7 +3,7 @@
  *
  * Enchanting and anvil results have rules of their own; stonecutting and smithing use the
  * recipe registry. This module maps each screen's `ContainerUiId` values to the player's inputs
- * kept in {@link import('../PlayerSession').OpenBlockContainer.inputs} while the screen is open.
+ * kept in {@link import('../../player/PlayerSession').OpenBlockContainer.inputs} while the screen is open.
  */
 import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 import { ContainerUiId, WindowTypes } from '@jsprismarine/minecraft';
@@ -22,7 +22,7 @@ import { takeFromAnvil } from '../../enchantment/anvil';
 import type { Item } from '../../item/Item';
 import type { KeyedPlayerHolder } from '../../keyedPlayer';
 import type { World } from '../../world/World';
-import type { OpenBlockContainer } from '../PlayerSession';
+import type { OpenBlockContainer } from '../../player/PlayerSession';
 
 /** The slot the item being worked on sits in. */
 export const WORKSTATION_ITEM = 0;

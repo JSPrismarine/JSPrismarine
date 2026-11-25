@@ -7,7 +7,7 @@ import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type { StoreActor } from '../entity/data/storeActors';
 import type { Updates } from '../modules/updates';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { canExecute } from '../permission/PermissionManager';
 import { testContent } from '../testing/entityServer';

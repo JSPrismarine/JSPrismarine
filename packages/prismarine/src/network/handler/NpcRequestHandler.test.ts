@@ -4,7 +4,7 @@ import * as Handlers from '../Handlers';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import NpcRequestPacket, { NpcRequestType } from '@jsprismarine/protocol/bedrock/packet/NpcRequestPacket';
 import NpcRequestHandler from './NpcRequestHandler';
 

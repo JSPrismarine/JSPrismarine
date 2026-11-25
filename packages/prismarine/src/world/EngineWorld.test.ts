@@ -18,7 +18,7 @@ import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';

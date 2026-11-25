@@ -23,7 +23,7 @@ import AddActorPacket from '@jsprismarine/protocol/bedrock/packet/AddActorPacket
 import { MobEquipmentPacket } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
@@ -34,7 +34,7 @@ import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
-import type { SessionPresenter, ShownEntityState, ShownEquipment } from './presenter/SessionPresenter';
+import type { SessionPresenter, ShownEntityState, ShownEquipment } from '../player/presenter/SessionPresenter';
 import { equip, setContainerSlot } from '../testing/mobSlots.test-utils';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobArmorEquipmentPacket';
 

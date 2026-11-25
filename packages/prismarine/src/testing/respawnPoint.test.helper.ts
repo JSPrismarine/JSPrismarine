@@ -1,5 +1,5 @@
-import type PlayerSession from '../network/PlayerSession';
-import type { RespawnDestination } from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
+import type { RespawnDestination } from '../player/PlayerSession';
 
 /**
  * Where a player comes back, asked as a trip out of the End asks: again after each turn of the

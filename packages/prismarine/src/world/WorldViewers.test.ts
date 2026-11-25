@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { StorePlayerActor } from '../entity/data/storePlayers';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';

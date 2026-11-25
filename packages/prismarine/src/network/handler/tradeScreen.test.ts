@@ -28,11 +28,11 @@ import { PlayerComponents } from '../../entity/playerComponents';
 import type { World } from '../../world/World';
 import type { StoreActor } from '../../entity/data/storeActors';
 import type { Logger } from '@jsprismarine/logger';
-import type { OpenBlockContainer, OpenTrade, TradeSource } from '../PlayerSession';
+import type { OpenBlockContainer, OpenTrade, TradeSource } from '../../player/PlayerSession';
 import { tradeNetIdOf } from '../tradeOffers';
 import { selectTrade } from './tradeScreen';
 import type { Trader } from './tradeScreen';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, {

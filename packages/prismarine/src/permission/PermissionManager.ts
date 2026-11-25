@@ -8,7 +8,7 @@ import Console from '../Console';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
 import type { PlayerIdentity } from '../playerIdentity';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { ConfigDocument } from '../config/ConfigDocument';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry } from '../config/JsonConfigTypes';

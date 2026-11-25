@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
 import PlayerLocationPacket, {
     PlayerLocationPacketType

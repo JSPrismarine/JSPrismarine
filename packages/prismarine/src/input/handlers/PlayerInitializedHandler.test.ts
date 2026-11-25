@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoreActor } from '../../entity/data/storeActors';
 import type { StorePlayerActor } from '../../entity/data/storePlayers';
 import type { HandlerLog } from '../../network/handler/HandlerContext';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';

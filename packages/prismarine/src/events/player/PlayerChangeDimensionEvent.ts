@@ -1,5 +1,5 @@
-import type PlayerSession from '../../network/PlayerSession';
-import type { Arrival } from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
+import type { Arrival } from '../../player/PlayerSession';
 import type { World } from '../../world/World';
 import PlayerEvent from './PlayerEvent';
 

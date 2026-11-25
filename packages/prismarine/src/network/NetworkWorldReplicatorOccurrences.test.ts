@@ -30,8 +30,8 @@ import PlaySoundHandler from '../input/handlers/PlaySoundHandler';
 import { viewOf } from './decoder/DecodeView';
 import LevelSoundEventDecoder from './decoder/LevelSoundEventDecoder';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
-import type PlayerSession from './PlayerSession';
-import type { SessionPresenter } from './presenter/SessionPresenter';
+import type PlayerSession from '../player/PlayerSession';
+import type { SessionPresenter } from '../player/presenter/SessionPresenter';
 
 /**
  * The occurrences of a sealed tick, sent after it: who receives each, and how many times it is

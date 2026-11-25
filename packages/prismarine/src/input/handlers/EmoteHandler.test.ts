@@ -8,7 +8,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { OccurrenceKinds } from '../../world/changelog/ChangeEntry';
 import type { World } from '../../world/World';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import EmoteHandler from './EmoteHandler';
 
 const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';

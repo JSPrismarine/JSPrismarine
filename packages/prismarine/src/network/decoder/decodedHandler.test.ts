@@ -6,7 +6,7 @@ import { IntentHandlerRegistry } from '../../input/IntentHandlerRegistry';
 import { inputContext, sessionContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { decodedHandler } from './decodedHandler';
 import type { PacketDecoder } from './PacketDecoder';
 

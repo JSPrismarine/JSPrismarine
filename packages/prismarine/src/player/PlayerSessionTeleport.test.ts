@@ -8,7 +8,7 @@ import { sessionFor } from '../testing/playerSession.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import type { ShownActor } from '../world/ShownActor';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import type { SessionPlayer } from './sessionPlayers';
 
 /**

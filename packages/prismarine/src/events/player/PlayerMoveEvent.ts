@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
-import type PlayerSession from '../../network/PlayerSession';
-import type { MoveMode } from '../../network/presenter/SessionPresenter';
+import type PlayerSession from '../../player/PlayerSession';
+import type { MoveMode } from '../../player/presenter/SessionPresenter';
 import PlayerEvent from './PlayerEvent';
 
 /**

@@ -7,7 +7,7 @@ import type Server from '../Server';
 import type { WorldData } from '../config/JsonConfigTypes';
 import type SessionManager from '../SessionManager';
 import type { StoreActor } from '../entity/data/storeActors';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
 import type { Level } from '../world/Level';

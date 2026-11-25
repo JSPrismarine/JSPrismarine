@@ -12,9 +12,9 @@ import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
-import type { TrackableEntity } from '../network/EntityTracker';
-import type PlayerSession from '../network/PlayerSession';
-import type { ShownEntityState, ShownEquipment } from '../network/presenter/SessionPresenter';
+import type { TrackableEntity } from '../player/EntityTracker';
+import type PlayerSession from '../player/PlayerSession';
+import type { ShownEntityState, ShownEquipment } from '../player/presenter/SessionPresenter';
 import type { ViewableEquipment } from '../entity/predicateView';
 import type { StatusEffect } from '../entity/StatusEffect';
 

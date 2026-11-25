@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/bedrock/packet/ServerboundPackSettingChangePacket';
 import ServerboundPackSettingChangeHandler from './ServerboundPackSettingChangeHandler';
 

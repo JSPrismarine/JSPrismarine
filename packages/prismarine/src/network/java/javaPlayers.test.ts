@@ -12,8 +12,8 @@ import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
-import { InputQueue } from '../InputQueue';
-import type PlayerSession from '../PlayerSession';
+import { InputQueue } from '../../input/InputQueue';
+import type PlayerSession from '../../player/PlayerSession';
 import { javaDisconnectReason, javaPlayersOf } from './javaPlayers';
 
 const XUID = '2535400000000001';

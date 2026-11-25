@@ -22,7 +22,7 @@ import type { StorePlayerActor } from '../entity/data/storePlayers';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import type { ContentPosition } from '../content/world/adapter';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { StoreActor } from '../entity/data/storeActors';
 import { explode } from '../entity/Explosion';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';

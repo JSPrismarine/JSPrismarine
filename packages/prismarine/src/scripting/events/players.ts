@@ -9,7 +9,7 @@ import { InputMode } from '@jsprismarine/protocol';
 import type { ScriptEventValue, ScriptGameEvent } from '@jsprismarine/script-host/host/world';
 
 import type { Item } from '../../item/Item';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
 import { gameModeName } from '../levelScriptAccess';

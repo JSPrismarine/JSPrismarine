@@ -13,7 +13,7 @@ import BlockActorDataPacket from '@jsprismarine/protocol/bedrock/packet/BlockAct
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
 /**

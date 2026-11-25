@@ -20,12 +20,12 @@ import type { Generator } from '../world/Generator';
 import type { World } from '../world/World';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import { Position } from '../world/Position';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import type PlayerSession from './PlayerSession';
 import { sessionFor } from '../testing/playerSession.test.helper';
-import Codec2193 from './codec/Codec2193';
-import Codec2225 from './codec/Codec2225';
-import { xxHash64 } from './xxHash64';
+import Codec2193 from '../network/codec/Codec2193';
+import Codec2225 from '../network/codec/Codec2225';
+import { xxHash64 } from '../network/xxHash64';
 import type { SessionPresenter } from './presenter/SessionPresenter';
 
 /**

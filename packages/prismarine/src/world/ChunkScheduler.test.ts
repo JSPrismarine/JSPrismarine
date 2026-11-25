@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import ChunkSender from '../network/ChunkSender';
+import ChunkSender from '../player/ChunkSender';
 import ChunkScheduler from './ChunkScheduler';
 import type { ChunkRecipient } from './ChunkScheduler';
 import { currentTickWaitTracker } from './TickWaits';

@@ -11,8 +11,8 @@ import type { Logger } from '@jsprismarine/logger';
 
 import type { TranslationKey } from '../../chat/ConsoleText';
 import { errorMessage } from '../../utils/errorMessage';
-import type { KeepAlive } from '../KeepAlive';
-import type PlayerSession from '../PlayerSession';
+import type { KeepAlive } from '../../player/KeepAlive';
+import type PlayerSession from '../../player/PlayerSession';
 import type { TcpTransportConnection } from '../transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
 

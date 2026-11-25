@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { ArmorSlot, Gametype } from '@jsprismarine/minecraft';
-import type { MoveMode } from '../network/presenter/SessionPresenter';
+import type { MoveMode } from '../player/presenter/SessionPresenter';
 import { describe, expect, it } from 'vitest';
 
 import HumanInventory from '../inventory/HumanInventory';
@@ -18,7 +18,7 @@ import type { StoreActor } from '../entity/data/storeActors';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { StoredItemStack } from '../inventory/persistence';
 import type { World } from '../world/World';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /** Whoever is holding the item, as the item runtime names one. */
 const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };

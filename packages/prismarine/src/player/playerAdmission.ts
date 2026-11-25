@@ -4,7 +4,7 @@
  * a refusal in its own words.
  */
 import type { PlayerIdentity } from '../playerIdentity';
-import type { LoginServices } from './handler/ConnectionContext';
+import type { LoginServices } from '../network/handler/ConnectionContext';
 
 /** Why a login is turned away. */
 export type LoginRefusal =

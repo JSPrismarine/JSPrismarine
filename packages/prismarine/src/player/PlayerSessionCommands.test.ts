@@ -12,7 +12,7 @@ import type { Config } from '../config/Config';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { canExecute } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
-import type ClientConnection from './ClientConnection';
+import type ClientConnection from '../network/ClientConnection';
 import { sessionFor } from '../testing/playerSession.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';

@@ -12,8 +12,8 @@ import { stub } from '../../testing/stub.test.helper';
 import Chunk from '../../world/chunk/Chunk';
 import type { World } from '../../world/World';
 import type { WorldSystems } from '../../world/WorldSystems';
-import type PlayerSession from '../PlayerSession';
-import type { ShownMessage } from '../presenter/SessionPresenter';
+import type PlayerSession from '../../player/PlayerSession';
+import type { ShownMessage } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownEntityFacts } from '../../world/ShownActor';
 import { javaGameModeOf, JavaPresenter, javaTextOf } from './JavaPresenter';
 

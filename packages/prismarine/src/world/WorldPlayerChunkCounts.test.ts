@@ -3,7 +3,7 @@ import { EntityStore } from '../entity/data/EntityStore';
 import { TickScheduler } from '@jsprismarine/engine-systems';
 import { describe, expect, it, vi } from 'vitest';
 
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';

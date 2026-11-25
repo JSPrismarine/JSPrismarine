@@ -7,7 +7,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { fakeLevel, testWorld } from '../testing/level';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';

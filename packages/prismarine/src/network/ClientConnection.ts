@@ -1,4 +1,4 @@
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
@@ -14,7 +14,7 @@ import type { TransportConnection, TransportName } from './transport/Transport';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/bedrock/packet/NetworkStackLatencyPacket';
 import { englishOf } from '../chat/ConsoleText';
-import { KeepAlive } from './KeepAlive';
+import { KeepAlive } from '../player/KeepAlive';
 
 /**
  * Handles the connection before the player creation itself, very helpful as

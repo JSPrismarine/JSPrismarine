@@ -21,7 +21,7 @@ import { advancementsOf } from './progress';
 import { isRecord } from '../utils/isRecord';
 import type { KeyedPlayerHolder } from '../keyedPlayer';
 import type { JavaEnglish } from './javaEnglish';
-import type { MessageKind } from '../network/presenter/SessionPresenter';
+import type { MessageKind } from '../player/presenter/SessionPresenter';
 
 /** A player who hears an announcement: its session. */
 export interface AnnouncementRecipient {

@@ -29,8 +29,8 @@ import { playerKeyOf } from '../../playerIdentity';
 import { experienceIn } from '../../testing/storePlayer.test.helper';
 import type { World } from '../../world/World';
 import type { Logger } from '@jsprismarine/logger';
-import type { OpenBlockContainer } from '../PlayerSession';
-import type PlayerSession from '../PlayerSession';
+import type { OpenBlockContainer } from '../../player/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, {

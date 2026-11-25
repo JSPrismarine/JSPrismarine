@@ -4,7 +4,7 @@ import type { LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { fakeLevel, TEST_GENERATOR_KIND } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/DimensionType';

@@ -1,4 +1,4 @@
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { PlayerIdentity } from '../../playerIdentity';
 import { Event } from '../Event';
 

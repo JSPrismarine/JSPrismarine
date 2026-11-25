@@ -8,7 +8,7 @@ import type { StorePlayer } from '../../entity/storePlayer';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type ClientConnection from '../ClientConnection';
 import type { SessionPhase } from '../SessionPhase';
 import PlayerSkinPacket from '@jsprismarine/protocol/bedrock/packet/PlayerSkinPacket';

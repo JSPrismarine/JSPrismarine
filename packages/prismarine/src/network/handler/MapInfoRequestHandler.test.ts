@@ -11,7 +11,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type { Level } from '../../world/Level';
 import type { World } from '../../world/World';
 import { newSavedMap } from '../../world/savedMap';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import MapInfoRequestHandler from './MapInfoRequestHandler';
 
 /** The treasure map a shipwreck chest makes, saved under id 4. */

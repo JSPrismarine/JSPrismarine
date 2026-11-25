@@ -9,7 +9,7 @@ import { verifyLogin } from '@jsprismarine/auth/server';
 import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';
 import type { ConnectionContext, ConnectionHandler, LoginIdentity, LoginServices } from './ConnectionContext';
 import { accountOf } from './ConnectionContext';
-import { loginRefusalOf } from '../playerAdmission';
+import { loginRefusalOf } from '../../player/playerAdmission';
 import { englishOf } from '../../chat/ConsoleText';
 import type { HandlerLog } from './HandlerContext';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

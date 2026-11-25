@@ -15,7 +15,7 @@ import type { ConfigPath } from '../config/ConfigDocument';
 import { temporaryPathOf } from '../config/JsonFile';
 import type SessionManager from '../SessionManager';
 import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { PlayerIdentity } from '../playerIdentity';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';

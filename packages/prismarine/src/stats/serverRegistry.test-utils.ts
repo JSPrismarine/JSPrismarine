@@ -1,7 +1,7 @@
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type ClientConnection from '../network/ClientConnection';
-import type PlayerSession from '../network/PlayerSession';
-import type { SessionPlayer } from '../network/sessionPlayers';
+import type PlayerSession from '../player/PlayerSession';
+import type { SessionPlayer } from '../player/sessionPlayers';
 import type { TransportName } from '../network/transport/Transport';
 import { TransportNames } from '../network/transport/Transport';
 import SessionManager from '../SessionManager';

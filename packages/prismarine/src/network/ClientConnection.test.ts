@@ -5,7 +5,7 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import { DisconnectPacket } from '@jsprismarine/protocol';
 import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { TransportConnection } from './transport/Transport';
 

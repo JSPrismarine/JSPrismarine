@@ -6,7 +6,7 @@
  * that world's entities is undone before the dispatcher reports the error
  * ([ADR 0015](../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
  */
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /**
  * Applies one input from a player's session as a unit of the world the player is in. The unit

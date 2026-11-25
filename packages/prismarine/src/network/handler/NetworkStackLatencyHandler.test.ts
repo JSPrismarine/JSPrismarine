@@ -7,7 +7,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/bedrock/packet/NetworkStackLatencyPacket';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import NetworkStackLatencyHandler from './NetworkStackLatencyHandler';
 
 const fakeSession = () => {

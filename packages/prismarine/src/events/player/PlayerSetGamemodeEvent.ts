@@ -1,5 +1,5 @@
 import PlayerEvent from './PlayerEvent';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * Fired as the player's gamemode is changed, before anything is written. Cancellable, and the

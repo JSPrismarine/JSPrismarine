@@ -3,7 +3,7 @@
  */
 import type { ScriptAdminServer } from '@jsprismarine/script-host/host/world';
 
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
 
 /**

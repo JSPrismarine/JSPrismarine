@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import { sameSubject } from '../../identity/Subject';
 import type { HandlerServices } from '../../network/handler/HandlerContext';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed, STEVE } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';

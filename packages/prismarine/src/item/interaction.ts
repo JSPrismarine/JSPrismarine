@@ -56,7 +56,7 @@ import type { SystemBlock } from '../world/WorldSystems';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import type HumanInventory from '../inventory/HumanInventory';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type { EntityBox } from '../entity/data/facts';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { EnchantingPlayer } from '../enchantment/enchantingTable';

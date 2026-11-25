@@ -1,7 +1,7 @@
 import { createRecipeBook } from '@jsprismarine/recipes';
 import type { CookingRecipe, RecipeInput } from '@jsprismarine/recipes';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

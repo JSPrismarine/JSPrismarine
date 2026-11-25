@@ -56,7 +56,7 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { itemViewOf } from '../../entity/data/droppedItems';
 import { propertyOverridePacket } from '../../network/actorProperties';
 import { customMusicPacket } from '../../network/customMusic';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { cameraPresetNames, vanillaAimAssist } from '../../network/cameraJoinPackets';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';

@@ -14,7 +14,7 @@ import { performance } from 'node:perf_hooks';
 
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import ChunkSender from '../src/network/ChunkSender';
+import ChunkSender from '../src/player/ChunkSender';
 import ChunkScheduler from '../src/world/ChunkScheduler';
 import { Dimensions } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';

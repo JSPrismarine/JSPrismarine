@@ -5,7 +5,7 @@
 import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/play';
 
 import type { Intent } from '../../input/Intent';
-import type { ShownContainer } from '../presenter/SessionPresenter';
+import type { ShownContainer } from '../../player/presenter/SessionPresenter';
 import type { EditionTranslation } from './editionTranslation';
 
 /**

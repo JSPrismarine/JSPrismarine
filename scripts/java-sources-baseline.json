@@ -530,7 +530,7 @@
     "packages/prismarine/src/item/Item.ts": {
         "untaggedJavaCitation": 2
     },
-    "packages/prismarine/src/network/PlayerSession.ts": {
+    "packages/prismarine/src/player/PlayerSession.ts": {
         "untaggedJavaCitation": 2
     },
     "packages/prismarine/src/utils/Seed.ts": {

@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { CREATIVE_REACH } from '../../entity/Combat';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * How far from the player a block named in a packet may stand.

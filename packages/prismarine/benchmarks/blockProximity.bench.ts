@@ -28,7 +28,7 @@ import { isInView, toChunk } from '../src/world/Proximity';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
 import { encodePacketsForCodec } from '../src/network/encodePacketBatch';
 import type ClientConnection from '../src/network/ClientConnection';
-import type PlayerSession from '../src/network/PlayerSession';
+import type PlayerSession from '../src/player/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
 import { blockEntry } from '../src/testing/sealedBlocks.test.helper';
 import { percentile } from './percentile';

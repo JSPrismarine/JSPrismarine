@@ -2,8 +2,8 @@ import { Vector3 } from '@jsprismarine/math';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type { Arrival } from '../../network/PlayerSession';
-import type PlayerSession from '../../network/PlayerSession';
+import type { Arrival } from '../../player/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';

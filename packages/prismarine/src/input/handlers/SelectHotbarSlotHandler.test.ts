@@ -6,7 +6,7 @@ import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import { PlayerComponents } from '../../entity/playerComponents';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';

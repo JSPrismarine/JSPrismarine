@@ -10,7 +10,7 @@ import type { World } from '../world/World';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
-import { BedrockPresenter } from './presenter/BedrockPresenter';
+import { BedrockPresenter } from '../network/presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 import type { MovePlayer } from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';

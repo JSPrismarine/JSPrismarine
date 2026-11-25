@@ -9,7 +9,7 @@ import type BanManager from '../ban/BanManager';
 import type { Config, ScriptDebuggerConfig } from '../config/Config';
 import type { LevelScripts } from '../scripting/LevelScripts';
 import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { collectAsyncCommands } from './deferred';

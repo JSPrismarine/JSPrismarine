@@ -15,8 +15,8 @@ import { testWorld } from '../src/testing/level';
 import type { Position as PositionType } from '../src/world/Position';
 import { sessionFor } from '../src/testing/playerSession.test.helper';
 import type ClientConnection from '../src/network/ClientConnection';
-import type PlayerSession from '../src/network/PlayerSession';
-import type { SessionPlayer } from '../src/network/sessionPlayers';
+import type PlayerSession from '../src/player/PlayerSession';
+import type { SessionPlayer } from '../src/player/sessionPlayers';
 
 /** What the world files in its player map: each player's session. */
 type WorldPlayer = PlayerSession;

@@ -2,7 +2,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
-import type { SessionPlayer } from '../network/sessionPlayers';
+import type { SessionPlayer } from '../player/sessionPlayers';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import type { DimensionType } from './DimensionType';

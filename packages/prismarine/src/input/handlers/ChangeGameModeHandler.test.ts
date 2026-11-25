@@ -5,7 +5,7 @@ import type { PermissionManager } from '../../permission/PermissionManager';
 import { canExecute } from '../../permission/PermissionManager';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import ChangeGameModeHandler from './ChangeGameModeHandler';
 
 /**

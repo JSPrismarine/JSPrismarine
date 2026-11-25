@@ -16,7 +16,7 @@ import { addExperiencePoints } from '../../entity/Experience';
 import type { StorePlayer } from '../../entity/storePlayer';
 import { Item } from '../../item/Item';
 import { tradeIndexOf } from '../tradeOffers';
-import type { OpenBlockContainer } from '../PlayerSession';
+import type { OpenBlockContainer } from '../../player/PlayerSession';
 
 /** An offer the player asked for, ready to be spent on and taken. */
 export interface TradeSelection {

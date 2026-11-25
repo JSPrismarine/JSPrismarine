@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type { World } from '../../world/World';
 import PlayerEvent from './PlayerEvent';
 

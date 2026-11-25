@@ -7,7 +7,7 @@ import type SessionManager from './SessionManager';
 import type { Networking } from './modules/network';
 import type { ServerTicker } from './modules/ticker';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
-import type PlayerSession from './network/PlayerSession';
+import type PlayerSession from './player/PlayerSession';
 import type { ScriptHttpInputs } from './scripting/ScriptHttpInputs';
 import type { World } from './world/World';
 import { WorldMessages } from './world/WorldMessages';

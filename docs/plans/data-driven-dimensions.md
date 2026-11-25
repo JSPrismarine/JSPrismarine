@@ -828,7 +828,7 @@ and `/tp` into another dimension lands at the requested position.
 portal note's section 3 order, holds a pending change keyed by loading screen id, drops
 `PlayerAuthInput` until `EndLoadingScreen`, and re-sends `MovePlayer`, attributes and inventory.
 
-**Files.** `packages/prismarine/src/network/PlayerSession.ts` (`beginLoadingScreen` 1404,
+**Files.** `packages/prismarine/src/player/PlayerSession.ts` (`beginLoadingScreen` 1404,
 `endLoadingScreen` 1416, `flushQueuedChunks` 480, `clearChunks`), `packages/prismarine/src/Player.ts`
 (`setWorld` 517 to 566 becomes `return this.getNetworkSession().changeWorld(world, arrival)`),
 `packages/prismarine/src/network/handler/PlayerActionHandler.ts` (`ChangeDimensionAck` at 315),

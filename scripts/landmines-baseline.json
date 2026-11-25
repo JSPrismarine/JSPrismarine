@@ -298,10 +298,10 @@
     "packages/prismarine/src/network/NetworkDispatcher.test.ts": {
         "landmines/no-test-doubles": 1
     },
-    "packages/prismarine/src/network/PlayerSessionKick.test.ts": {
+    "packages/prismarine/src/player/PlayerSessionKick.test.ts": {
         "landmines/no-test-doubles": 3
     },
-    "packages/prismarine/src/network/PlayerSessionPlayer.test.ts": {
+    "packages/prismarine/src/player/PlayerSessionPlayer.test.ts": {
         "landmines/no-test-doubles": 6
     },
     "packages/prismarine/src/network/contentPayloads.test.ts": {

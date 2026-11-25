@@ -43,7 +43,7 @@ import UnlockedRecipesPacket, {
 } from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';

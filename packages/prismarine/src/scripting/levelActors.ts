@@ -6,7 +6,7 @@ import type { ScriptItem } from '@jsprismarine/script-host/host/world';
 
 import type { StoreActor } from '../entity/data/storeActors';
 import { itemFromContent } from '../item/itemFromContent';
-import type PlayerSession from '../network/PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 import type Server from '../Server';
 import type { Item } from '../item/Item';
 import type { Level } from '../world/Level';

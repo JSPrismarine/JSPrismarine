@@ -6,7 +6,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import { latestCodec } from '../codec/CodecRegistry';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import PacketViolationWarningPacket, {
     PacketViolationSeverity,
     PacketViolationType

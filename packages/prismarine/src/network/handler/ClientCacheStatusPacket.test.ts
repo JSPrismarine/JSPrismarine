@@ -7,7 +7,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheStatusPacket';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 
 /**
  * The one-bool packet every client sends after login.

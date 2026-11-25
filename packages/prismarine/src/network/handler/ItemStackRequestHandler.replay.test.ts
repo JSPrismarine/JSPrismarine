@@ -12,7 +12,7 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { serverInputContext } from '../../testing/serverInputContext.test.helper';
 import type { World } from '../../world/World';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';

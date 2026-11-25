@@ -1,7 +1,7 @@
 import { Logger } from '@jsprismarine/logger';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { Server } from '@jsprismarine/prismarine';
-import type PlayerSession from '@jsprismarine/prismarine/network/PlayerSession';
+import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import { PlayerAuthInputData, PlayerAuthInputPacket } from '@jsprismarine/protocol';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

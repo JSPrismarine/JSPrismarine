@@ -10,7 +10,7 @@ import type { InputContext, SessionContext } from './handler/HandlerContext';
 import type { InputLaneHandler, ReadLaneHandler } from './handler/SessionHandler';
 import type { ContextSource } from './handlerContexts';
 import { HandlerContexts } from './handlerContexts';
-import type PlayerSession from './PlayerSession';
+import type PlayerSession from '../player/PlayerSession';
 
 /** A promise the test settles by hand. */
 const deferred = () => {

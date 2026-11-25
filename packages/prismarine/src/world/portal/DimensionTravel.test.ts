@@ -38,7 +38,7 @@ import EntitySerializer from '../../entity/EntitySerializer';
 import { savedActorNbt } from '../../testing/savedActor.test.helper';
 import type ClientConnection from '../../network/ClientConnection';
 import Codec2193 from '../../network/codec/Codec2193';
-import type PlayerSession from '../../network/PlayerSession';
+import type PlayerSession from '../../player/PlayerSession';
 import { connectedSession, sessionsWith } from '../../testing/playerSession.test.helper';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type Server from '../../Server';

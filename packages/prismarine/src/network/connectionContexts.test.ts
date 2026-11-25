@@ -6,7 +6,7 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import { ConnectionContexts } from './connectionContexts';
-import { InputQueue } from './InputQueue';
+import { InputQueue } from '../input/InputQueue';
 import type { TickWaitTracker } from '../world/TickWaits';
 import { trackTickWaits } from '../world/TickWaits';
 import { takesConnection } from './handler/ConnectionContext';
