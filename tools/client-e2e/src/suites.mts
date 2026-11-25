@@ -17,6 +17,7 @@ import { experienceOrbs } from './scenarios/experience-orbs.mts';
 import { itemRestShape } from './scenarios/item-rest-shape.mts';
 import { fallingBlockWater } from './scenarios/falling-block-water.mts';
 import { dripstone } from './scenarios/dripstone.mts';
+import { wallPlacement } from './scenarios/wall-placement.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { chest } from './scenarios/chest.mts';
 import { furnace } from './scenarios/furnace.mts';
@@ -167,6 +168,7 @@ export const suites: ScenarioSuite[] = [
             spawnpointRespawn,
             fallingBlockWater,
             dripstone,
+            wallPlacement,
             // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
             // and a water source stay behind - and nothing should have to play on top of that.
             farmland

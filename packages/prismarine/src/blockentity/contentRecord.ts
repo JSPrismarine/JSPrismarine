@@ -51,6 +51,10 @@ const PAIR_LEAD_TAG = 'pairlead';
  * block, which is what picks the loot table a broken bed or banner rolls.
  */
 export const DYE_INDEX_FIELD = 'dyeIndex';
+
+/** The record field the head family keeps a head's rotation in, and Bedrock's tag for it. */
+const SKULL_ROTATION_FIELD = 'rotation';
+const SKULL_ROTATION_TAG = 'Rotation';
 const DYE_INDEX_TAGS: Readonly<Record<string, { readonly tag: string; readonly width: 'byte' | 'int' }>> = {
     Bed: { tag: 'color', width: 'byte' },
     Banner: { tag: 'Base', width: 'int' }
@@ -240,6 +244,10 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
 
     applyPairToNbt(nbt, fields[PAIRED_WITH_FIELD]);
     applyDyeIndexToNbt(nbt, dyeIndex);
+    // A head's rotation is what the client draws a standing head turned by, in degrees.
+    if (nbt.getString('id', '') === 'Skull' && typeof fields[SKULL_ROTATION_FIELD] === 'number') {
+        nbt.addValue(SKULL_ROTATION_TAG, new Types.FloatVal(fields[SKULL_ROTATION_FIELD]));
+    }
 
     const isPistonArm = nbt.getString('id', '') === 'PistonArm';
     const pistonFields = isPistonArm ? fields : { ...fields, ...(pistonArm === undefined ? {} : { pistonArm }) };

@@ -67,6 +67,13 @@ describe('blockEntityIdFor', () => {
 });
 
 describe('block entity records', () => {
+    it("writes a head's rotation to Bedrock's Rotation tag, which turns the head the client draws", () => {
+        const nbt = blockEntityCompound(null, { x: 1, y: 64, z: 1 }, 'minecraft:skeleton_skull');
+        applyBlockEntityRecord(nbt, { rotation: 270 });
+
+        expect(throughDisk(nbt).getFloat('Rotation', 0)).toBe(270);
+    });
+
     it("keeps a command block's state under Bedrock's own tags, which the client's screen reads", () => {
         const state = {
             command: 'say hi',

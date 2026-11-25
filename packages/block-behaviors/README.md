@@ -149,6 +149,8 @@ tick.
 | `light` | Whether a block state dampens more light than a supplied cutoff |
 | `heldItem` | What the item in the hand is: an axe, shears, honeycomb, an igniter, a bucket, a bottle, silk touch |
 | `placement` | What the clicked face and the click position say: a pillar's axis, a slab's half |
+| `javaPlacement` | Java's `getStateForPlacement` per block class, run over Java's state and mapped back: facings, wall variants, rotations, attach faces and persistent leaves, or a refused placement |
+| `dripstone` | Pointed dripstone's tip direction, column thickness and falling stalactites |
 | `portal` | Java's `PortalShape` frame scan, the end portal frame ring, where a new nether portal goes and what it writes, the End platform, and the piglin spawn roll |
 
 ## Values come from the block
@@ -241,7 +243,7 @@ basalt, deepslate, bone blocks, chains and froglights turn like logs whatever fa
 | `sapling` | <!-- fact:blockBehaviors.blocks.sapling -->11<!-- /fact --> | onBreak, onNeighborChanged, onRandomTick | Advances age_bit on a random tick and grows a tree on the next one. The tree shape is provisional until the feature runtime owns it. |
 | `furnace` | <!-- fact:blockBehaviors.blocks.furnace -->9<!-- /fact --> | onPlace, onBreak, onNeighborChanged, onPlayerInteract, onStepOn | Gives the block its slots, faces the placer, drops its contents on break, extinguishes a campfire that water reaches, and relights one with flint and steel. |
 | `dripstone` | <!-- fact:blockBehaviors.blocks.dripstone -->9<!-- /fact --> | onPlace, onBreak, onNeighborChanged, onRandomTick, onTick, beforeOnPlayerPlace | Points placed dripstone and sulfur spikes away from where the placer looks, joins them into columns, drops a stalactite that lost its support and pops a stalagmite or an amethyst bud without the block it grows from, grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster. |
-| `head` | <!-- fact:blockBehaviors.blocks.head -->7<!-- /fact --> | onPlace, onBreak, onNeighborChanged | Keeps its rotation and profile in a block entity and pops when the block it sits on goes. |
+| `head` | <!-- fact:blockBehaviors.blocks.head -->7<!-- /fact --> | onPlace, onBreak, onNeighborChanged | Turns a standing head toward its placer in its block entity's rotation, keeps its profile there, and pops when the block it sits on goes. |
 | `portal` | <!-- fact:blockBehaviors.blocks.portal -->6<!-- /fact --> | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, and ages fire out. The end gateway is claimed here for a later teleport and has no hook yet. Travel is the server's. |
 | `chemistry` | <!-- fact:blockBehaviors.blocks.chemistry -->5<!-- /fact --> | none | No hooks. The chemistry workbenches open Education Edition screens a vanilla server does not implement. |
 | `ice` | <!-- fact:blockBehaviors.blocks.ice -->5<!-- /fact --> | onBreak, onRandomTick | Melts to water on a random tick above light 12, frosted ice ages through its four stages first, and a silk touch tool takes the block itself instead of leaving water. |
@@ -255,7 +257,7 @@ basalt, deepslate, bone blocks, chains and froglights turn like logs whatever fa
 | `lantern` | <!-- fact:blockBehaviors.blocks.lantern -->11<!-- /fact --> | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract, beforeOnPlayerPlace | Hangs when the placer looks up and a block above holds it, checks the block above when it hangs and the one below when it stands, and waxes, scrapes and oxidizes when it is copper. |
 | `snow` | <!-- fact:blockBehaviors.blocks.snow -->3<!-- /fact --> | onBreak, onNeighborChanged, onRandomTick | Melts on a random tick above light 12, drops one snowball per layer, and pops without support. |
 | `banner` | <!-- fact:blockBehaviors.blocks.banner -->2<!-- /fact --> | onPlace, onBreak, onNeighborChanged | Keeps the base color and patterns in a block entity and pops when its support goes. |
-| `bed` | <!-- fact:blockBehaviors.blocks.bed -->2<!-- /fact --> | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Places the head half, marks occupied_bit while a player sleeps, breaks with its other half, and explodes in the nether and the end. |
+| `bed` | <!-- fact:blockBehaviors.blocks.bed -->2<!-- /fact --> | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Places the head half, marks occupied_bit while a player sleeps, breaks when the half the way it faces is gone, and explodes in the nether and the end. |
 | `cake` | <!-- fact:blockBehaviors.blocks.cake -->1<!-- /fact --> | onNeighborChanged, onPlayerInteract | Takes a bite per use through bite_counter and disappears after the seventh. |
 | `cauldron` | <!-- fact:blockBehaviors.blocks.cauldron -->1<!-- /fact --> | onBreak, onPlayerInteract | Takes a whole bucket or two levels from a bottle, gives back the emptied or filled container, and refuses a bottle against lava or powder snow. |
 | `composter` | <!-- fact:blockBehaviors.blocks.composter -->1<!-- /fact --> | onPlayerInteract | Adds a layer per use and gives back bone meal at the eighth, which is the level Java calls full. |
