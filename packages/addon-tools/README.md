@@ -40,7 +40,7 @@ The pack holds every file in the folder except those whose names start with a do
 An addon with a <!-- fact:addons.tsconfigFile -->`tsconfig.json`<!-- /fact --> writes its scripts
 in TypeScript. The build runs `tsc-ts` on the project first, and a compiler error fails it. The
 project's `outDir` is the folder the manifest's script `entry` is in, usually `scripts/`. The pack
-of such an addon leaves out <!-- fact:addons.sourceEntries -->`package.json`, `tsconfig.json`, `src` and `node_modules`<!-- /fact -->
+of such an addon leaves out <!-- fact:addons.sourceEntries -->`package.json`, `tsconfig.json`, `turbo.json`, `src` and `node_modules`<!-- /fact -->
 and every <!-- fact:addons.sourceMapExtension -->`.map`<!-- /fact --> file, so it holds the
 compiled scripts only. The compiler needs the addon's typings installed, such as
 `@minecraft/server` and `@jsprismarine/script-types`.

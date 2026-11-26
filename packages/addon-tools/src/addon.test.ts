@@ -84,6 +84,14 @@ describe('readAddon', () => {
         expect([...(await readAddon(addon)).files.keys()]).not.toContain('scripts/.eslintrc');
     });
 
+    it('leaves out the build configuration', async () => {
+        const { addon } = await copyHello();
+        await writeFile(path.join(addon, 'tsconfig.json'), '{}');
+        await writeFile(path.join(addon, 'turbo.json'), '{}');
+
+        expect([...(await readAddon(addon)).files.keys()]).not.toContain('turbo.json');
+    });
+
     /** Each way an addon can be wrong, the change that makes it so, and the error it gets. */
     const invalid: [string, (addon: string) => Promise<unknown>, abstract new (...args: never[]) => Error][] = [
         ['has no README', (addon) => rm(path.join(addon, 'README.md')), AddonToolsErrors.MissingAddonFile],

@@ -19,9 +19,15 @@ export const ADDON_TSCONFIG_FILE = 'tsconfig.json';
 
 /**
  * The top-level entries of a TypeScript addon's folder that build its scripts and stay out of its
- * pack: the project, its sources and its dependencies.
+ * pack: the project, its build configuration, its sources and its dependencies.
  */
-export const ADDON_SOURCE_ENTRIES: readonly string[] = ['package.json', ADDON_TSCONFIG_FILE, 'src', 'node_modules'];
+export const ADDON_SOURCE_ENTRIES: readonly string[] = [
+    'package.json',
+    ADDON_TSCONFIG_FILE,
+    'turbo.json',
+    'src',
+    'node_modules'
+];
 
 /** The extension of the source maps a TypeScript addon's build writes, which its pack leaves out. */
 export const ADDON_SOURCE_MAP_EXTENSION = '.map';
