@@ -5,7 +5,7 @@ import type { ConnectionLaneHandler } from '../../../player/context/SessionHandl
 /**
  * The client reporting that its resource packs have loaded.
  *
- * The server offers no packs, so there is nothing to validate and nothing to send back: the
+ * The server has nothing to validate in the packs it sent and nothing to send back: the
  * client carries on to `ResourcePackClientResponsePacket(Completed)` by itself, and
  * `ResourcePackClientResponseHandler` starts the join from there. Recorded at debug level
  * so a join log shows the step happened.

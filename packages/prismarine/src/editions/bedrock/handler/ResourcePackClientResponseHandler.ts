@@ -14,7 +14,9 @@ import FeatureRegistryPacket from '@jsprismarine/protocol/bedrock/packet/Feature
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/bedrock/packet/JigsawStructureDataPacket';
 import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackClientResponsePacket';
+import ResourcePackDataInfoPacket, { PackType } from '@jsprismarine/protocol/bedrock/packet/ResourcePackDataInfoPacket';
 import ResourcePackStackPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackStackPacket';
+import { RESOURCE_PACK_CHUNK_SIZE } from '../../../resourcePacks/ServedResourcePacks';
 import { EditorPackType, ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
 import { customDimensionData } from '../customDimensionData';
@@ -89,12 +91,13 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
      * `playerSpawn`. `Completed` is accepted without a `HaveAllPacks` before it, since the
      * client is the one that knows whether it has the stack.
      *
-     * `Refused` is the player declining the packs and `SendPacks` asks the server to send the
-     * ones in `Downloading Packs`. The server offers no packs, so neither can come from a
-     * client that read `ResourcePacksInfoPacket`. Both end the connection with a resource pack
-     * reason, which is what a vanilla server does for a refusal, instead of leaving the client
-     * on the loading screen until RakNet times it out. Once the server serves packs, `SendPacks`
-     * has to answer with one `ResourcePackDataInfoPacket` per requested id instead.
+     * `Refused` is the player declining packs the server requires, and ends the connection with
+     * a resource pack reason, which is what a vanilla server does, instead of leaving the client
+     * on the loading screen until RakNet times it out. `SendPacks` asks the server to send the
+     * packs in `Downloading Packs`, and gets one `ResourcePackDataInfoPacket` per pack; the
+     * client then asks for each pack's chunks. One the server never offered ends the connection
+     * the same way a refusal does. The stack `HaveAllPacks` gets lists the packs the server
+     * offers, top first.
      *
      * A status outside the four, which `decodePayload` never produces but a caller can set, is
      * logged at debug level and dropped.
@@ -116,16 +119,37 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 step.output(session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM));
                 return;
 
-            case ResourcePackStatus.SendPacks:
-                log.debug(`${name} asked for ${response.packIds.length} resource pack(s); the server offers none`);
-                // As for a refusal.
-                step.output(
-                    session.kick(
-                        'Asked for resource packs this server does not have',
-                        DisconnectReason.RESOURCE_PACK_PROBLEM
-                    )
-                );
+            case ResourcePackStatus.SendPacks: {
+                const packs = response.packIds.map((id) => context.services.resourcePacks.find(id));
+                if (packs.length === 0 || packs.includes(undefined)) {
+                    log.debug(
+                        `${name} asked for resource packs ${response.packIds.join(', ')}, not all of which the server offers`
+                    );
+                    // As for a refusal.
+                    step.output(
+                        session.kick(
+                            'Asked for resource packs this server does not have',
+                            DisconnectReason.RESOURCE_PACK_PROBLEM
+                        )
+                    );
+                    return;
+                }
+                const sends = packs.flatMap((pack, index) => {
+                    if (pack === undefined) return [];
+                    const info = new ResourcePackDataInfoPacket();
+                    // The name the client asked by, which it matches the answer against.
+                    info.resourceName = response.packIds[index]!;
+                    info.chunkSize = RESOURCE_PACK_CHUNK_SIZE;
+                    info.numberOfChunks = pack.chunkCount;
+                    info.fileSize = BigInt(pack.bytes.byteLength);
+                    info.fileHash = pack.sha256;
+                    info.isPremiumPack = false;
+                    info.packType = PackType.Resources;
+                    return [session.getConnection().sendDataPacket(info)];
+                });
+                step.output(allSent(sends));
                 return;
+            }
 
             case ResourcePackStatus.HaveAllPacks: {
                 if (this.joined.has(session)) {
@@ -134,11 +158,12 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 }
 
                 const experiments = session.getWorld().getLevel().getExperiments();
+                const offered = context.services.resourcePacks.offered();
                 step.output(
                     session.getConnection().sendDataPacket(
                         new ResourcePackStackPacket({
-                            texturePackRequired: false,
-                            texturePacks: [],
+                            texturePackRequired: offered.length > 0 && context.config.getTexturepackRequired(),
+                            texturePacks: offered.map(({ uuid, version }) => ({ uuid, version, subPackName: '' })),
                             gameVersion: '*',
                             experiments: experimentToggles(experiments),
                             experimentsAlreadyEnabled: experiments.length > 0,

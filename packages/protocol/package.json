@@ -481,6 +481,16 @@
                 "import": "./dist/bedrock/packet/RequestPermissionsPacket.js",
                 "module": "./dist/bedrock/packet/RequestPermissionsPacket.js"
             },
+            "./bedrock/packet/ResourcePackChunkDataPacket": {
+                "types": "./dist/bedrock/packet/ResourcePackChunkDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePackChunkDataPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePackChunkDataPacket.js"
+            },
+            "./bedrock/packet/ResourcePackDataInfoPacket": {
+                "types": "./dist/bedrock/packet/ResourcePackDataInfoPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePackDataInfoPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePackDataInfoPacket.js"
+            },
             "./bedrock/packet/ResourcePackChunkRequestPacket": {
                 "types": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.d.ts",
                 "import": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.js",
@@ -1422,6 +1432,14 @@
         "./bedrock/packet/RequestPermissionsPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/RequestPermissionsPacket.js",
             "default": "./src/bedrock/packet/RequestPermissionsPacket.ts"
+        },
+        "./bedrock/packet/ResourcePackChunkDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackChunkDataPacket.js",
+            "default": "./src/bedrock/packet/ResourcePackChunkDataPacket.ts"
+        },
+        "./bedrock/packet/ResourcePackDataInfoPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackDataInfoPacket.js",
+            "default": "./src/bedrock/packet/ResourcePackDataInfoPacket.ts"
         },
         "./bedrock/packet/ResourcePackChunkRequestPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.js",

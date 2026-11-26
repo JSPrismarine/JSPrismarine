@@ -64,6 +64,7 @@ import type { StatsProvider } from './stats/StatsProvider';
 import { scriptsModule, startLevelScripts } from './modules/scripts';
 import { AddonManager } from './addons/AddonManager';
 import { PluginRegistry, addonPluginSource } from './plugins/PluginRegistry';
+import { ServedResourcePacks } from './resourcePacks/ServedResourcePacks';
 import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
 import { ScriptSlot } from './scripting/ScriptSlot';
@@ -150,6 +151,7 @@ export default class Server {
     private addons: AddonManager | undefined;
     /** The server's kinds of extension, made on first use; see {@link Server.getPlugins}. */
     private plugins: PluginRegistry | undefined;
+    private resourcePacks: ServedResourcePacks | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
     private contentSettings: ContentSettings | undefined;
 
@@ -480,6 +482,10 @@ export default class Server {
                     // The addons a lock names but `addons/` lacks install first, so the content
                     // build and the scripts load them with the rest of the packs.
                     await this.getAddons().sync({ reload: false });
+                    // Zipped now rather than on the first join, which would wait for it.
+                    this.getResourcePacks()
+                        .packs()
+                        .catch((error: unknown) => this.logger.error(error));
                     const startedAt = startStartupPhase();
                     this.enableContent();
                     finishStartupPhase('content-build', startedAt);
@@ -1121,6 +1127,12 @@ export default class Server {
      */
     public getWorldPackDirectories(): readonly string[] {
         return [...this.getContentSettings().worldPacks, ...this.getAddons().packDirectories()];
+    }
+
+    /** The installed addons' resource packs, as the server sends them to Bedrock clients. */
+    public getResourcePacks(): ServedResourcePacks {
+        this.resourcePacks ??= new ServedResourcePacks(() => this.getAddons().resourcePacks());
+        return this.resourcePacks;
     }
 
     public getWorldManager(): WorldManager {

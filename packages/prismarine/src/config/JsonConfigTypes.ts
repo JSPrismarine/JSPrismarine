@@ -240,6 +240,8 @@ export interface ConfigFile {
     'log-excluded-packets'?: string[];
     /** How many recipes to send: -1 for all, 0 for none, or a cap. @asType integer @minimum -1 */
     'crafting-recipe-limit'?: number;
+    /** Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's `texturepack-required`. */
+    'texturepack-required'?: boolean;
     /** The services the server reports pseudonymous usage statistics to. */
     stats?: StatsConfig;
     /** Whether and how the server checks for a newer JSPrismarine. */
@@ -347,6 +349,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-ticking',
     'log-excluded-packets',
     'crafting-recipe-limit',
+    'texturepack-required',
     'stats',
     'updates',
     'script-watchdog-enable-shutdown',

@@ -132,6 +132,8 @@ const COMMENTS = {
     'enable-server-public-ip-lookup':
         'Whether NetherNet looks up the public address, by asking a few free web services, once a player reaches none of the addresses it offered, and offers it beside them when that player tries again. It never replaces server-public-ip. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.',
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
+    'texturepack-required':
+        "Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's texturepack-required. On, a player who declines them is disconnected. Off, a player may join without them.",
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
@@ -300,6 +302,7 @@ const DEFAULTS = {
     'server-public-ip': '',
     'enable-server-public-ip-lookup': true,
     'enable-lan-visibility': true,
+    'texturepack-required': false,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
@@ -491,6 +494,7 @@ export class Config {
     private serverPublicIp: string = DEFAULTS['server-public-ip'];
     private enableServerPublicIpLookup: boolean = DEFAULTS['enable-server-public-ip-lookup'];
     private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
+    private texturepackRequired: boolean = DEFAULTS['texturepack-required'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
@@ -660,6 +664,7 @@ export class Config {
             DEFAULTS['enable-server-public-ip-lookup']
         );
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
+        this.texturepackRequired = read('texturepack-required', DEFAULTS['texturepack-required']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
@@ -1232,6 +1237,11 @@ export class Config {
     /** Whether the server answers clients looking for games on the local network. */
     public getEnableLanVisibility(): boolean {
         return this.enableLanVisibility;
+    }
+
+    /** Whether a player must take the installed addons' resource packs to join. */
+    public getTexturepackRequired(): boolean {
+        return this.texturepackRequired;
     }
 
     /**

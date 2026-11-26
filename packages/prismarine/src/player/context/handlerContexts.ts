@@ -33,6 +33,7 @@ export type ContextSource = Pick<
     | 'getKernel'
     | 'getScripts'
     | 'getPacketHandlerRegistry'
+    | 'getResourcePacks'
 >;
 
 /**
@@ -90,6 +91,9 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     },
     get intents() {
         return server.getPacketHandlerRegistry().getIntentHandlers();
+    },
+    get resourcePacks() {
+        return server.getResourcePacks();
     },
     scriptForms: {
         // The answer goes to the scripts of the level the player is in, whose form it was.

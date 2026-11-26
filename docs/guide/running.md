@@ -407,7 +407,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->50<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->51<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -457,6 +457,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-ticking`                      | Whether the world ticks. Off is only for tests, which step the ticks by hand with Server.advanceTick. Until one does, nothing a tick runs happens: no chunks go out, so a joining client never spawns.                                                                                                                                           |
 | `log-excluded-packets`                | Packet class names kept out of the traffic log at the silly level.                                                                                                                                                                                                                                                                               |
 | `crafting-recipe-limit`               | How many recipes to send: -1 for all, 0 for none, or a cap.                                                                                                                                                                                                                                                                                      |
+| `texturepack-required`                | Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's texturepack-required. On, a player who declines them is disconnected. Off, a player may join without them.                                                                                                                                |
 | `stats`                               | The services the server reports pseudonymous usage statistics to, one section each.                                                                                                                                                                                                                                                              |
 | `updates`                             | How the server checks for a newer JSPrismarine. A key left out follows the build: enabled (on unless the server runs from a checkout), channel (release, or nightly for a nightly build), source (owner/repo or an https URL) and interval (minutes between checks, 360 by default and at least 60). See https://jsprismarine.dev/guide/updates. |
 | `content-strict`                      | Whether a pack that reports an error stops the server instead of loading short.                                                                                                                                                                                                                                                                  |

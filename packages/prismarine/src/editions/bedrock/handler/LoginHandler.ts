@@ -15,6 +15,7 @@ import type { HandlerLog } from '../../../player/context/HandlerContext';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { PlayerIdentity } from '../../../playerIdentity';
 import { replaceOtherLogins } from '../../../player/replaceOtherLogins';
+import { packIdVersionOf } from '../../../resourcePacks/ServedResourcePacks';
 
 export default class LoginHandler implements ConnectionHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
@@ -256,7 +257,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
     private static async join(
         identity: LoginIdentity,
         account: PlayerIdentity,
-        { connection, login }: ConnectionContext
+        { connection, login, config, log }: ConnectionContext
     ): Promise<void> {
         // Nothing but PlayStatus and ResourcePacksInfo leaves here; the rest waits for
         // `ResourcePackClientResponseHandler`.
@@ -277,15 +278,41 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
 
         await session.sendPlayStatus(PlayStatus.LoginSuccess);
 
-        // Finalize connection handshake
+        // The installed addons' resource packs, which the client downloads now unless it has
+        // them. A build that fails offers none, so the player still joins, unless the packs are
+        // required: joining without them then is what `texturepack-required` forbids.
+        let packs: Awaited<ReturnType<typeof login.resourcePacks.packs>>;
+        try {
+            packs = await login.resourcePacks.packs();
+        } catch (error: unknown) {
+            log.error(error);
+            if (config.getTexturepackRequired()) {
+                await session.kick(
+                    'The server could not prepare the resource packs it requires',
+                    DisconnectReason.RESOURCE_PACK_PROBLEM
+                );
+                return;
+            }
+            packs = [];
+        }
         await connection.sendDataPacket(
             new ResourcePacksInfoPacket({
-                resourcePackRequired: false,
+                resourcePackRequired: packs.length > 0 && config.getTexturepackRequired(),
                 hasAddonPacks: false,
                 hasScripts: false,
                 forceDisableVibrantVisuals: false,
                 worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
-                resourcePackEntries: []
+                resourcePackEntries: packs.map((pack) => ({
+                    id: packIdVersionOf(pack.uuid, pack.version),
+                    sizeBytes: BigInt(pack.bytes.byteLength),
+                    contentKey: '',
+                    subPackName: '',
+                    contentIdentity: '',
+                    hasScripts: false,
+                    isAddonPack: false,
+                    isRayTracingCapable: false,
+                    cdnUrl: ''
+                }))
             }),
             true
         );

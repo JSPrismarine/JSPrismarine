@@ -3,7 +3,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
-import { describe, expect, it, vi } from 'vitest';
+import { assert, describe, expect, it, vi } from 'vitest';
 
 import type { ConsoleSender } from '../../../command/ConsoleSender';
 import type { ServerContent } from '../../../content/ServerContent';
@@ -39,6 +39,9 @@ import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackStackPacket';
+import ResourcePackDataInfoPacket, { PackType } from '@jsprismarine/protocol/bedrock/packet/ResourcePackDataInfoPacket';
+import type { ServedResourcePack } from '../../../resourcePacks/ServedResourcePacks';
+import { RESOURCE_PACK_CHUNK_SIZE } from '../../../resourcePacks/ServedResourcePacks';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
@@ -183,7 +186,8 @@ const harness = ({
             getCraftingRecipeLimit: () => -1,
             getPacketCompressionLevel: () => 1,
             getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking,
-            getKeepAliveIntervalMs: () => 15_000
+            getKeepAliveIntervalMs: () => 15_000,
+            getTexturepackRequired: () => true
         },
         services: {
             content,
@@ -595,9 +599,69 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(sent).toEqual([]);
     });
 
-    it('kicks a player that asks for packs, since the server offers none', async () => {
-        // A `ResourcePackDataInfo` per pack is the answer once the server serves packs. Until
-        // then a client waiting for one would sit on the loading screen until RakNet times out.
+    it("answers a request for packs with each one's data info, named as the client asked", async () => {
+        const { packets, kick, parts, session } = harness();
+        const pack = stub<ServedResourcePack>({
+            chunkCount: 3,
+            bytes: new Uint8Array(RESOURCE_PACK_CHUNK_SIZE * 2 + 1),
+            sha256: Buffer.alloc(32, 7)
+        });
+        const named: string[] = [];
+        const services = {
+            ...parts.services,
+            resourcePacks: {
+                offered: () => [pack],
+                find: (name: string) => {
+                    named.push(name);
+                    return pack;
+                }
+            }
+        };
+
+        await respond(
+            new ResourcePackClientResponseHandler(),
+            response(ResourcePackStatus.SendPacks, ['a_1.0.0']),
+            { ...parts, services },
+            session
+        );
+
+        expect(kick).not.toHaveBeenCalled();
+        expect(named).toEqual(['a_1.0.0']);
+        const [info] = packets;
+        assert(info instanceof ResourcePackDataInfoPacket);
+        expect(info).toMatchObject({
+            resourceName: 'a_1.0.0',
+            chunkSize: RESOURCE_PACK_CHUNK_SIZE,
+            numberOfChunks: 3,
+            fileSize: BigInt(RESOURCE_PACK_CHUNK_SIZE * 2 + 1),
+            fileHash: Buffer.alloc(32, 7),
+            packType: PackType.Resources
+        });
+    });
+
+    it('stacks the packs the server offers, and requires them when texturepack-required is on', async () => {
+        const { packets, parts, session } = harness();
+        const pack = stub<ServedResourcePack>({ uuid: '01020304-0506-0708-090a-0b0c0d0e0f10', version: '1.2.3' });
+        const services = { ...parts.services, resourcePacks: { offered: () => [pack], find: () => pack } };
+
+        await respond(
+            new ResourcePackClientResponseHandler(),
+            response(ResourcePackStatus.HaveAllPacks),
+            { ...parts, services },
+            session
+        );
+
+        const [stack] = packets;
+        assert(stack instanceof ResourcePackStackPacket);
+        expect(stack.getPacketData()).toMatchObject({
+            texturePackRequired: true,
+            texturePacks: [{ uuid: '01020304-0506-0708-090a-0b0c0d0e0f10', version: '1.2.3', subPackName: '' }]
+        });
+    });
+
+    it('kicks a player that asks for packs the server does not offer', async () => {
+        // A client waiting for a pack's data info would sit on the loading screen until RakNet
+        // times out.
         const { sent, kick, debug, parts, session } = harness();
 
         await respond(
@@ -609,7 +673,7 @@ describe('ResourcePackClientResponseHandler', () => {
 
         expect(kick).toHaveBeenCalledOnce();
         expect(kick.mock.calls[0]?.[1]).toBe(DisconnectReason.RESOURCE_PACK_PROBLEM);
-        expect(debug.mock.calls[0]?.[0]).toContain('2 resource pack(s)');
+        expect(debug.mock.calls[0]?.[0]).toContain('a_1.0.0, b_2.0.0');
         expect(sent).toEqual([]);
     });
 
