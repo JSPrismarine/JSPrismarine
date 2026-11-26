@@ -31,6 +31,11 @@ export interface HostInstance {
 export interface ScriptApiContextOptions {
     /** The pack whose scripts the context serves, as BDS's log names it, such as `my pack - 1.0.0`. */
     readonly pack: string;
+    /**
+     * A stable identity for the pack, which two packs with one display name do not share. The
+     * engine's context id serves when the caller has one.
+     */
+    readonly packId?: string;
     readonly implementations: ScriptApiImplementations;
     readonly logger: ScriptApiLogger;
     /** The histories a module's dependencies resolve against. The generated ones when absent. */
@@ -363,6 +368,7 @@ export class ScriptApiContext {
             return implementation({
                 engine: this.engine,
                 pack: this.options.pack,
+                packId: this.options.packId,
                 self,
                 tag,
                 state,

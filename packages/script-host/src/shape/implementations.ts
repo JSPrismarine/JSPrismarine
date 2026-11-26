@@ -10,6 +10,8 @@ export interface ScriptCall {
     readonly engine: ScriptEngine;
     /** The pack whose script made the call, as its binding names it. */
     readonly pack: string;
+    /** The pack's stable identity, distinct even when two packs share a display name. */
+    readonly packId?: string;
     /** The call's `this`: the instance, the class for a static member, or undefined for a module function. */
     readonly self: ScriptValue;
     /** The tag the host gave `self` when it made the instance, or 0. See `ScriptApiContext.create`. */
