@@ -88,6 +88,7 @@ import {
     serializeAddonsFile,
     serializeAddonsLockFile
 } from '../../packages/prismarine/src/addons/addonFiles.ts';
+import { ADDON_ARCHIVE_EXTENSIONS } from '../../packages/prismarine/src/addons/addonSpec.ts';
 import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
 import { CommandPermissionLevel } from '../../packages/minecraft/src/CommandPermissionLevel.ts';
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
@@ -1294,7 +1295,8 @@ async function addonFacts() {
         addons: {
             'tps-bar': { source: DEFAULT_ADDON_SOURCE, version: '^1.0.0' },
             'their-tps-bar': { source: otherSource, name: 'tps-bar', version: '^2.1.0' },
-            'my-addon': { path: '../my-addon' }
+            'my-addon': { path: '../my-addon' },
+            furniture: { path: 'addons/furniture.mcaddon' }
         }
     } satisfies AddonsFile;
     const tpsBar = sampleIndexEntry(DEFAULT_ADDON_SOURCE, 'tps-bar', '1.0.0', serverVersion);
@@ -1316,7 +1318,18 @@ async function addonFacts() {
                 url: theirs.url,
                 sha256: theirs.sha256
             },
-            'my-addon': { path: '../my-addon', name: 'my-addon', version: '0.1.0' }
+            'my-addon': { path: '../my-addon', name: 'my-addon', version: '0.1.0' },
+            furniture: {
+                path: 'addons/furniture.mcaddon',
+                name: 'furniture',
+                version: '1.2.0',
+                sha256: "<the .mcaddon's SHA-256>",
+                packs: [
+                    { folder: 'furniture-bp', type: 'behavior', uuid: '<its header UUID>', version: '1.2.0' },
+                    { folder: 'furniture-rp', type: 'resource', uuid: '<its header UUID>', version: '1.2.0' }
+                ],
+                worlds: [{ member: 'showroom.mcworld', level: "<the level's UUID>" }]
+            }
         }
     } satisfies AddonsLockFile;
     return {
@@ -1342,6 +1355,7 @@ async function addonFacts() {
         'addons.lockfileVersion': inlineCode(String(ADDONS_LOCKFILE_VERSION)),
         'addons.directory': inlineCode(`${ADDONS_DIRECTORY}/`),
         'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE),
+        'addons.archiveExtensions': list(ADDON_ARCHIVE_EXTENSIONS.map(inlineCode), 'or'),
         // Plain, since the docs build also reads it to write each addon's install command.
         'addons.command': command.name,
         'addons.installExample': `${command.name} install <name>`,

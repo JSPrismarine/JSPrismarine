@@ -50,7 +50,7 @@ Each stack member is one of four source kinds:
 | Kind              | What it reads                                                                 |
 | ----------------- | ----------------------------------------------------------------------------- |
 | `directory`       | A loose Bedrock pack folder with `manifest.json` at its root                   |
-| `archive`         | A `.mcpack` (one pack) or `.mcaddon` (several nested `.mcpack` members)        |
+| `archive`         | A `.mcpack` (one pack) or `.mcaddon` (packs as nested `.mcpack` files or folders) |
 | `brarchiveLayers` | A folder of layered pack folders (`vanilla`, `vanilla_1.14`, ...) as BDS ships |
 
 `brarchiveLayers` takes an optional `uuids`, the header UUIDs to keep. BDS ships chemistry, editor

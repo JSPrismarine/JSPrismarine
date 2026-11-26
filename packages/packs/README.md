@@ -120,8 +120,9 @@ is read from the keys beside it rather than from the name.
 
 Behind the interface: manifest validation against the documented schema, a lenient JSON parser
 (comments and trailing commas, which vanilla trade tables use), `format_version` dispatch, a
-brarchive reader, a zip reader for `.mcpack`/`.mcaddon`, and the Bedrock filter grammar as the
-vanilla files write it. That means the string form, the integer `subject`, `operator` and `domain`
+brarchive reader, a zip reader, an archive reader (`@jsprismarine/packs/archive`) that lists the
+packs and worlds of an `.mcpack`, `.mcaddon`, `.mcworld` or `.mctemplate`, and the Bedrock filter
+grammar as the vanilla files write it. That means the string form, the integer `subject`, `operator` and `domain`
 encoding the 1.26 serializer writes, a group map carrying more than one combinator (read as an
 `all_of` over its clauses), a combinator holding one test instead of an array, and the legacy
 shorthand that names the test in the key, as the skeleton's `{"other_with_families": "lightning"}`
