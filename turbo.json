@@ -1,7 +1,15 @@
 {
     "$schema": "https://turborepo.org/schema.json",
     "ui": "stream",
-    "globalDependencies": ["tsconfig.json", "tsconfig.build.json", "package.json", "vite.config.ts", ".env"],
+    "globalDependencies": [
+        "tsconfig.json",
+        "tsconfig.build.json",
+        "package.json",
+        "vite.config.ts",
+        ".env",
+        "scripts/emit-dts.mts",
+        "scripts/declaration-specifiers.mts"
+    ],
     "globalPassThroughEnv": [
         "GITHUB_ACTIONS",
         "GITHUB_ENV",
