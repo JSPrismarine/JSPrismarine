@@ -93,13 +93,13 @@ needs no `/perms` at all and give them the commands directly.
 
 ## Addons
 
-`addon` installs, updates, lists and removes addons, the optional behavior packs JSPrismarine and
-other repositories publish. It runs on the console only, typed on the terminal or sent through the
+`addon` installs, updates, lists and removes addons: the optional behavior packs JSPrismarine and
+other repositories publish, and the resource packs, `.mcaddon` archives and worlds people share. It runs on the console only, typed on the terminal or sent through the
 remote console, so nobody adds code to a server from inside the game.
 
 | Subcommand                                         | What it does                                                         |
 | -------------------------------------------------- | -------------------------------------------------------------------- |
-| `addon list`                                       | Lists each addon, its version and where it came from.                |
+| `addon list`                                       | Lists each addon, its version, where it came from and its packs.     |
 | `addon install <addon> [as <name>]`                | Installs the newest version the addon allows and loads it.           |
 | `addon update [name]`                              | Moves each addon, or the one named, to the newest version in range. |
 | `addon remove <name>`                              | Removes the addon and unloads it.                                    |
@@ -113,18 +113,21 @@ remote console, so nobody adds code to a server from inside the game.
 - Either of those followed by `@` and a range: `tps-bar@^1.0.0` takes any `1.x.x` from `1.0.0` on,
   `@~1.2.0` takes patches of `1.2`, `@1.2.3` takes that version only and `@*` takes any. Without a
   range, the install records `^` and the version it installed.
-- An `https:` URL of an `.mcpack`. No index lists it, so the console says that no hash checked the
+- An `https:` URL of an archive. No index lists it, so the console says that no hash checked the
   download, and the lock records the hash of what was downloaded.
-- A path that starts with `./`, `../` or `/`, or ends in `.mcpack` or `.mcaddon`. A folder is
-  linked rather than copied, so an edit to it shows after `/reload`. An `.mcaddon` installs its
-  behavior pack.
+- A path that starts with `./`, `../` or `/`, or ends in
+  <!-- fact:addons.archiveExtensions -->`.mcpack`, `.mcaddon`, `.mcworld`, `.mctemplate` or `.mcproject`<!-- /fact -->. A folder is
+  linked rather than copied, so an edit to it shows after `/reload`. An archive installs every
+  behavior and resource pack it holds and imports its worlds as detached levels; an `.mcproject`
+  is refused. [What an archive installs](installing-addons.md#what-an-archive-installs) has the
+  details.
 
 Players see what is installed with `/plugins`, or `/pl`, as on Spigot and Paper. It prints the
 count and then the installed addons under an `Addons` heading, each name in green. Like Spigot and
 Paper, every player may run it.
 
-An `.mcaddon` or `.mcpack` you place in the `addons/` folder installs at the next start, `/reload`
-or `addon sync`, as if you had installed its path.
+An archive you place in the `addons/` folder installs at the next start, `/reload` or
+`addon sync`, as if you had installed its path.
 
 The server's folder holds what was asked for and what it resolved to, beside `config.json`:
 <!-- fact:addons.requestFile -->`addons.json`<!-- /fact --> keys each addon by its local name with the source and range

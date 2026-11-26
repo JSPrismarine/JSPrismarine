@@ -7,9 +7,10 @@ category: Guides
 
 # Installing addons
 
-An addon is an optional behavior pack that you install from the server console while the server
-runs. The console's <!-- fact:addons.command -->`addon`<!-- /fact --> command downloads it, checks
-it, and loads its scripts without a restart. Two files beside `config.json` record what you asked
+An addon is optional content that you install from the server console while the server runs: a
+behavior pack, a resource pack, or an archive of several packs and worlds. The console's
+<!-- fact:addons.command -->`addon`<!-- /fact --> command downloads it, checks it, and loads its
+scripts without a restart. Two files beside `config.json` record what you asked
 for and exactly what was installed, so the same addons come back on another machine.
 [Addons](../addons/README.md) lists the ones JSPrismarine publishes.
 
@@ -36,7 +37,7 @@ came from.
 | `someone/their-addons/warps`   | The addon `warps` from the GitHub repository `someone/their-addons`. |
 | `tps-bar@~1.2.0`               | Either of the above, within a version range.                         |
 | `https://example.com/x.mcpack` | A pack at an `https:` URL, which no index lists.                     |
-| `./my-addon`                   | A folder, an `.mcpack` or an `.mcaddon` on the server's machine.     |
+| `./my-addon`                   | A folder or an archive on the server's machine.                      |
 
 A bare name installs from <!-- fact:addons.defaultSource -->`JSPrismarine/JSPrismarine`<!-- /fact -->.
 A name with an owner and a repository installs from that repository's
@@ -70,22 +71,54 @@ that no hash checked the download, and the lock records the hash of what was dow
 on, the server refuses a download from that URL that no longer matches, until `addon update`
 takes the new pack and locks its hash.
 
-A path starts with `./`, `../`, `/` or `~/`, or ends in `.mcpack` or `.mcaddon`. A relative path is relative to
+A path starts with `./`, `../`, `/` or `~/`, or ends in
+<!-- fact:addons.archiveExtensions -->`.mcpack`, `.mcaddon`, `.mcworld`, `.mctemplate` or `.mcproject`<!-- /fact -->. A relative path is relative to
 the folder you started the server from, and the server stores it relative to the server's folder
 when it is inside that folder. A folder installs as a link to it rather than a copy, so an edit to
 its scripts shows after `/reload`. [Writing an addon](writing-addons.md#test-it-on-a-server) uses
 that to test a pack while you write it.
 
-### An `.mcaddon`
+### What an archive installs
 
-An `.mcaddon` holds several packs, each a nested `.mcpack` or a folder with its own
-`manifest.json`. An addon is one behavior pack, so the server installs the one pack that has data
-or script modules and leaves out the rest, such as a resource pack, and the console names what it
-left out. An `.mcaddon` with no behavior pack, or with more than one, does not install.
+The server installs what a Bedrock client would import from the same file:
+
+- An `.mcpack` is one pack. A behavior pack, whose modules are data and script modules, runs on
+  the server. A resource pack, whose modules are resources modules, goes to players as they join.
+  The pack unpacks into `addons/<name>/`.
+- An `.mcaddon` holds several packs and worlds, each a nested `.mcpack`, `.mcworld` or
+  `.mctemplate`, or a folder with its own `manifest.json` or `level.dat`. Every pack installs,
+  into a folder of its own under `addons/<name>/` named after it: `Furniture BP.mcpack` unpacks
+  into `addons/furniture/furniture-bp/`.
+- An `.mcworld` imports as a level, and so does an `.mctemplate`, as a new level made from the
+  template. See [Worlds](#worlds).
+
+The console lists the packs an archive installed. It warns about a skin pack, which players
+import themselves, and about a nested archive it cannot read, and installs the rest. It also
+warns when a pack's manifest depends on a pack that no installed addon holds.
+
+An `.mcproject` is a Minecraft Editor project, which the server does not open. The install fails
+and says so; export the project from the Editor as an `.mcworld` and install that.
+
+### Worlds
+
+A world in an archive imports once, the first time the archive installs. The server writes it
+into a new folder under `worlds/` and records it in `levels.json` as a detached level, named after
+the world's `levelname.txt`, with the seed and the flat or normal generator its `level.dat` names.
+The console prints its name and UUID. Run `world attach <name>` to put it in play;
+[Managing worlds while the server runs](running.md#managing-worlds-while-the-server-runs) covers
+the rest.
+
+`addons.lock.json` records the level each world became, so reinstalling or updating the archive,
+or restoring it on another machine, never imports a second copy. `addon remove` keeps the level:
+the world is yours from then on, and `world detach` takes it out of play.
+
+A world's own behavior and resource packs, the ones its `world_behavior_packs.json` and
+`world_resource_packs.json` turn on, install with the archive's packs. They apply to the whole
+server, since the server builds one set of content at startup for every level.
 
 ### Drop a file into `addons/`
 
-You can also install an `.mcaddon` or `.mcpack` without the console: copy it into the
+You can also install an archive without the console: copy it into the
 <!-- fact:addons.directory -->`addons/`<!-- /fact --> folder and start the server, run `/reload` or
 run `addon sync`. The server creates the folder at startup when it is missing. A file that
 `addons.json` does not name yet joins it as a path, as `addon install ./addons/<file>` would add
@@ -121,6 +154,9 @@ it came from, or its URL or path:
 ```json
 {
     "addons": {
+        "furniture": {
+            "path": "addons/furniture.mcaddon"
+        },
         "my-addon": {
             "path": "../my-addon"
         },
@@ -149,6 +185,32 @@ lockfile version <!-- fact:addons.lockfileVersion -->`1`<!-- /fact -->:
 {
     "lockfileVersion": 1,
     "addons": {
+        "furniture": {
+            "path": "addons/furniture.mcaddon",
+            "name": "furniture",
+            "version": "1.2.0",
+            "sha256": "<the .mcaddon's SHA-256>",
+            "packs": [
+                {
+                    "folder": "furniture-bp",
+                    "type": "behavior",
+                    "uuid": "<its header UUID>",
+                    "version": "1.2.0"
+                },
+                {
+                    "folder": "furniture-rp",
+                    "type": "resource",
+                    "uuid": "<its header UUID>",
+                    "version": "1.2.0"
+                }
+            ],
+            "worlds": [
+                {
+                    "member": "showroom.mcworld",
+                    "level": "<the level's UUID>"
+                }
+            ]
+        },
         "my-addon": {
             "path": "../my-addon",
             "name": "my-addon",
@@ -173,9 +235,16 @@ lockfile version <!-- fact:addons.lockfileVersion -->`1`<!-- /fact -->:
 ```
 <!-- /fact -->
 
-The SHA-256 is the hash of the `.mcpack` file as downloaded or read, not of the unpacked folder. A
-linked folder has no hash, since its files change as you edit them. A path to an `.mcpack` has
-one, like a URL.
+The SHA-256 is the hash of the archive as downloaded or read, not of the unpacked folder. A linked
+folder has no hash, since its files change as you edit them. A path to an archive has one, like a
+URL. An archive's entry also lists its `packs`, each with its folder inside the addon's, its type,
+its header UUID and its version, and the `worlds` it imported, each with the level it became. An
+addon from a source is one behavior pack, so its entry lists neither.
+
+An `.mcaddon` that a server before this one installed got its behavior pack alone. One from a
+URL or a path installs again on the next sync, from the bytes its lock's hash pins, and takes the
+rest of its packs. When those bytes are gone or changed, the sync refuses it as it refuses any
+other download that no longer matches.
 
 Keep both files with the server, in a backup or in version control, as you keep `config.json`.
 The `addons/` folder can be rebuilt from them, except the pack files you placed in it yourself.
@@ -217,8 +286,8 @@ at startup. Run it after you edit `addons.json` by hand.
 
 Before the server loads its packs, it does what `addon sync` does:
 
-- It adds each `.mcaddon` and `.mcpack` in `addons/` that `addons.json` does not name, and takes
-  out an entry whose file in `addons/` is gone.
+- It adds each archive in `addons/` that `addons.json` does not name, and takes out an entry
+  whose file in `addons/` is gone.
 - It removes a locked addon that `addons.json` no longer names.
 - It installs a locked addon whose folder is missing, or holds another version, from the URL in
   the lock, and refuses a download whose SHA-256 is no longer the one locked.
@@ -238,8 +307,9 @@ Installed addons load after the packs in `content-world-packs`, in the order of 
 ## Move a server
 
 To move a server to another machine, or to restore one from a backup, copy `config.json`,
-`addons.json`, `addons.lock.json`, the worlds and any `.mcaddon` or `.mcpack` you placed in
-`addons/`. The rest of the `addons/` folder can stay behind: on its
+`addons.json`, `addons.lock.json`, `levels.json`, the worlds and any archive you placed in
+`addons/`. `levels.json` records the levels an archive imported, which `world attach` looks up
+there. The rest of the `addons/` folder can stay behind: on its
 first start, the server downloads every locked addon again, checks each against the hash in the
 lock, and installs the same versions. A server whose addon is no longer downloadable from its
 locked URL logs that addon as failed and starts without it.
@@ -248,6 +318,17 @@ An addon installed from a path needs that path on the new machine too, since the
 path and nothing to download. A path inside the server's folder is stored relative to it, so it
 moves with the folder. When the path is missing, the server logs the addon as failed and starts
 without it.
+
+## Resource packs
+
+Players download the installed resource packs when they join, and the game asks each player
+whether to take them. Set `texturepack-required` in `config.json` to `true`, as on a Bedrock
+Dedicated Server, to make the packs a condition of joining: the game then downloads them without
+asking, and a player who declines is disconnected.
+
+The packs stack in the order of the local names, and inside an addon in the order of their
+folders, except that a pack goes above the packs it depends on. A player online when a resource
+pack installs gets it the next time they join.
 
 ## When a restart is needed
 
@@ -265,7 +346,7 @@ level 4, behind the permission <!-- fact:addons.commandPermission -->`jsprismari
 It also requires that the console typed it, so a player, an operator, `/execute`, a function and
 a script all fail to run it, whatever their permissions.
 
-An addon runs code on your server. It is a script pack, so that code runs in the script host's
+An addon runs code on your server. Its scripts are a script pack, so that code runs in the script host's
 sandbox with the Script API's reach and nothing more, but it can still change your worlds and talk
 to your players. Keeping the command on the console leaves the choice of what runs with whoever
 runs the server machine. The [command reference](commands.md#addons) lists the subcommands.

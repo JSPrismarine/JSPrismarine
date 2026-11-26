@@ -16,8 +16,16 @@ export interface AddonSpec {
     readonly key?: string;
 }
 
-/** The extensions of the content archives a Bedrock client imports, which the installer takes. */
-const ARCHIVE_EXTENSION = /\.(?:mcpack|mcaddon|mcworld|mctemplate|mcproject)$/i;
+/**
+ * The extensions of the content archives a Bedrock client imports, which the installer takes. The
+ * last, a Minecraft Editor project, it refuses with a reason.
+ */
+export const ADDON_ARCHIVE_EXTENSIONS = ['.mcpack', '.mcaddon', '.mcworld', '.mctemplate', '.mcproject'] as const;
+
+const ARCHIVE_EXTENSION = new RegExp(
+    `(?:${ADDON_ARCHIVE_EXTENSIONS.map((extension) => extension.replace('.', '\\.')).join('|')})$`,
+    'i'
+);
 
 /**
  * Whether a file name is a content archive: an `.mcpack`, an `.mcaddon` of several packs and
