@@ -512,6 +512,34 @@ describe('WorldManager', () => {
         await second.manager.disable();
     });
 
+    it('imports a world as a detached level named after it, which attaches under the UUID it was given', async () => {
+        const { manager } = buildManager('main', { main: entryOf() });
+        await manager.enable();
+        const made = await manager.createLevel('made', entryOf());
+        await manager.detachLevel('made');
+        const files = new Map<string, Uint8Array>();
+        const folder = withCwd('worlds', 'made');
+        for (const entry of fs.readdirSync(folder, { recursive: true, withFileTypes: true })) {
+            if (!entry.isFile()) continue;
+            const at = path.join(entry.parentPath, entry.name);
+            files.set(path.relative(folder, at).split(path.sep).join('/'), fs.readFileSync(at));
+        }
+        files.set('levelname.txt', new TextEncoder().encode('§6My World!'));
+
+        // A world named after a level the config declares takes a number.
+        const clashing = new Map(files).set('levelname.txt', new TextEncoder().encode('main'));
+        expect((await manager.importLevel({ fallbackName: 'adventure', files: clashing })).name).toBe('main-2');
+        const record = await manager.importLevel({ fallbackName: 'adventure', files });
+
+        expect(record).toMatchObject({ name: 'My-World', folder: 'My-World', state: 'detached' });
+        expect(record.id).not.toBe(made.id);
+        expect(fs.existsSync(withCwd('worlds', 'My-World', 'level.dat'))).toBe(true);
+        const attached = await manager.attachLevel('My-World');
+        expect(attached.id).toBe(record.id);
+
+        await manager.disable();
+    });
+
     it('refuses a name that is not one or that a level has, and tells detached levels of one name apart', async () => {
         const { manager } = buildManager('main', { main: entryOf(), other: entryOf() });
         await manager.enable();
