@@ -10,9 +10,9 @@ export abstract class AddonIntegrityError extends JSPrismarineError {
 
 /**
  * `addon install` takes a bare addon name such as `tps-bar`, `<owner>/<repo>/<name>`, either
- * with an optional `@<range>`, an `https:` URL of an `.mcpack`, or a path that starts with
- * `./`, `../` or `/` or ends in `.mcpack` or `.mcaddon`. A range is `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix
- * what the message names.
+ * with an optional `@<range>`, an `https:` URL of an archive, or a path that starts with
+ * `./`, `../` or `/` or ends in `.mcpack`, `.mcaddon`, `.mcworld` or `.mctemplate`. A range is
+ * `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix what the message names.
  */
 class InvalidAddonSpec extends JSPrismarineTypeError {
     public static readonly code = 'PRISMARINE_INVALID_ADDON_SPEC';
@@ -366,16 +366,21 @@ class AddonHashMismatch extends AddonIntegrityError {
 }
 
 /**
- * What was installed is not an addon: it has no `manifest.json` at its root or in a single
- * folder, the manifest is not a behavior pack's, or a file in the archive would land outside
- * the addon's folder. An `.mcaddon` must hold exactly one behavior pack, a pack with a data or
- * script module; split one that holds several into an `.mcaddon` or `.mcpack` each.
+ * What was installed is not content the server installs. An `.mcpack` holds one pack, with
+ * `manifest.json` at its root or in a single folder; an `.mcaddon` holds packs and worlds, each
+ * a nested `.mcpack`, `.mcworld` or `.mctemplate` or a folder of its own; an `.mcworld` or
+ * `.mctemplate` holds a world, with `level.dat` at its root. A pack is a behavior pack, whose
+ * modules are data and script modules, or a resource pack, whose modules are resources
+ * modules. The message names what broke the rule: an archive with none of these, a manifest
+ * that does not read, a pack with another kind of module, an `.mcproject`, or a file in the
+ * archive that would land outside the addon's folder. Fix the archive, or export the world or
+ * the packs again from the game or the Editor.
  */
 class InvalidAddonPack extends AddonIntegrityError {
     public static readonly code = 'PRISMARINE_INVALID_ADDON_PACK';
     public static readonly domain = 'prismarine';
     public static readonly module = 'addon';
-    public static readonly template = '{key} is not a behavior pack: {problem}';
+    public static readonly template = '{key} is not a pack the server installs: {problem}';
     public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-pack';
 
     public override readonly code = 'PRISMARINE_INVALID_ADDON_PACK';
@@ -383,7 +388,7 @@ class InvalidAddonPack extends AddonIntegrityError {
     readonly #params: { readonly key: unknown; readonly problem: unknown } & Readonly<Record<string, unknown>>;
 
     public constructor(params: { readonly key: unknown; readonly problem: unknown }, options?: ErrorOptions) {
-        super(`${String(params?.key)} is not a behavior pack: ${String(params?.problem)}`, options);
+        super(`${String(params?.key)} is not a pack the server installs: ${String(params?.problem)}`, options);
         this.#params = params ?? { key: undefined, problem: undefined };
     }
 

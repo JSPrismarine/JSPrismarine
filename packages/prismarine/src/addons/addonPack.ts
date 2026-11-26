@@ -3,7 +3,7 @@
  * folder under `addons/`.
  */
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { ADDON_MODULE_TYPES, parseAddonMetadata } from '@jsprismarine/addon-tools/addon';
@@ -12,8 +12,7 @@ import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
 import { isJSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 import { parseLenientJson } from '@jsprismarine/packs/lenientJson';
 import { parseManifest } from '@jsprismarine/packs/manifest';
-import type { ZipBudget } from '@jsprismarine/packs/zip';
-import { createZipBudget, readZip } from '@jsprismarine/packs/zip';
+import { readContentArchive } from '@jsprismarine/packs/archive';
 
 import { isHttpsUrl } from './addonFiles';
 import { isRecord } from '../utils/isRecord';
@@ -136,116 +135,218 @@ export const downloadPack = async (
     }
 };
 
-/** A pack archive's files, and what else an `.mcaddon` held beside the behavior pack it installs. */
-export interface UnpackedPack {
-    /** The behavior pack's files, by their path inside the addon. */
-    readonly files: Map<string, Uint8Array>;
-    /** The `.mcaddon`'s other packs, such as its resource pack, by their name in the archive. */
-    readonly skipped: readonly string[];
+/** What a pack is to the server: a behavior pack runs on it, a resource pack goes to clients. */
+export type PackKind = 'behavior' | 'resource';
+
+/** The module types of a resource pack, which the server sends to clients as they join. */
+export const RESOURCE_MODULE_TYPES: readonly string[] = ['resources'];
+
+/** One pack an archive holds, and the folder under the addon's it unpacks into. */
+export interface ArchivePack {
+    /** Where it sat in the archive, such as `resources.mcpack` or `BP/`, for the console. */
+    readonly member: string;
+    /** Its folder inside the addon's, or `.` when the archive is this one pack. */
+    readonly folder: string;
+    readonly files: ReadonlyMap<string, Uint8Array>;
 }
 
+/** One world an archive holds: an `.mcworld`, or an `.mctemplate`'s world. */
+export interface ArchiveWorld {
+    /** Where it sat in the archive, such as `map.mcworld`, or an empty string for the archive itself. */
+    readonly member: string;
+    /** Whether it is a world template, whose manifest has a `world_template` module. */
+    readonly template: boolean;
+    readonly files: ReadonlyMap<string, Uint8Array>;
+}
+
+/** Something in an archive the server does not install, and why. */
+export interface SkippedMember {
+    readonly member: string;
+    readonly reason: string;
+}
+
+/** What an archive installs. */
+export interface UnpackedArchive {
+    /** Every pack, in archive order, the packs of each world after the world's other members. */
+    readonly packs: readonly ArchivePack[];
+    readonly worlds: readonly ArchiveWorld[];
+    readonly skipped: readonly SkippedMember[];
+}
+
+/** A file name's extension that makes it a Minecraft Editor project. */
+const EDITOR_PROJECT = /\.mcproject$/i;
+
 /**
- * The files of an `.mcpack`, by their path inside the addon. A pack zipped with its folder, so
- * that `manifest.json` sits under one top-level folder, is read from inside that folder.
+ * Refuses a Minecraft Editor project, which is a world the Editor opens. The server is no editor,
+ * and a project exported from the Editor as an `.mcworld` installs.
  *
- * An `.mcaddon` holds several packs, each a nested `.mcpack` or a top-level folder with its own
- * `manifest.json`. An addon is one behavior pack, so the one pack with a data or script module
- * installs and the rest, such as a resource pack, are listed as skipped.
- *
- * @throws {PrismarineAddonErrors.InvalidAddonPack} When the archive does not read, has no
- * manifest, holds no behavior pack or more than one, or names a path that would land outside the
- * addon's folder.
+ * @param name - The file name or URL path the archive came from.
+ * @throws {PrismarineAddonErrors.InvalidAddonPack} When it names an `.mcproject`.
  */
-export const unpackPack = (key: string, bytes: Uint8Array): UnpackedPack => {
-    const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonPack({ key, problem });
-    // One budget for the archive and every pack nested in it, so nesting cannot multiply it.
-    const budget = createZipBudget();
-    const entries = readPackZip(key, bytes, budget);
-    const single = packRootOf(entries);
-    if (single !== undefined) return { files: single, skipped: [] };
-
-    const packs = new Map<string, Map<string, Uint8Array>>();
-    for (const [name, data] of entries) {
-        if (name.includes('/') || !/\.mcpack$/i.test(name)) continue;
-        const nested = packRootOf(readPackZip(key, data, budget));
-        if (nested !== undefined) packs.set(name, nested);
-    }
-    for (const root of new Set([...entries.keys()].filter((name) => name.includes('/')).map(rootOf))) {
-        if (entries.has(`${root}/manifest.json`)) packs.set(`${root}/`, inside(entries, root));
-    }
-    if (packs.size === 0) throw fail('it has no manifest.json');
-
-    const behavior = [...packs].filter(([, files]) => isBehaviorPack(files));
-    const [chosen] = behavior;
-    if (chosen === undefined) throw fail('its packs hold no data or script module');
-    if (behavior.length > 1)
-        throw fail(
-            `it holds ${behavior.length} behavior packs, ${behavior.map(([name]) => name).join(', ')}, and an addon is one`
-        );
-    return {
-        files: chosen[1],
-        skipped: [...packs.keys()].filter((name) => name !== chosen[0]).sort()
-    };
+export const refuseEditorProject = (key: string, name: string): void => {
+    if (EDITOR_PROJECT.test(name))
+        throw new PrismarineAddonErrors.InvalidAddonPack({
+            key,
+            problem: `${name} is a Minecraft Editor project, which the server does not open; export it from the Editor as an .mcworld and install that`
+        });
 };
 
-/** The first segment of a path in an archive. */
-const rootOf = (name: string): string => name.split('/')[0]!;
+/** A folder name made from an archive member's name: `Furniture BP.mcpack` is `furniture-bp`. */
+const folderNameOf = (member: string): string =>
+    member
+        .replace(/\/$/, '')
+        .replace(/\.(?:mcpack|mcworld|mctemplate)$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'pack';
 
-/** The entries under one top-level folder, with that folder taken off their paths. */
-const inside = (entries: ReadonlyMap<string, Uint8Array>, root: string): Map<string, Uint8Array> =>
-    new Map(
-        [...entries]
-            .filter(([name]) => name.startsWith(`${root}/`))
-            .map(([name, data]) => [name.slice(root.length + 1), data])
-    );
-
-/**
- * One pack's files: the archive itself when `manifest.json` is at its root, or the inside of its
- * only top-level folder when the manifest is there. Undefined for anything else, such as an
- * `.mcaddon`.
- */
-const packRootOf = (entries: Map<string, Uint8Array>): Map<string, Uint8Array> | undefined => {
-    if (entries.has('manifest.json')) return entries;
-    const roots = new Set([...entries.keys()].map(rootOf));
-    const [root] = roots;
-    if (roots.size !== 1 || !entries.has(`${root}/manifest.json`)) return undefined;
-    return inside(entries, root!);
-};
-
-/**
- * Whether a pack's manifest lists a data or script module, as a behavior pack's does. A manifest
- * that does not read counts as no behavior pack here; the pack chosen is checked in full later.
- */
-const isBehaviorPack = (files: ReadonlyMap<string, Uint8Array>): boolean => {
+/** The manifest a set of files holds, read leniently, or undefined when there is none that reads. */
+const manifestOf = (files: ReadonlyMap<string, Uint8Array>): Record<string, unknown> | undefined => {
     const bytes = files.get('manifest.json');
-    if (bytes === undefined) return false;
-    let manifest: unknown;
+    if (bytes === undefined) return undefined;
     try {
-        manifest = parseLenientJson(new TextDecoder().decode(bytes));
+        const manifest = parseLenientJson(new TextDecoder().decode(bytes));
+        return isRecord(manifest) ? manifest : undefined;
     } catch {
-        return false;
+        return undefined;
     }
-    if (!isRecord(manifest) || !Array.isArray(manifest.modules)) return false;
-    return manifest.modules.some(
-        (module: unknown) =>
-            isRecord(module) && typeof module.type === 'string' && ADDON_MODULE_TYPES.includes(module.type)
+};
+
+/** The module types a manifest lists. */
+const moduleTypesOf = (manifest: Record<string, unknown> | undefined): string[] =>
+    manifest !== undefined && Array.isArray(manifest.modules)
+        ? manifest.modules.flatMap((module: unknown) =>
+              isRecord(module) && typeof module.type === 'string' ? [module.type] : []
+          )
+        : [];
+
+/** The header UUIDs a world's `world_behavior_packs.json` or `world_resource_packs.json` turns on. */
+const worldPackIds = (files: ReadonlyMap<string, Uint8Array>, name: string): Set<string> | undefined => {
+    const bytes = files.get(name);
+    if (bytes === undefined) return undefined;
+    let value: unknown;
+    try {
+        value = parseLenientJson(new TextDecoder().decode(bytes));
+    } catch {
+        return new Set();
+    }
+    if (!Array.isArray(value)) return new Set();
+    return new Set(
+        value.flatMap((entry: unknown) =>
+            isRecord(entry) && typeof entry.pack_id === 'string' ? [entry.pack_id.toLowerCase()] : []
+        )
     );
 };
 
 /**
- * Reads a pack archive and checks every name in it.
- * @throws {PrismarineAddonErrors.InvalidAddonPack} When the archive does not read or a name is unsafe.
+ * The packs a world carries in `behavior_packs/` and `resource_packs/`. A world lists the packs it
+ * turns on in `world_behavior_packs.json` and `world_resource_packs.json`, so a pack those files do
+ * not name stays out; a world without the file turns on every pack in the folder.
  */
-const readPackZip = (key: string, bytes: Uint8Array, budget: ZipBudget): Map<string, Uint8Array> => {
+const packsOfWorld = (world: ReadonlyMap<string, Uint8Array>): { member: string; files: Map<string, Uint8Array> }[] => {
+    const packs: { member: string; files: Map<string, Uint8Array> }[] = [];
+    for (const [folder, list] of [
+        ['behavior_packs', 'world_behavior_packs.json'],
+        ['resource_packs', 'world_resource_packs.json']
+    ] as const) {
+        const enabled = worldPackIds(world, list);
+        const roots = new Set(
+            [...world.keys()]
+                .filter((name) => name.startsWith(`${folder}/`) && name.split('/').length > 2)
+                .map((name) => name.split('/')[1]!)
+        );
+        for (const root of [...roots].sort()) {
+            const prefix = `${folder}/${root}/`;
+            const files = new Map(
+                [...world]
+                    .filter(([name]) => name.startsWith(prefix))
+                    .map(([name, data]) => [name.slice(prefix.length), data])
+            );
+            const manifest = manifestOf(files);
+            if (manifest === undefined) continue;
+            const uuid = isRecord(manifest.header) ? manifest.header.uuid : undefined;
+            if (enabled !== undefined && !(typeof uuid === 'string' && enabled.has(uuid.toLowerCase()))) continue;
+            packs.push({ member: prefix, files });
+        }
+    }
+    return packs;
+};
+
+/**
+ * What a content archive installs, read with `readContentArchive` so the content build and the
+ * installer agree on what an archive holds.
+ *
+ * An `.mcpack` is one pack, which unpacks into the addon's folder itself. An `.mcaddon` holds
+ * several packs and worlds; each pack unpacks into a folder of its own under the addon's, named
+ * after its name in the archive, and each world is listed to import. A world's own packs, those
+ * its `world_behavior_packs.json` and `world_resource_packs.json` turn on, install beside the
+ * archive's. A skin pack, a pack with other modules, or a nested archive that does not read is
+ * listed as skipped.
+ *
+ * @throws {PrismarineAddonErrors.InvalidAddonPack} When the archive does not read, holds no pack
+ * and no world, or names a path that would land outside the addon's folder.
+ */
+export const unpackArchive = (key: string, bytes: Uint8Array): UnpackedArchive => {
     const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonPack({ key, problem });
-    let entries: Map<string, Uint8Array>;
+    let archive: ReturnType<typeof readContentArchive>;
     try {
-        entries = readZip(bytes, { budget });
+        archive = readContentArchive(bytes, { check: (entries) => checkNames(key, entries) });
     } catch (cause) {
-        if (isJSPrismarineError(cause))
+        if (isJSPrismarineError(cause) && !(cause instanceof PrismarineAddonErrors.InvalidAddonPack))
             throw new PrismarineAddonErrors.InvalidAddonPack({ key, problem: cause.message }, { cause });
         throw cause;
     }
+
+    const skipped: SkippedMember[] = archive.problems.map(({ name, message }) => ({ member: name, reason: message }));
+    const found: { member: string; files: Map<string, Uint8Array> }[] = [];
+    const worlds: ArchiveWorld[] = [];
+    for (const { name, kind, files } of archive.members) {
+        if (kind === 'world') {
+            worlds.push({
+                member: name,
+                template: moduleTypesOf(manifestOf(files)).includes('world_template'),
+                files
+            });
+            found.push(...packsOfWorld(files).map((pack) => ({ ...pack, member: `${name}${pack.member}` })));
+            continue;
+        }
+        const types = moduleTypesOf(manifestOf(files));
+        if (types.includes('skin_pack')) {
+            skipped.push({ member: name, reason: 'it is a skin pack, which players import themselves' });
+            continue;
+        }
+        found.push({ member: name, files });
+    }
+    if (found.length === 0 && worlds.length === 0)
+        throw fail(
+            archive.problems.length > 0
+                ? archive.problems.map(({ message }) => message).join('; ')
+                : skipped.length > 0
+                  ? skipped.map(({ member, reason }) => `${member}: ${reason}`).join('; ')
+                  : 'it has no manifest.json or level.dat'
+        );
+
+    // A lone pack is the addon's folder, as every addon installed before an archive could hold
+    // more than one was; anything more gives each pack a folder of its own.
+    const single = found.length === 1 && worlds.length === 0 && found[0]!.member === '';
+    const taken = new Set<string>();
+    const packs = found.map(({ member, files }) => {
+        if (single) return { member, folder: '.', files };
+        const base = folderNameOf(member.split('/').filter(Boolean).at(-1) ?? member);
+        let folder = base;
+        for (let n = 2; taken.has(folder); n++) folder = `${base}-${n}`;
+        taken.add(folder);
+        return { member: member || 'the archive', folder, files };
+    });
+    return { packs, worlds, skipped };
+};
+
+/**
+ * Checks every name in an archive's entries.
+ * @throws {PrismarineAddonErrors.InvalidAddonPack} When a name is unsafe.
+ */
+const checkNames = (key: string, entries: ReadonlyMap<string, Uint8Array>): void => {
+    const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonPack({ key, problem });
     // Each name must have one spelling on disk: no `.` or empty segment, so `./manifest.json`
     // cannot overwrite the `manifest.json` that was checked, and no two names that differ only in
     // case, which are one file on Windows and macOS.
@@ -259,27 +360,40 @@ const readPackZip = (key: string, bytes: Uint8Array, budget: ZipBudget): Map<str
         if (seen.has(folded)) throw fail(`${name} names a file another entry already names`);
         seen.add(folded);
     }
-    return entries;
 };
+
+/** A pack this one needs, by its header UUID, as its manifest's `dependencies` list it. */
+export interface PackDependency {
+    readonly uuid: string;
+    readonly version: string;
+}
 
 /** What an installer reads off a pack before it trusts it. */
 export interface PackSummary {
+    readonly kind: PackKind;
+    /** The manifest header's name, for the console. */
+    readonly name: string;
+    /** The manifest header's UUID, in lowercase. */
+    readonly uuid: string;
     /** The manifest header's version, `major.minor.patch`. */
     readonly version: string;
     /** What `addon.json` says the addon needs, when the pack has one. */
     readonly minServer?: string;
     /** The pack's top-level entries that only load at startup, such as `entities`, in name order. */
     readonly needsRestart: readonly string[];
+    /** The other packs it needs. */
+    readonly dependencies: readonly PackDependency[];
 }
 
 /**
- * Checks a pack is a behavior pack and reads its version, its `minServer` and what in it needs a
- * restart.
+ * Checks a pack is a behavior or a resource pack and reads its identity, its `minServer` and what
+ * in it needs a restart.
  *
  * @param key - The addon's local name, for the error messages.
  * @param file - Reads one file at the pack's root, or undefined when it has none.
  * @param topLevel - The names at the pack's root.
- * @throws {PrismarineAddonErrors.InvalidAddonPack} When the manifest is missing or not a behavior pack's.
+ * @throws {PrismarineAddonErrors.InvalidAddonPack} When the manifest is missing, does not read, or
+ *   lists modules of neither kind or of both.
  * @throws {InvalidAddonError} `InvalidAddonJson` when the pack has an `addon.json` that breaks its format.
  */
 const summarize = (
@@ -301,8 +415,16 @@ const summarize = (
     }
     const { manifest, diagnostics } = parseManifest(value, key);
     if (!manifest) throw fail(diagnostics.map(({ message }) => message).join('; '));
-    const other = manifest.modules.find(({ type }) => !ADDON_MODULE_TYPES.includes(type));
-    if (other) throw fail(`it has a ${other.type} module, and an addon has data and script modules only`);
+    const name = manifest.header.name;
+    const kind: PackKind | undefined = manifest.modules.every(({ type }) => ADDON_MODULE_TYPES.includes(type))
+        ? 'behavior'
+        : manifest.modules.every(({ type }) => RESOURCE_MODULE_TYPES.includes(type))
+          ? 'resource'
+          : undefined;
+    if (kind === undefined)
+        throw fail(
+            `${name} has ${manifest.modules.map(({ type }) => type).join(', ')} modules, and a pack has data and script modules, or resources modules`
+        );
     // The script host reads a script pack's manifest with JSON.parse, which has no comments or
     // trailing commas, so a manifest that only the lenient reader accepts would install and then
     // fail to load.
@@ -318,14 +440,23 @@ const summarize = (
     }
     // parseManifest reads a bare number such as 1.2 as [1.2, 0, 0], which no lock accepts.
     const version = manifest.header.version.join('.');
-    if (!isAddonVersion(version)) throw fail(`its header's version, ${version}, is not three whole numbers`);
+    if (!isAddonVersion(version)) throw fail(`${name}'s header version, ${version}, is not three whole numbers`);
 
-    const metadata = file('addon.json');
-    const needsRestart = topLevel.filter((name) => !LOADS_WITHOUT_RESTART.test(name)).sort();
+    // A resource pack's files all reach a client, which reads them when it joins.
+    const metadata = kind === 'behavior' ? file('addon.json') : undefined;
+    const needsRestart =
+        kind === 'behavior' ? topLevel.filter((entry) => !LOADS_WITHOUT_RESTART.test(entry)).sort() : [];
     return {
+        kind,
+        name,
+        uuid: manifest.header.uuid.toLowerCase(),
         version,
         ...(metadata === undefined ? {} : { minServer: parseAddonMetadata(key, metadata).minServer }),
-        needsRestart
+        needsRestart,
+        dependencies: manifest.dependencies.map((dependency) => ({
+            uuid: dependency.uuid.toLowerCase(),
+            version: dependency.version.join('.')
+        }))
     };
 };
 
@@ -345,6 +476,40 @@ export const summarizeFolder = async (key: string, directory: string): Promise<P
         (name) => (name === 'manifest.json' ? manifest : name === 'addon.json' ? metadata : undefined),
         topLevel
     );
+};
+
+/** One pack in an installed addon's folder. */
+export interface InstalledPack {
+    /** Its folder inside the addon's, or `.` when the addon's folder is the pack. */
+    readonly folder: string;
+    /** Its folder on disk. */
+    readonly directory: string;
+    readonly summary: PackSummary;
+}
+
+/**
+ * The packs an addon's folder holds: the folder itself when it has a `manifest.json`, or each
+ * folder inside it that has one, in name order. A pack that does not read is left out.
+ */
+export const readInstalledPacks = async (key: string, directory: string): Promise<InstalledPack[]> => {
+    const entries = await readdir(directory, { withFileTypes: true }).catch(() => undefined);
+    if (entries === undefined) return [];
+    const tryRead = async (folder: string, at: string): Promise<InstalledPack[]> => {
+        try {
+            return [{ folder, directory: at, summary: await summarizeFolder(key, at) }];
+        } catch {
+            return [];
+        }
+    };
+    if (entries.some((entry) => entry.name === 'manifest.json')) return tryRead('.', directory);
+    const packs: InstalledPack[] = [];
+    for (const entry of entries
+        .filter((each) => !each.name.startsWith('.'))
+        .sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        const at = path.join(directory, entry.name);
+        if ((await stat(at).catch(() => undefined))?.isDirectory()) packs.push(...(await tryRead(entry.name, at)));
+    }
+    return packs;
 };
 
 /**
