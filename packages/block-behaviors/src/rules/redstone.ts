@@ -8,7 +8,7 @@
 import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 
-import { offset } from '../geometry';
+import { HORIZONTAL_FACES, offset } from '../geometry';
 import { bareName, stateNumber } from '../state';
 import type { WorldActions } from '../world';
 
@@ -37,25 +37,54 @@ export const incomingPower = (world: WorldActions, position: BlockPosition): num
 /** Whether any power reaches a position. */
 export const isPowered = (world: WorldActions, position: BlockPosition): boolean => incomingPower(world, position) > 0;
 
+const REDSTONE_WIRE = 'redstone_wire';
+
+/** A wire's own signal, or nothing for any other block. */
+const wireStrengthAt = (world: WorldActions, position: BlockPosition): number => {
+    const block = world.getBlock(position);
+    return block !== undefined && bareName(block.identifier) === REDSTONE_WIRE
+        ? stateNumber(block, 'redstone_signal')
+        : 0;
+};
+
 /**
- * The signal a wire takes from its surroundings.
+ * The strongest wire a wire connects to, less one.
  *
- * A wire one block from a source carries one less than the source, so a run
- * fades over fifteen blocks. A neighboring wire contributes its own signal
- * minus one; a power source contributes its full strength.
+ * A wire reaches the wires beside it, the wire on top of a conductor beside it unless a conductor
+ * sits on top of it and cuts that step off, and the wire below a block beside it that does not
+ * conduct.
+ *
+ * @javaSource RedstoneWireEvaluator.getIncomingWireSignal
+ */
+const incomingWireSignal = (world: WorldActions, position: BlockPosition): number => {
+    const conducts = (at: BlockPosition): boolean => world.redstoneConductor?.(at) ?? false;
+    const coveredAbove = conducts(offset(position, 'up'));
+    let signal = 0;
+    for (const face of HORIZONTAL_FACES) {
+        const side = offset(position, face);
+        signal = Math.max(signal, wireStrengthAt(world, side));
+        if (conducts(side)) {
+            if (!coveredAbove) signal = Math.max(signal, wireStrengthAt(world, offset(side, 'up')));
+        } else {
+            signal = Math.max(signal, wireStrengthAt(world, offset(side, 'down')));
+        }
+    }
+    return Math.max(0, signal - 1);
+};
+
+/**
+ * The signal a wire takes from its surroundings: the power other blocks give it, or the strongest
+ * wire it connects to less one, whichever is more, so a run fades over fifteen blocks.
+ *
+ * The block power leaves every wire out ({@link WorldActions.redstonePowerToWire}). Counting a
+ * wire there at its full strength would let two wires keep each other lit after their source went.
+ *
+ * @javaSource DefaultRedstoneWireEvaluator.calculateTargetStrength
  */
 export const wireSignal = (world: WorldActions, block: HookBlock): number => {
-    let signal = world.redstonePower(block.position);
-    for (const face of BLOCK_FACES) {
-        const position = offset(block.position, face);
-        const neighbor = world.getBlock(position);
-        if (neighbor !== undefined && bareName(neighbor.identifier) === 'redstone_wire') {
-            signal = Math.max(signal, stateNumber(neighbor, 'redstone_signal') - 1);
-            continue;
-        }
-        signal = Math.max(signal, world.redstonePower(position) - 1);
-    }
-    return Math.min(Math.max(signal, 0), MAX_POWER);
+    const blockSignal = world.redstonePowerToWire?.(block.position) ?? world.redstonePower(block.position);
+    if (blockSignal >= MAX_POWER) return MAX_POWER;
+    return Math.max(blockSignal, incomingWireSignal(world, block.position));
 };
 
 /**
