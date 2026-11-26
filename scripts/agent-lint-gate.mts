@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 /** Matches `git commit`, including `git -C dir commit`. */
-const GATED_GIT_COMMAND = /\bgit\s+(?:-\S+\s+(?:\S+\s+)?)*commit\b/;
+const GATED_GIT_COMMAND = /\bgit\s+(?:-\S+\s+(?:[^\s-]\S*\s+)?)*commit\b/;
 
 /** Lines of lint output handed back to the agent. */
 const OUTPUT_TAIL_LINES = 60;
