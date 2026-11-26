@@ -42,6 +42,7 @@ import { parseShard, shardSuites, weightByTimes } from './shard.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import type { ScenarioSuite } from './suites.mts';
 import { suites } from './suites.mts';
+import { runQueued } from './suite-queue.mts';
 import { applySkips, describeSkip, skipProblems } from './skips.mts';
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
@@ -385,11 +386,15 @@ const clientLeftTheWorld = async (client: CinnabarClient): Promise<boolean> => {
     }
 };
 
+/** Whether a suite plays on the noise-generated world, whose server takes the runner's spare cores. */
+const playsNoiseWorld = (suite: ScenarioSuite): boolean =>
+    suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true);
+
 const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioResult[]> => {
     let server: Awaited<ReturnType<typeof startServer>> | undefined;
     let client: CinnabarClient | undefined;
     const results: ScenarioResult[] = [];
-    const worldgenSuite = suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true);
+    const worldgenSuite = playsNoiseWorld(suite);
 
     try {
         server = await startServer({
@@ -714,24 +719,19 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
  */
 const suiteSeconds = new Map<string, number>();
 
-/** Runs suites `concurrency` at a time. `firstIndex` numbers their server logs after earlier runs'. */
+/**
+ * Runs suites `concurrency` at a time, one noise-world suite at most. `firstIndex` numbers their
+ * server logs after earlier runs'.
+ */
 const runSuites = async (toRun: readonly ScenarioSuite[], firstIndex: number): Promise<ScenarioResult[]> => {
-    const resultsBySuite: Array<ScenarioResult[] | undefined> = new Array(toRun.length);
-    let nextSuiteIndex = 0;
-    const worker = async (): Promise<void> => {
-        for (;;) {
-            const index = nextSuiteIndex;
-            nextSuiteIndex += 1;
-            const suite = toRun[index];
-            if (!suite) return;
-            const started = performance.now();
-            resultsBySuite[index] = await runSuite(suite, firstIndex + index);
-            // The first run of a suite only: a retry plays a suite's failed scenarios alone.
-            if (!suiteSeconds.has(suite.name)) suiteSeconds.set(suite.name, (performance.now() - started) / 1000);
-        }
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, toRun.length) }, worker));
-    return resultsBySuite.flatMap((suiteResults) => suiteResults ?? []);
+    const resultsBySuite = await runQueued(toRun, concurrency, playsNoiseWorld, async (suite, index) => {
+        const started = performance.now();
+        const suiteResults = await runSuite(suite, firstIndex + index);
+        // The first run of a suite only: a retry plays a suite's failed scenarios alone.
+        if (!suiteSeconds.has(suite.name)) suiteSeconds.set(suite.name, (performance.now() - started) / 1000);
+        return suiteResults;
+    });
+    return resultsBySuite.flat();
 };
 
 const firstResults = await runSuites(selectedSuites, 0);

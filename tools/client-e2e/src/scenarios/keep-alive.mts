@@ -8,11 +8,15 @@ import assert from 'node:assert/strict';
 import type { Scenario } from '../scenario.mts';
 import { onlineCount, sleep } from '../scenario.mts';
 
-/** The interval the server runs this scenario's suite with, in seconds. */
-const INTERVAL_SECONDS = 2;
+/**
+ * The interval the server runs this scenario's suite with, in seconds. It has to outlast the
+ * longest stall of a client on a CI runner: its shader warmup on the loading screen holds the
+ * main thread for about three seconds, and a 2 s interval timed it out there.
+ */
+const INTERVAL_SECONDS = 5;
 
 /** How many intervals the client stays through. */
-const INTERVALS = 5;
+const INTERVALS = 4;
 
 export const keepAlive: Scenario = {
     name: 'keep-alive',
