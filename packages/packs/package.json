@@ -11,6 +11,11 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./archive": {
+                "types": "./dist/archive.d.ts",
+                "import": "./dist/archive.js",
+                "module": "./dist/archive.js"
+            },
             "./brarchive": {
                 "types": "./dist/brarchive.d.ts",
                 "import": "./dist/brarchive.js",
@@ -61,6 +66,10 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./archive": {
+            "jsprismarine:dist": "./dist/archive.js",
+            "default": "./src/archive.ts"
         },
         "./brarchive": {
             "jsprismarine:dist": "./dist/brarchive.js",
