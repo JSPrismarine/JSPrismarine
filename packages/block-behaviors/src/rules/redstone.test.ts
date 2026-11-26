@@ -34,6 +34,49 @@ describe('wireSignal', () => {
         expect(wireSignal(world, world.block(center))).toBe(MAX_POWER);
     });
 
+    it('takes nothing from a wire straight above or below it', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(center, 'minecraft:redstone_wire', { redstone_signal: 0 });
+        world.set({ x: 0, y: 1, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 9 });
+        world.set({ x: 0, y: -1, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 9 });
+
+        expect(wireSignal(world, world.block(center))).toBe(0);
+    });
+
+    it('steps up onto a wire on top of a conductor beside it, unless a conductor covers it', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(center, 'minecraft:redstone_wire', { redstone_signal: 0 });
+        world.setRedstoneConductor({ x: 1, y: 0, z: 0 });
+        world.set({ x: 1, y: 1, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 9 });
+
+        expect(wireSignal(world, world.block(center))).toBe(8);
+
+        world.setRedstoneConductor({ x: 0, y: 1, z: 0 });
+        expect(wireSignal(world, world.block(center))).toBe(0);
+    });
+
+    it('steps down to a wire below a block beside it that does not conduct', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(center, 'minecraft:redstone_wire', { redstone_signal: 0 });
+        world.set({ x: 1, y: -1, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 9 });
+
+        expect(wireSignal(world, world.block(center))).toBe(8);
+
+        world.setRedstoneConductor({ x: 1, y: 0, z: 0 });
+        expect(wireSignal(world, world.block(center))).toBe(0);
+    });
+
+    it('reads the power that leaves wires out, so two wires cannot hold each other lit', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(center, 'minecraft:redstone_wire', { redstone_signal: 15 });
+        world.set({ x: 1, y: 0, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 15 });
+        // What the whole power reading says once each wire counts the other at full strength.
+        world.setPower(center, MAX_POWER);
+        world.setPowerToWire(center, 0);
+
+        expect(wireSignal(world, world.block(center))).toBe(14);
+    });
+
     it('never falls below zero', () => {
         const world = createVoxelWorld().overworld;
         world.set(center, 'minecraft:redstone_wire', { redstone_signal: 0 });

@@ -99,6 +99,7 @@ export class VoxelDimension implements WorldActions {
     private readonly unloaded = new Set<string>();
     private readonly blockData = new Map<string, BlockEntityData>();
     private readonly power = new Map<string, number>();
+    private readonly powerToWire = new Map<string, number>();
     private readonly signals = new Map<string, number>();
     private readonly directSignals = new Map<string, number>();
     private readonly redstoneConductors = new Set<string>();
@@ -185,6 +186,11 @@ export class VoxelDimension implements WorldActions {
     /** Sets the redstone power {@link WorldActions.redstonePower} reports. */
     public setPower(position: BlockPosition, level: number): void {
         this.power.set(keyOf(position), level);
+    }
+
+    /** Sets the power {@link WorldActions.redstonePowerToWire} reports, which leaves wires out. */
+    public setPowerToWire(position: BlockPosition, level: number): void {
+        this.powerToWire.set(keyOf(position), level);
     }
 
     /** Sets the directional weak redstone signal {@link WorldActions.redstoneSignal} reports. */
@@ -361,6 +367,11 @@ export class VoxelDimension implements WorldActions {
     /** Whether this voxel fixture marks the tick as part of the current batch. */
     public willTickThisTick(_position: BlockPosition): boolean {
         return false;
+    }
+
+    /** The wireless power a test set at a position, or the power reading there. */
+    public redstonePowerToWire(position: BlockPosition): number {
+        return this.powerToWire.get(keyOf(position)) ?? this.redstonePower(position);
     }
 
     /** The directional signal a test set, or the power reading for this position. */

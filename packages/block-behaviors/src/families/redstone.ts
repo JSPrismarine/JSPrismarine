@@ -14,6 +14,7 @@ import { defineFamily } from '../family';
 import {
     CARDINAL_DIRECTIONS,
     COMPASS_DIRECTIONS,
+    HORIZONTAL_FACES,
     faceOfFacingDirection,
     offset,
     opposite,
@@ -509,6 +510,40 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
     }
 };
 
+/**
+ * Sets a wire to the strength and the shape its surroundings give it, and tells the blocks around it.
+ *
+ * The shape goes into Bedrock's four `redstone_<side>` states, which is how the client knows which
+ * way to draw the dust; a palette without them leaves the client to draw it, so nothing is written.
+ *
+ * A wire strongly powers the block under it and the blocks it points into, and those pass the
+ * power on to their own neighbors, so a change of strength reaches the neighbors of each of the
+ * wire's six neighbors as well as its own. That second ring also holds the wires one step up or
+ * down, which is how a change runs along a staircase of wire.
+ *
+ * @javaSee RedstoneWireBlock.updateShape
+ * @javaSource DefaultRedstoneWireEvaluator.updatePowerStrength
+ */
+const updateWire = (world: WorldActions, block: HookBlock): void => {
+    const signal = wireSignal(world, block);
+    const strengthChanged = signal !== stateNumber(block, 'redstone_signal');
+    const shape = hasState(block, 'redstone_north') ? world.redstoneWireShape?.(block.position) : undefined;
+    // Writing the states tells the wire's own neighbors; the loop below tells theirs.
+    setStates(world, block, {
+        redstone_signal: signal,
+        ...(shape === undefined
+            ? {}
+            : {
+                  redstone_north: shape.north,
+                  redstone_south: shape.south,
+                  redstone_west: shape.west,
+                  redstone_east: shape.east
+              })
+    });
+    if (!strengthChanged) return;
+    for (const face of BLOCK_FACES) world.notifyNeighbors(offset(block.position, face));
+};
+
 /** The redstone components: wire, the two delays, the observer, both pistons and the rest. */
 export const redstoneFamily = defineFamily(
     'jsprismarine:redstone',
@@ -525,9 +560,10 @@ export const redstoneFamily = defineFamily(
             }
             if (name === 'redstone_wire') {
                 if (popWithoutSupport(world, block)) return;
-                const signal = wireSignal(world, block);
-                if (signal !== stateNumber(block, 'redstone_signal'))
-                    setStates(world, block, { redstone_signal: signal });
+                updateWire(world, block);
+                // The wires a step up or down beside it meet it through a corner, and hear about it
+                // through the neighbors of its four sides, Java's `updateIndirectNeighbourShapes`.
+                for (const face of HORIZONTAL_FACES) world.notifyNeighbors(offset(block.position, face));
                 return;
             }
             if (name === 'lever') {
@@ -570,11 +606,7 @@ export const redstoneFamily = defineFamily(
 
             if (name === 'redstone_wire') {
                 if (popWithoutSupport(world, block)) return;
-                const signal = wireSignal(world, block);
-                if (signal !== stateNumber(block, 'redstone_signal')) {
-                    setStates(world, block, { redstone_signal: signal });
-                    world.notifyNeighbors(block.position);
-                }
+                updateWire(world, block);
                 return;
             }
 

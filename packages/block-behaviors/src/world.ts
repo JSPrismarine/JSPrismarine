@@ -21,6 +21,8 @@ import type {
 import { blockProperties } from '@jsprismarine/blocks';
 import { BlockBehaviorsErrors } from '@jsprismarine/errors/block-behaviors';
 
+import type { HorizontalFace } from './geometry';
+
 /** The state values a behavior writes when it places or rewrites a block. */
 export type BlockStates = Readonly<Record<string, BlockStateValue>>;
 
@@ -368,6 +370,21 @@ export interface WorldActions {
     notifyNeighbors(position: BlockPosition): void;
     /** The redstone power reaching a position, 0 to 15. */
     redstonePower(position: BlockPosition): number;
+    /**
+     * The power reaching a redstone wire at a position from everything but other wires, 0 to 15.
+     * A wire takes power from another wire only one level lower, so counting wires here would let
+     * two wires hold each other at full power. Absent, the wire reads {@link redstonePower}.
+     *
+     * @javaSee RedstoneWireBlock.getBlockSignal
+     */
+    redstonePowerToWire?(position: BlockPosition): number;
+    /**
+     * How a redstone wire at a position meets each horizontal side, which is what Bedrock's
+     * `redstone_<side>` states draw: `none`, `side` along the ground, or `up` the block beside it.
+     *
+     * @javaSee RedstoneWireBlock.getConnectionState
+     */
+    redstoneWireShape?(position: BlockPosition): Readonly<Record<HorizontalFace, 'none' | 'side' | 'up'>> | undefined;
     /** The signal from a block, where direction points from the receiver to this source. */
     redstoneSignal?(position: BlockPosition, directionToSource: BlockFace): number;
     /** The strong signal from a block, where direction points from the receiver to this source. */

@@ -44,6 +44,7 @@ import { mobLeavesBlock } from './scenarios/mob-leaves-block.mts';
 import { summonRefused } from './scenarios/summon-refused.mts';
 import { pistonBedrock } from './scenarios/piston-bedrock.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
+import { redstoneDust } from './scenarios/redstone-dust.mts';
 import { pressurePlateLamp } from './scenarios/pressure-plate-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
@@ -97,6 +98,7 @@ export const suites: ScenarioSuite[] = [
             jump,
             attackEntity,
             leverLamp,
+            redstoneDust,
             pressurePlateLamp,
             pistonBedrock,
             summonEntity,

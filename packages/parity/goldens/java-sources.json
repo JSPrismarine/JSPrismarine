@@ -25,6 +25,8 @@
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
         "CopperGolemStatueBlock.getStateForPlacement": "net/minecraft/world/level/block/CopperGolemStatueBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CrafterBlock.getStateForPlacement": "net/minecraft/world/level/block/CrafterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "DefaultRedstoneWireEvaluator.calculateTargetStrength": "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.calculateTargetStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I",
+        "DefaultRedstoneWireEvaluator.updatePowerStrength": "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V",
         "DetectorRailBlock.checkPressed": "net/minecraft/world/level/block/DetectorRailBlock.checkPressed(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V",
         "DiodeBlock.getStateForPlacement": "net/minecraft/world/level/block/DiodeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Direction.fromYRot": "net/minecraft/core/Direction.fromYRot(D)Lnet/minecraft/core/Direction;",
@@ -80,6 +82,7 @@
         "PortalShape.MAX_WIDTH": "net/minecraft/world/level/portal/PortalShape.MAX_WIDTH",
         "PortalShape.MIN_HEIGHT": "net/minecraft/world/level/portal/PortalShape.MIN_HEIGHT",
         "PortalShape.MIN_WIDTH": "net/minecraft/world/level/portal/PortalShape.MIN_WIDTH",
+        "RedstoneWireEvaluator.getIncomingWireSignal": "net/minecraft/world/level/redstone/RedstoneWireEvaluator.getIncomingWireSignal(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I",
         "RepeaterBlock.getStateForPlacement": "net/minecraft/world/level/block/RepeaterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "RotationSegment.convertToSegment(F)I": "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(F)I",
         "ServerGamePacketListenerImpl.handleSetCommandBlock": "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V",
@@ -431,6 +434,15 @@
         },
         "net/minecraft/world/level/portal/PortalShape.MIN_WIDTH": {
             "26.3": "sha256:34604373a19ee5e1d985d6824d3076ddc425e54fe5c1c14649a22c9be46fed33"
+        },
+        "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.calculateTargetStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I": {
+            "26.3": "sha256:e195a806e000091f620420e2cacf310a0e4eca45935a7a5ea69ad4d8ed0d2f71"
+        },
+        "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V": {
+            "26.3": "sha256:8a895dbba2b154f43087a846aa2dd0a6b2a11fa9b1dde3a8663c5f8ec08a3d9f"
+        },
+        "net/minecraft/world/level/redstone/RedstoneWireEvaluator.getIncomingWireSignal(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I": {
+            "26.3": "sha256:6ba87403fca2bd878c35ca402b3f460af30a10427a507403c5972389c856a57c"
         },
         "net/minecraft/world/level/saveddata/maps/MapItemSavedData.createFresh(DDBZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;": {
             "26.3": "sha256:02b9ad785bd183a016e47ba01419ac4c8977d09fced09fa009b9740e92c7683b"
