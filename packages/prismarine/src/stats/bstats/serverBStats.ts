@@ -1,5 +1,6 @@
 import type { BStatsSettings, Config } from '../../config/Config';
 import { loadOrCreateServerUuid } from '../../serverUuid';
+import { DO_NOT_TRACK_VARIABLE, isDoNotTrack } from '../../utils/doNotTrack';
 import { ENV_SWITCH_VALUES, readEnvSwitch } from '../../utils/envSwitch';
 import { isTestRunner } from '../../utils/isTestRunner';
 import type { Environment } from '../../utils/isTestRunner';
@@ -26,11 +27,11 @@ export const CI_VARIABLE = 'CI';
 
 /** Why bStats does not report on this start. */
 export type BStatsOffReason =
-    'test-runner' | 'ci' | 'environment' | 'invalid-environment' | 'invalid-config' | 'disabled';
+    'test-runner' | 'ci' | 'do-not-track' | 'environment' | 'invalid-environment' | 'invalid-config' | 'disabled';
 
 /** What decides whether bStats reports, each read at the provider's start. */
 export interface BStatsDecisionInputs {
-    /** The process environment, for the test runner, `CI` and `JSP_BSTATS`. */
+    /** The process environment, for the test runner, `CI`, `DO_NOT_TRACK` and `JSP_BSTATS`. */
     readonly env: Environment;
     /** The `stats.bstats` settings: `enabled`, and the problem that turned it off, if any. */
     readonly settings: Pick<BStatsSettings, 'enabled' | 'problem'>;
@@ -38,14 +39,15 @@ export interface BStatsDecisionInputs {
 
 /**
  * Decides whether bStats reports on this start. It stays off under Vitest, when `CI` is set (as
- * every CI service sets it), when `JSP_BSTATS` turns it off or holds a value it does not take,
- * when `config.json` holds something other than a boolean where `stats.bstats.enabled` goes, and
- * when `stats.bstats.enabled` is false.
+ * every CI service sets it), when `DO_NOT_TRACK` asks not to track, when `JSP_BSTATS` turns it off
+ * or holds a value it does not take, when `config.json` holds something other than a boolean where
+ * `stats.bstats.enabled` goes, and when `stats.bstats.enabled` is false.
  * @returns The first reason that applies, in that order, or undefined when bStats reports.
  */
 export const bstatsOffReason = ({ env, settings }: BStatsDecisionInputs): BStatsOffReason | undefined => {
     if (isTestRunner(env)) return 'test-runner';
     if (env[CI_VARIABLE] !== undefined) return 'ci';
+    if (isDoNotTrack(env)) return 'do-not-track';
     const optOut = readEnvSwitch(env[BSTATS_OPT_OUT.variable]);
     if (optOut === 'off') return 'environment';
     if (optOut === 'invalid') return 'invalid-environment';
@@ -62,6 +64,11 @@ const offMessage = (reason: BStatsOffReason, { env, settings }: BStatsDecisionIn
             return { level: 'debug', message: 'bStats is off under the test runner' };
         case 'ci':
             return { level: 'debug', message: `bStats is off because ${CI_VARIABLE} is set` };
+        case 'do-not-track':
+            return {
+                level: 'debug',
+                message: `bStats is off because ${DO_NOT_TRACK_VARIABLE}=${env[DO_NOT_TRACK_VARIABLE]} is set`
+            };
         case 'environment':
             return { level: 'debug', message: `bStats is off because ${variable}=${env[variable]} is set` };
         case 'invalid-environment':

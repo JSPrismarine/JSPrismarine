@@ -112,8 +112,15 @@ the environment instead. It turns checks off whatever the config says.
   `config.json`, as an unset variable does.
 - Any other value turns checks off, and the server logs a warning that lists the values above.
 
-The server also doesn't check when the `CI` environment variable is set, or under the Vitest test
-runner.
+The shared <!-- fact:doNotTrack.variable -->`DO_NOT_TRACK`<!-- /fact --> variable turns off
+automatic checks as well, and turns off bStats with them. Set it to any value other than
+<!-- fact:doNotTrack.optIn -->`0`<!-- /fact -->, such as
+<!-- fact:doNotTrack.optOut -->`DO_NOT_TRACK=1`<!-- /fact -->. It leaves the decision to
+`config.json` when unset or set to `0`. An explicit `update check` still runs: it asks for the feed
+rather than sending telemetry on its own.
+
+The server also doesn't check on a schedule when the `CI` environment variable is set, or under the
+Vitest test runner.
 
 ## Following a fork
 
