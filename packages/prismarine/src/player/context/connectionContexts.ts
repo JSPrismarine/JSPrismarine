@@ -158,6 +158,9 @@ export class ConnectionContexts {
                 return server.getKernel().get(accountLinksToken);
             },
             players: this.players,
+            get resourcePacks() {
+                return server.getResourcePacks();
+            },
             async removeAsInput(replaced, remove) {
                 let removed: Promise<void> = Promise.resolve();
                 const held = inputs.hold(replaced, () => {

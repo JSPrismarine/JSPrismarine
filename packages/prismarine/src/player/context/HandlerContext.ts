@@ -7,6 +7,7 @@
  * step that applies it. Nothing else of the server is reachable from the context: a handler that
  * needs more names it here, so the list stays the one record of what handlers depend on.
  */
+import type { ServedResourcePacks } from '../../resourcePacks/ServedResourcePacks';
 import type { Logger } from '@jsprismarine/logger';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { ChatManager } from '../../chat/ChatManager';
@@ -38,6 +39,7 @@ export type HandlerConfig = Pick<
     | 'getCraftingRecipeLimit'
     | 'getPacketCompressionLevel'
     | 'getKeepAliveIntervalMs'
+    | 'getTexturepackRequired'
 >;
 
 /** What every handler of a player session is handed, and all a connection-lane or read-lane one gets. */
@@ -105,6 +107,8 @@ export interface HandlerServices {
     readonly scriptForms: ScriptFormInbox;
     /** The update checks, which tell a player who just spawned about a newer build. */
     readonly updates: Pick<Updates, 'welcome'>;
+    /** The resource packs the server offers, which a client downloads before it joins. */
+    readonly resourcePacks: Pick<ServedResourcePacks, 'offered' | 'find'>;
 }
 
 /** The behavior pack scripts' side of a form a client answers. */

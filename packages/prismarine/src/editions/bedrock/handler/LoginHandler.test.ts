@@ -1,3 +1,4 @@
+import type { ServedResourcePack, ServedResourcePacks } from '../../../resourcePacks/ServedResourcePacks';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../../../events/ServerEvents';
 import type { Logger } from '@jsprismarine/logger';
@@ -146,7 +147,8 @@ describe('network', () => {
                     getGamemode: () => 'survival',
                     getProximityBroadcast: () => true,
                     getEntityTrackingHysteresis: () => 2,
-                    getEntityTrackingInterval: () => 4
+                    getEntityTrackingInterval: () => 4,
+                    getTexturepackRequired: () => false
                 });
 
             const permissionManager = (): PermissionManager =>
@@ -176,6 +178,7 @@ describe('network', () => {
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
                 getAllowList: () => stub<AllowList>({ allows: () => true, ignoresPlayerLimit: () => false }),
+                getResourcePacks: () => stub<ServedResourcePacks>({ packs: async () => [] }),
                 getTick: () => 0,
                 // What a session posts `playerConnect` on.
                 getKernel: () => kernel,
@@ -551,9 +554,9 @@ describe('network', () => {
             });
 
             it('sends the ResourcePacksInfo a server with no packs sends', async () => {
-                // No packs are configurable yet, so the packet is the fixed one a Bedrock
-                // Dedicated Server sends for a world with no packs and no template: every
-                // flag off, an all-zero template uuid with an empty version, and a zero count.
+                // The packet a Bedrock Dedicated Server sends for a world with no packs and no
+                // template: every flag off, an all-zero template uuid with an empty version, and
+                // a zero count.
                 const pk = loginPacket();
 
                 const sent: NetworkPacket[] = [];
@@ -578,6 +581,72 @@ describe('network', () => {
                     worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
                     resourcePackEntries: []
                 });
+            });
+
+            it('lists each pack the server offers, and requires them when texturepack-required is on', async () => {
+                const sent: NetworkPacket[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+                const pack = stub<ServedResourcePack>({
+                    uuid: '01020304-0506-0708-090a-0b0c0d0e0f10',
+                    version: '1.2.3',
+                    bytes: new Uint8Array(42)
+                });
+                const offering = stub<Server>({
+                    ...server,
+                    getConfig: () => stub<Config>({ ...config(), getTexturepackRequired: () => true }),
+                    getResourcePacks: () => stub<ServedResourcePacks>({ packs: async () => [pack] })
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
+
+                const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
+                assert(info instanceof ResourcePacksInfoPacket);
+                expect(info.getPacketData()).toMatchObject({
+                    resourcePackRequired: true,
+                    resourcePackEntries: [
+                        {
+                            id: {
+                                uuidMostSignificant: 0x0102030405060708n,
+                                uuidLeastSignificant: 0x090a0b0c0d0e0f10n,
+                                version: '1.2.3'
+                            },
+                            sizeBytes: 42n,
+                            cdnUrl: ''
+                        }
+                    ]
+                });
+            });
+
+            it('disconnects a player rather than offer no packs when required packs fail to build', async () => {
+                const sent: NetworkPacket[] = [];
+                const reasons: string[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: () => {},
+                    closePlayerSession: async () => {},
+                    disconnect: async (reason: string) => void reasons.push(reason)
+                });
+                const failing = stub<Server>({
+                    ...server,
+                    getLogger: () => stub<Logger>({ ...logger(), error: () => {} }),
+                    getConfig: () => stub<Config>({ ...config(), getTexturepackRequired: () => true }),
+                    getResourcePacks: () =>
+                        stub<ServedResourcePacks>({ packs: async () => Promise.reject(new TypeError('unreadable')) })
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(failing, quiet));
+
+                expect(sent.some((packet) => packet instanceof ResourcePacksInfoPacket)).toBe(false);
+                expect(reasons).toEqual(['The server could not prepare the resource packs it requires']);
             });
 
             /** A login the server lets past the identity checks and then refuses for who it is. */

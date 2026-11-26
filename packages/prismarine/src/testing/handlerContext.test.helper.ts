@@ -49,6 +49,8 @@ export const inputContext = (session: PlayerSession, parts: ContextParts = {}) =
             intents: builtInIntents(),
             // No update is known, so a player who joins hears about none.
             updates: { welcome: async () => undefined },
+            // No resource pack is installed, so the server offers none.
+            resourcePacks: { offered: () => [], find: () => undefined },
             ...parts.services
         }),
         step: {

@@ -81,6 +81,7 @@ describe('the config file a boot generates', () => {
         'enable-ticking',
         'log-excluded-packets',
         'crafting-recipe-limit',
+        'texturepack-required',
         'stats',
         'updates',
         'content-strict',

@@ -11,6 +11,7 @@
  * ADR 0014 places login I/O, and its result is a session whose player is in no world yet. That
  * player enters its world as an input, when `SetLocalPlayerAsInitialized` adds it.
  */
+import type { ServedResourcePacks } from '../../resourcePacks/ServedResourcePacks';
 import type { LaneHandler } from '@jsprismarine/protocol/handler/PacketHandler';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type AllowList from '../../allowlist/AllowList';
@@ -51,7 +52,11 @@ export const accountOf = (identity: LoginIdentity): PlayerIdentity => ({
 /** The server settings a handler before the session may read. */
 export type ConnectionConfig = Pick<
     Config,
-    'getPacketCompressionAlgorithm' | 'getPacketCompressionThreshold' | 'getMaxPlayers' | 'getOnlineMode'
+    | 'getPacketCompressionAlgorithm'
+    | 'getPacketCompressionThreshold'
+    | 'getMaxPlayers'
+    | 'getOnlineMode'
+    | 'getTexturepackRequired'
 >;
 
 /** What a login's edition sets on the player it builds, such as its skin, before anyone sees it. */
@@ -101,6 +106,8 @@ export interface LoginServices {
     readonly links: Pick<AccountLinks, 'resolve'>;
     /** Where a login's player is built. */
     readonly players: JoinPreparation;
+    /** The resource packs the server offers, which the login lists for the client. */
+    readonly resourcePacks: Pick<ServedResourcePacks, 'packs'>;
     /**
      * Takes a replaced connection's player out as that connection's next input, behind every
      * input its client sent first, as a transport disconnect does. Kicked from the connection
