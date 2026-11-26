@@ -635,6 +635,57 @@ export interface ScriptFormResponse {
     readonly cancelReason: number | null;
 }
 
+/** One control of a data-driven screen, as plain data for the world to send or record. */
+export interface DataDrivenControl {
+    /** The builder method that added it, such as `button` or `slider`. */
+    readonly type: string;
+    /** A literal string or the JSON text of a `UIRawMessage`, when the control has literal text. */
+    readonly text?: string;
+    /** The id of an observable bound to the control's text, when it has one. */
+    readonly textObservable?: number;
+    /** The id of the observable bound to the control, when it has one. */
+    readonly observable?: number;
+    /** The JSON text of the options object the script passed, when it has one. */
+    readonly options?: string;
+    /** The JSON text of a dropdown's items, or a message box's second button, when it has one. */
+    readonly items?: string;
+    /** A slider bound, as a number or the id of an observable bound to it. */
+    readonly min?: number | { readonly observable: number };
+    /** A slider's upper bound, in the same form as {@link DataDrivenControl.min}. */
+    readonly max?: number | { readonly observable: number };
+    /** The resource pack an image comes from, when the control is an image. */
+    readonly imagePack?: string;
+}
+
+/** A `CustomForm` or `MessageBox` as its script built it, in plain data. */
+export interface DataDrivenScreen {
+    /** Which builder made it. */
+    readonly kind: 'custom' | 'message';
+    /** A literal string or the JSON text of a `UIRawMessage`. */
+    readonly title: string;
+    /** The id of the observable bound to the title, when it has one. */
+    readonly titleObservable?: number;
+    /** The controls, in the order the script added them. */
+    readonly controls: readonly DataDrivenControl[];
+}
+
+/**
+ * What a client reports about a data-driven screen. A `button` click leaves the screen open and
+ * runs the control's callback; a `reason` closes it and settles `show()` with that reason.
+ */
+export interface DataDrivenResponse {
+    /** The id of the player who answered, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    /** The id the screen was shown with. */
+    readonly formId: number;
+    /** The close reason, as `DataDrivenScreenClosedReason` names it. */
+    readonly reason?: 'ClientClosed' | 'ServerClosed' | 'UserBusy';
+    /** The index of the button clicked, counting only button controls. */
+    readonly button?: number;
+    /** New values of client-writable observables, by their ids. */
+    readonly values?: Readonly<Record<string, string | number | boolean>>;
+}
+
 /** How the scripts' forms reach the world's players, and their answers come back. */
 export interface ScriptFormChannel {
     /** Sends a player a form: a `ModalFormRequestPacket` with the id and the JSON as they are. */
@@ -643,6 +694,14 @@ export interface ScriptFormChannel {
     closeAll(player: string): void;
     /** The answers the input step admitted since the last call, in the order they arrived. */
     takeResponses(): readonly ScriptFormResponse[];
+    /** Shows a data-driven screen. A world that cannot show one leaves this out. */
+    showDataDriven?(player: string, formId: number, screen: DataDrivenScreen): void;
+    /** Closes one data-driven screen. */
+    closeDataDriven?(formId: number): void;
+    /** Closes every data-driven screen of a player. */
+    closeAllDataDriven?(player: string): void;
+    /** The data-driven screen answers the input step admitted since the last call. */
+    takeDataDrivenResponses?(): readonly DataDrivenResponse[];
 }
 
 /** An HTTP method, as `@minecraft/server-net`'s `HttpRequestMethod` names it. */

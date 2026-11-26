@@ -724,9 +724,20 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       A cancel reason wins over JSON, a response with neither stays open, and text that is not
       JSON disconnects the client. A player who leaves rejects their forms with `PlayerQuit`,
       newest first, and `closeAllForms` sends `ClientboundCloseForm` and settles nothing.
-    - Left: the data-driven `CustomForm`, `MessageBox` and observables of 2.1.0 and later throw
-      `NotImplementedError`; the disconnect reason BDS gives for a response that is not JSON is
-      not captured, so JSPrismarine's is its own.
+    - Done (2026-11-26): the data-driven `CustomForm`, `MessageBox` and four `Observable*` classes
+      of 2.1.0 and later have behavior in the script host. Builders keep their controls in call
+      order, input controls require a client-writable observable of the right type, a changed
+      observable notifies its subscribers, button clicks run their callbacks without closing the
+      form, and `show()` settles with the close reason or rejects with `PlayerLeftError` when the
+      player leaves. A world's `ScriptFormChannel` can implement `showDataDriven`,
+      `closeDataDriven`, `closeAllDataDriven` and `takeDataDrivenResponses` to display those
+      screens; a world without them settles `show()` with `UserBusy`.
+    - Left: no server or client in this repository shows a data-driven screen yet, so the channel
+      methods above have no production implementation and the BDS screen id and data-store paths
+      are not captured ([#3751](https://github.com/JSPrismarine/JSPrismarine/issues/3751)).
+      `ObservableString.getFilteredText` also stays unimplemented, since it needs a text filtering
+      service. The disconnect reason BDS gives for a response that is not JSON is not captured, so
+      JSPrismarine's is its own.
 14. [x] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
     - Done (2026-11-17): `register`, `registerAsync`, the `RegistrationBuilder` options, `Test`'s

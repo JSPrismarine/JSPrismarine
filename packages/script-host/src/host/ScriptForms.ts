@@ -54,6 +54,11 @@ export class ScriptForms<Owner> {
         return this.open.length;
     }
 
+    /** Takes the next form id, shared with the data-driven screens a script shows. */
+    public nextFormId(): number {
+        return this.nextId++;
+    }
+
     /**
      * Sends a player a form and returns the promise `show()` returns, which the pack's forms free
      * once the call is over.
@@ -66,7 +71,7 @@ export class ScriptForms<Owner> {
         form: BuiltForm
     ): FormDeferred['promise'] {
         const deferred = forms.deferred();
-        const id = this.nextId++;
+        const id = this.nextFormId();
         this.open.push({ id, player, owner, forms, form, deferred });
         channel?.show(player, id, form.json);
         return forms.returning(deferred.promise);

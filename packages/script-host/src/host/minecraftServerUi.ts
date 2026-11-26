@@ -1,8 +1,9 @@
 /**
- * The behavior of `@minecraft/server-ui`'s three form builders, `ActionFormData`, `ModalFormData`
- * and `MessageFormData`, their responses and `uiManager.closeAllForms`, in the stable and beta
- * shapes alike. The data-driven `CustomForm`, `MessageBox` and observables of 2.1.0 and later are
- * present and throw `NotImplementedError` ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
+ * The behavior of `@minecraft/server-ui`'s three older form builders, `ActionFormData`,
+ * `ModalFormData` and `MessageFormData`, their responses and `uiManager.closeAllForms`, in the
+ * stable and beta shapes alike. The data-driven `CustomForm`, `MessageBox` and observables of
+ * 2.1.0 and later live in {@link DataDrivenUi}
+ * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
  * Each builder call copies its arguments out of the engine and turns them into a fragment of form
  * JSON at once, as BDS converts them when the call is made, so a script that changes a
@@ -39,6 +40,8 @@ export interface FormHost {
     show(player: string, form: BuiltForm): ScriptValue;
     /** Closes every form a player has open. */
     closeAll(player: string): void;
+    /** Closes every data-driven screen a player has open, which `closeAllForms` does too. */
+    closeAllDataDriven?(player: string): void;
 }
 
 /** The builder members of each form kind, after its constructor and `show`. */
@@ -101,6 +104,7 @@ export const serverUiImplementations = (
             // BDS's own words for a player who left, from a plain Error rather than one of the API's.
             if (player?.present !== true) throw new ScriptHostErrors.InvalidPlayerHandle();
             host.closeAll(player.id);
+            host.closeAllDataDriven?.(player.id);
             return undefined;
         });
 };

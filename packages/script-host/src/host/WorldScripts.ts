@@ -80,6 +80,7 @@ import { entityKeyOf, PLAYER, TAG } from './serverObjects';
 import type { ScriptConfig, ScriptModuleConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackBytes, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
+import { DataDrivenUi } from './dataDrivenUi';
 import { ScriptForms } from './ScriptForms';
 import { ScriptHttp } from './ScriptHttp';
 import { hookEventOf } from './serverCustom';
@@ -388,6 +389,23 @@ export class WorldScripts {
     private lastEntered: LoadedPack | undefined;
     /** The `@minecraft/server-ui` forms the world's players have open. */
     private readonly forms = new ScriptForms<LoadedPack>(() => this.engine);
+    /** The data-driven screens and observables the packs have made. */
+    private readonly dataDriven = new DataDrivenUi<LoadedPack>(() => ({
+        channel: this.options.world.forms,
+        engine: this.engine,
+        players: () => this.options.world.players(),
+        pack: (id) => {
+            const loaded = this.byContext.get(Number(id));
+            if (loaded?.forms === undefined) return undefined;
+            return {
+                forms: loaded.forms,
+                api: loaded.api,
+                owner: loaded,
+                player: (value) => this.formPlayer(loaded, value)
+            };
+        },
+        nextFormId: () => this.forms.nextFormId()
+    }));
     /** The `@minecraft/server-net` requests the packs have in flight. */
     private readonly http = new ScriptHttp<LoadedPack>();
     /**
@@ -727,6 +745,7 @@ export class WorldScripts {
         this.gametests.clear();
         // A reload or shutdown settles no open form: the contexts that would see it go with it.
         this.forms.clear();
+        this.dataDriven.clear();
         this.http.clear(this.options.world.http);
         // A level operation still running finishes on the server, but its promise never settles.
         for (const call of this.levelCalls) this.engine.free(call.settle);
@@ -743,6 +762,7 @@ export class WorldScripts {
             loaded.stopConfigWatch?.();
             for (const listener of loaded.configListeners ?? []) this.engine.free(listener);
             if (loaded.configEventMaker !== undefined) this.engine.free(loaded.configEventMaker);
+            this.dataDriven.clearOwner(loaded);
             loaded.forms?.destroy();
             loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
@@ -858,6 +878,7 @@ export class WorldScripts {
             () =>
                 new ScriptApiContext(engine, {
                     pack: pack.name,
+                    packId: String(context),
                     implementations,
                     logger: { warn: (message) => this.options.log.warn(`[Scripting] ${message}`) },
                     privilege: () => this.privilege
@@ -885,8 +906,11 @@ export class WorldScripts {
                 forms,
                 player: (value) => this.formPlayer(entry, value),
                 show: (player, form) => this.forms.show(this.options.world.forms, entry, forms, player, form),
-                closeAll: (player) => this.options.world.forms?.closeAll(player)
+                closeAll: (player) => this.options.world.forms?.closeAll(player),
+                closeAllDataDriven: (player) =>
+                    this.dataDriven.closeAll(player, (loaded, run) => this.settleInPack(loaded, run))
             });
+            this.dataDriven.register(implementations);
         }
         if (shapes.some((shape) => shape.module === GAMETEST)) {
             gametestImplementations(implementations, {
@@ -1706,6 +1730,11 @@ export class WorldScripts {
         return { id, present: this.options.world.players().includes(id) };
     }
 
+    /** Runs a form's settlement in the pack that made it, with the runtime's error reporting. */
+    private settleInPack(loaded: LoadedPack, run: () => void): void {
+        this.engine.inContext(loaded.context, () => this.guarded(loaded, run));
+    }
+
     /**
      * Settles the forms the input step answered and those of players who left, each in its pack's
      * context, before any of this flush's promise jobs run, and frees what the forms' calls
@@ -1714,8 +1743,12 @@ export class WorldScripts {
     private settleForms(): void {
         for (const loaded of this.loaded) loaded.forms?.releaseReturned();
         const responses = this.options.world.forms?.takeResponses() ?? [];
-        this.forms.update(responses, this.options.world.players(), (loaded, settle) =>
-            this.engine.inContext(loaded.context, () => this.guarded(loaded, settle))
+        const settle = (loaded: LoadedPack, run: () => void): void => this.settleInPack(loaded, run);
+        this.forms.update(responses, this.options.world.players(), settle);
+        this.dataDriven.update(
+            this.options.world.forms?.takeDataDrivenResponses?.() ?? [],
+            this.options.world.players(),
+            settle
         );
     }
 

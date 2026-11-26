@@ -469,10 +469,14 @@ record it:
 
 A pack that declares `@minecraft/server-ui` gets `ActionFormData`, `ModalFormData`,
 `MessageFormData`, their responses and `uiManager.closeAllForms`, in the version 1 and version 2
-shapes and the beta. The data-driven `CustomForm`, `MessageBox` and observables throw
-`NotImplementedError`. Forms reach the world through `ScriptWorld.forms`, a `ScriptFormChannel`
+shapes and the beta. It also gets the data-driven `CustomForm`, `MessageBox` and four `Observable*`
+classes: builders keep their controls, bound observables update their subscribers, button clicks
+run their callbacks, `close()` and `uiManager.closeAllForms` close screens, and `show()` settles
+with the close reason the world reports. A data-driven `show()` rejects with `PlayerLeftError` when
+its player leaves the world. Forms reach the world through `ScriptWorld.forms`, a `ScriptFormChannel`
 that sends a player a form, closes a player's forms, and hands back the answers the input step
-admitted. A world without one sends no form.
+admitted. A world without one sends no form; a world that cannot show data-driven screens settles a
+data-driven `show()` with `UserBusy`.
 
 The `scripting.ui` family of the parity suite records each rule below on the pinned BDS, and its
 scenarios compare the form JSON a client receives byte for byte.
