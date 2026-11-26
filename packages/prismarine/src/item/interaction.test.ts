@@ -31,6 +31,7 @@ import { createEngineWorld } from '../world/EngineWorld';
 import type { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
+import { contentBlockTickHandlers } from '../world/blockTicks';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
 import type PlayerSession from '../player/PlayerSession';
 import { Position } from '../world/Position';
@@ -78,6 +79,8 @@ const BLOCKS = [
     'minecraft:redstone_wire',
     'minecraft:torch',
     'minecraft:redstone_torch',
+    'minecraft:redstone_lamp',
+    'minecraft:lit_redstone_lamp',
     'minecraft:unpowered_repeater',
     'minecraft:unpowered_comparator'
 ] as const;
@@ -270,6 +273,13 @@ const installWorldSystems = (
                 loadedChunks: () => [{ x: 0, z: 0 }]
             },
             world: createEngineWorld(world),
+            blockTickHandlers: contentBlockTickHandlers({
+                content,
+                world: () => world,
+                report: (identifier, error) => {
+                    throw new Error(`${identifier} block tick failed: ${String(error)}`);
+                }
+            }),
             redstoneUpdateHandlers: {
                 ...handlers,
                 dispatch: (at, block, power) => {
@@ -1069,6 +1079,83 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_torch');
             expect(world.loadedBlockAt(6, 64, 7)?.states['redstone_signal']).toBe(15);
+        });
+
+        it('fades a run of dust one level a block and turns it off with its source', () => {
+            for (let x = 6; x <= 10; x += 1) place(chunk, { x, y: 63, z: 6 }, 'minecraft:stone');
+            for (let x = 7; x <= 10; x += 1) click(playerHolding(world, 'minecraft:redstone'), { x, y: 63, z: 6 });
+            click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 });
+
+            const signals = () => [7, 8, 9, 10].map((x) => world.loadedBlockAt(x, 64, 6)?.states['redstone_signal']);
+            expect(signals()).toEqual([15, 14, 13, 12]);
+
+            world.setLoadedBlockState(6, 64, 6, { name: 'minecraft:air', states: {} }, true);
+            expect(signals()).toEqual([0, 0, 0, 0]);
+        });
+
+        it('draws dust toward what it connects to, and as a cross when it connects to nothing', () => {
+            for (let x = 6; x <= 8; x += 1) place(chunk, { x, y: 63, z: 6 }, 'minecraft:stone');
+            const shape = (x: number) => {
+                const states = world.loadedBlockAt(x, 64, 6)?.states ?? {};
+                return ['north', 'south', 'west', 'east'].map((side) => states[`redstone_${side}`]);
+            };
+
+            click(playerHolding(world, 'minecraft:redstone'), { x: 6, y: 63, z: 6 });
+            expect(shape(6)).toEqual(['side', 'side', 'side', 'side']);
+
+            click(playerHolding(world, 'minecraft:redstone'), { x: 7, y: 63, z: 6 });
+            click(playerHolding(world, 'minecraft:redstone'), { x: 8, y: 63, z: 6 });
+            expect([shape(6), shape(7), shape(8)]).toEqual([
+                ['none', 'none', 'side', 'side'],
+                ['none', 'none', 'side', 'side'],
+                ['none', 'none', 'side', 'side']
+            ]);
+        });
+
+        it('carries a signal up and down a step of dust', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 7, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 64, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 9, y: 63, z: 6 }, 'minecraft:stone');
+            click(playerHolding(world, 'minecraft:redstone'), { x: 7, y: 63, z: 6 });
+            click(playerHolding(world, 'minecraft:redstone'), { x: 8, y: 64, z: 6 });
+            click(playerHolding(world, 'minecraft:redstone'), { x: 9, y: 63, z: 6 });
+
+            click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 });
+
+            const signals = () =>
+                [world.loadedBlockAt(7, 64, 6), world.loadedBlockAt(8, 65, 6), world.loadedBlockAt(9, 64, 6)].map(
+                    (block) => block?.states['redstone_signal']
+                );
+            expect(signals()).toEqual([15, 14, 13]);
+            // Each wire below the step climbs the stone's face to the wire on top of it.
+            expect(world.loadedBlockAt(7, 64, 6)?.states).toMatchObject({ redstone_east: 'up', redstone_west: 'side' });
+            expect(world.loadedBlockAt(9, 64, 6)?.states).toMatchObject({ redstone_west: 'up' });
+
+            world.setLoadedBlockState(6, 64, 6, { name: 'minecraft:air', states: {} }, true);
+            expect(signals()).toEqual([0, 0, 0]);
+        });
+
+        it('lights the lamp a run of dust points into and not the one beside it', () => {
+            for (let x = 6; x <= 8; x += 1) place(chunk, { x, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 9, y: 64, z: 6 }, 'minecraft:redstone_lamp');
+            place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:redstone_lamp');
+            click(playerHolding(world, 'minecraft:redstone'), { x: 7, y: 63, z: 6 });
+            click(playerHolding(world, 'minecraft:redstone'), { x: 8, y: 63, z: 6 });
+
+            click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 });
+
+            expect(world.loadedBlockAt(9, 64, 6)?.name).toBe('minecraft:lit_redstone_lamp');
+            expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:redstone_lamp');
+
+            world.setLoadedBlockState(6, 64, 6, { name: 'minecraft:air', states: {} }, true);
+            // Java keeps a lamp lit for four ticks after its power goes.
+            for (let tick = 1; tick <= 5; tick += 1) {
+                world.setTicks(tick);
+                world.getSystems().tick(tick);
+            }
+            expect(world.loadedBlockAt(9, 64, 6)?.name).toBe('minecraft:redstone_lamp');
         });
 
         it('extends toward the Java-mapped facing when a torch is placed', () => {

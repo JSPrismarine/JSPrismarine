@@ -191,6 +191,10 @@ export interface ContentBlockAccess {
     lightReady?(chunkX: number, chunkZ: number): boolean;
     /** The redstone power reaching a position, 0 to 15. */
     power(at: ContentPosition): number;
+    /** The power reaching a redstone wire at a position from everything but other wires, 0 to 15. */
+    powerToWire?(at: ContentPosition): number;
+    /** How a redstone wire at a position meets each horizontal side: `none`, `side` or `up`. */
+    wireShape?(at: ContentPosition): Readonly<Record<'north' | 'south' | 'west' | 'east', 'none' | 'side' | 'up'>>;
     /** The signal from a block, where direction points from the receiver to this source. */
     signal?(at: ContentPosition, directionToSource: BlockFace): number;
     /** The strong signal from a block, where direction points from the receiver to this source. */
