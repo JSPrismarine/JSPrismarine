@@ -58,6 +58,15 @@ describe('withJsExtensions', () => {
         );
     });
 
+    it('keeps a JSON import on its own module when a sibling TypeScript module shares its name', () => {
+        declare('lang.d.ts', 'lang.json.d.ts');
+        const source = "import lang from './lang.json' with { type: 'json' };";
+
+        expect(withJsExtensions(source, path.join(dist, 'lang.d.ts'))).toBe(
+            "import lang from './lang.json.js' with { type: 'json' };"
+        );
+    });
+
     it('leaves a string literal type that spells an import alone, and a commented import', () => {
         declare('logger.d.ts');
         const source = [
