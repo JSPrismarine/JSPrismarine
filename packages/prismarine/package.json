@@ -45,6 +45,11 @@
                 "import": "./dist/content/settings.js",
                 "module": "./dist/content/settings.js"
             },
+            "./editions/bedrock/handler/AnvilDamageHandler": {
+                "types": "./dist/editions/bedrock/handler/AnvilDamageHandler.d.ts",
+                "import": "./dist/editions/bedrock/handler/AnvilDamageHandler.js",
+                "module": "./dist/editions/bedrock/handler/AnvilDamageHandler.js"
+            },
             "./entity/playerAbilities": {
                 "types": "./dist/entity/playerAbilities.d.ts",
                 "import": "./dist/entity/playerAbilities.js",
