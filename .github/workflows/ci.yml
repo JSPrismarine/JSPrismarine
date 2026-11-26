@@ -63,9 +63,9 @@ jobs:
     #
     # `since` is the commit the Vitest jobs pass to `--changed`, so they run only the suites the
     # changes since then reach. A pull request compares with its base. A push compares with the
-    # last master commit whose run passed, which covers every commit since, a failed one included.
-    # When there is none, in a merge group, and on the nightly and manual runs, `since` is empty
-    # and every suite runs.
+    # last master commit whose run passed, which covers every commit since, a failed one included,
+    # and uses it as the base for the path filter below. When there is none, in a merge group,
+    # and on the nightly and manual runs, `since` is empty and every suite runs.
     #
     # The release pull request runs the four checks alone. Changesets rewrites it after every push
     # to master, and it changes only versions, changelogs and consumed changesets, on top of code
@@ -143,8 +143,10 @@ jobs:
             # its base commit and then its ancestors, since the base's own run is often still going
             # or was cancelled while pending; a push looks at the newest successful push runs whose
             # commit still leads to this one. A merge group run of the commit counts as much as a
-            # push run. When nothing within reach kept inputs, `since` stays empty and every suite
-            # runs, which is also what the nightly, a manual run and a merge group do.
+            # push run. A push also filters changed paths against `since`, so several commits merged
+            # together are compared with the last passing commit instead of only the newest one.
+            # When nothing within reach kept inputs, `since` stays empty and every suite runs, which
+            # is also what the nightly, a manual run and a merge group do.
             - name: Find the commit to compare with
               id: since
               if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
@@ -174,19 +176,10 @@ jobs:
                           dir="$RUNNER_TEMP/parity-base/$run"
                           if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name parity-report --dir "$dir" 2> /dev/null \
                               && [ -f "$dir/tracker.json" ] && [ -f "$dir/inputs/report.json" ]; then
-                              # How many commits a push covers; the step below runs everything when more than
-                              # one. A count that cannot be read leaves this candidate out, so a failed request
-                              # never passes for a single commit.
-                              commits=1
-                              if [ "$GITHUB_EVENT_NAME" = push ]; then
-                                  commits="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${commit}...${GITHUB_SHA}" --jq .ahead_by)" || continue
-                                  if ! [[ "$commits" =~ ^[0-9]+$ ]]; then continue; fi
-                              fi
                               echo "Comparing with ${commit}, whose run ${run} kept its parity report."
                               {
                                   echo "sha=$commit"
                                   echo "run=$run"
-                                  echo "commits=$commits"
                               } >> "$GITHUB_OUTPUT"
                               exit 0
                           fi
@@ -201,6 +194,10 @@ jobs:
               if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
               uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
               with:
+                  # A push compares with the last commit whose run passed, so the filter sees every
+                  # commit in a batch. Other events leave this empty: the action then uses the pull
+                  # request base or the commit before the push.
+                  base: ${{ github.event_name == 'push' && steps.since.outputs.sha || '' }}
                   predicate-quantifier: some-with-excludes
                   filters: |
                       code:
@@ -253,12 +250,11 @@ jobs:
             # is whether the client e2e scenarios are considered at all; the selection below can
             # still find none to play.
             #
-            # A push compares its paths with the commit before it, which may have failed or run
-            # nothing, so when more than one commit landed since the last passing one, or there is
-            # none, the push runs everything the last passing one did not, the Windows and macOS
-            # jobs included. A push whose merge group or pull request run passed `✅ CI` on the same
-            # tree runs no test again; its scenarios still go through the pin reuse below, which
-            # skips a pin only when that run played it in full.
+            # A push compares its paths with the last commit whose run passed, so a batch of merged
+            # commits is filtered as a whole. Without such a commit it runs everything, the Windows
+            # and macOS jobs included. A push whose merge group or pull request run passed `✅ CI`
+            # on the same tree runs no test again; its scenarios still go through the pin reuse
+            # below, which skips a pin only when that run played it in full.
             - name: Decide what runs
               id: filter
               env:
@@ -270,15 +266,14 @@ jobs:
                   # The release pull request is the repository's own; a fork may reuse its branch name.
                   RELEASE: ${{ github.head_ref == 'changeset-release/master' && github.event.pull_request.head.repo.full_name == github.repository }}
                   SINCE: ${{ steps.since.outputs.sha }}
-                  COMMITS: ${{ steps.since.outputs.commits || '0' }}
                   REUSED_ALL: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '✅ CI') }}
               run: |
                   if [ "$GITHUB_EVENT_NAME" = push ]; then
                       if [ "$REUSED_ALL" = true ]; then
                           echo 'A run passed ✅ CI on this tree; no test runs again, and the pins it played in full are skipped.'
                           CODE=false; HOST=false
-                      elif [ -z "$SINCE" ] || [ "$COMMITS" -gt 1 ]; then
-                          echo "The commits since the last passing one go beyond this push; running what they reach."
+                      elif [ -z "$SINCE" ]; then
+                          echo 'No commit to compare with; running every suite.'
                           CODE=true; HOST=true; E2E=true
                       fi
                   fi

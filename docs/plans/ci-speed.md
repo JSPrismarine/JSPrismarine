@@ -491,8 +491,13 @@ Added on 2026-11-20. Every run should test only what its changes can reach.
 4. Master e2e: a push could select by coverage against the last passing master commit too. It still
    plays every pin in full, partly because those runs are what keep the maps complete.
 
+A push passes the last passing commit to the path filter as its base, so several merged commits are
+filtered against one commit instead of starting every job. A push still plays every scenario of the
+pins it runs.
+
 Done when a pull request that changes one server function some scenarios run plays only those
-scenarios, and a master push runs only the Vitest suites its commits reach.
+scenarios, and a master push runs only what its commits reach, even when several commits land
+together.
 
 ## Open questions
 
