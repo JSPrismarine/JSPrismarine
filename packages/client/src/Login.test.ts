@@ -3,6 +3,12 @@ import { Logger } from '@jsprismarine/logger';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { Server } from '@jsprismarine/prismarine';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
+import type { ServerboundLoadingScreen } from '@jsprismarine/protocol';
+import {
+    ServerboundLoadingScreenPacket,
+    ServerboundLoadingScreenPacketType,
+    SetLocalPlayerAsInitializedPacket
+} from '@jsprismarine/protocol';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -94,6 +100,28 @@ describe('logging into a real server', () => {
         // The login answered the spawn and handed the session to the game's handlers.
         expect(client.getSession().getPhase()).toBe('play');
     }, 40_000);
+
+    it('opens the join loading screen and closes it after the spawn answer', async () => {
+        // The Bedrock Dedicated Server simulates none of a player's inputs until the join screen
+        // closes, so a client that never closes it cannot move there (#3722).
+        const client = newClient('LoadingScreenTester');
+        const send = vi.spyOn(client.getSession(), 'send');
+
+        await client.connect();
+
+        const edges = send.mock.calls.flatMap<ServerboundLoadingScreen | null | 'initialized'>(([packet]) =>
+            packet instanceof ServerboundLoadingScreenPacket
+                ? [packet.getPacketData()]
+                : packet instanceof SetLocalPlayerAsInitializedPacket
+                  ? ['initialized']
+                  : []
+        );
+        expect(edges).toEqual([
+            { loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen, loadingScreenId: null },
+            'initialized',
+            { loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen, loadingScreenId: null }
+        ]);
+    });
 
     it('completes the handshake and spawns over NetherNet, joined by address', async () => {
         // The same login over the other transport: HTTP signaling on the port's TCP side, then a

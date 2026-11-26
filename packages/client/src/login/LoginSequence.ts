@@ -12,6 +12,8 @@ import {
     ResourcePackStatus,
     ResourcePacksInfoPacket,
     ServerToClientHandshakePacket,
+    ServerboundLoadingScreenPacket,
+    ServerboundLoadingScreenPacketType,
     SetLocalPlayerAsInitializedPacket,
     StartGamePacket
 } from '@jsprismarine/protocol';
@@ -62,6 +64,15 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_VIEW_DISTANCE = 8;
 
 /**
+ * An edge of the join loading screen, which has no id: only a dimension change's screen
+ * carries one, and `DimensionChange` answers those.
+ * @param loadingScreenType - Whether the screen opened or closed.
+ * @returns The packet, ready to send.
+ */
+const joinLoadingScreen = (loadingScreenType: ServerboundLoadingScreenPacketType) =>
+    new ServerboundLoadingScreenPacket({ loadingScreenType, loadingScreenId: null });
+
+/**
  * The join, from the first packet to standing in the world.
  *
  * Written as one object with one promise, whose steps are packet handlers it registers on the
@@ -83,8 +94,11 @@ const DEFAULT_VIEW_DISTANCE = 8;
  * server  ResourcePackStack
  * client  ResourcePackResponse(Completed)
  * server  StartGame, and a great deal else
+ * client  RequestChunkRadius
+ * client  ServerboundLoadingScreen(StartLoadingScreen)
  * server  PlayStatus(PlayerSpawn)
  * client  SetLocalPlayerAsInitialized
+ * client  ServerboundLoadingScreen(EndLoadingScreen)
  * ```
  */
 export default class LoginSequence {
@@ -248,6 +262,9 @@ export default class LoginSequence {
      * client has said how much of it it wants - so a client that never asks waits at
      * `AWAITING_SPAWN` while chunks pile up around it, which reads as a hung login rather
      * than a missing packet.
+     *
+     * The join loading screen opens here too, as a retail client's does. It carries no id;
+     * {@link LoginSequence.onPlayerSpawn} closes it.
      */
     private async onStartGame(startGame: StartGame, { session }: ClientContext): Promise<void> {
         this.startGame = startGame;
@@ -255,6 +272,7 @@ export default class LoginSequence {
         await session.sendImmediate(
             new RequestChunkRadiusPacket({ radius: DEFAULT_VIEW_DISTANCE, maxRadius: DEFAULT_VIEW_DISTANCE })
         );
+        await session.sendImmediate(joinLoadingScreen(ServerboundLoadingScreenPacketType.StartLoadingScreen));
     }
 
     private async onPlayStatus(status: PlayStatusData, context: ClientContext): Promise<void> {
@@ -308,6 +326,10 @@ export default class LoginSequence {
         await session.sendImmediate(
             new SetLocalPlayerAsInitializedPacket({ runtimeEntityId: this.startGame.runtimeEntityId })
         );
+        // The Bedrock Dedicated Server simulates no `PlayerAuthInput` until the join screen
+        // closes: it takes each input's tick and moves the player nowhere, so a client that
+        // never closes the screen cannot walk.
+        await session.sendImmediate(joinLoadingScreen(ServerboundLoadingScreenPacketType.EndLoadingScreen));
 
         this.stage = LoginStage.SPAWNED;
         if (!this.settled) this.session.setPhase('play');
