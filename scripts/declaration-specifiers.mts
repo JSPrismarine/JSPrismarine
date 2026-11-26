@@ -83,7 +83,15 @@ const withJsExtension = (declarationFile: string, specifier: string): string => 
     // JavaScript for a module that only declares types.
     const has = (candidate: string): boolean =>
         existsSync(path.resolve(path.dirname(declarationFile), `${candidate}.d.ts`));
-    const base = specifier.replace(/\.(json|ts)$/, '');
+    // Vite emits a JSON module as `<name>.json.js`, typed by `<name>.json.d.ts`. A sibling
+    // `<name>.ts` module has its own `<name>.d.ts`, so stripping `.json` here would point the
+    // import back at that module and lose the JSON's type.
+    if (specifier.endsWith('.json')) {
+        if (has(specifier)) return `${specifier}.js`;
+        const jsonBase = specifier.slice(0, -'.json'.length);
+        return has(jsonBase) ? `${jsonBase}.js` : specifier;
+    }
+    const base = specifier.replace(/\.ts$/, '');
     if (base !== specifier) return has(base) ? `${base}.js` : specifier;
     if (has(specifier)) return `${specifier}.js`;
     const index = `${specifier.replace(/\/$/, '')}/index`;
