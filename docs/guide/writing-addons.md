@@ -48,7 +48,7 @@ tps-bar/
 ```
 
 Its pack leaves out
-<!-- fact:addons.sourceEntries -->`package.json`, `tsconfig.json`, `src` and `node_modules`<!-- /fact -->
+<!-- fact:addons.sourceEntries -->`package.json`, `tsconfig.json`, `turbo.json`, `src` and `node_modules`<!-- /fact -->
 and the source maps, so it holds the compiled scripts and not the project that built them.
 [Write it in TypeScript](#write-it-in-typescript) shows the project.
 
