@@ -177,7 +177,9 @@ export interface StageOptions {
  *
  * The copy is skipped when the run directory already holds one made from the same archive,
  * because it is 315 MB, whichever worktree made it. The world directory is always recreated, so
- * each pass starts from a freshly generated world.
+ * each pass starts from a freshly generated world. The allow list file is restored from the
+ * archive too: the engine writes names into it in the run directory, and the `commands` pass adds
+ * some, so a later pass would otherwise start from the list the previous one left behind.
  *
  * @throws Error when another running process staged a server in the same run directory. Its
  *   capture may still be running there, and restaging would delete its server or its world.
@@ -220,6 +222,10 @@ export const stageServer = async (options: StageOptions): Promise<StagedServer> 
     const worldDirectory = join(root, 'worlds', levelName);
     await rm(worldDirectory, { recursive: true, force: true });
     await mkdir(worldDirectory, { recursive: true });
+
+    // The engine writes allow list changes into the run directory, so a previous pass's names
+    // survive a reused copy. Restore the shipped empty file, as `server.properties` does below.
+    await cp(join(options.unpacked, 'allowlist.json'), join(root, 'allowlist.json'));
 
     const shipped = await readFile(join(options.unpacked, 'server.properties'), 'utf8');
     const { transport, properties } = transportProperties(shipped);
