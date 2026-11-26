@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Kernel } from '@jsprismarine/kernel';
 import { Config } from '../../config/Config';
 import { statsModule, statsProvidersModule } from '../../modules/stats';
+import { DO_NOT_TRACK_OPT_IN, DO_NOT_TRACK_VARIABLE } from '../../utils/doNotTrack';
 import type { Environment } from '../../utils/isTestRunner';
 import { testPlatform } from '../serverRegistry.test-utils';
 import { manualTimer, recordingLogger, stubFetch } from '../stats.test-utils';
@@ -58,9 +59,14 @@ describe('stats/bstats/serverBStats', () => {
 
         it.each([
             {},
+            { [DO_NOT_TRACK_VARIABLE]: DO_NOT_TRACK_OPT_IN },
             ...BSTATS_OPT_OUT.on.flatMap((value) => [{ JSP_BSTATS: value }, { JSP_BSTATS: value.toUpperCase() }])
         ])('reports with bStats enabled and the environment %j', (env) => {
             expect(bstatsOffReason({ ...on, env })).toBeUndefined();
+        });
+
+        it.each(['1', 'true', 'yes', 'nope', ''])('turns bStats off for DO_NOT_TRACK=%j', (value) => {
+            expect(bstatsOffReason({ ...on, env: { [DO_NOT_TRACK_VARIABLE]: value } })).toBe('do-not-track');
         });
 
         it.each(
@@ -87,7 +93,8 @@ describe('stats/bstats/serverBStats', () => {
             [{ ...on, settings: { enabled: false } }, 'disabled'],
             [{ ...on, settings: { enabled: false, problem: 'stats is false' } }, 'invalid-config'],
             [{ env: { VITEST: 'true', CI: '1', JSP_BSTATS: '0' }, settings: { enabled: false } }, 'test-runner'],
-            [{ env: { CI: '1', JSP_BSTATS: '0' }, settings: { enabled: false } }, 'ci'],
+            [{ env: { CI: '1', DO_NOT_TRACK: '1' }, settings: { enabled: false } }, 'ci'],
+            [{ env: { DO_NOT_TRACK: '1', JSP_BSTATS: '0' }, settings: { enabled: false } }, 'do-not-track'],
             [{ env: { JSP_BSTATS: '0' }, settings: { enabled: false, problem: 'stats is false' } }, 'environment']
         ])('turns bStats off for %j with %s', (inputs, reason) => {
             expect(bstatsOffReason(inputs)).toBe(reason);
@@ -99,6 +106,7 @@ describe('stats/bstats/serverBStats', () => {
             ['under this test run, reading the real environment', configOf(), process.env],
             ['under Vitest', configOf(), { VITEST: 'true' }],
             ['in CI', configOf(), { CI: 'true' }],
+            ['with DO_NOT_TRACK=1', configOf(), { DO_NOT_TRACK: '1' }],
             ['with JSP_BSTATS=0', configOf(), { JSP_BSTATS: '0' }],
             ['with JSP_BSTATS=maybe', configOf(), { JSP_BSTATS: 'maybe' }],
             [
@@ -123,6 +131,15 @@ describe('stats/bstats/serverBStats', () => {
 
             expect(lines.filter((line) => line.startsWith('warn:'))).toEqual([
                 'warn: [prismarine:stats-providers] [bstats] bStats is off because JSP_BSTATS=maybe is not a value it takes. Use 0, false, off, no to turn it off, or 1, true, on, yes to follow stats.bstats.enabled.'
+            ]);
+        });
+
+        it('logs why at debug level when DO_NOT_TRACK is set', async () => {
+            const { kernel, lines } = await startStats(configOf(), { DO_NOT_TRACK: '1' });
+            await kernel.stop();
+
+            expect(lines).toEqual([
+                'debug: [prismarine:stats-providers] [bstats] bStats is off because DO_NOT_TRACK=1 is set'
             ]);
         });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DO_NOT_TRACK_OPT_IN, DO_NOT_TRACK_VARIABLE } from '../utils/doNotTrack';
 import { decideUpdateCheck, UPDATE_CHECK_OPT_OUT } from './decision';
 import { DEFAULT_UPDATE_SOURCE } from './feed';
 import { DEFAULT_UPDATE_SETTINGS, readUpdateSettings } from './settings';
@@ -56,6 +57,7 @@ describe('decideUpdateCheck', () => {
     it.each([
         ['the test runner', { VITEST: 'true' }],
         ['CI', { CI: '' }],
+        ['the shared Do Not Track opt-out', { [DO_NOT_TRACK_VARIABLE]: '1' }],
         ['the opt-out variable', { [UPDATE_CHECK_OPT_OUT.variable]: 'OFF' }]
     ])('stays off under %s whatever the config says', (_name, env) => {
         const settings = readUpdateSettings({ enabled: true });
@@ -84,5 +86,12 @@ describe('decideUpdateCheck', () => {
                 build: releaseBuild
             })
         ).toMatchObject({ on: false, level: 'debug' });
+        expect(
+            decideUpdateCheck({
+                env: { [DO_NOT_TRACK_VARIABLE]: DO_NOT_TRACK_OPT_IN },
+                settings: DEFAULT_UPDATE_SETTINGS,
+                build: releaseBuild
+            })
+        ).toMatchObject({ on: true });
     });
 });

@@ -532,6 +532,17 @@ async function configFacts() {
     };
 }
 
+/** The shared telemetry opt-out, quoted by both the stats and the updates guides. */
+async function doNotTrackFacts() {
+    const { DO_NOT_TRACK_OPT_IN, DO_NOT_TRACK_VARIABLE } =
+        await import('../../packages/prismarine/src/utils/doNotTrack.ts');
+    return {
+        'doNotTrack.variable': DO_NOT_TRACK_VARIABLE,
+        'doNotTrack.optOut': `${DO_NOT_TRACK_VARIABLE}=1`,
+        'doNotTrack.optIn': DO_NOT_TRACK_OPT_IN
+    };
+}
+
 /** bStats facts, from the chart table, the service constants, the schedule and the settings. */
 async function bstatsFacts() {
     const { BSTATS_CHARTS, chartId } = await import('../../packages/prismarine/src/stats/bstats/charts.ts');
@@ -1622,6 +1633,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await commandReferenceFacts()),
             ...(await errorFacts()),
             ...(await configFacts()),
+            ...(await doNotTrackFacts()),
             ...(await bstatsFacts()),
             ...(await updateFacts()),
             // The ids a `worlds.<name>` entry's `experiments` accepts.

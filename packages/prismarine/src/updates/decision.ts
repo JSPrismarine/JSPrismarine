@@ -1,4 +1,5 @@
 import { CI_VARIABLE } from '../stats/bstats/serverBStats';
+import { DO_NOT_TRACK_VARIABLE, isDoNotTrack } from '../utils/doNotTrack';
 import { ENV_SWITCH_VALUES, readEnvSwitch } from '../utils/envSwitch';
 import { isTestRunner } from '../utils/isTestRunner';
 import type { Environment } from '../utils/isTestRunner';
@@ -43,9 +44,9 @@ export type UpdateCheckDecision =
 
 /**
  * Decides whether the server checks for updates on its own. It does not under Vitest, when `CI`
- * is set, when `JSP_UPDATE_CHECK` turns it off or holds a value it does not take, when `updates`
- * holds something it cannot use, when `updates.enabled` is false, and on a build run from a
- * checkout unless `updates.enabled` is true.
+ * is set, when `DO_NOT_TRACK` asks not to track, when `JSP_UPDATE_CHECK` turns it off or holds a
+ * value it does not take, when `updates` holds something it cannot use, when `updates.enabled` is
+ * false, and on a build run from a checkout unless `updates.enabled` is true.
  */
 export const decideUpdateCheck = ({
     env,
@@ -59,6 +60,12 @@ export const decideUpdateCheck = ({
     const { variable, off, on } = UPDATE_CHECK_OPT_OUT;
     if (isTestRunner(env)) return { on: false, level: 'debug', reason: 'the server runs under the test runner' };
     if (env[CI_VARIABLE] !== undefined) return { on: false, level: 'debug', reason: `${CI_VARIABLE} is set` };
+    if (isDoNotTrack(env))
+        return {
+            on: false,
+            level: 'debug',
+            reason: `${DO_NOT_TRACK_VARIABLE}=${env[DO_NOT_TRACK_VARIABLE]} is set`
+        };
     const optOut = readEnvSwitch(env[variable]);
     if (optOut === 'off') return { on: false, level: 'debug', reason: `${variable}=${env[variable]} is set` };
     if (optOut === 'invalid') {

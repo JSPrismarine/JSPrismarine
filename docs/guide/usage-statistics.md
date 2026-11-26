@@ -91,6 +91,8 @@ decides anew. It doesn't report when:
   than an `http` or `https` URL. The server logs a warning that names the value.
 - <!-- fact:bstats.optOutVariable -->`JSP_BSTATS`<!-- /fact --> in the environment turns it off,
   as [Turning it off](#turning-it-off) describes.
+- <!-- fact:doNotTrack.variable -->`DO_NOT_TRACK`<!-- /fact --> in the environment asks not
+  to track, as [Turning it off](#turning-it-off) describes.
 - The <!-- fact:bstats.ciVariable -->`CI`<!-- /fact --> environment variable is set, to any value.
 - The server runs under the Vitest test runner, which sets
   <!-- fact:bstats.testRunnerVariable -->`VITEST`<!-- /fact -->.
@@ -102,6 +104,7 @@ decides anew. It doesn't report when:
 Each time it stays off, the server logs why. A setting it cannot read, an unrecognized
 `JSP_BSTATS` value and a UUID it could not store are logged where the default log level shows them.
 An opt-out you chose, through the config, <!-- fact:bstats.optOutVariable -->`JSP_BSTATS`<!-- /fact -->,
+<!-- fact:doNotTrack.variable -->`DO_NOT_TRACK`<!-- /fact -->,
 <!-- fact:bstats.ciVariable -->`CI`<!-- /fact --> or the test runner's
 <!-- fact:bstats.testRunnerVariable -->`VITEST`<!-- /fact -->, is logged at the `debug` level, which
 the default log level hides.
@@ -131,6 +134,13 @@ in any case:
 - <!-- fact:bstats.optInValues -->`1`, `true`, `on`, `yes`<!-- /fact --> leave the decision to
   `config.json`, as an unset variable does. They don't turn on a server the config turned off.
 - Any other value turns bStats off, and the server logs a warning that lists the values above.
+
+The shared <!-- fact:doNotTrack.variable -->`DO_NOT_TRACK`<!-- /fact --> variable turns off all
+telemetry, including bStats and automatic update checks. Set it to any value other than the
+explicit opt-in <!-- fact:doNotTrack.optIn -->`0`<!-- /fact -->, such as
+<!-- fact:doNotTrack.optOut -->`DO_NOT_TRACK=1`<!-- /fact -->. Unset or `0`, it leaves the decision
+to `config.json`. An empty value also asks not to track, since the convention defines no other
+opt-in.
 
 ## Settings
 
@@ -162,7 +172,8 @@ Remove the key to go back to bStats; the next start writes the default in again.
 A program that [embeds `@jsprismarine/prismarine`](extending.md#embed-the-server) reports too.
 The same switches apply to the `config.json` its `Config` reads: set
 <!-- fact:bstats.enabledKey -->`stats.bstats.enabled`<!-- /fact --> to `false` in that file, or
-set <!-- fact:bstats.optOut -->`JSP_BSTATS=0`<!-- /fact --> in the program's environment.
+set <!-- fact:bstats.optOut -->`JSP_BSTATS=0`<!-- /fact --> or
+<!-- fact:doNotTrack.optOut -->`DO_NOT_TRACK=1`<!-- /fact --> in the program's environment.
 
 To send the server's numbers somewhere else as well, pass your own providers in the `Server`
 constructor's `statsProviders` option. Each one implements the exported `StatsProvider`
