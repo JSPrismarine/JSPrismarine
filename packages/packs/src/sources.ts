@@ -5,7 +5,8 @@ import { readBrarchive } from './brarchive';
 import type { Diagnostic } from './diagnostics';
 import { compareVersions, parseVersion } from './formatVersion';
 import { parseLenientJson } from './lenientJson';
-import { createZipBudget, isZip, readZip } from './zip';
+import { readContentArchive } from './archive';
+import { createZipBudget } from './zip';
 import type { ZipBudget } from './zip';
 
 /**
@@ -181,45 +182,39 @@ const addPackFile = (
     }
 };
 
-/** Expands a `.mcpack` (manifest at the root) or `.mcaddon` (nested `.mcpack`s). */
+/**
+ * Expands a `.mcpack` or an `.mcaddon` into its packs, as {@link readContentArchive} reads them.
+ * A world the archive holds is not a pack, and is skipped with a warning.
+ */
 const expandArchive = (
     path: string,
     diagnostics: Diagnostic[],
     wanted: PackFileFilter,
     budget: ZipBudget
 ): PackFiles[] => {
-    // One budget for the archive and every pack nested in it, so nesting cannot multiply it.
-    const entries = readZip(readFileSync(path), { budget });
-    if (entries.has('manifest.json')) return [zipPack(path, entries, wanted)];
+    const { members, problems } = readContentArchive(readFileSync(path), { budget });
+    for (const { name, message } of problems)
+        diagnostics.push({ severity: 'error', code: 'source.unreadable', pack: `${path}/${name}`, message });
 
     const packs: PackFiles[] = [];
-    for (const [name, bytes] of entries) {
-        if (name.endsWith('.mcpack')) {
-            if (!isZip(bytes)) {
-                diagnostics.push({
-                    severity: 'error',
-                    code: 'source.unreadable',
-                    pack: `${path}/${name}`,
-                    message: `${name} is not a zip archive`
-                });
-                continue;
-            }
-            packs.push(zipPack(`${path}/${name}`, readZip(bytes, { budget }), wanted));
-        } else if (name.endsWith('.mcworld') || name.endsWith('.mctemplate')) {
+    for (const { name, kind, files } of members) {
+        if (kind === 'world') {
             diagnostics.push({
                 severity: 'warning',
                 code: 'source.skipped',
                 pack: path,
-                message: `${name} is a world, not a pack, and was skipped`
+                message: `${name || 'the archive'} is a world, not a pack, and was skipped`
             });
+            continue;
         }
+        packs.push(zipPack(name === '' ? path : `${path}/${name}`, files, wanted));
     }
-    if (packs.length === 0) {
+    if (packs.length === 0 && problems.length === 0) {
         diagnostics.push({
             severity: 'error',
             code: 'source.unreadable',
             pack: path,
-            message: 'the archive has neither a root manifest.json nor .mcpack members'
+            message: 'the archive holds no pack: no manifest.json at its root, and no nested .mcpack or pack folder'
         });
     }
     return packs;
