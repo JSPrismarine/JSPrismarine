@@ -1092,7 +1092,12 @@ export default class Server {
             },
             // An update replaces an addon's folder in place, so the manifests are read again; a
             // `/reload` that changed no addon reloads the scripts in place, as it always has.
-            reload: (options) => this.reloadScripts(options)
+            reload: (options) => this.reloadScripts(options),
+            importWorld: ({ key, member, files }) =>
+                this.worldManager.importLevel({
+                    fallbackName: member === '' ? key : member.replace(/\.[^.]*$|\/$/, ''),
+                    files
+                })
         });
         return this.addons;
     }

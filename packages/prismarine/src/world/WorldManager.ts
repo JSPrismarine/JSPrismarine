@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+import { Generator } from '@jsprismarine/minecraft';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { WorldData } from '../config/JsonConfigTypes';
@@ -22,7 +25,8 @@ import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import type { World } from './World';
 import { WorldgenCatalog } from './WorldgenCatalog';
-import { LEVELS_FILE_NAME, LevelRegistry } from './LevelRegistry';
+import { DEFAULT_CREATED_PRESET, LEVELS_FILE_NAME, LevelRegistry } from './LevelRegistry';
+import { LEVEL_NAME_FILE_NAME, readLevelDat } from './providers/leveldb/LevelDat';
 import { transferToLevel } from './levelTransfer';
 import { PLAYER_LEVELS_FILE_NAME, PlayerLevels } from './PlayerLevels';
 import type { RegisteredLevel } from './LevelRegistry';
@@ -39,6 +43,20 @@ const WORLDS_FOLDER = 'worlds';
 /** What a level created while the server runs may be named, since the name also names its folder. */
 const LEVEL_NAME = /^[A-Za-z0-9_-]{1,64}$/;
 
+/**
+ * A level name made from a world's own, which may hold spaces and color codes: `§6My World!` is
+ * `My-World`. Undefined when nothing of it is left.
+ */
+const importedLevelName = (name: string): string | undefined => {
+    const made = name
+        .replace(/§./g, '')
+        .trim()
+        .replace(/[^A-Za-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64);
+    return LEVEL_NAME.test(made) ? made : undefined;
+};
+
 /** Where a level comes from: the config's `worlds`, or `levels.json`, which records the ones created at runtime. */
 export type LevelOrigin = 'config' | 'registry';
 
@@ -54,8 +72,13 @@ const EVACUATION_TICKS = 200;
 /** A level built and registered, and whether its save had no stems or no UUID before this load. */
 interface PreparedLevel {
     readonly level: Level;
-    /** True when the save carried no `worldGenSettings` or no `levelId`, which the first load then writes. */
+    /**
+     * True when the save carried no `worldGenSettings`, or no `levelId` or another one than the
+     * level was given, which the first load then writes.
+     */
     readonly firstLoad: boolean;
+    /** The UUID the save held, when it held one. */
+    readonly savedId?: string;
 }
 
 /** What a save already holds that decides the level built over it. */
@@ -244,6 +267,58 @@ export default class WorldManager implements Service {
         });
     }
 
+    /**
+     * Imports a world, the files of an `.mcworld` or an `.mctemplate`, as a level: writes it into a
+     * new folder under `worlds/` and records it in `levels.json` as detached, so the owner attaches
+     * it when they want it in play. It is named after its `levelname.txt`, and its seed and preset
+     * come from its `level.dat`.
+     *
+     * @param fallbackName - The name when the world's own does not make one.
+     * @returns The level as `levels.json` records it.
+     */
+    public importLevel(world: {
+        readonly fallbackName: string;
+        readonly files: ReadonlyMap<string, Uint8Array>;
+    }): Promise<RegisteredLevel> {
+        return this.operations.run(async () => {
+            // The file is the record, and an import at startup comes before the levels load.
+            await this.registry.load();
+            const levelName = world.files.get(LEVEL_NAME_FILE_NAME);
+            const wanted =
+                importedLevelName(levelName === undefined ? '' : new TextDecoder().decode(levelName)) ??
+                importedLevelName(world.fallbackName) ??
+                'imported';
+            // A name a configured or attached level has would stop the attach, so it takes a
+            // number, as `My-World-2`.
+            let name = wanted;
+            for (let n = 2; this.isNameTaken(name); n++) name = `${wanted.slice(0, 60)}-${n}`;
+            const folder = this.newFolder(name);
+            const target = withCwd(WORLDS_FOLDER, folder);
+            for (const [file, data] of world.files) {
+                if (file.endsWith('/')) continue;
+                const at = path.join(target, ...file.split('/'));
+                await mkdir(path.dirname(at), { recursive: true });
+                await writeFile(at, data);
+            }
+            const root = readLevelDat(target)?.root;
+            const record: RegisteredLevel = {
+                id: randomUUID(),
+                name,
+                folder,
+                state: 'detached',
+                world: {
+                    preset:
+                        root?.getNumber('Generator', Generator.OVERWORLD) === Generator.FLAT
+                            ? 'minecraft:flat'
+                            : DEFAULT_CREATED_PRESET,
+                    seed: (root?.getLong('RandomSeed', 0n) ?? 0n).toString()
+                }
+            };
+            await this.registry.put(record);
+            return record;
+        });
+    }
+
     /** The level each player was last in, which a transfer between levels records. */
     public getPlayerLevels(): PlayerLevels {
         return this.playerLevels;
@@ -275,13 +350,16 @@ export default class WorldManager implements Service {
         this.checkNameFree(record.name);
         const prepared = await this.prepareLevel(record.world, record.name, {
             origin: 'registry',
-            folder: record.folder
+            folder: record.folder,
+            // The UUID levels.json records wins over one the save holds, which a world imported
+            // from another server, or a folder copied from another level, brings along.
+            id: record.id
         });
-        if (prepared.level.id !== record.id) {
+        if (prepared.savedId !== undefined && prepared.savedId !== record.id) {
             this.server
                 .getLogger()
                 .warn(
-                    `Level ${record.name}'s save holds UUID ${prepared.level.id}, not the ${record.id} levels.json records for its folder`
+                    `Level ${record.name}'s save held UUID ${prepared.savedId}, not the ${record.id} levels.json records for its folder; it holds ${record.id} now`
                 );
         }
         await this.finishLoading(prepared, prepared.level.enable());
@@ -290,9 +368,14 @@ export default class WorldManager implements Service {
 
     /** Throws when an attached level, or a level the config declares, has a name. */
     private checkNameFree(name: string): void {
+        if (this.isNameTaken(name)) throw new PrismarineWorldErrors.LevelNameTaken({ name });
+    }
+
+    /** Whether an attached level, or a level the config declares, has a name. */
+    private isNameTaken(name: string): boolean {
         const wanted = name.toLowerCase();
         const configured = Object.keys(this.server.getConfig().getWorlds()).some((key) => key.toLowerCase() === wanted);
-        if (configured || this.isWorldLoaded(name)) throw new PrismarineWorldErrors.LevelNameTaken({ name });
+        return configured || this.isWorldLoaded(name);
     }
 
     /**
@@ -390,7 +473,7 @@ export default class WorldManager implements Service {
     private async prepareLevel(
         worldData: WorldData,
         folderName: string,
-        options: { overworld?: 'eager' | 'lazy'; origin?: LevelOrigin; folder?: string } = {}
+        options: { overworld?: 'eager' | 'lazy'; origin?: LevelOrigin; folder?: string; id?: string } = {}
     ): Promise<PreparedLevel> {
         if (!worldData) throw new PrismarineWorldErrors.InvalidWorldConfig();
 
@@ -450,9 +533,10 @@ export default class WorldManager implements Service {
             logger.error(`§c${identifier}§r threw on ${what}; it will not be reported again`);
         };
 
+        // A save from before levels had a UUID gets one now, which its first load writes.
+        const id = options.id ?? saved.levelId ?? randomUUID();
         const level = new Level({
-            // A save from before levels had a UUID gets one now, which its first load writes.
-            id: saved.levelId ?? randomUUID(),
+            id,
             ...(saved.dimensionNumbers === undefined ? {} : { dimensionNumbers: saved.dimensionNumbers }),
             name: folderName,
             path: levelPath,
@@ -488,7 +572,11 @@ export default class WorldManager implements Service {
         this.states.set(level.id, 'attaching');
         this.origins.set(level.id, origin);
 
-        return { level, firstLoad: saved.worldGenSettings === undefined || saved.levelId === undefined };
+        return {
+            level,
+            firstLoad: saved.worldGenSettings === undefined || saved.levelId !== id,
+            ...(saved.levelId === undefined ? {} : { savedId: saved.levelId })
+        };
     }
 
     /**
