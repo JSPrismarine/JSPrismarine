@@ -30,7 +30,12 @@ import { fileURLToPath } from 'node:url';
 import type { JavaClass } from '@jsprismarine/java-classfile/classFile';
 import { parseJavaClass } from '@jsprismarine/java-classfile/classFile';
 import { javaSourceFingerprint, javaSourceKey, javaSourceListing } from '@jsprismarine/java-classfile/fingerprint';
-import type { JavaClassIndex, JavaSourceGolden, JavaSourceTag } from '@jsprismarine/java-classfile/sources';
+import type {
+    JavaClassIndex,
+    JavaReference,
+    JavaSourceGolden,
+    JavaSourceTag
+} from '@jsprismarine/java-classfile/sources';
 import {
     formatJavaSourceGolden,
     needsReview,
@@ -50,13 +55,16 @@ const flagValues = (argv: readonly string[], flag: string): string[] =>
         argument === flag && argv[index + 1] !== undefined ? [argv[index + 1] ?? ''] : []
     );
 
-/** The pinned jar's classes, by binary name, parsed on first use. */
-const readJar = async (): Promise<{ readonly version: string; readonly index: JavaClassIndex }> => {
+/**
+ * The pinned jar's classes, by binary name, parsed on first use.
+ *
+ * @returns The release and its class index, or undefined when the jar is not cached.
+ */
+export const readPinnedJar = async (): Promise<
+    { readonly version: string; readonly index: JavaClassIndex } | undefined
+> => {
     const jar = await pinnedServerJar();
-    if (!jar.exists)
-        throw new Error(
-            `${jar.path} is missing; run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${jar.version}\``
-        );
+    if (!jar.exists) return undefined;
     const classes = new Map<string, Buffer>();
     for (const [entry, bytes] of readServerClasses(readFileSync(jar.path)))
         classes.set(entry.slice(0, -'.class'.length), bytes);
@@ -71,6 +79,69 @@ const readJar = async (): Promise<{ readonly version: string; readonly index: Ja
         return parsedClass;
     };
     return { version: jar.version, index: { names: [...classes.keys()], load } };
+};
+
+/** {@link readPinnedJar}, failing with the command that fetches a jar that is not cached. */
+const readJar = async (): Promise<{ readonly version: string; readonly index: JavaClassIndex }> => {
+    const jar = await readPinnedJar();
+    if (jar !== undefined) return jar;
+    const { path, version } = await pinnedServerJar();
+    throw new Error(
+        `${path} is missing; run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${version}\``
+    );
+};
+
+/**
+ * What the `java.transcriptions` parity family would fail on, read from the jar: a tag or
+ * reference that names no member, or several overloads, and a `@javaSource` member whose
+ * resolution or fingerprint the golden does not record for the release.
+ *
+ * @param tags - The `@javaSource` tags.
+ * @param references - The `@javaSee` tags.
+ * @param golden - `packages/parity/goldens/java-sources.json`.
+ * @param jar - The pinned jar, from {@link readPinnedJar}.
+ * @returns One `file:line: message` line per problem.
+ */
+export const pinnedJarProblems = (
+    tags: readonly JavaSourceTag[],
+    references: readonly JavaReference[],
+    golden: JavaSourceGolden,
+    { version, index }: { readonly version: string; readonly index: JavaClassIndex }
+): string[] => {
+    const problems: string[] = [];
+    const seen = new Set<string>();
+    for (const tag of tags) {
+        if (seen.has(`source ${tag.spelling}`)) continue;
+        seen.add(`source ${tag.spelling}`);
+        try {
+            const member = resolveJavaSource(tag.spelling, index);
+            const key = javaSourceKey(member);
+            const stamped = golden.sources[key]?.[version];
+            const fingerprint = javaSourceFingerprint(javaSourceListing(index.load, member));
+            if (golden.names[tag.spelling] !== key)
+                problems.push(
+                    `${tag.file}:${tag.line}: ${tag.spelling} resolves to ${key}, the golden says ${golden.names[tag.spelling] ?? 'nothing'}`
+                );
+            else if (stamped !== fingerprint)
+                problems.push(
+                    `${tag.file}:${tag.line}: ${tag.spelling} has ${stamped === undefined ? 'no fingerprint' : 'another fingerprint'} for ${version} in the golden`
+                );
+        } catch (error) {
+            problems.push(`${tag.file}:${tag.line}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    for (const reference of references) {
+        if (seen.has(`see ${reference.spelling}`)) continue;
+        seen.add(`see ${reference.spelling}`);
+        try {
+            resolveJavaSource(reference.spelling, index);
+        } catch (error) {
+            problems.push(
+                `${reference.file}:${reference.line}: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+    }
+    return problems;
 };
 
 /**

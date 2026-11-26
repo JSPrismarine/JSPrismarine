@@ -281,7 +281,7 @@ export type WireShape = Readonly<Record<HorizontalDirection, WireSide>>;
  * Java's `isFaceSturdy` on the face toward the wire is read as a full cube, which is what turns a
  * climb into `up`; a slab or stair beside the wire draws `side` there instead.
  *
- * @javaSee RedstoneWireBlock.getConnectingSide
+ * @javaSee RedstoneWireBlock.getConnectingSide(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Lnet/minecraft/world/level/block/state/properties/RedstoneSide;
  */
 export const wireConnectingSide = (world: WorldAccess, at: BlockPosition, side: HorizontalDirection): WireSide => {
     const canConnectUp = !isRedstoneConductor(world.getBlock(relative(at, 'up')));

@@ -159,7 +159,10 @@ commit messages and comments.
   tested dashboard row. CI fails when a declared family has no test.
 - Code that copies a Java method, field or constant out of the jar names it in its JSDoc with
   `@javaSource Class.member`; a comment that only names a Java member uses `@javaSee`
-  ([ADR 0031](docs/adr/0031-copied-java-code-names-its-source.md)). After adding or removing a
+  ([ADR 0031](docs/adr/0031-copied-java-code-names-its-source.md)). Name an overloaded member with
+  its JVM descriptor, as in `@javaSee RandomSource.nextInt(I)I`. With the pinned jar cached,
+  `pnpm run lint:java-sources`, and so the commit gate, resolves every tag in the jar and fails on
+  one that names no member or several. After adding or removing a
   `@javaSource`, stamp it with `pnpm --filter @jsprismarine/bedrock-data run java:sources --update`.
   After tagging a citation, lower the untagged-citation baseline with
   `node scripts/check-java-sources.mts --update-baseline`.
