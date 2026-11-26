@@ -9,11 +9,16 @@
  * The direction argument throughout is Java's: a query about the block at
  * `target.relative(d)` passes `d`, so `d` points from the block being powered
  * toward the block doing the powering.
+ *
+ * The `wiresSignal` argument is Java's `RedstoneWireBlock.shouldSignal`. A wire
+ * working out its own strength turns it off, so that no wire, and no block a
+ * wire powers, counts toward it; a wire only takes power from another wire
+ * through the one-less rule in `RedstoneWireEvaluator.getIncomingWireSignal`.
  */
 
-import { hasSturdyTopFace, isRedstoneConductor } from './blockRules';
-import type { BlockPosition, BlockRef, Direction, WorldAccess } from './world';
-import { DIRECTIONS, opposite, relative } from './world';
+import { hasSturdyTopFace, isFullCube, isRedstoneConductor } from './blockRules';
+import type { BlockPosition, BlockRef, Direction, HorizontalDirection, WorldAccess } from './world';
+import { DIRECTIONS, clockWise, counterClockWise, opposite, relative } from './world';
 
 const BUTTON_PRESSED_STATE = 'button_pressed_bit';
 const LEVER_OPEN_STATE = 'open_bit';
@@ -150,17 +155,31 @@ export const connectsToWire = (block: BlockRef, direction: Direction | undefined
     return isSignalSource(block) && direction !== undefined;
 };
 
-/** Java's `BlockState.getSignal`: the weak power a block gives one neighbor. */
-export const weakSignalOf = (world: WorldAccess, at: BlockPosition, direction: Direction): number => {
+/**
+ * Java's `BlockState.getSignal`: the weak power a block gives one neighbor.
+ *
+ * @javaSee RedstoneWireBlock.getSignal
+ * @param wiresSignal - False while a wire works out its own strength, which silences every wire.
+ */
+export const weakSignalOf = (
+    world: WorldAccess,
+    at: BlockPosition,
+    direction: Direction,
+    wiresSignal = true
+): number => {
     const block = world.getBlock(at);
     const { name } = block;
 
     if (name === REDSTONE_WIRE) {
-        if (direction === 'down') return SIGNAL_NONE;
+        if (!wiresSignal || direction === 'down') return SIGNAL_NONE;
         const power = numberState(block, SIGNAL_STATE);
         if (power === 0) return SIGNAL_NONE;
         if (direction === 'up') return power;
-        return wireConnectsOnSide(world, at, opposite(direction)) ? power : SIGNAL_NONE;
+        // Read from the neighbors rather than from the wire's stored shape, so a wire saved before
+        // the shape was written, or by a host that never writes it, still powers what it points into.
+        const side = opposite(direction);
+        if (side === 'up' || side === 'down') return SIGNAL_NONE;
+        return wireShapeOf(world, at)[side] === 'none' ? SIGNAL_NONE : power;
     }
 
     if (name === REDSTONE_TORCH.lit || name === REDSTONE_TORCH.unlit) {
@@ -175,11 +194,16 @@ export const weakSignalOf = (world: WorldAccess, at: BlockPosition, direction: D
 };
 
 /** Java's `BlockState.getDirectSignal`: the strong power a block gives one neighbor. */
-export const strongSignalOf = (world: WorldAccess, at: BlockPosition, direction: Direction): number => {
+export const strongSignalOf = (
+    world: WorldAccess,
+    at: BlockPosition,
+    direction: Direction,
+    wiresSignal = true
+): number => {
     const block = world.getBlock(at);
     const { name } = block;
 
-    if (name === REDSTONE_WIRE) return weakSignalOf(world, at, direction);
+    if (name === REDSTONE_WIRE) return weakSignalOf(world, at, direction, wiresSignal);
     if (name === REDSTONE_TORCH.lit || name === REDSTONE_TORCH.unlit) {
         return direction === 'down' ? weakSignalOf(world, at, direction) : SIGNAL_NONE;
     }
@@ -194,27 +218,27 @@ export const strongSignalOf = (world: WorldAccess, at: BlockPosition, direction:
 };
 
 /** Java's `SignalGetter.getDirectSignalTo`: the strongest strong power at a position. */
-export const directSignalTo = (world: WorldAccess, at: BlockPosition): number => {
+export const directSignalTo = (world: WorldAccess, at: BlockPosition, wiresSignal = true): number => {
     let best = SIGNAL_NONE;
     for (const direction of DIRECTIONS) {
-        best = Math.max(best, strongSignalOf(world, relative(at, direction), direction));
+        best = Math.max(best, strongSignalOf(world, relative(at, direction), direction, wiresSignal));
         if (best >= SIGNAL_MAX) return SIGNAL_MAX;
     }
     return best;
 };
 
 /** The power a block gives its neighbor, including power re-emitted by a conductor. */
-export const signalAt = (world: WorldAccess, at: BlockPosition, direction: Direction): number => {
-    const signal = weakSignalOf(world, at, direction);
+export const signalAt = (world: WorldAccess, at: BlockPosition, direction: Direction, wiresSignal = true): number => {
+    const signal = weakSignalOf(world, at, direction, wiresSignal);
     if (!isRedstoneConductor(world.getBlock(at))) return signal;
-    return Math.max(signal, directSignalTo(world, at));
+    return Math.max(signal, directSignalTo(world, at, wiresSignal));
 };
 
 /** Java's `SignalGetter.getBestNeighborSignal`: the strongest power reaching a position. */
-export const bestNeighborSignal = (world: WorldAccess, at: BlockPosition): number => {
+export const bestNeighborSignal = (world: WorldAccess, at: BlockPosition, wiresSignal = true): number => {
     let best = SIGNAL_NONE;
     for (const direction of DIRECTIONS) {
-        const signal = signalAt(world, relative(at, direction), direction);
+        const signal = signalAt(world, relative(at, direction), direction, wiresSignal);
         if (signal >= SIGNAL_MAX) return SIGNAL_MAX;
         if (signal > best) best = signal;
     }
@@ -233,17 +257,72 @@ export const hasNeighborSignal = (world: WorldAccess, at: BlockPosition): boolea
 export const hasSignal = (world: WorldAccess, at: BlockPosition, direction: Direction): boolean =>
     signalAt(world, at, direction) > 0;
 
-/** Whether a wire connects along one horizontal side. */
-export const wireConnectsOnSide = (world: WorldAccess, at: BlockPosition, side: Direction): boolean => {
-    if (side === 'up' || side === 'down') return false;
+/**
+ * The power reaching a wire from everything but other wires, Java's `RedstoneWireBlock.getBlockSignal`.
+ *
+ * @javaSee RedstoneWireBlock.getBlockSignal
+ */
+export const blockSignalToWire = (world: WorldAccess, at: BlockPosition): number =>
+    bestNeighborSignal(world, at, false);
+
+/**
+ * How a wire meets one horizontal side, Java's `RedstoneSide`: not at all, along the ground, or
+ * up the face of the block beside it to a wire on top. Bedrock's `redstone_<side>` states take the
+ * same three values.
+ */
+export type WireSide = 'none' | 'side' | 'up';
+
+/** A wire's shape: how it meets each of its four horizontal sides. */
+export type WireShape = Readonly<Record<HorizontalDirection, WireSide>>;
+
+/**
+ * How a wire connects along one horizontal side before its shape fills in where a run ends.
+ *
+ * Java's `isFaceSturdy` on the face toward the wire is read as a full cube, which is what turns a
+ * climb into `up`; a slab or stair beside the wire draws `side` there instead.
+ *
+ * @javaSee RedstoneWireBlock.getConnectingSide
+ */
+export const wireConnectingSide = (world: WorldAccess, at: BlockPosition, side: HorizontalDirection): WireSide => {
     const canConnectUp = !isRedstoneConductor(world.getBlock(relative(at, 'up')));
     const neighborPos = relative(at, side);
     const neighbor = world.getBlock(neighborPos);
 
     if (canConnectUp && hasSturdyTopFace(neighbor)) {
-        if (connectsToWire(world.getBlock(relative(neighborPos, 'up')), undefined)) return true;
+        if (connectsToWire(world.getBlock(relative(neighborPos, 'up')), undefined))
+            return isFullCube(neighbor) ? 'up' : 'side';
     }
-    if (connectsToWire(neighbor, side)) return true;
-    if (isRedstoneConductor(neighbor)) return false;
-    return connectsToWire(world.getBlock(relative(neighborPos, 'down')), undefined);
+    if (connectsToWire(neighbor, side)) return 'side';
+    if (isRedstoneConductor(neighbor)) return 'none';
+    return connectsToWire(world.getBlock(relative(neighborPos, 'down')), undefined) ? 'side' : 'none';
 };
+
+/**
+ * A wire's shape, which is also the sides it powers.
+ *
+ * A wire meets each side it connects to, and also points along any side whose two perpendicular
+ * sides both connect to nothing: a lone wire is a cross that powers all four sides, and a wire
+ * connected on one side also points out of the opposite one, where a run ends. Java's player can
+ * click a lone wire into a dot that powers nothing beside it; Bedrock has no such toggle, so a
+ * wire here is always the cross Java places.
+ *
+ * @javaSee RedstoneWireBlock.getConnectionState
+ */
+export const wireShapeOf = (world: WorldAccess, at: BlockPosition): WireShape => {
+    const connected = {
+        north: wireConnectingSide(world, at, 'north'),
+        south: wireConnectingSide(world, at, 'south'),
+        west: wireConnectingSide(world, at, 'west'),
+        east: wireConnectingSide(world, at, 'east')
+    };
+    const points = (side: HorizontalDirection): WireSide => {
+        if (connected[side] !== 'none') return connected[side];
+        const crossAxisFree = connected[clockWise(side)] === 'none' && connected[counterClockWise(side)] === 'none';
+        return crossAxisFree ? 'side' : 'none';
+    };
+    return { north: points('north'), south: points('south'), west: points('west'), east: points('east') };
+};
+
+/** Whether a wire connects along one horizontal side. */
+export const wireConnectsOnSide = (world: WorldAccess, at: BlockPosition, side: Direction): boolean =>
+    side !== 'up' && side !== 'down' && wireConnectingSide(world, at, side) !== 'none';
