@@ -53,6 +53,7 @@ export {
     SIGNAL_MAX,
     SIGNAL_NONE,
     bestNeighborSignal,
+    blockSignalToWire,
     connectsToWire,
     directSignalTo,
     hasNeighborSignal,
@@ -62,7 +63,11 @@ export {
     signalAt,
     strongSignalOf,
     weakSignalOf,
-    wireConnectsOnSide
+    type WireShape,
+    type WireSide,
+    wireConnectingSide,
+    wireConnectsOnSide,
+    wireShapeOf
 } from './signal';
 export { createTestWorld, type TestWorld, type TestWorldOptions } from './testWorld';
 export {

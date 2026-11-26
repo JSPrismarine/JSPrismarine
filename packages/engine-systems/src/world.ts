@@ -31,6 +31,9 @@ export type Direction = (typeof DIRECTIONS)[number];
 /** The four horizontal directions, in Java's `Direction.Plane.HORIZONTAL` order. */
 export const HORIZONTAL_DIRECTIONS = ['north', 'south', 'west', 'east'] as const satisfies readonly Direction[];
 
+/** One of {@link HORIZONTAL_DIRECTIONS}. */
+export type HorizontalDirection = (typeof HORIZONTAL_DIRECTIONS)[number];
+
 /** The two vertical directions, in Java's `Direction.Plane.VERTICAL` order. */
 export const VERTICAL_DIRECTIONS = ['down', 'up'] as const satisfies readonly Direction[];
 

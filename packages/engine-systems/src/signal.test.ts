@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { directSignalTo, hasNeighborSignal } from './signal';
+import { bestNeighborSignal, blockSignalToWire, directSignalTo, hasNeighborSignal, weakSignalOf } from './signal';
 import { createTestWorld } from './testWorld';
 import { block } from './world';
 
@@ -134,5 +134,61 @@ describe('a lit redstone torch', () => {
         // A standing torch does not power the block it stands on, and does power the one above.
         expect(hasNeighborSignal(world('top'), below)).toBe(false);
         expect(hasNeighborSignal(world('top'), above)).toBe(true);
+    });
+});
+
+describe('a redstone wire', () => {
+    const wire = (signal: number) => block('minecraft:redstone_wire', { redstone_signal: signal });
+    const at = { x: 0, y: 1, z: 0 };
+    const floor = (arranged: ReturnType<typeof createTestWorld>) =>
+        arranged.placeLine({ x: -2, y: 0, z: 0 }, 'x', 5, block('minecraft:stone'));
+
+    it('powers all four sides while it connects to nothing, as a placed cross does', () => {
+        const arranged = createTestWorld();
+        arranged.place(at, wire(15));
+
+        for (const direction of ['north', 'south', 'east', 'west'] as const) {
+            // The query asks the wire for the power it gives the block on its far side.
+            expect(weakSignalOf(arranged, at, direction)).toBe(15);
+        }
+    });
+
+    it('points out of the end of a run, and not out of its sides', () => {
+        const arranged = createTestWorld();
+        floor(arranged);
+        arranged.place(at, wire(15));
+        arranged.place({ x: 1, y: 1, z: 0 }, wire(14));
+
+        // The block west of the run's end, which the wire's east-to-west line points into.
+        expect(weakSignalOf(arranged, at, 'east')).toBe(15);
+        // The blocks north and south of it, which the line runs past.
+        expect(weakSignalOf(arranged, at, 'south')).toBe(0);
+        expect(weakSignalOf(arranged, at, 'north')).toBe(0);
+    });
+
+    it('counts toward the full power reading but not toward the reading a wire takes', () => {
+        const arranged = createTestWorld();
+        floor(arranged);
+        arranged.place(at, wire(0));
+        arranged.place({ x: 1, y: 1, z: 0 }, wire(15));
+        // A wire on the stone west of `at` strongly powers that stone, which passes it on.
+        arranged.place({ x: -1, y: 1, z: 0 }, block('minecraft:stone'));
+        arranged.place({ x: -1, y: 2, z: 0 }, wire(15));
+
+        expect(bestNeighborSignal(arranged, at)).toBe(15);
+        expect(blockSignalToWire(arranged, at)).toBe(0);
+
+        arranged.place({ x: 1, y: 1, z: 0 }, block('minecraft:air'));
+        // The stone alone still passes the wire's power on to anything but a wire.
+        expect(bestNeighborSignal(arranged, at)).toBe(15);
+    });
+
+    it('still takes the power of a source in the reading a wire takes', () => {
+        const arranged = createTestWorld();
+        floor(arranged);
+        arranged.place(at, wire(0));
+        arranged.place({ x: 1, y: 1, z: 0 }, block('minecraft:redstone_block'));
+
+        expect(blockSignalToWire(arranged, at)).toBe(15);
     });
 });
