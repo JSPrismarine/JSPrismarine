@@ -52,6 +52,7 @@ const fakeArchive = async (root: string): Promise<string> => {
     await mkdir(join(root, 'behavior_packs', 'vanilla'), { recursive: true });
     await mkdir(join(root, 'worlds', 'Bedrock level'), { recursive: true });
     await writeFile(join(root, 'behavior_packs', 'vanilla', 'manifest.json'), '{}');
+    await writeFile(join(root, 'allowlist.json'), '[]\n');
     await writeFile(join(root, 'server.properties'), 'level-name=Bedrock level\nonline-mode=true\n');
     // The zip reader writes every entry as a plain file, so this is how the binary arrives.
     await writeFile(join(root, 'bedrock_server'), '#!/bin/sh\nexit 0\n', { mode: 0o644 });
@@ -123,6 +124,18 @@ describe('stageServer', () => {
         const second = await stageServer({ unpacked, root: join(workspace, 'run') });
         expect(await readFile(join(second.root, 'behavior_packs', 'marker'), 'utf8')).toBe('kept');
         await expect(stat(join(second.worldDirectory, 'level.dat'))).rejects.toThrow();
+    });
+
+    it('restores the shipped allow list on a second run, so a previous pass cannot carry names in', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'unpacked'));
+        const root = join(workspace, 'run');
+        await stageServer({ unpacked, root });
+        // The `commands` pass leaves the names it added in the run directory's allow list.
+        await writeFile(join(root, 'allowlist.json'), '[{"name":"Alex"}]\n');
+
+        await stageServer({ unpacked, root });
+
+        expect(await readFile(join(root, 'allowlist.json'), 'utf8')).toBe('[]\n');
     });
 
     it('reuses a copy another worktree staged through its own link to the shared cache', async () => {
