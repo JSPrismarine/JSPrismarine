@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { javaServerCacheFolder, readGeneratedJavaVersion } from '../../../packages/bedrock-data/src/sources.ts';
 import { OFFLINE_MESSAGE_DATA_ID } from '../../../packages/raknet/src/Constants.ts';
 import { chunkWorkerCount } from '../../../packages/prismarine/src/world/generators/chunkConcurrency.ts';
+import { DEFAULT_VIEW_DISTANCE_CHUNKS } from '../../../packages/prismarine/src/world/Proximity.ts';
 import { repoRoot } from './cinnabar.mts';
 import type { ClientTransport } from './cinnabar.mts';
 import { newestCoverageFile } from './scenario-coverage.mts';
@@ -232,6 +233,7 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  *   `raknet`, the default, turns NetherNet off.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
+ *   Defaults to the join's spawn radius on the noise world, and to 0 on the flat one.
  * @param options.worldgenSpawn - Boots Java's normal preset at seed 1234, its noise Overworld,
  *   Nether and End included, with the persistent terrain cache on.
  * @param options.secondLevel - Adds a second flat `worlds` entry, {@link SECOND_LEVEL}, whose
@@ -750,7 +752,11 @@ export const startServer = async (
         ...(options.javaVersion === undefined ? {} : { 'content-java-version': options.javaVersion }),
         // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.
         'chunk-host': process.env.JSP_E2E_CHUNK_HOST === 'process' ? 'process' : 'in-process',
-        'preload-radius': options.preloadRadius ?? 0,
+        // A joining player gets `PlayStatus(PlayerSpawn)` once every chunk within
+        // DEFAULT_VIEW_DISTANCE_CHUNKS of it is on the wire, and the client gives up on StartGame
+        // after 30 s. Generating that much noise terrain beside another suite and the client's
+        // first shader warmup took longer, so the noise world generates it before it listens.
+        'preload-radius': options.preloadRadius ?? (options.worldgenSpawn === true ? DEFAULT_VIEW_DISTANCE_CHUNKS : 0),
         // The default reserves two cores for gameplay and networking, which leaves a three-core
         // CI runner one worker for the noise Overworld, and the client then waits on its loading
         // screen while that worker generates the spawn area alone. One idle player needs no such
