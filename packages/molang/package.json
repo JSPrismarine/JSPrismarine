@@ -49,12 +49,12 @@
     "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/molang",
     "devDependencies": {
-        "@types/node": "26.6.7",
+        "@types/node": "26.6.11",
         "glob": "14.0.6",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.8",
-        "vitest": "5.1.1"
+        "vitest": "5.1.2"
     },
     "dependencies": {
         "@jsprismarine/errors": "workspace:*"

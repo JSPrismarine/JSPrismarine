@@ -55,11 +55,11 @@
         "@jsprismarine/script-host": "workspace:*",
         "@jsprismarine/spawning": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
-        "@types/node": "26.6.7",
+        "@types/node": "26.6.11",
         "rimraf": "6.1.4",
         "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.8",
-        "vitest": "5.1.1"
+        "vitest": "5.1.2"
     }
 }

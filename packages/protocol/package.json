@@ -1948,12 +1948,12 @@
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@mtcute/wasm": "0.32.8",
-        "@types/node": "26.6.7",
+        "@types/node": "26.6.11",
         "glob": "14.0.6",
         "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.8",
-        "vitest": "5.1.1"
+        "vitest": "5.1.2"
     },
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
