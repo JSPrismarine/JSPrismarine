@@ -1064,6 +1064,11 @@
             "kind": "deferred",
             "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "wire-removal-reaches-corners:minecraft:redstone_wire": {
+            "kind": "deferred",
+            "reason": "Removing a block tells only its six neighbors, and the content hooks have no hook that runs after a block is gone, so the dust a step below removed dust keeps its signal and its climb until something beside it changes.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3755"
         }
     },
     "commands.answers": {},

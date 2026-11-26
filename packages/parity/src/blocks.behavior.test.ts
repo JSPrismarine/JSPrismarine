@@ -20,6 +20,7 @@ import { expect, it } from 'vitest';
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
+import { createCircuit } from './blockScenarios/circuit.ts';
 import { blockPropertyScenarios, hasMapColor, javaBlockRows } from './blockScenarios/properties.ts';
 import { javaBlockBehaviors, javaBlockHasBlockEntity, javaBlockIsA } from './javaBlockClasses.ts';
 import { describeFamily } from './measure.ts';
@@ -1296,6 +1297,104 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
             if (!stillLit) return 'it went dark the moment power was removed';
             return delay === 4 ? undefined : `it goes dark after ${String(delay)} ticks, Java uses 4`;
         }
+    },
+    {
+        name: 'wire-fades-from-its-source',
+        java: 'Redstone dust carries one level less with each block from its source, and goes dark when the source goes, because a wire reads power from everything but other wires.',
+        reference: 'Java DefaultRedstoneWireEvaluator.calculateTargetStrength',
+        subjects: () => named('minecraft:redstone_wire'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const circuit = createCircuit();
+            const run = [1, 2, 3, 4, 5].map((x) => ({ x, y: 5, z: 0 }));
+            for (let x = 0; x <= 5; x++) circuit.set({ x, y: 4, z: 0 }, 'minecraft:stone');
+            circuit.place({ x: 0, y: 5, z: 0 }, 'minecraft:redstone_block');
+            for (const at of run) circuit.place(at, subject.bedrock, subject.states);
+
+            const lit = run.map((at) => circuit.wireStrength(at)).join(', ');
+            if (lit !== '15, 14, 13, 12, 11') return `the run carried ${lit}, Java carries 15, 14, 13, 12, 11`;
+            circuit.remove({ x: 0, y: 5, z: 0 });
+            const dark = run.map((at) => circuit.wireStrength(at)).join(', ');
+            return dark === '0, 0, 0, 0, 0' ? undefined : `the run held ${dark} after its source was removed`;
+        }
+    },
+    {
+        name: 'wire-climbs-a-step',
+        java: 'Redstone dust connects to dust one block up or down beside it, draws itself up the face of the block between them, and carries its signal over the step.',
+        reference: 'Java RedstoneWireBlock.getConnectingSide and RedstoneWireEvaluator.getIncomingWireSignal',
+        subjects: () => named('minecraft:redstone_wire'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const circuit = createCircuit();
+            for (let x = 0; x <= 3; x++) circuit.set({ x, y: 4, z: 0 }, 'minecraft:stone');
+            circuit.set({ x: 2, y: 5, z: 0 }, 'minecraft:stone');
+            const steps = [
+                { x: 1, y: 5, z: 0 },
+                { x: 2, y: 6, z: 0 },
+                { x: 3, y: 5, z: 0 }
+            ];
+            circuit.place({ x: 0, y: 5, z: 0 }, 'minecraft:redstone_block');
+            for (const at of steps) circuit.place(at, subject.bedrock, subject.states);
+
+            const carried = steps.map((at) => circuit.wireStrength(at)).join(', ');
+            if (carried !== '15, 14, 13') return `the step carried ${carried}, Java carries 15, 14, 13`;
+            const [below] = steps;
+            const climbs = below === undefined ? undefined : circuit.stateAt(below, 'redstone_east');
+            return climbs === 'up'
+                ? undefined
+                : `the dust below the step draws ${String(climbs)} toward it, Java draws up`;
+        }
+    },
+    {
+        name: 'wire-removal-reaches-corners',
+        java: 'Removing redstone dust on top of a step turns off the dust a step below it and stops it drawing a climb to the dust that is gone.',
+        reference: 'Java RedstoneWireBlock.affectNeighborsAfterRemoval',
+        subjects: () => named('minecraft:redstone_wire'),
+        idOf: (subject) => subject.javaId,
+        classify: () => ({
+            kind: 'deferred',
+            reason: 'Removing a block tells only its six neighbors, and the content hooks have no hook that runs after a block is gone, so the dust a step below removed dust keeps its signal and its climb until something beside it changes.',
+            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3755'
+        }),
+        run: (subject) => {
+            const circuit = createCircuit();
+            for (let x = 0; x <= 3; x++) circuit.set({ x, y: 4, z: 0 }, 'minecraft:stone');
+            circuit.set({ x: 2, y: 5, z: 0 }, 'minecraft:stone');
+            const top = { x: 2, y: 6, z: 0 };
+            const below = { x: 3, y: 5, z: 0 };
+            circuit.place({ x: 0, y: 5, z: 0 }, 'minecraft:redstone_block');
+            for (const at of [{ x: 1, y: 5, z: 0 }, top, below]) circuit.place(at, subject.bedrock, subject.states);
+
+            circuit.remove(top);
+            const left = circuit.wireStrength(below);
+            if (left !== 0) return `the dust below the removed step still carries ${String(left)}`;
+            const drawn = circuit.stateAt(below, 'redstone_west');
+            return drawn === 'side' ? undefined : `the dust below still draws ${String(drawn)} toward the removed dust`;
+        }
+    },
+    {
+        name: 'wire-draws-its-shape',
+        java: 'Lone redstone dust is a cross pointing every way; dust in a run points along it, out of both ends.',
+        reference: 'Java RedstoneWireBlock.getConnectionState',
+        subjects: () => named('minecraft:redstone_wire'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const circuit = createCircuit();
+            for (let x = 0; x <= 2; x++) circuit.set({ x, y: 4, z: 0 }, 'minecraft:stone');
+            const shape = (x: number) =>
+                ['north', 'south', 'west', 'east']
+                    .map((side) => circuit.stateAt({ x, y: 5, z: 0 }, `redstone_${side}`))
+                    .join(' ');
+
+            circuit.place({ x: 0, y: 5, z: 0 }, subject.bedrock, subject.states);
+            if (shape(0) !== 'side side side side') return `lone dust draws ${shape(0)}, Java draws a cross`;
+            circuit.place({ x: 1, y: 5, z: 0 }, subject.bedrock, subject.states);
+            circuit.place({ x: 2, y: 5, z: 0 }, subject.bedrock, subject.states);
+            const run = [0, 1, 2].map(shape);
+            return run.every((drawn) => drawn === 'none none side side')
+                ? undefined
+                : `a run of three draws ${run.join(' / ')}, Java draws each along the run`;
+        }
     }
 ];
 /**
@@ -1319,6 +1418,10 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'growing-plant-head': ['random-tick'],
     'leaves-decay': ['random-tick'],
     'lamp-follows-power': ['neighbor-update'],
+    'wire-fades-from-its-source': ['neighbor-update'],
+    'wire-climbs-a-step': ['neighbor-update'],
+    'wire-draws-its-shape': ['neighbor-update'],
+    'wire-removal-reaches-corners': ['neighbor-update'],
     'concrete-powder-hardens': ['neighbor-update'],
     'tnt-ignites-on-power': ['neighbor-update'],
     'stalk-grows-upward': ['random-tick'],
