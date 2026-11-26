@@ -17,16 +17,22 @@ export const commandSyntaxError: Scenario = {
     run: async ({ client, server, playerName, log }) => {
         server.command(`op ${playerName}`);
         await waitTicks(server, 10);
-        await client.chat('/time set 1.5');
+        try {
+            await client.chat('/time set 1.5');
 
-        const deadline = Date.now() + 15_000;
-        for (;;) {
-            const { chat } = await client.state();
-            const lines = Array.isArray(chat) ? chat.map(String) : [];
-            if (lines.some((line) => line.includes(EXPECTED))) break;
-            assert.ok(Date.now() < deadline, `chat never showed the syntax error; chat: ${JSON.stringify(chat)}`);
-            await sleep(250);
+            const deadline = Date.now() + 15_000;
+            for (;;) {
+                const { chat } = await client.state();
+                const lines = Array.isArray(chat) ? chat.map(String) : [];
+                if (lines.some((line) => line.includes(EXPECTED))) break;
+                assert.ok(Date.now() < deadline, `chat never showed the syntax error; chat: ${JSON.stringify(chat)}`);
+                await sleep(250);
+            }
+            log(`chat showed ${EXPECTED}`);
+        } finally {
+            // permissions-reload follows in the suite, and starts from a player who may not run /tell.
+            server.command(`deop ${playerName}`);
+            await waitTicks(server, 10);
         }
-        log(`chat showed ${EXPECTED}`);
     }
 };
