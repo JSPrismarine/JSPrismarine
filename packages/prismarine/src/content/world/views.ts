@@ -307,6 +307,8 @@ const blockActionsOf = (
         setBlockData: (position, data) => adapter.blocks.setData(position, data),
         notifyNeighbors: (position) => adapter.blocks.notifyNeighbors(position),
         redstonePower: (position) => adapter.blocks.power(position),
+        redstonePowerToWire: (position) => adapter.blocks.powerToWire?.(position) ?? adapter.blocks.power(position),
+        redstoneWireShape: (position) => adapter.blocks.wireShape?.(position),
         redstoneSignal: (position, directionToSource) =>
             adapter.blocks.signal?.(position, directionToSource) ?? adapter.blocks.power(position),
         redstoneDirectSignal: (position, directionToSource) =>

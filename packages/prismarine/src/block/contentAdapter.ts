@@ -18,11 +18,13 @@ import type { BlockFace, BlockStateValue, HookBlock } from '@jsprismarine/blocks
 import {
     MAX_CHAINED_NEIGHBOR_UPDATES,
     bestNeighborSignal,
+    blockSignalToWire,
     isRedstoneConductor,
     opposite,
     relative,
     signalAt,
-    strongSignalOf
+    strongSignalOf,
+    wireShapeOf
 } from '@jsprismarine/engine-systems';
 
 import type { ContentLookup } from '../content/world/views';
@@ -47,6 +49,8 @@ export type ContentBlockGroup = Pick<
     | 'notifyNeighbors'
     | 'updateShape'
     | 'power'
+    | 'powerToWire'
+    | 'wireShape'
     | 'signal'
     | 'directSignal'
     | 'isRedstoneConductor'
@@ -398,6 +402,8 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // of the whole adapter, and none of its members reads `blocks.power`, so
         // reading it back through the content closes no loop.
         power: (at) => bestNeighborSignal(content().world.engineWorld, at),
+        powerToWire: (at) => blockSignalToWire(content().world.engineWorld, at),
+        wireShape: (at) => wireShapeOf(content().world.engineWorld, at),
         signal: (at, directionToSource) => signalAt(content().world.engineWorld, at, directionToSource),
         directSignal: (at, directionToSource) => strongSignalOf(content().world.engineWorld, at, directionToSource),
         isRedstoneConductor: (at) => isRedstoneConductor(content().world.engineWorld.getBlock(at))
