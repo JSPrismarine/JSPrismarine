@@ -125,14 +125,19 @@ with `addon install <addon> as <name>`.
 
 ## `PRISMARINE_INVALID_ADDON_PACK`
 
-`{key} is not a behavior pack: {problem}`
+`{key} is not a pack the server installs: {problem}`
 
 Thrown as `PrismarineAddonErrors.InvalidAddonPack`, which extends `AddonIntegrityError`.
 
-What was installed is not an addon: it has no `manifest.json` at its root or in a single
-folder, the manifest is not a behavior pack's, or a file in the archive would land outside
-the addon's folder. An `.mcaddon` must hold exactly one behavior pack, a pack with a data or
-script module; split one that holds several into an `.mcaddon` or `.mcpack` each.
+What was installed is not content the server installs. An `.mcpack` holds one pack, with
+`manifest.json` at its root or in a single folder; an `.mcaddon` holds packs and worlds, each
+a nested `.mcpack`, `.mcworld` or `.mctemplate` or a folder of its own; an `.mcworld` or
+`.mctemplate` holds a world, with `level.dat` at its root. A pack is a behavior pack, whose
+modules are data and script modules, or a resource pack, whose modules are resources
+modules. The message names what broke the rule: an archive with none of these, a manifest
+that does not read, a pack with another kind of module, an `.mcproject`, or a file in the
+archive that would land outside the addon's folder. Fix the archive, or export the world or
+the packs again from the game or the Editor.
 
 ## `PRISMARINE_INVALID_ADDON_SPEC`
 
@@ -141,9 +146,9 @@ script module; split one that holds several into an `.mcaddon` or `.mcpack` each
 Thrown as `PrismarineAddonErrors.InvalidAddonSpec`, which extends `TypeError`.
 
 `addon install` takes a bare addon name such as `tps-bar`, `<owner>/<repo>/<name>`, either
-with an optional `@<range>`, an `https:` URL of an `.mcpack`, or a path that starts with
-`./`, `../` or `/` or ends in `.mcpack` or `.mcaddon`. A range is `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix
-what the message names.
+with an optional `@<range>`, an `https:` URL of an archive, or a path that starts with
+`./`, `../` or `/` or ends in `.mcpack`, `.mcaddon`, `.mcworld` or `.mctemplate`. A range is
+`^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix what the message names.
 
 ## `PRISMARINE_INVALID_ADDONS_FILE`
 

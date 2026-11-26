@@ -5,7 +5,7 @@ import { addonVersionsInRange, isAddonName, satisfiesAddonRange } from '@jsprism
 import { fetchPublishedIndex, releaseDownloadUrl } from '@jsprismarine/addon-tools/build';
 import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
 
-import type { AddonRequest, AddonsFile, AddonsLockFile, LockedAddon } from './addonFiles';
+import type { AddonRequest, AddonsFile, AddonsLockFile, LockedAddon, LockedWorld } from './addonFiles';
 import {
     ADDONS_DIRECTORY,
     ADDONS_FILE,
@@ -15,18 +15,20 @@ import {
     readAddonFiles,
     writeAddonFiles
 } from './addonFiles';
-import type { PackSummary } from './addonPack';
+import type { ArchiveWorld, InstalledPack, PackSummary, SkippedMember } from './addonPack';
 import {
     downloadPack,
     httpsFetch,
     messageOf,
+    readInstalledPacks,
+    refuseEditorProject,
     releaseOf,
     removeAddonFolder,
     serverMeets,
     sha256Of,
     summarizeFiles,
     summarizeFolder,
-    unpackPack,
+    unpackArchive,
     writePackFolder
 } from './addonPack';
 import { isPackFile, keyOfDroppedPack, parseAddonSpec } from './addonSpec';
@@ -59,6 +61,29 @@ export interface AddonManagerOptions {
      * again rather than the scripts reloaded in place.
      */
     readonly reload?: (options: { readonly restart: boolean }) => Promise<void>;
+    /**
+     * Imports a world an archive holds as a level of the server's, and says which. A server that
+     * gives none installs an archive's packs and leaves its worlds out.
+     */
+    readonly importWorld?: (world: AddonWorld) => Promise<{ readonly id: string; readonly name: string }>;
+}
+
+/** A world an addon's archive holds, for {@link AddonManagerOptions.importWorld}. */
+export interface AddonWorld {
+    /** The addon's local name. */
+    readonly key: string;
+    /** Where the world sat in the archive, or an empty string for an archive that is the world. */
+    readonly member: string;
+    /** Whether it is a world template: a new level made from it, rather than a saved world. */
+    readonly template: boolean;
+    /** Its files, by their path inside the world's folder. */
+    readonly files: ReadonlyMap<string, Uint8Array>;
+}
+
+/** A resource pack an installed addon holds, which the server sends to clients as they join. */
+export interface AddonResourcePack extends InstalledPack {
+    /** The addon's local name. */
+    readonly key: string;
 }
 
 /** One installed addon, as `addon list` shows it. */
@@ -66,6 +91,8 @@ export interface InstalledAddon {
     readonly key: string;
     readonly request?: AddonRequest;
     readonly locked?: LockedAddon;
+    /** The packs its folder holds now. */
+    readonly packs: readonly InstalledPack[];
 }
 
 /** An installed addon's name and version, as its lock records them. */
@@ -74,15 +101,38 @@ export interface LoadedAddon {
     readonly version: string;
 }
 
-/** What a resolution produced: the lock entry and the pack's files, or a folder to link. */
+/** One pack a resolution installs, and its folder inside the addon's. */
+interface ResolvedPack {
+    readonly folder: string;
+    readonly summary: PackSummary;
+}
+
+/** What a resolution produced: the lock entry and the packs' files, or a folder to link. */
 interface Resolved {
     readonly locked: LockedAddon;
-    readonly summary: PackSummary;
+    readonly packs: readonly ResolvedPack[];
+    /** Every pack's files, by their path inside the addon's folder. */
     readonly files?: ReadonlyMap<string, Uint8Array>;
     readonly folder?: string;
-    /** The other packs of an `.mcaddon`, which do not install. */
-    readonly skipped?: readonly string[];
+    /** The worlds the archive holds, which import into the server's levels. */
+    readonly worlds?: readonly ArchiveWorld[];
+    /** What the archive holds that does not install, such as a skin pack. */
+    readonly skipped?: readonly SkippedMember[];
 }
+
+/** The version an archive installs as: its first behavior pack's, else its first resource pack's. */
+const versionOf = (packs: readonly ResolvedPack[]): string =>
+    (packs.find(({ summary }) => summary.kind === 'behavior') ?? packs[0])?.summary.version ?? '0.0.0';
+
+/** What in an addon's packs waits for a restart, each named inside its pack's folder. */
+const needsRestartOf = (packs: readonly { readonly folder: string; readonly summary: PackSummary }[]): string[] =>
+    packs.flatMap(({ folder, summary }) =>
+        summary.needsRestart.map((entry) => (folder === '.' ? entry : `${folder}/${entry}`))
+    );
+
+/** A pack as the console names it: `behavior pack Furniture 1.0.0`. */
+const describePack = ({ summary }: { readonly summary: PackSummary }): string =>
+    `${summary.kind} pack ${summary.name} ${summary.version}`;
 
 /** The warning for a deprecated addon, or undefined when its lock says nothing of one. */
 export const deprecationWarning = (key: string, locked: LockedAddon): string | undefined => {
@@ -109,6 +159,13 @@ export class AddonManager {
     private readonly fetcher: typeof fetch;
     /** The keys whose folder holds the locked addon, in key order. */
     private installed: readonly string[] = [];
+    /** The packs of each installed key, in key order. */
+    private installedPacks: readonly AddonResourcePack[] = [];
+    /**
+     * The resource packs among them. A new list only when {@link track} runs, so a reader can tell
+     * from the list alone that the packs changed.
+     */
+    private installedResourcePacks: readonly AddonResourcePack[] = [];
     /** The name and version each installed key locks, in key order. */
     private loaded: readonly LoadedAddon[] = [];
     private readonly queue = new SerialQueue();
@@ -133,7 +190,17 @@ export class AddonManager {
      * list after `content-world-packs`.
      */
     public packDirectories(): readonly string[] {
-        return this.installed.map((key) => path.join(this.addonsDirectory, key));
+        return this.installedPacks
+            .filter(({ summary }) => summary.kind === 'behavior')
+            .map(({ directory }) => directory);
+    }
+
+    /**
+     * The resource packs of the installed addons, in key order and, inside an addon, in the order
+     * of their folders: the packs the server sends to clients as they join.
+     */
+    public resourcePacks(): readonly AddonResourcePack[] {
+        return this.installedResourcePacks;
     }
 
     /**
@@ -149,15 +216,18 @@ export class AddonManager {
         return this.queue.run(async () => {
             const { requested, lock } = await readAddonFiles(this.options.directory);
             const keys = [...new Set([...Object.keys(requested.addons), ...Object.keys(lock.addons)])].sort();
-            return keys.map((key) => {
+            const listed: InstalledAddon[] = [];
+            for (const key of keys) {
                 const request = own(requested.addons, key);
                 const locked = own(lock.addons, key);
-                return {
+                listed.push({
                     key,
                     ...(request === undefined ? {} : { request }),
-                    ...(locked === undefined ? {} : { locked })
-                };
-            });
+                    ...(locked === undefined ? {} : { locked }),
+                    packs: await this.packsOf(key)
+                });
+            }
+            return listed;
         });
     }
 
@@ -184,14 +254,14 @@ export class AddonManager {
 
             const resolved = await this.resolve(key, parsed.request);
             const request = this.requestFor(key, parsed.request, parsed.range, resolved.locked);
-            await this.place(key, resolved);
+            const locked = await this.place(key, resolved);
             await this.write(
                 { addons: { ...requested.addons, [key]: request } },
-                { ...lock, addons: { ...lock.addons, [key]: resolved.locked } }
+                { ...lock, addons: { ...lock.addons, [key]: locked } }
             );
             this.report('Installed', key, resolved);
             await this.reload();
-            return resolved.locked;
+            return locked;
         });
     }
 
@@ -231,9 +301,8 @@ export class AddonManager {
                         }
                         continue;
                     }
-                    const outgoing = await this.summaryOf(each);
-                    await this.place(each, resolved);
-                    locks[each] = resolved.locked;
+                    const outgoing = await this.packsOf(each);
+                    locks[each] = await this.place(each, resolved, before);
                     changed.push(each);
                     this.report(before === undefined ? 'Installed' : `Updated ${before.version} to`, each, resolved);
                     this.reportOutgoing(each, outgoing);
@@ -259,7 +328,7 @@ export class AddonManager {
             const locked = own(lock.addons, key);
             if (own(requested.addons, key) === undefined && locked === undefined)
                 throw new PrismarineAddonErrors.AddonNotInstalled({ key });
-            const summary = await this.summaryOf(key);
+            const outgoing = needsRestartOf(await this.packsOf(key));
             await removeAddonFolder(path.join(this.addonsDirectory, key));
             // A pack dropped into addons/ would install again on the next sync while its file stays.
             const request = own(requested.addons, key);
@@ -270,10 +339,11 @@ export class AddonManager {
                 { ...lock, addons: without(lock.addons, key) }
             );
             this.options.log.info(`Removed ${key}${locked === undefined ? '' : ` ${locked.version}`}`);
-            if (summary !== undefined && summary.needsRestart.length > 0)
-                this.options.log.warn(
-                    `${key} also had ${summary.needsRestart.join(', ')}, which stay loaded until the server restarts`
+            if (outgoing.length > 0)
+                this.options.log.info(
+                    `${key} also had ${outgoing.join(', ')}, which stay loaded until the server restarts`
                 );
+            this.reportWorldsKept(key, locked);
             await this.reload();
         });
     }
@@ -336,15 +406,17 @@ export class AddonManager {
                         allows(key, request, locked) &&
                         !(await this.droppedPackReplaced(request, locked))
                     ) {
-                        if (await this.isPresent(key, locked)) continue;
+                        // A lock from before archives listed their packs installs again from what
+                        // it locked, checked against its hash, to take the packs it left out.
+                        const migrating = predatesContents(locked);
+                        if (!migrating && (await this.isPresent(key, locked))) continue;
                         const resolved = await this.fromLock(key, locked);
-                        await this.place(key, resolved);
-                        this.report('Restored', key, resolved);
+                        locks.set(key, await this.place(key, resolved, locked));
+                        this.report(migrating ? 'Reinstalled' : 'Restored', key, resolved);
                     } else {
-                        const outgoing = await this.summaryOf(key);
+                        const outgoing = await this.packsOf(key);
                         const resolved = await this.resolve(key, request);
-                        await this.place(key, resolved);
-                        locks.set(key, resolved.locked);
+                        locks.set(key, await this.place(key, resolved, locked));
                         this.report(locked === undefined ? 'Installed' : `Updated ${locked.version} to`, key, resolved);
                         this.reportOutgoing(key, outgoing);
                     }
@@ -376,10 +448,14 @@ export class AddonManager {
         await this.track(lock.addons, failed);
     }
 
-    /** Records which keys are installed, and the name and version each one locks. */
+    /** Records which keys are installed, the packs each holds, and the name and version each one locks. */
     private async track(locks: Readonly<Record<string, LockedAddon>>, failed: readonly string[]): Promise<void> {
         this.installed = await this.presentKeys(locks, failed);
         this.loaded = this.installed.map((key) => ({ name: locks[key]!.name, version: locks[key]!.version }));
+        const packs: AddonResourcePack[] = [];
+        for (const key of this.installed) packs.push(...(await this.packsOf(key)).map((pack) => ({ key, ...pack })));
+        this.installedPacks = packs;
+        this.installedResourcePacks = packs.filter(({ summary }) => summary.kind === 'resource');
     }
 
     private async presentKeys(
@@ -469,25 +545,55 @@ export class AddonManager {
         if (warning !== undefined) this.options.log.warn(warning);
     }
 
-    /** Logs an install, where it came from, whether it is deprecated and what in it waits for a restart. */
-    private report(verb: string, key: string, { locked, summary, skipped }: Resolved): void {
-        this.options.log.info(`${verb} ${key} ${locked.version} from ${originOf(locked)}`);
+    /**
+     * Logs an install, where it came from, the packs it holds, whether it is deprecated, what in
+     * it waits for a restart or a player's next join, and the packs it needs that none installed
+     * holds. What every install of its kind does, such as content that loads at the next restart,
+     * is info whatever the archive was, so an `.mcaddon` and an addon from a source read alike; a
+     * warning is something the owner should act on.
+     */
+    private report(verb: string, key: string, { locked, packs, skipped }: Resolved): void {
+        const { log } = this.options;
+        log.info(`${verb} ${key} ${locked.version} from ${originOf(locked)}`);
+        if (packs.length > 1 || packs.some(({ summary }) => summary.kind !== 'behavior'))
+            log.info(`${key} holds ${packs.map(describePack).join(', ')}`);
         this.warnDeprecated(key, locked);
-        if (skipped !== undefined && skipped.length > 0)
-            this.options.log.warn(
-                `${key} also holds ${skipped.join(', ')}, which the server does not install: an addon is its behavior pack`
-            );
-        if (summary.needsRestart.length > 0)
-            this.options.log.warn(
-                `${key} also has ${summary.needsRestart.join(', ')}, which load when the server restarts`
+        for (const { member, reason } of skipped ?? [])
+            log.warn(`${key} also holds ${member}, which the server does not install: ${reason}`);
+        const needsRestart = needsRestartOf(packs);
+        if (needsRestart.length > 0)
+            log.info(`${key} also has ${needsRestart.join(', ')}, which load when the server restarts`);
+        if (packs.some(({ summary }) => summary.kind === 'resource'))
+            log.info(`${key}'s resource packs reach each player when they next join`);
+
+        const known = new Set([
+            ...this.installedPacks.filter((pack) => pack.key !== key).map(({ summary }) => summary.uuid),
+            ...packs.map(({ summary }) => summary.uuid)
+        ]);
+        for (const { summary } of packs) {
+            const missing = summary.dependencies.filter(({ uuid }) => !known.has(uuid));
+            for (const { uuid, version } of missing)
+                log.warn(
+                    `${key}'s ${summary.kind} pack ${summary.name} needs the pack ${uuid} ${version}, which no installed addon holds`
+                );
+        }
+    }
+
+    /** Says that an addon's old version had content that stays loaded until a restart. */
+    private reportOutgoing(key: string, outgoing: readonly InstalledPack[]): void {
+        const needsRestart = needsRestartOf(outgoing);
+        if (needsRestart.length > 0)
+            this.options.log.info(
+                `${key}'s old version had ${needsRestart.join(', ')}, which stay loaded until the server restarts`
             );
     }
 
-    /** Warns that an addon's old version had content that stays loaded until a restart. */
-    private reportOutgoing(key: string, outgoing: PackSummary | undefined): void {
-        if (outgoing !== undefined && outgoing.needsRestart.length > 0)
-            this.options.log.warn(
-                `${key}'s old version had ${outgoing.needsRestart.join(', ')}, which stay loaded until the server restarts`
+    /** Says which levels a removed addon's worlds became, since removing an addon keeps its worlds. */
+    private reportWorldsKept(key: string, locked: LockedAddon | undefined): void {
+        const worlds = locked === undefined || isSourceLock(locked) ? undefined : locked.worlds;
+        if (worlds !== undefined && worlds.length > 0)
+            this.options.log.info(
+                `${key}'s worlds stay as the levels ${worlds.map(({ level }) => level).join(', ')}; world detach takes one out of play`
             );
     }
 
@@ -548,15 +654,14 @@ export class AddonManager {
             return this.download(key, locked, `the index of ${request.source}`);
         }
         if ('url' in request) {
+            refuseEditorProject(key, new URL(request.url).pathname);
             const bytes = await downloadPack(this.fetcher, request.url);
-            const { files, skipped } = unpackPack(key, bytes);
-            const summary = this.checked(key, summarizeFiles(key, files));
-            return {
-                locked: { url: request.url, name: key, version: summary.version, sha256: sha256Of(bytes) },
-                summary,
-                files,
-                skipped
-            };
+            return this.fromArchive(key, bytes, (version) => ({
+                url: request.url,
+                name: key,
+                version,
+                sha256: sha256Of(bytes)
+            }));
         }
         return this.fromPath(key, request.path);
     }
@@ -582,19 +687,21 @@ export class AddonManager {
                 expected: locked.sha256,
                 recordedBy
             });
-        const { files, skipped } = unpackPack(key, bytes);
-        const summary = this.checked(key, summarizeFiles(key, files));
+        const resolved = this.fromArchive(key, bytes, () => locked);
         // A matching hash says these are the bytes the index or the lock vouched for, not that
         // they are the version it lists, and a folder whose version differs would never count
         // as installed.
-        if (summary.version !== locked.version)
+        const version = versionOf(resolved.packs);
+        if (version !== locked.version)
             throw new PrismarineAddonErrors.AddonVersionDiffers({
                 key,
-                actual: summary.version,
+                actual: version,
                 expected: locked.version,
                 recordedBy
             });
-        return { locked, summary, files, skipped };
+        // An index's addon is one behavior pack, which its lock needs no list of packs for.
+        if (isSourceLock(locked)) return resolved;
+        return { ...resolved, locked: { ...locked, packs: lockedPacksOf(resolved.packs) } };
     }
 
     /** A folder, which installs as a link to it, or an `.mcpack` on disk. */
@@ -606,8 +713,13 @@ export class AddonManager {
             // A lock with a hash was an .mcpack, which a folder in its place must not stand in for.
             if (expected !== undefined) throw new PrismarineAddonErrors.AddonPathNotPack({ key, path: stored });
             const summary = this.checked(key, await summarizeFolder(key, absolute));
-            return { locked: { path: stored, name: key, version: summary.version }, summary, folder: absolute };
+            return {
+                locked: { path: stored, name: key, version: summary.version },
+                packs: [{ folder: '.', summary }],
+                folder: absolute
+            };
         }
+        refuseEditorProject(key, absolute);
         const bytes = new Uint8Array(await readFile(absolute));
         const sha256 = sha256Of(bytes);
         if (expected !== undefined && sha256 !== expected)
@@ -617,9 +729,31 @@ export class AddonManager {
                 expected,
                 recordedBy: ADDONS_LOCK_FILE
             });
-        const { files, skipped } = unpackPack(key, bytes);
-        const summary = this.checked(key, summarizeFiles(key, files));
-        return { locked: { path: stored, name: key, version: summary.version, sha256 }, summary, files, skipped };
+        return this.fromArchive(key, bytes, (version) => ({ path: stored, name: key, version, sha256 }));
+    }
+
+    /**
+     * Unpacks an archive and checks each of its packs.
+     * @param lockOf - The lock entry, given the version the archive installs as; its list of packs
+     *   is added here.
+     */
+    private fromArchive(key: string, bytes: Uint8Array, lockOf: (version: string) => LockedAddon): Resolved {
+        const { packs, worlds, skipped } = unpackArchive(key, bytes);
+        const resolvedPacks = packs.map(({ folder, files }) => ({
+            folder,
+            summary: this.checked(key, summarizeFiles(key, files))
+        }));
+        const files = new Map<string, Uint8Array>();
+        for (const { folder, files: packFiles } of packs)
+            for (const [name, data] of packFiles) files.set(folder === '.' ? name : `${folder}/${name}`, data);
+        const locked = lockOf(versionOf(resolvedPacks));
+        return {
+            locked: isSourceLock(locked) ? locked : { ...locked, packs: lockedPacksOf(resolvedPacks) },
+            packs: resolvedPacks,
+            files,
+            worlds,
+            skipped
+        };
     }
 
     /** Refuses a pack whose `addon.json` asks for a newer server than this one. */
@@ -634,8 +768,14 @@ export class AddonManager {
         return summary;
     }
 
-    /** Puts a resolved addon into its folder: its files, or a link to the folder it came from. */
-    private async place(key: string, resolved: Resolved): Promise<void> {
+    /**
+     * Puts a resolved addon into its folder, its files or a link to the folder it came from, and
+     * imports the worlds of its archive that an earlier install did not.
+     *
+     * @param previous - What the key locked before, whose imported worlds stay as they are.
+     * @returns What to lock, the levels its worlds became included.
+     */
+    private async place(key: string, resolved: Resolved, previous?: LockedAddon): Promise<LockedAddon> {
         await mkdir(this.addonsDirectory, { recursive: true });
         const target = path.join(this.addonsDirectory, key);
         if (resolved.files !== undefined) {
@@ -644,7 +784,7 @@ export class AddonManager {
                 this.options.log.warn(
                     `${key}'s old version stays in ${leftover.path}, since deleting it failed: ${leftover.reason}`
                 );
-            return;
+            return this.importWorlds(key, resolved, previous);
         }
         // Linking replaces the addon's folder, so a source that is that folder, or inside it,
         // would be deleted before it is linked. Resolved paths, so no link hides the overlap.
@@ -655,6 +795,48 @@ export class AddonManager {
         await removeAddonFolder(target);
         // A junction on Windows, which needs no administrator rights; other systems ignore the type.
         await symlink(resolved.folder!, target, 'junction');
+        return resolved.locked;
+    }
+
+    /**
+     * Imports each world of an archive whose member an earlier install of the key did not import,
+     * and records the level it became. A world imports once: a level is the owner's to keep, so
+     * reinstalling the archive, or restoring it on another machine, never makes a second copy.
+     */
+    private async importWorlds(key: string, resolved: Resolved, previous?: LockedAddon): Promise<LockedAddon> {
+        const { locked, worlds = [] } = resolved;
+        if (isSourceLock(locked) || worlds.length === 0) return locked;
+        const before = previous === undefined || isSourceLock(previous) ? [] : (previous.worlds ?? []);
+        const recorded: LockedWorld[] = [];
+        for (const world of worlds) {
+            const known = before.find(({ member }) => member === world.member);
+            if (known !== undefined) {
+                recorded.push(known);
+                continue;
+            }
+            const label = world.member === '' ? key : `${key}'s ${world.member}`;
+            if (this.options.importWorld === undefined) {
+                this.options.log.warn(`${label} is a world, which this server does not import`);
+                continue;
+            }
+            let level: { readonly id: string; readonly name: string };
+            try {
+                level = await this.options.importWorld({ key, ...world });
+            } catch (error: unknown) {
+                // The worlds before it are levels already, so the lock has to record them: a
+                // failure here leaves this one out, and the next install of the archive tries it
+                // again.
+                this.options.log.error(
+                    `Could not import ${label}: ${messageOf(error)}; delete addons/${key} and run addon sync to try again`
+                );
+                continue;
+            }
+            recorded.push({ member: world.member, level: level.id });
+            this.options.log.info(
+                `Imported ${label} as the level ${level.name} (${level.id}); world attach ${level.name} puts it in play`
+            );
+        }
+        return recorded.length === 0 ? locked : { ...locked, worlds: recorded };
     }
 
     /**
@@ -671,17 +853,28 @@ export class AddonManager {
             const source = await realpath(path.resolve(this.options.directory, locked.path)).catch(() => undefined);
             return linked !== undefined && linked === source;
         }
-        const summary = await this.summaryOf(key);
-        return summary?.version === locked.version;
+        const installed = await this.packsOf(key);
+        if (isSourceLock(locked) || locked.packs === undefined)
+            return (
+                installed.length === 1 &&
+                installed[0]!.folder === '.' &&
+                installed[0]!.summary.version === locked.version
+            );
+        if (locked.packs.length === 0) return (await stat(target).catch(() => undefined))?.isDirectory() === true;
+        return (
+            installed.length === locked.packs.length &&
+            locked.packs.every((pack) =>
+                installed.some(
+                    ({ folder, summary }) =>
+                        folder === pack.folder && summary.uuid === pack.uuid && summary.version === pack.version
+                )
+            )
+        );
     }
 
-    /** What an installed addon's folder holds, or undefined when it has no readable pack. */
-    private async summaryOf(key: string): Promise<PackSummary | undefined> {
-        try {
-            return await summarizeFolder(key, path.join(this.addonsDirectory, key));
-        } catch {
-            return undefined;
-        }
+    /** The packs an installed addon's folder holds, none when it has no readable pack. */
+    private packsOf(key: string): Promise<InstalledPack[]> {
+        return readInstalledPacks(key, path.join(this.addonsDirectory, key));
     }
 }
 
@@ -691,6 +884,19 @@ export class AddonManager {
  */
 const own = <T>(record: Readonly<Record<string, T>>, key: string): T | undefined =>
     Object.hasOwn(record, key) ? record[key] : undefined;
+
+/** The lock's record of the packs a resolution installs. */
+const lockedPacksOf = (packs: readonly ResolvedPack[]) =>
+    packs.map(({ folder, summary }) => ({ folder, type: summary.kind, uuid: summary.uuid, version: summary.version }));
+
+/**
+ * Whether a lock of an archive from a URL or a path was written before locks listed an archive's
+ * packs. An `.mcaddon` installed then installed its behavior pack alone, so it installs again from
+ * what the lock pins, to take the rest. An index's addon is one behavior pack, and a linked folder
+ * has no archive, so neither needs it.
+ */
+const predatesContents = (locked: LockedAddon): boolean =>
+    !isSourceLock(locked) && locked.sha256 !== undefined && locked.packs === undefined;
 
 /** Whether two key lists are the same, in the same order. */
 const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>

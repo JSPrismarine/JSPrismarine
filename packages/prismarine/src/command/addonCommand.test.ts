@@ -112,12 +112,14 @@ describe('addon', () => {
             {
                 key: 'warps',
                 request: { source: 'someone/packs', version: '^1.0.0' },
-                locked: { ...locked, name: 'warps', sha256: '0'.repeat(64), deprecated: 'Use warps-plus instead.' }
+                locked: { ...locked, name: 'warps', sha256: '0'.repeat(64), deprecated: 'Use warps-plus instead.' },
+                packs: []
             },
             {
                 key: 'homes',
                 request: { source: 'someone/packs', version: '^1.0.0' },
-                locked: { ...locked, name: 'homes', sha256: '1'.repeat(64) }
+                locked: { ...locked, name: 'homes', sha256: '1'.repeat(64) },
+                packs: []
             }
         ]);
         const console = new Console(server);
@@ -129,6 +131,41 @@ describe('addon', () => {
             '- §ewarps§r 1.0.0 from someone/packs/warps@^1.0.0, §cdeprecated§r: Use warps-plus instead.',
             '- §ehomes§r 1.0.0 from someone/packs/homes@^1.0.0'
         ]);
+    });
+
+    it('lists the packs of an addon that holds more than a behavior pack, and the worlds it imported', async () => {
+        const summary = (kind: 'behavior' | 'resource', name: string) => ({
+            kind,
+            name,
+            uuid: '8c2b3c4e-0d1a-4c8e-9f00-000000000001',
+            version: '1.0.0',
+            needsRestart: [],
+            dependencies: []
+        });
+        const { commands, server, logged } = await setUp([
+            {
+                key: 'furniture',
+                request: { path: 'addons/furniture.mcaddon' },
+                locked: {
+                    path: 'addons/furniture.mcaddon',
+                    name: 'furniture',
+                    version: '1.0.0',
+                    sha256: '0'.repeat(64),
+                    worlds: [{ member: 'map.mcworld', level: '00000000-0000-4000-8000-000000000001' }]
+                },
+                packs: [
+                    { folder: 'bp', directory: '/addons/furniture/bp', summary: summary('behavior', 'Furniture') },
+                    { folder: 'rp', directory: '/addons/furniture/rp', summary: summary('resource', 'Furniture') }
+                ]
+            }
+        ]);
+        const console = new Console(server);
+
+        await commands.dispatchCommand(console, console, 'addon list');
+
+        expect(logged).toContain(
+            '- §efurniture§r 1.0.0 from addons/furniture.mcaddon, holding behavior pack bp, resource pack rp, imported 1 world'
+        );
     });
 
     it('hands install the addon and the local name after as', async () => {

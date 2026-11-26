@@ -62,6 +62,33 @@ export interface AddonDeprecation {
     readonly replacedBy?: string;
 }
 
+/** One pack an archive installed, in the folder under the addon's it unpacked into. */
+export interface LockedPack {
+    /** Its folder inside the addon's, or `.` when the archive was this one pack. */
+    readonly folder: string;
+    readonly type: 'behavior' | 'resource';
+    /** Its manifest header's UUID. */
+    readonly uuid: string;
+    readonly version: string;
+}
+
+/** One world an archive imported, and the level it became. */
+export interface LockedWorld {
+    /** Where it sat in the archive, or an empty string for an archive that was the world. */
+    readonly member: string;
+    /** The level's UUID, which `levels.json` records it under. */
+    readonly level: string;
+}
+
+/**
+ * What an archive from a URL or a path installed: its packs, and the worlds it imported, which a
+ * reinstall of the same archive does not import again. A lock an older server wrote has neither.
+ */
+export interface ArchiveContents {
+    readonly packs?: readonly LockedPack[];
+    readonly worlds?: readonly LockedWorld[];
+}
+
 /** What one key resolved to and was installed from. */
 export type LockedAddon =
     | ({
@@ -71,9 +98,19 @@ export type LockedAddon =
           readonly url: string;
           readonly sha256: string;
       } & AddonDeprecation)
-    | { readonly url: string; readonly name: string; readonly version: string; readonly sha256: string }
+    | ({
+          readonly url: string;
+          readonly name: string;
+          readonly version: string;
+          readonly sha256: string;
+      } & ArchiveContents)
     /** A folder has no hash: the addon's folder links to it, so edits show after `/reload`. */
-    | { readonly path: string; readonly name: string; readonly version: string; readonly sha256?: string };
+    | ({
+          readonly path: string;
+          readonly name: string;
+          readonly version: string;
+          readonly sha256?: string;
+      } & ArchiveContents);
 
 /** `addons.json`. */
 export interface AddonsFile {
@@ -126,6 +163,39 @@ const parseRequest = (key: string, value: unknown): AddonRequest => {
     throw fail(`${where} has none of source, url and path`);
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** A lock's `packs` and `worlds`, when it has them. */
+const parseContents = (where: string, value: Record<string, unknown>): ArchiveContents => {
+    const fail = (problem: string) => new PrismarineAddonErrors.InvalidAddonsFile({ file: ADDONS_LOCK_FILE, problem });
+    const listOf = <T>(field: string, parse: (entry: Record<string, unknown>, at: string) => T): T[] | undefined => {
+        if (!(field in value)) return undefined;
+        const list = value[field];
+        if (!Array.isArray(list)) throw fail(`${where}.${field} is not a list`);
+        return list.map((entry: unknown, index) => {
+            const at = `${where}.${field}[${index}]`;
+            if (!isRecord(entry)) throw fail(`${at} is not an object`);
+            return parse(entry, at);
+        });
+    };
+    const packs = listOf('packs', (entry, at): LockedPack => {
+        const { text } = reader(ADDONS_LOCK_FILE, at, entry);
+        const type = text('type', (each) => each === 'behavior' || each === 'resource', 'behavior or resource');
+        return {
+            folder: text('folder', (each) => each === '.' || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(each), 'a folder name'),
+            type: type === 'behavior' ? 'behavior' : 'resource',
+            uuid: text('uuid', (each) => UUID.test(each), 'a lowercase UUID'),
+            version: text('version', isAddonVersion, 'a major.minor.patch version')
+        };
+    });
+    const worlds = listOf('worlds', (entry, at): LockedWorld => {
+        if (typeof entry.member !== 'string') throw fail(`${at}.member is not a string`);
+        const { text } = reader(ADDONS_LOCK_FILE, at, entry);
+        return { member: entry.member, level: text('level', (each) => UUID.test(each), 'a lowercase UUID') };
+    });
+    return { ...(packs === undefined ? {} : { packs }), ...(worlds === undefined ? {} : { worlds }) };
+};
+
 const parseLocked = (key: string, value: unknown): LockedAddon => {
     const where = `addons.${key}`;
     if (!isRecord(value))
@@ -142,7 +212,7 @@ const parseLocked = (key: string, value: unknown): LockedAddon => {
             throw fail(`${where} has a path and a ${optional('url') ? 'url' : 'source'}, and a lock takes one of them`);
         const installedFrom = text('path');
         return optional('sha256')
-            ? { path: installedFrom, name, version, sha256: sha256() }
+            ? { path: installedFrom, name, version, sha256: sha256(), ...parseContents(where, value) }
             : { path: installedFrom, name, version };
     }
     if (!optional('url')) throw fail(`${where} has neither a url nor a path`);
@@ -161,7 +231,7 @@ const parseLocked = (key: string, value: unknown): LockedAddon => {
             ...(replacedBy === undefined ? {} : { replacedBy })
         };
     }
-    return { url, name, version, sha256: sha256() };
+    return { url, name, version, sha256: sha256(), ...parseContents(where, value) };
 };
 
 /** Whether a string is an `https:` URL. */

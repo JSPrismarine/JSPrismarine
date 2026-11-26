@@ -16,8 +16,15 @@ export interface AddonSpec {
     readonly key?: string;
 }
 
-/** Whether a file name is a pack archive: an `.mcpack`, or an `.mcaddon` of several packs. */
-export const isPackFile = (file: string): boolean => /\.(?:mcpack|mcaddon)$/i.test(file);
+/** The extensions of the content archives a Bedrock client imports, which the installer takes. */
+const ARCHIVE_EXTENSION = /\.(?:mcpack|mcaddon|mcworld|mctemplate|mcproject)$/i;
+
+/**
+ * Whether a file name is a content archive: an `.mcpack`, an `.mcaddon` of several packs and
+ * worlds, an `.mcworld` or `.mctemplate`, or an `.mcproject`, which the installer refuses with a
+ * reason rather than ignoring.
+ */
+export const isPackFile = (file: string): boolean => ARCHIVE_EXTENSION.test(file);
 
 /** Whether an argument is a path rather than an addon name: it starts like one, or names a pack archive. */
 const isPath = (spec: string): boolean =>
@@ -28,7 +35,7 @@ const isPath = (spec: string): boolean =>
  * packs, and `warps.mcaddon` is `warps`.
  */
 const keyOfPackFile = (file: string): string | undefined => {
-    const base = file.replace(/\.(?:mcpack|mcaddon)$/i, '');
+    const base = file.replace(ARCHIVE_EXTENSION, '');
     const match = /^(.+)-(\d+\.\d+\.\d+)$/.exec(base);
     const key = match && isAddonVersion(match[2]!) ? match[1]! : base;
     return isAddonName(key) ? key : undefined;
@@ -45,7 +52,7 @@ export const keyOfDroppedPack = (file: string): string | undefined => {
     const exact = keyOfPackFile(file);
     if (exact !== undefined) return exact;
     const key = file
-        .replace(/\.(?:mcpack|mcaddon)$/i, '')
+        .replace(ARCHIVE_EXTENSION, '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');

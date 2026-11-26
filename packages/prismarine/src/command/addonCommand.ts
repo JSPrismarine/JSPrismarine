@@ -22,7 +22,7 @@ const describeRequest = (key: string, request: AddonRequest): string => {
 };
 
 /** One line of `addon list`. */
-const listLine = ({ key, request, locked }: InstalledAddon): string => {
+const listLine = ({ key, request, locked, packs }: InstalledAddon): string => {
     if (request === undefined)
         return `§e${key}§r ${locked?.version ?? ''}, no longer in addons.json; addon sync removes it`;
     const from = describeRequest(key, request);
@@ -30,7 +30,14 @@ const listLine = ({ key, request, locked }: InstalledAddon): string => {
     const linked = isPathLock(locked) && locked.sha256 === undefined ? ', linked to the folder' : '';
     const reason = isSourceLock(locked) ? locked.deprecated : undefined;
     const deprecated = reason === undefined ? '' : `, §cdeprecated§r: ${reason}`;
-    return `§e${key}§r ${locked.version} from ${from}${linked}${deprecated}`;
+    // A lone behavior pack is what an addon was before archives held more, and needs no list.
+    const contents =
+        packs.length > 1 || packs.some(({ summary }) => summary.kind !== 'behavior')
+            ? `, holding ${packs.map(({ folder, summary }) => `${summary.kind} pack ${folder === '.' ? summary.name : folder}`).join(', ')}`
+            : '';
+    const worlds = isSourceLock(locked) || locked.worlds === undefined ? 0 : locked.worlds.length;
+    const imported = worlds === 0 ? '' : `, imported ${worlds} world${worlds === 1 ? '' : 's'}`;
+    return `§e${key}§r ${locked.version} from ${from}${linked}${contents}${imported}${deprecated}`;
 };
 
 /**
