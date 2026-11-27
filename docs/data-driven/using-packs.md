@@ -84,8 +84,9 @@ This is vanilla Java's rule, applied unchanged.
 
 A behavior pack's `item_catalog/crafting_item_catalog.json` is not replaced whole either: the
 server merges it into the vanilla creative menu, as the Bedrock Dedicated Server does. A group with
-a `group_identifier` joins the vanilla heading of the same name on its tab, or becomes a new
-heading after the tab's last one. A group without one adds its items as loose entries at the end
+a `group_identifier` joins the vanilla heading of the same name on its tab, where
+`minecraft:itemGroup.name.planks` names `itemGroup.name.planks`, or becomes a new heading after the
+tab's last one. A group without one adds its items as loose entries at the end
 of the tab. A tab other than `construction`, `nature`, `equipment` or `items` is skipped. Every
 pack's catalog is merged, in stack order, and only a later layer of the same pack, one with the
 same header UUID, replaces a pack's file.
