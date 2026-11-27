@@ -474,6 +474,28 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         })
     },
     {
+        name: 'source-forms-on-solid-ground',
+        java: 'Water between two sources becomes a source over any block whose legacy solid flag is on, such as soul sand, a cactus or a slab, not only over a full cube.',
+        reference: 'Java FlowingFluid.getNewLiquid and BlockStateBase.isSolid; issue #3783',
+        subjects: () => named('minecraft:soul_sand', 'minecraft:cactus', 'minecraft:stone_slab'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const world = fluidWorld();
+            world.set(BELOW, subject.bedrock, subject.states);
+            const west = { ...ORIGIN, x: ORIGIN.x - 1 };
+            world.set(west, 'minecraft:water', { liquid_depth: 0 });
+            world.set({ ...ORIGIN, x: ORIGIN.x + 1 }, 'minecraft:water', { liquid_depth: 0 });
+            spreadLiquid(world, world.block(west));
+            if (world.identifierAt(ORIGIN) !== 'minecraft:water') return 'the water between the sources stayed flowing';
+            return undefined;
+        },
+        classify: () => ({
+            kind: 'deferred',
+            reason: "The server's world view cannot say whether a block is solid, so source conversion falls back to the full cube test, which a slab or a cactus fails.",
+            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3783'
+        })
+    },
+    {
         name: 'bottom-slab-holds-water',
         java: "A waterlogged bottom slab's full bottom face keeps its water from flowing down into the air below.",
         reference: 'Java FlowingFluid.canPassThroughWall over the block shapes; issue #3093',
@@ -1414,6 +1436,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'crop-growth': ['random-tick'],
     'waterlogged-by-two-sources': ['waterlogging'],
     'bottom-slab-holds-water': ['waterlogging'],
+    'source-forms-on-solid-ground': ['fluid-flow'],
     'grass-spread': ['random-tick'],
     'growing-plant-head': ['random-tick'],
     'leaves-decay': ['random-tick'],
