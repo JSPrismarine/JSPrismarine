@@ -81,10 +81,13 @@ export {
 export {
     MAPPED_REGISTRIES,
     bedrockBiomeToJava,
+    bedrockIdentifierToJava,
     javaIdentifierToBedrock,
+    mappedJavaIdentifiers,
     type BedrockBiome,
     type BedrockBiomeResult,
     type IdentifierMappingResult,
+    type InvertibleRegistry,
     type MappedRegistry
 } from './registryMapping';
 export type { Conflict } from './blockProperties';

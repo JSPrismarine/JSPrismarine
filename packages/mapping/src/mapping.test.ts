@@ -4,7 +4,12 @@ import { javaBlockStateToBedrock } from './blockMapping';
 import { javaEntityTypeToBedrock } from './entityMapping';
 import { javaItemToBedrock } from './itemMapping';
 import type { MappedRegistry } from './registryMapping';
-import { MAPPED_REGISTRIES, javaIdentifierToBedrock } from './registryMapping';
+import {
+    MAPPED_REGISTRIES,
+    bedrockIdentifierToJava,
+    javaIdentifierToBedrock,
+    mappedJavaIdentifiers
+} from './registryMapping';
 
 describe('javaBlockStateToBedrock', () => {
     it('maps a stateless block to the identically named Bedrock state', () => {
@@ -218,5 +223,27 @@ describe('javaIdentifierToBedrock', () => {
             kind: 'passthrough',
             bedrock: 'myaddon:lightning'
         });
+    });
+});
+
+describe('bedrockIdentifierToJava', () => {
+    it('reads a potion back to the Java entry that maps onto it', () => {
+        expect(bedrockIdentifierToJava('potion', 'minecraft:long_nightvision')).toBe('minecraft:long_night_vision');
+        expect(bedrockIdentifierToJava('potion', 'minecraft:awkward')).toBe('minecraft:awkward');
+    });
+
+    it('answers nothing for a Bedrock entry Java has no counterpart of', () => {
+        expect(bedrockIdentifierToJava('potion', 'minecraft:long_mundane')).toBeUndefined();
+    });
+
+    it('inverts every mapped entry', () => {
+        for (const java of mappedJavaIdentifiers('potion')) {
+            const mapped = javaIdentifierToBedrock('potion', java);
+            if (mapped.kind === 'mapped') expect(bedrockIdentifierToJava('potion', mapped.bedrock)).toBe(java);
+        }
+    });
+
+    it('passes custom content through', () => {
+        expect(bedrockIdentifierToJava('potion', 'example:glow')).toBe('example:glow');
     });
 });
