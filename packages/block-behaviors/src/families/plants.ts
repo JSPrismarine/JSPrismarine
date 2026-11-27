@@ -27,6 +27,7 @@ import {
     MULTI_FACE_STATE,
     popBlock,
     popUnsupportedMultiface,
+    popWithoutAttachment,
     popWithoutGround,
     popWithoutSupport
 } from '../rules/support';
@@ -523,7 +524,7 @@ export const bambooFamily = defineFamily(
                     const attached = name.endsWith('wall_fan')
                         ? opposite(CORAL_FACINGS[stateNumber(event.block, 'coral_direction')] ?? 'north')
                         : 'down';
-                    if (event.face === attached && popWithoutSupport(world, event.block, attached)) return;
+                    if (event.face === attached && popWithoutAttachment(world, event.block, attached, 'full')) return;
                 }
                 if (event.face !== 'up') return;
                 const wet = isWater(world.getBlock(offset(event.block.position, 'up'))?.identifier ?? AIR);
@@ -640,9 +641,10 @@ export const climbingFamily = defineFamily(
             if (hasState(event.block, 'facing_direction')) {
                 const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
                 if (face !== undefined) {
+                    // A ladder needs a sturdy face on the wall behind it, Java's `LadderBlock.canSurvive`.
                     const supportFace = opposite(face);
                     if (face !== 'up' && face !== 'down' && event.face === supportFace) {
-                        popWithoutSupport(world, event.block, supportFace);
+                        popWithoutAttachment(world, event.block, supportFace, 'full');
                     }
                     return;
                 }

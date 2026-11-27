@@ -43,10 +43,13 @@
         "AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE": "net/minecraft/world/entity/ai/sensing/AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE",
         "BackUpIfTooClose.create": "net/minecraft/world/entity/ai/behavior/BackUpIfTooClose.create(IF)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "BadOmenMobEffect.applyEffectTick": "net/minecraft/world/effect/BadOmenMobEffect.applyEffectTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;I)Z",
+        "BannerBlock.canSurvive": "net/minecraft/world/level/block/BannerBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "BannerBlock.getStateForPlacement": "net/minecraft/world/level/block/BannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BarrelBlock.getStateForPlacement": "net/minecraft/world/level/block/BarrelBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BaseCommandBlock.performCommand": "net/minecraft/world/level/BaseCommandBlock.performCommand(Lnet/minecraft/server/level/ServerLevel;)Z",
+        "BaseCoralPlantTypeBlock.canSurvive": "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "BaseCoralPlantTypeBlock.getStateForPlacement": "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "BaseCoralWallFanBlock.canSurvive": "net/minecraft/world/level/block/BaseCoralWallFanBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "BaseCoralWallFanBlock.getStateForPlacement": "net/minecraft/world/level/block/BaseCoralWallFanBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Bee$BeeWanderGoal.findPos": "net/minecraft/world/entity/animal/bee/Bee$BeeWanderGoal.findPos()Lnet/minecraft/world/phys/Vec3;",
         "BeehiveBlock.getStateForPlacement": "net/minecraft/world/level/block/BeehiveBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -60,6 +63,7 @@
         "BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;D)Z",
         "BehaviorUtils.isWithinAttackRange": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isWithinAttackRange(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/LivingEntity;I)Z",
         "BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V",
+        "BellBlock.canSurvive": "net/minecraft/world/level/block/BellBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "BellBlock.getStateForPlacement": "net/minecraft/world/level/block/BellBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BellBlockEntity.updateEntities": "net/minecraft/world/level/block/entity/BellBlockEntity.updateEntities()V",
         "BigDripleafBlock.getStateForPlacement": "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -72,6 +76,7 @@
         "Biome.getTemperature": "net/minecraft/world/level/biome/Biome.getTemperature(Lnet/minecraft/core/BlockPos;I)F",
         "BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;": "net/minecraft/world/level/biome/BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;",
         "BiomeTags.WATER_ON_MAP_OUTLINES": "net/minecraft/tags/BiomeTags.WATER_ON_MAP_OUTLINES",
+        "Block.canSupportCenter": "net/minecraft/world/level/block/Block.canSupportCenter(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
         "Block.updateFromNeighbourShapes": "net/minecraft/world/level/block/Block.updateFromNeighbourShapes(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BlockBehaviour.getAnalogOutputSignal": "net/minecraft/world/level/block/state/BlockBehaviour.getAnalogOutputSignal(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)I",
         "BlockPlaceContext.getNearestLookingDirections": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;",
@@ -104,6 +109,7 @@
         "CamelAi$RandomSitting.start": "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;J)V",
         "CarvedPumpkinBlock.getStateForPlacement": "net/minecraft/world/level/block/CarvedPumpkinBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CaveVines.use": "net/minecraft/world/level/block/CaveVines.use(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/InteractionResult;",
+        "CeilingHangingSignBlock.canSurvive": "net/minecraft/world/level/block/CeilingHangingSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "CeilingHangingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/CeilingHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ChestBlock.getStateForPlacement": "net/minecraft/world/level/block/ChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ChiseledBookShelfBlock.getStateForPlacement": "net/minecraft/world/level/block/ChiseledBookShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -277,6 +283,8 @@
         "ExperienceOrb.playerTouch": "net/minecraft/world/entity/ExperienceOrb.playerTouch(Lnet/minecraft/world/entity/player/Player;)V",
         "EyeOfEnder.tick": "net/minecraft/world/entity/projectile/EyeOfEnder.tick()V",
         "EyeOfEnder.updateDeltaMovement": "net/minecraft/world/entity/projectile/EyeOfEnder.updateDeltaMovement(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;",
+        "FaceAttachedHorizontalDirectionalBlock.canAttach": "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.canAttach(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+        "FaceAttachedHorizontalDirectionalBlock.canSurvive": "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "FaceAttachedHorizontalDirectionalBlock.getStateForPlacement": "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "FallingBlock.isFree": "net/minecraft/world/level/block/FallingBlock.isFree(Lnet/minecraft/world/level/block/state/BlockState;)Z",
         "FallingBlockEntity.tick": "net/minecraft/world/entity/item/FallingBlockEntity.tick()V",
@@ -324,6 +332,7 @@
         "Goal.reducedTickDelay": "net/minecraft/world/entity/ai/goal/Goal.reducedTickDelay(I)I",
         "GoatAi.initMemories": "net/minecraft/world/entity/animal/goat/GoatAi.initMemories(Lnet/minecraft/world/entity/animal/goat/Goat;Lnet/minecraft/util/RandomSource;)V",
         "GolemSensor.GOLEM_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/GolemSensor.GOLEM_SCAN_RATE",
+        "GrindstoneBlock.canSurvive": "net/minecraft/world/level/block/GrindstoneBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "GrowingPlantHeadBlock.MAX_AGE": "net/minecraft/world/level/block/GrowingPlantHeadBlock.MAX_AGE",
         "GrowingPlantHeadBlock.randomTick": "net/minecraft/world/level/block/GrowingPlantHeadBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "HappyGhast.customServerAiStep": "net/minecraft/world/entity/animal/happyghast/HappyGhast.customServerAiStep(Lnet/minecraft/server/level/ServerLevel;)V",
@@ -352,7 +361,9 @@
         "ItemCommands.applyModifier": "net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator;",
         "ItemStack.isSameItemSameComponents": "net/minecraft/world/item/ItemStack.isSameItemSameComponents(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z",
         "JungleTemplePiece$MossStoneSelector.next": "net/minecraft/world/level/levelgen/structure/structures/JungleTemplePiece$MossStoneSelector.next(Lnet/minecraft/util/RandomSource;IIIZ)V",
+        "LadderBlock.canAttachTo": "net/minecraft/world/level/block/LadderBlock.canAttachTo(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
         "LadderBlock.getStateForPlacement": "net/minecraft/world/level/block/LadderBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "LanternBlock.canSurvive": "net/minecraft/world/level/block/LanternBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "LanternBlock.getStateForPlacement": "net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LeafLitterBlock.getStateForPlacement": "net/minecraft/world/level/block/LeafLitterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Leashable.canHaveALeashAttachedTo": "net/minecraft/world/entity/Leashable.canHaveALeashAttachedTo(Lnet/minecraft/world/entity/Entity;)Z",
@@ -603,6 +614,7 @@
         "SetWalkTargetAwayFrom.pos": "net/minecraft/world/entity/ai/behavior/SetWalkTargetAwayFrom.pos(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;FIZ)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
         "SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER": "net/minecraft/world/entity/ai/behavior/SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER",
         "ShelfBlock.getStateForPlacement": "net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "ShelfMushroomBlock.canSurvive": "net/minecraft/world/level/block/ShelfMushroomBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "ShelfMushroomBlock.getStateForPlacement": "net/minecraft/world/level/block/ShelfMushroomBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ShulkerBullet.tick": "net/minecraft/world/entity/projectile/ShulkerBullet.tick()V",
         "SinglePieceStructure.findGenerationPoint": "net/minecraft/world/level/levelgen/structure/SinglePieceStructure.findGenerationPoint(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;)Ljava/util/Optional;",
@@ -652,6 +664,7 @@
         "Squid$SquidFleeGoal.canUse": "net/minecraft/world/entity/animal/squid/Squid$SquidFleeGoal.canUse()Z",
         "Squid$SquidFleeGoal.tick": "net/minecraft/world/entity/animal/squid/Squid$SquidFleeGoal.tick()V",
         "StandingAndWallBlockItem.getPlacementState": "net/minecraft/world/item/StandingAndWallBlockItem.getPlacementState(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "StandingSignBlock.canSurvive": "net/minecraft/world/level/block/StandingSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "StandingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Stats.TIME_SINCE_REST": "net/minecraft/stats/Stats.TIME_SINCE_REST",
         "StonecutterBlock.getStateForPlacement": "net/minecraft/world/level/block/StonecutterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -702,6 +715,7 @@
         "TreeFeature.validTreePos": "net/minecraft/world/level/levelgen/feature/TreeFeature.validTreePos(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z",
         "TriggerGate.triggerGate": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerGate(Ljava/util/List;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "TriggerGate.triggerOneShuffled": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerOneShuffled(Ljava/util/List;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
+        "TripWireHookBlock.canSurvive": "net/minecraft/world/level/block/TripWireHookBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "TripWireHookBlock.getStateForPlacement": "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "UniformInt.of": "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;",
         "Util.getRandom([Ljava/lang/Object;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": "net/minecraft/util/Util.getRandom([Ljava/lang/Object;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;",
@@ -720,10 +734,12 @@
         "VillagerGoalPackages.getMinimalLookBehavior": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMinimalLookBehavior()Lcom/mojang/datafixers/util/Pair;",
         "VillagerProfession.NONE": "net/minecraft/world/entity/npc/villager/VillagerProfession.NONE",
         "Vindicator.DOOR_BREAKING_PREDICATE": "net/minecraft/world/entity/monster/illager/Vindicator.DOOR_BREAKING_PREDICATE",
+        "WallBannerBlock.canSurvive": "net/minecraft/world/level/block/WallBannerBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "WallBannerBlock.getStateForPlacement": "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallHangingSignBlock.canAttachTo": "net/minecraft/world/level/block/WallHangingSignBlock.canAttachTo(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
         "WallHangingSignBlock.canPlace": "net/minecraft/world/level/block/WallHangingSignBlock.canPlace(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "WallHangingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "WallSignBlock.canSurvive": "net/minecraft/world/level/block/WallSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "WallSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Warden.canTargetEntity": "net/minecraft/world/entity/monster/warden/Warden.canTargetEntity(Lnet/minecraft/world/entity/Entity;)Z",
@@ -2869,6 +2885,10 @@
             "26.3": "sha256:f33058f1c8af3ce52cecd4b2ed0c1ee1d40e5335d4a84b7b761eec2345f65d2c",
             "26.4-pre-1": "sha256:f33058f1c8af3ce52cecd4b2ed0c1ee1d40e5335d4a84b7b761eec2345f65d2c"
         },
+        "net/minecraft/world/level/block/BannerBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:b50d522c70b17cee6668e9f70d8eb7502a86739e9de2512fd4e4aedfe7cb34c5",
+            "26.4-pre-1": "sha256:b50d522c70b17cee6668e9f70d8eb7502a86739e9de2512fd4e4aedfe7cb34c5"
+        },
         "net/minecraft/world/level/block/BannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:8d65653c19eb4f0e9609f4fa06d3c04734dffc1f76f2d5ab5c1bfc37e29364bc",
             "26.4-pre-1": "sha256:8d65653c19eb4f0e9609f4fa06d3c04734dffc1f76f2d5ab5c1bfc37e29364bc"
@@ -2877,8 +2897,16 @@
             "26.3": "sha256:633373bb20069dbf23566abe8a6253d0ec1d49548027f87111d9edf155cbe3ec",
             "26.4-pre-1": "sha256:633373bb20069dbf23566abe8a6253d0ec1d49548027f87111d9edf155cbe3ec"
         },
+        "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:1960d90dda30898ac5df37eb5898fd10f564ffbc42bf0a7994a1879e8746cedc",
+            "26.4-pre-1": "sha256:1960d90dda30898ac5df37eb5898fd10f564ffbc42bf0a7994a1879e8746cedc"
+        },
         "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:98dd068fc8951ec82449b0b393bbde965583977ea88c0f2dc7e999335663c71b"
+        },
+        "net/minecraft/world/level/block/BaseCoralWallFanBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:3b6440b17d526767025f0df9c2bd760ed7ece96d1bbefe50ad0d3bc97c805a9f",
+            "26.4-pre-1": "sha256:3b6440b17d526767025f0df9c2bd760ed7ece96d1bbefe50ad0d3bc97c805a9f"
         },
         "net/minecraft/world/level/block/BaseCoralWallFanBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:569d20a9b0ae8732b411f06493ca935d4dbbf178f73a3763544335dd1a0c77e2",
@@ -2888,12 +2916,20 @@
             "26.3": "sha256:3b1148e90b0894ce90ff97685d6e079245e3bf4f86380b43391b7dbbc5bc6d8b",
             "26.4-pre-1": "sha256:3b1148e90b0894ce90ff97685d6e079245e3bf4f86380b43391b7dbbc5bc6d8b"
         },
+        "net/minecraft/world/level/block/BellBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:68cf82213f02d31241efb94962cf327806196f012853f2a16f91a389d30111d5",
+            "26.4-pre-1": "sha256:68cf82213f02d31241efb94962cf327806196f012853f2a16f91a389d30111d5"
+        },
         "net/minecraft/world/level/block/BellBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:7edfce3798e7769a3c3b0be08ad3e2c524939d6247d3d8d449e7fb98bfe5051a",
             "26.4-pre-1": "sha256:7edfce3798e7769a3c3b0be08ad3e2c524939d6247d3d8d449e7fb98bfe5051a"
         },
         "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:22fe0de256ee22cc864ff8e4eb381968955db7bce6373d540bee125b1e75feb7"
+        },
+        "net/minecraft/world/level/block/Block.canSupportCenter(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:dc1e40b484472ac3c6fc103c689e8fc59dbb4a90af03f74170e88461d5e63746",
+            "26.4-pre-1": "sha256:dc1e40b484472ac3c6fc103c689e8fc59dbb4a90af03f74170e88461d5e63746"
         },
         "net/minecraft/world/level/block/Block.updateFromNeighbourShapes(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:c4f6a3062fdf15a53ed8d190016691b80e5fd2dccf73f5d2e7642c74eca398a4",
@@ -2919,6 +2955,10 @@
         "net/minecraft/world/level/block/CaveVines.use(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:df6ae3d3f56009077d8eccba87627ed9dd1b6f1c7b1ed2b56423c9aaeea13726",
             "26.4-pre-1": "sha256:df6ae3d3f56009077d8eccba87627ed9dd1b6f1c7b1ed2b56423c9aaeea13726"
+        },
+        "net/minecraft/world/level/block/CeilingHangingSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:b081d002ebf354e7f31cf4f3d116ae36ed35b122a4024820feb11e890816e957",
+            "26.4-pre-1": "sha256:b081d002ebf354e7f31cf4f3d116ae36ed35b122a4024820feb11e890816e957"
         },
         "net/minecraft/world/level/block/CeilingHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:a77a301e5ce80ed20c28b2a752bb61241fb8d8dc5851ce14b78b3e7de141276a"
@@ -2995,6 +3035,14 @@
             "26.3": "sha256:6b567ccd7c90023dba1d5aea6d4e4b7facbf4b2caf1c076f371dc76361b11a9f",
             "26.4-pre-1": "sha256:6b567ccd7c90023dba1d5aea6d4e4b7facbf4b2caf1c076f371dc76361b11a9f"
         },
+        "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.canAttach(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:7f5309fc62f4102056691ab935b3c0798bf381e02a7eac86847384228ce839f6",
+            "26.4-pre-1": "sha256:7f5309fc62f4102056691ab935b3c0798bf381e02a7eac86847384228ce839f6"
+        },
+        "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:2297df41ed38f43963ec640d2838e59daf195d60f86d91d5c8e772be05a9bd10",
+            "26.4-pre-1": "sha256:2297df41ed38f43963ec640d2838e59daf195d60f86d91d5c8e772be05a9bd10"
+        },
         "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:d17e8de7e96efef70db2c073831fefb0c63ef0249d4a4047577e5eda5d8fc3d0",
             "26.4-pre-1": "sha256:d17e8de7e96efef70db2c073831fefb0c63ef0249d4a4047577e5eda5d8fc3d0"
@@ -3015,6 +3063,10 @@
             "26.3": "sha256:e808acf83236c66efb444609a9b54c471ec51f2cba0c97827674df8965489f07",
             "26.4-pre-1": "sha256:e808acf83236c66efb444609a9b54c471ec51f2cba0c97827674df8965489f07"
         },
+        "net/minecraft/world/level/block/GrindstoneBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:562c7821317678c414d596ab4c1128b7804230fe070c04f0004e21d47cda2217",
+            "26.4-pre-1": "sha256:562c7821317678c414d596ab4c1128b7804230fe070c04f0004e21d47cda2217"
+        },
         "net/minecraft/world/level/block/GrowingPlantHeadBlock.MAX_AGE": {
             "26.3": "sha256:80e282145370e6ba97114679e01a69a80e818051400a10675ac5dfffda9eb506",
             "26.4-pre-1": "sha256:80e282145370e6ba97114679e01a69a80e818051400a10675ac5dfffda9eb506"
@@ -3027,8 +3079,16 @@
             "26.3": "sha256:fe0efadc5a6ec33c9e819560922f84eea61963a72a8c1968794d6f852418283c",
             "26.4-pre-1": "sha256:fe0efadc5a6ec33c9e819560922f84eea61963a72a8c1968794d6f852418283c"
         },
+        "net/minecraft/world/level/block/LadderBlock.canAttachTo(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:28b4cb1bd3cc03905ae3bbbb72bef8a8215370cb4bfdd027fdbc070fbac8d750",
+            "26.4-pre-1": "sha256:28b4cb1bd3cc03905ae3bbbb72bef8a8215370cb4bfdd027fdbc070fbac8d750"
+        },
         "net/minecraft/world/level/block/LadderBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:24ad51fd79fc62fd52112c153c634c857926bfe635ba151128cb754d22509946"
+        },
+        "net/minecraft/world/level/block/LanternBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:d4c8afc771fe823e5922e637178decc61cff2b3f828aec79037a0f7b9a8b76ae",
+            "26.4-pre-1": "sha256:d4c8afc771fe823e5922e637178decc61cff2b3f828aec79037a0f7b9a8b76ae"
         },
         "net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:93e5888810249951eb0e4738f26776a8515c4aa5cd4147d03a1f32eb077ae9a9"
@@ -3118,6 +3178,10 @@
         "net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:ba188b2f3705ad581876934891c37af4ecda6a4b4f513cf36603d7c2e2de7d33"
         },
+        "net/minecraft/world/level/block/ShelfMushroomBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:ac0ab8e169890b99a815cd8ab1ff0983c84b3e804d8e50125c64616f923e69e2",
+            "26.4-pre-1": "sha256:ac0ab8e169890b99a815cd8ab1ff0983c84b3e804d8e50125c64616f923e69e2"
+        },
         "net/minecraft/world/level/block/ShelfMushroomBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:fc3468885cc3afda16d9e2e5f93319a4da5776eb4c85cca625c070af10ad38a2",
             "26.4-pre-1": "sha256:fc3468885cc3afda16d9e2e5f93319a4da5776eb4c85cca625c070af10ad38a2"
@@ -3168,6 +3232,10 @@
             "26.3": "sha256:07295fd5778fee4075c074c93ad895034dbf7276f2c0d429a17401a126a85ad9",
             "26.4-pre-1": "sha256:07295fd5778fee4075c074c93ad895034dbf7276f2c0d429a17401a126a85ad9"
         },
+        "net/minecraft/world/level/block/StandingSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:0ab3f5f713f96d38b7d5dad4ebdcc077d0d944afe065700d07988698fd21a15f",
+            "26.4-pre-1": "sha256:0ab3f5f713f96d38b7d5dad4ebdcc077d0d944afe065700d07988698fd21a15f"
+        },
         "net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:f3a3843b224f7ac9b1871ad1b17c332647db4f8a6f30e2696e68fa0af55f2c35"
         },
@@ -3198,6 +3266,10 @@
         "net/minecraft/world/level/block/TrapDoorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:55d17f5bb814eaef377afc33b6142b844b23acc9d254a3530e4b558256fd94ac"
         },
+        "net/minecraft/world/level/block/TripWireHookBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:e897d78fed63c21fe1207886cb5a2a563b1674197533d9657d893392c30b1bc4",
+            "26.4-pre-1": "sha256:e897d78fed63c21fe1207886cb5a2a563b1674197533d9657d893392c30b1bc4"
+        },
         "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:f15d7fb8691e5f568eb83b7a721cffb675f9c93ab83520884c5341e64774e041",
             "26.4-pre-1": "sha256:f15d7fb8691e5f568eb83b7a721cffb675f9c93ab83520884c5341e64774e041"
@@ -3205,6 +3277,10 @@
         "net/minecraft/world/level/block/VaultBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:d819532d0fb4beea63b21bdb7d15116449454bbc13fe1d0f6f123ed327361350",
             "26.4-pre-1": "sha256:d819532d0fb4beea63b21bdb7d15116449454bbc13fe1d0f6f123ed327361350"
+        },
+        "net/minecraft/world/level/block/WallBannerBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:eb271c117e782f36839a569fad012ab56381269b7f007387759ead3814feda4f",
+            "26.4-pre-1": "sha256:eb271c117e782f36839a569fad012ab56381269b7f007387759ead3814feda4f"
         },
         "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630",
@@ -3220,6 +3296,10 @@
         },
         "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:42db295e91ed93cbdff8daf04ded224dee941d38edb531092840a861d4c5cc93"
+        },
+        "net/minecraft/world/level/block/WallSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:5887896d60de0238c581d66874c6b97b56ecd1debdd8b088ca39e01d86290691",
+            "26.4-pre-1": "sha256:5887896d60de0238c581d66874c6b97b56ecd1debdd8b088ca39e01d86290691"
         },
         "net/minecraft/world/level/block/WallSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:c2ce0175ddd12bd4a9c52702ec9810bc065705a0d72e7a632e7ace8b48a10c59"

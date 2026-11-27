@@ -28,7 +28,8 @@ import { mthCos, mthSin } from '../mth';
 import type { WorldActions } from '../world';
 import { isLogName } from './growth';
 import { placedHalf } from './placement';
-import { isSolidSupport } from './support';
+import type { AttachmentNeed } from './support';
+import { isAttachedToward, isFaceSturdyAt, isSolidSupport } from './support';
 
 /** What one placement knows: the world, the position, the click and the placer's view. */
 export interface PlacementInput {
@@ -160,23 +161,12 @@ const rotationSegment = (degrees: number): number => Math.floor((degrees * 16) /
 export const placedRotationSegment = (yaw: number): number => rotationSegment(yaw + 180);
 
 /**
- * Whether the block across a face from the position holds something up. Below, Java asks for a
- * sturdy top face, which a bottom slab lacks; above, a full face, which only a full cube has
- * here. A world that cannot answer either falls back to the block being solid.
+ * Whether the block across a face from the position holds a block there that needs `needs`, the
+ * question each block's Java survival rule asks: the solid flag for a sign or a banner, a full
+ * sturdy face for a ladder or a lever, a sturdy center for a lantern or a hanging bell.
  */
-const supports = (input: PlacementInput, face: BlockFace): boolean => {
-    const position = offset(input.position, face);
-    const block = input.world.getBlock(position);
-    if (block !== undefined && face === 'down') {
-        const sturdy = input.world.hasSturdyTopFace?.(block);
-        if (sturdy !== undefined) return sturdy && isSolidSupport(input.world, position);
-    }
-    if (block !== undefined && face === 'up') {
-        const full = input.world.isFullCube?.(block);
-        if (full !== undefined) return full && isSolidSupport(input.world, position);
-    }
-    return isSolidSupport(input.world, position);
-};
+const supports = (input: PlacementInput, toward: BlockFace, needs: AttachmentNeed): boolean =>
+    isAttachedToward(input.world, input.position, toward, needs);
 
 /**
  * Whether redstone power reaches the position, as Java's placement asks of the level.
@@ -222,34 +212,72 @@ const firstWall =
         return null;
     };
 
-/** A wall block survives with a block it can hang on behind it, toward the direction tried. */
-const wallSupported = (input: PlacementInput, toward: HorizontalFace): boolean => supports(input, toward);
+/**
+ * A ladder, a coral wall fan, a tripwire hook or a shelf mushroom survives against a block whose
+ * face toward it is sturdy.
+ *
+ * @javaSource LadderBlock.canAttachTo
+ * @javaSource BaseCoralWallFanBlock.canSurvive
+ * @javaSource TripWireHookBlock.canSurvive
+ * @javaSource ShelfMushroomBlock.canSurvive
+ * @javaVerified vectors
+ */
+const onSturdyWall = (input: PlacementInput, toward: HorizontalFace): boolean => supports(input, toward, 'full');
 
 /**
- * Buttons, levers and grindstones: the first direction nearest the look whose block holds them,
- * the floor or ceiling turned the way the placer looks, or a wall faced away from.
+ * A wall sign or a wall banner survives against a block Java calls solid.
+ *
+ * @javaSource WallSignBlock.canSurvive
+ * @javaSource WallBannerBlock.canSurvive
+ * @javaVerified vectors
+ */
+const onSolidWall = (input: PlacementInput, toward: HorizontalFace): boolean => supports(input, toward, 'solid');
+
+/**
+ * Whether a button, lever or grindstone attached toward a direction survives: a button or a lever
+ * needs a sturdy face there, and a grindstone survives anywhere.
+ *
+ * @javaSource FaceAttachedHorizontalDirectionalBlock.canSurvive
+ * @javaSource GrindstoneBlock.canSurvive
+ * @javaVerified vectors
+ */
+const faceAttachedSurvives = (input: PlacementInput, java: JavaState, toward: BlockFace): boolean =>
+    java.name === 'minecraft:grindstone' || supports(input, toward, 'full');
+
+/**
+ * Buttons, levers and grindstones: the first direction nearest the look they survive attached
+ * toward, the floor or ceiling turned the way the placer looks, or a wall faced away from.
  *
  * @javaSource FaceAttachedHorizontalDirectionalBlock.getStateForPlacement
  * @javaVerified vectors
  */
 const faceAttached: PlacementRule = (input, java) => {
     for (const direction of nearestLookingDirections(input)) {
+        if (!faceAttachedSurvives(input, java, direction)) continue;
         if (direction === 'up' || direction === 'down') {
-            if (!supports(input, direction)) continue;
             return withProperties(java, {
                 face: direction === 'up' ? 'ceiling' : 'floor',
                 facing: horizontalDirection(input.yaw)
             });
         }
-        if (!supports(input, direction)) continue;
         return withProperties(java, { face: 'wall', facing: opposite(direction) });
     }
     return null;
 };
 
 /**
+ * Whether a bell survives toward a direction: a ceiling bell needs a sturdy center above it, and
+ * a floor or wall bell a sturdy face.
+ *
+ * @javaSource BellBlock.canSurvive
+ * @javaVerified vectors
+ */
+const bellHeldToward = (input: PlacementInput, toward: BlockFace): boolean =>
+    supports(input, toward, toward === 'up' ? 'center' : 'full');
+
+/**
  * A bell: a floor or ceiling bell for a click on a top or bottom face, otherwise a wall bell,
- * hung between two walls when both sides hold it.
+ * hung between two walls when both sides have sturdy faces toward it.
  *
  * @javaSource BellBlock.getStateForPlacement
  * @javaVerified vectors
@@ -258,21 +286,20 @@ const bell: PlacementRule = (input, java) => {
     const clicked = input.face;
     if (clicked === 'up' || clicked === 'down') {
         const attachment = clicked === 'down' ? 'ceiling' : 'floor';
-        if (!supports(input, clicked === 'down' ? 'up' : 'down')) return null;
+        if (!bellHeldToward(input, clicked === 'down' ? 'up' : 'down')) return null;
         return withProperties(java, { attachment, facing: horizontalDirection(input.yaw) });
     }
     const facing = clicked;
     const axisSides: readonly [HorizontalFace, HorizontalFace] =
         facing === 'east' || facing === 'west' ? ['west', 'east'] : ['north', 'south'];
-    const between = supports(input, axisSides[0]) && supports(input, axisSides[1]);
+    const between = supports(input, axisSides[0], 'full') && supports(input, axisSides[1], 'full');
     const wall = withProperties(java, {
         facing: opposite(facing),
         attachment: between ? 'double_wall' : 'single_wall'
     });
-    if (supports(input, opposite(facing))) return wall;
-    const floor = supports(input, 'down');
-    if (floor) return withProperties(wall, { attachment: 'floor' });
-    return supports(input, 'up') ? withProperties(wall, { attachment: 'ceiling' }) : null;
+    if (bellHeldToward(input, opposite(facing))) return wall;
+    if (supports(input, 'down', 'full')) return withProperties(wall, { attachment: 'floor' });
+    return bellHeldToward(input, 'up') ? withProperties(wall, { attachment: 'ceiling' }) : null;
 };
 
 /**
@@ -291,7 +318,7 @@ const ladder: PlacementRule = (input, java) => {
             if (clickedFacing === input.face) return null;
         }
     }
-    return firstWall(opposite, wallSupported)(input, java);
+    return firstWall(opposite, onSturdyWall)(input, java);
 };
 
 /**
@@ -331,8 +358,15 @@ const crafter: PlacementRule = (input, java) => {
 const rotation = (input: PlacementInput, java: JavaState): JavaState =>
     withProperties(java, { rotation: String(placedRotationSegment(input.yaw)) });
 
-/** A standing sign or banner stands on a block below it. */
-const standingOnGround: PlacementRule = (input, java) => (supports(input, 'down') ? rotation(input, java) : null);
+/**
+ * A standing sign or banner stands on a block below it that Java calls solid.
+ *
+ * @javaSource StandingSignBlock.canSurvive
+ * @javaSource BannerBlock.canSurvive
+ * @javaVerified vectors
+ */
+const standingOnGround: PlacementRule = (input, java) =>
+    supports(input, 'down', 'solid') ? rotation(input, java) : null;
 
 /**
  * The compass direction a sixteenth of a turn points, for the four that point one.
@@ -354,21 +388,23 @@ const SEGMENT_OF: Readonly<Record<HorizontalFace, number>> = { south: 0, west: 4
 const sameAxis = (a: HorizontalFace, b: HorizontalFace): boolean => a === b || a === opposite(b);
 
 /**
- * A ceiling hanging sign hangs from the block above. It hangs from a chain on each side,
+ * A ceiling hanging sign hangs from the block above, whose underside holds it at its center. It
+ * hangs from a chain on each side,
  * squared to the four directions and facing the placer, under a block with a full underside;
  * under anything else, or for a sneaking placer, it is attached by one chain and turns to any of
  * the sixteenth turns. It also hangs under another hanging sign, and keeps the two chains under
  * one on the same axis.
  *
  * @javaSource CeilingHangingSignBlock.getStateForPlacement
+ * @javaSource CeilingHangingSignBlock.canSurvive
  * @javaVerified vectors
  */
 const ceilingHangingSign: PlacementRule = (input, java) => {
     const abovePosition = offset(input.position, 'up');
     const aboveBlock = input.world.getBlock(abovePosition);
     const above = aboveBlock === undefined ? undefined : javaStateOf(aboveBlock.identifier, aboveBlock.states);
-    // A hanging sign holds another below it, which Java's center-sturdy underside test allows.
-    if (!supports(input, 'up') && above?.name.endsWith('_hanging_sign') !== true) return null;
+    // A hanging sign holds another below it.
+    if (!supports(input, 'up', 'center') && above?.name.endsWith('_hanging_sign') !== true) return null;
     const direction = horizontalDirection(input.yaw);
     const fullUnderside =
         aboveBlock !== undefined &&
@@ -399,8 +435,7 @@ const bed: PlacementRule = (input, java) => {
 
 /**
  * Whether a wall hanging sign facing a way can hang from the block on one side: another wall
- * hanging sign on the same axis, or a block whose face toward the sign is sturdy, which the
- * world answers as a full cube.
+ * hanging sign on the same axis, or a block whose face toward the sign is sturdy.
  *
  * @javaSource WallHangingSignBlock.canAttachTo
  * @javaVerified vectors
@@ -414,7 +449,7 @@ const hangsFrom = (input: PlacementInput, facing: HorizontalFace, side: Horizont
         const along = HORIZONTAL.find((face) => face === java.properties['facing']);
         return along !== undefined && sameAxis(along, facing);
     }
-    return input.world.isFullCube?.(block) ?? isSolidSupport(input.world, position);
+    return isFaceSturdyAt(input.world, position, opposite(side));
 };
 
 /**
@@ -547,6 +582,14 @@ const segmented: PlacementRule = (input, java) => {
 };
 
 /**
+ * A coral or a coral fan stands on a block whose top face is sturdy.
+ *
+ * @javaSource BaseCoralPlantTypeBlock.canSurvive
+ * @javaVerified vectors
+ */
+const coralPlant: PlacementRule = (input, java) => (supports(input, 'down', 'full') ? java : null);
+
+/**
  * The rules by the Java class whose `getStateForPlacement` each copies.
  *
  * @javaSource AnvilBlock.getStateForPlacement
@@ -629,20 +672,20 @@ const RULES = {
     LeafLitterBlock: segmented,
     ShelfBlock: (input, java) =>
         withProperties(java, { facing: opposite(horizontalDirection(input.yaw)), powered: String(powered(input)) }),
-    ShelfMushroomBlock: firstWall(opposite, wallSupported),
+    ShelfMushroomBlock: firstWall(opposite, onSturdyWall),
     SkullBlock: skull,
     SmallDripleafBlock: smallDripleaf,
     StandingSignBlock: standingOnGround,
     StonecutterBlock: horizontalFacing(opposite),
-    TripWireHookBlock: firstWall(opposite, wallSupported),
+    TripWireHookBlock: firstWall(opposite, onSturdyWall),
     VaultBlock: horizontalFacing(opposite),
-    BaseCoralWallFanBlock: firstWall(opposite, wallSupported),
-    WallBannerBlock: firstWall(opposite, wallSupported),
+    BaseCoralWallFanBlock: firstWall(opposite, onSturdyWall),
+    WallBannerBlock: firstWall(opposite, onSolidWall),
     WallHangingSignBlock: wallHangingSign,
-    WallSignBlock: firstWall(opposite, wallSupported),
+    WallSignBlock: firstWall(opposite, onSolidWall),
     WallSkullBlock: wallSkull,
     AbstractBedBlock: bed,
-    BaseCoralPlantTypeBlock: (input, java) => (supports(input, 'down') ? java : null),
+    BaseCoralPlantTypeBlock: coralPlant,
     MangrovePropaguleBlock: (_input, java) => withProperties(java, { age: '4' })
 } as const satisfies Readonly<Record<string, PlacementRule>>;
 
