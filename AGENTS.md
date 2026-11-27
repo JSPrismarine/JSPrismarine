@@ -289,8 +289,7 @@ by biome, `/locate`, or portals between dimensions.
   a file in `forceRerunTriggers` in `vitest.config.ts` still makes that first run a full one, as
   in CI. It cannot see a file no test loaded, such as a new `.env` or `__mocks__` file, or a file
   whose modification time a checkout set in the past, so run the test files that read such a file
-  by path. Put those paths before the flag: in `vitest run --since-last-run <path>`, the flag takes
-  the path as its value and runs every affected file. Do not run `pnpm run test` or whole suites: CI uses
+  by path. Do not run `pnpm run test` or whole suites: CI uses
   `--changed`, against the pull request base or, on master, the last master commit whose tests
   passed, because those baselines are the same on every machine. A nightly run tests every suite.
 - Typecheck the packages you changed and their dependents with

@@ -20,3 +20,10 @@ minimumReleaseAge: 0
 # same default export and options, fixed in 11.1.3.
 overrides:
   decompress: npm:@xhmikosr/decompress@11.1.4
+
+# Vitest registers its flags in camelCase, so its argument parser read a boolean typed in kebab case,
+# such as `--since-last-run`, as taking the next argument, and `vitest run --since-last-run <path>`
+# dropped the path filter. The patch declares the kebab spelling too; `scripts/vitest-cli.test.ts`
+# checks it. Refresh or drop it when Vitest is upgraded.
+patchedDependencies:
+  vitest@5.1.2: patches/vitest@5.1.2.patch

@@ -1,0 +1,31 @@
+diff --git a/dist/chunks/cac.DnNTZKhD.js b/dist/chunks/cac.DnNTZKhD.js
+index 6b708c792c1e9f7c2394f4b4b60ebf39de3dde0a..bcba23c15f080aa7a8d1a908521065cad231a450 100644
+--- a/dist/chunks/cac.DnNTZKhD.js
++++ b/dist/chunks/cac.DnNTZKhD.js
+@@ -154,6 +154,13 @@ const findAllBrackets = (v) => {
+   }
+   return res;
+ };
++// Vitest names its options in camelCase, so a boolean typed in kebab case, such as
++// `--since-last-run`, must be declared to mri under that spelling too, or it takes the next
++// argument as its value.
++const withKebabCase = (name) => {
++  const kebab = name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
++  return kebab === name ? [name] : [name, kebab];
++};
+ const getMriOptions = (options) => {
+   const result = {alias: {}, boolean: []};
+   for (const [index, option] of options.entries()) {
+@@ -166,10 +173,10 @@ const getMriOptions = (options) => {
+           return i !== index && o.names.some((name) => option.names.includes(name)) && typeof o.required === "boolean";
+         });
+         if (!hasStringTypeOption) {
+-          result.boolean.push(option.names[0]);
++          result.boolean.push(...withKebabCase(option.names[0]));
+         }
+       } else {
+-        result.boolean.push(option.names[0]);
++        result.boolean.push(...withKebabCase(option.names[0]));
+       }
+     }
+   }
