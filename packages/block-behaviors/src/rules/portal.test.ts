@@ -447,7 +447,7 @@ describe('portalCreationSite', () => {
         const world = createVoxelWorld().overworld;
         shelf(world, { x: 40 + 18, y: 64, z: 40 }, 'x', 3);
 
-        expect(portalCreationSite(world, TARGET, 'x', NETHER_BOUNDS).forced).toBe(true);
+        expect(portalCreationSite(world, TARGET, 'x', NETHER_BOUNDS)?.forced).toBe(true);
     });
 
     it('forces a portal one block back along the axis when nothing fits, clamping y to 70 and maxY - 10', () => {
@@ -463,6 +463,47 @@ describe('portalCreationSite', () => {
         });
         expect(portalCreationSite(world, { x: 40, y: 300, z: 40 }, 'x', { minY: -64, maxY: 320 })).toEqual({
             at: { x: 39, y: 300, z: 40 },
+            forced: true
+        });
+    });
+
+    it("keeps the first of two equally close sites in Java's spiral, which leaves the target eastward", () => {
+        const world = createVoxelWorld().overworld;
+        const east = { x: 46, y: 64, z: 40 };
+        const west = { x: 34, y: 64, z: 40 };
+        shelf(world, east, 'z', 3);
+        shelf(world, west, 'z', 3);
+
+        expect(portalCreationSite(world, TARGET, 'z', NETHER_BOUNDS)).toEqual({ at: east, forced: false });
+    });
+
+    it('builds nothing in a dimension too short to force a portal between y 70 and maxY - 10', () => {
+        expect(
+            portalCreationSite(createVoxelWorld().overworld, { x: 0, y: 30, z: 0 }, 'x', { minY: 0, maxY: 64 })
+        ).toBe(undefined);
+    });
+
+    it('skips a column whose next block along the axis is outside the world border', () => {
+        const world = createVoxelWorld().overworld;
+        shelf(world, { x: 43, y: 64, z: 40 }, 'x', 3);
+        const border = { minX: 0, maxX: 44, minZ: 0, maxZ: 80 };
+
+        expect(portalCreationSite(world, TARGET, 'x', { ...NETHER_BOUNDS, border })).toEqual({
+            at: { x: 39, y: 70, z: 40 },
+            forced: true
+        });
+    });
+
+    it('clamps a forced portal into the world border, flooring an edge that is not a whole block', () => {
+        const border = { minX: -4.75, maxX: 5.25, minZ: -5, maxZ: 5 };
+        const bounds = { minY: -64, maxY: 320, border };
+
+        expect(portalCreationSite(createVoxelWorld().overworld, { x: -20, y: 100, z: 3 }, 'x', bounds)).toEqual({
+            at: { x: -5, y: 100, z: 3 },
+            forced: true
+        });
+        expect(portalCreationSite(createVoxelWorld().overworld, { x: 20, y: 100, z: 20 }, 'z', bounds)).toEqual({
+            at: { x: 5, y: 100, z: 4 },
             forced: true
         });
     });

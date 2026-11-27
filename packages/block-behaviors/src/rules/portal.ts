@@ -13,7 +13,7 @@ import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
 
 import type { HorizontalFace } from '../geometry';
-import { FACE_STEPS, HORIZONTAL_FACES, isVertical, offset, opposite } from '../geometry';
+import { FACE_STEPS, HORIZONTAL_FACES, isVertical, offset, opposite, spiralAround } from '../geometry';
 import { AIR, isAir, isLiquid, isReplaceable, OBSIDIAN } from '../identifiers';
 import { bareName, stateBoolean } from '../state';
 import { isSolidSupport } from './support';
@@ -396,24 +396,54 @@ export const activateEndPortal = (world: WorldActions, frameAt: BlockPosition): 
     return center;
 };
 
-/** Java's `PortalForcer` search radius around the scaled target, in blocks. */
+/**
+ * Java's `PortalForcer` search radius around the scaled target, in blocks: the radius of the
+ * `BlockPos.spiralAround` the search walks.
+ */
 export const PORTAL_CREATION_RADIUS = 16;
 
 /** The lowest y a forced portal is written at, Java's `bipush 70`. */
 export const PORTAL_FORCED_MIN_Y = 70;
 
-/** How far below the dimension's height limit a forced portal stays. */
+/**
+ * How far below the first y past the search's top a forced portal stays: Java subtracts 9
+ * from the highest y the search may use.
+ */
 export const PORTAL_FORCED_TOP_MARGIN = 10;
 
 /** The block Bedrock flanks a forced portal's platform with. */
 export const NETHERRACK = 'minecraft:netherrack';
 
-/** The vertical range portal creation may use in one dimension. */
+/**
+ * The Java block tag `Heightmap.Types.MOTION_BLOCKING` reads. A block in it, or one holding a
+ * fluid, is what the heightmap stands on.
+ */
+export const BLOCKS_MOTION_IN_HEIGHTMAP_TAG = 'minecraft:blocks_motion_in_heightmap';
+
+/**
+ * A world border's extent, as Java's `WorldBorder.getMinX`, `getMaxX`, `getMinZ` and `getMaxZ`
+ * report it. A block is inside when `minX <= x < maxX` and `minZ <= z < maxZ`.
+ *
+ * @javaSee WorldBorder.getMinX()D
+ */
+export interface PortalWorldBorder {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minZ: number;
+    readonly maxZ: number;
+}
+
+/** The vertical range portal creation may use in one dimension, and the border it stays inside. */
 export interface PortalCreationBounds {
     /** The lowest y a block can occupy. */
     readonly minY: number;
-    /** The first y above the build limit, 128 in the Nether and 320 in the Overworld. */
+    /**
+     * The first y past the search's top, which is the lower of the build limit and the logical
+     * height: 128 in the Nether and 320 in the Overworld.
+     */
     readonly maxY: number;
+    /** The world border, or undefined for a world without one, which is every Bedrock world. */
+    readonly border?: PortalWorldBorder;
 }
 
 /** Where a new portal goes, as {@link portalCreationSite} decided it. */
@@ -452,55 +482,122 @@ const squaredDistance = (a: BlockPosition, b: BlockPosition): number =>
     (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 
 /**
+ * Whether the `MOTION_BLOCKING` heightmap stands on a block: a liquid, or a block in
+ * {@link BLOCKS_MOTION_IN_HEIGHTMAP_TAG}. A host that answers no tags falls back to
+ * `isSolidSupport`, which is the closest rule it has.
+ */
+const blocksMotionInHeightmap = (world: WorldActions, position: BlockPosition): boolean => {
+    const block = world.getBlock(position);
+    if (block === undefined) return false;
+    if (isLiquid(block.identifier)) return true;
+    return world.hasBlockTag?.(block, BLOCKS_MOTION_IN_HEIGHTMAP_TAG) ?? isSolidSupport(world, position);
+};
+
+/**
+ * Where Java starts walking a column: the lower of `top` and its `MOTION_BLOCKING` height, which
+ * is one above the highest block that blocks motion, or `minY` when none does.
+ *
+ * A heightmap also counts blocks above `top`, and any of them puts Java's start at `top`. Starting
+ * lower changes nothing: the blocks between `top` and the first that blocks motion are air or
+ * other replaceable blocks, so Java's walk runs down through them to the same block, and a run too
+ * short to count is too close to `top` for a frame anyway. That holds because no block in 26.3 is
+ * replaceable and motion blocking without holding a fluid.
+ */
+const columnStart = (world: WorldActions, column: BlockPosition, top: number, minY: number): number => {
+    for (let y = top; y >= minY; y -= 1) {
+        if (blocksMotionInHeightmap(world, { ...column, y })) return Math.min(top, y + 1);
+    }
+    return minY;
+};
+
+/**
+ * Java's `WorldBorder.isWithinBounds` with no margin. No border holds every position.
+ *
+ * @javaSource WorldBorder.isWithinBounds(DDD)Z
+ */
+const isWithinBorder = (border: PortalWorldBorder | undefined, position: BlockPosition): boolean =>
+    border === undefined ||
+    (position.x >= border.minX && position.x < border.maxX && position.z >= border.minZ && position.z < border.maxZ);
+
+/** The margin {@link clampToBorder} keeps under the border's high edges: a float `1.0E-5` widened to a double. */
+const BORDER_CLAMP_MARGIN = 9.999999747378752e-6;
+
+/**
+ * Java's `Mth.clamp` for doubles.
+ *
+ * @javaSee Mth.clamp(DDD)D
+ */
+const clampDouble = (value: number, min: number, max: number): number => (value < min ? min : Math.min(value, max));
+
+/**
+ * Java's `WorldBorder.clampToBounds` for a block position: each horizontal coordinate clamped
+ * into the border, then floored, as `BlockPos.containing` does. A border whose low edge is not a
+ * whole number floors to the block outside it.
+ *
+ * @javaSource WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;
+ */
+const clampToBorder = (border: PortalWorldBorder | undefined, position: BlockPosition): BlockPosition =>
+    border === undefined
+        ? position
+        : {
+              x: Math.floor(clampDouble(position.x, border.minX, border.maxX - BORDER_CLAMP_MARGIN)),
+              y: position.y,
+              z: Math.floor(clampDouble(position.z, border.minZ, border.maxZ - BORDER_CLAMP_MARGIN))
+          };
+
+/**
  * Java's `PortalForcer.createPortal` search: where a portal for `target` goes.
  *
- * Every column within {@link PORTAL_CREATION_RADIUS} is walked from the top
- * down for a replaceable run standing on a solid floor with room for the 4 by
- * 5 frame. The first pass wants the footprint and one block on each side of
- * it; the second pass, used only when the first finds nothing, wants the
- * footprint alone. The closest candidate by 3D distance wins. When neither
- * pass finds anything the portal is forced one block back along the axis from
- * the target, with y clamped to `[70, maxY - 10]`, and the caller writes a
- * platform under it.
+ * The columns within {@link PORTAL_CREATION_RADIUS} are visited in Java's spiral, skipping one
+ * outside the world border or whose next block along the axis is. Each is walked down from its
+ * `MOTION_BLOCKING` height, capped at `maxY - 1`, for a replaceable run standing on a solid
+ * floor with room for the 4 by 5 frame. The first pass wants the footprint and one block on
+ * each side of it; the second pass, used only when the first finds nothing, wants the footprint
+ * alone. The closest candidate by 3D distance wins, and of two equally close the one the spiral
+ * met first. When neither pass finds anything the portal is forced one block back along the axis
+ * from the target, with y clamped to `[70, maxY - 10]` and the column clamped into the border,
+ * and the caller writes a platform under it.
  *
  * @javaSource PortalForcer.createPortal
  * @param target - The scaled arrival position in the destination dimension.
  * @param axis - The source portal's axis, which the new portal keeps.
+ * @returns The site, or undefined when the dimension is too short for a forced portal, which is
+ *   when `maxY - 10` is under `max(minY + 1, 70)`. Java builds nothing then, and the trip fails.
  */
 export const portalCreationSite = (
     world: WorldActions,
     target: BlockPosition,
     axis: PortalAxis,
     bounds: PortalCreationBounds
-): PortalCreationSite => {
+): PortalCreationSite | undefined => {
+    const { border, minY } = bounds;
     const top = bounds.maxY - 1;
     let best: BlockPosition | undefined;
     let bestDistance = Number.POSITIVE_INFINITY;
     let fallback: BlockPosition | undefined;
     let fallbackDistance = Number.POSITIVE_INFINITY;
 
-    for (let dx = -PORTAL_CREATION_RADIUS; dx <= PORTAL_CREATION_RADIUS; dx += 1) {
-        for (let dz = -PORTAL_CREATION_RADIUS; dz <= PORTAL_CREATION_RADIUS; dz += 1) {
-            const column = { x: target.x + dx, y: 0, z: target.z + dz };
-            for (let y = top; y >= bounds.minY; y -= 1) {
-                if (!canPortalReplace(world, { ...column, y })) continue;
-                const first = y;
-                while (y > bounds.minY && canPortalReplace(world, { ...column, y: y - 1 })) y -= 1;
-                if (y + 4 > top) continue;
-                const run = first - y;
-                if (run > 0 && run < 3) continue;
-                const candidate = { ...column, y };
-                if (!canHostFrame(world, candidate, axis, 0)) continue;
-                const distance = squaredDistance(target, candidate);
-                if (canHostFrame(world, candidate, axis, -1) && canHostFrame(world, candidate, axis, 1)) {
-                    if (distance < bestDistance) {
-                        best = candidate;
-                        bestDistance = distance;
-                    }
-                } else if (distance < fallbackDistance) {
-                    fallback = candidate;
-                    fallbackDistance = distance;
+    for (const step of spiralAround(PORTAL_CREATION_RADIUS)) {
+        const column = { x: target.x + step.x, y: 0, z: target.z + step.z };
+        if (!isWithinBorder(border, column) || !isWithinBorder(border, alongPortalAxis(column, axis, 1))) continue;
+        for (let y = columnStart(world, column, top, minY); y >= minY; y -= 1) {
+            if (!canPortalReplace(world, { ...column, y })) continue;
+            const first = y;
+            while (y > minY && canPortalReplace(world, { ...column, y: y - 1 })) y -= 1;
+            if (y + 4 > top) continue;
+            const run = first - y;
+            if (run > 0 && run < 3) continue;
+            const candidate = { ...column, y };
+            if (!canHostFrame(world, candidate, axis, 0)) continue;
+            const distance = squaredDistance(target, candidate);
+            if (canHostFrame(world, candidate, axis, -1) && canHostFrame(world, candidate, axis, 1)) {
+                if (distance < bestDistance) {
+                    best = candidate;
+                    bestDistance = distance;
                 }
+            } else if (distance < fallbackDistance) {
+                fallback = candidate;
+                fallbackDistance = distance;
             }
         }
     }
@@ -508,12 +605,11 @@ export const portalCreationSite = (
     const found = best ?? fallback;
     if (found !== undefined) return { at: found, forced: false };
 
-    const lowest = Math.max(bounds.minY + 1, PORTAL_FORCED_MIN_Y);
-    const highest = Math.max(lowest, bounds.maxY - PORTAL_FORCED_TOP_MARGIN);
-    return {
-        at: { ...alongPortalAxis(target, axis, -1), y: Math.min(highest, Math.max(lowest, target.y)) },
-        forced: true
-    };
+    const lowest = Math.max(minY + 1, PORTAL_FORCED_MIN_Y);
+    const highest = bounds.maxY - PORTAL_FORCED_TOP_MARGIN;
+    if (highest < lowest) return undefined;
+    const back = { ...alongPortalAxis(target, axis, -1), y: Math.min(highest, Math.max(lowest, target.y)) };
+    return { at: clampToBorder(border, back), forced: true };
 };
 
 /**
