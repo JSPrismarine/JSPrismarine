@@ -470,7 +470,8 @@ the workflow records the before and after job counts in its description.
   chat as system messages. This is not deferred and has no issue: there is no plan to add it.
 - A Java-shaped world model, and translating Java packets into Bedrock packets at the connection.
   Both rejected in ADR 0026 and ADR 0027.
-- Resource packs for Java clients, server-side rendering of Bedrock-only blocks through a Java
-  resource pack, and Java-side plugin messaging channels.
+- Resource packs for Java clients and server-side rendering of Bedrock-only blocks through a Java
+  resource pack, which [Bedrock resource packs for Java clients](bedrock-resource-packs-for-java.md)
+  now plans, and Java-side plugin messaging channels.
 - Per-world `protocol-content`, inventory, blocks, forms, trade, maps, books and camera for Java
   sessions, and incremental light updates. These are PR 10's slices and the follow-up issues.
