@@ -90,18 +90,21 @@ const f = Math.fround;
  * Java's `DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT`.
  *
  * @javaSource DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT
+ * @javaVerified vectors
  */
 const FIREBALL_CHARGE = 5;
 /**
  * Java's `DragonChargePlayerPhase.CHARGE_RECOVERY_TIME`.
  *
  * @javaSource DragonChargePlayerPhase.CHARGE_RECOVERY_TIME
+ * @javaVerified vectors
  */
 const CHARGE_RECOVERY_TICKS = 10;
 /**
  * Java's `DragonSittingScanningPhase.SITTING_SCANNING_IDLE_TICKS`.
  *
  * @javaSource DragonSittingScanningPhase.SITTING_SCANNING_IDLE_TICKS
+ * @javaVerified vectors
  */
 const SCANNING_TICKS = 100;
 /** How long a scan waits before it turns to the attack, in ticks. */
@@ -110,12 +113,14 @@ const SCAN_ATTACK_DELAY = 25;
  * Java's `DragonSittingAttackingPhase.ROAR_DURATION`.
  *
  * @javaSource DragonSittingAttackingPhase.ROAR_DURATION
+ * @javaVerified vectors
  */
 const ROAR_TICKS = 40;
 /**
  * Java's `DragonSittingFlamingPhase.FLAME_DURATION`.
  *
  * @javaSource DragonSittingFlamingPhase.FLAME_DURATION
+ * @javaVerified vectors
  */
 const FLAME_TICKS = 200;
 /**
@@ -128,6 +133,7 @@ const FLAME_ATTACKS = 4;
  * Java's `DragonSittingFlamingPhase.WARMUP_TIME`.
  *
  * @javaSource DragonSittingFlamingPhase.WARMUP_TIME
+ * @javaVerified vectors
  */
 const FLAME_WARMUP = 10;
 /** How far below the head the breath looks for ground before it gives up, in blocks. */
@@ -185,6 +191,7 @@ const ZERO: EntityPosition = { x: 0, y: 0, z: 0 };
  * Java's `Vec3.normalize`.
  *
  * @javaSource Vec3.normalize
+ * @javaVerified vectors
  */
 const normalize = (vector: EntityPosition): EntityPosition => {
     const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
@@ -197,6 +204,7 @@ const dot = (a: EntityPosition, b: EntityPosition): number => a.x * b.x + a.y * 
  * Java's `Vec3i.distToCenterSqr`: from the middle of a block to a point.
  *
  * @javaSource Vec3i.distToCenterSqr(Lnet/minecraft/core/Position;)D
+ * @javaVerified vectors
  */
 const distanceToCenterSquared = (block: PathNode, at: EntityPosition): number =>
     (block.x + 0.5 - at.x) ** 2 + (block.y + 0.5 - at.y) ** 2 + (block.z + 0.5 - at.z) ** 2;
@@ -321,6 +329,7 @@ class DragonPhases {
      * Java's `DragonFlightHistory.record` for the height.
      *
      * @javaSource DragonFlightHistory.record
+     * @javaVerified vectors
      */
     private record(y: number): void {
         if (this.historyHead < 0) this.history.fill(y);
@@ -332,6 +341,7 @@ class DragonPhases {
      * Java's `DragonFlightHistory.get(delay).y()`.
      *
      * @javaSource DragonFlightHistory.get(I)Lnet/minecraft/world/entity/boss/enderdragon/DragonFlightHistory$Sample;
+     * @javaVerified vectors
      */
     private heightAgo(delay: number): number {
         return this.history[(this.historyHead - delay) & (HISTORY_LENGTH - 1)] ?? 0;
@@ -363,6 +373,7 @@ class DragonPhases {
      * Java's `EnderDragonPhaseManager.setPhase`: ends the current phase and begins the next.
      *
      * @javaSource EnderDragonPhaseManager.setPhase
+     * @javaVerified vectors
      */
     public setPhase(next: DragonPhaseName): void {
         if (next === this.phaseName) return;
@@ -514,6 +525,7 @@ class DragonPhases {
      * Java's `DragonHoldingPatternPhase.findNewTarget`.
      *
      * @javaSource DragonHoldingPatternPhase.findNewTarget
+     * @javaVerified vectors
      */
     private holdingPatternTarget(): void {
         if (this.path !== undefined && isDone(this.path)) {
@@ -584,6 +596,7 @@ class DragonPhases {
      * Java's `DragonStrafePlayerPhase.setTarget`: a path toward the target, ending above it.
      *
      * @javaSource DragonStrafePlayerPhase.setTarget
+     * @javaVerified vectors
      */
     private strafeAt(target: GoalMob): void {
         this.strafeTarget = target;
@@ -606,6 +619,7 @@ class DragonPhases {
      * also gives up on a dead one, since a Bedrock player keeps its entity through a respawn.
      *
      * @javaSource DragonStrafePlayerPhase.doServerTick
+     * @javaVerified vectors
      */
     private strafeTick(): void {
         const target = this.strafeTarget;
@@ -644,6 +658,7 @@ class DragonPhases {
      * post-increment that checks it and the miss that follows in the same tick.
      *
      * @javaSource DragonChargePlayerPhase.doServerTick
+     * @javaVerified vectors
      */
     private chargeTick(): void {
         if (this.targetLocation === undefined) {
@@ -667,6 +682,7 @@ class DragonPhases {
      * aims by the player's direction from the world's origin rather than from the fight's.
      *
      * @javaSource DragonLandingApproachPhase.findNewTarget
+     * @javaVerified vectors
      */
     private landingApproachTarget(): void {
         if (this.path === undefined || isDone(this.path)) {
@@ -693,6 +709,7 @@ class DragonPhases {
      * portal. It ends on the outer ring while crystals stand and on the middle ring once none do.
      *
      * @javaSource DragonTakeoffPhase.findNewTarget
+     * @javaVerified vectors
      */
     private takeoffTarget(): void {
         const from = this.closestNode();
@@ -713,6 +730,7 @@ class DragonPhases {
      * Java's `Entity.calculateViewVector`.
      *
      * @javaSource Entity.calculateViewVector
+     * @javaVerified vectors
      */
     private viewVector(xRot: number, yRot: number): EntityPosition {
         const pitch = f(xRot * DEGREES_TO_RADIANS);
@@ -725,6 +743,7 @@ class DragonPhases {
      * Java's `DragonSittingScanningPhase.doServerTick`.
      *
      * @javaSource DragonSittingScanningPhase.doServerTick
+     * @javaVerified vectors
      */
     private scanTick(): void {
         this.scanningTime += 1;
@@ -764,6 +783,7 @@ class DragonPhases {
      * Java's `DragonSittingFlamingPhase.doServerTick`: the breath ten ticks in, the end at 200.
      *
      * @javaSource DragonSittingFlamingPhase.doServerTick
+     * @javaVerified vectors
      */
     private flameTick(): void {
         this.flameTicks += 1;
@@ -841,6 +861,7 @@ class DragonPhases {
      * Java's `EnderDragon.aiStep` flight: climb, turn, thrust along the heading, move and drag.
      *
      * @javaSource EnderDragon.aiStep
+     * @javaVerified vectors
      */
     private fly(): void {
         const target = this.flyTarget();
@@ -894,6 +915,7 @@ class DragonPhases {
      * the neck and the body break through blocks.
      *
      * @javaSource EnderDragon.aiStep
+     * @javaVerified vectors
      */
     private moveParts(): void {
         const here = this.support.position();

@@ -221,9 +221,29 @@ harness.holderOf('jump'); // 'minecraft:behavior.float'
 `src/scheduler.test.ts` runs the zombie's nine base goals, with the priorities the vanilla file
 writes, and shows which goal holds each flag as a player comes into range.
 
+### The ender dragon against Java
+
+The dragon's phase goals run a copy of Java's phase manager, which flies the dragon by
+Java's `EnderDragon.aiStep`. `vectors/26.3/` holds what Java's own code computes for it, and
+`src/goals/dragonPhases.vectors.test.ts` compares the copy with it:
+
+- `dragon-nodes.json`: the path nodes over a fixed heightmap, the closest node to a grid of
+  points, and the path between every pair of nodes, with crystals standing and with none.
+- `dragon-fights.json`: seeded fights with the phase, position and yaw
+  on every tick, each target the dragon flew toward, each fireball and breath cloud, and every
+  draw from the dragon's random source. The test hands the copy Java's draws and fails on the
+  first tick where anything differs.
+
+`utils/oracle/DumpDragonVectors.java` records them. It runs Java's `EnderDragon` on a
+`ServerLevel` it allocates without a server: open air over the heightmap, players that stand
+still, and no other entities. Wall breaking and the wings' and head's hits are not in the
+recordings. Regenerate them after a Java bump with
+`pnpm --filter @jsprismarine/entity-goals run vectors`, which fetches the pinned server jar if the
+cache lacks it and needs a JDK the jar can run on.
+
 ## What is left to the server
 
-Four things the goals parse and hand over rather than carry out, because the behavior belongs
+Three things the goals parse and hand over rather than carry out, because the behavior belongs
 somewhere else.
 
 - The explosion itself. `minecraft:behavior.swell` holds the creeper still and the
@@ -233,6 +253,3 @@ somewhere else.
   what counts.
 - Whether two entities may breed. `minecraft:breedable` owns that rule, so `breed` and `make_love`
   ask `GoalWorld.canBreedWith`.
-- The ender dragon's flight path. Its eight phase goals are `{"priority": n}` in the vanilla file
-  and nothing else, so each one holds its phase's control flags for a fixed time and leaves the
-  flight to the server.
