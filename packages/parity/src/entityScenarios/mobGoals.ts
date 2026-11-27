@@ -7,7 +7,7 @@ import type { DragonPhaseName } from '@jsprismarine/entity-goals/goals/dragonPha
 import type { BehaviorScenario, ScenarioOutcome } from '../behaviorScenarios.ts';
 import { serverContent } from '../serverStack.ts';
 import type { Probe, ProbeOptions } from './goalProbe.ts';
-import { withProbe } from './goalProbe.ts';
+import { GROUND_Y, withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring, mappedEntity } from './subjects.ts';
 import { equipmentOf, heldOf, hold } from './mobSlots.ts';
@@ -364,6 +364,20 @@ const withDragon = <T>(subject: EntitySubject, goal: string, phase: DragonPhaseN
         }
     );
 
+/**
+ * Where the dragon's phase rows hold its fight: on the world origin, where the End's fight always
+ * is. Java's `findClosestNode` rings the path nodes around the world origin whatever the fight's
+ * origin, so a dragon whose fight stood in the probe's own patch would fly off toward them.
+ */
+const ARENA = { x: 0.5, y: GROUND_Y, z: 0.5 } as const;
+
+/**
+ * How far out from the fountain a dragon in its holding pattern may swing, in blocks. Its path
+ * nodes stand at most 60 out, and it overshoots each one as it turns: the fights Java flew in
+ * `packages/entity-goals/vectors/26.3/dragon-fights.json` hold the pattern up to 97 blocks out.
+ */
+const HOLDING_PATTERN_SWING = 100;
+
 /** The dragon and its fireball against the world: Java's rules outside the phase classes. */
 const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -499,28 +513,32 @@ const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'dragon-wings-and-head',
-        java: 'A dragon in flight shoves what its wings meet away from its body, 4 blocks a tick and 0.2 up, hurting it for 5, and its head hurts what it touches for 10.',
-        reference: `Java EnderDragon.aiStep (while hurtTime is 0: knockBack over each wing's box inflate(4, 2, 4).move(0, -2, 0), hurt over the head and neck boxes inflate(1.0)), EnderDragon.knockBack (push(dx / d * 4, 0.2, dz / d * 4), 5 mob attack damage unless sitting) and EnderDragon.hurt (10); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        java: 'A dragon in flight shoves what its wings meet away from its body, 4 blocks a tick and 0.2 up, hurting it for 5, and its head and neck hurt what they touch for 10, which the half second of invulnerability after the first blow lets land once.',
+        reference: `Java EnderDragon.aiStep (while hurtTime is 0: knockBack over each wing's box inflate(4, 2, 4).move(0, -2, 0), then hurt over the head's and the neck's boxes inflate(1.0), as the parts stood before the tick moved them), EnderDragon.knockBack (push(dx / d * 4, 0.2, dz / d * 4), 5 mob attack damage unless sitting or a mob hurt it in the last 2 ticks), EnderDragon.hurt (10) and LivingEntity.hurtServer (a blow while invulnerableTime is above 10 lands only for what it adds to the last); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
         subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:attack'],
         run: (subject) =>
             withDragon(subject, 'dragonholdingpattern', 'holding_pattern', (probe) => {
                 // Java's dragon starts at yRot 0: its wings reach east and west, its head north.
+                // The head golem stands past the wings' reach, which ends 6 blocks north, and in
+                // the head's and the neck's. Java's parts strike where the last tick left them,
+                // so the head strikes on the second tick, and the neck's blow, no harder than the
+                // head's, lands on a golem still invulnerable from it.
                 const wing = still(probe.spawn('minecraft:iron_golem', 5, 0, 0));
-                const head = still(probe.spawn('minecraft:iron_golem', 0, 0, -6.5));
+                const head = still(probe.spawn('minecraft:iron_golem', 0, 0, -7.5));
                 const health = (golem: typeof wing): number => golem.instance.attributes.get('health')?.current ?? 0;
                 const wingBefore = health(wing);
                 const headBefore = health(head);
                 const pushedFrom = { ...wing.body.velocity };
-                probe.tick();
+                probe.tick(2);
                 const shove = wing.body.velocity.x - pushedFrom.x;
                 return differences([
                     shove <= 0 && 'its wing did not shove an iron golem beside it away from its body',
                     wingBefore - health(wing) !== 5 &&
-                        `its wing hurt an iron golem for ${(wingBefore - health(wing)).toFixed(1)}, where Java's hurts for 5`,
+                        `its wing hurt an iron golem for ${(wingBefore - health(wing)).toFixed(1)} over 2 ticks, where Java's hurts for 5`,
                     headBefore - health(head) !== 10 &&
-                        `its head hurt an iron golem for ${(headBefore - health(head)).toFixed(1)}, where Java's hurts for 10`
+                        `its head and neck hurt an iron golem for ${(headBefore - health(head)).toFixed(1)}, where Java's hurt for 10`
                 ]);
             })
     },
@@ -1308,8 +1326,8 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 'dragonholdingpattern',
                 'dragon_flying',
                 'holding_pattern',
-                'laps the node rings around the fountain: within 200 ticks it covers 20 blocks and climbs to the nodes, 10 or more blocks up, and stays inside the outer ring',
-                'Java DragonHoldingPatternPhase.findNewTarget (a path to the next node of the ring, up to 20 blocks above it) and EnderDragon.findClosestNode (rings of 60, 40 and 20 at least 10 above sea level)'
+                'laps the node rings around the fountain: within 200 ticks it covers 20 blocks and climbs to the nodes, 10 or more blocks up, and swings out no more than 100 blocks as it turns from node to node',
+                'Java DragonHoldingPatternPhase.findNewTarget (a path to the next node of the ring, up to 20 blocks above it) and EnderDragon.findClosestNode (rings of 60, 40 and 20 around the world origin, at least 10 above sea level)'
             ],
             [
                 'dragonstrafeplayer',
@@ -1366,14 +1384,20 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     {
                         groups: [group],
                         without: (name) => name.startsWith('dragon_'),
-                        data: (origin) => ({ fight_origin: [origin.x, origin.y, origin.z] })
+                        data: () => ({ fight_origin: [ARENA.x, ARENA.y, ARENA.z] })
                     },
                     (probe) => {
-                        const origin = probe.at(0, 0, 0);
-                        probe.entity.position = probe.at(0, goal === 'dragonlanding' ? 20 : 0, 0);
+                        const origin = ARENA;
+                        const at = (x: number, y: number, z: number) => ({
+                            x: origin.x + x,
+                            y: origin.y + y,
+                            z: origin.z + z
+                        });
+                        probe.entity.position = at(0, goal === 'dragonlanding' ? 20 : 0, 0);
                         const start = { ...probe.entity.position };
                         const away = goal === 'dragonscanning' ? 12 : 40;
-                        const player = probe.player(away, 0, 0);
+                        const patch = probe.at(0, 0, 0);
+                        const player = probe.player(origin.x + away - patch.x, origin.y - patch.y, origin.z - patch.z);
                         probe.entity.target = player;
                         probe.entity.instance.componentState.set(dragonPhaseState, {
                             phase,
@@ -1391,7 +1415,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         let last = { ...start };
                         const offTarget = (): number => {
                             const here = probe.entity.position;
-                            const there = probe.at(away, 0, 0);
+                            const there = at(away, 0, 0);
                             const wanted = (Math.atan2(there.z - here.z, there.x - here.x) * 180) / Math.PI - 90;
                             return Math.abs(((((probe.entity.body.yaw - wanted) % 360) + 540) % 360) - 180);
                         };
@@ -1410,7 +1434,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                             if (
                                 goal === 'dragonchargeplayer' &&
                                 reached === undefined &&
-                                distanceBetween(here, probe.at(away, 0, 0)) < 10
+                                distanceBetween(here, at(away, 0, 0)) < 10
                             )
                                 reached = tick;
                             if (
@@ -1443,8 +1467,8 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                                     traveled < 20 && `it covered ${traveled.toFixed(1)} blocks in 200 ticks`,
                                     highest - start.y < 10 &&
                                         `it climbed only ${(highest - start.y).toFixed(1)} blocks toward the nodes`,
-                                    widest > 70 &&
-                                        `it strayed ${widest.toFixed(0)} blocks from the fountain, past the outer ring of 60`
+                                    widest > HOLDING_PATTERN_SWING &&
+                                        `it strayed ${widest.toFixed(0)} blocks from the fountain, past the ${HOLDING_PATTERN_SWING} Java's dragon swings out to`
                                 ]);
                             case 'dragonstrafeplayer':
                                 return differences([
