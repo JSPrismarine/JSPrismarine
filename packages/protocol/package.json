@@ -306,6 +306,11 @@
                 "import": "./dist/bedrock/packet/LecternUpdatePacket.js",
                 "module": "./dist/bedrock/packet/LecternUpdatePacket.js"
             },
+            "./bedrock/packet/LegacyTelemetryEventPacket": {
+                "types": "./dist/bedrock/packet/LegacyTelemetryEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/LegacyTelemetryEventPacket.js",
+                "module": "./dist/bedrock/packet/LegacyTelemetryEventPacket.js"
+            },
             "./bedrock/packet/LevelChunkPacket": {
                 "types": "./dist/bedrock/packet/LevelChunkPacket.d.ts",
                 "import": "./dist/bedrock/packet/LevelChunkPacket.js",
@@ -1342,6 +1347,10 @@
         "./bedrock/packet/LecternUpdatePacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/LecternUpdatePacket.js",
             "default": "./src/bedrock/packet/LecternUpdatePacket.ts"
+        },
+        "./bedrock/packet/LegacyTelemetryEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LegacyTelemetryEventPacket.js",
+            "default": "./src/bedrock/packet/LegacyTelemetryEventPacket.ts"
         },
         "./bedrock/packet/LevelChunkPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/LevelChunkPacket.js",

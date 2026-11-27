@@ -18,9 +18,9 @@ export type { LegacyTelemetryEventData };
  *
  * **Bound To:** Client
  *
- * The server does nothing with the event itself; the client is only a relay. This server
- * reports no telemetry, so nothing builds one of these, but the layout is here so a captured
- * session decodes.
+ * The server does nothing with the event itself; the client is only a relay. A Bedrock
+ * Dedicated Server at 2225 sends one to a player who kills a mob, is killed by one, or runs a
+ * command that succeeds, and sends none for a kill made from its console.
  *
  * Protocol 2193 and 2225 layout (docs id 65; the pages differ only in enum numbers of plain-number
  * fields), in wire order:
