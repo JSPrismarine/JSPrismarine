@@ -2824,6 +2824,81 @@ class JavaBossEventOperationUnknown extends JSPrismarineError {
     }
 }
 
+/**
+ * A Java Edition `Update Objectives` names a method past the three that 26.3 defines (add,
+ * remove and update). The packet is corrupt, or comes from a release whose methods this server
+ * does not know.
+ */
+class JavaObjectiveMethodUnknown extends JSPrismarineError {
+    public static get code(): 'PROTOCOL_JAVA_OBJECTIVE_METHOD_UNKNOWN' {
+        return 'PROTOCOL_JAVA_OBJECTIVE_METHOD_UNKNOWN';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An objective update names method {method}, which Java 26.3 does not define' {
+        return 'An objective update names method {method}, which Java 26.3 does not define';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-objective-method-unknown' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-objective-method-unknown';
+    }
+
+    public override readonly code = 'PROTOCOL_JAVA_OBJECTIVE_METHOD_UNKNOWN';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-objective-method-unknown';
+    readonly #params: { readonly method: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly method: unknown }, options?: ErrorOptions) {
+        super(`An objective update names method ${String(params?.method)}, which Java 26.3 does not define`, options);
+        this.#params = params ?? { method: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * A Java Edition score or objective carries a number format this server does not read. It
+ * reads the blank and the fixed formats; the styled format carries an NBT style, which it does
+ * not. Seen when reading another server's scoreboard packets.
+ */
+class JavaNumberFormatUnread extends JSPrismarineError {
+    public static get code(): 'PROTOCOL_JAVA_NUMBER_FORMAT_UNREAD' {
+        return 'PROTOCOL_JAVA_NUMBER_FORMAT_UNREAD';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A score carries number format {format}, which this server does not read' {
+        return 'A score carries number format {format}, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-number-format-unread' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-number-format-unread';
+    }
+
+    public override readonly code = 'PROTOCOL_JAVA_NUMBER_FORMAT_UNREAD';
+    public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-number-format-unread';
+    readonly #params: { readonly format: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly format: unknown }, options?: ErrorOptions) {
+        super(`A score carries number format ${String(params?.format)}, which this server does not read`, options);
+        this.#params = params ?? { format: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The errors the wire code of `@jsprismarine/protocol` throws. */
 export const ProtocolWireErrors = Object.freeze({
     ActorFlagsTooLong,
@@ -2898,5 +2973,7 @@ export const ProtocolWireErrors = Object.freeze({
     JavaVelocityNotAtRest,
     JavaItemComponentsUnread,
     JavaEntityDataSerializerUnread,
-    JavaBossEventOperationUnknown
+    JavaBossEventOperationUnknown,
+    JavaObjectiveMethodUnknown,
+    JavaNumberFormatUnread
 });

@@ -381,6 +381,7 @@ export const RotateHead = defineJavaPacket('Set Head Rotation', 'play/clientboun
 /** `Player Info Update` actions, as bits of the set the packet opens with. */
 export enum PlayerInfoAction {
     AddPlayer = 0x01,
+    UpdateGameMode = 0x04,
     UpdateListed = 0x08
 }
 
@@ -393,6 +394,18 @@ export const PlayerInfoAdd = defineJavaPacket('Player Info Update', 'play/client
     actions: uint8,
     players: list(record({ uuid, name: javaString(16), properties: list(profileProperty), listed: bool }))
 });
+
+/**
+ * `Player Info Update` (clientbound) changing players' game modes, which the tab list shows: a
+ * spectator's entry is gray and italic. The action set is fixed to
+ * {@link PlayerInfoAction.UpdateGameMode}, whose one field each entry carries.
+ * @javaSource ClientboundPlayerInfoUpdatePacket.STREAM_CODEC
+ */
+export const PlayerInfoUpdateGameMode = defineJavaPacket(
+    'Player Info Update (game mode)',
+    'play/clientbound/player_info_update',
+    { actions: uint8, players: list(record({ uuid, gameMode: varInt })) }
+);
 
 /**
  * `Player Info Remove` (clientbound): players leaving the tab list.
@@ -909,4 +922,193 @@ const bossEventOperation = custom<JavaBossEvent>(
 export const BossEvent = defineJavaPacket('Boss Event', 'play/clientbound/boss_event', {
     uuid,
     operation: bossEventOperation
+});
+
+/**
+ * `Set Title Text` (clientbound): shows the title in the middle of the screen, with the subtitle
+ * the client was last sent.
+ * @javaSource ClientboundSetTitleTextPacket.STREAM_CODEC
+ */
+export const SetTitleText = defineJavaPacket('Set Title Text', 'play/clientbound/set_title_text', {
+    text: textComponent
+});
+
+/**
+ * `Set Subtitle Text` (clientbound): the subtitle the next title shows beneath it.
+ * @javaSource ClientboundSetSubtitleTextPacket.STREAM_CODEC
+ */
+export const SetSubtitleText = defineJavaPacket('Set Subtitle Text', 'play/clientbound/set_subtitle_text', {
+    text: textComponent
+});
+
+/**
+ * `Set Action Bar Text` (clientbound): text above the hotbar.
+ * @javaSource ClientboundSetActionBarTextPacket.STREAM_CODEC
+ */
+export const SetActionBarText = defineJavaPacket('Set Action Bar Text', 'play/clientbound/set_action_bar_text', {
+    text: textComponent
+});
+
+/**
+ * `Set Title Animation Times` (clientbound): how many ticks a title fades in, stays and fades out.
+ * @javaSource ClientboundSetTitlesAnimationPacket.STREAM_CODEC
+ */
+export const SetTitlesAnimation = defineJavaPacket(
+    'Set Title Animation Times',
+    'play/clientbound/set_titles_animation',
+    {
+        fadeIn: int,
+        stay: int,
+        fadeOut: int
+    }
+);
+
+/**
+ * `Clear Titles` (clientbound): takes the title and subtitle off the screen, and with `resetTimes`
+ * puts the animation times back to the client's defaults.
+ * @javaSource ClientboundClearTitlesPacket.STREAM_CODEC
+ */
+export const ClearTitles = defineJavaPacket('Clear Titles', 'play/clientbound/clear_titles', { resetTimes: bool });
+
+/** The number format types, by their index in vanilla's `NumberFormatTypes` registry. */
+export enum JavaNumberFormatType {
+    Blank = 0,
+    Styled = 1,
+    Fixed = 2
+}
+
+/** How a score is drawn: hidden, or replaced by fixed text. The styled format is not read. */
+export type JavaNumberFormat =
+    | { readonly type: JavaNumberFormatType.Blank }
+    | { readonly type: JavaNumberFormatType.Fixed; readonly text: JavaText };
+
+/**
+ * A number format: its VarInt type, then a fixed format's text, as vanilla's `NumberFormatTypes`
+ * codecs lay it out.
+ */
+const numberFormat = custom<JavaNumberFormat>(
+    'Number Format',
+    (s, format) => {
+        varInt.write(s, format.type);
+        if (format.type === JavaNumberFormatType.Fixed) textComponent.write(s, format.text);
+    },
+    (s): JavaNumberFormat => {
+        const format = varInt.read(s);
+        switch (format) {
+            case JavaNumberFormatType.Blank:
+                return { type: format };
+            case JavaNumberFormatType.Fixed:
+                return { type: format, text: textComponent.read(s) };
+            default:
+                throw new ProtocolWireErrors.JavaNumberFormatUnread({ format });
+        }
+    }
+);
+
+/** `Update Objectives` methods, the byte vanilla's `ClientboundSetObjectivePacket` writes. */
+export enum JavaObjectiveMethod {
+    Add = 0,
+    Remove = 1,
+    Change = 2
+}
+
+/** How an objective's scores are drawn in the tab list: as numbers, or as hearts. */
+export enum JavaObjectiveRenderType {
+    Integer = 0,
+    Hearts = 1
+}
+
+/** One `Update Objectives` method and what it carries. */
+export type JavaObjectiveChange =
+    | {
+          readonly method: JavaObjectiveMethod.Add | JavaObjectiveMethod.Change;
+          readonly displayName: JavaText;
+          readonly renderType: JavaObjectiveRenderType;
+          readonly numberFormat: JavaNumberFormat | null;
+      }
+    | { readonly method: JavaObjectiveMethod.Remove };
+
+const optionalNumberFormat = optional(numberFormat);
+
+/**
+ * The method: its byte, then for an add or a change the display name, the render type as a
+ * VarInt and the optional number format, as vanilla's `ClientboundSetObjectivePacket.write` lays
+ * them out. A removal carries nothing more.
+ */
+const objectiveChange = custom<JavaObjectiveChange>(
+    'Objective Change',
+    (s, change) => {
+        uint8.write(s, change.method);
+        if (change.method === JavaObjectiveMethod.Remove) return;
+        textComponent.write(s, change.displayName);
+        varInt.write(s, change.renderType);
+        optionalNumberFormat.write(s, change.numberFormat);
+    },
+    (s): JavaObjectiveChange => {
+        const method = uint8.read(s);
+        switch (method) {
+            case JavaObjectiveMethod.Remove:
+                return { method };
+            case JavaObjectiveMethod.Add:
+            case JavaObjectiveMethod.Change:
+                return {
+                    method,
+                    displayName: textComponent.read(s),
+                    renderType: varInt.read(s),
+                    numberFormat: optionalNumberFormat.read(s)
+                };
+            default:
+                throw new ProtocolWireErrors.JavaObjectiveMethodUnknown({ method });
+        }
+    }
+);
+
+/**
+ * `Update Objectives` (clientbound): adds, removes or renames one scoreboard objective. A client
+ * shows an objective's scores only once it was added.
+ * @javaSource ClientboundSetObjectivePacket.STREAM_CODEC
+ */
+export const SetObjective = defineJavaPacket('Update Objectives', 'play/clientbound/set_objective', {
+    objective: javaString(32_767),
+    change: objectiveChange
+});
+
+/** Display slots, by vanilla's `DisplaySlot` ids. The team-colored sidebars follow from 3. */
+export enum JavaDisplaySlot {
+    List = 0,
+    Sidebar = 1,
+    BelowName = 2
+}
+
+/**
+ * `Display Objective` (clientbound): which objective a display slot shows, or an empty name for
+ * none.
+ * @javaSource ClientboundSetDisplayObjectivePacket.STREAM_CODEC
+ */
+export const SetDisplayObjective = defineJavaPacket('Display Objective', 'play/clientbound/set_display_objective', {
+    slot: varInt,
+    objective: javaString(32_767)
+});
+
+/**
+ * `Update Score` (clientbound): one holder's score in one objective, with an optional display
+ * name and number format that the objective's own stand in for when absent.
+ * @javaSource ClientboundSetScorePacket.STREAM_CODEC
+ */
+export const SetScore = defineJavaPacket('Update Score', 'play/clientbound/set_score', {
+    owner: javaString(32_767),
+    objective: javaString(32_767),
+    score: varInt,
+    displayName: optional(textComponent),
+    numberFormat: optionalNumberFormat
+});
+
+/**
+ * `Reset Score` (clientbound): takes a holder's score out of one objective, or out of every
+ * objective when the objective is null.
+ * @javaSource ClientboundResetScorePacket.STREAM_CODEC
+ */
+export const ResetScore = defineJavaPacket('Reset Score', 'play/clientbound/reset_score', {
+    owner: javaString(32_767),
+    objective: optional(javaString(32_767))
 });

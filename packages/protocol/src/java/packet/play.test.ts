@@ -5,6 +5,7 @@ import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } fr
 import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import {
     BlockChangedAck,
+    ClearTitles,
     ClientCommand,
     ClientCommandAction,
     BlockUpdate,
@@ -22,9 +23,23 @@ import {
     PlayerCombatKill,
     PlayerCommand,
     PlayerCommandAction,
+    PlayerInfoAction,
+    PlayerInfoUpdateGameMode,
     PlayerInput,
     PlayerInputFlag,
     PlayLogin,
+    ResetScore,
+    JavaDisplaySlot,
+    JavaNumberFormatType,
+    JavaObjectiveMethod,
+    JavaObjectiveRenderType,
+    SetActionBarText,
+    SetDisplayObjective,
+    SetObjective,
+    SetScore,
+    SetSubtitleText,
+    SetTitlesAnimation,
+    SetTitleText,
     Respawn,
     SectionBlocksUpdate,
     SetCreativeModeSlot,
@@ -36,6 +51,7 @@ import {
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
 } from './play';
+import type { JavaNumberFormat } from './play';
 
 /** What the vanilla 26.3 server sent an offline player joining its flat world, without packet ids. */
 const VANILLA = {
@@ -423,5 +439,134 @@ describe('Boss Event', () => {
         expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, BossEvent, readJavaPacketId(frame).body)).toThrow(
             /operation 6/
         );
+    });
+});
+
+describe('the HUD packets', () => {
+    /** Writes a payload and reads it back. */
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
+    const bodyOf = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => [
+        ...encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value).subarray(idOf(definition).length)
+    ];
+
+    it('reads back the title, the subtitle, the action bar and their timing as written', () => {
+        expect(roundTrip(SetTitleText, { text: 'Hi' })).toEqual({ text: 'Hi' });
+        expect(roundTrip(SetSubtitleText, { text: { translate: 'death.attack.generic' } })).toEqual({
+            text: { translate: 'death.attack.generic' }
+        });
+        expect(roundTrip(SetActionBarText, { text: 'Low health' })).toEqual({ text: 'Low health' });
+        expect(bodyOf(SetTitlesAnimation, { fadeIn: 10, stay: 70, fadeOut: 20 })).toEqual([
+            0, 0, 0, 10, 0, 0, 0, 70, 0, 0, 0, 20
+        ]);
+        expect(roundTrip(SetTitlesAnimation, { fadeIn: 10, stay: 70, fadeOut: 20 })).toEqual({
+            fadeIn: 10,
+            stay: 70,
+            fadeOut: 20
+        });
+        expect(roundTrip(ClearTitles, { resetTimes: true })).toEqual({ resetTimes: true });
+    });
+
+    it('writes an added objective as its name, the method byte, the title, the render type and no format', () => {
+        const add = {
+            objective: 'kills',
+            change: {
+                method: JavaObjectiveMethod.Add,
+                displayName: 'Kills',
+                renderType: JavaObjectiveRenderType.Integer,
+                numberFormat: null
+            }
+        } as const;
+
+        expect(bodyOf(SetObjective, add)).toEqual([
+            5,
+            ...Buffer.from('kills'),
+            0,
+            8,
+            0,
+            5,
+            ...Buffer.from('Kills'),
+            0,
+            0
+        ]);
+        expect(roundTrip(SetObjective, add)).toEqual(add);
+    });
+
+    it('writes a removed objective as its name and the method alone', () => {
+        const remove = { objective: 'kills', change: { method: JavaObjectiveMethod.Remove } } as const;
+
+        expect(bodyOf(SetObjective, remove)).toEqual([5, ...Buffer.from('kills'), 1]);
+        expect(roundTrip(SetObjective, remove)).toEqual(remove);
+    });
+
+    it('reads back a blank and a fixed number format, and refuses the styled one it does not read', () => {
+        const change = (numberFormat: JavaNumberFormat) => ({
+            objective: 'kills',
+            change: {
+                method: JavaObjectiveMethod.Change,
+                displayName: 'Kills',
+                renderType: JavaObjectiveRenderType.Hearts,
+                numberFormat
+            }
+        });
+        const blank = change({ type: JavaNumberFormatType.Blank });
+        const fixed = change({ type: JavaNumberFormatType.Fixed, text: '-' });
+
+        expect(roundTrip(SetObjective, blank)).toEqual(blank);
+        expect(roundTrip(SetObjective, fixed)).toEqual(fixed);
+
+        const styled = Buffer.concat([idOf(SetObjective), Buffer.from([1, 0x6b, 2, 8, 0, 0, 0, 1, 1])]);
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, SetObjective, readJavaPacketId(styled).body)).toThrow(
+            /number format 1/
+        );
+    });
+
+    it('refuses an objective method 26.3 does not define', () => {
+        const frame = Buffer.concat([idOf(SetObjective), Buffer.from([1, 0x6b, 3])]);
+
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, SetObjective, readJavaPacketId(frame).body)).toThrow(
+            /method 3/
+        );
+    });
+
+    it('reads back a display slot, a score and a reset as written', () => {
+        const display = { slot: JavaDisplaySlot.Sidebar, objective: 'kills' };
+        const score = { owner: 'Steve', objective: 'kills', score: 300, displayName: null, numberFormat: null };
+
+        expect(bodyOf(SetDisplayObjective, display)).toEqual([1, 5, ...Buffer.from('kills')]);
+        expect(roundTrip(SetDisplayObjective, display)).toEqual(display);
+        expect(bodyOf(SetScore, score)).toEqual([
+            5,
+            ...Buffer.from('Steve'),
+            5,
+            ...Buffer.from('kills'),
+            0xac,
+            0x02,
+            0,
+            0
+        ]);
+        expect(roundTrip(SetScore, score)).toEqual(score);
+        expect(roundTrip(ResetScore, { owner: 'Steve', objective: null })).toEqual({ owner: 'Steve', objective: null });
+        expect(bodyOf(ResetScore, { owner: 'Steve', objective: 'kills' })).toEqual([
+            5,
+            ...Buffer.from('Steve'),
+            1,
+            5,
+            ...Buffer.from('kills')
+        ]);
+    });
+
+    it("writes a game mode update as the action set's byte, then each player's UUID and game mode", () => {
+        const update = {
+            actions: PlayerInfoAction.UpdateGameMode,
+            players: [{ uuid: '00000000-0000-0000-0000-000000000002', gameMode: 3 }]
+        };
+
+        expect(bodyOf(PlayerInfoUpdateGameMode, update)).toEqual([0x04, 1, ...new Array(15).fill(0), 2, 3]);
+        expect(roundTrip(PlayerInfoUpdateGameMode, update)).toEqual(update);
     });
 });
