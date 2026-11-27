@@ -3,14 +3,27 @@
 # `publish=false` to the step's outputs. Nightlies are published at most once every six hours; a
 # run that already owns the latest nightly's tag publishes again, so a rerun can finish its release.
 #
+# A push after a failed nightly run publishes whatever the interval says. Otherwise a push that
+# repairs the nightly waits out the six hours from the last nightly that was published, and the
+# channel keeps a build older than the fix.
+#
 # NIGHTLY_FORCE=1, as a run started by hand sets, publishes whatever the interval says.
 #
-# Reads BUILD_VERSION, GITHUB_REPOSITORY, GH_TOKEN and NIGHTLY_FORCE.
+# Reads BUILD_VERSION, GITHUB_REPOSITORY, GITHUB_RUN_ID, GH_TOKEN and NIGHTLY_FORCE.
 set -euo pipefail
 
 if [[ "${NIGHTLY_FORCE:-}" == 1 ]]; then
     echo "publish=true" >> "$GITHUB_OUTPUT"
     echo "Publishing the nightly release: this run was started by hand."
+    exit 0
+fi
+
+# The last push run on master that finished before this one, this run aside: it is still going.
+previous_conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/nightly.yml/runs?branch=master&event=push&status=completed&per_page=5" \
+    --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID})] | first | .conclusion // empty")"
+if [[ "$previous_conclusion" == failure ]]; then
+    echo "publish=true" >> "$GITHUB_OUTPUT"
+    echo "Publishing the nightly release: the previous nightly run failed."
     exit 0
 fi
 

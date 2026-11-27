@@ -31,7 +31,8 @@ Gathered on 2026-11-25.
   executables" uploads `prismarine-<target>` for six targets, `JSPrismarine-arm64.app.zip` and
   `highlights.md` to the GitHub release `jsprismarine@<version>`. A recovery run of an old release
   passes `--latest=false`, so the newest release is not always the one a run just published.
-- **Nightlies.** `nightly.yml` publishes at most one prerelease every six hours, tagged
+- **Nightlies.** `nightly.yml` publishes at most one prerelease every six hours, and the push after
+  a failed run publishes one at once, tagged
   `jsprismarine@<next>-nightly.<yyyymmdd>.<run>`, for Linux x64, macOS arm64 and Windows x64. The
   version is a prerelease of the next release, so it sorts below that release and above the one
   before it under semver precedence.

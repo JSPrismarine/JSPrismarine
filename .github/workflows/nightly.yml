@@ -128,9 +128,10 @@ jobs:
                   GITHUB_RUN_STARTED_AT: ${{ steps.start_time.outputs.started_at }}
               run: node .github/scripts/set-build-metadata.mjs
 
-            # Nightlies are published at most once every six hours. Deciding that here, before the
-            # builds, keeps a push inside the interval from compiling three executables that the
-            # release job would then discard.
+            # Nightlies are published at most once every six hours, except that the push after a
+            # failed run publishes at once. Deciding that here, before the builds, keeps a push
+            # inside the interval from compiling three executables that the release job would then
+            # discard.
             - name: 🕕 Check nightly release interval
               id: release_cadence
               if: ${{ github.event_name == 'push' }}
