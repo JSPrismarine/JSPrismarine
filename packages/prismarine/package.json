@@ -2009,6 +2009,10 @@
             "jsprismarine:dist": "./dist/profiling/TickRecorder.js",
             "default": "./src/profiling/TickRecorder.ts"
         },
+        "./world/blockBreak": {
+            "jsprismarine:dist": "./dist/world/blockBreak.js",
+            "default": "./src/world/blockBreak.ts"
+        },
         "./editions/java/JavaConnections": {
             "jsprismarine:dist": "./dist/editions/java/JavaConnections.js",
             "default": "./src/editions/java/JavaConnections.ts"
