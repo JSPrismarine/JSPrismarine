@@ -33,6 +33,7 @@ export const isDone = (path: NodePath): boolean => path.next >= path.nodes.lengt
  * Java's `EnderDragon.nodeAdjacency`: which of the 24 path nodes each node connects to, as bits.
  *
  * @javaSource EnderDragon.findClosestNode()I
+ * @javaVerified vectors
  */
 const NODE_ADJACENCY = [
     6146, 8197, 8202, 16404, 32808, 32848, 65696, 131392, 131712, 263424, 526848, 525313, 1581057, 3166214, 2138120,
@@ -57,6 +58,7 @@ const CLOSEST_NODE_REACH = 10000;
  * @param surfaceY - The first y above the ground of a column, Java's `MOTION_BLOCKING_NO_LEAVES`
  *   heightmap, or undefined when the world cannot say, which puts the node at 73.
  * @javaSource EnderDragon.findClosestNode()I
+ * @javaVerified vectors
  */
 export const dragonPathNodes = (surfaceY: (x: number, z: number) => number | undefined): PathNode[] => {
     const nodes: PathNode[] = [];
@@ -88,6 +90,7 @@ export const firstDragonNode = (crystals: number | undefined): number =>
  * `first` on. A point further than 100 blocks from every node gets node 0.
  *
  * @javaSource EnderDragon.findClosestNode(DDD)I
+ * @javaVerified vectors
  */
 export const closestDragonNode = (nodes: readonly PathNode[], at: EntityPosition, first: number): number => {
     const from = { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
@@ -129,6 +132,7 @@ class NodeHeap {
      * Java's `BinaryHeap.insert`.
      *
      * @javaSource BinaryHeap.insert
+     * @javaVerified vectors
      */
     public insert(node: number): void {
         this.heap.push(node);
@@ -139,6 +143,7 @@ class NodeHeap {
      * Java's `BinaryHeap.pop`.
      *
      * @javaSource BinaryHeap.pop
+     * @javaVerified vectors
      */
     public pop(): number {
         const popped = this.heap[0] ?? -1;
@@ -155,6 +160,7 @@ class NodeHeap {
      * Java's `BinaryHeap.changeCost`.
      *
      * @javaSource BinaryHeap.changeCost
+     * @javaVerified vectors
      */
     public changeCost(node: number, cost: number): void {
         const old = this.cost[node] ?? 0;
@@ -177,6 +183,7 @@ class NodeHeap {
      * Java's `BinaryHeap.upHeap`.
      *
      * @javaSource BinaryHeap.upHeap
+     * @javaVerified vectors
      */
     private upHeap(start: number): void {
         let index = start;
@@ -195,6 +202,7 @@ class NodeHeap {
      * Java's `BinaryHeap.downHeap`.
      *
      * @javaSource BinaryHeap.downHeap
+     * @javaVerified vectors
      */
     private downHeap(start: number): void {
         let index = start;
@@ -222,6 +230,7 @@ class NodeHeap {
  *
  * @param first - The first node the search may pass through, {@link firstDragonNode}.
  * @javaSource EnderDragon.findPath
+ * @javaVerified vectors
  */
 export const findDragonPath = (
     nodes: readonly PathNode[],

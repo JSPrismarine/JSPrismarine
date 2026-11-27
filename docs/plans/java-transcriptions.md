@@ -232,6 +232,9 @@ default matters, and its own regression test either way.
    Fluid spread is the first with vectors: `FlowingFluid.getSpread` is tagged
    `@javaVerified vectors`, and six of its layouts showed the copy flowing differently
    from Java.
+   The dragon's flight has its vectors: `entity-goals` records seeded fights and the node graph
+   with Java's own `EnderDragon` and flies the copy against them in
+   `dragonPhases.vectors.test.ts`, and the copies those fights run carry `@javaVerified vectors`.
 
 ## Decisions
 

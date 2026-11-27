@@ -26,6 +26,7 @@ const tableIndex = (value: number): number => {
  * Java's `Mth.sin`, a table lookup rather than `Math.sin`.
  *
  * @javaSource Mth.sin
+ * @javaVerified vectors
  */
 export const javaSin = (radians: number): number => SIN[tableIndex(radians * 10430.378350470453)] ?? 0;
 
@@ -33,6 +34,7 @@ export const javaSin = (radians: number): number => SIN[tableIndex(radians * 104
  * Java's `Mth.cos`, the same table a quarter turn on.
  *
  * @javaSource Mth.cos
+ * @javaVerified vectors
  */
 export const javaCos = (radians: number): number => SIN[tableIndex(radians * 10430.378350470453 + 16384)] ?? 0;
 
@@ -55,6 +57,7 @@ const bitsDouble = (value: bigint): number => {
  * Java's `Mth.fastInvSqrt`: one Newton step from a bit-shifted guess.
  *
  * @javaSource Mth.fastInvSqrt
+ * @javaVerified vectors
  */
 const fastInvSqrt = (x: number): number => {
     const half = 0.5 * x;
@@ -71,6 +74,7 @@ const COS_TAB = Float64Array.from(ASIN_TAB, (asin) => Math.cos(asin));
  * term, so it can differ from `Math.atan2` in the last bits.
  *
  * @javaSource Mth.atan2
+ * @javaVerified vectors
  */
 export const javaAtan2 = (y: number, x: number): number => {
     const squared = x * x + y * y;
@@ -102,6 +106,7 @@ export const javaAtan2 = (y: number, x: number): number => {
  * Java's `Mth.wrapDegrees` for a `float`, in `float` arithmetic: the angle in [-180, 180).
  *
  * @javaSource Mth.wrapDegrees(F)F
+ * @javaVerified vectors
  */
 export const wrapDegreesFloat = (degrees: number): number => {
     let wrapped = f(f(degrees) % 360);
@@ -114,6 +119,7 @@ export const wrapDegreesFloat = (degrees: number): number => {
  * Java's `Mth.wrapDegrees` for a `double`: the angle in [-180, 180).
  *
  * @javaSource Mth.wrapDegrees(D)D
+ * @javaVerified vectors
  */
 export const wrapDegrees = (degrees: number): number => {
     let wrapped = degrees % 360;
