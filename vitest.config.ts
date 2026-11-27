@@ -1,3 +1,4 @@
+import { availableParallelism, loadavg } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -87,6 +88,21 @@ export const forceRerunTriggers = [
     'docs/research/edition-behavior-differences.md'
 ];
 
+/**
+ * Workers for a local run: the cores the last minute's load average leaves free, from 1 to 4.
+ *
+ * Several checkouts often run suites on one machine at once. Each starting 4 workers on a 4-core
+ * machine put the load average at 40 and pushed the machine into swap, which made every run
+ * slower than taking turns. `JSP_TEST_WORKERS` sets the count outright. Windows reports a load
+ * average of 0, so it gets 4.
+ */
+const localWorkers = (): number => {
+    const requested = Number.parseInt(process.env.JSP_TEST_WORKERS ?? '', 10);
+    if (Number.isInteger(requested) && requested > 0) return requested;
+    const free = availableParallelism() - Math.round(loadavg()[0] ?? 0);
+    return Math.min(4, Math.max(1, free));
+};
+
 /** The repository root as a glob that matches only itself, in the forward slashes Vitest compares. */
 const rootPattern = normalizePath(__dirname).replace(/[$()*+?[\\\]^{|}!@]/g, '\\$&');
 
@@ -121,9 +137,9 @@ export default defineConfig({
         fsModuleCachePath: resolve(__dirname, 'node_modules/.cache/vitest'),
         maxConcurrency: 8,
         // CI runs two forks per core the runner reports: a fork spends much of a file waiting on
-        // Vite to transform modules, so one per core leaves cores idle. Local runs stay at 4 to
-        // leave a workstation responsive.
-        maxWorkers: process.env.GITHUB_ACTIONS ? '200%' : 4,
+        // Vite to transform modules, so one per core leaves cores idle. Local runs use the cores
+        // the machine's load leaves free, up to 4.
+        maxWorkers: process.env.GITHUB_ACTIONS ? '200%' : localWorkers(),
         passWithNoTests: true,
         // `--changed` runs only the suites whose import graph reaches a changed file, and a match
         // on any of these runs every suite instead. Each is anchored at the repository root:
