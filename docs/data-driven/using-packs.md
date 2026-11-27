@@ -79,6 +79,14 @@ The one exception is Java tags. Tag files merge across packs: a later pack's `va
 the earlier ones, unless the later file sets `"replace": true`, which discards everything earlier.
 This is vanilla Java's rule, applied unchanged.
 
+A behavior pack's `item_catalog/crafting_item_catalog.json` is not replaced whole either: the
+server merges it into the vanilla creative menu, as the Bedrock Dedicated Server does. A group with
+a `group_identifier` joins the vanilla heading of the same name on its tab, or becomes a new
+heading after the tab's last one. A group without one adds its items as loose entries at the end
+of the tab. A tab other than `construction`, `nature`, `equipment` or `items` is skipped. The
+catalog file is keyed by its path, so when two packs ship one, only the later pack's file is
+merged ([#3830](https://github.com/JSPrismarine/JSPrismarine/issues/3830)).
+
 ## Datapack specifics
 
 The Java side targets the data pack format of the Java release the server runs, and only that

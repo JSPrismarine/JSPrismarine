@@ -43,6 +43,7 @@ import {
 import { canonicalItemData } from '../../network/codec/itemData';
 import { blockTranslationFor } from '../../network/codec/blockTranslation';
 import { assertContentPaletteAgrees } from './contentPalette';
+import { mergeItemCatalogs } from './itemCatalog';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ServerContent } from '../../content/ServerContent';
@@ -306,6 +307,10 @@ export const buildNetworkContentPayloads = (
     const declared = buildBlockProperties(inventedBlocksOf(content, client), { fromPacks: true });
     assertBlockPaletteAgrees(declared.properties, client);
 
+    // The vanilla menu with each pack's `item_catalog` merged in, which both the item registry's
+    // tab and heading and the creative packet are read from.
+    const menu = mergeItemCatalogs(catalog, content.definitions.itemCatalog.values(), content);
+
     const items = buildItemRegistry(content.items.types.values(), {
         table: (options.itemData ?? canonicalItemData).table,
         capturedComponents: capturedItemComponents,
@@ -324,13 +329,13 @@ export const buildNetworkContentPayloads = (
         // The two `item_properties` keys no Java component decides and the
         // creative catalog does: which tab an item sits in and under which
         // heading.
-        bedrockOnly: creativeItemProperties(catalog),
+        bedrockOnly: creativeItemProperties(menu),
         // Each declared block needs an item, or the client closes before it spawns.
         blocks: declared.blockIds
     });
 
     const itemIds = itemIdsOf(items.entries);
-    const creative = buildCreativeContent(itemIds, catalog);
+    const creative = buildCreativeContent(itemIds, menu);
     const compiled = compileRecipeBook(content.recipes, javaItemToBedrock);
     const crafting = buildCraftingData(compiled.recipes, {
         items: itemIds,
