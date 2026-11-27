@@ -729,14 +729,19 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       order, input controls require a client-writable observable of the right type, a changed
       observable notifies its subscribers, button clicks run their callbacks without closing the
       form, and `show()` settles with the close reason or rejects with `PlayerLeftError` when the
-      player leaves. A world's `ScriptFormChannel` can implement `showDataDriven`,
-      `closeDataDriven`, `closeAllDataDriven` and `takeDataDrivenResponses` to display those
-      screens; a world without them settles `show()` with `UserBusy`.
-    - Left: no server or client in this repository shows a data-driven screen yet, so the channel
-      methods above have no production implementation and the BDS screen id and data-store paths
-      are not captured ([#3751](https://github.com/JSPrismarine/JSPrismarine/issues/3751)).
-      `ObservableString.getFilteredText` also stays unimplemented, since it needs a text filtering
-      service. The disconnect reason BDS gives for a response that is not JSON is not captured, so
+      player leaves.
+    - Done (2026-11-27, [#3751](https://github.com/JSPrismarine/JSPrismarine/issues/3751) and
+      [#3822](https://github.com/JSPrismarine/JSPrismarine/issues/3822)): those screens reach the
+      client. The script host lays a form out as the pinned BDS does, one `custom_form_data_<n>`
+      or `message_box_data_<n>` property of the `minecraft` data store, and the server sends it
+      as a property of maps up to protocol 2225 and as a variable per value from 2259. Bound
+      observables update one path, the client's writes run button callbacks and set
+      client-writable observables, and `show()` settles once the client reports the screen
+      closed. `@jsprismarine/client` follows the screens and answers a server close. The
+      `data-driven-forms` parity scenario records both ends on BDS.
+    - Left: `ObservableString.getFilteredText` stays unimplemented, since it needs a text
+      filtering service ([#3826](https://github.com/JSPrismarine/JSPrismarine/issues/3826)). The
+      disconnect reason BDS gives for a response that is not JSON is not captured, so
       JSPrismarine's is its own.
 14. [x] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
