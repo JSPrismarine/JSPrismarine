@@ -4,6 +4,7 @@
  * played over a loopback pipe against a server stepped by hand.
  */
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
+import CraftingDataPacket from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
 import { CommandDataFlags } from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -44,6 +45,48 @@ describe('xbox-achievements', () => {
         const commands = lists.at(-1)!.commandData;
         expect(commands.length).toBeGreaterThan(0);
         expect(commands.filter((command) => (command.flags & CommandDataFlags.NOT_CHEAT) === 0)).toEqual([]);
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('furnace-inputs', () => {
+    /**
+     * A Bedrock client picks the slot a shift-click puts a stack in by itself: a furnace's input
+     * slot for something one of its cooking recipes takes, the fuel slot for fuel. The cooking
+     * recipes come from `CraftingData`, as shapeless entries under the station's tag, and a
+     * server that left them out made every shift-clicked ore miss the furnace.
+     */
+    it('tells a joining client what each furnace station cooks, and not that it cooks fuel', async () => {
+        const { player, joined } = jsp.connect('Smelter');
+        const registry = player.client.getRegistry();
+        if (!registry.has(new CraftingDataPacket().getId())) registry.register(CraftingDataPacket);
+        const lists: CraftingDataPacket[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof CraftingDataPacket) lists.push(packet);
+        });
+        let done = false;
+        void joined.finally(() => {
+            done = true;
+        });
+        await jsp.until(() => done, 'Smelter never joined', 120);
+        await joined;
+        await jsp.until(() => lists.length > 0, 'Smelter was never sent the recipe list');
+
+        const shapeless = lists.at(-1)?.getPacketData()?.shapeless ?? [];
+        const cooks = (station: string, name: string): boolean =>
+            shapeless.some(
+                (recipe) =>
+                    recipe.station === station &&
+                    recipe.ingredients.some(({ descriptor }) => descriptor?.kind === 'name' && descriptor.name === name)
+            );
+
+        expect(cooks('furnace', 'minecraft:iron_ore')).toBe(true);
+        expect(cooks('furnace', 'minecraft:raw_iron')).toBe(true);
+        expect(cooks('blast_furnace', 'minecraft:raw_iron')).toBe(true);
+        expect(cooks('smoker', 'minecraft:beef')).toBe(true);
+        expect(cooks('blast_furnace', 'minecraft:beef')).toBe(false);
+        expect(cooks('furnace', 'minecraft:coal')).toBe(false);
         player.leave();
         await jsp.tick();
     });
