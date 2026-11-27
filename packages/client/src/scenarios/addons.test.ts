@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of JSPrismarine's own addons: the client e2e scenarios `multiverse`,
  * `tab-list` and `tps-bar`, played over a loopback pipe against a server stepped by hand, and what

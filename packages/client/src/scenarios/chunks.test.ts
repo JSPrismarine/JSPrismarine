@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * How a joined player is sent its chunks: the client e2e scenarios `cached-chunk-delivery`,
  * `chunk-completion-readiness` and `subchunk-request-delivery`, played over a loopback pipe

@@ -281,9 +281,9 @@ by biome, `/locate`, or portals between dimensions.
 - Run locally only what your change reaches, and no check twice on the same files. CI runs
   everything a diff reaches before a merge, so a local run earns its time only by catching a
   failure sooner than CI would.
-- After an edit, run `pnpm exec vitest run --since-last-run` to test only what the edit affects.
-  It reruns a test file when a file that test loaded on its last run has changed since, and it
-  reruns failed files until they pass. In a fresh checkout or worktree, which has no records yet,
+- After an edit, run `pnpm run test:changed` to test only what the edit affects. It runs
+  `vitest run --since-last-run`, which reruns a test file when a file that test loaded on its
+  last run has changed since, and reruns failed files until they pass. In a fresh checkout or worktree, which has no records yet,
   `scripts/vitest-seed-dependencies.ts` writes them from the static import graph before the first
   run, so that run tests only what changed since the merge base with `origin/master`. A change to
   a file in `forceRerunTriggers` in `vitest.config.ts` still makes that first run a full one, as
@@ -292,6 +292,11 @@ by biome, `/locate`, or portals between dimensions.
   by path. Do not run `pnpm run test` or whole suites: CI uses
   `--changed`, against the pull request base or, on master, the last master commit whose tests
   passed, because those baselines are the same on every machine. A nightly run tests every suite.
+- `pnpm run test:changed` sets `JSP_SKIP_INTEGRATION=1`, which leaves out the test files tagged
+  `// @module-tag integration`: the files that boot an in-process server, such as the loopback
+  client scenarios and the parity suites that start a host. CI runs them. Run the ones your change
+  is about by path with `pnpm exec vitest run <file>`. Put the tag on the first line of a new test
+  file that boots a server.
 - Typecheck the packages you changed and their dependents with
   `pnpm exec turbo run typecheck --filter='...[origin/master]'`, not `pnpm run typecheck`, which
   checks every package. Build only when the change touches build configuration, package exports or

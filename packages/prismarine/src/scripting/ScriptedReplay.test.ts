@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * A replay of a scripted session reaches the same digest (ADR 0006, ADR 0021).
  *

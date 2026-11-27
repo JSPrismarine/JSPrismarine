@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joining player is told about the content a pack adds, played over a loopback pipe
  * against a server stepped by hand.

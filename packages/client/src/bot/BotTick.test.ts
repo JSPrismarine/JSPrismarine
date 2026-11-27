@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { Logger } from '@jsprismarine/logger';
 import { PlayerAuthInputData, PlayerAuthInputPacket } from '@jsprismarine/protocol';
 import type { NetworkPacket } from '@jsprismarine/protocol';

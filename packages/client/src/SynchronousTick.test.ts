@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Config } from '@jsprismarine/prismarine/config/Config';

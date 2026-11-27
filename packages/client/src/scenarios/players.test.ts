@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What joined players see of the server's handling of logins, a frozen world, a script's player
  * record and permissions: the client e2e scenarios `duplicate-login`, `frozen-world`,

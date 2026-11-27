@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of the server's entities, deaths and drops: the client e2e scenarios
  * `summon-entity`, `summon-refused`, `mob-leaves-block`, `player-knockback`, `death-inventory`,

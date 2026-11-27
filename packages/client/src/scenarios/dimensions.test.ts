@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of travel between dimensions: the client e2e scenarios `dimensions`,
  * `portals`, `rejoin` and `spawnpoint-respawn`, played over a loopback pipe against a server

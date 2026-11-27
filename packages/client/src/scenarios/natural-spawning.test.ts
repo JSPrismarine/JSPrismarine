@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * Where the natural spawn cycle puts cows, and that a joined player is shown them: the client
  * e2e scenarios `natural-spawn-placement` and `natural-spawn-under-canopy`, played over a

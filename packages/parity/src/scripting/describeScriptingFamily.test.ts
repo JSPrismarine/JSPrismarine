@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { describe, expect, it } from 'vitest';
 
 import { runScenarios } from '../behaviorScenarios.ts';

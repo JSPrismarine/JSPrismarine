@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of the server's answers to chat, commands and the console: the
  * client e2e scenarios `chat`, `title`, `teleport`, `damage`, `command-syntax-error` and `kick`,

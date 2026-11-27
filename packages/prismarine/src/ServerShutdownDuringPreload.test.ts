@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * A shutdown asked for while the start region is still generating.
  *

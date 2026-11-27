@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * Script dynamic properties and scoreboards against the pinned Bedrock Dedicated Server (BDS), in
  * both directions.

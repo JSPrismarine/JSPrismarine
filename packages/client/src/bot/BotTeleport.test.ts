@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { Logger } from '@jsprismarine/logger';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { Server } from '@jsprismarine/prismarine';

@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of a behavior pack script: the client e2e scenarios
  * `script-client-feedback`, `script-custom-command`, `script-rotation` and `script-teleport`,

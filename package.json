@@ -31,6 +31,7 @@
         "dev:docs": "pnpm --filter @jsprismarine/docs run docs:dev",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
+        "test:changed": "cross-env JSP_SKIP_INTEGRATION=1 vitest run --since-last-run",
         "test:dist-contract": "node scripts/check-workspace-conditions.mjs && pnpm --filter @jsprismarine/protocol run test:dist-contract",
         "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run --coverage",
         "test:json-assets": "turbo run build --filter=@jsprismarine/blocks --filter=@jsprismarine/items && node --conditions=jsprismarine:dist scripts/json-assets.mjs check",

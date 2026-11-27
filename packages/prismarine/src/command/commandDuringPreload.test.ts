@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * A command typed while the server is still generating its start region.
  *

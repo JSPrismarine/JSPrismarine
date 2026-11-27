@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * The server's keep-alive pings: the client e2e scenario `keep-alive`, played over a loopback
  * pipe against a server stepped by hand.

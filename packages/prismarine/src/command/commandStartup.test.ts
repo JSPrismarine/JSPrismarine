@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * The vanilla command set against a real booted server.
  *

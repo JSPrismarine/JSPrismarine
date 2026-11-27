@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * A replay of a session whose scripts use `@minecraft/server-net` reaches the same digest without
  * the network (ADR 0006, ADR 0009, ADR 0021).

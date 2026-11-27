@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * Two levels on one booted server, each with an Overworld.
  *

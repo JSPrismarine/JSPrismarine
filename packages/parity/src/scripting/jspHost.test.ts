@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { createServer } from 'node:net';
 import type { Server } from 'node:net';
 

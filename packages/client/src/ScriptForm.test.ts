@@ -1,3 +1,5 @@
+// @module-tag integration
+
 import { ModalFormRequestPacket, ModalFormResponsePacket, TextPacket } from '@jsprismarine/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

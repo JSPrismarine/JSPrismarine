@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * A Java Edition client on the server: `@jsprismarine/client`'s `JavaClient` joins a stepped
  * flat-world server over TCP, beside a Bedrock client on a loopback pipe, and each sees what the

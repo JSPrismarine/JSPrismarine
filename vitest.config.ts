@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { normalizePath } from 'vite';
 import { defineConfig } from 'vitest/config';
 
+import { integrationFiles } from './scripts/vitest-integration-files.ts';
 import { seedSinceLastRun } from './scripts/vitest-seed-dependencies.ts';
 
 const ci = !!process.env.GITHUB_ACTIONS;
@@ -56,6 +57,12 @@ const exclude = [
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
+ * `JSP_SKIP_INTEGRATION=1` leaves out the files tagged `@module-tag integration`, which boot an
+ * in-process server and take most of a local run's time. CI never sets it, so it runs them all.
+ */
+const skipIntegration = process.env.JSP_SKIP_INTEGRATION === '1';
+
+/**
  * Files, relative to the repository root, that the suites read from disk or that change how
  * everything runs, so no import graph leads to them. The docs pages are the ones the parity
  * conformance suites check against the code. The docs build hashes them, with the packages, to tell
@@ -70,6 +77,7 @@ export const forceRerunTriggers = [
     '.test/**',
     'scripts/vitest-changed-files.ts',
     'scripts/vitest-seed-dependencies.ts',
+    'scripts/vitest-integration-files.ts',
     'packages/bedrock-data/sources.json',
     'packages/bedrock-data/pack-hashes.json',
     'packages/bedrock-data/src/generated/**',
@@ -101,10 +109,14 @@ export default defineConfig({
         tags: [
             { name: 'real-data', description: 'Tests that require fetched game data.' },
             { name: 'performance', description: 'Tests whose timing or workload depends on the host machine.' },
-            { name: 'bedrock-server', description: 'Tests that boot the pinned Bedrock Dedicated Server.' }
+            { name: 'bedrock-server', description: 'Tests that boot the pinned Bedrock Dedicated Server.' },
+            {
+                name: 'integration',
+                description: 'Files that boot an in-process server, often with a client joined to it.'
+            }
         ],
         environment: 'node',
-        exclude,
+        exclude: skipIntegration ? [...exclude, ...integrationFiles(__dirname)] : exclude,
         fsModuleCache: true,
         fsModuleCachePath: resolve(__dirname, 'node_modules/.cache/vitest'),
         maxConcurrency: 8,

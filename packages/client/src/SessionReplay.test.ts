@@ -1,3 +1,5 @@
+// @module-tag integration
+
 // The slow host patches asynchronous APIs, so it loads before any module that keeps one.
 import { SlowHost, nextTurn } from './testing/slowHost.test.helper';
 import { OfflineAuthProvider } from '@jsprismarine/auth';

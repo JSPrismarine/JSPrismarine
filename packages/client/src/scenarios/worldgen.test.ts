@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of Java's noise generation: the client e2e scenarios
  * `worldgen-spawn`, `generated-fluid-flow` and `worldgen-dimensions`, played over a loopback

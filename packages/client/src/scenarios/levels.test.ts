@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What joined players see of a server with more than one level: the client e2e scenarios
  * `level-transfer`, `level-isolation` and `second-level-summon`, played over a loopback pipe

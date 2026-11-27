@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * Every level runs the behavior pack scripts in a runtime of its own (ADR 0020, #3235).
  *

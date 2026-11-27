@@ -1,3 +1,5 @@
+// @module-tag integration
+
 /**
  * What a joined player sees of block changes on a flat world: the client e2e scenarios
  * `fill-replace-filter`, `piston-bedrock`, `falling-block-water`, `sub-chunk-block-changes`,
