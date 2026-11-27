@@ -1,4 +1,5 @@
 import Client, { MINECRAFT_VERSION, PROTOCOL_VERSION } from './Client';
+import ClientWorld from './ClientWorld';
 import Credits from './Credits';
 import DimensionChange from './DimensionChange';
 import Bot, { TICK_INTERVAL_MS } from './bot/Bot';
@@ -24,6 +25,7 @@ export {
     ChatBehavior,
     Client,
     ClientPacketRegistry,
+    ClientWorld,
     ClientSession,
     Credits,
     DimensionChange,
@@ -46,6 +48,7 @@ export {
 export default Client;
 
 export type { ClientOptions } from './Client';
+export type { WorldActor, WorldCommandOutput, WorldContainer, WorldPosition, WorldTitles } from './ClientWorld';
 export type { PendingDimensionChange } from './DimensionChange';
 export type { LoginResult, LoginSequenceOptions } from './login/LoginSequence';
 export type { DecodedPacket, PacketConstructor } from './net/ClientPacketRegistry';
