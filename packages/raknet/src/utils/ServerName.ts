@@ -28,6 +28,9 @@ export interface ServerNameSnapshot {
     readonly portV6: number;
 }
 
+/** The fields {@link ServerName.update} changes together. */
+export type ServerNameFields = Partial<Pick<ServerNameSnapshot, 'motd' | 'name' | 'onlinePlayers' | 'maxPlayers'>>;
+
 /** The default Bedrock port, advertised until {@link ServerName.setPort} says otherwise. */
 const DEFAULT_PORT = 19_132;
 /** The default Bedrock IPv6 port, advertised until {@link ServerName.setPortV6} says otherwise. */
@@ -117,6 +120,26 @@ export class ServerName {
      */
     public setMotd(motd: string): void {
         this.motd = motd;
+        this.invalidatePongName();
+    }
+
+    /**
+     * Changes several of the fields a server list shows at once, so a listener such as a
+     * worker's pong cache hears of them in one snapshot rather than one per field. A field left
+     * out keeps its value, and nothing is heard when no field changes.
+     * @param fields - The new values.
+     */
+    public update(fields: ServerNameFields): void {
+        const changed =
+            (fields.motd !== undefined && fields.motd !== this.motd) ||
+            (fields.name !== undefined && fields.name !== this.name) ||
+            (fields.onlinePlayers !== undefined && fields.onlinePlayers !== this.onlinePlayers) ||
+            (fields.maxPlayers !== undefined && fields.maxPlayers !== this.maxPlayers);
+        if (!changed) return;
+        this.motd = fields.motd ?? this.motd;
+        this.name = fields.name ?? this.name;
+        this.onlinePlayers = fields.onlinePlayers ?? this.onlinePlayers;
+        this.maxPlayers = fields.maxPlayers ?? this.maxPlayers;
         this.invalidatePongName();
     }
 

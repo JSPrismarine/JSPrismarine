@@ -94,6 +94,21 @@ describe('ServerName', () => {
         expect(changes).toEqual(['new motd:19132', 'new motd:19140']);
     });
 
+    it('updates several fields in one change, and announces none when nothing changed', () => {
+        const name = build();
+        const changes: string[] = [];
+        name.onChange((snapshot) =>
+            changes.push(`${snapshot.motd}:${snapshot.name}:${snapshot.onlinePlayers}:${snapshot.maxPlayers}`)
+        );
+
+        name.update({ motd: '§aHello', name: 'Lobby', onlinePlayers: 4, maxPlayers: 50 });
+        name.update({ motd: '§aHello', onlinePlayers: 4 });
+        name.update({ maxPlayers: 60 });
+
+        expect(changes).toEqual(['§aHello:Lobby:4:50', '§aHello:Lobby:4:60']);
+        expect(name.toString().split(';').slice(1, 8)).toEqual(['§aHello', '2193', '1.26.51', '4', '60', '0', 'Lobby']);
+    });
+
     it('follows the socket session count until an owner takes the player count over', () => {
         const name = build();
 
