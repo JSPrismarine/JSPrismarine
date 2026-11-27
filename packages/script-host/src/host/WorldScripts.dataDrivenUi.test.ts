@@ -9,44 +9,62 @@ import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/librar
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import { readScriptConfig, readScriptPack } from './pack';
 import { WorldScripts } from './WorldScripts';
-import type { DataDrivenResponse, DataDrivenScreen, ScriptFormChannel, ScriptFormResponse } from './world';
+import type {
+    DataDrivenPathValue,
+    DataDrivenResponse,
+    DataDrivenScreen,
+    ScriptFormChannel,
+    ScriptFormResponse
+} from './world';
 
 /** A {@link MemoryWorld} whose form channel records data-driven screens and takes scripted answers. */
 class DataDrivenWorld extends MemoryWorld implements ScriptFormChannel {
     public readonly forms = this;
     /** The id of the player online from the start. */
     public readonly player = this.join('Alex');
+    /** Whether the player's client can show a data-driven screen. */
+    public canShow = true;
     public readonly screens: { readonly player: string; readonly formId: number; readonly screen: DataDrivenScreen }[] =
         [];
-    public readonly closed: (number | undefined)[] = [];
+    public readonly updates: {
+        readonly player: string;
+        readonly property: string;
+        readonly change: DataDrivenPathValue;
+    }[] = [];
+    public readonly closed: { readonly player: string; readonly formId: number }[] = [];
     public readonly closedAll: string[] = [];
     private readonly answers: DataDrivenResponse[] = [];
 
     public answer(response: DataDrivenResponse): void {
         this.answers.push(response);
     }
-    public show(player: string, formId: number, _json: string): void {
-        void player;
-        void formId;
-        void _json;
-    }
+    public show(): void {}
     public closeAll(player: string): void {
         this.closedAll.push(player);
     }
     public takeResponses(): readonly ScriptFormResponse[] {
         return [];
     }
-    public showDataDriven(player: string, formId: number, screen: DataDrivenScreen): void {
+    public showDataDriven(player: string, formId: number, screen: DataDrivenScreen): boolean {
+        if (!this.canShow) return false;
         this.screens.push({ player, formId, screen });
+        return true;
     }
-    public closeDataDriven(formId: number): void {
-        this.closed.push(formId);
+    public updateDataDriven(player: string, property: string, change: DataDrivenPathValue): void {
+        this.updates.push({ player, property, change });
     }
-    public closeAllDataDriven(player: string): void {
-        this.closedAll.push(player);
+    public closeDataDriven(player: string, formId: number): void {
+        this.closed.push({ player, formId });
     }
     public takeDataDrivenResponses(): readonly DataDrivenResponse[] {
         return this.answers.splice(0);
+    }
+
+    /** The screen shown last. */
+    public get shown(): { readonly player: string; readonly formId: number; readonly screen: DataDrivenScreen } {
+        const last = this.screens.at(-1);
+        if (last === undefined) throw new Error('no screen was shown');
+        return last;
     }
 }
 
@@ -90,7 +108,7 @@ const writePack = (source: string) => {
 
 const PRELUDE = `
 import { system, world } from '@minecraft/server';
-import { CustomForm, MessageBox, ObservableBoolean, ObservableNumber, ObservableString, uiManager } from '@minecraft/server-ui';
+import { CustomForm, MessageBox, ObservableBoolean, ObservableNumber, ObservableString, ObservableUIRawMessage, uiManager } from '@minecraft/server-ui';
 const log = (line) => console.warn(typeof line === 'string' ? line : JSON.stringify(line));
 const player = () => world.getAllPlayers()[0];
 const describeError = (error) => ({ name: error.name, reason: error.reason ?? null });
@@ -112,11 +130,11 @@ describe.skipIf(!scriptHostAvailable())("WorldScripts's data-driven @minecraft/s
         printed: () => string[];
         infos: () => string[];
     };
-    function start(
+    function start<World extends DataDrivenWorld | LegacyWorld>(
         source: string,
-        world: LegacyWorld
+        world: World
     ): {
-        world: LegacyWorld;
+        world: World;
         scripts: WorldScripts;
         printed: () => string[];
         infos: () => string[];
@@ -170,111 +188,227 @@ on.setData(true);
         expect(printed()).toEqual(['Alex', 'true', '["Alex"]', 'count 2.5', 'on true']);
     });
 
-    it('sends a CustomForm as controls and settles show() when the client closes it', () => {
+    it("sends a CustomForm as BDS's data store property and settles show() when the client closes it", () => {
         const { world, scripts, printed } = start(`
 const on = new ObservableBoolean(true, { clientWritable: true });
 const level = new ObservableNumber(5, { clientWritable: true });
 const title = new ObservableString('Status');
 const form = new CustomForm(player(), title)
     .label('Hello')
-    .spacer()
-    .toggle('Lights', on)
-    .slider('Range', level, 1, 15, { step: 1 })
-    .button('Apply', () => log('clicked'))
+    .toggle('Lights', on, { description: 'flip' })
+    .slider('Range', level, 1, 15)
+    .button({ rawtext: [{ text: 'Apply' }] }, () => log('clicked'), { tooltip: 'tip' })
     .closeButton();
 form.show().then((reason) => log('closed ' + reason + ' showing ' + form.isShowing()));
 `);
         scripts.flush();
-        expect(world.screens).toHaveLength(1);
-        const { player: shown, formId, screen } = world.screens[0]!;
+        const { player: shown, formId, screen } = world.shown;
         expect(shown).toBe(world.player);
-        expect(screen.kind).toBe('custom');
-        expect(screen.title).toBe('');
-        expect(screen.titleObservable).toBe(3);
-        expect(screen.controls.map((each) => each.type)).toEqual([
-            'label',
-            'spacer',
-            'toggle',
-            'slider',
-            'button',
-            'closeButton'
-        ]);
-        expect(screen.controls[0]?.text).toBe('Hello');
-        expect(screen.controls[2]?.observable).toBe(1);
-        expect(screen.controls[3]?.observable).toBe(2);
+        expect(screen).toEqual({
+            screenId: 'minecraft:custom_form',
+            property: `custom_form_data_${screen.instance}`,
+            instance: screen.instance,
+            value: {
+                title: 'Status',
+                style_id: 'modalForm',
+                closeButton: { label: 'Close', onClick: 0, visible: true, button_visible: true },
+                layout: {
+                    '0': { text: 'Hello', visible: true, label_visible: true },
+                    '1': { label: 'Lights', toggled: true, description: 'flip', visible: true, toggle_visible: true },
+                    '2': {
+                        label: 'Range',
+                        value: 5,
+                        minValue: 1,
+                        maxValue: 15,
+                        step: 1,
+                        visible: true,
+                        slider_visible: true
+                    },
+                    '3': {
+                        label: { rawtext: [{ text: 'Apply' }] },
+                        onClick: 0,
+                        tooltip: 'tip',
+                        visible: true,
+                        button_visible: true
+                    },
+                    length: 4n
+                }
+            },
+            updates: []
+        });
 
-        world.answer({ player: shown, formId, button: 0 });
+        world.answer({ player: shown, property: screen.property, path: 'layout[3].onClick', value: 1 });
         scripts.flush();
-        expect(printed()).toContain('clicked');
+        expect(printed()).toEqual(['clicked']);
 
-        world.answer({ player: shown, formId, reason: 'ClientClosed' });
+        world.answer({ player: shown, formId, reason: 'clientcanceled' });
         scripts.flush();
-        expect(printed()).toContain('closed ClientClosed showing false');
+        expect(printed()).toEqual(['clicked', 'closed ClientClosed showing false']);
     });
 
-    it('runs button callbacks and closes a MessageBox with a selection', () => {
+    it('settles a MessageBox with the button the client clicked last before it closed', () => {
         const { world, scripts, printed } = start(`
 new MessageBox(player(), 'Question')
     .body('Pick one')
-    .button1('Yes')
-    .button2('No')
+    .button1('Yes', 'tip')
     .show()
     .then((result) => log(result));
+new MessageBox(player(), 'Empty').show().then((result) => log(result));
 `);
         scripts.flush();
-        const { player: shown, formId, screen } = world.screens[0]!;
-        expect(screen.kind).toBe('message');
-        expect(screen.controls.map((each) => each.type)).toEqual(['body', 'button1', 'button2']);
-        world.answer({ player: shown, formId, button: 1, reason: 'ClientClosed' });
+        const [question, empty] = world.screens;
+        expect(question?.screen.value).toEqual({
+            title: 'Question',
+            style_id: 'modalForm',
+            body: 'Pick one',
+            is_vertical: true,
+            is_horizontal: false,
+            button1: { label: 'Yes', onClick: 0, tooltip: 'tip', visible: true },
+            button2: { label: '', onClick: 0, visible: true },
+            button3: { label: '', onClick: 0, visible: false }
+        });
+        expect(question?.screen.screenId).toBe('minecraft:message_box');
+        if (question === undefined || empty === undefined) return;
+        world.answer({ player: world.player, property: question.screen.property, path: 'button2.onClick', value: 1 });
+        world.answer({ player: world.player, property: question.screen.property, path: 'button1.onClick', value: 1 });
+        world.answer({ player: world.player, formId: question.formId, reason: 'clientcanceled' });
+        world.answer({ player: world.player, formId: empty.formId, reason: 'userbusy' });
         scripts.flush();
-        expect(printed()).toEqual(['{"selection":2,"closeReason":"ClientClosed"}']);
+        expect(printed()).toEqual(['{"closeReason":"ClientClosed","selection":1}', '{"closeReason":"UserBusy"}']);
     });
 
-    it('applies client writes to observables and tells their subscribers', () => {
+    it('applies client writes to observables, tells their subscribers and updates the other paths', () => {
         const { world, scripts, printed } = start(`
 const value = new ObservableNumber(1, { clientWritable: true });
 value.subscribe((number) => log('value ' + number));
-new CustomForm(player(), 'Write').slider('Number', value, 0, 10).show().then(() => log(value.getData()));
+new CustomForm(player(), 'Write').slider('Number', value, 0, 10).dropdown('Pick', value, [{ label: 'a', value: 7 }])
+    .show().then(() => log(value.getData()));
 `);
         scripts.flush();
-        const { player: shown, formId, screen } = world.screens[0]!;
-        const id = screen.controls[0]?.observable;
-        expect(id).toBeDefined();
-        world.answer({ player: shown, formId, values: { [String(id)]: 7 } });
+        const { player: shown, formId, screen } = world.shown;
+        world.answer({ player: shown, property: screen.property, path: 'layout[0].value', value: 7 });
         scripts.flush();
-        expect(printed()).toContain('value 7');
-        world.answer({ player: shown, formId, reason: 'ClientClosed' });
+        expect(printed()).toEqual(['value 7']);
+        expect(world.updates).toEqual([
+            { player: shown, property: screen.property, change: { path: 'layout[1].value', value: 7 } }
+        ]);
+        world.answer({ player: shown, formId, reason: 'clientcanceled' });
         scripts.flush();
-        expect(printed()).toContain('7');
+        expect(printed()).toEqual(['value 7', '7']);
     });
 
-    it('keeps bound text separate from literals and drops client writes that do not fit', () => {
+    it('drops client writes to a read-only observable, a literal, another property or the wrong type', () => {
         const { world, scripts, printed } = start(`
 const bound = new ObservableString('Bound');
-const readOnly = new ObservableNumber(5);
 const writable = new ObservableNumber(5, { clientWritable: true });
 new CustomForm(player(), 'Title')
     .label(bound).label('123').slider('Number', writable, 0, 10)
-    .show().then(() => log('value ' + writable.getData()));
+    .show().then(() => log(bound.getData() + ' ' + writable.getData()));
 `);
         scripts.flush();
-        const { player: shown, formId, screen } = world.screens[0]!;
-        expect(screen.controls[0]?.text).toBeUndefined();
-        expect(screen.controls[0]?.textObservable).toBe(1);
-        expect(screen.controls[1]?.text).toBe('123');
-        expect(screen.controls[1]?.textObservable).toBeUndefined();
-        const id = screen.controls[2]?.observable;
-        expect(id).toBeDefined();
-        world.answer({
-            player: shown,
-            formId,
-            // The first two ids are read-only observables; the third gets a value of the wrong type.
-            values: { '1': 'changed', '2': 99, [String(id)]: 'wrong' }
-        });
+        const { player: shown, formId, screen } = world.shown;
+        const write = (path: string, value: string | number, property = screen.property): void =>
+            world.answer({ player: shown, property, path, value });
+        write('layout[0].text', 'changed');
+        write('layout[1].text', 'changed');
+        write('layout[2].value', 'wrong');
+        write('layout[2].value', 9, 'custom_form_data_999');
         scripts.flush();
-        world.answer({ player: shown, formId, reason: 'ClientClosed' });
+        world.answer({ player: shown, formId, reason: 'clientcanceled' });
         scripts.flush();
-        expect(printed()).toEqual(['value 5']);
+        expect(printed()).toEqual(['Bound 5']);
+    });
+
+    it("sends a bound observable's changes to each path it fills, and a raw message as JSON text", () => {
+        const { world, scripts } = start(`
+const visible = new ObservableBoolean(true);
+const title = new ObservableUIRawMessage({ rawtext: [{ text: 'A' }] });
+const max = new ObservableNumber(5);
+const value = new ObservableNumber(2, { clientWritable: true });
+new CustomForm(player(), title)
+    .label('one', { visible }).button('two', () => {}, { visible })
+    .slider('s', value, 0, max)
+    .show();
+system.run(() => {
+    visible.setData(false);
+    max.setData(9);
+    title.setData({ rawtext: [{ text: 'B' }] });
+});
+`);
+        scripts.flush();
+        const { screen } = world.shown;
+        expect(screen.value.title).toEqual({ rawtext: [{ text: 'A' }] });
+        expect(screen.updates).toEqual([{ path: 'title', value: '{"rawtext":[{"text":"A"}]}\n' }]);
+        scripts.flush();
+        expect(world.updates.map((each) => each.change)).toEqual([
+            { path: 'layout[0].visible', value: false },
+            { path: 'layout[1].visible', value: false },
+            { path: 'layout[2].maxValue', value: 9 },
+            { path: 'title', value: '{"rawtext":[{"text":"B"}]}\n' }
+        ]);
+    });
+
+    it('settles a closed screen only once the client reports it closed, and leaves it to closeAllForms', () => {
+        const { world, scripts, printed } = start(`
+const form = new CustomForm(player(), 'One');
+form.show().then((reason) => log('one ' + reason + ' showing ' + form.isShowing()));
+uiManager.closeAllForms(player());
+form.close();
+form.close();
+log('showing ' + form.isShowing());
+`);
+        scripts.flush();
+        const { player: shown, formId } = world.shown;
+        expect(world.closed).toEqual([
+            { player: shown, formId },
+            { player: shown, formId }
+        ]);
+        expect(world.closedAll).toEqual([world.player]);
+        expect(printed()).toEqual(['showing true']);
+        world.answer({ player: shown, formId, reason: 'programmaticclose' });
+        scripts.flush();
+        expect(printed()).toEqual(['showing true', 'one ServerClosed showing false']);
+    });
+
+    it('rejects show() when the client reports the screen invalid', () => {
+        const { world, scripts, printed } = start(`
+new CustomForm(player(), 'Bad').show().catch((error) => log(String(error)));
+`);
+        scripts.flush();
+        world.answer({ player: world.player, formId: world.shown.formId, reason: 'invalidform' });
+        scripts.flush();
+        expect(printed()).toEqual(["InvalidFormError: 'minecraft:custom_form' is not valid and could not be shown."]);
+    });
+
+    it("rejects a leaving player's screens newest first, and refuses a form for a player who left", () => {
+        const { world, scripts, printed } = start(`
+const leaving = player();
+new CustomForm(leaving, 'First').show().catch((error) => log('first ' + error));
+new MessageBox(leaving, 'Second').show().catch((error) => log('second ' + error));
+system.run(() => {
+    try { new CustomForm(leaving, 'Gone'); } catch (error) { log(String(error)); }
+});
+`);
+        scripts.flush();
+        world.leave(world.player);
+        scripts.flush();
+        expect(printed()).toEqual([
+            "second PlayerLeftError: 'minecraft:message_box' was rejected because the player left.",
+            "first PlayerLeftError: 'minecraft:custom_form' was rejected because the player left.",
+            "InvalidEntityError: Failed to call function 'CustomFormConstructor' due to Entity being invalid (has the Entity been removed?)."
+        ]);
+    });
+
+    it('settles show() as UserBusy when the client cannot show a data-driven screen', () => {
+        const unable = new DataDrivenWorld();
+        unable.canShow = false;
+        const { world, scripts, printed } = start(
+            `new MessageBox(player(), 'No screen').show().then((result) => log(result));`,
+            unable
+        );
+        scripts.flush();
+        expect(world.screens).toEqual([]);
+        expect(printed()).toEqual(['{"closeReason":"UserBusy"}']);
     });
 
     it('refuses changes after show, a second show and a read-only input observable', () => {
@@ -294,32 +428,6 @@ try {
             '{"name":"FormVisibilityError","reason":"AlreadyShowing"}',
             '{"name":"InvalidObservableError","reason":null}'
         ]);
-    });
-
-    it('closes data-driven screens with close() and uiManager.closeAllForms', () => {
-        const { world, scripts, printed } = start(`
-const one = new CustomForm(player(), 'One').closeButton();
-one.show().then((reason) => log('one ' + reason));
-uiManager.closeAllForms(player());
-const two = new CustomForm(player(), 'Two');
-two.show().then((reason) => log('two ' + reason));
-two.close();
-log('showing ' + two.isShowing());
-`);
-        scripts.flush();
-        expect(world.closed).toEqual([world.screens[1]!.formId]);
-        expect(world.closedAll).toEqual([world.player, world.player]);
-        expect(printed()).toEqual(['showing false', 'one ServerClosed', 'two ServerClosed']);
-    });
-
-    it('rejects a data-driven screen when its player leaves', () => {
-        const { world, scripts, printed } = start(`
-new CustomForm(player(), 'Bye').show().catch((error) => log(describeError(error)));
-`);
-        scripts.flush();
-        world.leave(world.player);
-        scripts.flush();
-        expect(printed()).toEqual(['{"name":"PlayerLeftError","reason":null}']);
     });
 
     it('settles show() as UserBusy when the world cannot show a data-driven screen', () => {

@@ -26,6 +26,8 @@ export interface FormKit {
     deferred(): [Promise<unknown>, (value: unknown) => void, (reason: unknown) => void];
     /** Attaches what a response holds, as JSON text, to the response object a script gets. */
     attach(response: object, data: string): void;
+    /** A plain object or list of the pack's realm, from JSON text, such as a `MessageBoxResult`. */
+    parse(text: string): unknown;
     /**
      * Reads one field of a response. `formValues` is a new array each time, with each `null` of a
      * response that writes an absent value as `undefined`.
@@ -144,6 +146,7 @@ export function formKit(): FormKit {
         attach(response, data) {
             weakSet(responses, response, parse(data));
         },
+        parse: (text) => parse(text),
         field(response, key) {
             const data = weakGet(responses, response);
             if (data === undefined) return undefined;
