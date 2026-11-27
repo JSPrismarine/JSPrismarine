@@ -24,6 +24,7 @@ import * as v2259 from '@jsprismarine/protocol/bedrock/wire/versions/v2259';
 import { EventEmitter } from 'node:events';
 import Credits, { ShowCreditsPacket } from './Credits';
 import DimensionChange from './DimensionChange';
+import LatencyPing, { NetworkStackLatencyPacket } from './LatencyPing';
 import LoginSequence from './login/LoginSequence';
 import ClientPacketRegistry from './net/ClientPacketRegistry';
 import ClientSession from './net/ClientSession';
@@ -168,7 +169,9 @@ export default class Client extends EventEmitter {
             LevelChunkPacket,
             MovePlayerPacket,
             // The end credits a first exit through the End's portal starts.
-            ShowCreditsPacket
+            ShowCreditsPacket,
+            // The server's keep-alive ping.
+            NetworkStackLatencyPacket
         ]);
 
         const dial = { host: options.host, port: options.port ?? 19132, timeoutMs: options.loginTimeoutMs };
@@ -199,6 +202,10 @@ export default class Client extends EventEmitter {
         // responder above.
         this.credits = new Credits(this.session, () => this.startGame?.runtimeEntityId ?? 0n);
         this.credits.on('finished', (credits: ShowCreditsPayload) => this.emit('credits', credits));
+
+        // Answers the server's keep-alive pings, so a server that drops a silent client keeps
+        // this one.
+        new LatencyPing(this.session);
     }
 
     /**
