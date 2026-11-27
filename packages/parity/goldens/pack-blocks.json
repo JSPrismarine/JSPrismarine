@@ -47,7 +47,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10020",
+                "block_id": "int:10025",
                 "material": "string:dirt"
             }
         },
@@ -89,7 +89,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10017",
+                "block_id": "int:10022",
                 "material": "string:dirt"
             }
         },
@@ -131,7 +131,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10031",
+                "block_id": "int:10036",
                 "material": "string:dirt"
             }
         },
@@ -173,7 +173,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10010",
+                "block_id": "int:10015",
                 "material": "string:dirt"
             }
         },
@@ -215,7 +215,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10024",
+                "block_id": "int:10029",
                 "material": "string:dirt"
             }
         },
@@ -257,7 +257,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10040",
+                "block_id": "int:10045",
                 "material": "string:dirt"
             }
         },
@@ -299,7 +299,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10008",
+                "block_id": "int:10013",
                 "material": "string:dirt"
             }
         },
@@ -341,7 +341,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10038",
+                "block_id": "int:10043",
                 "material": "string:dirt"
             }
         },
@@ -359,7 +359,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10034",
+                "block_id": "int:10039",
                 "material": "string:dirt"
             }
         },
@@ -377,7 +377,67 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10035",
+                "block_id": "int:10040",
+                "material": "string:dirt"
+            }
+        },
+        "parity:creative_block": {
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10002",
+                "material": "string:dirt"
+            }
+        },
+        "parity:creative_block_grouped": {
+            "menu_category": {
+                "category": "string:nature",
+                "group": "string:parity:itemGroup.name.parity_stones",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10003",
+                "material": "string:dirt"
+            }
+        },
+        "parity:creative_block_grouped_b": {
+            "menu_category": {
+                "category": "string:nature",
+                "group": "string:parity:itemGroup.name.parity_stones",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10001",
+                "material": "string:dirt"
+            }
+        },
+        "parity:creative_block_hidden": {
+            "menu_category": {
+                "category": "string:none",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10004",
+                "material": "string:dirt"
+            }
+        },
+        "parity:creative_block_stairs": {
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:minecraft:itemGroup.name.stairs",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10000",
                 "material": "string:dirt"
             }
         },
@@ -432,7 +492,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10028",
+                "block_id": "int:10033",
                 "material": "string:dirt"
             }
         },
@@ -487,7 +547,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10016",
+                "block_id": "int:10021",
                 "material": "string:dirt"
             }
         },
@@ -542,7 +602,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10029",
+                "block_id": "int:10034",
                 "material": "string:dirt"
             }
         },
@@ -597,7 +657,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10025",
+                "block_id": "int:10030",
                 "material": "string:dirt"
             }
         },
@@ -652,7 +712,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10021",
+                "block_id": "int:10026",
                 "material": "string:dirt"
             }
         },
@@ -707,7 +767,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10032",
+                "block_id": "int:10037",
                 "material": "string:dirt"
             }
         },
@@ -762,7 +822,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10042",
+                "block_id": "int:10047",
                 "material": "string:dirt"
             }
         },
@@ -817,7 +877,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10014",
+                "block_id": "int:10019",
                 "material": "string:dirt"
             }
         },
@@ -834,7 +894,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10023",
+                "block_id": "int:10028",
                 "material": "string:dirt"
             }
         },
@@ -874,7 +934,7 @@
             },
             "molangVersion": "int:0",
             "vanilla_block_data": {
-                "block_id": "int:10000",
+                "block_id": "int:10005",
                 "material": "string:dirt"
             }
         },
@@ -914,7 +974,7 @@
             },
             "molangVersion": "int:1",
             "vanilla_block_data": {
-                "block_id": "int:10001",
+                "block_id": "int:10006",
                 "material": "string:dirt"
             }
         },
@@ -954,7 +1014,7 @@
             },
             "molangVersion": "int:6",
             "vanilla_block_data": {
-                "block_id": "int:10002",
+                "block_id": "int:10007",
                 "material": "string:dirt"
             }
         },
@@ -994,7 +1054,7 @@
             },
             "molangVersion": "int:11",
             "vanilla_block_data": {
-                "block_id": "int:10003",
+                "block_id": "int:10008",
                 "material": "string:dirt"
             }
         },
@@ -1034,7 +1094,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10004",
+                "block_id": "int:10009",
                 "material": "string:dirt"
             }
         },
@@ -1074,7 +1134,7 @@
             },
             "molangVersion": "int:13",
             "vanilla_block_data": {
-                "block_id": "int:10005",
+                "block_id": "int:10010",
                 "material": "string:dirt"
             }
         },
@@ -1114,7 +1174,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10006",
+                "block_id": "int:10011",
                 "material": "string:dirt"
             }
         },
@@ -1154,7 +1214,7 @@
             },
             "molangVersion": "int:13",
             "vanilla_block_data": {
-                "block_id": "int:10007",
+                "block_id": "int:10012",
                 "material": "string:dirt"
             }
         },
@@ -1192,7 +1252,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10015",
+                "block_id": "int:10020",
                 "material": "string:dirt"
             }
         },
@@ -1230,7 +1290,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10011",
+                "block_id": "int:10016",
                 "material": "string:dirt"
             }
         },
@@ -1268,7 +1328,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10019",
+                "block_id": "int:10024",
                 "material": "string:dirt"
             }
         },
@@ -1306,7 +1366,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10013",
+                "block_id": "int:10018",
                 "material": "string:dirt"
             }
         },
@@ -1344,7 +1404,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10030",
+                "block_id": "int:10035",
                 "material": "string:dirt"
             }
         },
@@ -1382,7 +1442,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10037",
+                "block_id": "int:10042",
                 "material": "string:dirt"
             }
         },
@@ -1420,7 +1480,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10041",
+                "block_id": "int:10046",
                 "material": "string:dirt"
             }
         },
@@ -1458,7 +1518,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10012",
+                "block_id": "int:10017",
                 "material": "string:dirt"
             }
         },
@@ -1496,7 +1556,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10022",
+                "block_id": "int:10027",
                 "material": "string:dirt"
             }
         },
@@ -1534,7 +1594,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10036",
+                "block_id": "int:10041",
                 "material": "string:dirt"
             }
         },
@@ -1572,7 +1632,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10018",
+                "block_id": "int:10023",
                 "material": "string:dirt"
             }
         },
@@ -1584,7 +1644,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10033",
+                "block_id": "int:10038",
                 "material": "string:dirt"
             }
         },
@@ -1611,7 +1671,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10027",
+                "block_id": "int:10032",
                 "material": "string:dirt"
             }
         },
@@ -1638,7 +1698,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10026",
+                "block_id": "int:10031",
                 "material": "string:dirt"
             }
         },
@@ -1665,7 +1725,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10009",
+                "block_id": "int:10014",
                 "material": "string:dirt"
             }
         },
@@ -1680,7 +1740,7 @@
             },
             "molangVersion": "int:12",
             "vanilla_block_data": {
-                "block_id": "int:10039",
+                "block_id": "int:10044",
                 "material": "string:dirt"
             }
         }

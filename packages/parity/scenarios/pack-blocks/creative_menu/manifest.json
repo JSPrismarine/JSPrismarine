@@ -1,0 +1,17 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Pack creative menu",
+        "description": "Pack blocks and items in each creative menu placement",
+        "uuid": "7d4c2a10-3e5f-4b6a-8c9d-0000000000c1",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "7d4c2a10-3e5f-4b6a-8c9d-0000000000c2",
+            "version": [1, 0, 0]
+        }
+    ]
+}

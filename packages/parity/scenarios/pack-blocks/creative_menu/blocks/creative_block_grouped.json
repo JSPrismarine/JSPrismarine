@@ -1,0 +1,13 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:creative_block_grouped",
+            "menu_category": {
+                "category": "nature",
+                "group": "parity:itemGroup.name.parity_stones"
+            }
+        },
+        "components": {}
+    }
+}

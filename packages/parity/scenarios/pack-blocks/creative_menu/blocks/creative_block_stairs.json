@@ -1,0 +1,13 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:creative_block_stairs",
+            "menu_category": {
+                "category": "construction",
+                "group": "minecraft:itemGroup.name.stairs"
+            }
+        },
+        "components": {}
+    }
+}

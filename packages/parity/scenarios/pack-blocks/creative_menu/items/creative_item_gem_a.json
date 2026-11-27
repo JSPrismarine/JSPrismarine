@@ -1,0 +1,15 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:item": {
+        "description": {
+            "identifier": "parity:creative_item_gem_a",
+            "menu_category": {
+                "category": "items",
+                "group": "parity:itemGroup.name.parity_gems"
+            }
+        },
+        "components": {
+            "minecraft:icon": "creative_item_gem_a"
+        }
+    }
+}
