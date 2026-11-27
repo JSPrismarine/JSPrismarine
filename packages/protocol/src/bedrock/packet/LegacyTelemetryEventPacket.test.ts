@@ -332,3 +332,71 @@ describe.each([2193, 2225])('the declarative LegacyTelemetryEvent layout at prot
         expect(layout.decode(new BinaryStream(expected))).toEqual(payload);
     });
 });
+
+// Captured from the pinned Bedrock Dedicated Server 1.26.60 (protocol 2225), with cheats off, as
+// its player ran `/me`, punched a pig to death and was killed by a zombie. BDS gives the player
+// the unique id -4294967295 and the pig -4294967287.
+const capturedAtBds = [
+    {
+        name: 'a command the player ran',
+        hex: '41fdffffff1f1601080200026d6500',
+        eventType: LegacyTelemetryEventType.SlashCommand,
+        eventData: {
+            ordinal: LegacyTelemetryEventDataOrdinal.SlashCommand,
+            successCount: 1,
+            errorCount: 0,
+            commandName: 'me',
+            errorList: ''
+        }
+    },
+    {
+        name: 'a pig the player punched to death',
+        hex: '41fdffffff1f080104fdffffff1fedffffff1f02040100',
+        eventType: LegacyTelemetryEventType.MobKilled,
+        eventData: {
+            ordinal: LegacyTelemetryEventDataOrdinal.MobKilled,
+            instigatorActorId: -4294967295n,
+            targetActorId: -4294967287n,
+            // ActorType Undefined: no projectile.
+            instigatorChildActorType: 1,
+            // ActorDamageCause EntityAttack.
+            damageSource: 2,
+            tradeTier: -1,
+            traderName: ''
+        }
+    },
+    {
+        name: 'the player killed by a zombie',
+        hex: '41fdffffff1f0c0106c0ac18000400',
+        eventType: LegacyTelemetryEventType.PlayerDied,
+        eventData: {
+            ordinal: LegacyTelemetryEventDataOrdinal.PlayerDied,
+            // Not an id: ActorType Zombie.
+            instigatorActorId: 199456,
+            instigatorMobVariant: 0,
+            damageSource: 2,
+            diedInRaid: false
+        }
+    }
+];
+
+describe('LegacyTelemetryEventPacket as a Bedrock Dedicated Server sends it', () => {
+    it.each(capturedAtBds)('decodes and re-encodes $name', ({ hex, eventType, eventData }) => {
+        const bytes = Buffer.from(hex, 'hex');
+        const decoded = new LegacyTelemetryEventPacket(bytes);
+        decoded.decode();
+        expect(decoded.targetActorId).toBe(-4294967295n);
+        expect(decoded.eventType).toBe(eventType);
+        expect(decoded.usePlayerId).toBe(true);
+        expect(decoded.eventData).toEqual(eventData);
+        expect(decoded.feof()).toBe(true);
+
+        const encoded = new LegacyTelemetryEventPacket();
+        encoded.targetActorId = -4294967295n;
+        encoded.eventType = eventType;
+        encoded.usePlayerId = true;
+        encoded.eventData = eventData;
+        encoded.encode();
+        expect(encoded.getBuffer()).toEqual(bytes);
+    });
+});
