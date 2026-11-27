@@ -1991,7 +1991,6 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
-        "@jsprismarine/packs": "workspace:*",
         "@mtcute/wasm": "0.32.8",
         "@types/node": "26.6.11",
         "glob": "14.0.6",
@@ -2009,6 +2008,7 @@
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/recipes": "workspace:*"
     }
 }

@@ -1926,6 +1926,9 @@ importers:
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
+      '@jsprismarine/packs':
+        specifier: workspace:*
+        version: link:../packs
       '@jsprismarine/recipes':
         specifier: workspace:*
         version: link:../recipes
@@ -1933,9 +1936,6 @@ importers:
       '@jsprismarine/bedrock-data':
         specifier: workspace:*
         version: link:../bedrock-data
-      '@jsprismarine/packs':
-        specifier: workspace:*
-        version: link:../packs
       '@mtcute/wasm':
         specifier: 0.32.8
         version: 0.32.8

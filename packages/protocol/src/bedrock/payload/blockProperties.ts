@@ -18,6 +18,8 @@
  * table in the README lists every one; {@link BLOCK_NBT_TRANSLATIONS} is the
  * code behind it.
  */
+import type { FormatVersion } from '@jsprismarine/packs';
+import { compareVersions } from '@jsprismarine/packs';
 import type { BlockDefinitionDocument, BlockStateDefinition, BlockTrait, BlockType } from '@jsprismarine/blocks';
 import type { ComponentEntry } from '@jsprismarine/content';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -25,17 +27,6 @@ import type { BlockProperty } from '../packet/StartGamePacket';
 
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtFloat, nbtInt, nbtList, nbtString, writeNetworkNbt } from './nbt';
-
-/**
- * The Molang dialect the permutation conditions are written in.
- *
- * 13 is `Latest` in the docs' `MolangVersion` enum and is what the captured
- * server sends on every one of its 98 blocks. Geyser and Allay send 1 and
- * PowerNukkitX sends 9; all three report that their blocks work, which is
- * why the research note lists the field's real effect as an open question.
- * The capture is the only primary source, so the capture wins.
- */
-export const MOLANG_VERSION = 13;
 
 /**
  * The first id handed to a block whose definition declares none.
@@ -151,13 +142,16 @@ const collisionBox = (value: unknown): NBTTagCompound => {
     });
 };
 
-/** `minecraft:selection_box`, which keeps its origin and size rather than becoming two corners. */
+/**
+ * `minecraft:selection_box`, which keeps its origin and size rather than becoming two corners.
+ * A disabled box still carries the full block's, as a Bedrock Dedicated Server 1.26.60.6 writes
+ * it for `false`.
+ */
 const selectionBox = (value: unknown): NBTTagCompound => {
-    if (value === false) return nbtCompound({ enabled: nbtByte(false) });
     const box = isRecord(value) ? value : {};
 
     return nbtCompound({
-        enabled: nbtByte(true),
+        enabled: nbtByte(value !== false),
         origin: vector(box.origin, [-8, 0, -8]),
         size: vector(box.size, [16, 16, 16])
     });
@@ -167,11 +161,10 @@ const selectionBox = (value: unknown): NBTTagCompound => {
  * The three bits of a material instance's `packed_bools`.
  *
  * Bit 0 is face dimming and bit 1 is the isotropic flag, which Allay calls
- * random UV rotation. Bit 2 is set in both of the capture's two material
- * instances and nothing in either block's JSON turns it off; Allay names it
- * texture variation and Geyser writes only bit 0 with a TODO beside it. It
- * is emitted as set because that is what the capture shows, and the option
- * is here so a caller who learns otherwise does not have to fork the module.
+ * random UV rotation. Bit 2, which Allay names texture variation, follows the
+ * file's `format_version`: a Bedrock Dedicated Server 1.26.60.6 set it on every
+ * pack block at 1.21.110 or later and on none below, whatever the instance
+ * declared; see {@link TEXTURE_VARIATION_FROM}.
  */
 export interface MaterialInstanceBits {
     faceDimming: boolean;
@@ -182,6 +175,22 @@ export interface MaterialInstanceBits {
 const packedBools = ({ faceDimming, isotropic, textureVariation }: MaterialInstanceBits): number =>
     (faceDimming ? 1 : 0) | (isotropic ? 2 : 0) | (textureVariation ? 4 : 0);
 
+/** The `format_version` from which a material instance's `packed_bools` has bit 2 set. */
+export const TEXTURE_VARIATION_FROM: FormatVersion = [1, 21, 110];
+
+/** The `format_version` from which a geometry no longer sets `ignoreGeometryForIsSolid`. */
+export const GEOMETRY_SOLIDITY_FROM: FormatVersion = [1, 21, 90];
+
+/**
+ * The `format_version` from which `minecraft:geometry.full_block` stays itself. Below it the
+ * server sends `minecraft:geometry.full_block_v1` with `isV1Fullblock` set.
+ */
+export const FULL_BLOCK_V2_FROM: FormatVersion = [1, 26, 0];
+
+/** Whether a file's `format_version` is at or above another. */
+const from = (context: BlockTranslationContext, version: FormatVersion): boolean =>
+    compareVersions(context.formatVersion, version) >= 0;
+
 /**
  * `minecraft:material_instances`, which splits into the face-to-instance
  * `mappings` and the instance definitions in `materials`.
@@ -189,7 +198,7 @@ const packedBools = ({ faceDimming, isotropic, textureVariation }: MaterialInsta
  * A face key whose value is a string names another instance, which is what
  * `mappings` holds; everything else is an instance of its own.
  */
-const materialInstances = (value: unknown): NBTTagCompound => {
+const materialInstances = (value: unknown, context: BlockTranslationContext): NBTTagCompound => {
     const source = isRecord(value) ? value : {};
     const mappings: Record<string, NbtValue> = {};
     const materials: Record<string, NbtValue> = {};
@@ -203,13 +212,18 @@ const materialInstances = (value: unknown): NBTTagCompound => {
 
         materials[face] = nbtCompound({
             // A byte here was accepted until 1.26.20 and is now rejected; the
-            // capture writes a float and the schema's default is 1.
-            ambient_occlusion: nbtFloat(numberAt(instance, 'ambient_occlusion', 1)),
+            // capture writes a float and the schema's default is 1. The older
+            // boolean form travels as 1 or 0, as BDS 1.26.60.6 writes `false`.
+            ambient_occlusion: nbtFloat(
+                typeof instance.ambient_occlusion === 'boolean'
+                    ? Number(instance.ambient_occlusion)
+                    : numberAt(instance, 'ambient_occlusion', 1)
+            ),
             packed_bools: nbtByte(
                 packedBools({
                     faceDimming: booleanAt(instance, 'face_dimming', true),
                     isotropic: booleanAt(instance, 'isotropic', false),
-                    textureVariation: true
+                    textureVariation: from(context, TEXTURE_VARIATION_FROM)
                 })
             ),
             render_method: nbtString(stringAt(instance, 'render_method', 'opaque')),
@@ -221,30 +235,46 @@ const materialInstances = (value: unknown): NBTTagCompound => {
     return nbtCompound({ mappings: nbtCompound(mappings), materials: nbtCompound(materials) });
 };
 
-/** `minecraft:geometry`, which is either the identifier on its own or the detailed form. */
-const geometry = (value: unknown): NBTTagCompound => {
+/**
+ * One `bone_visibility` value as the server writes it: a string, the expression as written or a
+ * boolean as the float the engine reads it as, `"1.000000"` or `"0.000000"`.
+ */
+const boneVisibilityValue = (value: unknown): string => {
+    if (typeof value === 'boolean') return (value ? 1 : 0).toFixed(6);
+    if (typeof value === 'number') return value.toFixed(6);
+    return String(value);
+};
+
+/**
+ * `minecraft:geometry`, which is either the identifier on its own or the detailed form.
+ *
+ * Two of its engine-internal flags follow the file's `format_version`, as a Bedrock Dedicated
+ * Server 1.26.60.6 writes them for a pack block: `ignoreGeometryForIsSolid` below
+ * {@link GEOMETRY_SOLIDITY_FROM}, and the full block's older `full_block_v1` form below
+ * {@link FULL_BLOCK_V2_FROM}.
+ */
+const geometry = (value: unknown, context: BlockTranslationContext): NBTTagCompound => {
     const source = typeof value === 'string' ? { identifier: value } : isRecord(value) ? value : {};
     const boneVisibility: Record<string, NbtValue> = {};
     const declared = source.bone_visibility;
     if (isRecord(declared)) {
         for (const [bone, expression] of Object.entries(declared)) {
-            boneVisibility[bone] = nbtCompound({
-                expression: nbtString(typeof expression === 'boolean' ? String(expression) : String(expression)),
-                version: nbtInt(MOLANG_VERSION)
-            });
+            boneVisibility[bone] = nbtString(boneVisibilityValue(expression));
         }
     }
+
+    const declaredIdentifier = stringAt(source, 'identifier', 'minecraft:geometry.full_block');
+    const v1FullBlock = declaredIdentifier === 'minecraft:geometry.full_block' && !from(context, FULL_BLOCK_V2_FROM);
 
     return nbtCompound({
         bone_visibility: nbtCompound(boneVisibility),
         culling: nbtString(stringAt(source, 'culling', '')),
         culling_layer: nbtString(stringAt(source, 'culling_layer', 'minecraft:culling_layer.undefined')),
         culling_shape: nbtString(stringAt(source, 'culling_shape', '')),
-        identifier: nbtString(stringAt(source, 'identifier', 'minecraft:geometry.full_block')),
-        // Four engine-internal flags with no JSON spelling. Every one of them
-        // is 0 on both captured geometries.
-        ignoreGeometryForIsSolid: nbtByte(false),
-        isV1Fullblock: nbtByte(false),
+        identifier: nbtString(v1FullBlock ? 'minecraft:geometry.full_block_v1' : declaredIdentifier),
+        // Engine-internal flags with no JSON spelling.
+        ignoreGeometryForIsSolid: nbtByte(!from(context, GEOMETRY_SOLIDITY_FROM)),
+        isV1Fullblock: nbtByte(v1FullBlock),
         needsLegacyTopRotation: nbtByte(false),
         useBlockTypeLightAbsorption: nbtByte(false),
         uv_lock: nbtByte(booleanAt(source, 'uv_lock', false))
@@ -341,7 +371,17 @@ const transformation = (value: unknown): NBTTagCompound => {
 };
 
 /** Turns one component's JSON value into the compound the client reads, or undefined to leave it out. */
-export type BlockComponentTranslation = (value: unknown) => NBTTagCompound | undefined;
+/** What a component's translation knows of the file it came from. */
+export interface BlockTranslationContext {
+    /** The file's own `format_version`, which several wire flags follow. */
+    readonly formatVersion: FormatVersion;
+}
+
+/** Turns one component's JSON value into the NBT the client reads, or nothing when it sends none. */
+export type BlockComponentTranslation = (
+    value: unknown,
+    context: BlockTranslationContext
+) => NBTTagCompound | undefined;
 
 /**
  * Every block component the client is told about, keyed by its JSON name.
@@ -426,7 +466,11 @@ export interface UntranslatedComponent {
 
 /** Options for {@link buildBlockProperties}. */
 export interface BlockPropertiesOptions {
-    /** The Molang dialect declared on every definition; {@link MOLANG_VERSION} by default. */
+    /**
+     * The Molang version declared on every definition. By default each block declares its own,
+     * the version its pack's `min_engine_version` gets, as a Bedrock Dedicated Server 1.26.60.6
+     * does: it wrote 12 for a pack at 1.21.0 and 13 for one at 1.21.100.
+     */
     molangVersion?: number;
     /** Where allocation starts for a block with no `block_id`; {@link FIRST_CUSTOM_BLOCK_ID} by default. */
     firstCustomBlockId?: number;
@@ -538,7 +582,8 @@ const translateComponents = (
     entries: readonly ComponentEntry[],
     tags: string[],
     report: (component: string) => void,
-    tagComponents: boolean
+    tagComponents: boolean,
+    context: BlockTranslationContext
 ): TranslatedComponents => {
     const translated: Record<string, NbtValue> = {};
 
@@ -552,7 +597,7 @@ const translateComponents = (
 
         const translate = BLOCK_NBT_TRANSLATIONS[entry.name];
         if (translate !== undefined) {
-            const compound = translate(entry.value);
+            const compound = translate(entry.value, context);
             if (compound !== undefined) translated[entry.name] = compound;
             continue;
         }
@@ -579,7 +624,6 @@ export const buildBlockProperties = (
     blocks: Iterable<BlockPropertySource>,
     options: BlockPropertiesOptions = {}
 ): BlockPropertiesResult => {
-    const molangVersion = options.molangVersion ?? MOLANG_VERSION;
     const tagComponents = options.tagComponents ?? false;
     let nextBlockId = options.firstCustomBlockId ?? FIRST_CUSTOM_BLOCK_ID;
     const fromPacks = options.fromPacks ?? false;
@@ -591,13 +635,15 @@ export const buildBlockProperties = (
     for (const source of blocks) {
         const document = documentOf(source);
         const name = document.description.identifier;
+        const context: BlockTranslationContext = { formatVersion: document.formatVersion };
         const tags: string[] = [];
 
         const base = translateComponents(
             document.components,
             tags,
             (component) => untranslated.push({ block: name, component, inPermutation: false }),
-            tagComponents
+            tagComponents,
+            context
         );
 
         const permutations = document.permutations.flatMap((permutation) => {
@@ -605,7 +651,8 @@ export const buildBlockProperties = (
                 permutation.components,
                 [],
                 (component) => untranslated.push({ block: name, component, inPermutation: true }),
-                tagComponents
+                tagComponents,
+                context
             );
             // A permutation that only changed a server-side component, such as
             // the two that pick a loot table, has nothing to say to the client.
@@ -622,13 +669,14 @@ export const buildBlockProperties = (
 
         const definition = nbtCompound({
             blockTags: tags.length > 0 ? nbtList(tags.map(nbtString)) : undefined,
-            components: base.compound,
+            // A block with no client-side component has no compound at all, as BDS 1.26.60.6 sends it.
+            components: base.count > 0 ? base.compound : undefined,
             menu_category: nbtCompound({
                 category: nbtString(menu?.category ?? DEFAULT_MENU_CATEGORY),
                 group: nbtString(menu?.group ?? ''),
                 is_hidden_in_commands: nbtByte(menu?.hiddenInCommands ?? false)
             }),
-            molangVersion: nbtInt(molangVersion),
+            molangVersion: nbtInt(options.molangVersion ?? document.molangVersion),
             permutations: permutations.length > 0 ? nbtList(permutations) : undefined,
             properties: states.length > 0 ? nbtList(states.map(propertyEntry)) : undefined,
             traits: traits.length > 0 ? nbtList(traits.map(traitEntry)) : undefined,
