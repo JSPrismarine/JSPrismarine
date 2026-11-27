@@ -6,6 +6,7 @@ import { sessionContext } from '../../../testing/handlerContext.test.helper';
 import { stub } from '../../../testing/stub.test.helper';
 import { STEVE } from '../../../testing/sessionIdentity.test.helper';
 import { latestCodec } from '../../../network/codec/CodecRegistry';
+import type ClientConnection from '../../../network/ClientConnection';
 import type PlayerSession from '../../../player/PlayerSession';
 import PacketViolationWarningPacket, {
     PacketViolationSeverity,
@@ -14,15 +15,31 @@ import PacketViolationWarningPacket, {
 import PacketViolationWarningHandler from './PacketViolationWarningHandler';
 
 describe('PacketViolationWarningHandler', () => {
-    const handleWith = (fields: StubMembers<PacketViolationWarningPacket>): string[] => {
+    const handle = (fields: StubMembers<PacketViolationWarningPacket>) => {
         const logged: string[] = [];
+        const reported: string[] = [];
         const log = stub<Logger>({ warn: (...message) => void logged.push(message[0] ?? '') });
-        const session = stub<PlayerSession>({ identity: STEVE });
+        const connection = stub<ClientConnection>({ reportJoinFailure: (_log, cause) => reported.push(cause) > 0 });
+        const session = stub<PlayerSession>({ identity: STEVE, getConnection: () => connection });
         const packet = Object.assign(new PacketViolationWarningPacket(), fields);
 
         new PacketViolationWarningHandler().handle(packet, sessionContext(session, { log }));
-        return logged;
+        return { logged, reported };
     };
+    const handleWith = (fields: StubMembers<PacketViolationWarningPacket>): string[] => handle(fields).logged;
+
+    it('reports a failed join that names the packet the client rejected', () => {
+        expect(
+            handle({
+                type: PacketViolationType.PacketMalformed,
+                severity: PacketViolationSeverity.TerminatingConnection,
+                packetId: latestCodec.ids.StartGamePacket!,
+                message: 'Unexpected end of stream'
+            }).reported
+        ).toEqual([
+            'The client rejected the server\'s StartGamePacket (0xb) as PacketMalformed, TerminatingConnection: "Unexpected end of stream".'
+        ]);
+    });
 
     it('warns with the rejected packet named from its id', () => {
         expect(

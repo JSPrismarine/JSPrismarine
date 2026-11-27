@@ -20,6 +20,7 @@ import { PacketLogFilter } from './PacketLogFilter';
 import { writePacketDump } from './packetDumpFile';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import { JoinDiagnostics } from './JoinFailure';
 
 /**
  * The packet class names a debugging variable lists, comma-separated.
@@ -133,6 +134,9 @@ export default class MinecraftSession {
     private outboundConnectionId: number | undefined;
     private outboundTick: (() => number) | undefined;
     private nextOutboundSequence = 0;
+
+    /** The packets last framed for the client, and whether a failed join was reported. */
+    public readonly joinDiagnostics = new JoinDiagnostics();
     private queuedPackets: QueuedPacket[] = [];
     private queuedPacketBytes = 0;
     private queuedBatchOptions: PacketBatchOptions | undefined;
@@ -452,6 +456,7 @@ export default class MinecraftSession {
         packetBuffers?: readonly Buffer[]
     ): void {
         this.frame(content, direct);
+        for (const packet of packets) this.joinDiagnostics.sent.add(packet.getName());
         this.recordOutbound(packets, ticks, packetBuffers);
     }
 

@@ -5,6 +5,26 @@ import type { ConnectionLaneHandler } from '../../../player/context/SessionHandl
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
+ * The reasons a client gives for leaving when it could not take what the server sent: a packet it
+ * could not read or did not expect, a level it could not load, or a join it could not finish.
+ */
+const SERVER_FAULTS: ReadonlySet<DisconnectReason> = new Set([
+    DisconnectReason.UNRECOVERABLE_ERROR,
+    DisconnectReason.WORLD_CORRUPTION,
+    DisconnectReason.UNKNOWN_PACKET,
+    DisconnectReason.UNEXPECTED_PACKET,
+    DisconnectReason.RESOURCE_PACK_PROBLEM,
+    DisconnectReason.INVALID_LEVEL,
+    DisconnectReason.BLOCK_MISMATCH,
+    DisconnectReason.INVALID_HEIGHTS,
+    DisconnectReason.INVALID_WIDTHS,
+    DisconnectReason.LOADING_STATE_TIMEOUT,
+    DisconnectReason.RESOURCE_PACK_LOADING_FAILED,
+    DisconnectReason.BAD_PACKET,
+    DisconnectReason.CLIENT_GAME_SETUP_FAILED
+]);
+
+/**
  * The client saying goodbye, and why.
  *
  * A client that leaves on purpose sends this before it drops the RakNet session. Without
@@ -26,7 +46,8 @@ export default class DisconnectHandler implements ConnectionLaneHandler<Disconne
      * Logs the reason the client gave at info level, then starts the RakNet goodbye.
      *
      * The reason is logged as its number and, when the number is a `DisconnectReason` member,
-     * its name. A bare number out of 150 members says little to whoever reads the log.
+     * its name. A bare number out of 150 members says little to whoever reads the log. A client
+     * that leaves its join for a reason that blames the server's packets reports a failed join.
      */
     public handle(packet: DisconnectPacket, { session, log }: SessionContext): void {
         const disconnect = packet.getPacketData();
@@ -40,6 +61,8 @@ export default class DisconnectHandler implements ConnectionLaneHandler<Disconne
         log.info(
             `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`
         );
+        if (SERVER_FAULTS.has(disconnect.reason))
+            session.getConnection().reportJoinFailure(log, `The client left with reason ${reason}${message}.`);
 
         session.getConnection().forceDisconnect();
     }
