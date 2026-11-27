@@ -1,0 +1,3091 @@
+{
+    "version": "26.3",
+    "states": {
+        "minecraft:air": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:stone": {
+            "fullCube": true,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": false
+        },
+        "minecraft:water[level=0]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:water[level=3]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=0]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:short_grass": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:cactus[age=0]": {
+            "fullCube": false,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": false
+        },
+        "minecraft:soul_sand": {
+            "fullCube": false,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": false
+        },
+        "minecraft:stone_slab[type=bottom,waterlogged=false]": {
+            "fullCube": false,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": true
+        },
+        "minecraft:stone_slab[type=bottom,waterlogged=true]": {
+            "fullCube": false,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": true
+        },
+        "minecraft:stone_slab[type=top,waterlogged=false]": {
+            "fullCube": false,
+            "solid": true,
+            "washedAway": false,
+            "holdsWater": true
+        },
+        "minecraft:seagrass": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": true
+        },
+        "minecraft:lava[level=4]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=3]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=5]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=6]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:water[level=1]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:water[level=8]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=2]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        },
+        "minecraft:lava[level=1]": {
+            "fullCube": false,
+            "solid": false,
+            "washedAway": true,
+            "holdsWater": false
+        }
+    },
+    "occludingFaces": [
+        {
+            "from": "minecraft:air",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:air",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:air",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:air",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:water[level=0]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=0]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:water[level=3]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=3]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=3]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=3]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=0]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=0]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:short_grass",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:short_grass",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:short_grass",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:short_grass",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:cactus[age=0]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:cactus[age=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:cactus[age=0]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:cactus[age=0]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:air",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:water[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:water[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:short_grass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:cactus[age=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:soul_sand",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:seagrass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=4]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=5]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=6]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:water[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:water[level=8]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=2]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:soul_sand",
+            "to": "minecraft:lava[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:air",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:water[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:water[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:short_grass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:cactus[age=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:seagrass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=4]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=5]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=6]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:water[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:water[level=8]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=2]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "to": "minecraft:lava[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:air",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:water[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:water[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:short_grass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:cactus[age=0]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:soul_sand",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:seagrass",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=4]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=3]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=5]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=6]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:water[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:water[level=8]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=2]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "to": "minecraft:lava[level=1]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:air",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:water[level=0]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:water[level=3]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=0]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:short_grass",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:cactus[age=0]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:soul_sand",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "north"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "south"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "west"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "east"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:seagrass",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=4]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=3]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=5]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=6]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:water[level=1]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:water[level=8]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=2]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "to": "minecraft:lava[level=1]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:seagrass",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:seagrass",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:seagrass",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:seagrass",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=4]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=4]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=4]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=4]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=3]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=3]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=3]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=3]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=5]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=5]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=5]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=5]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=6]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=6]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=6]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=6]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:water[level=1]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=1]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=1]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=1]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:water[level=8]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=8]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=8]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:water[level=8]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=2]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=2]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=2]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=2]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        },
+        {
+            "from": "minecraft:lava[level=1]",
+            "to": "minecraft:soul_sand",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=1]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=false]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=1]",
+            "to": "minecraft:stone_slab[type=bottom,waterlogged=true]",
+            "face": "up"
+        },
+        {
+            "from": "minecraft:lava[level=1]",
+            "to": "minecraft:stone_slab[type=top,waterlogged=false]",
+            "face": "down"
+        }
+    ],
+    "cases": [
+        {
+            "name": "water source on a flat floor",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a hole two east",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source between two holes",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [-2, 0, 0],
+                    "to": [-2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a diagonal hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 1],
+                    "to": [2, 0, 1],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a hole at the slope distance",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [5, 0, 0],
+                    "to": [5, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a hole past the slope distance",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [6, 0, 0],
+                    "to": [6, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source walled to the east",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source reaching a hole around a wall",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source in a corridor toward a hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-3, 1, -1],
+                    "to": [4, 1, -1],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-3, 1, 1],
+                    "to": [4, 1, 1],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-3, 1, 0],
+                    "to": [-3, 1, 0],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [4, 0, 0],
+                    "to": [4, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with water below the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:water[level=3]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with lava below the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:lava[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside short grass",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:short_grass"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside a cactus",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:cactus[age=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a cactus over the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:cactus[age=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with short grass over the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:short_grass"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside lower flowing water",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:water[level=3]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside another source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source one gap from another source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 8,
+                    "falling": false,
+                    "source": true
+                }
+            }
+        },
+        {
+            "name": "water source one gap from another source over soul sand",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 0, 0],
+                    "to": [1, 0, 0],
+                    "state": "minecraft:soul_sand"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 8,
+                    "falling": false,
+                    "source": true
+                }
+            }
+        },
+        {
+            "name": "water source one gap from another source over a bottom slab",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 0, 0],
+                    "to": [1, 0, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=false]"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 8,
+                    "falling": false,
+                    "source": true
+                }
+            }
+        },
+        {
+            "name": "water source one gap from another source over a hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 0, 0],
+                    "to": [1, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside a dry bottom slab",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=false]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside a waterlogged bottom slab",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=true]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source one dry slab from another source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=false]"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 8,
+                    "falling": false,
+                    "source": true
+                }
+            }
+        },
+        {
+            "name": "water source with a bottom slab over the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=false]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a top slab over the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:stone_slab[type=top,waterlogged=false]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside seagrass",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:seagrass"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source with a top slab beside it",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:stone_slab[type=top,waterlogged=false]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "waterlogged bottom slab on a flat floor",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=true]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "waterlogged bottom slab with a hole two east",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:stone_slab[type=bottom,waterlogged=true]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside flowing lava of amount 4",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:lava[level=4]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside flowing lava of amount 5",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:lava[level=3]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside flowing lava of amount 3",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:lava[level=5]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "water source beside shallow lava under lava",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:lava[level=6]"
+                },
+                {
+                    "from": [1, 2, 0],
+                    "to": [1, 2, 0],
+                    "state": "minecraft:lava[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "flowing water fed by a source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-1, 1, 0],
+                    "to": [-1, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=1]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "flowing water fed by a source with a hole two east",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [-1, 1, 0],
+                    "to": [-1, 1, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=1]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "falling water on a flat floor",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 2, 0],
+                    "to": [0, 2, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=8]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "falling water with a hole two east",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 2, 0],
+                    "to": [0, 2, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:water[level=8]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "water",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source on a flat floor",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source with a hole at the slope distance",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [3, 0, 0],
+                    "to": [3, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source with a hole past the slope distance",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [4, 0, 0],
+                    "to": [4, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source one gap from another source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 1, 0],
+                    "to": [2, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source beside lower flowing lava",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [1, 1, 0],
+                    "to": [1, 1, 0],
+                    "state": "minecraft:lava[level=6]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source with water below the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:water[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source with seagrass below the hole",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [2, 0, 0],
+                    "to": [2, 0, 0],
+                    "state": "minecraft:seagrass"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "flowing lava fed by a source",
+            "dimension": "overworld",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-1, 1, 0],
+                    "to": [-1, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=2]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 4,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 4,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 4,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source in the nether on a flat floor",
+            "dimension": "nether",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source in the nether with a hole past the overworld slope distance",
+            "dimension": "nether",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [4, 0, 0],
+                    "to": [4, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "east": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "lava source in the nether with a hole past the slope distance",
+            "dimension": "nether",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [6, 0, 0],
+                    "to": [6, 0, 0],
+                    "state": "minecraft:air"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "west": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 7,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        },
+        {
+            "name": "flowing lava in the nether fed by a source",
+            "dimension": "nether",
+            "origin": [0, 1, 0],
+            "blocks": [
+                {
+                    "from": [-6, 0, -6],
+                    "to": [6, 0, 6],
+                    "state": "minecraft:stone"
+                },
+                {
+                    "from": [-1, 1, 0],
+                    "to": [-1, 1, 0],
+                    "state": "minecraft:lava[level=0]"
+                },
+                {
+                    "from": [0, 1, 0],
+                    "to": [0, 1, 0],
+                    "state": "minecraft:lava[level=1]"
+                }
+            ],
+            "spread": {
+                "north": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "south": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                },
+                "east": {
+                    "kind": "lava",
+                    "amount": 6,
+                    "falling": false,
+                    "source": false
+                }
+            }
+        }
+    ]
+}
