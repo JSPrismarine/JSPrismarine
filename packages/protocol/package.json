@@ -1952,7 +1952,7 @@
         "glob": "14.0.6",
         "tsx": "4.23.15",
         "typescript": "7.0.2",
-        "vite": "8.3.8",
+        "vite": "8.4.0",
         "vitest": "5.1.2"
     },
     "dependencies": {
