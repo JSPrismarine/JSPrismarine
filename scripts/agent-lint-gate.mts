@@ -9,7 +9,9 @@
  *   when they fail.
  *
  * Both lint only what differs from `HEAD`, so a clean tree costs nothing and
- * a push is never gated: every commit it carries passed the commit gate. A
+ * a push is never gated: every commit it carries passed the commit gate.
+ * Prettier and Biome check the changed files, and of the checks `lint:custom`
+ * lists, only those whose inputs changed run (`lint-gate-checks.mts`). A
  * passing run records a fingerprint of the changes, and a later run on the
  * same changes, such as the commit after a passing `Stop`, skips the lint.
  */
@@ -18,6 +20,8 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import type { ChangedPath } from './lint-gate-checks.mts';
+import { customChecks, gateScripts } from './lint-gate-checks.mts';
 
 /** Matches `git commit`, including `git -C dir commit`. */
 const GATED_GIT_COMMAND = /\bgit\s+(?:-\S+\s+(?:[^\s-]\S*\s+)?)*commit\b/;
@@ -67,6 +71,45 @@ const lastPass = (file: string): string | undefined => {
 };
 
 /**
+ * The uncommitted changes from `git status`, with renamed files' old paths. `undefined` when Git
+ * cannot say.
+ */
+const changedPaths = (cwd: string): ChangedPath[] | undefined => {
+    const status = git(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+    if (status === undefined) return undefined;
+    const entries = status.split('\0');
+    const changes: ChangedPath[] = [];
+    for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        if (entry === undefined || entry.length < 4) continue;
+        const code = entry.slice(0, 2);
+        changes.push({ path: entry.slice(3), added: /[?ARC]/.test(code) });
+        // A rename or copy is followed by the path it came from.
+        if (/[RC]/.test(code)) {
+            const origin = entries[++index];
+            if (origin) changes.push({ path: origin, added: false });
+        }
+    }
+    return changes;
+};
+
+/** The scripts `lint:custom` runs, from the root `package.json`; `undefined` when it cannot be read. */
+const lintCustomChecks = (cwd: string): string[] | undefined => {
+    const root = git(cwd, ['rev-parse', '--show-toplevel'])?.trim();
+    if (!root) return undefined;
+    try {
+        // The manifest is JSON the repository owns; only `scripts` is read, and checked.
+        const manifest: { scripts?: Record<string, unknown> } = JSON.parse(
+            readFileSync(path.join(root, 'package.json'), 'utf8')
+        );
+        const command = manifest.scripts?.['lint:custom'];
+        return typeof command === 'string' ? customChecks(command) : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+/**
  * Lints the uncommitted changes in `cwd` and returns the trimmed output when
  * they fail. Skips a clean tree and changes that already passed.
  */
@@ -76,7 +119,17 @@ const lintFailure = (cwd: string): string | undefined => {
     const file = passFile(cwd);
     if (changes !== undefined && file !== undefined && lastPass(file) === changes) return undefined;
 
-    const result = spawnSync('pnpm', ['run', 'lint'], {
+    const changed = changedPaths(cwd);
+    const checks = lintCustomChecks(cwd);
+    // Without the changes or the check list, run the whole lint rather than guess.
+    const scripts = changed === undefined || checks === undefined ? undefined : gateScripts(checks, changed);
+    if (scripts?.length === 0) return undefined;
+    const command =
+        scripts === undefined
+            ? ['run', 'lint']
+            : ['exec', 'concurrently', '--prefix', '{name}', ...scripts.map((script) => `pnpm:${script}`)];
+
+    const result = spawnSync('pnpm', command, {
         cwd,
         env: { ...process.env, JSP_LINT_BASE: 'HEAD' },
         encoding: 'utf8',
@@ -130,7 +183,7 @@ if (input.hook_event_name === 'Stop') {
     console.log(
         JSON.stringify({
             decision: 'block',
-            reason: `\`pnpm run lint\` fails on the uncommitted changes. Fix the problems before finishing.\n\n${failure}`
+            reason: `Lint fails on the uncommitted changes. Fix the problems before finishing.\n\n${failure}`
         })
     );
 }
