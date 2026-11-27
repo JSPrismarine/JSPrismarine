@@ -20,15 +20,16 @@ if (!planFile) throw new Error('Pass the release plan that `changeset status --o
 // Parsed JSON from @changesets/cli: the fields read below are the ones its status output documents.
 const plan = JSON.parse(readFileSync(planFile, 'utf8'));
 
-// Changesets releases private packages too; only public ones reach npm.
+// Changesets releases private packages too; only public ones reach npm. pnpm lists every
+// workspace the workspace file names, so a new workspace folder needs no change here.
 const privatePackages = new Set(
-    execFileSync('git', ['ls-files', '--', 'packages/**/package.json', 'tools/*/package.json'], {
-        cwd: repositoryRoot,
-        encoding: 'utf8'
-    })
-        .split('\n')
-        .filter(Boolean)
-        .map((manifest) => JSON.parse(readFileSync(new URL(manifest, `file://${repositoryRoot}`), 'utf8')))
+    // Parsed JSON from pnpm's `ls --json`, an array of { name, private }.
+    JSON.parse(
+        execFileSync('pnpm', ['ls', '--recursive', '--depth', '-1', '--json'], {
+            cwd: repositoryRoot,
+            encoding: 'utf8'
+        })
+    )
         .filter((pkg) => pkg.private)
         .map((pkg) => pkg.name)
 );
