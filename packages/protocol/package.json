@@ -941,6 +941,11 @@
                 "import": "./dist/java/packet/status.js",
                 "module": "./dist/java/packet/status.js"
             },
+            "./java/versions/newest": {
+                "types": "./dist/java/versions/newest.d.ts",
+                "import": "./dist/java/versions/newest.js",
+                "module": "./dist/java/versions/newest.js"
+            },
             "./java/versions/javaReleases": {
                 "types": "./dist/java/versions/javaReleases.d.ts",
                 "import": "./dist/java/versions/javaReleases.js",
@@ -1856,6 +1861,10 @@
         "./java/packet/status": {
             "jsprismarine:dist": "./dist/java/packet/status.js",
             "default": "./src/java/packet/status.ts"
+        },
+        "./java/versions/newest": {
+            "jsprismarine:dist": "./dist/java/versions/newest.js",
+            "default": "./src/java/versions/newest.ts"
         },
         "./java/versions/javaReleases": {
             "jsprismarine:dist": "./dist/java/versions/javaReleases.js",

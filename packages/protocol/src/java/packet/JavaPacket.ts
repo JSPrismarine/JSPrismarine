@@ -21,11 +21,11 @@ import type { WireType } from '../../wire/fieldTypes';
 import { frozen } from '../../wire/frozen';
 import { layoutAt } from '../../wire/WireLayout';
 import type { JavaProtocol } from '../versions/javaRelease';
-import type { PACKETS } from '../versions/26.3/packets';
+import type { NewestPackets } from '../versions/newest';
 import { varInt } from '../wire/javaTypes';
 
 /** The newest release's table, which the packet paths are checked against. */
-type Table = typeof PACKETS;
+type Table = NewestPackets;
 
 /** A phase of the conversation: handshake, status, login, configuration or play. */
 export type JavaPhase = keyof Table;
