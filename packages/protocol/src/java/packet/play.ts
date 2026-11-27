@@ -784,19 +784,33 @@ export const SetEquipment = defineJavaPacket('Set Equipment', 'play/clientbound/
     equipment: equipmentList
 });
 
-/** The entity data serializers this server writes, by their 26.3 registration ids. */
+/**
+ * The entity data serializers this server writes, by their 26.3 registration ids.
+ * @javaSee EntityDataSerializers.ITEM_STACK
+ */
 export enum JavaEntityDataSerializer {
     Byte = 0,
     Int = 1,
+    ItemStack = 7,
     Pose = 20
 }
 
-/** One entity data entry: its index on the entity, its serializer and its value. */
-export interface JavaEntityDataEntry {
-    readonly index: number;
-    readonly serializer: JavaEntityDataSerializer;
-    readonly value: number;
-}
+/**
+ * One entity data entry: its index on the entity, its serializer and its value, a number for
+ * every serializer but the item stack's.
+ */
+export type JavaEntityDataEntry =
+    | {
+          readonly index: number;
+          readonly serializer:
+              JavaEntityDataSerializer.Byte | JavaEntityDataSerializer.Int | JavaEntityDataSerializer.Pose;
+          readonly value: number;
+      }
+    | {
+          readonly index: number;
+          readonly serializer: JavaEntityDataSerializer.ItemStack;
+          readonly value: JavaItemStack | null;
+      };
 
 /** The byte that ends an entity's data. */
 const END_OF_ENTITY_DATA = 0xff;
@@ -805,11 +819,12 @@ const END_OF_ENTITY_DATA = 0xff;
 const entityData = custom<JavaEntityDataEntry[]>(
     'Entity Metadata',
     (s, entries) => {
-        for (const { index, serializer, value } of entries) {
-            s.writeByte(index);
-            varInt.write(s, serializer);
-            if (serializer === JavaEntityDataSerializer.Byte) s.writeByte(value);
-            else varInt.write(s, value);
+        for (const entry of entries) {
+            s.writeByte(entry.index);
+            varInt.write(s, entry.serializer);
+            if (entry.serializer === JavaEntityDataSerializer.ItemStack) itemStack.write(s, entry.value);
+            else if (entry.serializer === JavaEntityDataSerializer.Byte) s.writeByte(entry.value);
+            else varInt.write(s, entry.value);
         }
         s.writeByte(END_OF_ENTITY_DATA);
     },
@@ -818,6 +833,8 @@ const entityData = custom<JavaEntityDataEntry[]>(
         for (let index = s.readByte(); index !== END_OF_ENTITY_DATA; index = s.readByte()) {
             const serializer = varInt.read(s);
             if (serializer === JavaEntityDataSerializer.Byte) entries.push({ index, serializer, value: s.readByte() });
+            else if (serializer === JavaEntityDataSerializer.ItemStack)
+                entries.push({ index, serializer, value: itemStack.read(s) });
             else if (serializer === JavaEntityDataSerializer.Int || serializer === JavaEntityDataSerializer.Pose) {
                 entries.push({ index, serializer, value: varInt.read(s) });
             } else throw new ProtocolWireErrors.JavaEntityDataSerializerUnread({ serializer });
@@ -833,6 +850,27 @@ const entityData = custom<JavaEntityDataEntry[]>(
 export const SetEntityData = defineJavaPacket('Set Entity Metadata', 'play/clientbound/set_entity_data', {
     entityId: varInt,
     entries: entityData
+});
+
+/**
+ * `Take Item Entity`: an item, an arrow or an orb flies to the entity that picked it up, which the
+ * client draws before it removes the item.
+ * @javaSource ClientboundTakeItemEntityPacket.STREAM_CODEC
+ */
+export const TakeItemEntity = defineJavaPacket('Pickup Item', 'play/clientbound/take_item_entity', {
+    itemId: varInt,
+    collectorId: varInt,
+    amount: varInt
+});
+
+/**
+ * `Set Experience`: the experience bar, from 0 to 1, the level, and the total points.
+ * @javaSource ClientboundSetExperiencePacket.STREAM_CODEC
+ */
+export const SetExperience = defineJavaPacket('Set Experience', 'play/clientbound/set_experience', {
+    progress: float,
+    level: varInt,
+    total: varInt
 });
 
 /** The bits of an entity's shared flags, at entity data index 0. */
@@ -855,10 +893,23 @@ export enum JavaPose {
     Crouching = 5
 }
 
-/** The entity data indices every entity has. */
+/**
+ * The entity data indices this server writes: two every entity has, and the first of an item's
+ * and an orb's own, right after `Entity`'s eight.
+ */
 export enum JavaEntityDataIndex {
     SharedFlags = 0,
-    Pose = 6
+    Pose = 6,
+    /**
+     * The stack an item entity holds.
+     * @javaSee ItemEntity.DATA_ITEM
+     */
+    ItemEntityStack = 8,
+    /**
+     * How much an experience orb is worth, which its size shows.
+     * @javaSee ExperienceOrb.DATA_VALUE
+     */
+    ExperienceOrbValue = 8
 }
 
 /**

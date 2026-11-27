@@ -99,6 +99,8 @@ import {
     SetTime,
     TickingState,
     TickingStep,
+    TakeItemEntity,
+    SetExperience,
     PlayClientInformation,
     PlayPingRequest,
     PlayPongResponse,
@@ -389,7 +391,9 @@ const SAMPLES: readonly Sample[] = [
         entries: [
             { index: 0, serializer: JavaEntityDataSerializer.Byte, value: 0x02 },
             { index: 6, serializer: JavaEntityDataSerializer.Pose, value: 5 },
-            { index: 17, serializer: JavaEntityDataSerializer.Int, value: 300 }
+            { index: 17, serializer: JavaEntityDataSerializer.Int, value: 300 },
+            { index: 8, serializer: JavaEntityDataSerializer.ItemStack, value: { item: 1, count: 64 } },
+            { index: 8, serializer: JavaEntityDataSerializer.ItemStack, value: null }
         ]
     }),
     sample(
@@ -474,6 +478,8 @@ const SAMPLES: readonly Sample[] = [
     sample(SetSimulationDistance, { distance: 8 }),
     sample(TickingState, { tickRate: 20, frozen: true }),
     sample(TickingStep, { steps: 5 }),
+    sample(TakeItemEntity, { itemId: 12, collectorId: 7, amount: 3 }),
+    sample(SetExperience, { progress: 0.5, level: 30, total: 1_395 }),
     sample(ServerboundPluginMessage, { channel: 'minecraft:brand', data: brandPayload('vanilla') }),
     sample(ConfigurationClientInformation, SETTINGS),
     sample(ConfigurationClientboundKeepAlive, { id: 123_456_789n }),
