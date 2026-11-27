@@ -15,9 +15,7 @@ import {
     javaIdentifierToBedrock,
     javaItemToBedrock
 } from '@jsprismarine/mapping';
-import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
-import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
-import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
+import { BLOCK_STATES, CONFIGURATION, ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 

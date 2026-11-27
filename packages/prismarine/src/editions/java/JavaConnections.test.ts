@@ -33,7 +33,7 @@ import {
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
 } from '@jsprismarine/protocol/java/packet/play';
-import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import {
     EncryptionRequest,

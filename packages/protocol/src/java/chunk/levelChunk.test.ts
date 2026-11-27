@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from '../packet/JavaPacket';
 import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
-import { BLOCK_STATES } from '../versions/26.3/blockStates';
-import { CONFIGURATION } from '../versions/26.3/configuration';
+import { BLOCK_STATES } from '../versions/newest';
+import { CONFIGURATION } from '../versions/newest';
 import { decodeSections, encodeSections, LevelChunkWithLight } from './levelChunk';
 import { biomesKind, blockStatesKind, unpackHeightmap } from './palettedContainer';
 
