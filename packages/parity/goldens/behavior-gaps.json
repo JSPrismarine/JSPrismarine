@@ -3439,26 +3439,6 @@
             "reason": "In Java: A client's locator bar shows the waypoints of other players. For a Java client here: play/clientbound/waypoint is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3812"
         },
-        "items:drop-items": {
-            "kind": "deferred",
-            "reason": "In Java: A client drops the item it holds, or the whole stack, with the drop key. For a Java client here: play/serverbound/player_action (drop one item) decodes into nothing; play/serverbound/player_action (drop the stack) decodes into nothing.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3768"
-        },
-        "items:experience": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown its experience bar and level, and the size of experience orbs. For a Java client here: play/clientbound/set_experience is never sent; play/clientbound/set_entity_data (the value of an experience orb) is not sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3768"
-        },
-        "items:item-entities": {
-            "kind": "deferred",
-            "reason": "In Java: A client sees the stack a dropped item entity holds. For a Java client here: play/clientbound/set_entity_data (the stack an item entity holds) is not sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3768"
-        },
-        "items:pick-up-items": {
-            "kind": "deferred",
-            "reason": "In Java: A client sees an item, an arrow or an orb fly to the entity that picks it up. For a Java client here: play/clientbound/take_item_entity is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3768"
-        },
         "player:abilities": {
             "kind": "deferred",
             "reason": "In Java: A client is told whether it may fly and build, how fast it flies, and starts and stops flying. For a Java client here: play/clientbound/player_abilities (the player's abilities) is not sent; play/serverbound/player_abilities is not read.",
