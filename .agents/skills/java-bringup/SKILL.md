@@ -21,7 +21,7 @@ takes the same steps with these differences:
 - Re-pin the preview only when the data pack format major changes or Mojang publishes a
   pre-release. A minor-only format bump is backward compatible by Mojang's definition and needs
   no gate: attach its diff to the tracking issue and keep the current pin.
-- Step 8 runs only when R is a release.
+- Step 9 runs only when R is a release.
 
 Work the steps in order; each later step consumes the one before it. Commit each completed,
 validated slice (commit-discipline skill) and add Changesets per [docs/guide/versioning.md](../../../docs/guide/versioning.md).
@@ -118,14 +118,39 @@ goes into the reviewed loss list before the generator will emit.
 
 Done when: running each generator a second time leaves an empty diff.
 
-## 6. Prove it
+## 6. Transcriptions
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run java:transcriptions --java <R>
+pnpm --filter @jsprismarine/bedrock-data run java:sources --update --java <R>
+PARITY_UPDATE_BEHAVIOR_GAPS=1 pnpm exec vitest run packages/parity/src/java.transcriptions.test.ts
+```
+
+The first command fingerprints every member a `@javaSource` tag names in the default release's
+jar and in R's, and writes a "Transcriptions to re-read" section into
+`docs/research/java-<R>-delta.md`: each changed member with the diff of its listing and the code
+that tags it, each removed or renamed member with the closest member R has, and the methods of
+other classes that tagged members call whose bytecode changed. `bringup:java` runs the same thing
+as its transcriptions stage. The second stamps R's fingerprint for every member R did not change
+and lists the ones it did. The third records each changed member as a `deferred` row with R's id
+in `packages/parity/goldens/behavior-gaps.json`.
+
+For each changed member, read the diff against the code that tags it. When the copy still
+matches, or once it has a `SINCE_` gate for R, restamp with
+`java:sources --update --java <R> --reviewed <spelling>` and run the third command again to drop
+its row. Read the advisory callees and tag the ones a copy depends on.
+
+Done when: every changed member is either restamped or has a deferred row, and each removed or
+renamed tag is fixed or has an issue.
+
+## 7. Prove it
 
 ```sh
 pnpm run bringup:java --java <R>
 ```
 
-The eight stages are pins, generate, reproducibility, strict load, corpus, noise chunks, server
-boot and command tree. The noise chunks stage generates chunk 0, 0 of the Overworld, the Nether
+The nine stages are pins, generate, reproducibility, strict load, corpus, noise chunks, server
+boot, command tree and transcriptions. The noise chunks stage generates chunk 0, 0 of the Overworld, the Nether
 and the End from R's data. The server boot starts a flat-world server through the client-e2e
 harness with `content-java-version` set to R, and the command tree stage checks that it built its
 vanilla command tree. A failed stage prints its first 20
@@ -133,7 +158,7 @@ diagnostics or differing files; fix those and re-run.
 
 Done when: every stage reports PASS and the command exits 0.
 
-## 7. Parity family
+## 8. Parity family
 
 Declare a family `datapack.<R>` in `packages/parity/src/families.ts` and add a test that loads
 R's vanilla datapack through the public loader and asserts registry counts and corpus results
@@ -142,7 +167,7 @@ own row, so the dashboard shows both. CI fails a declared family with no test.
 
 Done when: the family's test passes against R's real data and the dashboard shows its row.
 
-## 8. Flip the default
+## 9. Flip the default
 
 Only when R is a release. Set `javaServer.defaultVersion` to R and remove R's `bedrockProtocol`,
 which the default derives. Delete the preview entry and its cache directories, and the previous
@@ -154,7 +179,8 @@ pnpm --filter @jsprismarine/bedrock-data run generate
 ```
 
 Run `pnpm run docs:facts`, update `blending.json` and the guide pages that name the release the
-server runs.
+server runs. Every `java.transcriptions` row of R in `behavior-gaps.json` has to be read and
+restamped before the flip, since the family then checks R's fingerprints and fails on a change.
 
 Done when: `pnpm run test` passes with the old release's directories gone, and a search for the
 old release id outside dated notes finds only gates named for a change.

@@ -64,12 +64,14 @@ const flagValues = (argv: readonly string[], flag: string): string[] =>
 /**
  * The pinned jar's classes, by binary name, parsed on first use.
  *
+ * @param argv - The arguments whose `--java <release>` picks the release, the command line's by
+ *   default.
  * @returns The release and its class index, or undefined when the jar is not cached.
  */
-export const readPinnedJar = async (): Promise<
-    { readonly version: string; readonly index: JavaClassIndex } | undefined
-> => {
-    const jar = await pinnedServerJar();
+export const readPinnedJar = async (
+    argv: readonly string[] = process.argv
+): Promise<{ readonly version: string; readonly index: JavaClassIndex } | undefined> => {
+    const jar = await pinnedServerJar(argv);
     if (!jar.exists) return undefined;
     const classes = new Map<string, Buffer>();
     for (const [entry, bytes] of readServerClasses(readFileSync(jar.path)))
@@ -167,6 +169,13 @@ const update = async (tags: readonly JavaSourceTag[], golden: JavaSourceGolden, 
             const member = resolveJavaSource(tag.spelling, index);
             const key = javaSourceKey(member);
             const fingerprint = javaSourceFingerprint(javaSourceListing(index.load, member));
+            const recorded = golden.names[tag.spelling];
+            if (recorded !== undefined && recorded !== key && !reviewed.has(tag.spelling)) {
+                problems.push(
+                    `${tag.file}:${tag.line}: ${tag.spelling} resolves to ${key} in ${version}, not ${recorded}; read it against the code, then pass --reviewed ${tag.spelling}`
+                );
+                continue;
+            }
             if (needsReview(golden.sources[key], fingerprint) && !reviewed.has(tag.spelling)) {
                 problems.push(
                     `${tag.file}:${tag.line}: ${tag.spelling} changed in ${version}; read the new bytecode against the code, then pass --reviewed ${tag.spelling}`

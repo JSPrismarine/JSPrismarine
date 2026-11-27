@@ -26,6 +26,12 @@
  *    `content-java-version` set to the release, waits for it to listen and stops it.
  * 8. **command tree**: checks that the booted server built its vanilla command tree, whose
  *    registry arguments validate against the release's loaded content.
+ * 9. **transcriptions**: fingerprints every member a `@javaSource` tag names in the default
+ *    release's jar and in this one, and writes the changed, removed and renamed members, with the
+ *    diff of each listing, into the "Transcriptions to re-read" section of
+ *    `docs/research/java-<release>-delta.md`. It fails only when a jar cannot be read; a changed
+ *    member is for the maintainer to read, and the `java.transcriptions` parity family reports it
+ *    as deferred. The default release itself has nothing to compare with, so it passes.
  *
  * A failed pins or generate stage stops the run, since every later stage reads what they produce.
  * The rest all run, so one report shows every failure. The exit status is 0 only when every stage
@@ -50,6 +56,7 @@ import { fetchSource } from '../fetch/fetch.ts';
 import { verifyFileHash } from '../fetch/hash.ts';
 import type { SourceDescriptor } from '../fetch/manifest.ts';
 import { javaLangPath } from './extract-lang.ts';
+import { writeTranscriptionsNote } from '../java-sources/transcriptions.ts';
 import { resolveJavaRelease } from './release.ts';
 import {
     cacheRoot,
@@ -351,6 +358,26 @@ try {
 } catch (error) {
     report('server boot', false, message(error));
     report('command tree', false, 'the server did not boot');
+}
+
+// ---------------------------------------------------------------------------
+// Stage 9: transcriptions
+// ---------------------------------------------------------------------------
+
+try {
+    const written = await writeTranscriptionsNote(release);
+    if (written === undefined)
+        report('transcriptions', true, `${release} is the default release, which java.transcriptions checks`);
+    else
+        report(
+            'transcriptions',
+            true,
+            `${written.delta.changed.length} changed, ${written.delta.removed.length} removed or renamed and ` +
+                `${written.delta.callees.length} changed callees against ${written.delta.previous}, ` +
+                `${written.existed ? 'written into' : 'written to a new'} ${written.note}`
+        );
+} catch (error) {
+    report('transcriptions', false, message(error));
 }
 
 finish();
