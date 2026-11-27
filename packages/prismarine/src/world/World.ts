@@ -1063,7 +1063,9 @@ export class World implements Service {
                 // Whoever has this station open is watching its arrow and its flame, and the
                 // block entity write alone tells them nothing.
                 this.sendCookingProgress({ x, y, z }, furnaceScreenData(ticked.tags));
-                if (blockChanged || ticked.inventoryChanged) notifyContentNeighbors(this, { x, y, z });
+                const inventoryChanged = ticked.changedSlots.length > 0;
+                if (inventoryChanged) this.sendCookingSlots({ x, y, z }, ticked.changedSlots);
+                if (blockChanged || inventoryChanged) notifyContentNeighbors(this, { x, y, z });
             }
         }
     }
@@ -1080,6 +1082,23 @@ export class World implements Service {
         for (const session of this.getViewers()) {
             if (session.getOpenBlockContainer() === undefined) continue;
             void session.sendContainerData(position, properties).catch((error: unknown) => {
+                this.server.getLogger().error(error);
+            });
+        }
+    }
+
+    /**
+     * Shows every player with a cooking station open the stacks its tick moved.
+     *
+     * A finished item leaves the input and lands in the output, and a new fuel item is burned,
+     * all without a request from the player, so no `ItemStackResponse` tells the screen. Without
+     * this the output slot stayed empty until the screen was closed and opened again.
+     */
+    private sendCookingSlots(at: ContentPosition, slots: readonly number[]): void {
+        const position = new Vector3(at.x, at.y, at.z);
+        for (const session of this.getViewers()) {
+            if (session.getOpenBlockContainer() === undefined) continue;
+            void session.sendBlockContainerSlots(position, slots).catch((error: unknown) => {
                 this.server.getLogger().error(error);
             });
         }

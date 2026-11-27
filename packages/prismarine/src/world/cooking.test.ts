@@ -187,7 +187,7 @@ describe('tickFurnace', () => {
         const result = tickFurnace(content, furnace, 'minecraft:lit_furnace');
 
         expect(result?.blockIdentifier).toBe('minecraft:lit_furnace');
-        expect(result?.inventoryChanged).toBe(true);
+        expect(result?.changedSlots).toEqual([0, 2]);
         expect(result?.tags.getShort('BurnTime', -1)).toBe(1);
         expect(result?.tags.getShort('CookTime', -1)).toBe(0);
         expect(result?.tags.getShort('CookTimeTotal', -1)).toBe(200);
@@ -213,7 +213,7 @@ describe('tickFurnace', () => {
         const result = tickFurnace(content, furnace, 'minecraft:furnace');
 
         expect(result?.blockIdentifier).toBe('minecraft:lit_furnace');
-        expect(result?.inventoryChanged).toBe(true);
+        expect(result?.changedSlots).toEqual([1]);
         expect(result?.tags.getShort('BurnTime', 0)).toBeGreaterThan(0);
         expect(result?.tags.getShort('CookTime', -1)).toBe(1);
         expect(result && blockItems(result.tags)).toEqual([{ identifier: 'minecraft:iron_ore', count: 2 }]);

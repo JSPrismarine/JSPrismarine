@@ -70,6 +70,7 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { showContainerLid } from '../inventory/containerLid';
 import { blockSlotName } from '../inventory/containerSlots';
+import { openContainerSlots } from '../inventory/containerStore';
 import { WindowIds } from '../inventory/WindowIds';
 import type { EntityContainer } from '../inventory/slotLog';
 import { entityContainerNamed } from '../inventory/slotLog';
@@ -2076,6 +2077,45 @@ export default class PlayerSession {
             packet.value = value;
             sends.push(this.send(packet));
         }
+        return allSent(sends);
+    }
+
+    /**
+     * Shows the open block container's screen what some of its slots hold now.
+     *
+     * For a change the block made itself, such as a furnace finishing an item, which no
+     * `ItemStackResponse` reports. Each stack goes out under a stack network id of this
+     * player's, as it does when the screen opens, so the client can still take it. Nothing is
+     * sent when the screen was opened from a different block.
+     *
+     * @param at - The block whose slots changed.
+     * @param slots - The changed slots, numbered as the block entity numbers them.
+     */
+    public sendBlockContainerSlots(at: Vector3, slots: readonly number[]): Promise<void> {
+        const open = this.blockContainer;
+        if (
+            open === undefined ||
+            open.position.getX() !== at.getX() ||
+            open.position.getY() !== at.getY() ||
+            open.position.getZ() !== at.getZ()
+        ) {
+            return allSent([]);
+        }
+
+        const held = openContainerSlots(this, { x: at.getX(), y: at.getY(), z: at.getZ() }, open.identifier);
+        if (held === undefined) return allSent([]);
+
+        const context = this.connection.codec.context;
+        const sends = slots.map((slot) => {
+            const named = blockSlotName(open.screen, slot);
+            const item = wireStackOf(held.get(slot));
+            const packet = new InventorySlotPacket();
+            packet.windowId = open.windowId;
+            packet.containerId = named.containerId;
+            packet.inventorySlot = named.slotId;
+            packet.item = item.toStackDescriptor(context, this.stackIdFor(item));
+            return this.send(packet);
+        });
         return allSent(sends);
     }
 
