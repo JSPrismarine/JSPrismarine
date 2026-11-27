@@ -82,7 +82,10 @@ const BLOCKS = [
     'minecraft:redstone_lamp',
     'minecraft:lit_redstone_lamp',
     'minecraft:unpowered_repeater',
-    'minecraft:unpowered_comparator'
+    'minecraft:unpowered_comparator',
+    'minecraft:short_grass',
+    'minecraft:trapdoor',
+    'minecraft:lantern'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -112,7 +115,9 @@ const ITEMS = [
     'minecraft:flint_and_steel',
     'minecraft:ender_eye',
     'minecraft:empty_map',
-    'minecraft:snowball'
+    'minecraft:snowball',
+    'minecraft:trapdoor',
+    'minecraft:lantern'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -165,7 +170,7 @@ const replaceableTag = () =>
         [
             'block/minecraft:replaceable',
             definitionOf('tags', 'block/minecraft:replaceable', {
-                values: ['minecraft:air', 'minecraft:leaf_litter', 'minecraft:snow']
+                values: ['minecraft:air', 'minecraft:leaf_litter', 'minecraft:snow', 'minecraft:short_grass']
             })
         ]
     ]);
@@ -471,14 +476,20 @@ describe('useItemOnBlock', () => {
     });
 
     /** The click, as the path takes it. */
-    const click = (player: PlayerSession, at: ContentPosition, face = 1, rotation?: { pitch: number; yaw: number }) =>
+    const click = (
+        player: PlayerSession,
+        at: ContentPosition,
+        face = 1,
+        rotation?: { pitch: number; yaw: number },
+        faceLocation = { x: 0.5, y: 1, z: 0.5 }
+    ) =>
         useItemOnBlock({
             content,
             actors: handle.actorsAt(DIMENSION),
             player,
             position: at,
             face,
-            faceLocation: { x: 0.5, y: 1, z: 0.5 },
+            faceLocation,
             ...(rotation === undefined ? {} : { rotation })
         });
 
@@ -1200,6 +1211,39 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(5, 63, 5)?.name).toBe('minecraft:crafting_table');
             expect(world.loadedBlockAt(5, 64, 5)?.name).toBe('minecraft:air');
+        });
+
+        describe('into short grass, which the placement replaces', () => {
+            // Stone above and below the grass, as Java's placement vectors lay it out (#3787).
+            const grassBetweenStone = () => {
+                place(chunk, { x: 7, y: 63, z: 7 }, 'minecraft:stone');
+                place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:short_grass');
+                place(chunk, { x: 7, y: 65, z: 7 }, 'minecraft:stone');
+            };
+
+            it("faces a trapdoor away from the placer in the top half, whatever the grass's face", () => {
+                grassBetweenStone();
+                const player = playerHolding(world, 'minecraft:trapdoor');
+
+                // The east face, low down, looking south.
+                click(player, { x: 7, y: 64, z: 7 }, 5, { pitch: 0, yaw: 0 }, { x: 1, y: 0.25, z: 0.5 });
+
+                expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:trapdoor');
+                expect(javaBlockStates('minecraft:trapdoor', world.loadedBlockAt(7, 64, 7)!.states)).toMatchObject({
+                    direction: 'north',
+                    upside_down_bit: 'top'
+                });
+            });
+
+            it('stands a lantern on the block below for a level look at the underside', () => {
+                grassBetweenStone();
+                const player = playerHolding(world, 'minecraft:lantern');
+
+                click(player, { x: 7, y: 64, z: 7 }, 0, { pitch: 0, yaw: 0 }, { x: 0.5, y: 0, z: 0.5 });
+
+                expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:lantern');
+                expect(world.loadedBlockAt(7, 64, 7)?.states['hanging']).toBe(0);
+            });
         });
 
         it('replaces a snow layer, which Java names snow', () => {
