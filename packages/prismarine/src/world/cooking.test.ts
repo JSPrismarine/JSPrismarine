@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { Furnace } from '../blockentity/BlockEntities';
-import { blockEntityRecord } from '../blockentity/contentRecord';
+import { applyBlockEntityRecord, blockEntityRecord } from '../blockentity/contentRecord';
 import { fixtureContentOptions } from '../content/testing';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
@@ -19,7 +19,7 @@ import { testWorld } from '../testing/level';
 import { Position } from './Position';
 import Chunk from './chunk/Chunk';
 import type { World } from './World';
-import { tickFurnace } from './cooking';
+import { cookingExperience, takeFurnaceExperience, tickFurnace } from './cooking';
 
 const ITEM_IDS = new Set([
     'minecraft:stone',
@@ -221,6 +221,59 @@ describe('tickFurnace', () => {
 });
 
 const blockItems = (tags: NBTTagCompound) => blockEntityRecord(tags).items;
+
+describe('furnace experience', () => {
+    /** A furnace whose content record also holds `record`. */
+    const furnaceWithRecord = (furnace: Furnace, record: Record<string, unknown>): Furnace => {
+        const tags = furnace.toNBT();
+        applyBlockEntityRecord(tags, { ...blockEntityRecord(tags), ...record });
+        const loaded = BlockEntityRegistry.fromNBT(tags);
+        if (!(loaded instanceof Furnace)) throw new Error('fixture did not load as a furnace');
+        return loaded;
+    };
+
+    /** Finishes one iron ore in a furnace carrying `record`, and returns the record after. */
+    const smeltOne = (record: Record<string, unknown> = {}) => {
+        const furnace = furnaceOf([item('minecraft:iron_ore', 0, 2), item('minecraft:coal', 1)], 2, 199);
+        const result = tickFurnace(content, furnaceWithRecord(furnace, record), 'minecraft:lit_furnace');
+        if (result === undefined) throw new Error('the furnace did not tick');
+        return blockEntityRecord(result.tags);
+    };
+
+    it('tallies each finished recipe, and pays it once when the result is taken', () => {
+        const first = smeltOne();
+        expect(first['recipesUsed']).toEqual({ 'fixture:iron_ore': 1 });
+        const second = smeltOne({ recipesUsed: first['recipesUsed'] });
+        expect(second['recipesUsed']).toEqual({ 'fixture:iron_ore': 2 });
+
+        // 2 * 0.7 is 1.4 in float: one point, and a second under a draw below 0.4.
+        expect(takeFurnaceExperience(content, second, () => 0.39)?.payouts).toEqual([2]);
+        const paid = takeFurnaceExperience(content, second, () => 0.41);
+        expect(paid?.payouts).toEqual([1]);
+        expect(paid?.data['recipesUsed']).toBeUndefined();
+        expect(paid && takeFurnaceExperience(content, paid.data, () => 0)).toBeUndefined();
+    });
+
+    it('rounds in float as Java does, and draws only for a fraction', () => {
+        let draws = 0;
+        const draw = () => {
+            draws += 1;
+            return 0;
+        };
+        expect(cookingExperience(10, 0.1, draw)).toBe(1);
+        // 4 * 0.35 is 1.4 in float, so one point and a second under a draw below 0.4.
+        expect(cookingExperience(4, 0.35, draw)).toBe(2);
+        expect(cookingExperience(4, 0.35, () => 0.5)).toBe(1);
+        expect(cookingExperience(1, 1, draw)).toBe(1);
+        // Only the 1.4 drew: a whole payout leaves no fraction to draw for.
+        expect(draws).toBe(1);
+    });
+
+    it('clears a tally naming a recipe the server no longer has, and pays nothing for it', () => {
+        const paid = takeFurnaceExperience(content, { recipesUsed: { 'fixture:gone': 4 } }, () => 0);
+        expect(paid).toEqual({ payouts: [], data: {} });
+    });
+});
 
 describe('world cooking station tick', () => {
     it('emits no block-entity update for an idle loaded furnace', () => {

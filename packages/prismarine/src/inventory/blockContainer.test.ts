@@ -36,6 +36,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
 import { builtInEntityDefinitions } from '../content/testing';
 import { EntityRuntimes } from '../entity/data/live';
+import { orbViewOf } from '../entity/data/experienceOrbs';
 import { Item } from '../item/Item';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type ClientConnection from '../network/ClientConnection';
@@ -471,6 +472,56 @@ describe('a block container a player can put things in', () => {
         await level.disable();
     }, 120_000);
 
+    /**
+     * Java's `FurnaceResultSlot` pays everything a furnace cooked to whoever takes from its
+     * result, and the furnace owes nothing after. Ten iron ingots at 0.7 is exactly 7 points in
+     * float, so no draw decides the payout.
+     */
+    it('pays the experience a furnace stored to the player who takes its result', async () => {
+        const scene = await buildScene('furnace-experience');
+        const { server, world, level, blocks } = scene;
+        const player = buildPlayer(world, server, 'Smelter');
+        await world.addPlayer(player);
+
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [undefined, undefined, { identifier: 'minecraft:iron_ingot', count: 10 }],
+            capacity: 3,
+            recipesUsed: { 'minecraft:iron_ingot_from_smelting': 10 }
+        });
+        await player.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(player, FURNACE, 'minecraft:furnace')
+        );
+
+        const orbPoints = (): number[] =>
+            world
+                .dataEntities()
+                .runtime.entities()
+                .toArray()
+                .flatMap((entity) => {
+                    const orb = entity.removed === undefined ? orbViewOf(entity) : undefined;
+                    return orb === undefined ? [] : [orb.value * orb.count];
+                });
+
+        // One ingot out of ten pays for all ten.
+        await apply(server, player, [
+            move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 1)
+        ]);
+        expect(player.getInventory().container('inventory').get(3)?.getName()).toBe('minecraft:iron_ingot');
+        expect(orbPoints()).toEqual([7]);
+        expect(blocks.getBlockData(FURNACE)?.['recipesUsed']).toBeUndefined();
+
+        // The rest of the stack pays nothing more.
+        await apply(server, player, [
+            move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 4), 9)
+        ]);
+        expect(orbPoints()).toEqual([7]);
+
+        await level.disable();
+    });
+
     // The lit furnace is its own block, and a slot count that fell back to a chest's 27 put a
     // 27-slot backing behind the three-slot furnace screen, which the client drew as empty.
     it('shows a burning furnace holding what it is cooking', async () => {
@@ -775,6 +826,37 @@ describe('a block container a player can put things in', () => {
 
         await level.disable();
     }, 120_000);
+
+    // Java's `AbstractFurnaceBlockEntity.preRemoveSideEffects` pays a broken furnace's stored
+    // experience at the block's center, so none of it is lost with the block.
+    it('pays the experience a broken furnace stored at its center', async () => {
+        const scene = await buildScene('furnace-break');
+        const { world, level, blocks } = scene;
+
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [undefined, undefined, { identifier: 'minecraft:iron_ingot', count: 10 }],
+            capacity: 3,
+            recipesUsed: { 'minecraft:iron_ingot_from_smelting': 10 }
+        });
+
+        await world.breakBlock(new Vector3(FURNACE.x, FURNACE.y, FURNACE.z));
+
+        const orbs = world
+            .dataEntities()
+            .runtime.entities()
+            .toArray()
+            .flatMap((entity) => {
+                const orb = entity.removed === undefined ? orbViewOf(entity) : undefined;
+                return orb === undefined ? [] : [{ points: orb.value * orb.count, at: entity.position }];
+            });
+        expect(orbs.map(({ points }) => points)).toEqual([7]);
+        expect(orbs[0]?.at.x).toBeCloseTo(FURNACE.x + 0.5);
+        expect(orbs[0]?.at.z).toBeCloseTo(FURNACE.z + 0.5);
+        expect(blocks.getBlock(FURNACE)?.identifier).toBe('minecraft:air');
+
+        await level.disable();
+    });
 
     it('gives each player their own ender chest from the same block', async () => {
         const scene = await buildScene('ender');

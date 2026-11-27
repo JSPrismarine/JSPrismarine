@@ -38,6 +38,10 @@ import type { EntityInventory } from '../inventory/EntityInventory';
 import { itemOfDrop } from '../inventory/persistence';
 import { contentStackOf } from '../item/contentStack';
 import { Item } from '../item/Item';
+import { EXPERIENCE_ORB } from '../entity/data/experienceOrbs';
+import { randomOf } from '../utils/Random';
+import type { Random } from '../utils/Random';
+import { isCookingStation, takeFurnaceExperience } from './cooking';
 import { lootLevelOf } from './lootLevel';
 import type { SystemBlock } from './WorldSystems';
 
@@ -61,10 +65,11 @@ export interface BreakWorld {
     getLevel(): { readonly name: string };
     /** Ticks since the world started, which a table's `time_check` is applied to. */
     getTicks(): number;
-    /** The server, for its content and its log. */
+    /** The server, for its content, its log and the chance a furnace's experience rounds by. */
     getServer(): {
         getContent?(): ServerContent | undefined;
         getLogger(): { error(error: unknown): void };
+        getRandom?(): Random;
     };
     /** Notifies nearby entity sensors that this block is breaking. */
     notifyBlockBreak?(position: ContentPosition, identifier: string, sourceId?: number): void;
@@ -301,6 +306,15 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         // record also carries a bed's or banner's color, which picks the table that rolls.
         const record = blocks.getBlockData(position);
         const contents = record?.items ?? [];
+
+        // Java's `AbstractFurnaceBlockEntity.preRemoveSideEffects`: a furnace taken out pays
+        // what it cooked since a player last took from it, at the block's center, whoever or
+        // whatever broke it.
+        if (record !== undefined && isCookingStation(standing.name)) {
+            const paid = takeFurnaceExperience(content, record, randomOf(server));
+            const center = { x: position.x + 0.5, y: position.y + 0.5, z: position.z + 0.5 };
+            for (const value of paid?.payouts ?? []) blocks.spawnEntity(center, EXPERIENCE_ORB, { value });
+        }
 
         const captured = whileCollecting(world, position, () => {
             type.state(standing.states).content.hooks.dispatch('onBreak', {
