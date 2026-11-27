@@ -122,7 +122,8 @@ const buildScene = async (name: string) => {
     let level: Level | undefined;
     let content: ServerContent | undefined;
 
-    const sessions = sessionsWith();
+    // `/setworldspawn` shows the new spawn to every online player; this scene has none online.
+    const sessions = sessionsWith({ getSessions: () => [] });
     const entityRuntimes = new EntityRuntimes();
     const respawnRequests = new RespawnRequests((error) => {
         throw error;
