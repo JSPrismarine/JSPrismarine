@@ -140,6 +140,26 @@ Thrown as `ProtocolWireErrors.JavaItemComponentsUnread`, which extends `Error`.
 A Java Edition item stack the server sent carries data components, which this server's
 reader does not read: it sends plain stacks. Seen when reading another server's inventory.
 
+## `PROTOCOL_JAVA_NUMBER_FORMAT_UNREAD`
+
+`A score carries number format {format}, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaNumberFormatUnread`, which extends `Error`.
+
+A Java Edition score or objective carries a number format this server does not read. It
+reads the blank and the fixed formats; the styled format carries an NBT style, which it does
+not. Seen when reading another server's scoreboard packets.
+
+## `PROTOCOL_JAVA_OBJECTIVE_METHOD_UNKNOWN`
+
+`An objective update names method {method}, which Java 26.3 does not define`
+
+Thrown as `ProtocolWireErrors.JavaObjectiveMethodUnknown`, which extends `Error`.
+
+A Java Edition `Update Objectives` names a method past the three that 26.3 defines (add,
+remove and update). The packet is corrupt, or comes from a release whose methods this server
+does not know.
+
 ## `PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES`
 
 `{name} has {unread} unread bytes after its fields`

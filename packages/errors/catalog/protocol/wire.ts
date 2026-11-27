@@ -458,5 +458,17 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * and updates to progress, name, style and flags). The packet is corrupt, or comes from a
      * release whose operations this server does not know.
      */
-    JavaBossEventOperationUnknown: 'A boss event names operation {operation}, which Java 26.3 does not define'
+    JavaBossEventOperationUnknown: 'A boss event names operation {operation}, which Java 26.3 does not define',
+    /**
+     * A Java Edition `Update Objectives` names a method past the three that 26.3 defines (add,
+     * remove and update). The packet is corrupt, or comes from a release whose methods this server
+     * does not know.
+     */
+    JavaObjectiveMethodUnknown: 'An objective update names method {method}, which Java 26.3 does not define',
+    /**
+     * A Java Edition score or objective carries a number format this server does not read. It
+     * reads the blank and the fixed formats; the styled format carries an NBT style, which it does
+     * not. Seen when reading another server's scoreboard packets.
+     */
+    JavaNumberFormatUnread: 'A score carries number format {format}, which this server does not read'
 });
