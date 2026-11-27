@@ -212,6 +212,19 @@ describe('the goal world over the entity runtime', () => {
         });
     });
 
+    describe('moving itself', () => {
+        it('keeps the velocity a move leaves, which a knockback changes before the next move reads it', () => {
+            const fixture = fixtureOf();
+            const mob = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const world = goalWorldOf(mob.body, fixture.runtime);
+
+            world.moveSelf(groundAt(1, 0), 90, 0, { x: 0.3, y: -0.1, z: 0 });
+            expect(world.velocity()).toEqual({ x: 0.3, y: -0.1, z: 0 });
+            mob.body.velocity = { x: -0.2, y: 0, z: 0.4 };
+            expect(world.velocity()).toEqual({ x: -0.2, y: 0, z: 0.4 });
+        });
+    });
+
     describe('Java block states', () => {
         it('reads and writes a block as Java names it, telling a cave vine under another from the tip', () => {
             const world = new TestEntityWorld();

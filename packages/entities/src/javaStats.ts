@@ -163,14 +163,11 @@ export const JAVA_STAT_EXCEPTIONS: readonly JavaStatException[] = [
         stat: 'attack_damage',
         reason: 'Bedrock writes the rolled range 7 to 21. Java rolls the same range from a base of 15, so the two editions agree and only the published number differs.'
     },
-    ...(['minecraft:ender_dragon', 'minecraft:armor_stand'] as const).map(
-        (identifier) =>
-            ({
-                identifier,
-                stat: 'knockback_resistance',
-                reason: "Java makes both immune to knockback in code and leaves the attribute at 0. Taking that 0 would make them knockbackable, which is neither edition's behavior."
-            }) satisfies JavaStatException
-    )
+    {
+        identifier: 'minecraft:armor_stand',
+        stat: 'knockback_resistance',
+        reason: "Java's ArmorStand.hurtServer breaks or wears the stand without ever knocking it back, and leaves the attribute at 0. Taking that 0 would make it knockbackable, which is neither edition's behavior."
+    }
 ];
 
 const exceptionKeys = new Set(JAVA_STAT_EXCEPTIONS.map((row) => `${row.identifier}\u0000${row.stat}`));

@@ -217,7 +217,7 @@ import { AREA_EFFECT_CLOUD, AreaEffectClouds, instantEffect, isAreaEffectCloud }
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
 import { isArrow } from './arrows';
-import { DEFLECTED_ARROW_FIRE_TICKS, DEFLECTED_ARROW_SPEED, deflectsArrow } from './dragonArrows';
+import { DEFLECTED_ARROW_FIRE_TICKS, DEFLECTED_ARROW_SPEED, deflectsArrow, ignoresKnockback } from './dragonArrows';
 import { DRAGON_FIREBALL, breathSearchBox, dragonBreathOf } from './dragonFireball';
 import {
     EXTINGUISHES_TAG,
@@ -2949,7 +2949,9 @@ export class EntityRuntime implements EntityScene {
     /** Rechecks support after AI movement, so packets describe the position clients receive. */
     private updateGrounded(entity: DataEntity): void {
         const componentFacts = this.componentFactsOf(entity);
+        // Java's `Entity.move` puts a `noPhysics` entity where it goes and never sets it down.
         const grounded =
+            !JAVA_NO_PHYSICS.has(entity.identifier) &&
             componentFacts.hasCollision &&
             entity.body.velocity.y <= 0 &&
             isSupported(entity.position, entity.facts.box, this.navigation(), componentFacts.canStandOnPowderSnow);
@@ -4269,6 +4271,7 @@ export class EntityRuntime implements EntityScene {
         intent: DamageIntent,
         dealt: number
     ): void {
+        if (ignoresKnockback(entity)) return;
         const onGround = entity.body.conditions.has('on_ground');
         const toward = { x: knockback.origin.x - entity.position.x, z: knockback.origin.z - entity.position.z };
         const shoves = [
@@ -7749,7 +7752,7 @@ export class EntityRuntime implements EntityScene {
         if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
         const pushes = java?.knockback ?? impact?.knockback === true;
-        if (pushes && landed && target instanceof DataEntity) {
+        if (pushes && landed && target instanceof DataEntity && !ignoresKnockback(target)) {
             const punch = typeof projectile.spawnData?.['punch'] === 'number' ? projectile.spawnData['punch'] : 0;
             target.body.velocity = projectileKnockback({
                 velocity: target.body.velocity,

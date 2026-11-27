@@ -242,6 +242,7 @@
         "EnderDragon.findPath": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findPath(IILnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Path;",
         "EnderDragon.getFightOrigin": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.getFightOrigin()Lnet/minecraft/core/BlockPos;",
         "EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+        "EnderDragon.knockback": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V",
         "EnderDragon.knockBack": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockBack(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V",
         "EnderDragon.onCrystalDestroyed": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.onCrystalDestroyed(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EndCrystal;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/damagesource/DamageSource;)V",
         "EnderDragon.tickDeath": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.tickDeath()V",
@@ -1999,6 +2000,10 @@
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
             "26.3": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9",
             "26.4-pre-1": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9"
+        },
+        "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V": {
+            "26.3": "sha256:bd5513723c9fadd7d792db3e182fbc23cdfae2112052f8fb2cbd50a79bcbb072",
+            "26.4-pre-1": "sha256:bd5513723c9fadd7d792db3e182fbc23cdfae2112052f8fb2cbd50a79bcbb072"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockBack(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V": {
             "26.3": "sha256:17074325b6e8312a5a4d2b31603343ff62c63882d0d52582c41d4c060d7d047e",
