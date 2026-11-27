@@ -299,6 +299,7 @@ describe('modules/network', () => {
         try {
             await networking.start('127.0.0.1', 0);
             expect(networking.getStartedTransports()).toEqual([TransportNames.raknet, TransportNames.java]);
+            expect(networking.getJavaPort()).toBe(port);
 
             const socket = net.connect(port, '127.0.0.1');
             await once(socket, 'connect');
