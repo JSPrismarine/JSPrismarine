@@ -558,6 +558,26 @@ export const BlockChangedAck = defineJavaPacket('Acknowledge Block Change', 'pla
     sequence: varInt
 });
 
+/**
+ * `Pick Item From Block` (serverbound): the player middle-clicked the block at `position`, and
+ * with `includeData` held the key that copies the block's data onto the item.
+ * @javaSource ServerboundPickItemFromBlockPacket.STREAM_CODEC
+ */
+export const PickItemFromBlock = defineJavaPacket('Pick Item From Block', 'play/serverbound/pick_item_from_block', {
+    position: blockPosition,
+    includeData: bool
+});
+
+/**
+ * `Pick Item From Entity` (serverbound): the player middle-clicked the entity `entityId`, and
+ * with `includeData` held the key that copies the entity's data onto the item.
+ * @javaSource ServerboundPickItemFromEntityPacket.STREAM_CODEC
+ */
+export const PickItemFromEntity = defineJavaPacket('Pick Item From Entity', 'play/serverbound/pick_item_from_entity', {
+    entityId: varInt,
+    includeData: bool
+});
+
 /** An item stack as plain data: an item's network id and how many. */
 export interface JavaItemStack {
     readonly item: number;

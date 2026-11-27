@@ -21,6 +21,8 @@ describe('input/Intent', () => {
             'move',
             'openInventory',
             'openNpc',
+            'pickBlock',
+            'pickEntity',
             'playSound',
             'playerInitialized',
             'pressRespawn',
@@ -38,6 +40,7 @@ describe('input/Intent', () => {
             'setSneaking',
             'setSprinting',
             'setViewDistance',
+            'turnLecternPage',
             'useItemOnBlock'
         ]);
     });

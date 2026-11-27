@@ -4,7 +4,7 @@ import { blockTargetRejection } from '@jsprismarine/prismarine/input/handlers/Bl
 import AnvilDamageHandler from '@jsprismarine/prismarine/editions/bedrock/handler/AnvilDamageHandler';
 import type { SessionContext } from '@jsprismarine/prismarine/player/context/HandlerContext';
 import LabTableHandler from '@jsprismarine/prismarine/editions/bedrock/handler/LabTableHandler';
-import LecternUpdateHandler from '@jsprismarine/prismarine/editions/bedrock/handler/LecternUpdateHandler';
+import TurnLecternPageHandler from '@jsprismarine/prismarine/input/handlers/TurnLecternPageHandler';
 import PlayerToggleCrafterSlotRequestHandler from '@jsprismarine/prismarine/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler';
 import StructureBlockUpdateHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureTemplateDataRequestHandler';
@@ -27,7 +27,6 @@ import LabTablePacket, {
     LabTableReactionType,
     LabTableType
 } from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
-import LecternUpdatePacket from '@jsprismarine/protocol/bedrock/packet/LecternUpdatePacket';
 import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/bedrock/packet/PlayerToggleCrafterSlotRequestPacket';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
@@ -141,8 +140,13 @@ const HANDLERS: readonly {
         block: 'minecraft:lectern',
         at: new BlockPosition(2, 64, 2),
         handle: (position, context) =>
-            new LecternUpdateHandler().handle(
-                new LecternUpdatePacket({ newPage: 1, totalPages: 3, position: blockPos(position) }),
+            new TurnLecternPageHandler().handle(
+                {
+                    kind: 'turnLecternPage',
+                    position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+                    page: 1,
+                    totalPages: 3
+                },
                 context
             )
     },

@@ -9,11 +9,19 @@ Progress:
   The handler contexts went to `player/context/` rather than an edition, since the intent handlers
   use them, and `BlockTarget` and `contentUseOnBlock` to `input/handlers/`. `applyClientMovement` and `replaceOtherLogins`, which both editions call,
   came out of their Bedrock handlers into `player/`.
-- Slice 3.1, movement: under review. A move, a jump, a sprint, a sneak, a flight, a bed and the held
+- Slice 3.1, movement: merged in [#3754](https://github.com/JSPrismarine/JSPrismarine/pull/3754). A move, a jump, a sprint, a sneak, a flight, a bed and the held
   buttons are intents. Bedrock's `PlayerAuthInput` and `PlayerAction` decode into them, and so do
   Java's move packets, `Player Command` and `Player Input`. Java sends no jump, so a Java move that
   leaves the ground going up is one, as vanilla's `handleMovePlayer` decides. Bedrock's input mode
   stays Bedrock's, since only Bedrock has touch, mouse and gamepad modes.
+- Slice 3.2, blocks: under review. Mining was already the `mineBlock` intent, so what was left is
+  a block pick, an entity pick and a lectern page turn. Each is an intent, decoded from Bedrock's
+  `BlockPickRequest`, `ActorPickRequest` and `LecternUpdate` and from Java's `Pick Item From Block`
+  and `Pick Item From Entity`. Java turns a lectern's page with a container button, which waits for
+  the screens slice. Picking still only logs, as it did. A sign edit arrives as Bedrock's
+  `BlockActorData`, which no handler reads yet, and Java's `sign_update`
+  ([#3775](https://github.com/JSPrismarine/JSPrismarine/issues/3775)), so it is a feature to build
+  rather than a handler to move.
 
 ## Problem
 

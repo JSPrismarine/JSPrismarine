@@ -52,6 +52,8 @@ import {
     PlayerInfoUpdateGameMode,
     PlayerInput,
     PlayerInputFlag,
+    PickItemFromBlock,
+    PickItemFromEntity,
     PlayLogin,
     ResetScore,
     JavaDisplaySlot,
@@ -705,5 +707,40 @@ describe('the services packets', () => {
         expect(roundTrip(ServerData, { motd: 'A server', icon: null })).toEqual({ motd: 'A server', icon: null });
         const icon = Buffer.from([0x89, 0x50]);
         expect(roundTrip(ServerData, { motd: 'A server', icon })).toEqual({ motd: 'A server', icon });
+    });
+});
+
+describe('Pick Item From Block and Pick Item From Entity', () => {
+    it('reads a block pick as vanilla writes it: the packed position, then the data flag', () => {
+        const value = { position: { x: 1, y: 2, z: 3 }, includeData: true };
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, PickItemFromBlock, value).subarray(
+            idOf(PickItemFromBlock).length
+        );
+
+        // x in the top 26 bits, z in the next 26 and y in the low 12, as `BlockPos.asLong` packs them.
+        expect([...body]).toEqual([0, 0, 0, 0x40, 0, 0, 0x30, 0x02, 1]);
+        expect(
+            decodeJavaPacket(
+                NEWEST_JAVA_RELEASE,
+                PickItemFromBlock,
+                readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, PickItemFromBlock, value)).body
+            )
+        ).toEqual(value);
+    });
+
+    it('reads an entity pick as the entity id, then the data flag', () => {
+        const value = { entityId: 300, includeData: false };
+        const body = encodeJavaPacket(NEWEST_JAVA_RELEASE, PickItemFromEntity, value).subarray(
+            idOf(PickItemFromEntity).length
+        );
+
+        expect([...body]).toEqual([0xac, 0x02, 0]);
+        expect(
+            decodeJavaPacket(
+                NEWEST_JAVA_RELEASE,
+                PickItemFromEntity,
+                readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, PickItemFromEntity, value)).body
+            )
+        ).toEqual(value);
     });
 });
