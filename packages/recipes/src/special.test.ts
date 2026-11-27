@@ -26,9 +26,13 @@ const tags: TagLookup = (registry, tag) => {
 /** Java's `DyeColor` texture colors for the two dyes these cases use. */
 const DYE_COLORS: Record<string, number> = { red: 0xb02e26, blue: 0x3c44aa };
 
+/** Java's `DyeColor` firework colors for the same two dyes, which differ from the tints. */
+const FIREWORK_COLORS: Record<string, number> = { red: 0xb3312c, blue: 0x253192 };
+
 const context: RecipeContext = {
     tags,
     dyeColorRgb: (color) => DYE_COLORS[color],
+    dyeFireworkRgb: (color) => FIREWORK_COLORS[color],
     maxDamageOf: (id) => (id === 'minecraft:iron_pickaxe' ? 250 : undefined)
 };
 
@@ -329,7 +333,7 @@ describe('minecraft:crafting_special_firework_star', () => {
         expect(craft(star, laidOut(2, [item('minecraft:gunpowder'), dye('red')]))?.result).toEqual({
             id: 'minecraft:firework_star',
             count: 1,
-            components: { 'minecraft:firework_explosion': { shape: 'small_ball', colors: [0xb02e26] } }
+            components: { 'minecraft:firework_explosion': { shape: 'small_ball', colors: [0xb3312c] } }
         });
     });
 
@@ -348,7 +352,7 @@ describe('minecraft:crafting_special_firework_star', () => {
 
         expect(match?.result.components?.['minecraft:firework_explosion']).toEqual({
             shape: 'large_ball',
-            colors: [0xb02e26, 0x3c44aa],
+            colors: [0xb3312c, 0x253192],
             has_trail: true,
             has_twinkle: true
         });
@@ -383,7 +387,7 @@ describe('minecraft:crafting_special_firework_star_fade', () => {
         });
 
         expect(craft(fade, laidOut(2, [star, dye('blue')]))?.result.components).toEqual({
-            'minecraft:firework_explosion': { shape: 'star', colors: [0xb02e26], fade_colors: [0x3c44aa] }
+            'minecraft:firework_explosion': { shape: 'star', colors: [0xb02e26], fade_colors: [0x253192] }
         });
     });
 

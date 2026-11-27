@@ -25,11 +25,21 @@ export interface RecipeContext {
      */
     readonly maxDamageOf?: (itemId: string) => number | undefined;
     /**
-     * The packed 24-bit RGB value of a dye color name such as `red`, from
-     * Java's `DyeColor` table. Without it dyed armor keeps its old color and
-     * a firework star records no colors.
+     * The packed 24-bit RGB value a dye color name such as `red` tints with,
+     * Java's `DyeColor.getTextureDiffuseColor`. Without it dyed armor keeps
+     * its old color.
+     *
+     * @javaSee DyeColor.getTextureDiffuseColor
      */
     readonly dyeColorRgb?: (dyeColor: string) => number | undefined;
+    /**
+     * The packed 24-bit RGB value a dye color name gives a firework, Java's
+     * `DyeColor.getFireworkColor`, which differs from the tint for every dye.
+     * Without it a firework star records no colors.
+     *
+     * @javaSee DyeColor.getFireworkColor
+     */
+    readonly dyeFireworkRgb?: (dyeColor: string) => number | undefined;
 }
 
 /** A context with no lookups, used when a caller passes none. */

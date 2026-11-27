@@ -84,13 +84,17 @@ const mixDyeColors = (existing: number | undefined, dyes: readonly number[]): nu
     return (red << 16) | (green << 8) | blue;
 };
 
-/** Resolves the dye colors of the stacks at the given slots through the injected color table. */
-const dyeColorsAt = (grid: CroppedGrid, slots: readonly number[], context: RecipeContext): number[] => {
+/** Resolves the colors of the dyes at the given slots through one injected color table. */
+const colorsAt = (
+    grid: CroppedGrid,
+    slots: readonly number[],
+    lookup: ((dyeColor: string) => number | undefined) | undefined
+): number[] => {
     const colors: number[] = [];
     for (const slot of slots) {
         const stack = stackAt(grid, slot);
         if (stack === null) continue;
-        const color = context.dyeColorRgb?.(dyeNameOf(stack));
+        const color = lookup?.(dyeNameOf(stack));
         if (color !== undefined) colors.push(color);
     }
     return colors;
@@ -138,7 +142,7 @@ export const matchDye = (recipe: DyeRecipe, grid: CroppedGrid, context: RecipeCo
     if (target === null) return undefined;
     const base = buildResult(recipe.result, target);
     if (base === undefined) return undefined;
-    const color = mixDyeColors(dyedColorOf(target), dyeColorsAt(grid, dyeSlots, context));
+    const color = mixDyeColors(dyedColorOf(target), colorsAt(grid, dyeSlots, context.dyeColorRgb));
     return { result: color === undefined ? base : withComponents(base, { 'minecraft:dyed_color': color }) };
 };
 
@@ -285,7 +289,7 @@ export const matchFireworkStar = (
         result: withComponents(result, {
             'minecraft:firework_explosion': {
                 shape: shapeHits[0] ?? DEFAULT_FIREWORK_SHAPE,
-                colors: dyeColorsAt(grid, dyeSlots, context),
+                colors: colorsAt(grid, dyeSlots, context.dyeFireworkRgb),
                 ...(trailSlots.length > 0 ? { has_trail: true } : {}),
                 ...(twinkleSlots.length > 0 ? { has_twinkle: true } : {})
             }
@@ -317,7 +321,7 @@ export const matchFireworkStarFade = (
         result: withComponents(result, {
             'minecraft:firework_explosion': {
                 ...explosion,
-                fade_colors: dyeColorsAt(grid, dyeSlots, context)
+                fade_colors: colorsAt(grid, dyeSlots, context.dyeFireworkRgb)
             }
         })
     };

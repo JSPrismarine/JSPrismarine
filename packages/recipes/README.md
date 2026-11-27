@@ -13,7 +13,8 @@ const { book, diagnostics, failed } = loadRecipes(definitions.recipesJava, {
     tags: (registry, tag) => registryTags[registry]?.get(tag),
     remainderOf: (id) => items.get(id)?.components['minecraft:crafting_remainder'],
     maxDamageOf: (id) => items.get(id)?.components['minecraft:max_damage'],
-    dyeColorRgb: (color) => DYE_COLORS[color]
+    dyeColorRgb: (color) => DYE_COLORS[color],
+    dyeFireworkRgb: (color) => FIREWORK_COLORS[color]
 });
 
 book.match({ station: 'crafting', grid });
@@ -91,7 +92,8 @@ stops working when it is missing, because a caller can start with none of them.
 | `tags(registry, tag)` | every `#tag` ingredient, at parse time | the ingredient accepts nothing and parsing warns |
 | `remainderOf(itemId)` | the craft's leftovers | a milk bucket or a honey bottle vanishes into the craft |
 | `maxDamageOf(itemId)` | `crafting_special_repairitem` | the repair recipe never matches, because damageability is what it tests |
-| `dyeColorRgb(color)` | `crafting_dye`, the two firework star recipes | dyed armor keeps its old color and a star records none |
+| `dyeColorRgb(color)` | `crafting_dye` | dyed armor keeps its old color |
+| `dyeFireworkRgb(color)` | the two firework star recipes | a star records no colors |
 
 Tags resolve at parse time, which is where Java resolves them: reloading tags means reparsing the
 recipes.
