@@ -37,6 +37,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagLoader;
 import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.debug.ServerDebugSubscribers;
 import net.minecraft.world.Difficulty;
@@ -61,6 +62,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -82,8 +84,8 @@ import net.minecraft.world.phys.Vec3;
 import sun.misc.Unsafe;
 
 /**
- * Dumps `vectors/26.3/dragon-nodes.json` and `vectors/26.3/dragon-fights.json`: Java's ender dragon
- * run on a level with no server behind it.
+ * Dumps `vectors/26.3/dragon-nodes.json`, `dragon-fights.json` and `dragon-walls.json`: Java's
+ * ender dragon run on a level with no server behind it.
  *
  * The level is {@link OracleLevel}, a `ServerLevel` subclass allocated without running its
  * constructor, which answers the calls the dragon and the entities near it make: the heightmap
@@ -108,6 +110,14 @@ import sun.misc.Unsafe;
  * change of the target the phase flies toward, each entity the dragon spawns, each block it
  * changes, each push and blow it deals the standing entities, each line of sight it checks, and
  * every draw from the dragon's random source with the method that made it.
+ *
+ * The walls file records `EnderDragon.checkWalls` on its own, called on boxes of blocks that hold
+ * fluids: water and lava blocks, waterlogged blocks and the blocks that are always water. A fight
+ * cannot carry them, because an entity's tick asks a loaded chunk whether it stands in a fluid and
+ * the level has none, but `checkWalls` reads only block states, fluid states, tags and the game
+ * rule, which the level answers as a real one does. Each case records the blocks `removeBlock`
+ * was called on and what it answered, the blocks it changed, whether the box was a wall, and the
+ * draws.
  *
  * Usage: `DumpDragonVectors <output-directory>`, run from inside `node_modules/.cache/jsprismarine/`.
  */
@@ -134,6 +144,7 @@ public final class DumpDragonVectors {
         java.nio.file.Path out = java.nio.file.Path.of(args[0]);
         Files.writeString(out.resolve("dragon-nodes.json"), nodes(), StandardCharsets.UTF_8);
         Files.writeString(out.resolve("dragon-fights.json"), fights(), StandardCharsets.UTF_8);
+        Files.writeString(out.resolve("dragon-walls.json"), walls(), StandardCharsets.UTF_8);
     }
 
     /**
@@ -176,6 +187,7 @@ public final class DumpDragonVectors {
         List<String> spawned;
         Map<BlockPos, BlockState> blocks;
         List<String> blockChanges;
+        List<String> removals;
         List<String> pushes;
         List<String> blows;
         GameRules gameRules;
@@ -240,6 +252,14 @@ public final class DumpDragonVectors {
             else this.blocks.put(at, state);
             this.blockChanges.add("[" + this.tick + ", " + at.getX() + ", " + at.getY() + ", " + at.getZ() + ", " + stateJson(state) + "]");
             return true;
+        }
+
+        /** Java's own `removeBlock`, which logs each call and what it answered. */
+        @Override
+        public boolean removeBlock(final BlockPos pos, final boolean isMoving) {
+            boolean changed = super.removeBlock(pos, isMoving);
+            this.removals.add("[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ", " + changed + "]");
+            return changed;
         }
 
         @Override
@@ -491,6 +511,7 @@ public final class DumpDragonVectors {
         level.spawned = new ArrayList<>();
         level.blocks = new HashMap<>();
         level.blockChanges = new ArrayList<>();
+        level.removals = new ArrayList<>();
         level.pushes = new ArrayList<>();
         level.blows = new ArrayList<>();
         level.gameRules = new GameRules(FeatureFlags.VANILLA_SET);
@@ -1099,6 +1120,80 @@ public final class DumpDragonVectors {
         public double nextGaussian() {
             throw this.unmodeled("nextGaussian");
         }
+    }
+
+    // The walls.
+
+    /** The blocks the wall cases are built of: fluids, blocks that hold one, and blocks that hold none. */
+    private static final class FluidPalette {
+        static final BlockState[] STATES = {
+            Blocks.WATER.defaultBlockState(),
+            Blocks.WATER.defaultBlockState().setValue(BlockStateProperties.LEVEL, 3),
+            Blocks.WATER.defaultBlockState().setValue(BlockStateProperties.LEVEL, 10),
+            Blocks.LAVA.defaultBlockState(),
+            Blocks.LAVA.defaultBlockState().setValue(BlockStateProperties.LEVEL, 2),
+            Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true),
+            Blocks.OAK_SLAB.defaultBlockState(),
+            Blocks.OAK_STAIRS.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true),
+            Blocks.KELP.defaultBlockState(),
+            Blocks.SEAGRASS.defaultBlockState(),
+            Blocks.BUBBLE_COLUMN.defaultBlockState(),
+            Blocks.STONE.defaultBlockState(),
+            Blocks.OBSIDIAN.defaultBlockState()
+        };
+    }
+
+    /**
+     * The wall cases: each block of {@link FluidPalette} alone in a box, then a box of 48 blocks
+     * that cycles through them, each with `mobGriefing` on and off.
+     */
+    private static String walls() throws Exception {
+        Method checkWalls = EnderDragon.class.getDeclaredMethod("checkWalls", ServerLevel.class, AABB.class);
+        checkWalls.setAccessible(true);
+        StringBuilder json = new StringBuilder("{\n\"palette\": [");
+        for (int i = 0; i < FluidPalette.STATES.length; i++) {
+            BlockState state = FluidPalette.STATES[i];
+            if (i > 0) json.append(", ");
+            json.append('[').append(stateJson(state)).append(", ").append(state.isAir()).append(", ")
+                .append(state.is(BlockTags.DRAGON_IMMUNE)).append(", ").append(state.is(BlockTags.DRAGON_TRANSPARENT)).append(']');
+        }
+        json.append("],\n\"cases\": [\n");
+        boolean first = true;
+        long seed = 0;
+        for (boolean griefing : new boolean[] { true, false }) {
+            for (int only = -1; only < FluidPalette.STATES.length; only++) {
+                OracleLevel level = level();
+                level.gameRules.set(GameRules.MOB_GRIEFING, griefing, null);
+                AABB box = only < 0 ? new AABB(-1.5, 63.5, -1.5, 1.5, 65.5, 1.5) : new AABB(0.2, 64.2, 0.2, 0.8, 64.8, 0.8);
+                List<String> blocks = new ArrayList<>();
+                for (int x = Mth.floor(box.minX); x <= Mth.floor(box.maxX); x++) {
+                    for (int y = Mth.floor(box.minY); y <= Mth.floor(box.maxY); y++) {
+                        for (int z = Mth.floor(box.minZ); z <= Mth.floor(box.maxZ); z++) {
+                            int index = only >= 0 ? only : Math.floorMod(3 * x + 5 * y + 11 * z, FluidPalette.STATES.length);
+                            level.blocks.put(new BlockPos(x, y, z), FluidPalette.STATES[index]);
+                            blocks.add("[" + x + ", " + y + ", " + z + ", " + index + "]");
+                        }
+                    }
+                }
+                OracleDragon dragon = dragon(level, 0, BlockPos.ZERO);
+                Draws draws = new Draws(++seed);
+                Field random = Entity.class.getDeclaredField("random");
+                random.setAccessible(true);
+                random.set(dragon, draws);
+                boolean inWall = (boolean) checkWalls.invoke(dragon, level, box);
+                if (!first) json.append(",\n");
+                first = false;
+                json.append("{\"box\": [").append(num(box.minX)).append(", ").append(num(box.minY)).append(", ").append(num(box.minZ))
+                    .append(", ").append(num(box.maxX)).append(", ").append(num(box.maxY)).append(", ").append(num(box.maxZ))
+                    .append("], \"mobGriefing\": ").append(griefing).append(", \"seed\": ").append(seed)
+                    .append(", \"blocks\": [").append(String.join(", ", blocks))
+                    .append("], \"inWall\": ").append(inWall)
+                    .append(", \"removals\": [").append(String.join(", ", level.removals))
+                    .append("], \"blockChanges\": [").append(String.join(", ", level.blockChanges))
+                    .append("], \"draws\": [").append(String.join(", ", draws.rows)).append("]}");
+            }
+        }
+        return json.append("\n]\n}\n").toString();
     }
 
     // JSON.

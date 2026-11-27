@@ -332,6 +332,15 @@ export interface GoalWorld {
     javaBlockAt?(position: EntityPosition): JavaBlockState | undefined;
     /** Replaces the block at a position with the world's own block for a Java state, with block updates. */
     setJavaBlock?(position: EntityPosition, state: JavaBlockState): void;
+    /**
+     * Takes the block at a position out, dropping nothing, as Java's `Level.removeBlock(pos,
+     * false)` does: it becomes the block of the fluid it held, so a waterlogged block leaves its
+     * water and a water or lava block stays as it is.
+     *
+     * @returns Whether the block changed.
+     * @javaSee Level.removeBlock
+     */
+    removeBlock?(position: EntityPosition): boolean;
     /** Opens or closes the door at a position, either half; anything else is left alone. */
     setDoorOpen?(position: EntityPosition, open: boolean): void;
     /**

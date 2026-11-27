@@ -31,7 +31,7 @@ import { DEGREES_TO_RADIANS, javaAtan2, javaCos, javaSin, wrapDegrees, wrapDegre
 import type { GoalSupport } from '../support';
 import type { NodePath, PathNode } from './dragonNodes';
 import { closestDragonNode, dragonPathNodes, findDragonPath, firstDragonNode, isDone } from './dragonNodes';
-import type { GoalMob } from '../world';
+import type { GoalMob, GoalWorld } from '../world';
 
 /** Java's `EnderDragonPhase` values, by their Java names in lower case. */
 export const DRAGON_PHASES = [
@@ -1163,59 +1163,19 @@ class DragonPhases {
 
     /**
      * Java's `EnderDragon.checkWalls` over the head's, the neck's and the body's box, each on its
-     * own. A block that is not air or `minecraft:dragon_transparent` is removed, dropping nothing,
-     * unless `mobGriefing` is off or it is `minecraft:dragon_immune`; then it is a wall, which
-     * slows the dragon on the next tick. A box that removed a block draws a position inside it for
-     * the block-breaking particles.
+     * own, through {@link checkDragonWalls}. A wall slows the dragon on the next tick.
      *
-     * @javaSource EnderDragon.checkWalls
-     * @javaVerified vectors
+     * @javaSee EnderDragon.checkWalls
      */
     private checkWalls(): void {
-        const world = this.support.world;
-        const griefing = world.gameRule?.('mobGriefing') !== false;
-        const nameAt =
-            world.javaBlockAt === undefined
-                ? (at: EntityPosition): string | undefined => world.blockAt?.(at)?.identifier
-                : (at: EntityPosition): string | undefined => world.javaBlockAt?.(at)?.name;
-        const remove = (at: EntityPosition): void => {
-            if (world.setJavaBlock !== undefined) world.setJavaBlock(at, { name: 'minecraft:air', properties: {} });
-            else world.setBlock?.(at, 'minecraft:air');
-        };
-        if (world.blockHasTag === undefined || (world.javaBlockAt === undefined && world.blockAt === undefined)) return;
         const parts = [
             entityBox(this.parts.head, PART_SIZES.head),
             entityBox(this.parts.neck, PART_SIZES.neck),
             entityBox(this.parts.body, PART_SIZES.body)
         ];
         let inWall = false;
-        for (const { min, max } of parts) {
-            const [x0, y0, z0] = [Math.floor(min.x), Math.floor(min.y), Math.floor(min.z)];
-            const [x1, y1, z1] = [Math.floor(max.x), Math.floor(max.y), Math.floor(max.z)];
-            let removed = false;
-            for (let x = x0; x <= x1; x += 1)
-                for (let y = y0; y <= y1; y += 1)
-                    for (let z = z0; z <= z1; z += 1) {
-                        const at = { x, y, z };
-                        const block = nameAt(at);
-                        if (
-                            block === undefined ||
-                            JAVA_AIR.includes(block) ||
-                            world.blockHasTag(at, DRAGON_TRANSPARENT)
-                        )
-                            continue;
-                        if (griefing && !world.blockHasTag(at, DRAGON_IMMUNE)) {
-                            remove(at);
-                            removed = true;
-                        } else inWall = true;
-                    }
-            // Java's `levelEvent(2008, ...)` at a random block of the box; the draws are what the port keeps.
-            if (removed) {
-                this.support.randomInt(x1 - x0 + 1);
-                this.support.randomInt(y1 - y0 + 1);
-                this.support.randomInt(z1 - z0 + 1);
-            }
-        }
+        const randomInt = (bound: number): number => this.support.randomInt(bound);
+        for (const box of parts) inWall = checkDragonWalls(this.support.world, box, randomInt) || inWall;
         this.blocked = inWall;
     }
 
@@ -1289,6 +1249,57 @@ class DragonPhases {
         return findDragonPath(this.pathNodes(), from, to, last, this.firstNode());
     }
 }
+
+/**
+ * Java's `EnderDragon.checkWalls` over one box of the dragon's: each block in it that is not air
+ * or `minecraft:dragon_transparent` is removed through {@link GoalWorld.removeBlock}, which leaves
+ * the block's fluid as Java's `Level.removeBlock` does, unless `mobGriefing` is off or the block
+ * is `minecraft:dragon_immune`; then the box meets a wall. A box that changed a block draws a
+ * position inside it for the block-breaking particles. A world without `removeBlock` writes air.
+ *
+ * @param randomInt - The dragon's random source, Java's `nextInt(bound)`.
+ * @returns Whether the box met a wall.
+ * @javaSource EnderDragon.checkWalls
+ * @javaVerified vectors
+ */
+export const checkDragonWalls = (
+    world: GoalWorld,
+    box: { readonly min: EntityPosition; readonly max: EntityPosition },
+    randomInt: (bound: number) => number
+): boolean => {
+    const { blockHasTag } = world;
+    if (blockHasTag === undefined || (world.javaBlockAt === undefined && world.blockAt === undefined)) return false;
+    const griefing = world.gameRule?.('mobGriefing') !== false;
+    const nameAt = (at: EntityPosition): string | undefined =>
+        world.javaBlockAt === undefined ? world.blockAt?.(at)?.identifier : world.javaBlockAt(at)?.name;
+    const remove = (at: EntityPosition): boolean => {
+        if (world.removeBlock !== undefined) return world.removeBlock(at);
+        if (world.setJavaBlock !== undefined) world.setJavaBlock(at, { name: 'minecraft:air', properties: {} });
+        else world.setBlock?.(at, 'minecraft:air');
+        return true;
+    };
+    const [x0, y0, z0] = [Math.floor(box.min.x), Math.floor(box.min.y), Math.floor(box.min.z)];
+    const [x1, y1, z1] = [Math.floor(box.max.x), Math.floor(box.max.y), Math.floor(box.max.z)];
+    let inWall = false;
+    let removed = false;
+    for (let x = x0; x <= x1; x += 1)
+        for (let y = y0; y <= y1; y += 1)
+            for (let z = z0; z <= z1; z += 1) {
+                const at = { x, y, z };
+                const block = nameAt(at);
+                if (block === undefined || JAVA_AIR.includes(block) || blockHasTag(at, DRAGON_TRANSPARENT)) continue;
+                // Java's `removeBlock(pos, false) || removed`, which removes the block whatever came before.
+                if (griefing && !blockHasTag(at, DRAGON_IMMUNE)) removed = remove(at) || removed;
+                else inWall = true;
+            }
+    // Java's `levelEvent(2008, ...)` at a random block of the box; the draws are what the port keeps.
+    if (removed) {
+        randomInt(x1 - x0 + 1);
+        randomInt(y1 - y0 + 1);
+        randomInt(z1 - z0 + 1);
+    }
+    return inWall;
+};
 
 const managers = new WeakMap<GoalSupport['entity'], DragonPhases>();
 

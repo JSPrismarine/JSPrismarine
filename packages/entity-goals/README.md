@@ -235,6 +235,11 @@ Java's `EnderDragon.aiStep`. `vectors/26.3/` holds what Java's own code computes
   it back to, each line of sight it checked, and every draw from the dragon's random source. The
   test hands the copy Java's draws, and the velocity a knockback left, which the server works
   out, and fails on the first tick where anything differs.
+- `dragon-walls.json`: Java's `checkWalls` on its own over boxes of water, lava, waterlogged
+  blocks, kelp and other blocks, with `mobGriefing` on and off: the blocks `removeBlock` was
+  called on and what it answered, the blocks it left, whether the box was a wall, and the draws.
+  The test answers each `removeBlock` as Java's level did, since what a removed block leaves is
+  the world's fluid rule.
 
 `utils/oracle/DumpDragonVectors.java` records them. It runs Java's `EnderDragon` on a
 `ServerLevel` it allocates without a server, with the vanilla data pack's tags and damage types:
@@ -242,9 +247,9 @@ open air over the heightmap, players and zombies that keep their clocks but neve
 two fights pillars of stone, obsidian, end stone, fire, light and other blocks across the
 dragon's path, one with `mobGriefing` off. One fight lands explosions, a player's blows and
 arrows on the dragon's head and body, in flight and while it sits until it takes off, and one is
-centered away from the world's origin. Water and waterlogged blocks in the dragon's path stay out
-of the recordings, since the copy does not follow them yet
-([#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793)).
+centered away from the world's origin. The fights hold no fluids: an entity's tick asks a loaded
+chunk whether it stands in one, and the oracle's level has none, so the walls file records
+`checkWalls` alone, which reads only blocks, fluids, tags and the game rule.
 Regenerate them after a Java bump with
 `pnpm --filter @jsprismarine/entity-goals run vectors`, which fetches the pinned server jar if the
 cache lacks it and needs a JDK the jar can run on.
