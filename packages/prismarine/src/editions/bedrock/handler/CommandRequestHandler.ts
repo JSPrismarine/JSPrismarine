@@ -4,6 +4,7 @@ import CommandOriginType from '@jsprismarine/protocol/bedrock/wire/structures/Co
 import type { InputContext } from '../../../player/context/HandlerContext';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import { commandTelemetryOf } from '../presenter/bedrockTelemetry';
 
 /**
  * A slash command a client typed.
@@ -22,7 +23,7 @@ export default class CommandRequestHandler implements InputLaneHandler<CommandRe
     public readonly lane = 'input';
 
     /** Dispatches the command as the player who sent it and answers with its outcome. */
-    public handle(packet: CommandRequestPacket, { session, log, services, step }: InputContext): undefined {
+    public handle(packet: CommandRequestPacket, { session, log, config, services, step }: InputContext): undefined {
         const request = packet.getPacketData();
         if (request === null) throw new PrismarineNetworkErrors.CommandRequestNotDecoded();
         const origin = request.commandOriginData;
@@ -47,5 +48,9 @@ export default class CommandRequestHandler implements InputLaneHandler<CommandRe
             dataSet: null
         });
         step.output(session.send(output));
+        // What BDS tells its player of a command that succeeded, which only matters to a client
+        // that can earn achievements.
+        if (ran && config.getXboxAchievements())
+            step.output(session.send(commandTelemetryOf(session.getRuntimeId(), request.commandName)));
     }
 }

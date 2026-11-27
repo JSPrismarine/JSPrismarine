@@ -211,7 +211,11 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
         }),
         {
             getConfig: () =>
-                stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
+                stub<Config>({
+                    getDifficulty: () => Difficulty.NORMAL,
+                    getEntityTrackingInterval: () => 20,
+                    getXboxAchievements: () => true
+                }),
             getEntityRuntime: (dimension: string) => runtimes.at(dimension),
             getWorldManager: () =>
                 stub<WorldManager>({
@@ -1137,7 +1141,8 @@ describe('fight persistence through a real level over LevelDB', () => {
                 stub<Config>({
                     getPreloadRadius: () => 0,
                     getDifficulty: () => Difficulty.NORMAL,
-                    getEntityTrackingInterval: () => 20
+                    getEntityTrackingInterval: () => 20,
+                    getXboxAchievements: () => true
                 }),
             getDimensionTravel: () => stub<DimensionTravel>({ touch: async () => {} })
         });

@@ -149,7 +149,8 @@ export const fakePlayer = ({
                 getEntityTrackingHysteresis: () => 2,
                 getEntityTrackingInterval: () => 4,
                 getPacketCompressionLevel: () => 0,
-                getPacketCompressionThreshold: () => 256
+                getPacketCompressionThreshold: () => 256,
+                getXboxAchievements: () => true
             })
     });
 

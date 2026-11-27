@@ -804,6 +804,9 @@ export class JavaPresenter implements SessionPresenter {
         this.send(TakeItemEntity, { itemId: Number(item), collectorId: Number(collector), amount: count });
     }
 
+    /** Not sent: a Java client counts no kills itself; the server awards its advancements. */
+    public async reportKill(): Promise<void> {}
+
     /** Sends `Combat Death` for the client's own player, which opens its death screen with the message. */
     public async showDeath({ key, parameters }: ShownDeath): Promise<void> {
         this.send(PlayerCombatKill, {
