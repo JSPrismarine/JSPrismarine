@@ -249,6 +249,71 @@ describe('load', () => {
         }
     });
 
+    describe('item catalogs', () => {
+        const CATALOG = 'item_catalog/crafting_item_catalog.json';
+
+        /** A catalog that adds one heading to the construction tab. */
+        const catalogOf = (heading: string) => ({
+            format_version: '1.21.60',
+            'minecraft:crafting_items_catalog': {
+                categories: [
+                    {
+                        category_name: 'construction',
+                        groups: [{ group_identifier: { name: heading }, items: ['minecraft:stone'] }]
+                    }
+                ]
+            }
+        });
+
+        /** A pack under its own header UUID with {@link catalogOf} that heading. */
+        const catalogPack = (uuid: string, heading: string): string => {
+            const dir = temporaryDir();
+            const manifest = JSON.parse(readFileSync(join(basePack, 'manifest.json'), 'utf8'));
+            manifest.header.uuid = uuid;
+            writeFileSync(join(dir, 'manifest.json'), JSON.stringify(manifest));
+            mkdirSync(join(dir, 'item_catalog'));
+            writeFileSync(join(dir, CATALOG), JSON.stringify(catalogOf(heading)));
+            return dir;
+        };
+
+        const catalogsOf = (definitions: ReturnType<typeof load>['definitions']): unknown[] =>
+            [...definitions.itemCatalog.values()].map(({ data }) => data);
+
+        it("keeps every pack's catalog, in stack order", () => {
+            const stack = [
+                { kind: 'directory' as const, path: catalogPack('0a000000-0000-4000-8000-0000000000a1', 'test:a') },
+                { kind: 'directory' as const, path: catalogPack('0a000000-0000-4000-8000-0000000000b1', 'test:b') }
+            ];
+            const { definitions, diagnostics } = load(stack, { strict: true });
+
+            expect(catalogsOf(definitions)).toEqual([catalogOf('test:a'), catalogOf('test:b')]);
+            expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
+        });
+
+        it('lets a later layer of the same pack replace its catalog', () => {
+            const uuid = '0a000000-0000-4000-8000-0000000000c1';
+            const { definitions } = load([
+                { kind: 'directory', path: catalogPack(uuid, 'test:old') },
+                { kind: 'directory', path: catalogPack(uuid, 'test:new') }
+            ]);
+
+            expect(catalogsOf(definitions)).toEqual([catalogOf('test:new')]);
+        });
+
+        it("reports an earlier pack's broken catalog as an error, since it would reach the menu", () => {
+            const broken = catalogPack('0a000000-0000-4000-8000-0000000000d1', 'test:a');
+            writeFileSync(join(broken, CATALOG), '{');
+            const { diagnostics } = load([
+                { kind: 'directory', path: broken },
+                { kind: 'directory', path: catalogPack('0a000000-0000-4000-8000-0000000000e1', 'test:b') }
+            ]);
+
+            expect(diagnostics).toContainEqual(
+                expect.objectContaining({ code: 'definition.invalid-json', path: CATALOG, severity: 'error' })
+            );
+        });
+    });
+
     it('keeps the earlier path-addressed definition when a later pack has an invalid manifest', () => {
         const base = temporaryDir();
         const invalidOverride = temporaryDir();

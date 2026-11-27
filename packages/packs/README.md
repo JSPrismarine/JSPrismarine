@@ -9,7 +9,8 @@ behavior pack; the Java kind is a datapack folder or zip. `load(stack)` returns 
 object, which maps identifier to winning parsed definition for each registry, plus a diagnostics
 report. The Bedrock registries (blocks, items, entities, loot tables, trade tables, spawn rules,
 recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
-its definition replaces the earlier one whole. The Java registries (`JAVA_REGISTRY_IDS`, keyed by
+its definition replaces the earlier one whole. The item catalog's identifier includes the pack, so
+every pack's catalog is kept. The Java registries (`JAVA_REGISTRY_IDS`, keyed by
 namespaced id; `JAVA_REGISTRY_DIRECTORIES` maps each singular directory name to its registry)
 resolve by Java's rule: a later pack wins per file, except tags, whose values merge across packs
 unless a later file sets `replace`.
@@ -195,8 +196,10 @@ A file counts as superseded only when a later pack with a valid manifest provide
 A superseded file in a registry keyed by its definition identifier is still parsed: another layer
 can put a different identifier in the same file. A superseded file in a path-addressed registry
 is skipped, because its path is its identifier and the later file fully replaces it. As a result,
-invalid JSON and validation diagnostics from skipped loot tables, trade tables, and item catalogs
-are no longer reported. Other superseded files that fail to parse are reported as warnings, since
+invalid JSON and validation diagnostics from skipped loot tables and trade tables are no longer
+reported. The item catalog is the exception: each pack adds its catalog rather than replacing an
+earlier one, so a catalog's identifier is the pack's header UUID, a slash and the path, and only a
+later layer of the same pack supersedes it. Other superseded files that fail to parse are reported as warnings, since
 they cannot reach the composed result. The shipped vanilla layers need this for content-addressed
 entities: two layers carry an `entities/npc.json` that patches a saved pack rather than defining an
 entity, and a later layer carries the real one. The Java side has no such rule, because its tags
