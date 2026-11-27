@@ -66,12 +66,13 @@ const worldOf = (
     return world;
 };
 
-const startGameFor = (world: World) =>
+const startGameFor = (world: World, xboxAchievements = true) =>
     createStartGameData({
         config: {
             getGamemode: () => 'survival',
             getDifficulty: () => 1,
-            getServerAuthoritativeBlockBreaking: () => true
+            getServerAuthoritativeBlockBreaking: () => true,
+            getXboxAchievements: () => xboxAchievements
         },
         tick: 0,
         player: stub<PlayerSession>({
@@ -89,6 +90,24 @@ const startGameFor = (world: World) =>
     });
 
 describe('startGameData', () => {
+    describe('Xbox achievements', () => {
+        const world = () => worldOf(Dimensions.Overworld, FLAT, new Map([[OVERWORLD_STEM_ID, FLAT]]));
+
+        it('announces achievements on and cheats off, as BDS does with allow-cheats=false', () => {
+            const data = startGameFor(world(), true);
+
+            expect(data.achievementsDisabled).toBe(false);
+            expect(data.commandsEnabled).toBe(false);
+        });
+
+        it('announces cheats on and achievements disabled when the setting is off', () => {
+            const data = startGameFor(world(), false);
+
+            expect(data.achievementsDisabled).toBe(true);
+            expect(data.commandsEnabled).toBe(true);
+        });
+    });
+
     describe('experiments', () => {
         const stems = new Map([[OVERWORLD_STEM_ID, FLAT]]);
 

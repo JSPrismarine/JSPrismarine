@@ -200,6 +200,8 @@ export interface ConfigFile {
     'allow-list'?: boolean;
     /** Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to Mojang's session server. */
     'online-mode'?: boolean;
+    /** Whether Bedrock players can earn Xbox achievements. On, the server tells clients that cheats are off. */
+    'xbox-achievements'?: boolean;
     /** Whether to accept clients over RakNet, Bedrock's UDP transport before NetherNet. */
     'enable-raknet'?: boolean;
     /** Whether RakNet UDP I/O and reliability updates run in a worker thread. */
@@ -329,6 +331,7 @@ export const CONFIG_KEY_ORDER = [
     'protocol-content',
     'allow-list',
     'online-mode',
+    'xbox-achievements',
     'enable-raknet',
     'use-raknet-worker',
     'enable-nethernet',

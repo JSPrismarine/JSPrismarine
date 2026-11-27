@@ -32,7 +32,10 @@ export interface JoiningPlayer extends Pick<
 /** The server-owned state needed to produce a Protocol `StartGame` payload. */
 export interface StartGameDataOptions {
     /** The server's game settings that `StartGame` reports. */
-    readonly config: Pick<Config, 'getGamemode' | 'getDifficulty' | 'getServerAuthoritativeBlockBreaking'>;
+    readonly config: Pick<
+        Config,
+        'getGamemode' | 'getDifficulty' | 'getServerAuthoritativeBlockBreaking' | 'getXboxAchievements'
+    >;
     /** The server tick the join runs in. */
     readonly tick: number;
     /** The joining player. */
@@ -70,6 +73,10 @@ export const createStartGameData = ({
         return { name, editable, type: GameRuleType.FLOAT, value };
     });
 
+    // A Bedrock Dedicated Server with `allow-cheats=false` sends achievements on and commands off
+    // together, and a client awards no achievement in a world it was told has cheats on.
+    const achievements = config.getXboxAchievements();
+
     return {
         entityId: player.getRuntimeId(),
         runtimeEntityId: player.getRuntimeId(),
@@ -90,7 +97,7 @@ export const createStartGameData = ({
             y: worldSpawnPosition.getY(),
             z: worldSpawnPosition.getZ()
         },
-        achievementsDisabled: true,
+        achievementsDisabled: !achievements,
         editorWorldType: 0,
         createdInEditor: false,
         exportedFromEditor: false,
@@ -106,7 +113,7 @@ export const createStartGameData = ({
         lanBroadcast: true,
         xboxLiveBroadcastSetting: 4,
         platformBroadcastSetting: 4,
-        commandsEnabled: true,
+        commandsEnabled: !achievements,
         texturePacksRequired: false,
         gameRules,
         experiments: experimentToggles(world.getLevel().getExperiments()),
