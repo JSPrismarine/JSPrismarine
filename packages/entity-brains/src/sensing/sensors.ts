@@ -11,10 +11,18 @@ import type { BrainContext, BrainEntity, BrainItem } from '../world.js';
 import { blockContaining, distanceSquared, EntityCondition } from '../world.js';
 import { DEFAULT_SCAN_RATE, Sensor } from './sensor.js';
 
-/** Java's `Attributes.FOLLOW_RANGE`, the range every untargeted sensor scans. */
+/**
+ * Java's `Attributes.FOLLOW_RANGE`, the range every untargeted sensor scans.
+ *
+ * @javaSource Attributes.FOLLOW_RANGE
+ */
 export const FOLLOW_RANGE_ATTRIBUTE = 'minecraft:follow_range';
 
-/** Java's `Attributes.TEMPT_RANGE`, which `TemptingSensor` scans instead. */
+/**
+ * Java's `Attributes.TEMPT_RANGE`, which `TemptingSensor` scans instead.
+ *
+ * @javaSource Attributes.TEMPT_RANGE
+ */
 export const TEMPT_RANGE_ATTRIBUTE = 'minecraft:tempt_range';
 
 /** A sensor that writes nothing. Java's `DummySensor`, registered as `minecraft:dummy`. */
@@ -95,7 +103,11 @@ export class PlayerSensor extends Sensor {
     }
 }
 
-/** Java's `NearestItemSensor.XZ_RANGE`, `Y_RANGE` and `MAX_DISTANCE_TO_WANTED_ITEM`. */
+/**
+ * Java's `NearestItemSensor.XZ_RANGE`, `Y_RANGE` and `MAX_DISTANCE_TO_WANTED_ITEM`.
+ *
+ * @javaSource NearestItemSensor.XZ_RANGE
+ */
 export const NEAREST_ITEM_RANGES = { xz: 32, y: 16, maxDistanceToWantedItem: 32 };
 
 /** Decides whether a mob wants to pick an item up. Java's `Mob::wantsToPickUp`. */
@@ -244,7 +256,11 @@ export class MobSensor extends Sensor {
     }
 }
 
-/** Java's `GolemSensor.GOLEM_SCAN_RATE` and `MEMORY_TIME_TO_LIVE`. */
+/**
+ * Java's `GolemSensor.GOLEM_SCAN_RATE` and `MEMORY_TIME_TO_LIVE`.
+ *
+ * @javaSource GolemSensor.GOLEM_SCAN_RATE
+ */
 export const GOLEM_SENSOR = { scanRate: 200, memoryTimeToLive: 599 };
 
 /**
@@ -297,7 +313,11 @@ export abstract class NearestVisibleLivingEntitySensor extends Sensor {
     }
 }
 
-/** Java's `AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE`, and its squared form. */
+/**
+ * Java's `AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE`, and its squared form.
+ *
+ * @javaSource AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE
+ */
 export const AXOLOTL_TARGET_DETECTION_DISTANCE = 8;
 
 /**
@@ -327,7 +347,11 @@ export class AxolotlAttackablesSensor extends NearestVisibleLivingEntitySensor {
     }
 }
 
-/** Java's `FrogAttackablesSensor.TARGET_DETECTION_DISTANCE`. */
+/**
+ * Java's `FrogAttackablesSensor.TARGET_DETECTION_DISTANCE`.
+ *
+ * @javaSource FrogAttackablesSensor.TARGET_DETECTION_DISTANCE
+ */
 export const FROG_TARGET_DETECTION_DISTANCE = 10;
 
 /**
@@ -396,7 +420,11 @@ export class VillagerBabiesSensor extends Sensor {
     }
 }
 
-/** Java's `SecondaryPoiSensor.SCAN_RATE`, and the box it walks. */
+/**
+ * Java's `SecondaryPoiSensor.SCAN_RATE`, and the box it walks.
+ *
+ * @javaSource SecondaryPoiSensor.SCAN_RATE
+ */
 export const SECONDARY_POI_SENSOR = { scanRate: 40, horizontalSearch: 4, verticalSearch: 2 };
 
 /**
@@ -429,7 +457,11 @@ export class SecondaryPoiSensor extends Sensor {
     }
 }
 
-/** Java's `NearestBedSensor.CACHE_TIMEOUT`, `BATCH_SIZE` and `RATE`. */
+/**
+ * Java's `NearestBedSensor.CACHE_TIMEOUT`, `BATCH_SIZE` and `RATE`.
+ *
+ * @javaSource NearestBedSensor.CACHE_TIMEOUT
+ */
 export const NEAREST_BED_SENSOR = { cacheTimeout: 40, batchSize: 5, rate: 20, searchRadius: 48 };
 
 /**
@@ -481,7 +513,11 @@ export class TemptingSensor extends Sensor {
         super();
     }
 
-    /** Java's `TemptingSensor.forAnimal`, which defers to the animal's own `isFood`. */
+    /**
+     * Java's `TemptingSensor.forAnimal`, which defers to the animal's own `isFood`.
+     *
+     * @javaSource TemptingSensor.forAnimal
+     */
     public static forAnimal(isFood: (item: BrainItem) => boolean): TemptingSensor {
         return new TemptingSensor((item) => isFood(item));
     }
@@ -568,7 +604,11 @@ export class BreezeAttackEntitySensor extends NearestLivingEntitySensor {
     }
 }
 
-/** Java's `PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL` and `_VERTICAL`, shared with the hoglin. */
+/**
+ * Java's `PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL` and `_VERTICAL`, shared with the hoglin.
+ *
+ * @javaSource PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL
+ */
 export const REPELLENT_DETECTION_RANGE = { horizontal: 8, vertical: 4 };
 
 /**
@@ -676,7 +716,11 @@ export class PiglinSpecificSensor extends Sensor {
     }
 }
 
-/** Java's `PiglinAi.findNearbyAdultPiglins`: adults in the unfiltered nearby list. */
+/**
+ * Java's `PiglinAi.findNearbyAdultPiglins`: adults in the unfiltered nearby list.
+ *
+ * @javaSource PiglinAi.findNearbyAdultPiglins
+ */
 export function findNearbyAdultPiglins(context: BrainContext): readonly BrainEntity[] {
     return (context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).filter(
         (entity) => (entity.type === 'minecraft:piglin' && !entity.baby) || entity.type === 'minecraft:piglin_brute'

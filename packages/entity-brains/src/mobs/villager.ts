@@ -118,14 +118,22 @@ export interface VillagerProfession {
     readonly secondaryPoiBlocks: ReadonlySet<string>;
 }
 
-/** Java's `VillagerProfession.NONE`, the profession an unemployed villager carries. */
+/**
+ * Java's `VillagerProfession.NONE`, the profession an unemployed villager carries.
+ *
+ * @javaSource VillagerProfession.NONE
+ */
 export const NO_PROFESSION: VillagerProfession = {
     id: 'minecraft:none',
     jobSitePoi: 'minecraft:none',
     secondaryPoiBlocks: new Set()
 };
 
-/** Java's `VillagerGoalPackages.getFullLookBehavior`, at priority 5. */
+/**
+ * Java's `VillagerGoalPackages.getFullLookBehavior`, at priority 5.
+ *
+ * @javaSource VillagerGoalPackages.getFullLookBehavior
+ */
 function fullLookBehavior(): PrioritizedBehavior {
     return [
         5,
@@ -144,7 +152,11 @@ function fullLookBehavior(): PrioritizedBehavior {
     ];
 }
 
-/** Java's `VillagerGoalPackages.getMinimalLookBehavior`, at priority 5. */
+/**
+ * Java's `VillagerGoalPackages.getMinimalLookBehavior`, at priority 5.
+ *
+ * @javaSource VillagerGoalPackages.getMinimalLookBehavior
+ */
 function minimalLookBehavior(): PrioritizedBehavior {
     return [
         5,
@@ -497,6 +509,8 @@ function reactToBell(): BehaviorControl {
  *
  * The second Java argument, the three-block close-enough distance, belongs to
  * {@link locateHidingPlace} rather than to the countdown, so it does not appear here.
+ *
+ * @javaSource SetHiddenState.create
  */
 function setHiddenState(seconds: number): BehaviorControl {
     return timedState('SetHiddenState', seconds * 20, {
@@ -848,6 +862,8 @@ export function hidePackage(speedModifier: number): readonly PrioritizedBehavior
  * `work` needs a job site and `meet` needs a meeting point, which is what keeps the schedule from
  * sending an unemployed villager to a workplace it does not have; both fall back to `idle` through
  * `setActiveActivityIfPossible`.
+ *
+ * @javaSource Villager.BRAIN_PROVIDER
  */
 export function villagerActivities(profession: VillagerProfession, baby: boolean): readonly ActivityData[] {
     const speed = VILLAGER.baseSpeedModifier;

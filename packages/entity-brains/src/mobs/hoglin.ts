@@ -57,7 +57,11 @@ export const HOGLIN = {
 
 const isAdult = (body: BrainMob): boolean => !body.baby;
 
-/** Java's `HoglinAi.createIdleMovementBehaviors`, shared by `idle` and `avoid`. */
+/**
+ * Java's `HoglinAi.createIdleMovementBehaviors`, shared by `idle` and `avoid`.
+ *
+ * @javaSource HoglinAi.createIdleMovementBehaviors
+ */
 function idleMovementBehaviors(): RunOne {
     return new RunOne([
         [randomStroll(HOGLIN.speedWhenIdling), 2],
@@ -69,6 +73,8 @@ function idleMovementBehaviors(): RunOne {
 /**
  * Java's `HoglinAi.findNearestValidAttackTarget`: a hoglin attacks the nearest targetable player
  * only when it is not pacified and not outnumbered.
+ *
+ * @javaSource HoglinAi.findNearestValidAttackTarget
  */
 function findNearestValidAttackTarget(context: BrainContext): BrainEntity | undefined {
     if (context.body.brain.hasMemoryValue(MemoryModuleTypes.PACIFIED)) {
@@ -82,6 +88,8 @@ function findNearestValidAttackTarget(context: BrainContext): BrainEntity | unde
  *
  * The comparison is strict: ties favour the hoglin, which is why a one-on-one hoglin stands its
  * ground against a piglin.
+ *
+ * @javaSource HoglinAi.piglinsOutnumberHoglins
  */
 export function piglinsOutnumberHoglins(context: BrainContext): boolean {
     const piglins = context.body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_PIGLIN_COUNT) ?? 0;
@@ -89,7 +97,11 @@ export function piglinsOutnumberHoglins(context: BrainContext): boolean {
     return piglins > hoglins;
 }
 
-/** Java's `HoglinAi.wantsToStopFleeing`: an adult that is no longer outnumbered stops running. */
+/**
+ * Java's `HoglinAi.wantsToStopFleeing`: an adult that is no longer outnumbered stops running.
+ *
+ * @javaSource HoglinAi.wantsToStopFleeing
+ */
 function wantsToStopFleeing(context: BrainContext): boolean {
     return isAdult(context.body) && !piglinsOutnumberHoglins(context);
 }
@@ -170,7 +182,11 @@ function retreatActivity(): ActivityData {
     );
 }
 
-/** Java's `HoglinAi.setAttackTarget`: a 200-tick attack target, which ends any courtship. */
+/**
+ * Java's `HoglinAi.setAttackTarget`: a 200-tick attack target, which ends any courtship.
+ *
+ * @javaSource HoglinAi.setAttackTarget
+ */
 function setHoglinAttackTarget(body: BrainMob, target: BrainEntity): void {
     body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
     body.brain.eraseMemory(MemoryModuleTypes.BREED_TARGET);
@@ -180,6 +196,8 @@ function setHoglinAttackTarget(body: BrainMob, target: BrainEntity): void {
 /**
  * Java's `HoglinAi.retreatFromNearestTarget`: a hurt baby runs from whichever of its attacker, the
  * mob it already avoids and the one it already attacks is nearest.
+ *
+ * @javaSource HoglinAi.retreatFromNearestTarget
  */
 function retreatFromNearestTarget(context: BrainContext, attacker: BrainEntity): void {
     const { body } = context;
@@ -199,6 +217,8 @@ function retreatFromNearestTarget(context: BrainContext, attacker: BrainEntity):
  * baby runs, and an adult turns on an attacker it can see that is not a hoglin, nor a piglin while
  * it is retreating, and tells the adult hoglins it sees to do the same
  * (`broadcastAttackTarget`), each keeping whichever target is nearer to it.
+ *
+ * @javaSource HoglinAi.wasHurtBy
  */
 export function hoglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
     const { body, world } = context;

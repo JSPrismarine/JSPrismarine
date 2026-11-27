@@ -8,14 +8,18 @@
 import type { MemoryModuleType, MemoryStatus } from '../memory.js';
 import type { BrainContext } from '../world.js';
 
-/** Java's `Behavior.Status`. */
+/**
+ * Java's `Behavior.Status`.
+ *
+ * @javaSource Behavior$Status.$VALUES
+ */
 export type BehaviorStatus = 'stopped' | 'running';
 
 /** The map of memory preconditions a behavior must satisfy before it may start. */
 export type MemoryConditions = ReadonlyMap<MemoryModuleType<unknown>, MemoryStatus>;
 
 /**
- * Builds a {@link MemoryConditions} from pairs, which reads closer to Java's `ImmutableMap.of`.
+ * Builds a {@link MemoryConditions} from pairs, which reads closer to Guava's `ImmutableMap.of`.
  */
 export function conditions(
     ...entries: readonly (readonly [MemoryModuleType<unknown>, MemoryStatus])[]
@@ -68,7 +72,11 @@ export interface BehaviorDuration {
     readonly maxDuration: number;
 }
 
-/** Java's `Behavior.DEFAULT_DURATION`. */
+/**
+ * Java's `Behavior.DEFAULT_DURATION`.
+ *
+ * @javaSource Behavior.DEFAULT_DURATION
+ */
 export const DEFAULT_BEHAVIOR_DURATION = 60;
 
 /**

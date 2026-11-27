@@ -5,7 +5,11 @@
  * plus every core activity, and `core` is the only core activity any vanilla mob declares.
  */
 
-/** An activity. Equality is by name, as Java's `Activity.equals` is. */
+/**
+ * An activity. Equality is by name, as Java's `Activity.equals` is.
+ *
+ * @javaSee Activity.equals
+ */
 export interface Activity {
     /** The registered name without its namespace, such as `admire_item`. */
     readonly name: string;

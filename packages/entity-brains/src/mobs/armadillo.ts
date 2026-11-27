@@ -51,7 +51,11 @@ export const ARMADILLO = {
     /** Below this much time left on `DANGER_DETECTED_RECENTLY`, the armadillo unrolls. */
     dangerDetectedRecentlyDangerThreshold: 75,
     peekTimer: uniformInt(100, 400),
-    /** Java's `SensorType.ARMADILLO_SCARE_DETECTED` arguments. */
+    /**
+     * Java's `SensorType.ARMADILLO_SCARE_DETECTED` arguments.
+     *
+     * @javaSource SensorType.ARMADILLO_SCARE_DETECTED
+     */
     scareScanRate: ARMADILLO_SCARE_SENSOR.scanRate,
     scareMemoryTimeToLive: ARMADILLO_SCARE_SENSOR.memoryTimeToLive
 } as const;
@@ -81,6 +85,12 @@ function rollingOut() {
  * The unroll trigger is the time left on `DANGER_DETECTED_RECENTLY`, not its presence: the
  * armadillo starts unrolling once fewer than the unroll animation's duration of ticks remain, and
  * peeks whenever more than 75 remain and the peek timer has elapsed.
+ *
+ * @javaSource ArmadilloAi$ArmadilloBallUp.tick
+ * @javaSource ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions
+ * @javaSource ArmadilloAi$ArmadilloBallUp.canStillUse
+ * @javaSource ArmadilloAi$ArmadilloBallUp.start
+ * @javaSource ArmadilloAi$ArmadilloBallUp.stop
  */
 function ballUp(): BehaviorControl {
     let nextPeekTimer = 0;
@@ -187,7 +197,11 @@ export function armadilloActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), scaredActivity()];
 }
 
-/** Java's `Armadillo.isScaredBy`: an undead or a sprinting player within the scare box. */
+/**
+ * Java's `Armadillo.isScaredBy`: an undead or a sprinting player within the scare box.
+ *
+ * @javaSource Armadillo.isScaredBy
+ */
 function isScaredBy(entity: { type: string; typeTags: ReadonlySet<string> }): boolean {
     return entity.type === 'minecraft:player' || entity.typeTags.has('minecraft:undead');
 }

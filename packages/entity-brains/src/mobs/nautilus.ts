@@ -71,11 +71,13 @@ export const ZOMBIE_NAUTILUS = {
 } as const;
 
 /**
- * Java's `NautilusAi.findNautilusAttackTarget`, shared by both nautilus kinds.
+ * Java's `NautilusAi.findNearestValidAttackTarget`, shared by both nautilus kinds.
  *
  * The order matters and is worth stating: an `ANGRY_AT` target in water wins outright; otherwise,
  * while `ATTACK_TARGET_COOLDOWN` holds, nothing is chosen; and when the cooldown expires the
  * nautilus redraws it and declines half the time, so an unprovoked nautilus attacks rarely.
+ *
+ * @javaSource NautilusAi.findNearestValidAttackTarget
  */
 export function findNautilusAttackTarget(context: BrainContext): BrainEntity | undefined {
     const body = context.body;
@@ -110,7 +112,11 @@ export function findNautilusAttackTarget(context: BrainContext): BrainEntity | u
         );
 }
 
-/** Java's `NautilusAi.setNautilusAngerTarget`: a 400-tick grudge keyed by the attacker's identity. */
+/**
+ * Java's `NautilusAi.setAngerTarget`: a 400-tick grudge keyed by the attacker's identity.
+ *
+ * @javaSource NautilusAi.setAngerTarget
+ */
 export function setNautilusAngerTarget(context: BrainContext, target: BrainEntity): void {
     if (!context.world.isAttackable(context.body, target)) {
         return;
@@ -270,7 +276,11 @@ export const NAUTILUS_BRAIN: BrainMobDefinition = {
             sensors: nautilusSensors(),
             activities: nautilusActivities()
         }),
-    /** Java's `NautilusAi.initMemories`: a fresh nautilus waits out a full attack cooldown. */
+    /**
+     * Java's `NautilusAi.initMemories`: a fresh nautilus waits out a full attack cooldown.
+     *
+     * @javaSource NautilusAi.initMemories
+     */
     initMemories: (context) =>
         context.body.brain.setMemory(
             MemoryModuleTypes.ATTACK_TARGET_COOLDOWN,

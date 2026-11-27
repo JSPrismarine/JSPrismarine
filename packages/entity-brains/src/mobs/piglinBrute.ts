@@ -57,11 +57,13 @@ export const PIGLIN_BRUTE = {
 } as const;
 
 /**
- * Java's `PiglinBruteAi.findPiglinBruteAttackTarget`.
+ * Java's `PiglinBruteAi.findNearestValidAttackTarget`.
  *
  * Shorter than the piglin's: the grudge, then any attackable player, then the nemesis. A brute has
  * no gold-armor exemption, which is why gold does not protect a player inside a bastion's throne
  * room.
+ *
+ * @javaSource PiglinBruteAi.findNearestValidAttackTarget
  */
 export function findPiglinBruteAttackTarget(context: BrainContext): BrainEntity | undefined {
     const brain = context.body.brain;
@@ -75,13 +77,21 @@ export function findPiglinBruteAttackTarget(context: BrainContext): BrainEntity 
     );
 }
 
-/** Java's `PiglinBruteAi.setPiglinBruteAngerTarget`: a 600-tick grudge, as the piglin's is. */
+/**
+ * Java's `PiglinBruteAi.setAngerTarget`: a 600-tick grudge, as the piglin's is.
+ *
+ * @javaSource PiglinBruteAi.setAngerTarget
+ */
 export function setPiglinBruteAngerTarget(context: BrainContext, target: BrainEntity): void {
     context.body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
     context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ANGRY_AT, target.id, PIGLIN_BRUTE.angerDuration);
 }
 
-/** Java's `PiglinBruteAi.createIdleLookBehaviors`, which adds the brute to the piglin's list. */
+/**
+ * Java's `PiglinBruteAi.createIdleLookBehaviors`, which adds the brute to the piglin's list.
+ *
+ * @javaSource PiglinBruteAi.createIdleLookBehaviors
+ */
 function idleLookBehaviors(): RunOne {
     return new RunOne([
         [setEntityLookTarget(ofType('minecraft:player'), PIGLIN_BRUTE.maxLookDist), 1],
@@ -92,7 +102,11 @@ function idleLookBehaviors(): RunOne {
     ]);
 }
 
-/** Java's `PiglinBruteAi.createIdleMovementBehaviors`, the two strolls that keep it near home. */
+/**
+ * Java's `PiglinBruteAi.createIdleMovementBehaviors`, the two strolls that keep it near home.
+ *
+ * @javaSource PiglinBruteAi.createIdleMovementBehaviors
+ */
 function idleMovementBehaviors(): RunOne {
     return new RunOne([
         [randomStroll(PIGLIN_BRUTE.speedWhenIdling), 2],
@@ -204,7 +218,11 @@ export const PIGLIN_BRUTE_BRAIN: BrainMobDefinition = {
             ],
             activities: piglinBruteActivities()
         }),
-    /** Java's `PiglinBruteAi.initMemories`: home is wherever the brute was placed. */
+    /**
+     * Java's `PiglinBruteAi.initMemories`: home is wherever the brute was placed.
+     *
+     * @javaSource PiglinBruteAi.initMemories
+     */
     initMemories: (context) =>
         context.body.brain.setMemory(MemoryModuleTypes.HOME, {
             dimension: context.world.dimension,

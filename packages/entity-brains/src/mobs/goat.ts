@@ -287,7 +287,11 @@ export const GOAT_BRAIN: BrainMobDefinition = {
             ],
             activities: goatActivities()
         }),
-    /** Java's `GoatAi.initMemories`: both cooldowns start full, so a fresh goat is idle. */
+    /**
+     * Java's `GoatAi.initMemories`: both cooldowns start full, so a fresh goat is idle.
+     *
+     * @javaSource GoatAi.initMemories
+     */
     initMemories: (context) => {
         context.body.brain.setMemory(
             MemoryModuleTypes.LONG_JUMP_COOLDOWN_TICKS,

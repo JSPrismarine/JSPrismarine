@@ -51,6 +51,9 @@ export const BREEZE = {
 /**
  * Java's `BreezeAi.SlideToTargetSink`: a `MoveToTargetSink` that poses the breeze as sliding and,
  * on stopping, arms `BREEZE_SHOOT` for 60 ticks when it still has a target.
+ *
+ * @javaSource BreezeAi$SlideToTargetSink.start
+ * @javaSource BreezeAi$SlideToTargetSink.stop
  */
 function slideToTargetSink(): BehaviorControl {
     return moveToTargetSink({
@@ -146,6 +149,8 @@ function longJump(): BehaviorControl {
  *
  * The breeze never lands on top of its target: the inner radius is 4 blocks, so it keeps the
  * distance that makes a wind charge worth firing.
+ *
+ * @javaSource BreezeUtil.randomPointBehindTarget
  */
 function jumpTarget(context: BrainContext): ReturnType<typeof blockContaining> | undefined {
     const target = context.body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);

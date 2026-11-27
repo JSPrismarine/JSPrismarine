@@ -51,7 +51,11 @@ export const SNIFFER = {
     sniffingDuration: { min: 40, max: 80 }
 } as const;
 
-/** Java's `SnifferAi.resetSniffing`: drops both dig memories and returns the sniffer to idling. */
+/**
+ * Java's `SnifferAi.resetSniffing`: drops both dig memories and returns the sniffer to idling.
+ *
+ * @javaSource SnifferAi.resetSniffing
+ */
 export function resetSniffing(context: BrainContext): void {
     context.body.brain.eraseMemory(MemoryModuleTypes.SNIFFER_DIGGING);
     context.body.brain.eraseMemory(MemoryModuleTypes.SNIFFER_SNIFFING_TARGET);
@@ -62,6 +66,11 @@ export function resetSniffing(context: BrainContext): void {
  *
  * It only writes `SNIFFER_SNIFFING_TARGET` when it ran its whole duration, so a sniffer that is
  * interrupted does not pick a spot.
+ *
+ * @javaSource SnifferAi$Sniffing.checkExtraStartConditions
+ * @javaSource SnifferAi$Sniffing.canStillUse
+ * @javaSource SnifferAi$Sniffing.start
+ * @javaSource SnifferAi$Sniffing.stop
  */
 function sniffing(): BehaviorControl {
     const hooks: BehaviorHooks = {
@@ -100,7 +109,14 @@ function sniffing(): BehaviorControl {
     );
 }
 
-/** Java's `SnifferAi.Searching`: walk to the sniffing target, and dig on arrival. */
+/**
+ * Java's `SnifferAi.Searching`: walk to the sniffing target, and dig on arrival.
+ *
+ * @javaSource SnifferAi$Searching.checkExtraStartConditions
+ * @javaSource SnifferAi$Searching.canStillUse
+ * @javaSource SnifferAi$Searching.start
+ * @javaSource SnifferAi$Searching.stop
+ */
 function searching(): BehaviorControl {
     const hooks: BehaviorHooks = {
         checkExtraStartConditions: (context) => has(context.body, EntityCondition.CAN_SNIFF),
@@ -144,6 +160,11 @@ function searching(): BehaviorControl {
  * The seed drops 120 ticks into the animation. Finishing the dig arms a 9600-tick
  * `SNIFF_COOLDOWN`, eight real-world minutes; being interrupted resets the sniffing memories
  * instead and leaves the cooldown clear.
+ *
+ * @javaSource SnifferAi$Digging.checkExtraStartConditions
+ * @javaSource SnifferAi$Digging.canStillUse
+ * @javaSource SnifferAi$Digging.start
+ * @javaSource SnifferAi$Digging.stop
  */
 function digging(): BehaviorControl {
     let startTimestamp = 0;
@@ -191,7 +212,14 @@ function digging(): BehaviorControl {
     );
 }
 
-/** Java's `SnifferAi.FinishedDigging`: rise, drop the seed, and become happy. */
+/**
+ * Java's `SnifferAi.FinishedDigging`: rise, drop the seed, and become happy.
+ *
+ * @javaSource SnifferAi$FinishedDigging.checkExtraStartConditions
+ * @javaSource SnifferAi$FinishedDigging.canStillUse
+ * @javaSource SnifferAi$FinishedDigging.start
+ * @javaSource SnifferAi$FinishedDigging.stop
+ */
 function finishedDigging(): BehaviorControl {
     const hooks: BehaviorHooks = {
         canStillUse: (context) => context.body.brain.hasMemoryValue(MemoryModuleTypes.SNIFFER_DIGGING),
@@ -231,7 +259,13 @@ function finishedDigging(): BehaviorControl {
     );
 }
 
-/** Java's `SnifferAi.FeelingHappy`: the animation after a successful dig. */
+/**
+ * Java's `SnifferAi.FeelingHappy`: the animation after a successful dig.
+ *
+ * @javaSource SnifferAi$FeelingHappy.canStillUse
+ * @javaSource SnifferAi$FeelingHappy.start
+ * @javaSource SnifferAi$FeelingHappy.stop
+ */
 function feelingHappy(): BehaviorControl {
     const hooks: BehaviorHooks = {
         canStillUse: () => true,
@@ -243,7 +277,14 @@ function feelingHappy(): BehaviorControl {
     });
 }
 
-/** Java's `SnifferAi.Scenting`: the idle sniff, which leads nowhere. */
+/**
+ * Java's `SnifferAi.Scenting`: the idle sniff, which leads nowhere.
+ *
+ * @javaSource SnifferAi$Scenting.checkExtraStartConditions
+ * @javaSource SnifferAi$Scenting.canStillUse
+ * @javaSource SnifferAi$Scenting.start
+ * @javaSource SnifferAi$Scenting.stop
+ */
 function scenting(): BehaviorControl {
     const hooks: BehaviorHooks = {
         checkExtraStartConditions: (context) => !context.body.brain.hasMemoryValue(MemoryModuleTypes.TEMPTING_PLAYER),

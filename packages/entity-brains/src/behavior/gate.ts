@@ -42,10 +42,18 @@ export class ShufflingList<Item> {
     }
 }
 
-/** Java's `GateBehavior.OrderPolicy`. */
+/**
+ * Java's `GateBehavior.OrderPolicy`.
+ *
+ * @javaSource GateBehavior$OrderPolicy.$VALUES
+ */
 export type OrderPolicy = 'ordered' | 'shuffled';
 
-/** Java's `GateBehavior.RunningPolicy`. */
+/**
+ * Java's `GateBehavior.RunningPolicy`.
+ *
+ * @javaSource GateBehavior$RunningPolicy.$VALUES
+ */
 export type RunningPolicy = 'run_one' | 'try_all';
 
 /** One entry of a gate's list. */
@@ -180,6 +188,8 @@ export type WeightedTrigger = readonly [trigger: Trigger, weight: number];
  * The difference from {@link GateBehavior} is that the result is a single {@link OneShot}: the
  * triggers fire inside one tick and nothing stays running, so the gate never occupies a priority
  * slot across ticks.
+ *
+ * @javaSource TriggerGate.triggerGate
  */
 export function triggerGate(
     behaviors: readonly WeightedTrigger[],
@@ -203,7 +213,11 @@ export function triggerGate(
     });
 }
 
-/** Java's `TriggerGate.triggerOneShuffled`. */
+/**
+ * Java's `TriggerGate.triggerOneShuffled`.
+ *
+ * @javaSource TriggerGate.triggerOneShuffled
+ */
 export function triggerOneShuffled(behaviors: readonly WeightedTrigger[]): OneShot {
     return triggerGate(behaviors, 'shuffled', 'run_one');
 }

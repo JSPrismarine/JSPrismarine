@@ -54,7 +54,11 @@ export const AXOLOTL = {
 
 const inWater = (body: { conditions: ReadonlySet<string> }): boolean => body.conditions.has(EntityCondition.IN_WATER);
 
-/** Java's `AxolotlAi.getSpeedModifier`, and the two variants that only differ in the water value. */
+/**
+ * Java's `AxolotlAi.getSpeedModifier`, and the two variants that only differ in the water value.
+ *
+ * @javaSource AxolotlAi.getSpeedModifier
+ */
 export function axolotlSpeed(body: { conditions: ReadonlySet<string> }, inWaterSpeed: number): number {
     return inWater(body) ? inWaterSpeed : AXOLOTL.speedOnLand;
 }
@@ -126,6 +130,8 @@ function idleActivity(): ActivityData {
 /**
  * Java's `AxolotlAi.canSetWalkTargetFromLookTarget`: only walk towards a look target that is in
  * the same medium the axolotl is already in, so it does not beach itself chasing something.
+ *
+ * @javaSource AxolotlAi.canSetWalkTargetFromLookTarget
  */
 function canSetWalkTargetFromLookTarget(body: BrainMob, context: BrainContext): boolean {
     const lookTarget = body.brain.getMemory(MemoryModuleTypes.LOOK_TARGET);
@@ -242,6 +248,8 @@ export const AXOLOTL_BRAIN: BrainMobDefinition = {
     /**
      * Java's `AxolotlAi.updateActivity`, which has two twists: an axolotl already playing dead is
      * left alone entirely, and leaving `fight` stamps a 2400-tick hunting cooldown.
+     *
+     * @javaSource AxolotlAi.updateActivity
      */
     updateActivity: (context) => {
         const brain = context.body.brain;

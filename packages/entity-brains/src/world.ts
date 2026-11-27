@@ -26,13 +26,21 @@ export interface EntityDimensions {
     readonly height: number;
 }
 
-/** An axis-aligned query box, with strict overlap matching Java's `AABB.intersects`. */
+/**
+ * An axis-aligned query box, with strict overlap matching Java's `AABB.intersects`.
+ *
+ * @javaSee AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z
+ */
 export interface EntityBounds {
     readonly min: Vec3;
     readonly max: Vec3;
 }
 
-/** Java's `Entity.getBoundingBox().inflate(amount)`. */
+/**
+ * Java's `Entity.getBoundingBox().inflate(amount)`.
+ *
+ * @javaSource Entity.getBoundingBox
+ */
 export const inflatedEntityBounds = (position: Vec3, dimensions: EntityDimensions, amount: number): EntityBounds => ({
     min: {
         x: position.x - dimensions.width / 2 - amount,
@@ -46,7 +54,11 @@ export const inflatedEntityBounds = (position: Vec3, dimensions: EntityDimension
     }
 });
 
-/** Whether an entity's box strictly intersects a query box, as Java's `AABB.intersects` does. */
+/**
+ * Whether an entity's box strictly intersects a query box, as Java's `AABB.intersects` does.
+ *
+ * @javaSource AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z
+ */
 export const entityIntersectsBounds = (position: Vec3, dimensions: EntityDimensions, bounds: EntityBounds): boolean => {
     const halfWidth = dimensions.width / 2;
     return (
@@ -327,11 +339,15 @@ export interface BrainWorld {
     /**
      * Java's `TargetingConditions.forNonCombat()` test: close enough, visible, and not excluded.
      * Sensors call this for a look or follow target.
+     *
+     * @javaSee TargetingConditions.forNonCombat
      */
     isTargetable(body: BrainEntity, target: BrainEntity): boolean;
     /**
      * Java's `TargetingConditions.forCombat()` test, which adds `Mob::canAttack` and the difficulty
      * and game mode rules on top of {@link BrainWorld.isTargetable}.
+     *
+     * @javaSee TargetingConditions.forCombat
      */
     isAttackable(body: BrainEntity, target: BrainEntity): boolean;
     /** Java's `Mob::isWithinMeleeAttackRange`. */
@@ -344,7 +360,11 @@ export interface BrainWorld {
     blockTagsAt(pos: BlockPos): ReadonlySet<string>;
     /** Whether the door at a position stands open, either half, or undefined where no door is. */
     isDoorOpen?(pos: BlockPos): boolean | undefined;
-    /** Opens or closes the door at a position, either half, Java's `DoorBlock.setOpen`. */
+    /**
+     * Opens or closes the door at a position, either half, Java's `DoorBlock.setOpen`.
+     *
+     * @javaSee DoorBlock.setOpen
+     */
     setDoorOpen?(pos: BlockPos, open: boolean, source: BrainEntity): void;
     /**
      * Java's `Level::findBlocksInBoxByManhattanDistance`: the nearest block in the box around
@@ -380,7 +400,11 @@ export interface BrainWorld {
     villagerRaidState(body: BrainMob): VillagerRaidState | undefined;
     /** Performs a world-owned effect requested by a villager raid behavior. */
     villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void;
-    /** Restocks a villager's trades, as Java's `Villager.restock` does once it works at its job site. */
+    /**
+     * Restocks a villager's trades, as Java's `Villager.restock` does once it works at its job site.
+     *
+     * @javaSee Villager.restock
+     */
     villagerRestock(body: BrainMob): void;
     /** Where a farmer has farming to do near itself, or undefined when there is none. */
     villagerWorkSpot(body: BrainMob, task: 'harvest_farmland' | 'use_bonemeal'): BlockPos | undefined;
@@ -408,6 +432,8 @@ export interface BrainWorld {
     /**
      * Java's `ServerLevel.getEntity`: the living entity or player the level holds under an id,
      * wherever it stands, or undefined for one it no longer holds.
+     *
+     * @javaSee ServerLevel.getEntity
      */
     entityById?(id: string): BrainEntity | undefined;
 }
@@ -441,6 +467,7 @@ export function distanceManhattan(a: BlockPos, b: BlockPos): number {
  * @param center - The block at the center of the search.
  * @param xzRange - The horizontal extent in both x and z.
  * @param yRange - The vertical extent.
+ * @javaSource BlockPos.withinBoxByManhattanDistance
  */
 export function* blockPositionsInManhattanOrder(
     center: BlockPos,
@@ -462,12 +489,20 @@ export function* blockPositionsInManhattanOrder(
     }
 }
 
-/** Java's `BlockPos.containing`: the block a position falls inside. */
+/**
+ * Java's `BlockPos.containing`: the block a position falls inside.
+ *
+ * @javaSource BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;
+ */
 export function blockContaining(position: Vec3): BlockPos {
     return { x: Math.floor(position.x), y: Math.floor(position.y), z: Math.floor(position.z) };
 }
 
-/** Java's `Vec3.atBottomCenterOf`: the center of a block's bottom face. */
+/**
+ * Java's `Vec3.atBottomCenterOf`: the center of a block's bottom face.
+ *
+ * @javaSource Vec3.atBottomCenterOf
+ */
 export function bottomCenterOf(pos: BlockPos): Vec3 {
     return { x: pos.x + 0.5, y: pos.y, z: pos.z + 0.5 };
 }

@@ -42,7 +42,11 @@ export const ALLAY = {
     noteblockRememberDistance: 1024
 } as const;
 
-/** Java's `AllayAi.hearNoteblock`: remembers the block and refreshes the 600-tick cooldown. */
+/**
+ * Java's `AllayAi.hearNoteblock`: remembers the block and refreshes the 600-tick cooldown.
+ *
+ * @javaSource AllayAi.hearNoteblock
+ */
 export function hearNoteblock(context: BrainContext, pos: { x: number; y: number; z: number }): void {
     const brain = context.body.brain;
     const liked = brain.getMemory(MemoryModuleTypes.LIKED_NOTEBLOCK_POSITION);
@@ -64,6 +68,8 @@ export function hearNoteblock(context: BrainContext, pos: { x: number; y: number
  * Java's `AllayAi.getItemDepositPosition`: the block above the liked note block, or the liked
  * player, and nothing when neither is valid. The note block memory is erased when the block is
  * gone, out of range or the cooldown ran out.
+ *
+ * @javaSource AllayAi.getItemDepositPosition
  */
 export function itemDepositPosition(context: BrainContext): ReturnType<typeof blockPosTracker> | undefined {
     const brain = context.body.brain;

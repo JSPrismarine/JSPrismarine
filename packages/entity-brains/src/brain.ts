@@ -35,7 +35,11 @@ export interface ActivityData {
     readonly memoriesToEraseWhenStopped: readonly MemoryModuleType<unknown>[];
 }
 
-/** Java's `ActivityData.createPriorityPairs`: numbers a behavior list from `first` upward. */
+/**
+ * Java's `ActivityData.createPriorityPairs`: numbers a behavior list from `first` upward.
+ *
+ * @javaSource ActivityData.createPriorityPairs
+ */
 export function prioritized(first: number, behaviors: readonly BehaviorControl[]): readonly PrioritizedBehavior[] {
     return behaviors.map((behavior, index) => [first + index, behavior] as const);
 }
@@ -66,7 +70,11 @@ export function activityData(
     };
 }
 
-/** Java's `Brain.SCHEDULE_UPDATE_DELAY`. */
+/**
+ * Java's `Brain.SCHEDULE_UPDATE_DELAY`.
+ *
+ * @javaSource Brain.SCHEDULE_UPDATE_DELAY
+ */
 const SCHEDULE_UPDATE_DELAY = 20;
 
 /**
@@ -208,6 +216,8 @@ export class Brain {
     /**
      * Java's `Brain.checkMemory`. An unregistered memory fails every status, including
      * `registered`, which is what makes a brain ignore a behavior whose memories it never declared.
+     *
+     * @javaSource Brain.checkMemory
      */
     public checkMemory(memory: MemoryModuleType<unknown>, status: MemoryStatus): boolean {
         const slot = this.slot(memory);
@@ -229,7 +239,11 @@ export class Brain {
         return this.slot(memory)?.value();
     }
 
-    /** Whether the memory holds exactly this value, Java's `Brain.isMemoryValue`. */
+    /**
+     * Whether the memory holds exactly this value, Java's `Brain.isMemoryValue`.
+     *
+     * @javaSource Brain.isMemoryValue
+     */
     public isMemoryValue<Value>(memory: MemoryModuleType<Value>, value: Value): boolean {
         return this.slot(memory)?.value() === value;
     }
