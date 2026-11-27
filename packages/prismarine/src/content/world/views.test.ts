@@ -250,6 +250,17 @@ describe('the content world views', () => {
         expect(actions.propertiesOf('minecraft:nothing_declared_this').friction).toBeCloseTo(0.6);
     });
 
+    it("answers Java's solid flag for a block that is not a full cube", () => {
+        const { adapter } = stubWorld();
+        const actions = contentFor(adapter).world.blockWorld.at('minecraft:overworld');
+        const at = { x: 0, y: 0, z: 0 };
+        const dimension = 'minecraft:overworld';
+        const slab = { identifier: 'minecraft:normal_stone_slab', position: at, dimension, states: {} };
+
+        expect(actions.isSolid?.(slab)).toBe(true);
+        expect(actions.isSolid?.({ identifier: 'minecraft:portal', position: at, dimension, states: {} })).toBe(false);
+    });
+
     it('answers the light engine out of the flattened block table', () => {
         const { adapter } = stubWorld();
         const content = contentFor(adapter);

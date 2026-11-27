@@ -22,6 +22,7 @@ import {
     AIR,
     hasSturdyTopFace as engineHasSturdyTopFace,
     isFullCube as engineIsFullCube,
+    isSolid as engineIsSolid,
     TICK_PRIORITIES
 } from '@jsprismarine/engine-systems';
 import type { BlockRef, WorldAccess } from '@jsprismarine/engine-systems';
@@ -255,6 +256,8 @@ const blockActionsOf = (
             liquidReactionOf(content(), block, adapter.level.fluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT),
         hasSturdyTopFace: (block) => engineHasSturdyTopFace(engineWorld.getBlock(block.position)),
         isFullCube: (block) => engineIsFullCube(engineWorld.getBlock(block.position)),
+        // Java's legacy solid flag, which a new fluid source asks of the block below it.
+        isSolid: (block) => engineIsSolid({ name: block.identifier, states: block.states }),
         faceOccludes: (block, neighbor, face) => faceOccludesIn(content().blocks.types, block, neighbor, face),
         fluidSourceConversion: (kind) => {
             const value = adapter.level.gameRule(kind === 'water' ? WATER_SOURCE_CONVERSION : LAVA_SOURCE_CONVERSION);
