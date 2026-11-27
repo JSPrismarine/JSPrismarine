@@ -153,6 +153,26 @@ tick.
 | `dripstone` | Pointed dripstone's tip direction, column thickness and falling stalactites |
 | `portal` | Java's `PortalShape` frame scan, the end portal frame ring, where a new nether portal goes and what it writes, the End platform, and the piglin spawn roll |
 
+## Fluid spread against Java
+
+`rules/fluid.ts` copies Java's `FlowingFluid.getSpread`: which sides water and lava flow to, and
+what each side receives, with the slope search and the rules it calls. `rules/fluidSpread.test.ts`
+compares the copy with answers Java computed. `utils/oracle/` compiles a small Java program
+against the pinned server jar. It runs the real `getSpread` over a set of small layouts, each
+with a water or lava block at the origin, and writes the answers to
+`vectors/<release>/fluid-spread.json`.
+
+The dump also records what a host tells the rule through `WorldActions` about each block state
+the layouts use: whether it is a full cube, whether it is solid, whether fluids wash it away,
+whether it holds water, and which neighboring pairs close the face between them. The test builds
+each layout in the voxel world with a host that gives those answers, runs one flow step, and
+checks that it writes the fluid states Java chose. So the test checks the rule, and a host's own
+shape tables are the parity suite's to check.
+
+Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vectors`, adding
+`-- --java <release>` for a pinned release other than the default. The command prepares the
+pinned jar and needs the JDK the jar's `version.json` declares.
+
 ## Values come from the block
 
 Where a behavior needs a number, it reads it off the block rather than carrying its own copy.
