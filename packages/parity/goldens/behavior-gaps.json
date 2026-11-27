@@ -2794,11 +2794,6 @@
             "reason": "BlockTags.DOORS changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/data/poi.ts then.",
             "reference": "Java 26.4-pre-1"
         },
-        "preview:BlockTags.MOB_INTERACTABLE_DOORS": {
-            "kind": "deferred",
-            "reason": "BlockTags.MOB_INTERACTABLE_DOORS changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-brains/src/behavior/common.ts then.",
-            "reference": "Java 26.4-pre-1"
-        },
         "preview:BubbleColumnBlock.getFluidState": {
             "kind": "deferred",
             "reason": "BubbleColumnBlock.getFluidState changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/data/EntityRuntime.ts then.",
@@ -3157,11 +3152,6 @@
         "preview:TrapDoorBlock.getStateForPlacement": {
             "kind": "deferred",
             "reason": "TrapDoorBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/openable.ts then.",
-            "reference": "Java 26.4-pre-1"
-        },
-        "preview:Villager.BRAIN_PROVIDER": {
-            "kind": "deferred",
-            "reason": "Villager.BRAIN_PROVIDER changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-brains/src/mobs/villager.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:WallHangingSignBlock.getStateForPlacement": {
