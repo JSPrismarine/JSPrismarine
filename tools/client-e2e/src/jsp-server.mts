@@ -248,6 +248,10 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  *   loads as world packs, as an installed addon is. The server loads a built copy in its folder.
  * @param options.addonConfigs - The config file of each addon, by name.
  * @param options.keepAliveInterval - The server's `keep-alive-interval`, in seconds.
+ * @param options.files - Files written into the server's folder before it starts, by path relative
+ *   to it, such as an `.mcpack` under `addons/` that the server installs as it boots.
+ * @param options.config - Config entries written over the harness's own, for a setting no other
+ *   option covers.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -274,6 +278,10 @@ export const startServer = async (
         javaPort?: number;
         /** The server's `keep-alive-interval`, in seconds. */
         keepAliveInterval?: number;
+        /** Files written into the server's folder before it starts, by path relative to it. */
+        files?: Readonly<Record<string, Uint8Array>>;
+        /** Config entries written over the harness's own. */
+        config?: Readonly<Record<string, unknown>>;
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -764,9 +772,16 @@ export const startServer = async (
         ...(options.worldgenSpawn === true ? { 'chunk-workers': Math.max(2, chunkWorkerCount()) } : {}),
         'max-players': 4,
         motd: 'JSPrismarine e2e',
-        'packet-full-flush-fragments': process.env.JSP_E2E_FULL_FLUSH_FRAGMENTS === '1'
+        'packet-full-flush-fragments': process.env.JSP_E2E_FULL_FLUSH_FRAGMENTS === '1',
+        ...options.config
     };
     fs.writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
+    for (const [relative, data] of Object.entries(options.files ?? {})) {
+        const file = path.resolve(dir, relative);
+        if (path.relative(dir, file).startsWith('..')) throw new Error(`server file ${relative} is outside ${dir}`);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, data);
+    }
 
     const serverPackage = path.join(repoRoot, 'packages', 'server');
     const entryMode = process.env.JSP_E2E_SERVER_ENTRY ?? 'source';
