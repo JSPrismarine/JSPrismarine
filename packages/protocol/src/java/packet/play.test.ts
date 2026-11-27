@@ -5,7 +5,15 @@ import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } fr
 import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import {
     BlockChangedAck,
+    ChangeDifficulty,
     ClearTitles,
+    ForgetLevelChunk,
+    SetChunkCacheRadius,
+    SetDefaultSpawnPosition,
+    SetSimulationDistance,
+    SetTime,
+    TickingState,
+    TickingStep,
     ClientCommand,
     ClientCommandAction,
     BlockUpdate,
@@ -568,5 +576,43 @@ describe('the HUD packets', () => {
 
         expect(bodyOf(PlayerInfoUpdateGameMode, update)).toEqual([0x04, 1, ...new Array(15).fill(0), 2, 3]);
         expect(roundTrip(PlayerInfoUpdateGameMode, update)).toEqual(update);
+    });
+});
+
+describe('the world state packets', () => {
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
+    const bodyOf = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => [
+        ...encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value).subarray(idOf(definition).length)
+    ];
+
+    it('writes the time as the game time, then each clock as its id, its ticks, its partial tick and its rate', () => {
+        const time = { gameTime: 300n, clocks: [{ clock: 0, totalTicks: 18_000n, partialTick: 0, rate: 1 }] };
+
+        expect(bodyOf(SetTime, time)).toEqual([
+            0, 0, 0, 0, 0, 0, 0x01, 0x2c, 1, 0, 0xd0, 0x8c, 0x01, 0, 0, 0, 0, 0x3f, 0x80, 0, 0
+        ]);
+        expect(roundTrip(SetTime, time)).toEqual(time);
+    });
+
+    it('writes a forgotten chunk as the packed position vanilla reads, z first', () => {
+        expect(bodyOf(ForgetLevelChunk, { x: 1, z: -1 })).toEqual([0xff, 0xff, 0xff, 0xff, 0, 0, 0, 1]);
+        expect(roundTrip(ForgetLevelChunk, { x: -3, z: 7 })).toEqual({ x: -3, z: 7 });
+    });
+
+    it('reads back the spawn, the difficulty, the distances and the ticking state as written', () => {
+        const spawn = { dimension: 'minecraft:overworld', position: { x: 8, y: 64, z: -8 }, yaw: 90, pitch: 0 };
+
+        expect(roundTrip(SetDefaultSpawnPosition, spawn)).toEqual(spawn);
+        expect(bodyOf(ChangeDifficulty, { difficulty: 3, locked: false })).toEqual([3, 0]);
+        expect(roundTrip(SetChunkCacheRadius, { radius: 12 })).toEqual({ radius: 12 });
+        expect(roundTrip(SetSimulationDistance, { distance: 12 })).toEqual({ distance: 12 });
+        expect(bodyOf(TickingState, { tickRate: 20, frozen: true })).toEqual([0x41, 0xa0, 0, 0, 1]);
+        expect(roundTrip(TickingState, { tickRate: 20, frozen: true })).toEqual({ tickRate: 20, frozen: true });
+        expect(roundTrip(TickingStep, { steps: 40 })).toEqual({ steps: 40 });
     });
 });

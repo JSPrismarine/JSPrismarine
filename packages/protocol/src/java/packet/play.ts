@@ -116,6 +116,18 @@ export const GameEvent = defineJavaPacket('Game Event', 'play/clientbound/game_e
 /** The `Game Event` that tells a joining client to wait for chunks around it before showing the world. */
 export const START_WAITING_FOR_LEVEL_CHUNKS = 13;
 
+/** `Game Event` 1: rain begins, at no strength until a rain level follows. */
+export const START_RAINING = 1;
+
+/** `Game Event` 2: rain ends. */
+export const STOP_RAINING = 2;
+
+/** `Game Event` 7: how hard it rains, 0 to 1. */
+export const RAIN_LEVEL_CHANGE = 7;
+
+/** `Game Event` 8: how hard it storms, 0 to 1. */
+export const THUNDER_LEVEL_CHANGE = 8;
+
 /**
  * `Set Center Chunk` (clientbound): the chunk the client's view is centered on.
  * @javaSource ClientboundSetChunkCacheCenterPacket.STREAM_CODEC
@@ -1112,3 +1124,96 @@ export const ResetScore = defineJavaPacket('Reset Score', 'play/clientbound/rese
     owner: javaString(32_767),
     objective: optional(javaString(32_767))
 });
+
+/** One world clock's state, as vanilla's `ClockNetworkState` writes it. */
+const clockState = record({
+    /** The clock's network id: its index in the `minecraft:world_clock` registry. */
+    clock: varInt,
+    totalTicks: varLong,
+    partialTick: float,
+    /** How many of its ticks the clock moves a game tick: 1 while it runs, 0 while it is held. */
+    rate: float
+});
+
+/**
+ * `Update Time` (clientbound): the game time, then the world clocks that changed, which draw the
+ * sun, the moon and the sky. The clocks are a map from clock to state, written as a count and its
+ * entries.
+ * @javaSource ClientboundSetTimePacket.STREAM_CODEC
+ */
+export const SetTime = defineJavaPacket('Update Time', 'play/clientbound/set_time', {
+    gameTime: long,
+    clocks: list(clockState)
+});
+
+/**
+ * `Set Default Spawn Position` (clientbound): the world's spawn, which a compass points to.
+ * @javaSource ClientboundSetDefaultSpawnPositionPacket.STREAM_CODEC
+ */
+export const SetDefaultSpawnPosition = defineJavaPacket(
+    'Set Default Spawn Position',
+    'play/clientbound/set_default_spawn_position',
+    { dimension: identifier, position: blockPosition, yaw: float, pitch: float }
+);
+
+/** Difficulties, by vanilla's `Difficulty` ids, which Bedrock numbers the same way. */
+export enum JavaDifficulty {
+    Peaceful = 0,
+    Easy = 1,
+    Normal = 2,
+    Hard = 3
+}
+
+/**
+ * `Change Difficulty` (clientbound): the difficulty the options screen shows, and whether it is
+ * locked.
+ * @javaSource ClientboundChangeDifficultyPacket.STREAM_CODEC
+ */
+export const ChangeDifficulty = defineJavaPacket('Change Difficulty', 'play/clientbound/change_difficulty', {
+    difficulty: varInt,
+    locked: bool
+});
+
+/**
+ * `Unload Chunk` (clientbound): a chunk the client drops. The position is vanilla's packed
+ * `ChunkPos`, a long whose high half is z and low half x, so z comes first on the wire.
+ * @javaSource ClientboundForgetLevelChunkPacket.STREAM_CODEC
+ */
+export const ForgetLevelChunk = defineJavaPacket('Unload Chunk', 'play/clientbound/forget_level_chunk', {
+    z: int,
+    x: int
+});
+
+/**
+ * `Set Render Distance` (clientbound): the radius of chunks the client keeps.
+ * @javaSource ClientboundSetChunkCacheRadiusPacket.STREAM_CODEC
+ */
+export const SetChunkCacheRadius = defineJavaPacket('Set Render Distance', 'play/clientbound/set_chunk_cache_radius', {
+    radius: varInt
+});
+
+/**
+ * `Set Simulation Distance` (clientbound): the radius of chunks the client simulates.
+ * @javaSource ClientboundSetSimulationDistancePacket.STREAM_CODEC
+ */
+export const SetSimulationDistance = defineJavaPacket(
+    'Set Simulation Distance',
+    'play/clientbound/set_simulation_distance',
+    { distance: varInt }
+);
+
+/**
+ * `Set Ticking State` (clientbound): the ticks per second the client runs at, and whether the game
+ * is frozen.
+ * @javaSource ClientboundTickingStatePacket.STREAM_CODEC
+ */
+export const TickingState = defineJavaPacket('Set Ticking State', 'play/clientbound/ticking_state', {
+    tickRate: float,
+    frozen: bool
+});
+
+/**
+ * `Step Tick` (clientbound): how many ticks a frozen game runs, 0 to end a step.
+ * @javaSource ClientboundTickingStepPacket.STREAM_CODEC
+ */
+export const TickingStep = defineJavaPacket('Step Tick', 'play/clientbound/ticking_step', { steps: varInt });
