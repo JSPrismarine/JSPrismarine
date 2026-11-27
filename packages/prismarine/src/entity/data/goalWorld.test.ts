@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { DataEntity } from './DataEntity';
-import { goalWorldOf } from './goalWorld';
+import { PLAYER_BOX } from './facts';
+import { goalWorldOf, playerGoalMob } from './goalWorld';
 import type { EntityFixture, ExtraEntities } from './testing';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { carriedOf, give, heldOf } from '../../testing/mobSlots.test-utils';
@@ -196,6 +197,18 @@ describe('the goal world over the entity runtime', () => {
             expect(fixture.runtime.ridersOf(mount.body).map((seated) => seated.id)).toEqual([rider?.id]);
             expect(entity?.body.inventory.equipment('head')?.getName()).toBe('minecraft:iron_helmet');
             expect(entity?.body.velocity.x).toBe(0.5);
+        });
+    });
+
+    describe('hitboxes', () => {
+        it("gives each mob and player its collision box, which the dragon's wings strike by", () => {
+            const fixture = fixtureOf();
+            const mob = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            spawned(fixture, 'jsprismarine:pet', groundAt(2, 0));
+            const [other] = goalWorldOf(mob.body, fixture.runtime).mobs(8);
+
+            expect(other?.size?.()).toEqual(mobBase['minecraft:collision_box']);
+            expect(playerGoalMob(7, 'minecraft:player', groundAt(0, 0)).size?.()).toEqual(PLAYER_BOX);
         });
     });
 

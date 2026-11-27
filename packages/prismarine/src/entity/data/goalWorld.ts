@@ -22,6 +22,7 @@ import { isDay } from '../../world/DayCycle';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
+import { PLAYER_BOX } from './facts';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
 import { countIn, identifiersIn } from './mobInventory';
@@ -116,6 +117,7 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
             return isShareablesParams(rules) ? rules : undefined;
         },
         health: () => entity.instance.attributes.get('health')?.current,
+        size: () => entity.facts.box,
         // Through `mobById` rather than `byId`, because a target is as often a player as a mob
         // and the two live in different indexes.
         target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
@@ -587,7 +589,8 @@ export const playerGoalMob = (
             id: () => id,
             names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : name === 'has_tag' ? tags : undefined)
         },
-    identifier: () => identifier
+    identifier: () => identifier,
+    size: () => PLAYER_BOX
 });
 
 /** One item stack lying in the world, as the pickup goals read it. */
