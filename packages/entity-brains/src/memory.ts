@@ -37,7 +37,11 @@ export interface BrainDamageSource {
     readonly entity?: BrainEntity;
 }
 
-/** Java's `SpearAttack.SpearStatus`, the piglin spear state machine. */
+/**
+ * Java's `SpearAttack.SpearStatus`, the piglin spear state machine.
+ *
+ * @javaSource SpearAttack$SpearStatus.$VALUES
+ */
 export type SpearStatus = 'charging' | 'engaging' | 'retreating';
 
 /**
@@ -55,7 +59,11 @@ export interface NearestVisibleLivingEntities {
     contains(entity: BrainEntity): boolean;
 }
 
-/** An empty {@link NearestVisibleLivingEntities}, Java's `NearestVisibleLivingEntities.empty()`. */
+/**
+ * An empty {@link NearestVisibleLivingEntities}, Java's `NearestVisibleLivingEntities.empty()`.
+ *
+ * @javaSource NearestVisibleLivingEntities.empty
+ */
 export const NO_VISIBLE_ENTITIES: NearestVisibleLivingEntities = {
     findClosest: () => undefined,
     findAll: () => [],
@@ -103,7 +111,11 @@ export type MemoryStatus = 'value_present' | 'value_absent' | 'registered';
  * never expire, which is what {@link MemorySlot.set} without a time to live stores.
  */
 export class MemorySlot<Value> {
-    /** Java's `MemorySlot.NEVER_EXPIRE`, `Long.MAX_VALUE`. */
+    /**
+     * Java's `MemorySlot.NEVER_EXPIRE`, `Long.MAX_VALUE`.
+     *
+     * @javaSource MemorySlot.NEVER_EXPIRE
+     */
     public static readonly NEVER_EXPIRE = Number.MAX_SAFE_INTEGER;
 
     private storedValue: Value | undefined = undefined;

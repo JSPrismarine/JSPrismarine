@@ -51,6 +51,8 @@ export const ZOGLIN = {
  *
  * Creepers are excluded by name, not by tag: a zoglin that could attack creepers would blow up
  * every nether portal it guards.
+ *
+ * @javaSource Zoglin.findNearestValidAttackTarget
  */
 function findNearestValidAttackTarget(context: BrainContext): BrainEntity | undefined {
     return context.body.brain
@@ -103,6 +105,8 @@ export function zoglinActivities(): readonly ActivityData[] {
 /**
  * Java's `Zoglin.hurtServer`: a hurt zoglin turns on an attacker it may attack for 200 ticks,
  * unless that attacker stands much further away than the target it already has.
+ *
+ * @javaSource Zoglin.hurtServer
  */
 export function zoglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
     const { body } = context;

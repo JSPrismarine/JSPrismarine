@@ -28,12 +28,20 @@ export interface UniformInt {
     readonly max: number;
 }
 
-/** Builds a {@link UniformInt}. Java's `UniformInt.of`. */
+/**
+ * Builds a {@link UniformInt}. Java's `UniformInt.of`.
+ *
+ * @javaSource UniformInt.of
+ */
 export function uniformInt(min: number, max: number): UniformInt {
     return { min, max };
 }
 
-/** Java's `TimeUtil.rangeOfSeconds`. */
+/**
+ * Java's `TimeUtil.rangeOfSeconds`.
+ *
+ * @javaSource TimeUtil.rangeOfSeconds
+ */
 export function rangeOfSeconds(min: number, max: number): UniformInt {
     return { min: min * 20, max: max * 20 };
 }
@@ -48,12 +56,20 @@ export function has(entity: BrainEntity, condition: string): boolean {
     return entity.conditions.has(condition);
 }
 
-/** Java's `BehaviorUtils.isBreeding`: the mob is courting or has a breed target. */
+/**
+ * Java's `BehaviorUtils.isBreeding`: the mob is courting or has a breed target.
+ *
+ * @javaSource BehaviorUtils.isBreeding
+ */
 export function isBreeding(body: BrainMob): boolean {
     return body.brain.hasMemoryValue(MemoryModuleTypes.BREED_TARGET);
 }
 
-/** Java's `BehaviorUtils.setWalkAndLookTargetMemories`. */
+/**
+ * Java's `BehaviorUtils.setWalkAndLookTargetMemories`.
+ *
+ * @javaSource BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V
+ */
 export function setWalkAndLookTargets(
     body: BrainMob,
     target: WalkTarget['target'],
@@ -87,9 +103,17 @@ export function swim(chance: number): BehaviorControl {
     return new Behavior('Swim', conditions(), hooks);
 }
 
-/** Java's `AnimalPanic.PANIC_MIN_DURATION` and `PANIC_MAX_DURATION`. */
+/**
+ * Java's `AnimalPanic.PANIC_MIN_DURATION` and `PANIC_MAX_DURATION`.
+ *
+ * @javaSource AnimalPanic.PANIC_MIN_DURATION
+ */
 export const PANIC_DURATION = { minDuration: 100, maxDuration: 120 };
-/** Java's `AnimalPanic.PANIC_DISTANCE_HORIZONTAL` and `PANIC_DISTANCE_VERTICAL`. */
+/**
+ * Java's `AnimalPanic.PANIC_DISTANCE_HORIZONTAL` and `PANIC_DISTANCE_VERTICAL`.
+ *
+ * @javaSource AnimalPanic.PANIC_DISTANCE_HORIZONTAL
+ */
 export const PANIC_DISTANCE = { xzRange: 5, yRange: 4 };
 
 /** Options for {@link animalPanic}. */
@@ -192,7 +216,11 @@ export function lookAtTargetSink(minDuration: number, maxDuration: number): Beha
     });
 }
 
-/** Java's `MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING`. */
+/**
+ * Java's `MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING`.
+ *
+ * @javaSource MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING
+ */
 export const MOVE_TO_TARGET_SINK_MAX_RETRY_COOLDOWN = 40;
 
 /** Options for {@link moveToTargetSink}. */
@@ -411,10 +439,21 @@ export function randomLookAround(
     );
 }
 
-/** Java's `RandomStroll.MAX_XZ_DIST` and `MAX_Y_DIST`. */
+/**
+ * Java's `RandomStroll.MAX_XZ_DIST` and `MAX_Y_DIST`.
+ *
+ * @javaSource RandomStroll.MAX_XZ_DIST
+ */
 export const RANDOM_STROLL_RANGE = { xzRange: 10, yRange: 7 };
 
-/** Java's `RandomStroll.stroll`, `fly` and `swim`, which differ only in the draw and the guard. */
+/**
+ * Java's `RandomStroll.stroll`, `fly` and `swim`, which differ only in the draw and the guard.
+ *
+ * @javaSource RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;
+ * @javaSource RandomStroll.stroll(FII)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;
+ * @javaSource RandomStroll.fly
+ * @javaSource RandomStroll.swim
+ */
 export function randomStroll(
     speedModifier: number,
     medium: 'land' | 'air' | 'water' = 'land',
@@ -460,7 +499,11 @@ export function setWalkTargetFromLookTarget(
         });
 }
 
-/** Java's `SetWalkTargetAwayFrom.pos` and `.entity`, which differ only in how they read a position. */
+/**
+ * Java's `SetWalkTargetAwayFrom.pos` and `.entity`, which differ only in how they read a position.
+ *
+ * @javaSource SetWalkTargetAwayFrom.pos
+ */
 export function setWalkTargetAwayFrom<Value>(
     memory: MemoryModuleType<Value>,
     toPosition: (value: Value) => Vec3,
@@ -511,7 +554,11 @@ export function setWalkTargetAwayFrom<Value>(
         });
 }
 
-/** Finds the entity a mob should attack, or nothing. Java's `StartAttacking.TargetFinder`. */
+/**
+ * Finds the entity a mob should attack, or nothing. Java's `StartAttacking.TargetFinder`.
+ *
+ * @javaSee StartAttacking$TargetFinder.get
+ */
 export type TargetFinder = (context: BrainContext) => BrainEntity | undefined;
 
 /**
@@ -544,6 +591,8 @@ export function startAttacking(
 /**
  * Java's `BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget`: whether `other` stands
  * more than `buffer` blocks further, compared squared, than the attack target the mob already has.
+ *
+ * @javaSource BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget
  */
 export function isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(
     body: BrainMob,
@@ -558,7 +607,11 @@ export function isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(
     );
 }
 
-/** Java's `BehaviorUtils.getNearestTarget`: `other`, or `current` when that is nearer to the mob. */
+/**
+ * Java's `BehaviorUtils.getNearestTarget`: `other`, or `current` when that is nearer to the mob.
+ *
+ * @javaSource BehaviorUtils.getNearestTarget
+ */
 export function nearestTarget(body: BrainEntity, current: BrainEntity | undefined, other: BrainEntity): BrainEntity {
     if (current === undefined) return other;
     return distanceSquared(body.position, current.position) < distanceSquared(body.position, other.position)
@@ -570,6 +623,8 @@ export function nearestTarget(body: BrainEntity, current: BrainEntity | undefine
  * Java's `BehaviorUtils.getLivingEntityFromUUIDMemory`: the entity a remembered id names, looked
  * up in the level. A world that cannot look ids up answers from the living entities the mob last
  * sensed.
+ *
+ * @javaSource BehaviorUtils.getLivingEntityFromUUIDMemory
  */
 export function livingEntityFromIdMemory(
     context: BrainContext,
@@ -598,7 +653,11 @@ export function stopBeingAngryIfTargetDead(): BehaviorControl {
         });
 }
 
-/** Java's `StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE`. */
+/**
+ * Java's `StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE`.
+ *
+ * @javaSource StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE
+ */
 export const TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE = 200;
 
 /** Options for {@link stopAttackingIfTargetInvalid}. */
@@ -639,7 +698,11 @@ export function stopAttackingIfTargetInvalid(options: StopAttackingOptions = {})
         });
 }
 
-/** Java's `SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER`. */
+/**
+ * Java's `SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER`.
+ *
+ * @javaSource SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER
+ */
 export const PROJECTILE_ATTACK_RANGE_BUFFER = 1;
 
 /**
@@ -647,6 +710,9 @@ export const PROJECTILE_ATTACK_RANGE_BUFFER = 1;
  * range closer than the weapon's range less `cooldown`, and any other mob within melee reach.
  * @param projectileRange - Java's `ProjectileWeaponItem.getDefaultProjectileRange` for the weapon
  *   the mob holds and can fire, or undefined when it holds none it can fire.
+ *
+ * @javaSource BehaviorUtils.isWithinAttackRange
+ * @javaSee ProjectileWeaponItem.getDefaultProjectileRange
  */
 export function isWithinAttackRange(
     context: BrainContext,
@@ -810,9 +876,17 @@ export function babyFollowAdult(
         });
 }
 
-/** Java's `FollowTemptation.TEMPTATION_COOLDOWN`. */
+/**
+ * Java's `FollowTemptation.TEMPTATION_COOLDOWN`.
+ *
+ * @javaSource FollowTemptation.TEMPTATION_COOLDOWN
+ */
 export const TEMPTATION_COOLDOWN = 100;
-/** Java's `FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST` and `BACKED_UP_CLOSE_ENOUGH_DIST`. */
+/**
+ * Java's `FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST` and `BACKED_UP_CLOSE_ENOUGH_DIST`.
+ *
+ * @javaSource FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST
+ */
 export const TEMPTATION_CLOSE_ENOUGH = { default: 2.5, backedUp: 3.5 };
 
 /**
@@ -868,7 +942,11 @@ export function followTemptation(
     );
 }
 
-/** Java's `AnimalMakeLove.BREED_RANGE`, `MIN_DURATION` and `MAX_DURATION`. */
+/**
+ * Java's `AnimalMakeLove.BREED_RANGE`, `MIN_DURATION` and `MAX_DURATION`.
+ *
+ * @javaSource AnimalMakeLove.BREED_RANGE
+ */
 export const ANIMAL_MAKE_LOVE = { breedRange: 3, minDuration: 60, maxDuration: 110 };
 
 /**
@@ -1029,7 +1107,11 @@ export function strollToPoi(
         });
 }
 
-/** Java's `StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS`, `STROLL_MAX_XZ_DIST` and `STROLL_MAX_Y_DIST`. */
+/**
+ * Java's `StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS`, `STROLL_MAX_XZ_DIST` and `STROLL_MAX_Y_DIST`.
+ *
+ * @javaSource StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS
+ */
 export const STROLL_AROUND_POI = { minTimeBetweenStrolls: 180, xzRange: 8, yRange: 6 };
 
 /** Java's `StrollAroundPoi`: wanders near a point of interest, at most once every 180 ticks. */
@@ -1131,7 +1213,11 @@ const SKIP_CLOSING_DOOR_DISTANCE = 3;
 /** `InteractWithDoor.MAX_DISTANCE_TO_HOLD_DOOR_OPEN_FOR_OTHER_MOBS`. */
 const HOLD_DOOR_DISTANCE = 2;
 
-/** The doors a villager or piglin opens and closes, Java's `BlockTags.MOB_INTERACTABLE_DOORS`. */
+/**
+ * The doors a villager or piglin opens and closes, Java's `BlockTags.MOB_INTERACTABLE_DOORS`.
+ *
+ * @javaSource BlockTags.MOB_INTERACTABLE_DOORS
+ */
 const MOB_INTERACTABLE_DOORS = 'minecraft:mob_interactable_doors';
 
 const samePos = (a: BlockPos | undefined, b: BlockPos | undefined): boolean =>

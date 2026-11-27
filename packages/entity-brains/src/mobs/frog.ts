@@ -344,7 +344,11 @@ export const FROG_BRAIN: BrainMobDefinition = {
             ],
             activities: frogActivities()
         }),
-    /** Java's `FrogAi.initMemories`: the first long jump is one full interval away. */
+    /**
+     * Java's `FrogAi.initMemories`: the first long jump is one full interval away.
+     *
+     * @javaSource FrogAi.initMemories
+     */
     initMemories: (context) =>
         context.body.brain.setMemory(
             MemoryModuleTypes.LONG_JUMP_COOLDOWN_TICKS,

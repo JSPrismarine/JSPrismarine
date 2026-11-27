@@ -102,17 +102,29 @@ export const PIGLIN = {
     activityBasePriority: 10
 } as const;
 
-/** Java's `PiglinAi.isLovedItem`. */
+/**
+ * Java's `PiglinAi.isLovedItem`.
+ *
+ * @javaSource PiglinAi.isLovedItem
+ */
 export function isLovedItem(item: BrainItem): boolean {
     return item.tags.has(PIGLIN.lovedItemTag);
 }
 
-/** Java's `PiglinAi.isBarterCurrency`: exactly one item, the gold ingot. */
+/**
+ * Java's `PiglinAi.isBarterCurrency`: exactly one item, the gold ingot.
+ *
+ * @javaSource PiglinAi.isBarterCurrency
+ */
 export function isBarterCurrency(item: BrainItem): boolean {
     return item.id === PIGLIN.barterCurrency;
 }
 
-/** Java's `PiglinAi.isPlayerHoldingLovedItem`. */
+/**
+ * Java's `PiglinAi.isPlayerHoldingLovedItem`.
+ *
+ * @javaSource PiglinAi.isPlayerHoldingLovedItem
+ */
 export function isPlayerHoldingLovedItem(player: BrainEntity): boolean {
     return (
         (player.mainHandItem !== undefined && isLovedItem(player.mainHandItem)) ||
@@ -120,7 +132,11 @@ export function isPlayerHoldingLovedItem(player: BrainEntity): boolean {
     );
 }
 
-/** Java's `PiglinAi.isWearingSafeArmor`: any piece of gold armor makes a player safe. */
+/**
+ * Java's `PiglinAi.isWearingSafeArmor`: any piece of gold armor makes a player safe.
+ *
+ * @javaSource PiglinAi.isWearingSafeArmor
+ */
 export function isWearingGoldArmor(player: BrainEntity): boolean {
     return (player.armorItems ?? []).some((item) => item.tags.has('minecraft:piglin_safe_armor'));
 }
@@ -132,6 +148,8 @@ export function isWearingGoldArmor(player: BrainEntity): boolean {
  * picked up, a baby skips the items in `#minecraft:ignored_by_piglin_babies`, a gold ingot is
  * taken only when the off hand is free, food is taken only when the piglin has not eaten, and
  * anything else goes by whether it beats what the piglin already holds.
+ *
+ * @javaSource PiglinAi.wantsToPickup
  */
 export function wantsToPickUp(item: BrainItem, context: BrainContext): boolean {
     const body = context.body;
@@ -159,12 +177,20 @@ export function wantsToPickUp(item: BrainItem, context: BrainContext): boolean {
     return !isLovedItem(item) || isNotHoldingLovedItemInOffHand(body);
 }
 
-/** Java's `PiglinAi.isNotHoldingLovedItemInOffHand`. */
+/**
+ * Java's `PiglinAi.isNotHoldingLovedItemInOffHand`.
+ *
+ * @javaSource PiglinAi.isNotHoldingLovedItemInOffHand
+ */
 export function isNotHoldingLovedItemInOffHand(body: BrainMob): boolean {
     return body.offHandItem === undefined || !isLovedItem(body.offHandItem);
 }
 
-/** Java's `PiglinAi.canAdmire`: an adult that is not already admiring, offered a gold ingot. */
+/**
+ * Java's `PiglinAi.canAdmire`: an adult that is not already admiring, offered a gold ingot.
+ *
+ * @javaSource PiglinAi.canAdmire
+ */
 export function canAdmire(body: BrainMob, offered: BrainItem): boolean {
     return (
         !body.brain.hasMemoryValue(MemoryModuleTypes.ADMIRING_DISABLED) &&
@@ -182,6 +208,7 @@ export function canAdmire(body: BrainMob, offered: BrainItem): boolean {
  * the host's, and `onBarter` is where that lands.
  *
  * @param duration - How many ticks the admiration memory remains present.
+ * @javaSource PiglinAi.mobInteract
  */
 export function admireGoldItem(context: BrainContext, duration: number = PIGLIN.admireDuration): void {
     context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ADMIRING_ITEM, true, duration);
@@ -189,7 +216,11 @@ export function admireGoldItem(context: BrainContext, duration: number = PIGLIN.
     context.body.navigation.stop();
 }
 
-/** Java's `PiglinAi.setPiglinAngerTarget`: a 600-tick grudge, keyed by identity. */
+/**
+ * Java's `PiglinAi.setAngerTarget`: a 600-tick grudge, keyed by identity.
+ *
+ * @javaSource PiglinAi.setAngerTarget
+ */
 export function setPiglinAngerTarget(context: BrainContext, target: BrainEntity): void {
     if (!context.world.isAttackable(context.body, target)) {
         return;
@@ -201,10 +232,18 @@ export function setPiglinAngerTarget(context: BrainContext, target: BrainEntity)
 /** The entity types Java's `AbstractPiglin` covers: the piglin and the piglin brute. */
 const ABSTRACT_PIGLINS: ReadonlySet<string> = new Set(['minecraft:piglin', 'minecraft:piglin_brute']);
 
-/** Java's `AbstractPiglin.canHunt`: a piglin hunts hoglins, and `PiglinBrute.canHunt` is false. */
+/**
+ * Java's `AbstractPiglin.canHunt`: a piglin hunts hoglins, and `PiglinBrute.canHunt` is false.
+ *
+ * @javaSee AbstractPiglin.canHunt
+ */
 const canHunt = (entity: BrainEntity): boolean => entity.type === 'minecraft:piglin';
 
-/** Java's `PiglinAi.dontKillAnyMoreHoglinsForAWhile`: the 30 to 120 second hunt cooldown. */
+/**
+ * Java's `PiglinAi.dontKillAnyMoreHoglinsForAWhile`: the 30 to 120 second hunt cooldown.
+ *
+ * @javaSource PiglinAi.dontKillAnyMoreHoglinsForAWhile
+ */
 function dontKillAnyMoreHoglinsForAWhile(context: BrainContext): void {
     context.body.brain.setMemoryWithExpiry(
         MemoryModuleTypes.HUNTED_RECENTLY,
@@ -216,6 +255,8 @@ function dontKillAnyMoreHoglinsForAWhile(context: BrainContext): void {
 /**
  * Java's `PiglinAi.setAngerTarget`: the 600-tick grudge, and a piglin that turns on a hoglin waits
  * out its hunt cooldown.
+ *
+ * @javaSource PiglinAi.setAngerTarget
  */
 function setAngerTarget(context: BrainContext, target: BrainEntity): void {
     if (!context.world.isAttackable(context.body, target)) return;
@@ -226,6 +267,8 @@ function setAngerTarget(context: BrainContext, target: BrainEntity): void {
 /**
  * Java's `PiglinAi.broadcastAngerTarget`: every adult piglin nearby turns on the target unless the
  * grudge it already holds is nearer to it, and only a piglin that hunts turns on a hoglin.
+ *
+ * @javaSource PiglinAi.broadcastAngerTarget
  */
 function broadcastAngerTarget(context: BrainContext, target: BrainEntity): void {
     for (const piglin of context.body.brain.getMemory(MemoryModuleTypes.NEARBY_ADULT_PIGLINS) ?? []) {
@@ -244,6 +287,8 @@ function broadcastAngerTarget(context: BrainContext, target: BrainEntity): void 
 /**
  * Java's `PiglinAi.setAvoidTargetAndDontHuntForAWhile`: drop the grudge and the fight, and run
  * from the target.
+ *
+ * @javaSource PiglinAi.setAvoidTargetAndDontHuntForAWhile
  */
 function setAvoidTargetAndDontHuntForAWhile(context: BrainContext, target: BrainEntity): void {
     const { brain } = context.body;
@@ -261,6 +306,8 @@ function setAvoidTargetAndDontHuntForAWhile(context: BrainContext, target: Brain
 /**
  * Java's `PiglinAi.broadcastRetreat` and `retreatFromNearestTarget`: each piglin in sight runs from
  * the nearest of the target, the mob it already avoids and the one it already attacks.
+ *
+ * @javaSource PiglinAi.broadcastRetreat
  */
 function broadcastRetreat(context: BrainContext, target: BrainEntity): void {
     for (const piglin of context.body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ADULT_PIGLINS) ?? []) {
@@ -273,7 +320,11 @@ function broadcastRetreat(context: BrainContext, target: BrainEntity): void {
     }
 }
 
-/** Java's `PiglinAi.hoglinsOutnumberPiglins`: more adult hoglins in sight than piglins, itself included. */
+/**
+ * Java's `PiglinAi.hoglinsOutnumberPiglins`: more adult hoglins in sight than piglins, itself included.
+ *
+ * @javaSource PiglinAi.hoglinsOutnumberPiglins
+ */
 function hoglinsOutnumberPiglins(body: BrainMob): boolean {
     const piglins = (body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_PIGLIN_COUNT) ?? 0) + 1;
     const hoglins = body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_HOGLIN_COUNT) ?? 0;
@@ -285,6 +336,8 @@ function hoglinsOutnumberPiglins(body: BrainMob): boolean {
  * a hurt piglin takes a grudge against an attacker it may attack, and every adult piglin nearby
  * takes it too. An attacker much further away than its current target is ignored. The
  * `universalAnger` game rule's branch is not run, since no brain reads the game rules.
+ *
+ * @javaSource PiglinAi.maybeRetaliate
  */
 export function maybeRetaliate(context: BrainContext, attacker: BrainEntity): void {
     const { body, world } = context;
@@ -300,6 +353,8 @@ export function maybeRetaliate(context: BrainContext, attacker: BrainEntity): vo
  * admiring, and a player's blow keeps it from admiring for 400 ticks. A baby runs and calls the
  * adults on the attacker; an adult outnumbered by hoglins retreats from a hoglin with the piglins
  * it sees; otherwise it retaliates.
+ *
+ * @javaSource PiglinAi.wasHurtBy
  */
 export function piglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
     if (attacker.type === 'minecraft:piglin') return;
@@ -325,12 +380,20 @@ export function piglinWasHurtBy(context: BrainContext, attacker: BrainEntity): v
     maybeRetaliate(context, attacker);
 }
 
-/** Java's `PiglinBruteAi.wasHurtBy`: a brute retaliates against anything but another piglin. */
+/**
+ * Java's `PiglinBruteAi.wasHurtBy`: a brute retaliates against anything but another piglin.
+ *
+ * @javaSource PiglinBruteAi.wasHurtBy
+ */
 export function piglinBruteWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
     if (!ABSTRACT_PIGLINS.has(attacker.type)) maybeRetaliate(context, attacker);
 }
 
-/** Java's `PiglinAi.isNearZombified`: a zombified piglin within six blocks pacifies a piglin. */
+/**
+ * Java's `PiglinAi.isNearZombified`: a zombified piglin within six blocks pacifies a piglin.
+ *
+ * @javaSource PiglinAi.isNearZombified
+ */
 export function isNearZombified(body: BrainMob): boolean {
     const zombified = body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ZOMBIFIED);
     return (
@@ -340,11 +403,13 @@ export function isNearZombified(body: BrainMob): boolean {
 }
 
 /**
- * Java's `PiglinAi.findPiglinAttackTarget`.
+ * Java's `PiglinAi.findNearestValidAttackTarget`.
  *
  * The order is the whole of a piglin's hostility: nothing while near a zombified piglin, then the
  * grudge, then a player only when universal anger is on, then the nemesis, then a player not
  * wearing gold.
+ *
+ * @javaSource PiglinAi.findNearestValidAttackTarget
  */
 export function findPiglinAttackTarget(context: BrainContext): BrainEntity | undefined {
     const brain = context.body.brain;
@@ -371,12 +436,20 @@ export function findPiglinAttackTarget(context: BrainContext): BrainEntity | und
         : undefined;
 }
 
-/** Java's `PiglinAi.wantsToStopFleeing`: an adult with a visible ally stops running. */
+/**
+ * Java's `PiglinAi.wantsToStopFleeing`: an adult with a visible ally stops running.
+ *
+ * @javaSource PiglinAi.wantsToStopFleeing
+ */
 function wantsToStopFleeing(context: BrainContext): boolean {
     return !context.body.baby && (context.body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_PIGLIN_COUNT) ?? 0) > 0;
 }
 
-/** Java's `PiglinAi.avoidRepellent`. */
+/**
+ * Java's `PiglinAi.avoidRepellent`.
+ *
+ * @javaSource PiglinAi.avoidRepellent
+ */
 function avoidRepellent(): BehaviorControl {
     return setWalkTargetAwayFrom(
         MemoryModuleTypes.NEAREST_REPELLENT,
@@ -387,7 +460,11 @@ function avoidRepellent(): BehaviorControl {
     );
 }
 
-/** Java's `PiglinAi.babyAvoidNemesis`. */
+/**
+ * Java's `PiglinAi.babyAvoidNemesis`.
+ *
+ * @javaSource PiglinAi.babyAvoidNemesis
+ */
 function babyAvoidNemesis(): BehaviorControl {
     return copyMemoryWithExpiry(
         (body) => body.baby,
@@ -397,7 +474,11 @@ function babyAvoidNemesis(): BehaviorControl {
     );
 }
 
-/** Java's `PiglinAi.avoidZombified`. */
+/**
+ * Java's `PiglinAi.avoidZombified`.
+ *
+ * @javaSource PiglinAi.avoidZombified
+ */
 function avoidZombified(): BehaviorControl {
     return copyMemoryWithExpiry(
         isNearZombified,
@@ -550,7 +631,11 @@ function rememberIfHoglinWasKilled(): BehaviorControl {
         });
 }
 
-/** Java's `PiglinAi.babySometimesRideBabyHoglin`. */
+/**
+ * Java's `PiglinAi.babySometimesRideBabyHoglin`.
+ *
+ * @javaSource PiglinAi.babySometimesRideBabyHoglin
+ */
 function babySometimesRideBabyHoglin(): BehaviorControl {
     return copyMemoryWithExpiry(
         (body) => body.baby,
@@ -588,7 +673,11 @@ function mountRideTarget(): BehaviorControl {
         });
 }
 
-/** Java's `PiglinAi.createLookBehaviors`, shared by `idle` and `ride`. */
+/**
+ * Java's `PiglinAi.createLookBehaviors`, shared by `idle` and `ride`.
+ *
+ * @javaSource PiglinAi.createLookBehaviors
+ */
 function lookBehaviors(): readonly (readonly [BehaviorControl, number])[] {
     return [
         [setEntityLookTarget(ofType('minecraft:player'), PIGLIN.maxLookDist), 1],
@@ -597,12 +686,20 @@ function lookBehaviors(): readonly (readonly [BehaviorControl, number])[] {
     ];
 }
 
-/** Java's `PiglinAi.createIdleLookBehaviors`. */
+/**
+ * Java's `PiglinAi.createIdleLookBehaviors`.
+ *
+ * @javaSource PiglinAi.createIdleLookBehaviors
+ */
 function idleLookBehaviors(): RunOne {
     return new RunOne([...lookBehaviors(), [new DoNothing(30, 60), 1]]);
 }
 
-/** Java's `PiglinAi.createIdleMovementBehaviors`. */
+/**
+ * Java's `PiglinAi.createIdleMovementBehaviors`.
+ *
+ * @javaSource PiglinAi.createIdleMovementBehaviors
+ */
 function idleMovementBehaviors(): RunOne {
     return new RunOne([
         [randomStroll(PIGLIN.speedWhenIdling), 2],
@@ -699,7 +796,11 @@ function fightActivity(): ActivityData {
     );
 }
 
-/** Java's `PiglinAi.hasCrossbow`. */
+/**
+ * Java's `PiglinAi.hasCrossbow`.
+ *
+ * @javaSource PiglinAi.hasCrossbow
+ */
 function hasCrossbow(body: BrainMob): boolean {
     return body.mainHandItem?.id === 'minecraft:crossbow';
 }
@@ -707,6 +808,8 @@ function hasCrossbow(body: BrainMob): boolean {
 /**
  * The range of the one projectile weapon a piglin fires, Java's `CrossbowItem.getDefaultProjectileRange`,
  * or undefined when it holds none: `Piglin.canFireProjectileWeapon` accepts only the crossbow.
+ *
+ * @javaSource CrossbowItem.getDefaultProjectileRange
  */
 function crossbowRange(body: BrainMob): number | undefined {
     return hasCrossbow(body) ? CROSSBOW.range : undefined;
@@ -797,7 +900,11 @@ function crossbowAttack(): BehaviorControl {
     );
 }
 
-/** Java's `BackUpIfTooClose.create(5, 0.75F)`. */
+/**
+ * Java's `BackUpIfTooClose.create(5, 0.75F)`.
+ *
+ * @javaSource BackUpIfTooClose.create
+ */
 function backUpIfTooClose(): BehaviorControl {
     return behavior('BackUpIfTooClose')
         .absent(MemoryModuleTypes.WALK_TARGET)
@@ -929,7 +1036,11 @@ function rideHoglinActivity(): ActivityData {
     );
 }
 
-/** Java's `DismountOrSkipMounting.create(8, PiglinAi::wantsToStopRiding)`. */
+/**
+ * Java's `DismountOrSkipMounting.create(8, PiglinAi::wantsToStopRiding)`.
+ *
+ * @javaSource DismountOrSkipMounting.create
+ */
 function dismountOrSkipMounting(): BehaviorControl {
     return behavior('DismountOrSkipMounting')
         .present(MemoryModuleTypes.RIDE_TARGET)
@@ -996,7 +1107,11 @@ export const PIGLIN_BRAIN: BrainMobDefinition = {
     targetFromBrain: true,
     wasHurtBy: (context, attacker) => piglinWasHurtBy(context, attacker),
     makeBrain: (options) => makePiglinBrain(options?.onBarter),
-    /** Java's `PiglinAi.initMemories`: the first hunt is one full interval away. */
+    /**
+     * Java's `PiglinAi.initMemories`: the first hunt is one full interval away.
+     *
+     * @javaSource PiglinAi.initMemories
+     */
     initMemories: (context) =>
         context.body.brain.setMemoryWithExpiry(
             MemoryModuleTypes.HUNTED_RECENTLY,

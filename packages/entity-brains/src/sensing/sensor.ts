@@ -9,10 +9,18 @@
 import type { MemoryModuleType } from '../memory.js';
 import type { BrainContext } from '../world.js';
 
-/** Java's `Sensor.DEFAULT_SCAN_RATE`. */
+/**
+ * Java's `Sensor.DEFAULT_SCAN_RATE`.
+ *
+ * @javaSource Sensor.DEFAULT_SCAN_RATE
+ */
 export const DEFAULT_SCAN_RATE = 20;
 
-/** Java's `Sensor.DEFAULT_TARGETING_RANGE`, the range before `minecraft:follow_range` overrides it. */
+/**
+ * Java's `Sensor.DEFAULT_TARGETING_RANGE`, the range before `minecraft:follow_range` overrides it.
+ *
+ * @javaSource Sensor.DEFAULT_TARGETING_RANGE
+ */
 export const DEFAULT_TARGETING_RANGE = 16;
 
 /**

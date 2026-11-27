@@ -55,6 +55,9 @@ const canMove = (body: { conditions: ReadonlySet<string> }): boolean =>
  *
  * It only fires after the camel has held its pose for twenty seconds, is on the ground, is not in
  * water, is not leashed and has no rider, and it never sits down while panicking.
+ *
+ * @javaSource CamelAi$RandomSitting.checkExtraStartConditions
+ * @javaSource CamelAi$RandomSitting.start
  */
 function randomSitting(minimalPoseSeconds: number): BehaviorControl {
     const minimalPoseTicks = minimalPoseSeconds * 20;

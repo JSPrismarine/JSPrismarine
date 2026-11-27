@@ -168,12 +168,20 @@ export class BehaviorBuilder<Accessors extends readonly unknown[]> {
     }
 }
 
-/** Starts a {@link BehaviorBuilder} chain. Java's `BehaviorBuilder.create`. */
+/**
+ * Starts a {@link BehaviorBuilder} chain. Java's `BehaviorBuilder.create`.
+ *
+ * @javaSee BehaviorBuilder.create(Ljava/util/function/Function;)Lnet/minecraft/world/entity/ai/behavior/OneShot;
+ */
 export function behavior(name: string): BehaviorBuilder<readonly []> {
     return BehaviorBuilder.named(name);
 }
 
-/** Java's `BehaviorBuilder.triggerIf(Predicate)`: runs when the body satisfies the predicate. */
+/**
+ * Java's `BehaviorBuilder.triggerIf(Predicate)`: runs when the body satisfies the predicate.
+ *
+ * @javaSource BehaviorBuilder.triggerIf(Ljava/util/function/Predicate;)Lnet/minecraft/world/entity/ai/behavior/OneShot;
+ */
 export function triggerIf(name: string, predicate: (body: BrainMob, context: BrainContext) => boolean): OneShot {
     return new OneShot(name, [], (context) => predicate(context.body, context));
 }
@@ -183,6 +191,8 @@ export function triggerIf(name: string, predicate: (body: BrainMob, context: Bra
  *
  * Java also unions the two behaviors' required memories, which matters because the brain registers
  * memories from that list.
+ *
+ * @javaSource BehaviorBuilder.sequence
  */
 export function sequence(first: Trigger, second: OneShot): OneShot {
     return new OneShot(`Sequence[${second.name}]`, second.requiredMemories, (context, timestamp) => {

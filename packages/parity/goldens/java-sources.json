@@ -1,20 +1,64 @@
 {
     "names": {
+        "AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z": "net/minecraft/world/phys/AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z",
         "AbstractBedBlock.getStateForPlacement": "net/minecraft/world/level/block/AbstractBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "ActivityData.createPriorityPairs": "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;",
+        "AllayAi.getItemDepositPosition": "net/minecraft/world/entity/animal/allay/AllayAi.getItemDepositPosition(Lnet/minecraft/world/entity/LivingEntity;)Ljava/util/Optional;",
+        "AllayAi.hearNoteblock": "net/minecraft/world/entity/animal/allay/AllayAi.hearNoteblock(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/core/BlockPos;)V",
         "AmethystClusterBlock.getStateForPlacement": "net/minecraft/world/level/block/AmethystClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "AngerLevel.ANGRY": "net/minecraft/world/entity/monster/warden/AngerLevel.ANGRY",
+        "AngerLevel.byAnger": "net/minecraft/world/entity/monster/warden/AngerLevel.byAnger(I)Lnet/minecraft/world/entity/monster/warden/AngerLevel;",
+        "AngerManagement.MAX_ANGER": "net/minecraft/world/entity/monster/warden/AngerManagement.MAX_ANGER",
+        "AnimalMakeLove.BREED_RANGE": "net/minecraft/world/entity/ai/behavior/AnimalMakeLove.BREED_RANGE",
+        "AnimalPanic.PANIC_DISTANCE_HORIZONTAL": "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_DISTANCE_HORIZONTAL",
+        "AnimalPanic.PANIC_MIN_DURATION": "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_MIN_DURATION",
         "AnvilBlock.getStateForPlacement": "net/minecraft/world/level/block/AnvilBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Armadillo.isScaredBy": "net/minecraft/world/entity/animal/armadillo/Armadillo.isScaredBy(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "ArmadilloAi$ArmadilloBallUp.canStillUse": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)Z",
+        "ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;)Z",
+        "ArmadilloAi$ArmadilloBallUp.start": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
+        "ArmadilloAi$ArmadilloBallUp.stop": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
+        "ArmadilloAi$ArmadilloBallUp.tick": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.tick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
+        "Attributes.FOLLOW_RANGE": "net/minecraft/world/entity/ai/attributes/Attributes.FOLLOW_RANGE",
+        "Attributes.TEMPT_RANGE": "net/minecraft/world/entity/ai/attributes/Attributes.TEMPT_RANGE",
+        "AxolotlAi.canSetWalkTargetFromLookTarget": "net/minecraft/world/entity/animal/axolotl/AxolotlAi.canSetWalkTargetFromLookTarget(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "AxolotlAi.getSpeedModifier": "net/minecraft/world/entity/animal/axolotl/AxolotlAi.getSpeedModifier(Lnet/minecraft/world/entity/LivingEntity;)F",
+        "AxolotlAi.updateActivity": "net/minecraft/world/entity/animal/axolotl/AxolotlAi.updateActivity(Lnet/minecraft/world/entity/animal/axolotl/Axolotl;)V",
+        "AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE": "net/minecraft/world/entity/ai/sensing/AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE",
+        "BackUpIfTooClose.create": "net/minecraft/world/entity/ai/behavior/BackUpIfTooClose.create(IF)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "BannerBlock.getStateForPlacement": "net/minecraft/world/level/block/BannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BarrelBlock.getStateForPlacement": "net/minecraft/world/level/block/BarrelBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BaseCommandBlock.performCommand": "net/minecraft/world/level/BaseCommandBlock.performCommand(Lnet/minecraft/server/level/ServerLevel;)Z",
         "BaseCoralPlantTypeBlock.getStateForPlacement": "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BaseCoralWallFanBlock.getStateForPlacement": "net/minecraft/world/level/block/BaseCoralWallFanBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BeehiveBlock.getStateForPlacement": "net/minecraft/world/level/block/BeehiveBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Behavior.DEFAULT_DURATION": "net/minecraft/world/entity/ai/behavior/Behavior.DEFAULT_DURATION",
+        "Behavior$Status.$VALUES": "net/minecraft/world/entity/ai/behavior/Behavior$Status.$VALUES",
+        "BehaviorBuilder.sequence": "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.sequence(Lnet/minecraft/world/entity/ai/behavior/declarative/Trigger;Lnet/minecraft/world/entity/ai/behavior/OneShot;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
+        "BehaviorBuilder.triggerIf(Ljava/util/function/Predicate;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.triggerIf(Ljava/util/function/Predicate;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
+        "BehaviorUtils.getLivingEntityFromUUIDMemory": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getLivingEntityFromUUIDMemory(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;)Ljava/util/Optional;",
+        "BehaviorUtils.getNearestTarget": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getNearestTarget(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/Optional;Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/entity/LivingEntity;",
+        "BehaviorUtils.isBreeding": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isBreeding(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;D)Z",
+        "BehaviorUtils.isWithinAttackRange": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isWithinAttackRange(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/LivingEntity;I)Z",
+        "BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V",
         "BellBlock.getStateForPlacement": "net/minecraft/world/level/block/BellBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BigDripleafBlock.getStateForPlacement": "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BlockPlaceContext.getNearestLookingDirections": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;",
         "BlockPlaceContext.getNearestLookingVerticalDirection": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;",
+        "BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;": "net/minecraft/core/BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;",
+        "BlockPos.withinBoxByManhattanDistance": "net/minecraft/core/BlockPos.withinBoxByManhattanDistance(Lnet/minecraft/core/BlockPos;III)Ljava/lang/Iterable;",
+        "BlockTags.MOB_INTERACTABLE_DOORS": "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS",
+        "Brain.checkMemory": "net/minecraft/world/entity/ai/Brain.checkMemory(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryStatus;)Z",
+        "Brain.isMemoryValue": "net/minecraft/world/entity/ai/Brain.isMemoryValue(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Ljava/lang/Object;)Z",
+        "Brain.SCHEDULE_UPDATE_DELAY": "net/minecraft/world/entity/ai/Brain.SCHEDULE_UPDATE_DELAY",
+        "BreezeAi$SlideToTargetSink.start": "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V",
+        "BreezeAi$SlideToTargetSink.stop": "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V",
+        "BreezeUtil.randomPointBehindTarget": "net/minecraft/world/entity/monster/breeze/BreezeUtil.randomPointBehindTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/phys/Vec3;",
         "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": "net/minecraft/world/level/block/BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V",
         "CalibratedSculkSensorBlock.getStateForPlacement": "net/minecraft/world/level/block/CalibratedSculkSensorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "CamelAi$RandomSitting.checkExtraStartConditions": "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;)Z",
+        "CamelAi$RandomSitting.start": "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;J)V",
         "CarvedPumpkinBlock.getStateForPlacement": "net/minecraft/world/level/block/CarvedPumpkinBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CeilingHangingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/CeilingHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ChestBlock.getStateForPlacement": "net/minecraft/world/level/block/ChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -25,6 +69,7 @@
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
         "CopperGolemStatueBlock.getStateForPlacement": "net/minecraft/world/level/block/CopperGolemStatueBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CrafterBlock.getStateForPlacement": "net/minecraft/world/level/block/CrafterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "CrossbowItem.getDefaultProjectileRange": "net/minecraft/world/item/CrossbowItem.getDefaultProjectileRange()I",
         "DefaultRedstoneWireEvaluator.calculateTargetStrength": "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.calculateTargetStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I",
         "DefaultRedstoneWireEvaluator.updatePowerStrength": "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V",
         "DetectorRailBlock.checkPressed": "net/minecraft/world/level/block/DetectorRailBlock.checkPressed(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V",
@@ -32,6 +77,7 @@
         "Direction.fromYRot": "net/minecraft/core/Direction.fromYRot(D)Lnet/minecraft/core/Direction;",
         "Direction.getClockWise()Lnet/minecraft/core/Direction;": "net/minecraft/core/Direction.getClockWise()Lnet/minecraft/core/Direction;",
         "Direction.orderedByNearest": "net/minecraft/core/Direction.orderedByNearest(Lnet/minecraft/world/entity/Entity;)[Lnet/minecraft/core/Direction;",
+        "DismountOrSkipMounting.create": "net/minecraft/world/entity/ai/behavior/DismountOrSkipMounting.create(ILjava/util/function/BiPredicate;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
         "DispenserBlock.getStateForPlacement": "net/minecraft/world/level/block/DispenserBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "DriedGhastBlock.getStateForPlacement": "net/minecraft/world/level/block/DriedGhastBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "EmptyMapItem.use": "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
@@ -40,6 +86,7 @@
         "EndPlatformFeature.createEndPlatform": "net/minecraft/world/level/levelgen/feature/EndPlatformFeature.createEndPlatform(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Z)V",
         "EndPortalFrameBlock.getStateForPlacement": "net/minecraft/world/level/block/EndPortalFrameBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "EndRodBlock.getStateForPlacement": "net/minecraft/world/level/block/EndRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Entity.getBoundingBox": "net/minecraft/world/entity/Entity.getBoundingBox()Lnet/minecraft/world/phys/AABB;",
         "EquipmentSlot.$values": "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;",
         "Equippable.swapWithEquipmentSlot": "net/minecraft/world/item/equipment/Equippable.swapWithEquipmentSlot(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/InteractionResult;",
         "ExperienceOrb.award": "net/minecraft/world/entity/ExperienceOrb.award(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;I)V",
@@ -50,9 +97,25 @@
         "FlowerBedBlock.getStateForPlacement": "net/minecraft/world/level/block/FlowerBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "FlowingFluid.canPassThroughWall": "net/minecraft/world/level/material/FlowingFluid.canPassThroughWall(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z",
         "FlowingFluid.getSpread": "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;",
+        "FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST": "net/minecraft/world/entity/ai/behavior/FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST",
+        "FollowTemptation.TEMPTATION_COOLDOWN": "net/minecraft/world/entity/ai/behavior/FollowTemptation.TEMPTATION_COOLDOWN",
+        "FrogAi.initMemories": "net/minecraft/world/entity/animal/frog/FrogAi.initMemories(Lnet/minecraft/world/entity/animal/frog/Frog;Lnet/minecraft/util/RandomSource;)V",
+        "FrogAttackablesSensor.TARGET_DETECTION_DISTANCE": "net/minecraft/world/entity/ai/sensing/FrogAttackablesSensor.TARGET_DETECTION_DISTANCE",
+        "GateBehavior$OrderPolicy.$VALUES": "net/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy.$VALUES",
+        "GateBehavior$RunningPolicy.$VALUES": "net/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy.$VALUES",
         "GlazedTerracottaBlock.getStateForPlacement": "net/minecraft/world/level/block/GlazedTerracottaBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "GoatAi.initMemories": "net/minecraft/world/entity/animal/goat/GoatAi.initMemories(Lnet/minecraft/world/entity/animal/goat/Goat;Lnet/minecraft/util/RandomSource;)V",
+        "GolemSensor.GOLEM_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/GolemSensor.GOLEM_SCAN_RATE",
         "GrowingPlantHeadBlock.MAX_AGE": "net/minecraft/world/level/block/GrowingPlantHeadBlock.MAX_AGE",
         "GrowingPlantHeadBlock.randomTick": "net/minecraft/world/level/block/GrowingPlantHeadBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
+        "HappyGhast.customServerAiStep": "net/minecraft/world/entity/animal/happyghast/HappyGhast.customServerAiStep(Lnet/minecraft/server/level/ServerLevel;)V",
+        "HoglinAi.createIdleMovementBehaviors": "net/minecraft/world/entity/monster/hoglin/HoglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;",
+        "HoglinAi.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/hoglin/HoglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Ljava/util/Optional;",
+        "HoglinAi.piglinsOutnumberHoglins": "net/minecraft/world/entity/monster/hoglin/HoglinAi.piglinsOutnumberHoglins(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z",
+        "HoglinAi.retreatFromNearestTarget": "net/minecraft/world/entity/monster/hoglin/HoglinAi.retreatFromNearestTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "HoglinAi.setAttackTarget": "net/minecraft/world/entity/monster/hoglin/HoglinAi.setAttackTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "HoglinAi.wantsToStopFleeing": "net/minecraft/world/entity/monster/hoglin/HoglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z",
+        "HoglinAi.wasHurtBy": "net/minecraft/world/entity/monster/hoglin/HoglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V",
         "HopperBlock.getStateForPlacement": "net/minecraft/world/level/block/HopperBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LadderBlock.getStateForPlacement": "net/minecraft/world/level/block/LadderBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LanternBlock.getStateForPlacement": "net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -69,10 +132,54 @@
         "MapItem.renderBiomePreviewMap": "net/minecraft/world/item/MapItem.renderBiomePreviewMap(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;)V",
         "MapItemSavedData.createFresh": "net/minecraft/world/level/saveddata/maps/MapItemSavedData.createFresh(DDBZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;",
         "MapItemSavedData.MAX_SCALE": "net/minecraft/world/level/saveddata/maps/MapItemSavedData.MAX_SCALE",
+        "MemorySlot.NEVER_EXPIRE": "net/minecraft/world/entity/ai/memory/MemorySlot.NEVER_EXPIRE",
+        "MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING",
         "MushroomBlock.canSurvive": "net/minecraft/world/level/block/MushroomBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
+        "NautilusAi.findNearestValidAttackTarget": "net/minecraft/world/entity/animal/nautilus/NautilusAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;)Ljava/util/Optional;",
+        "NautilusAi.initMemories": "net/minecraft/world/entity/animal/nautilus/NautilusAi.initMemories(Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/util/RandomSource;)V",
+        "NautilusAi.setAngerTarget": "net/minecraft/world/entity/animal/nautilus/NautilusAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "NearestBedSensor.CACHE_TIMEOUT": "net/minecraft/world/entity/ai/sensing/NearestBedSensor.CACHE_TIMEOUT",
+        "NearestItemSensor.XZ_RANGE": "net/minecraft/world/entity/ai/sensing/NearestItemSensor.XZ_RANGE",
+        "NearestVisibleLivingEntities.empty": "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.empty()Lnet/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities;",
         "NetherPortalBlock.randomTick": "net/minecraft/world/level/block/NetherPortalBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "NetherPortalBlock.updateShape": "net/minecraft/world/level/block/NetherPortalBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ObserverBlock.getStateForPlacement": "net/minecraft/world/level/block/ObserverBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "PiglinAi.avoidRepellent": "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidRepellent()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "PiglinAi.avoidZombified": "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidZombified()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "PiglinAi.babyAvoidNemesis": "net/minecraft/world/entity/monster/piglin/PiglinAi.babyAvoidNemesis()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "PiglinAi.babySometimesRideBabyHoglin": "net/minecraft/world/entity/monster/piglin/PiglinAi.babySometimesRideBabyHoglin()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "PiglinAi.broadcastAngerTarget": "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinAi.broadcastRetreat": "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastRetreat(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinAi.canAdmire": "net/minecraft/world/entity/monster/piglin/PiglinAi.canAdmire(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z",
+        "PiglinAi.createIdleLookBehaviors": "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;",
+        "PiglinAi.createIdleMovementBehaviors": "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;",
+        "PiglinAi.createLookBehaviors": "net/minecraft/world/entity/monster/piglin/PiglinAi.createLookBehaviors()Lcom/google/common/collect/ImmutableList;",
+        "PiglinAi.dontKillAnyMoreHoglinsForAWhile": "net/minecraft/world/entity/monster/piglin/PiglinAi.dontKillAnyMoreHoglinsForAWhile(Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)V",
+        "PiglinAi.findNearbyAdultPiglins": "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearbyAdultPiglins(Lnet/minecraft/world/entity/ai/Brain;)Ljava/util/List;",
+        "PiglinAi.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;)Ljava/util/Optional;",
+        "PiglinAi.hasCrossbow": "net/minecraft/world/entity/monster/piglin/PiglinAi.hasCrossbow(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "PiglinAi.hoglinsOutnumberPiglins": "net/minecraft/world/entity/monster/piglin/PiglinAi.hoglinsOutnumberPiglins(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z",
+        "PiglinAi.initMemories": "net/minecraft/world/entity/monster/piglin/PiglinAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/util/RandomSource;)V",
+        "PiglinAi.isBarterCurrency": "net/minecraft/world/entity/monster/piglin/PiglinAi.isBarterCurrency(Lnet/minecraft/world/item/ItemStack;)Z",
+        "PiglinAi.isLovedItem": "net/minecraft/world/entity/monster/piglin/PiglinAi.isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z",
+        "PiglinAi.isNearZombified": "net/minecraft/world/entity/monster/piglin/PiglinAi.isNearZombified(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z",
+        "PiglinAi.isNotHoldingLovedItemInOffHand": "net/minecraft/world/entity/monster/piglin/PiglinAi.isNotHoldingLovedItemInOffHand(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z",
+        "PiglinAi.isPlayerHoldingLovedItem": "net/minecraft/world/entity/monster/piglin/PiglinAi.isPlayerHoldingLovedItem(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "PiglinAi.isWearingSafeArmor": "net/minecraft/world/entity/monster/piglin/PiglinAi.isWearingSafeArmor(Lnet/minecraft/world/entity/LivingEntity;)Z",
+        "PiglinAi.maybeRetaliate": "net/minecraft/world/entity/monster/piglin/PiglinAi.maybeRetaliate(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinAi.mobInteract": "net/minecraft/world/entity/monster/piglin/PiglinAi.mobInteract(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
+        "PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL": "net/minecraft/world/entity/monster/piglin/PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL",
+        "PiglinAi.setAngerTarget": "net/minecraft/world/entity/monster/piglin/PiglinAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinAi.setAvoidTargetAndDontHuntForAWhile": "net/minecraft/world/entity/monster/piglin/PiglinAi.setAvoidTargetAndDontHuntForAWhile(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinAi.wantsToPickup": "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToPickup(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z",
+        "PiglinAi.wantsToStopFleeing": "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z",
+        "PiglinAi.wasHurtBy": "net/minecraft/world/entity/monster/piglin/PiglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinBruteAi.createIdleLookBehaviors": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;",
+        "PiglinBruteAi.createIdleMovementBehaviors": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;",
+        "PiglinBruteAi.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)Ljava/util/Optional;",
+        "PiglinBruteAi.initMemories": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;)V",
+        "PiglinBruteAi.setAngerTarget": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.setAngerTarget(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V",
+        "PiglinBruteAi.wasHurtBy": "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V",
         "PistonMovingBlockEntity.moveCollidedEntities": "net/minecraft/world/level/block/piston/PistonMovingBlockEntity.moveCollidedEntities(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;FLnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;)V",
         "Player.aiStep": "net/minecraft/world/entity/player/Player.aiStep()V",
         "PortalForcer.createPortal": "net/minecraft/world/level/portal/PortalForcer.createPortal(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction$Axis;)Ljava/util/Optional;",
@@ -82,16 +189,54 @@
         "PortalShape.MAX_WIDTH": "net/minecraft/world/level/portal/PortalShape.MAX_WIDTH",
         "PortalShape.MIN_HEIGHT": "net/minecraft/world/level/portal/PortalShape.MIN_HEIGHT",
         "PortalShape.MIN_WIDTH": "net/minecraft/world/level/portal/PortalShape.MIN_WIDTH",
+        "RandomStroll.fly": "net/minecraft/world/entity/ai/behavior/RandomStroll.fly(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "RandomStroll.MAX_XZ_DIST": "net/minecraft/world/entity/ai/behavior/RandomStroll.MAX_XZ_DIST",
+        "RandomStroll.stroll(FII)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FII)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;": "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
+        "RandomStroll.swim": "net/minecraft/world/entity/ai/behavior/RandomStroll.swim(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
         "RedstoneWireEvaluator.getIncomingWireSignal": "net/minecraft/world/level/redstone/RedstoneWireEvaluator.getIncomingWireSignal(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I",
         "RepeaterBlock.getStateForPlacement": "net/minecraft/world/level/block/RepeaterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "RotationSegment.convertToSegment(F)I": "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(F)I",
+        "SecondaryPoiSensor.SCAN_RATE": "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE",
+        "Sensor.DEFAULT_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE",
+        "Sensor.DEFAULT_TARGETING_RANGE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE",
+        "SensorType.ARMADILLO_SCARE_DETECTED": "net/minecraft/world/entity/ai/sensing/SensorType.ARMADILLO_SCARE_DETECTED",
         "ServerGamePacketListenerImpl.handleSetCommandBlock": "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V",
         "ServerLevel.getFreeMapId": "net/minecraft/server/level/ServerLevel.getFreeMapId()Lnet/minecraft/world/level/saveddata/maps/MapId;",
         "ServerLevel.setMapData": "net/minecraft/server/level/ServerLevel.setMapData(Lnet/minecraft/world/level/saveddata/maps/MapId;Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;)V",
+        "SetHiddenState.create": "net/minecraft/world/entity/ai/behavior/SetHiddenState.create(II)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "SetWalkTargetAwayFrom.pos": "net/minecraft/world/entity/ai/behavior/SetWalkTargetAwayFrom.pos(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;FIZ)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
+        "SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER": "net/minecraft/world/entity/ai/behavior/SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER",
         "ShelfBlock.getStateForPlacement": "net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ShelfMushroomBlock.getStateForPlacement": "net/minecraft/world/level/block/ShelfMushroomBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "SkullBlock.getStateForPlacement": "net/minecraft/world/level/block/SkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "SmallDripleafBlock.getStateForPlacement": "net/minecraft/world/level/block/SmallDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "SnifferAi.resetSniffing": "net/minecraft/world/entity/animal/sniffer/SnifferAi.resetSniffing(Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Lnet/minecraft/world/entity/animal/sniffer/Sniffer;",
+        "SnifferAi$Digging.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$Digging.checkExtraStartConditions": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z",
+        "SnifferAi$Digging.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Digging.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$FeelingHappy.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$FeelingHappy.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$FeelingHappy.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$FinishedDigging.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$FinishedDigging.checkExtraStartConditions": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z",
+        "SnifferAi$FinishedDigging.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$FinishedDigging.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Scenting.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$Scenting.checkExtraStartConditions": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z",
+        "SnifferAi$Scenting.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Scenting.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Searching.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$Searching.checkExtraStartConditions": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z",
+        "SnifferAi$Searching.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Searching.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Sniffing.canStillUse": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z",
+        "SnifferAi$Sniffing.checkExtraStartConditions": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z",
+        "SnifferAi$Sniffing.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SnifferAi$Sniffing.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
+        "SonicBoom.setCooldown": "net/minecraft/world/entity/ai/behavior/warden/SonicBoom.setCooldown(Lnet/minecraft/world/entity/LivingEntity;I)V",
+        "SpearAttack$SpearStatus.$VALUES": "net/minecraft/world/entity/ai/behavior/SpearAttack$SpearStatus.$VALUES",
         "SpeleothemBlock.calculateSpeleothemThickness": "net/minecraft/world/level/block/SpeleothemBlock.calculateSpeleothemThickness(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/SpeleothemThickness;",
         "SpeleothemBlock.calculateTipDirection": "net/minecraft/world/level/block/SpeleothemBlock.calculateTipDirection(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;",
         "SpeleothemBlock.getStateForPlacement": "net/minecraft/world/level/block/SpeleothemBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -105,15 +250,46 @@
         "StandingAndWallBlockItem.getPlacementState": "net/minecraft/world/item/StandingAndWallBlockItem.getPlacementState(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "StandingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "StonecutterBlock.getStateForPlacement": "net/minecraft/world/level/block/StonecutterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE": "net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE",
+        "StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS": "net/minecraft/world/entity/ai/behavior/StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS",
+        "TemptingSensor.forAnimal": "net/minecraft/world/entity/ai/sensing/TemptingSensor.forAnimal()Lnet/minecraft/world/entity/ai/sensing/TemptingSensor;",
+        "TimeUtil.rangeOfSeconds": "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;",
         "TrapDoorBlock.getStateForPlacement": "net/minecraft/world/level/block/TrapDoorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "TriggerGate.triggerGate": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerGate(Ljava/util/List;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
+        "TriggerGate.triggerOneShuffled": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerOneShuffled(Ljava/util/List;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "TripWireHookBlock.getStateForPlacement": "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "UniformInt.of": "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;",
         "VaultBlock.getStateForPlacement": "net/minecraft/world/level/block/VaultBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Vec3.atBottomCenterOf": "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;",
+        "Villager.BRAIN_PROVIDER": "net/minecraft/world/entity/npc/villager/Villager.BRAIN_PROVIDER",
+        "VillagerGoalPackages.getFullLookBehavior": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getFullLookBehavior()Lcom/mojang/datafixers/util/Pair;",
+        "VillagerGoalPackages.getMinimalLookBehavior": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMinimalLookBehavior()Lcom/mojang/datafixers/util/Pair;",
+        "VillagerProfession.NONE": "net/minecraft/world/entity/npc/villager/VillagerProfession.NONE",
         "WallBannerBlock.getStateForPlacement": "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallHangingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
-        "WallSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;"
+        "WallSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Warden.canTargetEntity": "net/minecraft/world/entity/monster/warden/Warden.canTargetEntity(Lnet/minecraft/world/entity/Entity;)Z",
+        "Warden.finalizeSpawn": "net/minecraft/world/entity/monster/warden/Warden.finalizeSpawn(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;",
+        "Warden.FOLLOW_RANGE": "net/minecraft/world/entity/monster/warden/Warden.FOLLOW_RANGE",
+        "Warden.getActiveAnger": "net/minecraft/world/entity/monster/warden/Warden.getActiveAnger()I",
+        "Warden.hurtServer": "net/minecraft/world/entity/monster/warden/Warden.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+        "Warden.increaseAngerAt(Lnet/minecraft/world/entity/Entity;IZ)V": "net/minecraft/world/entity/monster/warden/Warden.increaseAngerAt(Lnet/minecraft/world/entity/Entity;IZ)V",
+        "Warden.isDiggingOrEmerging": "net/minecraft/world/entity/monster/warden/Warden.isDiggingOrEmerging()Z",
+        "Warden.setAttackTarget": "net/minecraft/world/entity/monster/warden/Warden.setAttackTarget(Lnet/minecraft/world/entity/LivingEntity;)V",
+        "Warden$VibrationUser.canReceiveVibration": "net/minecraft/world/entity/monster/warden/Warden$VibrationUser.canReceiveVibration(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/gameevent/GameEvent$Context;)Z",
+        "WardenAi.setDigCooldown": "net/minecraft/world/entity/monster/warden/WardenAi.setDigCooldown(Lnet/minecraft/world/entity/LivingEntity;)V",
+        "WardenAi.setDisturbanceLocation": "net/minecraft/world/entity/monster/warden/WardenAi.setDisturbanceLocation(Lnet/minecraft/world/entity/monster/warden/Warden;Lnet/minecraft/core/BlockPos;)V",
+        "Zoglin.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/Zoglin.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;)Ljava/util/Optional;",
+        "Zoglin.hurtServer": "net/minecraft/world/entity/monster/Zoglin.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z"
     },
     "sources": {
+        "net/minecraft/core/BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;": {
+            "26.3": "sha256:8c0eab7a4b93b9df20288bad0a5069a8f1083f3688f1c333e7a2ef89570c3b7d"
+        },
+        "net/minecraft/core/BlockPos.withinBoxByManhattanDistance(Lnet/minecraft/core/BlockPos;III)Ljava/lang/Iterable;": {
+            "26.3": "sha256:46f4219108fc909bdc4a64798e3251984ad64a269ffe84bf6de6d3cd2c001b44"
+        },
         "net/minecraft/core/Direction.fromYRot(D)Lnet/minecraft/core/Direction;": {
             "26.3": "sha256:c4f30c7c768abf97158d280b9d35ac9bf96885ce02c604a7f0bd8b099a985884"
         },
@@ -132,6 +308,309 @@
         "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V": {
             "26.3": "sha256:2c34830cea879af1209e5a084d33a16eb66a1c131efbd12ba441e1aec2b8b4d6"
         },
+        "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS": {
+            "26.3": "sha256:5ae0262e14974845a3b361f17c0400e67151f7469bdb9c790f62c4f61f5b327d"
+        },
+        "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
+            "26.3": "sha256:7648f46895b9feba5948f8c752b875cd30d0644a3469e167cf1b3c759b273103"
+        },
+        "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
+            "26.3": "sha256:5c16eacfbd67fc6dca18279961c72cd3f745ff8853db9ab9b3efa4894a5a8b6b"
+        },
+        "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;": {
+            "26.3": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919"
+        },
+        "net/minecraft/world/entity/ai/attributes/Attributes.FOLLOW_RANGE": {
+            "26.3": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574"
+        },
+        "net/minecraft/world/entity/ai/attributes/Attributes.TEMPT_RANGE": {
+            "26.3": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687"
+        },
+        "net/minecraft/world/entity/ai/behavior/AnimalMakeLove.BREED_RANGE": {
+            "26.3": "sha256:f9b0660c9cd49b34930218425293cc44c13fde8b49acf4d7b9ede9da82e5846c"
+        },
+        "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_DISTANCE_HORIZONTAL": {
+            "26.3": "sha256:c45cacc6d39628bddc444e89bac5cf86b0999add572a52cbf70b9d93ebe96ad7"
+        },
+        "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_MIN_DURATION": {
+            "26.3": "sha256:3f6e281600cc9c435dda0c4ce1883f92fbd8342295cb5b2792282dc3a006429a"
+        },
+        "net/minecraft/world/entity/ai/behavior/BackUpIfTooClose.create(IF)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:f0b6d8d491dfe4351fe01a47715e0c09f4a8dbc13fba4f2308babb6b238b3dcf"
+        },
+        "net/minecraft/world/entity/ai/behavior/Behavior.DEFAULT_DURATION": {
+            "26.3": "sha256:e60487e802b9f8f204425ed6623deb856fafd76906b5d155ad6b7913c2213f7c"
+        },
+        "net/minecraft/world/entity/ai/behavior/Behavior$Status.$VALUES": {
+            "26.3": "sha256:f3d71e7eb5cfd1c6ca3006b5576d06f563373930a7b18364a6defda5955b3ee3"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getLivingEntityFromUUIDMemory(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;)Ljava/util/Optional;": {
+            "26.3": "sha256:8b1aaab023b9abaf30c6e3f939774f7d1ebbddcac11d12f92b4a84f5d7e3d7df"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getNearestTarget(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/Optional;Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/entity/LivingEntity;": {
+            "26.3": "sha256:3eb35303fe995dcec87172a4c58e5fcdfdcadc7b2aa73fdcaf5d03883cc382d8"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isBreeding(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:fcc5edc1dbcf157f3e8929fd5e7c7c420e0b09284f99c67dafaf5e8e539bbcc6"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;D)Z": {
+            "26.3": "sha256:cbf1f7f9bbfdfde8d3ea2555a503fbf3ca3b23d625da0ab182f125b6c714d93c"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isWithinAttackRange(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/LivingEntity;I)Z": {
+            "26.3": "sha256:634fd4da0f5626313232984ae5fa478cd289426ca78c86045de17a53d96d3624"
+        },
+        "net/minecraft/world/entity/ai/behavior/BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V": {
+            "26.3": "sha256:8cefc9560885b1620dd4a79a66524c9d77978b9ce1345213f52712559abd84c0"
+        },
+        "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.sequence(Lnet/minecraft/world/entity/ai/behavior/declarative/Trigger;Lnet/minecraft/world/entity/ai/behavior/OneShot;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:43860f8d51a8c2a48dceb764f24516e0101dde78bd6d46965b88a34156e1f4e0"
+        },
+        "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.triggerIf(Ljava/util/function/Predicate;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:0241f64b0b9358789de1a761c01a2dc9f212c554371c4af706b803c6acfcb996"
+        },
+        "net/minecraft/world/entity/ai/behavior/DismountOrSkipMounting.create(ILjava/util/function/BiPredicate;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:8b3eca0ffbf07594308c424dc1a27de990477fc20541ac331c6e58feec195728"
+        },
+        "net/minecraft/world/entity/ai/behavior/FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST": {
+            "26.3": "sha256:387e56ec2d22a72600ca6738a63fedd000ee95f1439e42b896a84589c3443b9d"
+        },
+        "net/minecraft/world/entity/ai/behavior/FollowTemptation.TEMPTATION_COOLDOWN": {
+            "26.3": "sha256:a6a0003f6bf2810a4b961cbb456bc19eae5411922a44f1089b6cfebc6e1ccfe3"
+        },
+        "net/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy.$VALUES": {
+            "26.3": "sha256:2ad4917e6da1b7ba3647685925780620e87ceab012aa24bfd4a82a43134a9562"
+        },
+        "net/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy.$VALUES": {
+            "26.3": "sha256:08409d11c24995556d26b07983d3e5671030d843fda618ec4d57a2f498700765"
+        },
+        "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": {
+            "26.3": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef"
+        },
+        "net/minecraft/world/entity/ai/behavior/RandomStroll.fly(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:56c8855f2ad154a27879ea72859c57e8042b11bacab2eee5b1a4abc1c94f14f2"
+        },
+        "net/minecraft/world/entity/ai/behavior/RandomStroll.MAX_XZ_DIST": {
+            "26.3": "sha256:5931c74eacc14bce16b4494272de063b0c6441b9a2e1a10855f891f2cda8826b"
+        },
+        "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FII)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:2637f88b719fb4e572e67b0b32e17ae70143937711be77d40c5d685ac6cd45ea"
+        },
+        "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:2d9783d0b259359466a0bcbd388b82ed4f5fc7803b3aa4b93627879524f023f6"
+        },
+        "net/minecraft/world/entity/ai/behavior/RandomStroll.swim(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:595c466622b186a23433d944b0256d802ba95ced78470c6366810a4b181e8fb5"
+        },
+        "net/minecraft/world/entity/ai/behavior/SetHiddenState.create(II)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:8ad84e19bbccc6d94d04437702f59b9a61b82d741c0f2ba5ae90a3a77b406377"
+        },
+        "net/minecraft/world/entity/ai/behavior/SetWalkTargetAwayFrom.pos(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;FIZ)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:7de4229bb7cd99f5fcb861503e28101631234c9305848a0366e3055fa510bc11"
+        },
+        "net/minecraft/world/entity/ai/behavior/SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER": {
+            "26.3": "sha256:7dde1ef53c3f2bdd8308a94aa0b70c7315cb87d19123e01b2d608241c8d65cb4"
+        },
+        "net/minecraft/world/entity/ai/behavior/SpearAttack$SpearStatus.$VALUES": {
+            "26.3": "sha256:7e770ee6ba22ba4827f485ae8d075112a21d5f13ef442ebfeeaf1a0040de1429"
+        },
+        "net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE": {
+            "26.3": "sha256:847febc2abdcdef68ad25920a0f802ae9c474de4901af52892e6c78022b66711"
+        },
+        "net/minecraft/world/entity/ai/behavior/StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS": {
+            "26.3": "sha256:82e761cce8865830b376523cfcc80f5aaf09fdc3c1bca8239936a1a8b7cee917"
+        },
+        "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerGate(Ljava/util/List;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:d28796487697eb7f7dd6e7c13dce3a7f56ffd136bd5eb77239f33b15c32395f8"
+        },
+        "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerOneShuffled(Ljava/util/List;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
+            "26.3": "sha256:059aeb26bbd46363230952c3cfe97e9f119e8f43205905e4456ab4b2e330e255"
+        },
+        "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getFullLookBehavior()Lcom/mojang/datafixers/util/Pair;": {
+            "26.3": "sha256:acf316b706b2bb6eb0a19a9a3fa36ff18d2ce9c1f4a97c9a32d121bd5a801e63"
+        },
+        "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMinimalLookBehavior()Lcom/mojang/datafixers/util/Pair;": {
+            "26.3": "sha256:7e35e4b84734caac2654e3c54b748a1b2624ce218e757c938f46b5191fd75f52"
+        },
+        "net/minecraft/world/entity/ai/behavior/warden/SonicBoom.setCooldown(Lnet/minecraft/world/entity/LivingEntity;I)V": {
+            "26.3": "sha256:2bc1942a5c888f789048ed1ef6d898938fc20389a374a7695b3281c619f4e128"
+        },
+        "net/minecraft/world/entity/ai/Brain.checkMemory(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryStatus;)Z": {
+            "26.3": "sha256:05d28213305876996e258841ddc23b9a46a6aeea649d81e47f6362639350a450"
+        },
+        "net/minecraft/world/entity/ai/Brain.isMemoryValue(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Ljava/lang/Object;)Z": {
+            "26.3": "sha256:7edbb1dffa11a7fb56751161aee34009a71dda6a1e5bda640d45816c68710dac"
+        },
+        "net/minecraft/world/entity/ai/Brain.SCHEDULE_UPDATE_DELAY": {
+            "26.3": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9"
+        },
+        "net/minecraft/world/entity/ai/memory/MemorySlot.NEVER_EXPIRE": {
+            "26.3": "sha256:9b0cbfb80131d9f58825eb2763499646e6df8a62c4c54a3e82fc42df61396cd5"
+        },
+        "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.empty()Lnet/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities;": {
+            "26.3": "sha256:9b83aba01877569d32640f11a747aa50f0a9ee80e15e8c3d32cdb73a8280bf24"
+        },
+        "net/minecraft/world/entity/ai/sensing/AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE": {
+            "26.3": "sha256:10f309219e0340300a9f3ea3bf5671b7d81ec749297b19dd257b386febffe126"
+        },
+        "net/minecraft/world/entity/ai/sensing/FrogAttackablesSensor.TARGET_DETECTION_DISTANCE": {
+            "26.3": "sha256:3890e234d46cc890a930ff2ac94fe92e29693a221c71d29f95995c14db524385"
+        },
+        "net/minecraft/world/entity/ai/sensing/GolemSensor.GOLEM_SCAN_RATE": {
+            "26.3": "sha256:0c1a644c7afd6eac6c5f44918ed6bac5e11cd62e9f5627ee4d306502c13b03c3"
+        },
+        "net/minecraft/world/entity/ai/sensing/NearestBedSensor.CACHE_TIMEOUT": {
+            "26.3": "sha256:ce134540af55e98f883d29c4df02ffeac2cb414ef4d37bf333a7d12bb0446f82"
+        },
+        "net/minecraft/world/entity/ai/sensing/NearestItemSensor.XZ_RANGE": {
+            "26.3": "sha256:bf0178f2acaa7694345d9dda2593ffceb0c335fee0c1b1c9fa894de4edab4977"
+        },
+        "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE": {
+            "26.3": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521"
+        },
+        "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE": {
+            "26.3": "sha256:f52e0210922ecf8d7a3417463766713dc082f6cffdc16454660183416b04e8ae"
+        },
+        "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE": {
+            "26.3": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85"
+        },
+        "net/minecraft/world/entity/ai/sensing/SensorType.ARMADILLO_SCARE_DETECTED": {
+            "26.3": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14"
+        },
+        "net/minecraft/world/entity/ai/sensing/TemptingSensor.forAnimal()Lnet/minecraft/world/entity/ai/sensing/TemptingSensor;": {
+            "26.3": "sha256:f1f93d1f49736ee94f679cf60e59c65bea1ad808645d5334616b33ce2433e6d8"
+        },
+        "net/minecraft/world/entity/animal/allay/AllayAi.getItemDepositPosition(Lnet/minecraft/world/entity/LivingEntity;)Ljava/util/Optional;": {
+            "26.3": "sha256:ebd969217d93ea29d208a1c6de623cb50ef1449ae77c258dee316120ec8091cb"
+        },
+        "net/minecraft/world/entity/animal/allay/AllayAi.hearNoteblock(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/core/BlockPos;)V": {
+            "26.3": "sha256:56110dfedba2634c8bcef7bc5198d19bcb87b762b5767c5c8dc8165ab66b6a17"
+        },
+        "net/minecraft/world/entity/animal/armadillo/Armadillo.isScaredBy(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:8201dbaf03ff572e2bfaf1926ab6a87e304844cfaaa3918d6c3dfaa952d94d62"
+        },
+        "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)Z": {
+            "26.3": "sha256:d609d6dcaa80c49c1bbd993ef97293ce1f7ee5170d4f0ab9b2aefff05925863e"
+        },
+        "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;)Z": {
+            "26.3": "sha256:187092e6dc75fea908711c48076b3f38e6540fc2b2603972c3c30971f7d4162d"
+        },
+        "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
+            "26.3": "sha256:f27399412da3922c14f69346b459e3560d77772ab1d3a5fe73c9a53e937f75cc"
+        },
+        "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
+            "26.3": "sha256:f7e90d31cd059813a3c7e805048154e48e24f60df10778347580ce02d81d9733"
+        },
+        "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.tick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
+            "26.3": "sha256:9179ea7ddc3e53fe775338ce3d4a086c9338abad5c3c49cceaa90737ed791a39"
+        },
+        "net/minecraft/world/entity/animal/axolotl/AxolotlAi.canSetWalkTargetFromLookTarget(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:4aff46e269db2e032d02407acb231de1a9f628516c7620979a2357013a7c1028"
+        },
+        "net/minecraft/world/entity/animal/axolotl/AxolotlAi.getSpeedModifier(Lnet/minecraft/world/entity/LivingEntity;)F": {
+            "26.3": "sha256:10d57640cbb63717b8937c49817a7289877186664c62d628297f67c3f7cc0ad0"
+        },
+        "net/minecraft/world/entity/animal/axolotl/AxolotlAi.updateActivity(Lnet/minecraft/world/entity/animal/axolotl/Axolotl;)V": {
+            "26.3": "sha256:ec22d1de740a4cfba2729fb263db1c38f756f83de328c0971fc87cbb19301e99"
+        },
+        "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;)Z": {
+            "26.3": "sha256:f70fe00301cbb6cd8cf69cad809c2bbe0e2a0bbe1167a53d3f5e3ded11884018"
+        },
+        "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;J)V": {
+            "26.3": "sha256:a6801e08470ac403eaa4ced9f74898768002e1a07196c4b7ce515b7191df65e1"
+        },
+        "net/minecraft/world/entity/animal/frog/FrogAi.initMemories(Lnet/minecraft/world/entity/animal/frog/Frog;Lnet/minecraft/util/RandomSource;)V": {
+            "26.3": "sha256:4854bacae618a889ad7bc04254573b7e0944c05bc749b8e0df7c0a6f666c457c"
+        },
+        "net/minecraft/world/entity/animal/goat/GoatAi.initMemories(Lnet/minecraft/world/entity/animal/goat/Goat;Lnet/minecraft/util/RandomSource;)V": {
+            "26.3": "sha256:2d130b675253746c00ef8228c07fd9a32100b01b2f5416106a869380a2de3939"
+        },
+        "net/minecraft/world/entity/animal/happyghast/HappyGhast.customServerAiStep(Lnet/minecraft/server/level/ServerLevel;)V": {
+            "26.3": "sha256:f7f1f3244d0649bddc08f2a539a7899c95f71999e6a95581c380db7812924839"
+        },
+        "net/minecraft/world/entity/animal/nautilus/NautilusAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;)Ljava/util/Optional;": {
+            "26.3": "sha256:024c364aca9236d501640cb44bdffa8f0d020de70bcdcdbf6628637b706aeabb"
+        },
+        "net/minecraft/world/entity/animal/nautilus/NautilusAi.initMemories(Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/util/RandomSource;)V": {
+            "26.3": "sha256:d9cb65c88611b89e71cf143f09a456fa4495ef6c145d791cadc085c4e78343a7"
+        },
+        "net/minecraft/world/entity/animal/nautilus/NautilusAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:02f53221ee73e2b140aecc14b903005cb53b420c74cb272d5b5681f767efb356"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi.resetSniffing(Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Lnet/minecraft/world/entity/animal/sniffer/Sniffer;": {
+            "26.3": "sha256:7ada01cd528bb35878049de6376f8409e22ff2ab33d45f340b1469bf35698adf"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:93ad515e4be361f70fc6e74354de9e9e756a0c8e087152fa18d11e3891e34189"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
+            "26.3": "sha256:2981426797880a41901ccbb555bdc5ca799bc7a265d83bdc8fdb841c880acb1d"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:21f58cf7169aa2acd0bf80b098e44141037c2c578ade1c93ccc51f8d44c7fe50"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:1d604006202f4aa824deedc0c03257645962a8496309de6cef978eacdae54557"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:3484be301dbb39d7bc60797061e6f33e726afa4f508e9f6ece6911994aa95fbd"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:d869574ca4767a57239c05088c9be05788861e913569e2b9d99942895700876f"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:e4d0a009e4cef9cd79894ee1d765b9339991e3af83e783bde5c97635d11024bd"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:dfa204a298498c876489067173649e3a9dcfaa5333d9cc716178bcbac6171bcd"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
+            "26.3": "sha256:a5eb9cbd069a18270b2aae9ec4bafbb635bdb338301800cbdb903669a67cdb8d"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:2f593b2875197368b52afc8c6eef2d3739dea51fd68708603714818d557d1741"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:86bc3a26b195be449558016a3c1f6afee0b7f37d24f7ca07865902ca84e83550"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:81384d43ad04cfa9a998969edcb420fbb1a7185419778e4b75e57f19a6b17c8b"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
+            "26.3": "sha256:24eab7bba0fcc3499a7a4ae41aa8016a6a391805a89ee3b075e09eeec62c8f6c"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:1c6a7a5e5532fad9961df62e61207fc1e66b5353ebfbd50fc7b8fbdbf5c07d95"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:263ddaaac114665f7bfe9dc1ed8f92b5d9ed6fe5cff2c3ce436ea6479e9650bf"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:ccd405c6eb746cf838d25c252791debb03cc98b983755a8259fb3a914a0d7b22"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
+            "26.3": "sha256:3a108027790a64981d690b05ad50300964e9126b59d7502a00a18a22b4432e1a"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:1c5a2385e639cbfca772bf9276c099a48fbe1582497b620713f2bc27c78b101b"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:82af648863719380289fff1502cee1b4d9d3c394b3928f17cf22892fd86f1ef4"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
+            "26.3": "sha256:acae4252e4b64f4d130909aecdce72e73d0748f28e638f18c507007bbdd37b4d"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
+            "26.3": "sha256:da2bfc009312bdda3eb0fa46ce7c16a424dcbc70263526f2471ef115b87f8a2f"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:308085d2bde59659395e2ab6fd2eaa900676d58d144abb45fd4e5bb1da703be6"
+        },
+        "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
+            "26.3": "sha256:1b2f89a59b8c3abe6019e847ac72ecb313f239b5534b7ee512b421ff7454b022"
+        },
+        "net/minecraft/world/entity/Entity.getBoundingBox()Lnet/minecraft/world/phys/AABB;": {
+            "26.3": "sha256:f74e51e4745e18ee0714f37caaf05bd18964d2921dd0da2b354573089353e772"
+        },
         "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;": {
             "26.3": "sha256:1d491c0702aa7fcb3739834319d1d64e3b84cc7697bbc1b11ce58672668ff375"
         },
@@ -141,6 +620,198 @@
         "net/minecraft/world/entity/ExperienceOrb.playerTouch(Lnet/minecraft/world/entity/player/Player;)V": {
             "26.3": "sha256:cc69a658f6837fed0ca6127408e38ca234f10cabef0a4e7e399bdb37671cc9d7"
         },
+        "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V": {
+            "26.3": "sha256:0caf8cdafba1e72278b72997a67772f85d0bdf151d6abbd84264cfba77daece0"
+        },
+        "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V": {
+            "26.3": "sha256:af9001a135ddffb0266ae8bef81db695be8faced4e555b7de9363488606d8c65"
+        },
+        "net/minecraft/world/entity/monster/breeze/BreezeUtil.randomPointBehindTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/phys/Vec3;": {
+            "26.3": "sha256:d3a16e60cfd0c2b25764f87d59d7019a0af12e499eb6a399d59dbf9af81bc9ef"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
+            "26.3": "sha256:e6419c0a81dd824bf79ff5ed1022d7e95bdf46154dc326d010d96ff902feac5d"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Ljava/util/Optional;": {
+            "26.3": "sha256:a3f26e86f945bf76aca2dc42664b432883ccc003cdcfe6f5e9f290aa23340266"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.piglinsOutnumberHoglins(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z": {
+            "26.3": "sha256:5e53600ff9b8c999aa8d471f2cc6197ae1128e51f9e2be3eddf44ffc5d6bc1ec"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.retreatFromNearestTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:e12c5524343ca0634b39e6c495b510d9e46a93c9288db881f2e62b45037623fd"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.setAttackTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:1fbd5caa3c712f2496f7f0b96610c28a52b9ab0ac4619334625ed6490984937e"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z": {
+            "26.3": "sha256:594585c3654f0495a43edb6ab2159fd195623849a1f27402608ff5a9a827daea"
+        },
+        "net/minecraft/world/entity/monster/hoglin/HoglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:59706a81662afceb9a24b7932a529db12492c2217e36cd6e89e36b27412acda1"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidRepellent()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:ac10230f3373f8aae8f062663777fdc50cf0ea60e2fcb248ff38ed8e28cd852d"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidZombified()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:dca7d24ae026becd4f7bf8f2e4414132ec08d2f72a8b2f82ed620a8a9784bcd1"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.babyAvoidNemesis()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:ae9d1ccd99008055554a9aa9407019ca443e9ba0392f41c83cb6c56185cd6ae2"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.babySometimesRideBabyHoglin()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
+            "26.3": "sha256:977bf663707374361cce5448c9ecaa700b69bd3b0a431f78a535284ede10a32f"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:29d1cd225ca99833a626b44f4350f571db1240102958bc467a1d5cdb16fb559c"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastRetreat(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:e287056e3e708b0a18734b1fa891d73b03850fadfd965f1c0b6e8449409a0b60"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.canAdmire(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z": {
+            "26.3": "sha256:1adfc6ea91f14381d108ca3e668a6bb1349aec6f0bbd5a189e4ce48e3e10f1d3"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
+            "26.3": "sha256:053c398a32bda43a1e61161c22f450a25616ee58d729101eb30c2a9a5ccae394"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
+            "26.3": "sha256:47859d04dae41d2b4247de7acae79061ca9798503cce445a835fe35408f5beac"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.createLookBehaviors()Lcom/google/common/collect/ImmutableList;": {
+            "26.3": "sha256:1b6363e222848c1e7d67162b11293256a9786e1094f7d4aff668949a3406d2f3"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.dontKillAnyMoreHoglinsForAWhile(Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)V": {
+            "26.3": "sha256:e3e6b78f3812cb6bcac55314f3123e078117f58e8515b05b68be0ec2da6ebbed"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearbyAdultPiglins(Lnet/minecraft/world/entity/ai/Brain;)Ljava/util/List;": {
+            "26.3": "sha256:03c6785f1671bf53029b08a20ecfd20af989889856e20149daea0452bb82729d"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;)Ljava/util/Optional;": {
+            "26.3": "sha256:af27ff83ccc8a6c96a64d9ac010675c085692ec2a5c27b6f01024d3627c4fee5"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.hasCrossbow(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:2a2b2b8b1755a84f590b2f2005b3ad48cf1552377d143e7197a60bccf56e0248"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.hoglinsOutnumberPiglins(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
+            "26.3": "sha256:301eaa6ffb029560bd4c7c84d01de86a027f1f985bb34e54885c4e1af151e2be"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/util/RandomSource;)V": {
+            "26.3": "sha256:a8bf6f68addad1e90c64a588c9265cd78b2a30513cad6be48f360969b9b13e04"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isBarterCurrency(Lnet/minecraft/world/item/ItemStack;)Z": {
+            "26.3": "sha256:8aeb0d4c2d7d5aaab85cd4c9a7fa3a5624d9c0f501cab140ae42edc848804144"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z": {
+            "26.3": "sha256:a0404888a2d0879805c95e1a9c4cfeb662d28fb1545728c387bf5a7733256859"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isNearZombified(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
+            "26.3": "sha256:31e61243b25cc1c2d6e5d09ffb92613721bcf3148685debfe77ae0800f55991c"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isNotHoldingLovedItemInOffHand(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
+            "26.3": "sha256:8e88db4e360a6d3fe37724d0cd769c73b21dfe32358d0fac24a1b6a662bfd735"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isPlayerHoldingLovedItem(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:7990d0d9bcdfc00d1ef2d4b60a2878209032f308bd00bc4e214408395558bc8b"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.isWearingSafeArmor(Lnet/minecraft/world/entity/LivingEntity;)Z": {
+            "26.3": "sha256:cc0a89b4111fde5e4aa6ae75243e59d4872c224293c73c78531ef673d88ad2f9"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.maybeRetaliate(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:9c5f6e706794324ad2857200fb8eb53e785827d47ac94c82c3100e8570d8d0c3"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.mobInteract(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
+            "26.3": "sha256:03a0e537405c9d9144852f91ebde8d87f18f761dd074c64a6878e169d8574891"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL": {
+            "26.3": "sha256:1845fab6873dec8d366a29a5afa9a314b24e95ac1d0e55a537ab678be8a4e074"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:a6bb5ec2ca04799dde432464be433a5e728fb09158368d22d3dd039790738cec"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.setAvoidTargetAndDontHuntForAWhile(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:785113db3dcbf18f6d819a2e9dc4f8ff485b72f58689aff8a4010b6714e97477"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToPickup(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z": {
+            "26.3": "sha256:d463d09e3bec19b6a005a03be2830b54effbfcb8fac72e622a48a0d9814740c2"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
+            "26.3": "sha256:9f74200e57414ae3f6f7acea525864acb2f2148131014dc27d4c0547778b8909"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:1247f67e2cab6f458c62bf715e2aad128233d5d849b9557552571b2f60a92889"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
+            "26.3": "sha256:37d19f4e74603fd8b6ee006d7c3265c629030fed0c073f9394d2455889bec9a2"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
+            "26.3": "sha256:d594606b48580e4cbb118ff99aa48568d93c84c4d8bf020a052f076ddca755d1"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)Ljava/util/Optional;": {
+            "26.3": "sha256:4345fde8eafdf2e0ffacfd7b6fdee7a4fca3c36c43b71d87132507ece25aba8a"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;)V": {
+            "26.3": "sha256:34d35cdd50bcdad1f1c34f2b81fb9d7c9c155b283f1e4e83d9bceb12c706b673"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.setAngerTarget(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:59d0e395ad94c3008a280ff3802cb881e4210b2e485af90283fd961d443efe59"
+        },
+        "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:89ee224a6237be03b7e3b9a21c57c1bf38bddb04f0a3b11945e8f780c236791d"
+        },
+        "net/minecraft/world/entity/monster/warden/AngerLevel.ANGRY": {
+            "26.3": "sha256:bd80fbc60ddb0f7247d06b5635c13032f60c84fe2203fbd5613822dad8a04bf0"
+        },
+        "net/minecraft/world/entity/monster/warden/AngerLevel.byAnger(I)Lnet/minecraft/world/entity/monster/warden/AngerLevel;": {
+            "26.3": "sha256:cc7adcba27c080ee74722518520b17c7c145c9f45408959e657c6a17f842ba2a"
+        },
+        "net/minecraft/world/entity/monster/warden/AngerManagement.MAX_ANGER": {
+            "26.3": "sha256:ea4ebcbee17d73d44d5b82e26337d9f70f2c12bbf3180a4b105156562a961f01"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.canTargetEntity(Lnet/minecraft/world/entity/Entity;)Z": {
+            "26.3": "sha256:254d6d04318f6a4c165524b4290f87f89b4feec323b3ce2df364db8cfb25581e"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.finalizeSpawn(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;": {
+            "26.3": "sha256:582938f9bccacd118aa2504e172dd6b2e54bb9d72e7b12211bd0f188c3d1e404"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.FOLLOW_RANGE": {
+            "26.3": "sha256:c3943d7cab147ba358022e414f7186f64d8cdcbc597cf7b48e74f96f3d1da775"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.getActiveAnger()I": {
+            "26.3": "sha256:0609f9403e89295135861734e366de9d50cba49b73acfab75efae97298d35870"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
+            "26.3": "sha256:8ff40186bb26838b2f9ad0f3a0bb8c68d72e9b18abd7a9a1556eeedadfb17c9b"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.increaseAngerAt(Lnet/minecraft/world/entity/Entity;IZ)V": {
+            "26.3": "sha256:68efb8f37525d6905b9a487cac6d2782e0f2c9231a9d18fc4c3c426236e5e6f2"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.isDiggingOrEmerging()Z": {
+            "26.3": "sha256:b8893df59bcbcd2af12f1f16e6f7886d02b1ddaf3e8b65a44852460743c41e68"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden.setAttackTarget(Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:d699b44a8d7eb22ebf607db127a609d2c1a09c7dcadf5f3a7af8e07b1233f1af"
+        },
+        "net/minecraft/world/entity/monster/warden/Warden$VibrationUser.canReceiveVibration(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/gameevent/GameEvent$Context;)Z": {
+            "26.3": "sha256:581253230d8ccb8e13d45ee9cc994b4e093f961a917dcf56649948341be87f00"
+        },
+        "net/minecraft/world/entity/monster/warden/WardenAi.setDigCooldown(Lnet/minecraft/world/entity/LivingEntity;)V": {
+            "26.3": "sha256:b915f61c6b2fbd425978f25b20417ffbb10b66c101112d242615d521f582c502"
+        },
+        "net/minecraft/world/entity/monster/warden/WardenAi.setDisturbanceLocation(Lnet/minecraft/world/entity/monster/warden/Warden;Lnet/minecraft/core/BlockPos;)V": {
+            "26.3": "sha256:434eeadeb8fbbd065fe56e148747097038676c52c4bab64d3c6428339b3a4b58"
+        },
+        "net/minecraft/world/entity/monster/Zoglin.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;)Ljava/util/Optional;": {
+            "26.3": "sha256:2b59033de3bc4f6992d3bc2cc56d5125cde5f48f12536c45e0d47d6e7b40fca9"
+        },
+        "net/minecraft/world/entity/monster/Zoglin.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
+            "26.3": "sha256:2190eee4ee93f1f2a079dc92a4b7589e2a51df8584e98d46838266375b9902b4"
+        },
+        "net/minecraft/world/entity/npc/villager/Villager.BRAIN_PROVIDER": {
+            "26.3": "sha256:1935503f28868ecf69dddb0b839ad5c7ecf260439d08b540fe559fdae97ec1c6"
+        },
+        "net/minecraft/world/entity/npc/villager/VillagerProfession.NONE": {
+            "26.3": "sha256:47617cc5c36ff54b9a993ef87719f480a8d6c4dbedf13873b37b2166ac1462df"
+        },
         "net/minecraft/world/entity/player/Player.aiStep()V": {
             "26.3": "sha256:fa19c95007cbc7f9487094ca0aafb10e3b63cafda595bd22171940a92230759f"
         },
@@ -149,6 +820,9 @@
         },
         "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;": {
             "26.3": "sha256:fe7f0dd7b1084536630575c2f21e223f8ef34b49d9f55aae41867279f7dc872a"
+        },
+        "net/minecraft/world/item/CrossbowItem.getDefaultProjectileRange()I": {
+            "26.3": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c"
         },
         "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ac32715efe707271607b432252bf1e6e56176c43f9e53ee9a9726074d5c2351b"
@@ -449,6 +1123,12 @@
         },
         "net/minecraft/world/level/saveddata/maps/MapItemSavedData.MAX_SCALE": {
             "26.3": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed"
+        },
+        "net/minecraft/world/phys/AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z": {
+            "26.3": "sha256:6f8a3a85cb528b00b18870badc7570a43852eae44c2e2d40b36833208d3f0906"
+        },
+        "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;": {
+            "26.3": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6"
         }
     }
 }
