@@ -386,8 +386,15 @@ export interface GoalWorld {
      * Moves the entity and turns it, with no teleport and no physics of the runtime's own: the
      * ender dragon flies by Java's `aiStep`, which a `noPhysics` dragon moves itself.
      * @param yaw - Which way it faces, in degrees, in the convention every mob's yaw uses.
+     * @param velocity - The velocity the move leaves it with, Java's `setDeltaMovement`, which the
+     *   runtime keeps for {@link GoalWorld.velocity} to answer and a blow's knockback to change.
      */
-    moveSelf?(position: EntityPosition, yaw: number, pitch: number): void;
+    moveSelf?(position: EntityPosition, yaw: number, pitch: number, velocity?: EntityPosition): void;
+    /**
+     * The entity's own velocity, Java's `getDeltaMovement`: what {@link GoalWorld.moveSelf} left
+     * it with, as anything since has changed it, such as a blow's knockback.
+     */
+    velocity?(): EntityPosition;
     /**
      * The first y above the highest motion-blocking block of a column, Java's
      * `MOTION_BLOCKING_NO_LEAVES` heightmap, or undefined when the world cannot say.
