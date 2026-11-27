@@ -76,6 +76,22 @@ export const serverSideCommandHost = (
     /** Which recipes each player has unlocked; see {@link UnlockedRecipes}. */
     const unlocked = new UnlockedRecipes();
 
+    /** Shows every client the tick rate and whether the game is frozen, as vanilla does on a change. */
+    const showTicking = (): void => {
+        const control = server.getTickControl();
+        const ticking = { rate: control.getTickRate(), frozen: control.isFrozen() };
+        for (const session of server.getSessionManager().getSessions()) {
+            carryOut(session.presenter.showTicking(ticking), undefined);
+        }
+    };
+
+    /** Shows every client the steps a frozen game runs, or 0 when a step ends. */
+    const showTickStep = (ticks: number): void => {
+        for (const session of server.getSessionManager().getSessions()) {
+            carryOut(session.presenter.showTickStep(ticks), undefined);
+        }
+    };
+
     const operator = (ref: EntityRef, op: boolean): boolean => {
         const identity = playerSessionOf(server, ref)?.identity;
         if (identity === undefined) return false;
@@ -146,13 +162,27 @@ export const serverSideCommandHost = (
 
         ticking: {
             rate: () => server.getTickControl().getTickRate(),
-            setRate: (rate) => server.getTickControl().setTickRate(rate),
+            setRate: (rate) => {
+                server.getTickControl().setTickRate(rate);
+                showTicking();
+            },
             tickMs: () => server.getTickMs(),
             measuredRate: () => server.getTPS(),
             frozen: () => server.getTickControl().isFrozen(),
-            setFrozen: (frozen) => server.getTickControl().setFrozen(frozen),
-            step: (ticks) => server.getTickControl().step(ticks),
-            stopStep: () => server.getTickControl().stopStep(),
+            setFrozen: (frozen) => {
+                server.getTickControl().setFrozen(frozen);
+                showTicking();
+            },
+            step: (ticks) => {
+                const stepping = server.getTickControl().step(ticks);
+                if (stepping) showTickStep(ticks);
+                return stepping;
+            },
+            stopStep: () => {
+                const stopped = server.getTickControl().stopStep();
+                if (stopped) showTickStep(0);
+                return stopped;
+            },
             sprint: (ticks) => server.getTickControl().sprint(ticks),
             stopSprint: () => server.getTickControl().stopSprint()
         },

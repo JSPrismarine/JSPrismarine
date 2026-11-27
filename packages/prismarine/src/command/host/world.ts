@@ -27,7 +27,6 @@ import { writeBlockEntity } from '../../blockentity/blockEntityWrite';
 import { blockEntityCompound } from '../../blockentity/contentRecord';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
-import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, {
     SpawnPositionType
 } from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
@@ -445,27 +444,32 @@ export const worldCommandHost = (
             if (wanted === undefined) return false;
 
             server.getConfig().setDifficulty(wanted);
-            const packet = new SetDifficultyPacket({ difficulty: wanted });
-            return carryOut(server.broadcastPacket(packet), true);
+            const shown = server
+                .getSessionManager()
+                .getSessions()
+                .map((session) => session.presenter.showDifficulty(wanted));
+            return carryOut(Promise.all(shown), true);
         },
 
-        setWorldSpawn: (dimension, position, _angle) => {
+        setWorldSpawn: (dimension, position, angle) => {
             const world = worldIn(dimension);
             const at = blockPositionOf(position);
             world.setSpawnPosition(at);
 
-            const blockPosition = { x: at.getX(), y: at.getY(), z: at.getZ() };
-            const packet = new SetSpawnPositionPacket({
-                type: SpawnPositionType.WorldSpawn,
-                position: blockPosition,
-                dimension: world.getDimension().bedrockId,
-                blockPosition
-            });
+            const spawn = {
+                dimension: { id: world.getDimension().id, bedrockId: world.getDimension().bedrockId },
+                position: { x: at.getX(), y: at.getY(), z: at.getZ() },
+                yaw: angle
+            };
+            const shown = () =>
+                Promise.all(
+                    server
+                        .getSessionManager()
+                        .getSessions()
+                        .map((session) => session.presenter.showWorldSpawn(spawn))
+                );
 
-            return carryOut(
-                world.saveLevelData().then(async () => server.broadcastPacket(packet)),
-                true
-            );
+            return carryOut(world.saveLevelData().then(shown), true);
         },
 
         setSpawnPoint: (target, dimension, position, _angle) => {

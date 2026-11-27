@@ -367,15 +367,17 @@ export class Level {
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
 
         // Bedrock renders weather in the Overworld alone, and Java's `isRainingAt` is false
-        // under a ceiling, so the level events go to the worlds with a sky.
+        // under a ceiling, so the weather goes to the worlds with a sky.
         this.weather = new WorldWeather({
             cycleAllowed: () => this.gameRuleManager.getGameRule(GameRules.DoWeatherCycle)?.[0] !== false,
             // Read the configured source for every Java weather draw without changing draw points.
             randomInt: (bound) => Math.floor(this.server.getRandom()() * bound),
-            broadcast: (event, data) => {
+            show: (from, to) => {
                 for (const world of this.worlds()) {
                     if (!world.getDimension().java.hasSkylight) continue;
-                    world.sendWorldEvent(null, event, data);
+                    for (const session of world.getViewers()) {
+                        session.released(session.presenter.showWeather(from, to));
+                    }
                 }
             }
         });
@@ -882,6 +884,11 @@ export class Level {
     /** Sets the time of day, which is what `/time set` does. The game clock keeps its count. */
     public setDayTime(time: number): void {
         this.clock.setDayTime(time);
+    }
+
+    /** Whether the time of day moves on with the game time, which neither a pause nor `doDaylightCycle` holds. */
+    public isDayTimeAdvancing(): boolean {
+        return this.clock.isDayAdvancing();
     }
 
     /** Whether a script paused the overworld clock. */

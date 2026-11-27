@@ -176,7 +176,10 @@ describe('network', () => {
                 chunkWire: {
                     center: async (x, z) => void wired.push(`center ${x},${z}`),
                     send: async (chunks) =>
-                        void wired.push(`send ${chunks.map((chunk) => `${chunk.getX()},${chunk.getZ()}`).join(' ')}`)
+                        void wired.push(`send ${chunks.map((chunk) => `${chunk.getX()},${chunk.getZ()}`).join(' ')}`),
+                    forget: async (chunks) =>
+                        void wired.push(`forget ${chunks.map(({ x, z }) => `${x},${z}`).join(' ')}`),
+                    radius: async (distance) => void wired.push(`radius ${distance}`)
                 }
             });
             const bedrock: unknown[] = [];

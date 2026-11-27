@@ -25,6 +25,8 @@ import type { LoginRefusal } from '../../player/playerAdmission';
 import { loginRefusalOf } from '../../player/playerAdmission';
 import { announceArrival, playerArriving } from '../../player/playerArrival';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
+import { Dimensions } from '../../world/DimensionType';
+import { overworldSpawnOf } from '../bedrock/spawnPosition';
 import type { Intent, IntentKind } from '../../input/Intent';
 import { laneOfIntents } from '../../input/Intent';
 import ClientConnection from '../../network/ClientConnection';
@@ -180,6 +182,33 @@ const accountOf = (profile: JavaProfile, verified: boolean): PlayerIdentity => (
 });
 
 /**
+ * Shows a joining Java player the state of the level it is in, as vanilla's join does before the
+ * chunks: the difficulty, the world spawn a compass points to, the time, the weather under a sky,
+ * and the tick rate. A Bedrock client learns these from its start game packet.
+ * @param server - The server.
+ * @param session - The player's session.
+ * @returns Once every part was sent.
+ */
+export const showLevelState = async (server: Server, session: PlayerSession): Promise<void> => {
+    const world = session.getWorld();
+    const control = server.getTickControl();
+    const spawn = await overworldSpawnOf(world);
+    await Promise.all([
+        session.presenter.showDifficulty(server.getConfig().getDifficulty()),
+        session.presenter.showWorldSpawn({
+            dimension: { id: Dimensions.Overworld.id, bedrockId: Dimensions.Overworld.bedrockId },
+            position: { x: Math.floor(spawn.getX()), y: Math.floor(spawn.getY()), z: Math.floor(spawn.getZ()) },
+            yaw: 0
+        }),
+        session.sendTime(),
+        world.getDimension().java.hasSkylight
+            ? session.presenter.showWeather(undefined, world.getLevel().getWeather().current())
+            : Promise.resolve(),
+        session.presenter.showTicking({ rate: control.getTickRate(), frozen: control.isFrozen() })
+    ]);
+};
+
+/**
  * The server's Java players.
  * @param server - The server whose world, sessions and handlers they use.
  * @param inputs - The input queue the Bedrock dispatcher holds inputs in, so both editions' inputs
@@ -277,9 +306,12 @@ export const javaPlayersOf = (
             }
         },
 
-        // As a Bedrock client's `RequestChunkRadius` is, in the input step.
+        // As a Bedrock client's `RequestChunkRadius` is, in the input step, after the level's state.
         showWorld: (session, viewDistance) =>
-            inputs.hold(session.getConnection(), () => session.released(session.setViewDistance(viewDistance))),
+            inputs.hold(session.getConnection(), () => {
+                session.released(showLevelState(server, session));
+                session.released(session.setViewDistance(viewDistance));
+            }),
 
         announce: (session) =>
             announceArrival({ chat: server.getChatManager(), console: server.getConsoleSender() }, session),

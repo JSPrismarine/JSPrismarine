@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { BLOCK_STATES, CONFIGURATION, ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 import { describe, expect, it } from 'vitest';
@@ -726,6 +726,123 @@ describe('a scoreboard snapshot that drops holders', () => {
                 value: { owner: 'Steve', objective: 'kills', score: 4, displayName: null, numberFormat: null }
             },
             { name: 'Reset Score', value: { owner: 'Steve', objective: 'kills' } }
+        ]);
+    });
+});
+
+describe('the world state', () => {
+    const presenter = () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+        return { sent, java };
+    };
+    const overworldClock = (
+        CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:world_clock')?.entries ?? []
+    ).indexOf('minecraft:overworld');
+
+    it("sends the time as the game time and the Overworld's clock, held still while the day is", async () => {
+        const { sent, java } = presenter();
+
+        await java.sendTime({ dayTime: 18_000, gameTime: 30_000, advancing: true });
+        await java.sendTime({ dayTime: 6000, gameTime: 30_020, advancing: false });
+
+        expect(overworldClock).toBeGreaterThanOrEqual(0);
+        expect(sent).toEqual([
+            {
+                name: 'Update Time',
+                value: {
+                    gameTime: 30_000n,
+                    clocks: [{ clock: overworldClock, totalTicks: 18_000n, partialTick: 0, rate: 1 }]
+                }
+            },
+            {
+                name: 'Update Time',
+                value: {
+                    gameTime: 30_020n,
+                    clocks: [{ clock: overworldClock, totalTicks: 6000n, partialTick: 0, rate: 0 }]
+                }
+            }
+        ]);
+    });
+
+    it('starts the rain with its strength, adds the storm, and ends both, sending nothing for the same weather', async () => {
+        const { sent, java } = presenter();
+
+        await java.showWeather(undefined, 'rain');
+        await java.showWeather('clear', 'rain');
+        await java.showWeather('rain', 'thunder');
+        await java.showWeather('thunder', 'clear');
+
+        expect(sent.map(({ value }) => value)).toEqual([
+            { event: 1, value: 0 },
+            { event: 7, value: 1 },
+            { event: 8, value: 0 },
+            { event: 7, value: 1 },
+            { event: 8, value: 1 },
+            { event: 2, value: 0 },
+            { event: 7, value: 0 },
+            { event: 8, value: 0 }
+        ]);
+    });
+
+    it('shows the weather again once a respawn gave the client a new level', async () => {
+        const { sent, java } = presenter();
+        await java.showWeather(undefined, 'rain');
+        await java.showRespawn({
+            gamemode: Gametype.SURVIVAL,
+            dimension: { id: 'minecraft:overworld', seaLevel: 63 },
+            feet: { x: 0, y: 64, z: 0 },
+            keepData: false,
+            replacesWorld: false
+        });
+        sent.length = 0;
+
+        await java.showWeather('clear', 'rain');
+
+        expect(sent.map(({ value }) => value)).toEqual([
+            { event: 1, value: 0 },
+            { event: 7, value: 1 },
+            { event: 8, value: 0 }
+        ]);
+    });
+
+    it('sends the difficulty, the world spawn and the ticking state', async () => {
+        const { sent, java } = presenter();
+
+        await java.showDifficulty(Difficulty.HARD);
+        await java.showWorldSpawn({
+            dimension: { id: 'minecraft:overworld', bedrockId: 0 },
+            position: { x: 8, y: 64, z: -8 },
+            yaw: 90
+        });
+        await java.showTicking({ rate: 10, frozen: true });
+        await java.showTickStep(40);
+
+        expect(sent).toEqual([
+            { name: 'Change Difficulty', value: { difficulty: 3, locked: false } },
+            {
+                name: 'Set Default Spawn Position',
+                value: { dimension: 'minecraft:overworld', position: { x: 8, y: 64, z: -8 }, yaw: 90, pitch: 0 }
+            },
+            { name: 'Set Ticking State', value: { tickRate: 10, frozen: true } },
+            { name: 'Step Tick', value: { steps: 40 } }
+        ]);
+    });
+
+    it('drops the chunks that left the view, and tells the client its new radius', async () => {
+        const { sent, java } = presenter();
+
+        await java.chunkWire.forget([
+            { x: 3, z: -1 },
+            { x: 4, z: -1 }
+        ]);
+        await java.chunkWire.radius(6);
+
+        expect(sent).toEqual([
+            { name: 'Unload Chunk', value: { x: 3, z: -1 } },
+            { name: 'Unload Chunk', value: { x: 4, z: -1 } },
+            { name: 'Set Render Distance', value: { radius: 6 } },
+            { name: 'Set Simulation Distance', value: { distance: 6 } }
         ]);
     });
 });

@@ -44,6 +44,11 @@ export class LevelClock {
         this.dayTimeOffset = time - this.gameTime;
     }
 
+    /** Whether the time of day moves on with the next tick: not paused, and the rule lets it. */
+    public isDayAdvancing(): boolean {
+        return !this.paused && this.dayAdvances();
+    }
+
     /** Whether a script paused the clock. */
     public isPaused(): boolean {
         return this.paused;

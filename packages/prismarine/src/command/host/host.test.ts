@@ -42,6 +42,9 @@ import UnlockedRecipesPacket, {
     UnlockedRecipesType
 } from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 import { BedrockPresenter } from '../../editions/bedrock/presenter/BedrockPresenter';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../player/PlayerSession';
@@ -990,10 +993,23 @@ describe('the server command host', () => {
         });
 
         it('moves the world spawn', async () => {
+            // The spawn goes out once the level data is saved, which the command does not wait for.
+            const shown = Promise.withResolvers<unknown>();
+            fixture.players.push(
+                stub<PlayerSession>({
+                    presenter: new BedrockPresenter({ sendDataPacket: async (packet) => shown.resolve(packet) })
+                })
+            );
+
             await expect(fixture.run('setworldspawn 8 65 8')).resolves.toBe(1);
 
             expect(fixture.world.setSpawnPosition).toHaveBeenCalled();
-            expect(fixture.sent).toHaveLength(1);
+            const packet = await shown.promise;
+            if (!(packet instanceof SetSpawnPositionPacket)) throw new Error('expected SetSpawnPositionPacket');
+            expect(packet.getPacketData()).toMatchObject({
+                type: SpawnPositionType.WorldSpawn,
+                position: { x: 8, y: 65, z: 8 }
+            });
         });
     });
 

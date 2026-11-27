@@ -1,6 +1,12 @@
+import type { Weather } from '@jsprismarine/engine-systems';
+import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
@@ -18,6 +24,7 @@ import { abilitiesPacket } from '../../../network/replica/firstSight';
 import { bossEventOf } from './bedrockBossBar';
 import { displaySlotPacketsOf, removeObjectivePacketOf, scorePacketOf } from './bedrockScoreboard';
 import { titlePacketOf } from './bedrockTitle';
+import { weatherPacketsOf } from './bedrockWeather';
 import { playerListAddOf } from './bedrockPlayerList';
 import type {
     BossBarChange,
@@ -29,7 +36,9 @@ import type {
     ShownMove,
     ShownObjective,
     ShownScore,
-    ShownTitle
+    ShownTime,
+    ShownTitle,
+    ShownWorldSpawn
 } from '../../../player/presenter/SessionPresenter';
 
 /**
@@ -70,8 +79,8 @@ export class BedrockPresenter implements SessionPresenter {
     }
 
     /** Sends `SetTime`. */
-    public async sendTime(tick: number): Promise<void> {
-        await this.connection.sendDataPacket(new SetTimePacket({ time: tick }));
+    public async sendTime({ dayTime }: ShownTime): Promise<void> {
+        await this.connection.sendDataPacket(new SetTimePacket({ time: dayTime }));
     }
 
     /** Sends `SetPlayerGameType`. */
@@ -265,4 +274,33 @@ export class BedrockPresenter implements SessionPresenter {
     public async removeObjective(objective: string): Promise<void> {
         await this.connection.sendDataPacket(removeObjectivePacketOf(objective));
     }
+
+    /** Sends the level events that take the client's sky to the weather; see {@link weatherPacketsOf}. */
+    public async showWeather(from: Weather | undefined, to: Weather): Promise<void> {
+        await Promise.all(weatherPacketsOf(from, to).map((packet) => this.connection.sendDataPacket(packet)));
+    }
+
+    /** Sends `SetDifficulty`. */
+    public async showDifficulty(difficulty: Difficulty): Promise<void> {
+        await this.connection.sendDataPacket(new SetDifficultyPacket({ difficulty }));
+    }
+
+    /** Sends `SetSpawnPosition` as the world's spawn. */
+    public async showWorldSpawn({ dimension, position }: ShownWorldSpawn): Promise<void> {
+        const blockPosition = { x: position.x, y: position.y, z: position.z };
+        await this.connection.sendDataPacket(
+            new SetSpawnPositionPacket({
+                type: SpawnPositionType.WorldSpawn,
+                position: blockPosition,
+                dimension: dimension.bedrockId,
+                blockPosition
+            })
+        );
+    }
+
+    /** Not shown: a Bedrock client follows the server's ticks and has no tick rate of its own. */
+    public async showTicking(): Promise<void> {}
+
+    /** Not shown: a Bedrock client follows the server's ticks and has no tick rate of its own. */
+    public async showTickStep(): Promise<void> {}
 }

@@ -1,4 +1,9 @@
-import { Gametype, TitleType } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype, LevelEvent, TitleType } from '@jsprismarine/minecraft';
+import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import { Vector3 } from '@jsprismarine/math';
 import {
     ObjectiveSortOrder,
@@ -42,7 +47,7 @@ describe('BedrockPresenter', () => {
     it('sends the time of day', async () => {
         const { sent, presenter: bedrock } = presenter();
 
-        await bedrock.sendTime(6000);
+        await bedrock.sendTime({ dayTime: 6000, gameTime: 30_000, advancing: true });
 
         const [packet] = sent;
         if (!(packet instanceof SetTimePacket)) throw new Error('expected SetTimePacket');
@@ -289,5 +294,42 @@ describe('BedrockPresenter', () => {
         });
         expect(removed).toBeInstanceOf(RemoveObjectivePacket);
         expect(sent).toHaveLength(5);
+    });
+
+    it('sends the weather as level events, the stops first for a client that may hold any', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showWeather(undefined, 'thunder');
+        await bedrock.showWeather('thunder', 'clear');
+
+        expect(
+            sent.map((packet) => (packet instanceof LevelEventPacket ? packet.getPacketData()?.eventId : packet))
+        ).toEqual([
+            LevelEvent.STOP_THUNDERSTORM,
+            LevelEvent.STOP_RAINING,
+            LevelEvent.START_RAINING,
+            LevelEvent.START_THUNDERSTORM,
+            LevelEvent.STOP_THUNDERSTORM,
+            LevelEvent.STOP_RAINING
+        ]);
+    });
+
+    it('sends the difficulty and the world spawn, and nothing for the tick rate', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showDifficulty(Difficulty.HARD);
+        await bedrock.showWorldSpawn({
+            dimension: { id: 'minecraft:the_nether', bedrockId: 1 },
+            position: { x: 1, y: 2, z: 3 },
+            yaw: 0
+        });
+        await bedrock.showTicking();
+        await bedrock.showTickStep();
+
+        const [difficulty, spawn] = sent;
+        expect(difficulty).toBeInstanceOf(SetDifficultyPacket);
+        if (!(spawn instanceof SetSpawnPositionPacket)) throw new Error('expected SetSpawnPositionPacket');
+        expect(spawn.getPacketData()).toMatchObject({ type: SpawnPositionType.WorldSpawn, dimension: 1 });
+        expect(sent).toHaveLength(2);
     });
 });
