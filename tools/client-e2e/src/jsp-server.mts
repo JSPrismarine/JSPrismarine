@@ -247,7 +247,8 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  * @param options.addons - Addons from the repository's `addons/` folder, by name, that the server
  *   loads as world packs, as an installed addon is. The server loads a built copy in its folder.
  * @param options.addonConfigs - The config file of each addon, by name.
- * @param options.keepAliveInterval - The server's `keep-alive-interval`, in seconds.
+ * @param options.keepAliveInterval - The server's `keep-alive-interval`, in seconds; 0, which turns
+ *   the pings off, unless given.
  * @param options.files - Files written into the server's folder before it starts, by path relative
  *   to it, such as an `.mcpack` under `addons/` that the server installs as it boots.
  * @param options.config - Config entries written over the harness's own, for a setting no other
@@ -276,7 +277,7 @@ export const startServer = async (
         addonConfigs?: Readonly<Record<string, unknown>>;
         /** Listens for Java Edition clients on this TCP port, as `java-enabled` and `java-port` do. */
         javaPort?: number;
-        /** The server's `keep-alive-interval`, in seconds. */
+        /** The server's `keep-alive-interval`, in seconds; 0, off, unless given. */
         keepAliveInterval?: number;
         /** Files written into the server's folder before it starts, by path relative to it. */
         files?: Readonly<Record<string, Uint8Array>>;
@@ -703,7 +704,9 @@ export const startServer = async (
         // requests to the lookup services.
         'enable-server-public-ip-lookup': false,
         'online-mode': false,
-        ...(options.keepAliveInterval === undefined ? {} : { 'keep-alive-interval': options.keepAliveInterval }),
+        // Off unless a scenario tests the keep-alive, so no other scenario spends a ping per
+        // interval or is kicked by one a loaded host answers late.
+        'keep-alive-interval': options.keepAliveInterval ?? 0,
         // Off unless asked, so concurrent Bedrock runs do not all reach for the Java port.
         ...(options.javaPort === undefined
             ? { 'java-enabled': false }

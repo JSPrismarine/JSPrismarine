@@ -56,6 +56,9 @@ The scratch server runs RakNet on a worker thread, so a tick that overruns its b
 stop it answering the client's keepalives and acknowledgements, and the client keeps its session
 through a stall. `--no-raknet-worker` runs it on the game thread instead.
 
+The scratch server's `keep-alive-interval` is 0, which sends no pings, unless a scenario sets
+`serverOptions.keepAliveInterval`, as the `keep-alive` scenario does.
+
 The gameplay and dimension scenarios run in four suites of about 14, each on a server and client of
 its own and a fresh world, so CI can play them on four runners at once. Natural spawning uses a
 separate server because it needs a cow spawn fixture that could affect gameplay checks. The

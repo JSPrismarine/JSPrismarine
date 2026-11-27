@@ -96,7 +96,9 @@ const REASONS = {
     flat: 'The flat scenario measures ticking and chunk delivery without terrain generation.',
     telemetry: "A benchmark run should not count in the server project's usage statistics.",
     startupLookup: 'A network call at startup that the benchmark does not need; the bots connect over loopback.',
-    port: 'Another process on the benchmark host held the default port.'
+    port: 'Another process on the benchmark host held the default port.',
+    keepAlive:
+        'The benchmark measures ticking and chunk delivery, not the keep-alive; off, a bot that misses a ping under load stays measured.'
 } as const;
 
 // --- JSPrismarine ---------------------------------------------------------------------------------
@@ -190,6 +192,7 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
             gamemode: 'creative',
             'view-distance': request.viewDistance,
             'max-players': Math.max(20, request.maxPlayers),
+            'keep-alive-interval': 0,
             worlds: { world: { preset, seed: request.seed } }
         };
         writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
@@ -218,6 +221,7 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
                 ...change('worlds.world.preset', preset, 'minecraft:normal', REASONS.flat),
                 ...change('view-distance', request.viewDistance, 10, REASONS.viewDistance),
                 ...change('max-players', config['max-players'], 20, 'Room for every bot.'),
+                ...change('keep-alive-interval', 0, 15, REASONS.keepAlive),
                 ...change('gamemode', 'creative', 'survival', REASONS.creative),
                 ...change('enable-server-public-ip-lookup', false, true, REASONS.startupLookup),
                 ...change('stats.bstats.enabled', false, true, REASONS.telemetry)
