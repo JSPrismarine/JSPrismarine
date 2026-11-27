@@ -220,6 +220,71 @@
             "reason": "Bedrock has no counterpart for Java's potent_sulfur block entity, so the block it maps to carries none.",
             "reference": "Java EntityBlock.newBlockEntity and LevelChunk.setBlockState"
         },
+        "creative-break-spills-container:minecraft:bamboo_shelf": {
+            "kind": "deferred",
+            "reason": "minecraft:bamboo_shelf's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:crafter": {
+            "kind": "deferred",
+            "reason": "minecraft:crafter's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:dispenser": {
+            "kind": "deferred",
+            "reason": "minecraft:dispenser's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:dropper": {
+            "kind": "deferred",
+            "reason": "minecraft:dropper's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:exposed_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:exposed_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:hopper": {
+            "kind": "deferred",
+            "reason": "minecraft:hopper's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:oxidized_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:oxidized_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:waxed_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:waxed_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:waxed_exposed_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:waxed_exposed_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:waxed_oxidized_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:waxed_oxidized_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:waxed_weathered_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:waxed_weathered_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
+        "creative-break-spills-container:minecraft:weathered_copper_chest": {
+            "kind": "deferred",
+            "reason": "minecraft:weathered_copper_chest's block family drops only the block on break, so what it held is lost in every game mode.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3825"
+        },
         "light-dampening:minecraft:piston[extended=true,facing=down]": {
             "kind": "deferred",
             "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",

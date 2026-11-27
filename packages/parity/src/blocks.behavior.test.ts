@@ -30,6 +30,7 @@ import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { createCircuit } from './blockScenarios/circuit.ts';
+import { creativeBreakScenarios } from './blockScenarios/creativeBreak.ts';
 import { blockPropertyScenarios, hasMapColor, javaBlockRows } from './blockScenarios/properties.ts';
 import { javaBlockBehaviors, javaBlockHasBlockEntity, javaBlockIsA } from './javaBlockClasses.ts';
 import { describeFamily } from './measure.ts';
@@ -1655,7 +1656,8 @@ describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
             FAMILIES.blocksBehavior,
             import.meta.filename,
             scenarioGroup(scenarios),
-            scenarioGroup(blockPropertyScenarios)
+            scenarioGroup(blockPropertyScenarios),
+            scenarioGroup(creativeBreakScenarios)
         );
 
         reportCoverage(
