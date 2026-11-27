@@ -46,10 +46,20 @@
                 "import": "./dist/generated/v2193/block-schemas.js",
                 "module": "./dist/generated/v2193/block-schemas.js"
             },
+            "./generated/v2225/ActorDamageCause": {
+                "types": "./dist/generated/v2225/ActorDamageCause.d.ts",
+                "import": "./dist/generated/v2225/ActorDamageCause.js",
+                "module": "./dist/generated/v2225/ActorDamageCause.js"
+            },
             "./generated/v2225/ActorEvent": {
                 "types": "./dist/generated/v2225/ActorEvent.d.ts",
                 "import": "./dist/generated/v2225/ActorEvent.js",
                 "module": "./dist/generated/v2225/ActorEvent.js"
+            },
+            "./generated/v2225/ActorType": {
+                "types": "./dist/generated/v2225/ActorType.d.ts",
+                "import": "./dist/generated/v2225/ActorType.js",
+                "module": "./dist/generated/v2225/ActorType.js"
             },
             "./generated/v2225/ContainerUiId": {
                 "types": "./dist/generated/v2225/ContainerUiId.d.ts",
@@ -106,9 +116,17 @@
             "jsprismarine:dist": "./dist/generated/v2193/block-schemas.js",
             "default": "./src/generated/v2193/block-schemas.ts"
         },
+        "./generated/v2225/ActorDamageCause": {
+            "jsprismarine:dist": "./dist/generated/v2225/ActorDamageCause.js",
+            "default": "./src/generated/v2225/ActorDamageCause.ts"
+        },
         "./generated/v2225/ActorEvent": {
             "jsprismarine:dist": "./dist/generated/v2225/ActorEvent.js",
             "default": "./src/generated/v2225/ActorEvent.ts"
+        },
+        "./generated/v2225/ActorType": {
+            "jsprismarine:dist": "./dist/generated/v2225/ActorType.js",
+            "default": "./src/generated/v2225/ActorType.ts"
         },
         "./generated/v2225/ContainerUiId": {
             "jsprismarine:dist": "./dist/generated/v2225/ContainerUiId.js",

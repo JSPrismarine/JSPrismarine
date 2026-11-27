@@ -4948,6 +4948,800 @@
      "value": 2
     }
    ]
+  },
+  "ActorType": {
+   "underlying": "int32",
+   "members": [
+    {
+     "name": "Undefined",
+     "value": 1
+    },
+    {
+     "name": "Mob",
+     "value": 256
+    },
+    {
+     "name": "PathfinderMob",
+     "value": 768
+    },
+    {
+     "name": "Monster",
+     "value": 2816
+    },
+    {
+     "name": "Animal",
+     "value": 4864
+    },
+    {
+     "name": "TamableAnimal",
+     "value": 21248
+    },
+    {
+     "name": "Ambient",
+     "value": 33024
+    },
+    {
+     "name": "UndeadMonster",
+     "value": 68352
+    },
+    {
+     "name": "ZombieMonster",
+     "value": 199424
+    },
+    {
+     "name": "Arthropod",
+     "value": 264960
+    },
+    {
+     "name": "Minecart",
+     "value": 524288
+    },
+    {
+     "name": "SkeletonMonster",
+     "value": 1116928
+    },
+    {
+     "name": "EquineAnimal",
+     "value": 2118400
+    },
+    {
+     "name": "Projectile",
+     "value": 4194304
+    },
+    {
+     "name": "AbstractArrow",
+     "value": 8388608
+    },
+    {
+     "name": "WaterAnimal",
+     "value": 8960
+    },
+    {
+     "name": "VillagerBase",
+     "value": 16777984
+    },
+    {
+     "name": "Chicken",
+     "value": 4874
+    },
+    {
+     "name": "Cow",
+     "value": 4875
+    },
+    {
+     "name": "Pig",
+     "value": 4876
+    },
+    {
+     "name": "Sheep",
+     "value": 4877
+    },
+    {
+     "name": "Wolf",
+     "value": 21262
+    },
+    {
+     "name": "Villager",
+     "value": 16777999
+    },
+    {
+     "name": "MushroomCow",
+     "value": 4880
+    },
+    {
+     "name": "Squid",
+     "value": 8977
+    },
+    {
+     "name": "Rabbit",
+     "value": 4882
+    },
+    {
+     "name": "Bat",
+     "value": 33043
+    },
+    {
+     "name": "IronGolem",
+     "value": 788
+    },
+    {
+     "name": "SnowGolem",
+     "value": 789
+    },
+    {
+     "name": "Ocelot",
+     "value": 21270
+    },
+    {
+     "name": "Horse",
+     "value": 2118423
+    },
+    {
+     "name": "PolarBear",
+     "value": 4892
+    },
+    {
+     "name": "Llama",
+     "value": 4893
+    },
+    {
+     "name": "Parrot",
+     "value": 21278
+    },
+    {
+     "name": "Dolphin",
+     "value": 8991
+    },
+    {
+     "name": "Donkey",
+     "value": 2118424
+    },
+    {
+     "name": "Mule",
+     "value": 2118425
+    },
+    {
+     "name": "SkeletonHorse",
+     "value": 2183962
+    },
+    {
+     "name": "ZombieHorse",
+     "value": 2183963
+    },
+    {
+     "name": "Zombie",
+     "value": 199456
+    },
+    {
+     "name": "Creeper",
+     "value": 2849
+    },
+    {
+     "name": "Skeleton",
+     "value": 1116962
+    },
+    {
+     "name": "Spider",
+     "value": 264995
+    },
+    {
+     "name": "PigZombie",
+     "value": 68388
+    },
+    {
+     "name": "Slime",
+     "value": 2853
+    },
+    {
+     "name": "EnderMan",
+     "value": 2854
+    },
+    {
+     "name": "Silverfish",
+     "value": 264999
+    },
+    {
+     "name": "CaveSpider",
+     "value": 265000
+    },
+    {
+     "name": "Ghast",
+     "value": 2857
+    },
+    {
+     "name": "LavaSlime",
+     "value": 2858
+    },
+    {
+     "name": "Blaze",
+     "value": 2859
+    },
+    {
+     "name": "ZombieVillager",
+     "value": 199468
+    },
+    {
+     "name": "Witch",
+     "value": 2861
+    },
+    {
+     "name": "Stray",
+     "value": 1116974
+    },
+    {
+     "name": "Husk",
+     "value": 199471
+    },
+    {
+     "name": "WitherSkeleton",
+     "value": 1116976
+    },
+    {
+     "name": "Guardian",
+     "value": 2865
+    },
+    {
+     "name": "ElderGuardian",
+     "value": 2866
+    },
+    {
+     "name": "Npc",
+     "value": 307
+    },
+    {
+     "name": "WitherBoss",
+     "value": 68404
+    },
+    {
+     "name": "Dragon",
+     "value": 2869
+    },
+    {
+     "name": "Shulker",
+     "value": 2870
+    },
+    {
+     "name": "Endermite",
+     "value": 265015
+    },
+    {
+     "name": "Agent",
+     "value": 312
+    },
+    {
+     "name": "Vindicator",
+     "value": 2873
+    },
+    {
+     "name": "Phantom",
+     "value": 68410
+    },
+    {
+     "name": "IllagerBeast",
+     "value": 2875
+    },
+    {
+     "name": "ArmorStand",
+     "value": 317
+    },
+    {
+     "name": "TripodCamera",
+     "value": 318
+    },
+    {
+     "name": "Player",
+     "value": 319
+    },
+    {
+     "name": "ItemEntity",
+     "value": 64
+    },
+    {
+     "name": "PrimedTnt",
+     "value": 65
+    },
+    {
+     "name": "FallingBlock",
+     "value": 66
+    },
+    {
+     "name": "MovingBlock",
+     "value": 67
+    },
+    {
+     "name": "ExperiencePotion",
+     "value": 4194372
+    },
+    {
+     "name": "Experience",
+     "value": 69
+    },
+    {
+     "name": "EyeOfEnder",
+     "value": 70
+    },
+    {
+     "name": "EnderCrystal",
+     "value": 71
+    },
+    {
+     "name": "FireworksRocket",
+     "value": 72
+    },
+    {
+     "name": "Trident",
+     "value": 12582985
+    },
+    {
+     "name": "Turtle",
+     "value": 4938
+    },
+    {
+     "name": "Cat",
+     "value": 21323
+    },
+    {
+     "name": "ShulkerBullet",
+     "value": 4194380
+    },
+    {
+     "name": "FishingHook",
+     "value": 77
+    },
+    {
+     "name": "Chalkboard",
+     "value": 78
+    },
+    {
+     "name": "DragonFireball",
+     "value": 4194383
+    },
+    {
+     "name": "Arrow",
+     "value": 12582992
+    },
+    {
+     "name": "Snowball",
+     "value": 4194385
+    },
+    {
+     "name": "ThrownEgg",
+     "value": 4194386
+    },
+    {
+     "name": "Painting",
+     "value": 83
+    },
+    {
+     "name": "LargeFireball",
+     "value": 4194389
+    },
+    {
+     "name": "ThrownPotion",
+     "value": 4194390
+    },
+    {
+     "name": "Enderpearl",
+     "value": 4194391
+    },
+    {
+     "name": "LeashKnot",
+     "value": 88
+    },
+    {
+     "name": "WitherSkull",
+     "value": 4194393
+    },
+    {
+     "name": "BoatRideable",
+     "value": 90
+    },
+    {
+     "name": "WitherSkullDangerous",
+     "value": 4194395
+    },
+    {
+     "name": "LightningBolt",
+     "value": 93
+    },
+    {
+     "name": "SmallFireball",
+     "value": 4194398
+    },
+    {
+     "name": "AreaEffectCloud",
+     "value": 95
+    },
+    {
+     "name": "LingeringPotion",
+     "value": 4194405
+    },
+    {
+     "name": "LlamaSpit",
+     "value": 4194406
+    },
+    {
+     "name": "EvocationFang",
+     "value": 4194407
+    },
+    {
+     "name": "EvocationIllager",
+     "value": 2920
+    },
+    {
+     "name": "Vex",
+     "value": 2921
+    },
+    {
+     "name": "MinecartRideable",
+     "value": 524372
+    },
+    {
+     "name": "MinecartHopper",
+     "value": 524384
+    },
+    {
+     "name": "MinecartTNT",
+     "value": 524385
+    },
+    {
+     "name": "MinecartChest",
+     "value": 524386
+    },
+    {
+     "name": "MinecartFurnace",
+     "value": 524387
+    },
+    {
+     "name": "MinecartCommandBlock",
+     "value": 524388
+    },
+    {
+     "name": "IceBomb",
+     "value": 4194410
+    },
+    {
+     "name": "Balloon",
+     "value": 107
+    },
+    {
+     "name": "Pufferfish",
+     "value": 9068
+    },
+    {
+     "name": "Salmon",
+     "value": 9069
+    },
+    {
+     "name": "Drowned",
+     "value": 199534
+    },
+    {
+     "name": "Tropicalfish",
+     "value": 9071
+    },
+    {
+     "name": "Fish",
+     "value": 9072
+    },
+    {
+     "name": "Panda",
+     "value": 4977
+    },
+    {
+     "name": "Pillager",
+     "value": 2930
+    },
+    {
+     "name": "VillagerV2",
+     "value": 16778099
+    },
+    {
+     "name": "ZombieVillagerV2",
+     "value": 199540
+    },
+    {
+     "name": "Shield",
+     "value": 117
+    },
+    {
+     "name": "WanderingTrader",
+     "value": 886
+    },
+    {
+     "name": "Lectern",
+     "value": 119
+    },
+    {
+     "name": "ElderGuardianGhost",
+     "value": 2936
+    },
+    {
+     "name": "Fox",
+     "value": 4985
+    },
+    {
+     "name": "Bee",
+     "value": 378
+    },
+    {
+     "name": "Piglin",
+     "value": 379
+    },
+    {
+     "name": "Hoglin",
+     "value": 4988
+    },
+    {
+     "name": "Strider",
+     "value": 4989
+    },
+    {
+     "name": "Zoglin",
+     "value": 68478
+    },
+    {
+     "name": "PiglinBrute",
+     "value": 383
+    },
+    {
+     "name": "Goat",
+     "value": 4992
+    },
+    {
+     "name": "GlowSquid",
+     "value": 9089
+    },
+    {
+     "name": "Axolotl",
+     "value": 4994
+    },
+    {
+     "name": "Warden",
+     "value": 2947
+    },
+    {
+     "name": "Frog",
+     "value": 4996
+    },
+    {
+     "name": "Tadpole",
+     "value": 9093
+    },
+    {
+     "name": "Allay",
+     "value": 390
+    },
+    {
+     "name": "ChestBoatRideable",
+     "value": 218
+    },
+    {
+     "name": "TraderLlama",
+     "value": 5021
+    },
+    {
+     "name": "Camel",
+     "value": 5002
+    },
+    {
+     "name": "Sniffer",
+     "value": 5003
+    },
+    {
+     "name": "Breeze",
+     "value": 2956
+    },
+    {
+     "name": "BreezeWindChargeProjectile",
+     "value": 4194445
+    },
+    {
+     "name": "Armadillo",
+     "value": 5006
+    },
+    {
+     "name": "WindChargeProjectile",
+     "value": 4194447
+    },
+    {
+     "name": "Bogged",
+     "value": 1117072
+    },
+    {
+     "name": "OminousItemSpawner",
+     "value": 145
+    },
+    {
+     "name": "Creaking",
+     "value": 2962
+    },
+    {
+     "name": "HappyGhast",
+     "value": 5011
+    },
+    {
+     "name": "CopperGolem",
+     "value": 916
+    },
+    {
+     "name": "Nautilus",
+     "value": 9109
+    },
+    {
+     "name": "ZombieNautilus",
+     "value": 74646
+    },
+    {
+     "name": "Parched",
+     "value": 1117079
+    },
+    {
+     "name": "CamelHusk",
+     "value": 70552
+    },
+    {
+     "name": "SulfurCube",
+     "value": 921
+    },
+    {
+     "name": "Cushion",
+     "value": 154
+    },
+    {
+     "name": "Frostbite",
+     "value": 199579
+    },
+    {
+     "name": "IceBall",
+     "value": 4194460
+    }
+   ]
+  },
+  "SharedTypes::Legacy::ActorDamageCause": {
+   "underlying": "int32",
+   "members": [
+    {
+     "name": "Override",
+     "value": 0
+    },
+    {
+     "name": "Contact",
+     "value": 1
+    },
+    {
+     "name": "EntityAttack",
+     "value": 2
+    },
+    {
+     "name": "Projectile",
+     "value": 3
+    },
+    {
+     "name": "Suffocation",
+     "value": 4
+    },
+    {
+     "name": "Fall",
+     "value": 5
+    },
+    {
+     "name": "Fire",
+     "value": 6
+    },
+    {
+     "name": "FireTick",
+     "value": 7
+    },
+    {
+     "name": "Lava",
+     "value": 8
+    },
+    {
+     "name": "Drowning",
+     "value": 9
+    },
+    {
+     "name": "BlockExplosion",
+     "value": 10
+    },
+    {
+     "name": "EntityExplosion",
+     "value": 11
+    },
+    {
+     "name": "Void",
+     "value": 12
+    },
+    {
+     "name": "SelfDestruct",
+     "value": 13
+    },
+    {
+     "name": "Magic",
+     "value": 14
+    },
+    {
+     "name": "Wither",
+     "value": 15
+    },
+    {
+     "name": "Starve",
+     "value": 16
+    },
+    {
+     "name": "Anvil",
+     "value": 17
+    },
+    {
+     "name": "Thorns",
+     "value": 18
+    },
+    {
+     "name": "FallingBlock",
+     "value": 19
+    },
+    {
+     "name": "Piston",
+     "value": 20
+    },
+    {
+     "name": "FlyIntoWall",
+     "value": 21
+    },
+    {
+     "name": "Magma",
+     "value": 22
+    },
+    {
+     "name": "Fireworks",
+     "value": 23
+    },
+    {
+     "name": "Lightning",
+     "value": 24
+    },
+    {
+     "name": "Charging",
+     "value": 25
+    },
+    {
+     "name": "Temperature",
+     "value": 26
+    },
+    {
+     "name": "Freezing",
+     "value": 27
+    },
+    {
+     "name": "Stalactite",
+     "value": 28
+    },
+    {
+     "name": "Stalagmite",
+     "value": 29
+    },
+    {
+     "name": "RamAttack",
+     "value": 30
+    },
+    {
+     "name": "SonicBoom",
+     "value": 31
+    },
+    {
+     "name": "Campfire",
+     "value": 32
+    },
+    {
+     "name": "SoulCampfire",
+     "value": 33
+    },
+    {
+     "name": "MaceSmash",
+     "value": 34
+    }
+   ]
   }
  }
 }
