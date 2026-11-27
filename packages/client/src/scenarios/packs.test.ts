@@ -16,6 +16,7 @@ import { nbtToPlain, readNetworkNbt } from '@jsprismarine/protocol/bedrock/paylo
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type { CreativeContent } from '@jsprismarine/protocol/bedrock/packet/CreativeContentPacket';
 import type { ItemRegistryEntry } from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import type { DecodedPacket } from '../net/ClientPacketRegistry';
 import type { LoopbackServer } from '../testing/loopbackServer.test-utils';
@@ -130,6 +131,27 @@ describe('pack blocks', () => {
                 version: 2
             });
         }
+        player.leave();
+        await jsp.tick();
+    });
+
+    it("lists the pack's block in the creative menu and leaves its hidden one out", async () => {
+        const { player, joined } = jsp.connect('Creative');
+        // The client decodes only what its login needs, so the menu is registered for this test.
+        player.client.getRegistry().register(CreativeContentPacket);
+        const items: ItemRegistryEntry[] = [];
+        let menu: CreativeContent | undefined;
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof ItemRegistryPacket) items.push(...(packet.getPacketData()?.items ?? []));
+            if (packet instanceof CreativeContentPacket) menu = packet.getPacketData() ?? undefined;
+        });
+        await jsp.until(() => menu !== undefined, 'Creative was sent no creative menu', 400);
+        await joined;
+
+        const names = new Map(items.map((item) => [item.runtimeId, item.name]));
+        const listed = (menu?.entries ?? []).map((entry) => names.get(entry.item.runtimeId));
+        expect(listed).toContain('loopback:stone');
+        expect(listed).not.toContain('loopback:light');
         player.leave();
         await jsp.tick();
     });
