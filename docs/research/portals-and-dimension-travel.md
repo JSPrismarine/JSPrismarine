@@ -37,6 +37,15 @@ Portal blocks cannot be mined in survival, are destroyed by explosions, and are 
 
 Random ticks spawn zombified piglins. Java's `NetherPortalBlock.randomTick` (bytecode): only when monsters spawn, difficulty is not peaceful and the `NETHER_PORTAL_SPAWNS_PIGLINS` environment attribute is on (this is how 26.x restricts it to the Overworld); roll `random.nextInt(2000) < difficulty.getId()` (so 1 in 2000 on easy, 2 in 2000 on normal, 3 in 2000 on hard, matching the wiki's 0.05 / 0.1 / 0.15 percent); require a player close enough for spawning; walk down through portal blocks to the bottom one; check `isValidSpawn` for a zombified piglin; spawn it one block above and call `setPortalCooldown()` on it and its vehicle so it does not walk straight back. Bedrock spawns them one block east or south of the portal rather than inside it, ticks every portal block once on activation, and spawns none below y 0 (wiki, Zombified Piglin page, MCPE-98020). The overlay `portal.block.json` already sets `random_tick: true`, and `portalFamily` has no `onRandomTick` yet.
 
+### Command-written portal blocks
+
+Added 2026-11-27. The editions disagree about a portal block that `/fill` or `/setblock` writes with an axis other than its frame's, such as `fill … portal`, which writes `portal_axis=unknown`.
+
+- Java keeps it. `FillCommand` places each block through `BlockInput.place`, which runs `Block.updateFromNeighbourShapes` and falls back to the written state when that returns air (bytecode, 26.3). Nothing updates the air beside the frame afterwards, so the portal stands and carries a player who walks in.
+- The pinned Bedrock Dedicated Server (1.26.60) clears it. A bare `fill … portal` into a complete frame is air a second later, and `["portal_axis"="z"]` in a frame that runs along z stands (checked on the server while verifying #3722).
+
+Decision: this server follows Java. The `blocks.portals` parity family writes each frame axis against each axis the palette declares, asserts the portal stands, and lists each case the Bedrock Dedicated Server would clear as an intentional difference.
+
 ### Travel timer
 
 Java tracks portal contact per entity in `PortalProcessor` (`portalTime`, `insidePortalThisTick`, `entryPosition`). Every tick `Entity.handlePortal` runs `processPortalCooldown` (decrement `portalCooldown` while above zero), then `processPortalTeleportation(level, entity, canUsePortal(false))`:
