@@ -9,6 +9,9 @@
  *
  * A machine without the script host library runs no scripts, so each test skips there unless
  * `JSP_SCRIPT_HOST_REQUIRE=1` asks for a failure instead, as CI does on Linux x64.
+ *
+ * `script-client-feedback` spawns a pig, which needs the Bedrock pack's entity types, so it is
+ * tagged `real-data`.
  */
 import { LevelEvent } from '@jsprismarine/minecraft';
 import { MovePlayerPacket } from '@jsprismarine/protocol';
@@ -203,7 +206,7 @@ const musicEvents = (received: readonly unknown[]): number[] =>
         .map((packet) => packet.eventId)
         .filter((id) => id === LevelEvent.PLAY_CUSTOM_MUSIC || id === LevelEvent.STOP_CUSTOM_MUSIC);
 
-describe('script-client-feedback', () => {
+describe('script-client-feedback', { tags: ['real-data'] }, () => {
     it("sends the player the script's music, property override, free camera and spline, then stops them", async (context) => {
         requireScripts(context);
         const { player, received } = await joinRecording('Watcher', [
