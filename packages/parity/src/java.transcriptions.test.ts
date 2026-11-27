@@ -15,6 +15,8 @@ import {
     resolveJavaSource,
     scanRepository
 } from '@jsprismarine/java-classfile/sources';
+import { ARMADILLO_SCARE_SENSOR } from '@jsprismarine/entity-brains';
+import { NO_PROFESSION, villagerActivities } from '@jsprismarine/entity-brains/mobs/villager';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
@@ -43,6 +45,10 @@ import { reportParityCases } from './trackerCases.ts';
  * the preview replaces it. Its row passes once the golden records the preview's fingerprint for
  * the member, which `java:sources --update --java <preview> --reviewed <spelling>` stamps after
  * someone has read the change against the copy.
+ *
+ * A constant Java sets in a static initializer fingerprints the whole initializer, so a release that
+ * adds any constant to its class would flag it. The few copies of such values name the field with
+ * `@javaSee`, and the family reads the values out of the jar and compares them with the copy.
  *
  * The family also reports how many tags each `@javaVerified` kind has, overall and per package, as
  * dashboard measurements, so the share of plain transcriptions, which only a re-read checks, shows.
@@ -202,5 +208,87 @@ describeFamily(FAMILIES.javaTranscriptions, [], () => {
                 .filter(([name]) => name.includes(': '))
                 .reduce((sum, [, n]) => sum + n, 0)
         ).toBe(tags.length);
+    });
+});
+
+/**
+ * The instructions of one lambda a listing inlines, by the name the listing gives it, such as
+ * `SensorType.lambda#0`.
+ */
+const inlinedLambda = (listing: readonly string[], owner: string, lambda: string): string[] => {
+    const start = listing.findIndex((line) => line.startsWith(`inlined ${owner}.${lambda}(`));
+    if (start < 0) return [];
+    const end = listing.findIndex((line, at) => at > start && !line.startsWith('  '));
+    return listing.slice(start + 1, end < 0 ? undefined : end).map((line) => line.replace(/^\s*\d+: /, ''));
+};
+
+/** The `int` an instruction pushes, for the constant forms `javac` writes. */
+const pushedInt = (instruction: string): number | undefined => {
+    const small = /^iconst_(m1|\d)$/.exec(instruction);
+    if (small !== null) return small[1] === 'm1' ? -1 : Number(small[1]);
+    const pushed = /^(?:bipush|sipush) (-?\d+)$/.exec(instruction) ?? /^ldc int (-?\d+)$/.exec(instruction);
+    return pushed === null ? undefined : Number(pushed[1]);
+};
+
+describeFamily(FAMILIES.javaTranscriptions, [REFERENCES.javaServerJar], () => {
+    const listingOf = (spelling: string): string[] =>
+        javaSourceListing(pinnedClassFile, resolveJavaSource(spelling, pinnedIndex()));
+
+    it("reads the armadillo scare sensor's scan rate and memory lifetime out of SensorType", () => {
+        const owner = 'net/minecraft/world/entity/ai/sensing/SensorType';
+        const listing = listingOf('SensorType.ARMADILLO_SCARE_DETECTED');
+        // `ARMADILLO_SCARE_DETECTED` registers a supplier lambda; find the one it names.
+        const register = listing.findIndex((line) => line.includes(`putstatic ${owner}.ARMADILLO_SCARE_DETECTED`));
+        const supplier = listing
+            .slice(0, register)
+            .findLast((line) => line.includes('invokedynamic'))
+            ?.match(/SensorType\.(lambda#\d+)\(/)?.[1];
+        const body = inlinedLambda(listing, owner, supplier ?? '');
+        const constructor = body.findIndex((line) =>
+            line.startsWith('invokespecial net/minecraft/world/entity/ai/sensing/MobSensor.<init>')
+        );
+
+        // `new MobSensor(scanRate, isScaredBy, canStayRolledUp, DANGER_DETECTED_RECENTLY, ttl)`.
+        const ints = body
+            .slice(0, constructor)
+            .map(pushedInt)
+            .filter((value) => value !== undefined);
+        expect(constructor).toBeGreaterThan(0);
+        expect({ scanRate: ints[0], memoryTimeToLive: ints.at(-1) }).toEqual(ARMADILLO_SCARE_SENSOR);
+    });
+
+    it("reads the villager's activities and their conditions out of Villager.BRAIN_PROVIDER", () => {
+        const owner = 'net/minecraft/world/entity/npc/villager/Villager';
+        const listing = listingOf('Villager.BRAIN_PROVIDER');
+        const store = listing.findIndex((line) => line.includes(`putstatic ${owner}.BRAIN_PROVIDER`));
+        const supplier = listing
+            .slice(0, store)
+            .findLast((line) => line.includes('invokedynamic'))
+            ?.match(/Villager\.(lambda#\d+)\(/)?.[1];
+        const body = inlinedLambda(listing, owner, supplier ?? '');
+
+        // Each `ActivityData.create` follows its activity, and the memory conditions between them.
+        const java: { activity: string; conditions: string[] }[] = [];
+        let memory: string | undefined;
+        for (const line of body) {
+            const activity = /^getstatic net\/minecraft\/world\/entity\/schedule\/Activity\.(\w+) /.exec(line)?.[1];
+            if (activity !== undefined) java.push({ activity: activity.toLowerCase(), conditions: [] });
+            memory =
+                /^getstatic net\/minecraft\/world\/entity\/ai\/memory\/MemoryModuleType\.(\w+) /.exec(line)?.[1] ??
+                memory;
+            const status = /^getstatic net\/minecraft\/world\/entity\/ai\/memory\/MemoryStatus\.(\w+) /.exec(line)?.[1];
+            if (status !== undefined && memory !== undefined)
+                java.at(-1)?.conditions.push(`${memory.toLowerCase()} ${status.toLowerCase()}`);
+        }
+        const ours = (baby: boolean) =>
+            villagerActivities(NO_PROFESSION, baby).map(({ activity, conditions }) => ({
+                activity: activity.name,
+                conditions: conditions.map(([type, status]) => `${type.name} ${status}`)
+            }));
+
+        // Java adds `play` for a baby and `work` for an adult, then the same activities for both.
+        const [adult, baby] = [ours(false), ours(true)];
+        expect(java).toEqual([baby[0], ...adult]);
+        expect(baby.slice(1)).toEqual(adult.slice(1));
     });
 });

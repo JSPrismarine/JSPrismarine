@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 661 | 83 | 8 | 570 |
+| 657 | 81 | 8 | 568 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -704,75 +704,6 @@ Tagged at `packages/prismarine/src/entity/data/poi.ts:85`.
 ```
 
 28 more lines. `java:sources --list 'BlockTags.DOORS'` prints the listing under each `--java`.
-
-#### `BlockTags.MOB_INTERACTABLE_DOORS`
-
-Tagged at `packages/entity-brains/src/behavior/common.ts:1219`.
-
-```diff
-    invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.COPPER_CHESTS Lnet/minecraft/tags/TagKey;
-+   getstatic net/minecraft/tags/BlockItemTags.JUKEBOX_CONTAINERS Lnet/minecraft/tags/BlockItemTagId;
-+   invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.JUKEBOX_CONTAINERS Lnet/minecraft/tags/TagKey;
-    getstatic net/minecraft/tags/BlockItemTags.LIGHTNING_RODS Lnet/minecraft/tags/BlockItemTagId;
-    invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.ICE Lnet/minecraft/tags/TagKey;
-+   ldc string "face_occluding_ice_blocks"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.FACE_OCCLUDING_ICE_BLOCKS Lnet/minecraft/tags/TagKey;
-    ldc string "valid_spawn"
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.DEEPSLATE_ORE_REPLACEABLES Lnet/minecraft/tags/TagKey;
-+   ldc string "ice_cave_ore_replaceables"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.ICE_CAVE_ORE_REPLACEABLES Lnet/minecraft/tags/TagKey;
-+   ldc string "ice_crevasse_replaceables"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.ICE_CREVASSE_REPLACEABLES Lnet/minecraft/tags/TagKey;
-    ldc string "base_stone_nether"
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.ICE_SPIKE_REPLACEABLE Lnet/minecraft/tags/TagKey;
-+   ldc string "large_icicle_replaceable"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.LARGE_ICICLE_REPLACEABLE Lnet/minecraft/tags/TagKey;
-    ldc string "forest_rock_can_place_on"
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_DRIED_GHAST_BLOCK_SOUNDS Lnet/minecraft/tags/TagKey;
-+   ldc string "triggers_ambient_ice_block_sounds"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_ICE_BLOCK_SOUNDS Lnet/minecraft/tags/TagKey;
-+   ldc string "triggers_ambient_ice_crystal_sounds"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_ICE_CRYSTAL_SOUNDS Lnet/minecraft/tags/TagKey;
-    ldc string "required_for_poplar_leaf_ambience"
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.ICE_MELTS_WHEN_DESTROYED_ABOVE Lnet/minecraft/tags/TagKey;
-+   ldc string "melts_icicle_above"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.MELTS_ICICLE_ABOVE Lnet/minecraft/tags/TagKey;
-    ldc string "causes_suffocation"
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-…
-    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-    putstatic net/minecraft/tags/BlockTags.WASHED_AWAY_BY_FLUIDS Lnet/minecraft/tags/TagKey;
-+   ldc string "drop_down"
-+   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
-+   putstatic net/minecraft/tags/BlockTags.DROP_DOWN Lnet/minecraft/tags/TagKey;
-+   ldc string "pathfinding/avoid_in_air"
-```
-
-28 more lines. `java:sources --list 'BlockTags.MOB_INTERACTABLE_DOORS'` prints the listing under each `--java`.
 
 #### `BubbleColumnBlock.getFluidState`
 
@@ -1651,7 +1582,7 @@ Tagged at `packages/prismarine/src/entity/playerHunger.ts:14`, `packages/prismar
 
 #### `Fox$DefendTrustedTargetGoal.start`
 
-Tagged at `packages/entity-goals/src/goals/targeting.ts:445`.
+Tagged at `packages/entity-goals/src/goals/targeting.ts:440`.
 
 ```diff
     getfield net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.this$0 Lnet/minecraft/world/entity/animal/fox/Fox;
@@ -3278,26 +3209,6 @@ Tagged at `packages/block-behaviors/src/families/openable.ts:148`.
 
 1 more lines. `java:sources --list 'TrapDoorBlock.getStateForPlacement'` prints the listing under each `--java`.
 
-#### `Villager.BRAIN_PROVIDER`
-
-Tagged at `packages/entity-brains/src/mobs/villager.ts:866`.
-
-```diff
-  inlined net/minecraft/world/entity/npc/villager/Villager.lambda#1(Lnet/minecraft/world/entity/npc/villager/Villager;Lnet/minecraft/core/Holder;)Z
-    aload_1
--   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.HOME Lnet/minecraft/resources/ResourceKey;
-+   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypeIds.HOME Lnet/minecraft/resources/ResourceKey;
-    invokeinterface net/minecraft/core/Holder.is (Lnet/minecraft/resources/ResourceKey;)Z
-    ireturn
-…
-  inlined net/minecraft/world/entity/npc/villager/Villager.lambda#4(Lnet/minecraft/world/entity/npc/villager/Villager;Lnet/minecraft/core/Holder;)Z
-    aload_1
--   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.MEETING Lnet/minecraft/resources/ResourceKey;
-+   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypeIds.MEETING Lnet/minecraft/resources/ResourceKey;
-    invokeinterface net/minecraft/core/Holder.is (Lnet/minecraft/resources/ResourceKey;)Z
-    ireturn
-```
-
 #### `WallHangingSignBlock.getStateForPlacement`
 
 Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:332`.
@@ -3521,7 +3432,6 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/core/BlockPos$6.<init>(Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)V`, called by `BlockPos.spiralAround`
 - `net/minecraft/core/Registry.getTagOrEmpty(Lnet/minecraft/tags/TagKey;)Ljava/lang/Iterable;`, called by `Painting.create`
 - `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Stats.TIME_SINCE_REST`
-- `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/Identifier;Ljava/lang/Object;)Ljava/lang/Object;`, called by `SensorType.ARMADILLO_SCARE_DETECTED`
 - `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Blocks.SNOW`
 - `net/minecraft/CrashReportCategory.populateBlockDetails(Lnet/minecraft/CrashReportCategory;Lnet/minecraft/world/level/LevelHeightAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V`, called by `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`
 - `net/minecraft/network/chat/Component.getString()Ljava/lang/String;`, called by `BaseCommandBlock.performCommand`
@@ -3530,7 +3440,7 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/server/level/ServerPlayer.<init>(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/server/level/ServerLevel;Lcom/mojang/authlib/GameProfile;Lnet/minecraft/server/level/ClientInformation;)V`, called by `PlayerList.respawn`
 - `net/minecraft/server/level/ServerPlayer.createCommonSpawnInfo(Lnet/minecraft/server/level/ServerLevel;)Lnet/minecraft/network/protocol/game/CommonPlayerSpawnInfo;`, called by `PlayerList.respawn`
 - `net/minecraft/server/level/ServerPlayer.sendPostEffects()V`, called by `PlayerList.respawn`
-- `net/minecraft/tags/TagKey.create(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/tags/TagKey;`, called by `BiomeTags.WATER_ON_MAP_OUTLINES`, `BlockTags.DOORS`, `BlockTags.MOB_INTERACTABLE_DOORS`, `PaintingVariantTags.PLACEABLE`
+- `net/minecraft/tags/TagKey.create(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/tags/TagKey;`, called by `BiomeTags.WATER_ON_MAP_OUTLINES`, `BlockTags.DOORS`, `PaintingVariantTags.PLACEABLE`
 - `net/minecraft/util/BlockUtil.clampedPackDifferenceInPosition(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;III)I`, called by `Enderman.teleport(DDD)Z`
 - `net/minecraft/util/ByIdMap.continuous(Ljava/util/function/ToIntFunction;[Ljava/lang/Object;Lnet/minecraft/util/ByIdMap$OutOfBoundsStrategy;)Ljava/util/function/IntFunction;`, called by `DyeColor.BLACK`, `EquipmentSlot.SADDLE`
 - `net/minecraft/util/Mth.clamp(DDD)D`, called by `DragonSittingScanningPhase.doServerTick`, `EnderDragon.aiStep`, `LivingEntity.handleOnClimbable`, `LivingEntity.travel`, `PortalShape.getRelativePosition`, `ShulkerBullet.tick`
@@ -3545,12 +3455,7 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/world/damagesource/DamageSources.fireball(Lnet/minecraft/world/entity/projectile/hurtingprojectile/Fireball;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `SmallFireball.onHitEntity`
 - `net/minecraft/world/damagesource/DamageSources.indirectMagic(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `AbstractThrownPotion.onHit`, `HealOrHarmMobEffect.applyInstantaneousEffect`
 - `net/minecraft/world/damagesource/DamageSources.mobAttack(Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `EnderDragon.aiStep`, `IronGolem.doHurtTarget`, `Ravager.roar`
-- `net/minecraft/world/entity/ai/ActivityData.create(Lnet/minecraft/world/entity/schedule/Activity;Lcom/google/common/collect/ImmutableList;)Lnet/minecraft/world/entity/ai/ActivityData;`, called by `Villager.BRAIN_PROVIDER`
-- `net/minecraft/world/entity/ai/ActivityData.create(Lnet/minecraft/world/entity/schedule/Activity;Lcom/google/common/collect/ImmutableList;Ljava/util/Set;)Lnet/minecraft/world/entity/ai/ActivityData;`, called by `Villager.BRAIN_PROVIDER`
 - `net/minecraft/world/entity/ai/behavior/ShufflingList.<init>()V`, called by `TriggerGate.triggerGate`
-- `net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getCorePackage(Lnet/minecraft/core/Holder;F)Lcom/google/common/collect/ImmutableList;`, called by `Villager.BRAIN_PROVIDER`
-- `net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMeetPackage(F)Lcom/google/common/collect/ImmutableList;`, called by `Villager.BRAIN_PROVIDER`
-- `net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getRestPackage(F)Lcom/google/common/collect/ImmutableList;`, called by `Villager.BRAIN_PROVIDER`
 - `net/minecraft/world/entity/ai/control/LookControl.setLookAt(Lnet/minecraft/world/entity/Entity;FF)V`, called by `Fox$FoxPounceGoal.tick`
 - `net/minecraft/world/entity/animal/equine/AbstractHorse.aiStep()V`, called by `SkeletonHorse.aiStep`
 - `net/minecraft/world/entity/animal/feline/Cat.hiss()V`, called by `Phantom$PhantomSweepAttackGoal.canContinueToUse`

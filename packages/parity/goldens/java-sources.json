@@ -34,8 +34,6 @@
         "ArmadilloAi$ArmadilloBallUp.start": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
         "ArmadilloAi$ArmadilloBallUp.stop": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
         "ArmadilloAi$ArmadilloBallUp.tick": "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.tick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V",
-        "Attributes.FOLLOW_RANGE": "net/minecraft/world/entity/ai/attributes/Attributes.FOLLOW_RANGE",
-        "Attributes.TEMPT_RANGE": "net/minecraft/world/entity/ai/attributes/Attributes.TEMPT_RANGE",
         "Avatar.STANDING_DIMENSIONS": "net/minecraft/world/entity/Avatar.STANDING_DIMENSIONS",
         "AvoidEntityGoal.tick": "net/minecraft/world/entity/ai/goal/AvoidEntityGoal.tick()V",
         "AxolotlAi.canSetWalkTargetFromLookTarget": "net/minecraft/world/entity/animal/axolotl/AxolotlAi.canSetWalkTargetFromLookTarget(Lnet/minecraft/world/entity/LivingEntity;)Z",
@@ -80,7 +78,6 @@
         "Blocks.SNOW": "net/minecraft/world/level/block/Blocks.SNOW",
         "BlocksAttacks.resolveBlockedDamage": "net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F",
         "BlockTags.DOORS": "net/minecraft/tags/BlockTags.DOORS",
-        "BlockTags.MOB_INTERACTABLE_DOORS": "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS",
         "BoundingBox.fromCorners": "net/minecraft/world/level/levelgen/structure/BoundingBox.fromCorners(Lnet/minecraft/core/Vec3i;Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
         "BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z": "net/minecraft/world/level/levelgen/structure/BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z",
         "BoundingBox.orientBox": "net/minecraft/world/level/levelgen/structure/BoundingBox.orientBox(IIIIIIIIILnet/minecraft/core/Direction;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
@@ -371,6 +368,7 @@
         "Mirror.LEFT_RIGHT": "net/minecraft/world/level/block/Mirror.LEFT_RIGHT",
         "Mob.aiStep": "net/minecraft/world/entity/Mob.aiStep()V",
         "Mob.checkDespawn": "net/minecraft/world/entity/Mob.checkDespawn()V",
+        "Mob.createMobAttributes": "net/minecraft/world/entity/Mob.createMobAttributes()Lnet/minecraft/world/entity/ai/attributes/AttributeSupplier$Builder;",
         "Mob.getControllingPassenger": "net/minecraft/world/entity/Mob.getControllingPassenger()Lnet/minecraft/world/entity/LivingEntity;",
         "Mob.updateControlFlags": "net/minecraft/world/entity/Mob.updateControlFlags()V",
         "MobEffectInstance.endsWithin": "net/minecraft/world/effect/MobEffectInstance.endsWithin(I)Z",
@@ -506,7 +504,6 @@
         "SecondaryPoiSensor.SCAN_RATE": "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE",
         "Sensor.DEFAULT_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE",
         "Sensor.DEFAULT_TARGETING_RANGE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE",
-        "SensorType.ARMADILLO_SCARE_DETECTED": "net/minecraft/world/entity/ai/sensing/SensorType.ARMADILLO_SCARE_DETECTED",
         "ServerChunkCache.tickChunks()V": "net/minecraft/server/level/ServerChunkCache.tickChunks()V",
         "ServerGamePacketListenerImpl.handleSetCommandBlock": "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V",
         "ServerLevel.END_SPAWN_POINT": "net/minecraft/server/level/ServerLevel.END_SPAWN_POINT",
@@ -627,7 +624,6 @@
         "Vec3.atBottomCenterOf": "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;",
         "Vec3i.hashCode": "net/minecraft/core/Vec3i.hashCode()I",
         "VehicleEntity.hurtServer": "net/minecraft/world/entity/vehicle/VehicleEntity.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
-        "Villager.BRAIN_PROVIDER": "net/minecraft/world/entity/npc/villager/Villager.BRAIN_PROVIDER",
         "Villager.BREEDING_FOOD_THRESHOLD": "net/minecraft/world/entity/npc/villager/Villager.BREEDING_FOOD_THRESHOLD",
         "Villager.shouldRestock": "net/minecraft/world/entity/npc/villager/Villager.shouldRestock(Lnet/minecraft/server/level/ServerLevel;)Z",
         "Villager.startTrading": "net/minecraft/world/entity/npc/villager/Villager.startTrading(Lnet/minecraft/world/entity/player/Player;)V",
@@ -854,9 +850,6 @@
         "net/minecraft/tags/BlockTags.DOORS": {
             "26.3": "sha256:419a2cbd9b49f154324b293c965dd9ae53fe5b58f3f116647309c3a785ffc919"
         },
-        "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS": {
-            "26.3": "sha256:5ae0262e14974845a3b361f17c0400e67151f7469bdb9c790f62c4f61f5b327d"
-        },
         "net/minecraft/tags/PaintingVariantTags.PLACEABLE": {
             "26.3": "sha256:e26a094c5b7332e840d2eef2bf3c2a892c48c6947e464ec1004be79fe1a294e1",
             "26.4-pre-1": "sha256:e26a094c5b7332e840d2eef2bf3c2a892c48c6947e464ec1004be79fe1a294e1"
@@ -950,14 +943,6 @@
         "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;": {
             "26.3": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919",
             "26.4-pre-1": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919"
-        },
-        "net/minecraft/world/entity/ai/attributes/Attributes.FOLLOW_RANGE": {
-            "26.3": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574",
-            "26.4-pre-1": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574"
-        },
-        "net/minecraft/world/entity/ai/attributes/Attributes.TEMPT_RANGE": {
-            "26.3": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687",
-            "26.4-pre-1": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687"
         },
         "net/minecraft/world/entity/ai/behavior/AnimalMakeLove.BREED_RANGE": {
             "26.3": "sha256:f9b0660c9cd49b34930218425293cc44c13fde8b49acf4d7b9ede9da82e5846c",
@@ -1262,10 +1247,6 @@
         "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE": {
             "26.3": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85",
             "26.4-pre-1": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85"
-        },
-        "net/minecraft/world/entity/ai/sensing/SensorType.ARMADILLO_SCARE_DETECTED": {
-            "26.3": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14",
-            "26.4-pre-1": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14"
         },
         "net/minecraft/world/entity/ai/sensing/TemptingSensor.forAnimal()Lnet/minecraft/world/entity/ai/sensing/TemptingSensor;": {
             "26.3": "sha256:f1f93d1f49736ee94f679cf60e59c65bea1ad808645d5334616b33ce2433e6d8",
@@ -1903,6 +1884,10 @@
             "26.3": "sha256:183f431ddb4acbbea9df8dcd8f65f6a5a6ad2e6bd994de7e20122332ae2c308a",
             "26.4-pre-1": "sha256:183f431ddb4acbbea9df8dcd8f65f6a5a6ad2e6bd994de7e20122332ae2c308a"
         },
+        "net/minecraft/world/entity/Mob.createMobAttributes()Lnet/minecraft/world/entity/ai/attributes/AttributeSupplier$Builder;": {
+            "26.3": "sha256:da0b70d5e1776646cd46e8b4c2e38f5bca569354e9002615280c064f9b9ba0d1",
+            "26.4-pre-1": "sha256:da0b70d5e1776646cd46e8b4c2e38f5bca569354e9002615280c064f9b9ba0d1"
+        },
         "net/minecraft/world/entity/Mob.getControllingPassenger()Lnet/minecraft/world/entity/LivingEntity;": {
             "26.3": "sha256:44239fb6feb389e9e1ccb9fdfd307572a90e67caea190bc18dfc9f8ae33f575a",
             "26.4-pre-1": "sha256:44239fb6feb389e9e1ccb9fdfd307572a90e67caea190bc18dfc9f8ae33f575a"
@@ -2258,9 +2243,6 @@
         "net/minecraft/world/entity/monster/zombie/Zombie.finalizeSpawn(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;": {
             "26.3": "sha256:5db1e1c5c349e5201bc812fde14c9c98b3c47636f5f765fb481ece5ad6fca8a7",
             "26.4-pre-1": "sha256:5db1e1c5c349e5201bc812fde14c9c98b3c47636f5f765fb481ece5ad6fca8a7"
-        },
-        "net/minecraft/world/entity/npc/villager/Villager.BRAIN_PROVIDER": {
-            "26.3": "sha256:1935503f28868ecf69dddb0b839ad5c7ecf260439d08b540fe559fdae97ec1c6"
         },
         "net/minecraft/world/entity/npc/villager/Villager.BREEDING_FOOD_THRESHOLD": {
             "26.3": "sha256:7c86c52d21a0072cdea9b6ddd7062c4b7c5aa92325fd1ed29095d18be5d8683e",
