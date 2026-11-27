@@ -111,6 +111,11 @@ export const JAVA_MECHANICS: readonly JavaMechanic[] = [
         description:
             'experience a furnace pays the player who takes its result, or pays out where it is broken (AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience)'
     },
+    {
+        id: 'furnace-shift-click',
+        description:
+            'shift-clicking a stack the furnace can cook into its input slot (AbstractFurnaceMenu.quickMoveStack)'
+    },
     { id: 'campfire-cooking', description: 'a campfire cooking up to four items (CampfireBlockEntity.cookTick)' },
     {
         id: 'brewing',
