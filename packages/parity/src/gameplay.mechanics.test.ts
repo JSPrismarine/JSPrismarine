@@ -29,6 +29,7 @@ import { FAMILIES } from './families.ts';
 import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse } from './javaGameplay.ts';
 import { experienceOrbScenarios } from './experienceOrbScenarios.ts';
 import { furnaceExperienceScenarios } from './furnaceExperienceScenarios.ts';
+import { furnaceShiftClickScenarios } from './furnaceShiftClickScenarios.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
@@ -587,7 +588,8 @@ describeFamily(
                 scenarioGroup([hurtExhaustionScenario]),
                 scenarioGroup([difficultyScenario]),
                 scenarioGroup(experienceOrbScenarios),
-                scenarioGroup(furnaceExperienceScenarios)
+                scenarioGroup(furnaceExperienceScenarios),
+                scenarioGroup(furnaceShiftClickScenarios)
             );
 
             reportCoverage(
