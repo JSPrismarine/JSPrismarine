@@ -1,0 +1,11 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:item": {
+        "description": {
+            "identifier": "parity:catalog_item_construction"
+        },
+        "components": {
+            "minecraft:icon": "catalog_item_construction"
+        }
+    }
+}

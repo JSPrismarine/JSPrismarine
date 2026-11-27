@@ -1,84 +1,760 @@
 {
     "$comment": [
         "Where the pinned Bedrock Dedicated Server files the blocks and items of scenarios/pack-blocks/ in",
-        "CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. A group below",
-        "vanillaGroups is a vanilla heading; the rest are listed in groups, in packet order.",
+        "CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. An entry names",
+        "its heading by its index in groups, the whole heading list in packet order.",
         "Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand."
     ],
     "server": {
         "protocolVersion": 2225,
         "serverVersion": "1.26.60.6"
     },
-    "vanillaGroups": 124,
-    "vanillaEntries": 1980,
     "groups": [
         {
-            "category": 2,
-            "name": "parity:itemGroup.name.parity_stones",
-            "iconRuntimeId": 0
+            "category": 1,
+            "name": "itemGroup.name.planks",
+            "icon": "minecraft:oak_planks"
         },
         {
-            "category": 4,
-            "name": "parity:itemGroup.name.parity_gems",
-            "iconRuntimeId": 0
+            "category": 1,
+            "name": "itemGroup.name.walls",
+            "icon": "minecraft:cobblestone_wall"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.fence",
+            "icon": "minecraft:oak_fence"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.fenceGate",
+            "icon": "minecraft:fence_gate"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.stairs",
+            "icon": "minecraft:stone_stairs"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.door",
+            "icon": "minecraft:wooden_door"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.trapdoor",
+            "icon": "minecraft:trapdoor"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.bars",
+            "icon": "minecraft:iron_bars"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.glass",
+            "icon": "minecraft:glass"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.glassPane",
+            "icon": "minecraft:glass_pane"
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.slab",
+            "icon": "minecraft:smooth_stone_slab"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.stoneBrick",
+            "icon": "minecraft:stone_bricks"
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.sandstone",
+            "icon": "minecraft:sandstone"
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.copper",
+            "icon": "minecraft:copper_block"
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.wool",
+            "icon": "minecraft:white_wool"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.woolCarpet",
+            "icon": "minecraft:white_carpet"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.concretePowder",
+            "icon": "minecraft:white_concrete_powder"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.concrete",
+            "icon": "minecraft:white_concrete"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.stainedClay",
+            "icon": "minecraft:hardened_clay"
+        },
+        {
+            "category": 1,
+            "name": "itemGroup.name.glazedTerracotta",
+            "icon": "minecraft:white_glazed_terracotta"
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "parity:itemGroup.name.catalog_construction",
+            "icon": "parity:catalog_item_construction"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.ore",
+            "icon": "minecraft:iron_ore"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.stone",
+            "icon": "minecraft:stone"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.log",
+            "icon": "minecraft:oak_log"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.wood",
+            "icon": "minecraft:oak_wood"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.leaves",
+            "icon": "minecraft:oak_leaves"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.sapling",
+            "icon": "minecraft:oak_sapling"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.seed",
+            "icon": "minecraft:wheat_seeds"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.crop",
+            "icon": "minecraft:wheat"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.grass",
+            "icon": "minecraft:fern"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.coral_decorations",
+            "icon": "minecraft:fire_coral"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.flower",
+            "icon": "minecraft:dandelion"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.dye",
+            "icon": "minecraft:yellow_dye"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.rawFood",
+            "icon": "minecraft:chicken"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.mushroom",
+            "icon": "minecraft:brown_mushroom"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.monsterStoneEgg",
+            "icon": "minecraft:infested_stone"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.mobEgg",
+            "icon": "minecraft:chicken_spawn_egg"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.coral",
+            "icon": "minecraft:tube_coral_block"
+        },
+        {
+            "category": 2,
+            "name": "itemGroup.name.sculk",
+            "icon": "minecraft:sculk"
+        },
+        {
+            "category": 2,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.helmet",
+            "icon": "minecraft:leather_helmet"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.chestplate",
+            "icon": "minecraft:leather_chestplate"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.leggings",
+            "icon": "minecraft:leather_leggings"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.boots",
+            "icon": "minecraft:leather_boots"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.sword",
+            "icon": "minecraft:wooden_sword"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.spear",
+            "icon": "minecraft:wooden_spear"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.axe",
+            "icon": "minecraft:wooden_axe"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.pickaxe",
+            "icon": "minecraft:wooden_pickaxe"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.shovel",
+            "icon": "minecraft:wooden_shovel"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.hoe",
+            "icon": "minecraft:wooden_hoe"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.arrow",
+            "icon": "minecraft:arrow"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.cookedFood",
+            "icon": "minecraft:cooked_chicken"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.miscFood",
+            "icon": "minecraft:bread"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.goatHorn",
+            "icon": "minecraft:goat_horn"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.harnesses",
+            "icon": "minecraft:white_harness"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.bundles",
+            "icon": "minecraft:bundle"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.horseArmor",
+            "icon": "minecraft:leather_horse_armor"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.nautilus_armor",
+            "icon": "minecraft:copper_nautilus_armor"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.potion",
+            "icon": "minecraft:potion"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.splashPotion",
+            "icon": "minecraft:splash_potion"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.lingeringPotion",
+            "icon": "minecraft:lingering_potion"
+        },
+        {
+            "category": 3,
+            "name": "itemGroup.name.ominousBottle",
+            "icon": "minecraft:ominous_bottle"
+        },
+        {
+            "category": 3,
+            "name": "",
+            "icon": ""
         },
         {
             "category": 4,
             "name": "",
-            "iconRuntimeId": 0
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.bed",
+            "icon": "minecraft:bed"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.cushion",
+            "icon": "minecraft:red_cushion"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.lanterns",
+            "icon": "minecraft:lantern"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.candles",
+            "icon": "minecraft:candle"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.anvil",
+            "icon": "minecraft:anvil"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.shelf",
+            "icon": "minecraft:oak_shelf"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.chest",
+            "icon": "minecraft:chest"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.shulkerBox",
+            "icon": "minecraft:undyed_shulker_box"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.copper_golem_statue",
+            "icon": "minecraft:copper_golem_statue"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.record",
+            "icon": "minecraft:music_disc_13"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.sign",
+            "icon": "minecraft:oak_sign"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.hanging_sign",
+            "icon": "minecraft:oak_hanging_sign"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.skull",
+            "icon": "minecraft:creeper_head"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.lightning_rod",
+            "icon": "minecraft:lightning_rod"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.enchantedBook",
+            "icon": "minecraft:enchanted_book"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.boat",
+            "icon": "minecraft:oak_boat"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.chestboat",
+            "icon": "minecraft:oak_chest_boat"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.rail",
+            "icon": "minecraft:rail"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.minecart",
+            "icon": "minecraft:minecart"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.buttons",
+            "icon": "minecraft:wooden_button"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.pressurePlate",
+            "icon": "minecraft:wooden_pressure_plate"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.banner",
+            "icon": "minecraft:banner"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.banner_pattern",
+            "icon": "minecraft:creeper_banner_pattern"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.potterySherds",
+            "icon": "minecraft:archer_pottery_sherd"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.smithing_templates",
+            "icon": "minecraft:netherite_upgrade_smithing_template"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.firework",
+            "icon": "minecraft:firework_rocket"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.fireworkStars",
+            "icon": "minecraft:firework_star"
+        },
+        {
+            "category": 4,
+            "name": "itemGroup.name.chains",
+            "icon": "minecraft:iron_chain"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "parity:itemGroup.name.catalog_b",
+            "icon": "parity:catalog_item_b"
+        },
+        {
+            "category": 4,
+            "name": "parity:itemGroup.name.catalog_shared",
+            "icon": "parity:catalog_item_shared_b"
+        },
+        {
+            "category": 4,
+            "name": "parity:itemGroup.name.catalog_a",
+            "icon": "parity:catalog_item_a"
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 1,
+            "name": "",
+            "icon": ""
+        },
+        {
+            "category": 2,
+            "name": "parity:itemGroup.name.parity_stones",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "parity:itemGroup.name.parity_gems",
+            "icon": ""
+        },
+        {
+            "category": 4,
+            "name": "",
+            "icon": ""
         }
     ],
     "entries": {
         "parity:bones_1_20_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -575364938
         },
         "parity:bones_1_21_100": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 193347863
         },
         "parity:bones_1_21_110": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -486059768
         },
         "parity:bones_1_21_130": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 67087794
         },
         "parity:bones_1_21_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 783289917
         },
         "parity:bones_1_21_90": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1366496338
         },
         "parity:bones_1_26_0": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1180768507
         },
         "parity:bones_1_26_60": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -319934294
         },
+        "parity:catalog_block_b": {
+            "group": 0,
+            "blockRuntimeId": 1468182533
+        },
+        "parity:catalog_item_a": {
+            "group": 127,
+            "blockRuntimeId": 0
+        },
+        "parity:catalog_item_b": {
+            "group": 125,
+            "blockRuntimeId": 0
+        },
+        "parity:catalog_item_construction": {
+            "group": 25,
+            "blockRuntimeId": 0
+        },
+        "parity:catalog_item_loose": {
+            "group": 128,
+            "blockRuntimeId": 0
+        },
+        "parity:catalog_item_shared_a": {
+            "group": 126,
+            "blockRuntimeId": 0
+        },
+        "parity:catalog_item_shared_b": {
+            "group": 126,
+            "blockRuntimeId": 0
+        },
         "parity:collision_false": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 18877097
         },
         "parity:collision_true": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1948749857
         },
         "parity:creative_block": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -2140731643
         },
         "parity:creative_block_grouped": {
-            "group": 124,
+            "group": 130,
             "blockRuntimeId": 43930258
         },
         "parity:creative_block_grouped_b": {
-            "group": 124,
+            "group": 130,
             "blockRuntimeId": -1372202585
         },
         "parity:creative_block_stairs": {
@@ -86,155 +762,179 @@
             "blockRuntimeId": 2081609809
         },
         "parity:creative_item": {
-            "group": 126,
+            "group": 132,
             "blockRuntimeId": 0
         },
         "parity:creative_item_gem_a": {
-            "group": 125,
+            "group": 131,
             "blockRuntimeId": 0
         },
         "parity:creative_item_gem_b": {
-            "group": 125,
+            "group": 131,
             "blockRuntimeId": 0
         },
         "parity:creative_item_sword": {
-            "group": 56,
+            "group": 57,
             "blockRuntimeId": 0
         },
         "parity:cross_1_20_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 36454535
         },
         "parity:cross_1_21_100": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 489812136
         },
         "parity:cross_1_21_110": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -594753481
         },
         "parity:cross_1_21_130": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 998411121
         },
         "parity:cross_1_21_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1919930112
         },
         "parity:cross_1_21_90": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1776484079
         },
         "parity:cross_1_26_0": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1266391284
         },
         "parity:cross_1_26_60": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 388089163
         },
         "parity:declared_block_id": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1463332143
         },
         "parity:engine_1_13_0": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -927234921
         },
         "parity:engine_1_17_0": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -146612517
         },
         "parity:engine_1_18_20": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 728828595
         },
         "parity:engine_1_20_60": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1307305632
         },
         "parity:engine_1_20_70": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -500414321
         },
         "parity:engine_1_21_100": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1676128531
         },
         "parity:engine_1_21_90": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -105713018
         },
         "parity:engine_1_26_60": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1872872434
         },
         "parity:full_1_20_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1544497819
         },
         "parity:full_1_21_100": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1740535162
         },
         "parity:full_1_21_110": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1022556245
         },
         "parity:full_1_21_130": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1805744107
         },
         "parity:full_1_21_80": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 519927966
         },
         "parity:full_1_21_90": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 1275854509
         },
         "parity:full_1_26_0": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 641251266
         },
         "parity:full_1_26_60": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 685881033
         },
         "parity:material_isotropic": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -624753558
         },
         "parity:material_no_dimming": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 452082394
         },
         "parity:material_no_occlusion": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -147965490
         },
         "parity:plain": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 402266615
         },
         "parity:selection_custom": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1474087678
         },
         "parity:selection_false": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": 545280227
         },
         "parity:selection_true": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -749080967
         },
         "parity:tags_only": {
-            "group": 24,
+            "group": 129,
             "blockRuntimeId": -1045402845
         }
     },
     "items": {
+        "parity:catalog_item_a": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
+        "parity:catalog_item_b": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
+        "parity:catalog_item_construction": {
+            "creative_category": 1,
+            "creative_group": ""
+        },
+        "parity:catalog_item_loose": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
+        "parity:catalog_item_shared_a": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
+        "parity:catalog_item_shared_b": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
         "parity:creative_item": {
             "creative_category": 4,
             "creative_group": ""
