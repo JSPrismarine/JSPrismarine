@@ -244,9 +244,8 @@ default matters, and its own regression test either way.
    `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
    are fixed. The differences left open have issues:
    [#3783](https://github.com/JSPrismarine/JSPrismarine/issues/3783),
-   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784),
-   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786) and
-   [#3787](https://github.com/JSPrismarine/JSPrismarine/issues/3787).
+   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784) and
+   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786).
 
 ## Decisions
 
