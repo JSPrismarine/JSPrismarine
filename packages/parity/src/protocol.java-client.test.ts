@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { JAVA_HANDLERS } from '@jsprismarine/prismarine/editions/java/JavaConnections';
 import { JavaPresenter } from '@jsprismarine/prismarine/editions/java/JavaPresenter';
@@ -5,6 +7,7 @@ import { javaBlockTranslation, javaItemTranslation } from '@jsprismarine/prismar
 import { JavaChunkTranslator } from '@jsprismarine/prismarine/editions/java/javaChunk';
 import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
 import type { SessionPresenter } from '@jsprismarine/prismarine/player/presenter/SessionPresenter';
+import type { ShownEntityFacts } from '@jsprismarine/prismarine/world/ShownActor';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { Position } from '@jsprismarine/prismarine/world/Position';
@@ -18,6 +21,7 @@ import {
     CHANGE_GAME_MODE,
     ClientCommand,
     ClientCommandAction,
+    JavaEntityDataSerializer,
     PlayerAction,
     PlayerActionStatus,
     PlayerCommand,
@@ -76,7 +80,7 @@ const AREA_ISSUES = {
     entities: undefined,
     vitals: undefined,
     combat: 'https://github.com/JSPrismarine/JSPrismarine/issues/3767',
-    items: 'https://github.com/JSPrismarine/JSPrismarine/issues/3768',
+    items: undefined,
     containers: 'https://github.com/JSPrismarine/JSPrismarine/issues/3769',
     hud: 'https://github.com/JSPrismarine/JSPrismarine/issues/3812',
     world: 'https://github.com/JSPrismarine/JSPrismarine/issues/3813',
@@ -293,14 +297,17 @@ const sendChunkBatch: PresenterCall = async (presenter) => {
 const changesToCreative = (payload: unknown): boolean =>
     isRecord(payload) && payload.event === CHANGE_GAME_MODE && payload.value === 1;
 
-/** An entity of a Bedrock type, shown to a Java client through its plain facts. */
+/**
+ * An entity of a Bedrock type, shown to a Java client through its plain facts, with what an item
+ * or an orb carries beside them.
+ */
 const showEntityOf =
-    (type: string): PresenterCall =>
+    (type: string, carried: Pick<ShownEntityFacts, 'item' | 'experience'> = {}): PresenterCall =>
     (presenter) =>
         presenter.showEntity(
             stub<Parameters<SessionPresenter['showEntity']>[0]>({
                 getRuntimeId: () => 9n,
-                describe: () => ({ type, feet: { x: 0, y: 64, z: 0 }, yaw: 0, pitch: 0, headYaw: 0 })
+                describe: () => ({ type, feet: { x: 0, y: 64, z: 0 }, yaw: 0, pitch: 0, headYaw: 0, ...carried })
             }),
             stub<PlayerSession>({})
         );
@@ -383,11 +390,28 @@ const showSidebar: PresenterCall = (presenter) =>
  */
 const FIRST_SUBCLASS_DATA = 8;
 
-/** Whether a `Set Entity Metadata` payload carries the first entry of the entity's own class. */
-const carriesSubclassData = (payload: unknown): boolean =>
-    isRecord(payload) &&
-    Array.isArray(payload.entries) &&
-    payload.entries.some((entry: unknown) => isRecord(entry) && entry.index === FIRST_SUBCLASS_DATA);
+/**
+ * Whether a `Set Entity Metadata` payload carries `value`, through `serializer`, as the first entry
+ * of the entity's own class.
+ */
+const carriesSubclassValue =
+    (serializer: JavaEntityDataSerializer, value: () => unknown) =>
+    (payload: unknown): boolean =>
+        isRecord(payload) &&
+        Array.isArray(payload.entries) &&
+        payload.entries.some(
+            (entry: unknown) =>
+                isRecord(entry) &&
+                entry.index === FIRST_SUBCLASS_DATA &&
+                entry.serializer === serializer &&
+                isDeepStrictEqual(entry.value, value())
+        );
+
+/** Whether a payload has every field `expected` names, with that value. */
+const carriesFields =
+    (expected: Readonly<Record<string, unknown>>) =>
+    (payload: unknown): boolean =>
+        isRecord(payload) && Object.entries(expected).every(([field, value]) => payload[field] === value);
 
 const BEHAVIORS: readonly Behavior[] = [
     // The status, login and configuration exchanges, which put a client in the world.
@@ -1094,8 +1118,12 @@ const BEHAVIORS: readonly Behavior[] = [
             shown(
                 'play/clientbound/set_entity_data',
                 'the stack an item entity holds',
-                showEntityOf('minecraft:item'),
-                carriesSubclassData
+                showEntityOf('minecraft:item', { item: { name: 'minecraft:stone', count: 3 } }),
+                // Read when the row runs, after the shared translation below is built.
+                carriesSubclassValue(JavaEntityDataSerializer.ItemStack, () => ({
+                    item: ITEM_TRANSLATION.toJava('minecraft:stone'),
+                    count: 3
+                }))
             )
         ]
     },
@@ -1103,19 +1131,32 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'pick-up-items',
         area: 'items',
         java: 'A client sees an item, an arrow or an orb fly to the entity that picks it up.',
-        needs: [sent('play/clientbound/take_item_entity')]
+        needs: [
+            shown(
+                'play/clientbound/take_item_entity',
+                'a pickup',
+                (presenter) => presenter.showPickUp(9n, 1n, 3),
+                carriesFields({ itemId: 9, collectorId: 1, amount: 3 })
+            )
+        ]
     },
     {
         id: 'experience',
         area: 'items',
         java: 'A client is shown its experience bar and level, and the size of experience orbs.',
         needs: [
-            sent('play/clientbound/set_experience'),
+            // Level 3 holds 7 + 9 + 11 points, and half of level 3's 13 rounds to 7.
+            shown(
+                'play/clientbound/set_experience',
+                'the experience bar',
+                (presenter) => presenter.showExperience({ level: 3, progress: 0.5 }),
+                carriesFields({ progress: 0.5, level: 3, total: 34 })
+            ),
             shown(
                 'play/clientbound/set_entity_data',
                 'the value of an experience orb',
-                showEntityOf('minecraft:xp_orb'),
-                carriesSubclassData
+                showEntityOf('minecraft:xp_orb', { experience: 17 }),
+                carriesSubclassValue(JavaEntityDataSerializer.Int, () => 17)
             )
         ]
     },
