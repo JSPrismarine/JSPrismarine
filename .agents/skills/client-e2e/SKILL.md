@@ -21,6 +21,10 @@ message rather than forcing a join.
 
 ## Scripted scenarios
 
+A new or changed scenario runs in the pull request's Client E2E job, not on the agent's host:
+AGENTS.md's "Tests and verification" says so. The commands below are for a run the user asks
+for.
+
 ```bash
 pnpm run e2e:client                      # every scenario
 pnpm run e2e:client movement            # a selection

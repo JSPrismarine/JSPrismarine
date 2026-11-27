@@ -247,8 +247,12 @@ by biome, `/locate`, or portals between dimensions.
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
   behavior and public contracts, and add regression coverage for bugs when the task calls for tests.
-- For bug fixes, add a focused unit regression test. When a fix changes client-visible behavior,
-  add and run a client-e2e scenario for the same behavior with `pnpm run e2e:client <scenario>`.
+- For bug fixes, add a focused unit regression test. When a change alters client-visible behavior,
+  add a client-e2e scenario for it and let the pull request's Client E2E job in `ci.yml` run it.
+  Do not run `pnpm run e2e:client` or its `ensure` build locally, and do not tell a subagent to:
+  the cinnabar build is slow and a shared host's load fails real-clock scenarios. Check that the
+  job's path filters and scenario selection reach the new scenario, and read the job's result and
+  artifacts on the pull request. Run a scenario locally only when the user asks for it.
   Tag tests that assert wall-clock timing or host-dependent load as `performance`, and exclude them
   from CI test selectors. Keep CI assertions on deterministic, observable behavior, as
   [Measuring performance](#measuring-performance) describes.
