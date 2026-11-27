@@ -19,6 +19,7 @@ import {
     rotateCounterClockwise,
     WEIRDO_DIRECTIONS
 } from '../geometry';
+import type { BlockHalf } from '../rules/placement';
 import { placedHalf, placementFacing } from '../rules/placement';
 import { isSolidSupport, popBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateBoolean, stateString } from '../state';
@@ -141,19 +142,32 @@ export const doorFamily = defineFamily(
  *
  * Java's `TrapDoorBlock.getStateForPlacement` hangs the trapdoor on the side
  * face it was clicked against, and a click on the top or bottom of a block
- * opposes the placer's horizontal direction instead. Java skips the clicked
- * face when the placement replaced the clicked block itself, which the event
- * cannot tell apart, so a click on the side of tall grass keeps the face
- * (#3787). A trapdoor placed where redstone power reaches it starts open.
+ * opposes the placer's horizontal direction instead. A placement that
+ * replaced the clicked block, such as short grass, takes the vertical branch
+ * whichever face was clicked. A trapdoor placed where redstone power reaches
+ * it starts open.
  *
  * @javaSource TrapDoorBlock.getStateForPlacement
  * @javaVerified vectors
  */
 const trapdoorFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => {
-    const clicked = HORIZONTAL_FACES.find((face) => face === event.face);
+    const clicked = event.replacingClicked === true ? undefined : HORIZONTAL_FACES.find((face) => face === event.face);
     if (clicked !== undefined) return clicked;
     const facing = placementFacing(event);
     return facing === undefined ? undefined : opposite(facing);
+};
+
+/**
+ * The half a placed trapdoor takes: `placedHalf`, except that a placement that replaced the
+ * clicked block takes the top half unless the click was on a top face, as Java's vertical branch
+ * does.
+ *
+ * @javaSource TrapDoorBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const trapdoorHalf = (event: BlockPlaceEvent): BlockHalf | undefined => {
+    if (event.replacingClicked !== true || event.face === undefined) return placedHalf(event);
+    return event.face === 'up' ? 'bottom' : 'top';
 };
 
 /** Trapdoors: one block, opened the same way a door is. */
@@ -166,13 +180,13 @@ export const trapdoorFamily = defineFamily(
 
             // The Geyser-derived table spells the Java facing in the numeric
             // `direction` state on the weirdo order: east 0, west 1, south 2, north 3.
-            // `placedHalf` is Java's half rule exactly: the underside of a block and a
-            // click in the upper half of a side face take the top.
+            // Java's half rule: the underside of a block and a click in the upper half of a
+            // side face take the top.
             const facing = trapdoorFacing(event);
             if (facing !== undefined && hasState(event.block, 'direction')) {
                 patch['direction'] = WEIRDO_DIRECTIONS.indexOf(facing);
             }
-            const half = placedHalf(event);
+            const half = trapdoorHalf(event);
             if (half !== undefined && hasState(event.block, 'upside_down_bit')) {
                 patch['upside_down_bit'] = half === 'top';
             }

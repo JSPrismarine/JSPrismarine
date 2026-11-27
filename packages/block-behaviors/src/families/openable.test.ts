@@ -223,6 +223,42 @@ describe('trapdoorFamily', () => {
         expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(true);
     });
 
+    it('faces away from the placer in the top half when it replaced the clicked block', () => {
+        // Java's `TrapDoorBlock.getStateForPlacement` takes the vertical branch for a placement
+        // into short grass, whichever face of the grass was clicked (#3787).
+        const placements = [
+            { yaw: 0, direction: 3 }, // looking south, facing north
+            { yaw: 90, direction: 0 } // looking west, facing east
+        ] as const;
+
+        for (const { yaw, direction } of placements) {
+            const harness = trapdoorHarness();
+
+            harness.place(lower, {
+                placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: -4 }, yaw },
+                face: 'north',
+                faceLocation: { x: 0.5, y: 0.25, z: 0 },
+                replacingClicked: true
+            });
+
+            expect(harness.dimension.stateAt(lower, 'direction')).toBe(direction);
+            expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(true);
+        }
+    });
+
+    it('takes the bottom half when it replaced a block clicked on its top', () => {
+        const harness = trapdoorHarness();
+
+        harness.place(lower, {
+            placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: -4 }, yaw: 0 },
+            face: 'up',
+            replacingClicked: true
+        });
+
+        expect(harness.dimension.stateAt(lower, 'direction')).toBe(3);
+        expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(false);
+    });
+
     it('leaves a placement the world performed on its palette state', () => {
         const harness = trapdoorHarness();
         harness.dimension.set(lower, 'minecraft:trapdoor', trapdoorStates({ direction: 2 }));

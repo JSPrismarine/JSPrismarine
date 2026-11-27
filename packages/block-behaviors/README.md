@@ -117,6 +117,7 @@ are what lets a block behavior answer a question about the hand rather than defe
 | Flint and steel lights it | `candle`, `furnace` (the campfire), `redstone` (TNT) |
 | The clicked face gives a pillar its axis | `log` |
 | The click position gives a slab its half and a stair its flip | `slab`, `stairs` |
+| A placement that replaced the clicked block turns a trapdoor away from the placer and orders a lantern's support by the look | `trapdoor`, `lantern` |
 
 `rules/heldItem.ts` owns the item questions and `rules/placement.ts` the placement ones, so an item
 name or an enchantment id is written down once. Neither imports `@jsprismarine/items`: a `HookItem`
