@@ -13,7 +13,21 @@ const sponge = parseJavaClass(readFileSync(join(import.meta.dirname, '..', 'fixt
 /** A subclass that declares nothing, so every member it is cited with is inherited. */
 const wet: JavaClass = { ...sponge, name: 'net/example/Wet', superName: sponge.name, methods: [], fields: [] };
 /** A nested class with Sponge's methods, as a goal or behavior nested in a mob class is. */
-const drip: JavaClass = { ...sponge, name: `${sponge.name}$Drip` };
+const drip: JavaClass = {
+    ...sponge,
+    name: `${sponge.name}$Drip`,
+    fields: [
+        ...sponge.fields,
+        {
+            name: 'level',
+            descriptor: 'I',
+            access: 0x0001,
+            signature: undefined,
+            constantValue: undefined,
+            numericValue: undefined
+        }
+    ]
+};
 
 const classes = new Map([sponge, wet, drip].map((parsed) => [parsed.name, parsed]));
 const index: JavaClassIndex = { names: [...classes.keys()], load: (name) => classes.get(name) };
@@ -132,5 +146,34 @@ describe('tagCitations', () => {
         expect(untagged).toEqual([
             { line: 1, citation: "Java's `Sponge.soak`", reason: 'Sponge and its supertypes declare no soak' }
         ]);
+    });
+
+    it('marks a citation of an instance field as @javaSee, since only the code that sets it has a fingerprint', () => {
+        const { text } = tagCitations("/** Java's `Sponge.Drip.level`. */\nconst level = 0;", index);
+
+        expect(text).toContain(' * @javaSee Sponge$Drip.level\n');
+    });
+
+    it('takes hints for the citations the jar cannot settle, by path and argument list or by path', () => {
+        const hints = new Map([
+            ['Sponge.overload(a)', ['@javaSource Sponge.overload(I)I']],
+            ['HashMap.hash', ['@javaSee Sponge.describe']],
+            ['Sponge.overload', ['Sponge.overload(J)I']]
+        ]);
+        const { text, untagged } = tagCitations(
+            [
+                "/** Java's `Sponge.overload(a)` and Java's `HashMap.hash`. */",
+                'const a = 1;',
+                "/** Java's `Sponge.overload`. */",
+                'export interface B {}'
+            ].join('\n'),
+            index,
+            hints
+        );
+
+        expect(untagged).toEqual([]);
+        expect(text).toContain(' * @javaSource Sponge.overload(I)I\n * @javaSee Sponge.describe\n */\nconst a');
+        // A bare spelling takes the tag the comment's place decides: a type's comment only describes.
+        expect(text).toContain(' * @javaSee Sponge.overload(J)I\n */\nexport interface B');
     });
 });

@@ -1,5 +1,5 @@
 import type { JavaClass, JavaCodeMethod } from './classFile.mts';
-import { ACC_BRIDGE, ACC_PRIVATE, ACC_SYNTHETIC } from './classFile.mts';
+import { ACC_BRIDGE, ACC_PRIVATE, ACC_STATIC, ACC_SYNTHETIC } from './classFile.mts';
 import type { JavaSourceMember } from './fingerprint.mts';
 import { JavaSourceError } from './fingerprint.mts';
 import type { JavaClassIndex } from './sources.mts';
@@ -25,7 +25,7 @@ export interface ResolvedCitation {
     /** The tag spelling, with the declaring class and a descriptor when either is needed. */
     readonly spelling: string;
     readonly member: JavaSourceMember;
-    /** Whether the member is an abstract or native method, which a copy cannot follow. */
+    /** Whether the member is an abstract method or an instance field, which a fingerprint cannot follow. */
     readonly abstract: boolean;
 }
 
@@ -175,9 +175,13 @@ export const spellCitation = (path: string, cited: string | undefined, index: Ja
             let chosen = methods;
             if (methods.length > 1 && cited !== undefined)
                 chosen = methods.filter((method) => argumentsMatch(cited, method.descriptor));
-            if (methods.length === 0 && fields.length === 1) {
+            const field = fields[0];
+            if (methods.length === 0 && fields.length === 1 && field !== undefined) {
                 const spelling = `${className}.${name}`;
-                return { kind: 'resolved', spelling, member: { owner: current, name }, abstract: false };
+                // An instance field has no value of its own to fingerprint, so a comment that names
+                // one describes state the code keeps, and the code that sets it is what a tag copies.
+                const instance = (field.access & ACC_STATIC) === 0;
+                return { kind: 'resolved', spelling, member: { owner: current, name }, abstract: instance };
             }
             const method = chosen[0];
             if (chosen.length !== 1 || method === undefined)
@@ -230,16 +234,25 @@ const onlyDescribes = (after: string): boolean => {
  * Adds a tag line for each member a JSDoc comment's citations name, to every comment of a file
  * whose citations all resolve and that carries no Java tag yet.
  *
- * A citation of an abstract method, or one in a comment that documents a type or no declaration,
+ * A citation of an abstract method or an instance field, or one in a comment that documents a type or no declaration,
  * becomes `@javaSee`, since nothing there copies code. The rest become `@javaSource`. A citation
  * of a nested class in a comment on code, such as a `Behavior` subclass a function copies, tags
  * each of the class's methods.
+ *
+ * A person settles the rest with hints: the tag lines, such as `@javaSource Mth.floor(D)I`, for a
+ * citation's dotted path, or for its path and argument list as the comment writes them, which wins.
+ * A hint line that is only a spelling takes `@javaSee` or `@javaSource` by the comment's place.
  * A comment with a citation that does not resolve is left whole, so a person reads all of it.
  *
  * @param text - The file's contents.
  * @param index - The jar's classes.
+ * @param hints - Tag lines by citation, for the citations the jar cannot settle alone.
  */
-export const tagCitations = (text: string, index: JavaClassIndex): TaggedFile => {
+export const tagCitations = (
+    text: string,
+    index: JavaClassIndex,
+    hints: ReadonlyMap<string, readonly string[]> = new Map()
+): TaggedFile => {
     const added: { line: number; tag: string; spelling: string }[] = [];
     const untagged: UntaggedCitation[] = [];
     const edits: { start: number; end: number; replacement: string }[] = [];
@@ -252,6 +265,17 @@ export const tagCitations = (text: string, index: JavaClassIndex): TaggedFile =>
         const problems: UntaggedCitation[] = [];
         for (const citation of citations) {
             const line = startLine + body.slice(0, citation.index).split('\n').length - 1;
+            const hint = hints.get(`${citation[1] ?? ''}${citation[2] ?? ''}`) ?? hints.get(citation[1] ?? '');
+            if (hint !== undefined) {
+                for (const tagLine of hint) {
+                    // A bare spelling takes the tag the comment's place decides, as a resolved one does.
+                    const [first = '', second] = tagLine.split(/\s+/);
+                    const spelling = second ?? first;
+                    const tag = second === undefined ? (describes ? JAVA_SEE_TAG : JAVA_SOURCE_TAG) : first;
+                    if (!tags.has(spelling)) tags.set(spelling, tag);
+                }
+                continue;
+            }
             const resolved = spellCitation(citation[1] ?? '', citation[2], index);
             const members =
                 resolved.kind === 'resolved'
