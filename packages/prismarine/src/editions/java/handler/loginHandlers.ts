@@ -6,6 +6,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import { offlineUuid, serverHash } from '@jsprismarine/protocol/java/javaIdentity';
 import { javaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import {
     EncryptionRequest,
@@ -19,7 +20,7 @@ import {
 
 import type { LoginRefusal } from '../../../player/playerAdmission';
 import type { JavaProfile } from '../javaAuth';
-import { decryptFromClient, offlineUuid, serverHash } from '../javaAuth';
+import { decryptFromClient } from '../javaAuth';
 import type { JavaConnection } from '../JavaConnection';
 import { translated } from '../JavaConnection';
 import { beginConfiguration } from './configurationHandlers';

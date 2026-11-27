@@ -59,7 +59,7 @@ import type { SessionPlayer } from '../../player/sessionPlayers';
 import { ConnectionIds } from '../../network/transport/ConnectionId';
 import { TcpTransport } from '../../network/transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
-import { offlineUuid, serverHash } from './javaAuth';
+import { offlineUuid, serverHash } from '@jsprismarine/protocol/java/javaIdentity';
 import { JavaConnections } from './JavaConnections';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 
