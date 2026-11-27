@@ -227,8 +227,9 @@ default matters, and its own regression test either way.
    The copies large enough to deserve vectors or extraction each got an issue, and each is done:
    - The dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)):
      `entity-goals` records seeded fights and the node graph with Java's own `EnderDragon`,
-     including blocks in its path, the wings' and head's hits, blows to its head and body, and a
-     fight away from the world's origin.
+     including blocks in its path, the wings' and head's hits, blows to its head and body and the
+     knockback they give it in flight, and a fight away from the world's origin, and records
+     `checkWalls` alone over water, lava and waterlogged blocks.
    - Nether portal placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762)):
      `block-behaviors` records the portal Java's `PortalForcer.createPortal` builds in each layout.
    - Fluid spread ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)): what Java's
@@ -243,9 +244,8 @@ default matters, and its own regression test either way.
    Each vector set comes from a Java program in the package's `utils/oracle/` that runs Java's real
    code on a `ServerLevel` or `Level` allocated without its constructor, and each package's
    `vectors` script regenerates its files. The copies those vectors exercise carry
-   `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
-   are fixed. The difference left open has an issue:
-   [#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793).
+   `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, and
+   each difference is fixed.
 
 ## Decisions
 

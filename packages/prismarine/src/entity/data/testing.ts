@@ -495,6 +495,8 @@ export class TestEntityWorld {
 
     /** Blocks a test placed, over the flat floor. */
     private readonly placed = new Map<string, ContentBlock>();
+    /** The second storage layer, where Bedrock keeps a waterlogged block's water. */
+    private readonly liquids = new Map<string, ContentBlock>();
     /** The heights of the blocks other than air a test placed, by column, for the sky light. */
     private readonly roofs = new Map<string, Set<number>>();
     private blockRevision = 0;
@@ -563,6 +565,8 @@ export class TestEntityWorld {
                       }
                     : {}),
                 blockRevision: () => this.blockRevision,
+                liquid: (at) => this.liquids.get(keyOf(at)),
+                setLiquid: (at, liquid) => this.setLiquid(at, liquid),
                 set: (at, block) => this.place(at, block),
                 notifyNeighbors: () => undefined,
                 data: () => undefined,
@@ -693,6 +697,18 @@ export class TestEntityWorld {
     /** Replaces one block, so a test can wall a path finder in. */
     public setBlock(at: ContentPosition, identifier: string, states: ContentBlock['states'] = {}): void {
         this.place(at, { identifier, states });
+    }
+
+    /** Writes what a position's liquid layer holds, or takes it away for undefined, as a waterlogged block keeps its water. */
+    public setLiquid(at: ContentPosition, liquid: ContentBlock | undefined): void {
+        if (liquid === undefined) this.liquids.delete(keyOf(at));
+        else this.liquids.set(keyOf(at), liquid);
+        this.blockRevision += 1;
+    }
+
+    /** What a position's liquid layer holds. */
+    public liquidAt(at: ContentPosition): ContentBlock | undefined {
+        return this.liquids.get(keyOf(at));
     }
 
     private place(at: ContentPosition, block: ContentBlock): void {
