@@ -326,7 +326,8 @@ jobs:
                       target="$(git rev-list -n 1 "@jsprismarine/server@${RELEASE_VERSION}")"
                   fi
                   if gh release view "$tag" >/dev/null 2>&1; then
-                      gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest="$latest"
+                      # Keep the published notes when recovering assets or rerunning this job.
+                      gh release edit "$tag" --title "$title" --latest="$latest"
                       gh release upload "$tag" dist/prismarine-* dist/JSPrismarine-*.app.zip dist/highlights.md --clobber
                   else
                       gh release create "$tag" \
