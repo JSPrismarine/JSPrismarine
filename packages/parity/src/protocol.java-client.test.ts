@@ -22,6 +22,7 @@ import {
     PlayerActionStatus,
     PlayerCommand,
     PlayerCommandAction,
+    PlayerInfoAction,
     PlayerInput,
     PlayerInputFlag
 } from '@jsprismarine/protocol/java/packet/play';
@@ -318,6 +319,45 @@ const showAndHidePlayer: PresenterCall = async (presenter) => {
     );
     await presenter.hideEntity(2n);
 };
+
+/** Another player coming into view, then changing game mode, which its tab list entry shows. */
+const showPlayerChangingMode: PresenterCall = async (presenter) => {
+    await presenter.showEntity(
+        stub<Parameters<SessionPresenter['showEntity']>[0]>({
+            getRuntimeId: () => 2n,
+            describe: () => ({
+                type: 'minecraft:player',
+                feet: { x: 0, y: 64, z: 0 },
+                yaw: 0,
+                pitch: 0,
+                headYaw: 0,
+                player: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Alex' }
+            })
+        }),
+        stub<PlayerSession>({})
+    );
+    await presenter.sendPlayerGameMode(2n, Gametype.CREATIVE, 0n);
+};
+
+/** Whether a `Player Info Update` is the game mode change that sets Alex's entry to Java's creative, 1. */
+const changesAlexToCreative = (payload: unknown): boolean =>
+    isRecord(payload) &&
+    payload.actions === PlayerInfoAction.UpdateGameMode &&
+    Array.isArray(payload.players) &&
+    payload.players.some(
+        (player: unknown) =>
+            isRecord(player) && player.uuid === '00000000-0000-0000-0000-000000000002' && player.gameMode === 1
+    );
+
+/** An objective with one score, shown in the sidebar. */
+const showSidebar: PresenterCall = (presenter) =>
+    presenter.showDisplaySlot('sidebar', {
+        name: 'kills',
+        displayName: 'Kills',
+        criterion: 'dummy',
+        sortOrder: 'descending',
+        scores: [{ holder: 'Steve', identity: 1n, value: 3 }]
+    });
 
 /**
  * Java's entity data index of what an item entity holds and how much experience an orb is
@@ -1206,9 +1246,14 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'hud',
         java: "A client's tab list shows each player's game mode, latency and display name.",
         needs: [
-            shown('play/clientbound/player_info_update', "another player's game mode", (presenter) =>
-                presenter.sendPlayerGameMode(2n, Gametype.CREATIVE, 0n)
-            )
+            shown(
+                'play/clientbound/player_info_update',
+                "another player's game mode",
+                showPlayerChangingMode,
+                changesAlexToCreative
+            ),
+            shown('play/clientbound/player_info_update', "a player's latency"),
+            shown('play/clientbound/player_info_update', "a player's display name")
         ]
     },
     {
@@ -1249,27 +1294,42 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'hud',
         java: 'A client is shown titles and subtitles with their timing, as `/title` sends them.',
         needs: [
-            sent('play/clientbound/set_title_text'),
-            sent('play/clientbound/set_subtitle_text'),
-            sent('play/clientbound/set_titles_animation'),
-            sent('play/clientbound/clear_titles')
+            shown('play/clientbound/set_title_text', 'a title', (presenter) =>
+                presenter.showTitle({ kind: 'title', text: 'Hi' })
+            ),
+            shown('play/clientbound/set_subtitle_text', 'a subtitle', (presenter) =>
+                presenter.showTitle({ kind: 'subtitle', text: 'there' })
+            ),
+            shown('play/clientbound/set_titles_animation', "a title's timing", (presenter) =>
+                presenter.showTitle({ kind: 'times', fadeIn: 10, stay: 70, fadeOut: 20 })
+            ),
+            shown('play/clientbound/clear_titles', 'titles cleared', (presenter) =>
+                presenter.showTitle({ kind: 'clear' })
+            )
         ]
     },
     {
         id: 'action-bar',
         area: 'hud',
         java: 'A client is shown action bar text above its hotbar.',
-        needs: [sent('play/clientbound/set_action_bar_text')]
+        needs: [
+            shown('play/clientbound/set_action_bar_text', 'action bar text', (presenter) =>
+                presenter.showTitle({ kind: 'actionbar', text: 'Hi' })
+            )
+        ]
     },
     {
         id: 'scoreboard',
         area: 'hud',
         java: 'A client is shown scoreboard objectives in the sidebar, the tab list and below names.',
         needs: [
-            sent('play/clientbound/set_objective'),
-            sent('play/clientbound/set_display_objective'),
-            sent('play/clientbound/set_score'),
-            sent('play/clientbound/reset_score')
+            shown('play/clientbound/set_objective', 'an objective shown', showSidebar),
+            shown('play/clientbound/set_display_objective', 'a slot shown', showSidebar),
+            shown('play/clientbound/set_score', 'its scores', showSidebar),
+            shown('play/clientbound/reset_score', 'a score reset', async (presenter) => {
+                await showSidebar(presenter);
+                await presenter.showScore('kills', { holder: 'Steve', identity: 1n }, undefined);
+            })
         ]
     },
     {

@@ -3076,19 +3076,9 @@
             "reason": "In Java: A client uses the item in its hand in the air, eats, drinks, draws a bow and lets it go, and stabs with a spear. For a Java client here: play/serverbound/use_item is not read; play/serverbound/player_action (release a used item) decodes into nothing; play/serverbound/player_action (stab) decodes into nothing; play/clientbound/cooldown is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3769"
         },
-        "hud:action-bar": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown action bar text above its hotbar. For a Java client here: play/clientbound/set_action_bar_text is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
-        "hud:scoreboard": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown scoreboard objectives in the sidebar, the tab list and below names. For a Java client here: play/clientbound/set_objective is never sent; play/clientbound/set_display_objective is never sent; play/clientbound/set_score is never sent; play/clientbound/reset_score is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
         "hud:tab-list-game-modes": {
             "kind": "deferred",
-            "reason": "In Java: A client's tab list shows each player's game mode, latency and display name. For a Java client here: play/clientbound/player_info_update (another player's game mode) is not sent.",
+            "reason": "In Java: A client's tab list shows each player's game mode, latency and display name. For a Java client here: play/clientbound/player_info_update (a player's latency) has no presenter call that sends it; play/clientbound/player_info_update (a player's display name) has no presenter call that sends it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
         },
         "hud:tab-list-header": {
@@ -3099,11 +3089,6 @@
         "hud:teams": {
             "kind": "deferred",
             "reason": "In Java: A client is shown teams: their colors, prefixes, name tag visibility and collision. For a Java client here: play/clientbound/set_player_team is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
-        "hud:titles": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown titles and subtitles with their timing, as `/title` sends them. For a Java client here: play/clientbound/set_title_text is never sent; play/clientbound/set_subtitle_text is never sent; play/clientbound/set_titles_animation is never sent; play/clientbound/clear_titles is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
         },
         "hud:waypoints": {
