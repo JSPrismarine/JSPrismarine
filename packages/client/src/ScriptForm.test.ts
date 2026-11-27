@@ -31,8 +31,7 @@ world.afterEvents.weatherChange.subscribe(() => {
         .show(world.getAllPlayers()[0])
         .then((response) => world.sendMessage('picked ' + response.selection));
 });`,
-            displayName: 'Answerer',
-            identity: '00000000-0000-4000-8000-000000520302'
+            displayName: 'Answerer'
         });
     }, 300_000);
 
@@ -47,8 +46,6 @@ world.afterEvents.weatherChange.subscribe(() => {
         if (session === undefined) return;
         const { server, client, settle } = session;
 
-        // The client decodes only the packets it registers, and forms are not among them.
-        client.getRegistry().register(ModalFormRequestPacket);
         const forms: string[] = [];
         const lines: string[] = [];
         // A field packet keeps its payload in its fields, so the decoded packet itself is read.

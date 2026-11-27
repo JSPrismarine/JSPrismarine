@@ -22,8 +22,7 @@ describe("a script's world.sendMessage", () => {
             dependencies: [{ module_name: '@minecraft/server', version: '2.0.0' }],
             script: `import { world } from '@minecraft/server';
 world.afterEvents.weatherChange.subscribe((event) => world.sendMessage('${MESSAGE}' + event.newWeather));`,
-            displayName: 'Listener',
-            identity: '00000000-0000-4000-8000-000000520301'
+            displayName: 'Listener'
         });
     }, 300_000);
 
