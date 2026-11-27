@@ -1,7 +1,6 @@
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
-/** The environment variable that overrides `java-port`, as `JSP_DIR` overrides the data directory. */
-export const JAVA_PORT_ENV = 'JSP_JAVA_PORT';
+import { JAVA_PORT_ENV } from './javaPortEnvName';
 
 /**
  * The Java Edition port `JSP_JAVA_PORT` asks for, which takes the place of `java-port` from the

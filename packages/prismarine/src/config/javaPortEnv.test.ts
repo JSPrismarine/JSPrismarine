@@ -1,7 +1,8 @@
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { JAVA_PORT_ENV, javaPortFromEnv } from './javaPortEnv';
+import { javaPortFromEnv } from './javaPortEnv';
+import { JAVA_PORT_ENV } from './javaPortEnvName';
 
 afterEach(() => {
     vi.unstubAllEnvs();

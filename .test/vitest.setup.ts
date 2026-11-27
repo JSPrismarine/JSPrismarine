@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, vi, beforeEach } from 'vitest';
 
-import { JAVA_PORT_ENV } from '../packages/prismarine/src/config/javaPortEnv';
+import { JAVA_PORT_ENV } from '../packages/prismarine/src/config/javaPortEnvName';
 
 // Java Edition is on by default and listens on 25565, so two servers booted in one run took the
 // same port and the second failed to start. Port 0 lets the operating system give each its own.
