@@ -626,7 +626,6 @@
         },
         "minecraft:acacia_fence": {
             "java": "minecraft:acacia_fence",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -749,7 +748,6 @@
         },
         "minecraft:acacia_planks": {
             "java": "minecraft:acacia_planks",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -946,7 +944,6 @@
         },
         "minecraft:acacia_wood": {
             "java": "minecraft:acacia_wood",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -1126,7 +1123,6 @@
         },
         "minecraft:andesite": {
             "java": "minecraft:andesite",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -1184,7 +1180,6 @@
         },
         "minecraft:andesite_wall": {
             "java": "minecraft:andesite_wall",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2467,7 +2462,6 @@
         },
         "minecraft:birch_fence": {
             "java": "minecraft:birch_fence",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2547,7 +2541,6 @@
         },
         "minecraft:birch_leaves": {
             "java": "minecraft:birch_leaves",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2568,7 +2561,6 @@
         },
         "minecraft:birch_log": {
             "java": "minecraft:birch_log",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2592,7 +2584,6 @@
         },
         "minecraft:birch_planks": {
             "java": "minecraft:birch_planks",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2789,7 +2780,6 @@
         },
         "minecraft:birch_wood": {
             "java": "minecraft:birch_wood",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2852,7 +2842,6 @@
         },
         "minecraft:black_carpet": {
             "java": "minecraft:black_carpet",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2884,7 +2873,6 @@
         },
         "minecraft:black_concrete": {
             "java": "minecraft:black_concrete",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -2904,7 +2892,6 @@
         },
         "minecraft:black_concrete_powder": {
             "java": "minecraft:black_concrete_powder",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3053,7 +3040,6 @@
         },
         "minecraft:black_shulker_box": {
             "java": "minecraft:black_shulker_box",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3074,7 +3060,6 @@
         },
         "minecraft:black_stained_glass": {
             "java": "minecraft:black_stained_glass",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3094,7 +3079,6 @@
         },
         "minecraft:black_stained_glass_pane": {
             "java": "minecraft:black_stained_glass_pane",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3114,7 +3098,6 @@
         },
         "minecraft:black_terracotta": {
             "java": "minecraft:black_terracotta",
-            "data": 15,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3424,7 +3407,6 @@
         },
         "minecraft:blue_carpet": {
             "java": "minecraft:blue_carpet",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3456,7 +3438,6 @@
         },
         "minecraft:blue_concrete": {
             "java": "minecraft:blue_concrete",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3476,7 +3457,6 @@
         },
         "minecraft:blue_concrete_powder": {
             "java": "minecraft:blue_concrete_powder",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3684,7 +3664,6 @@
         },
         "minecraft:blue_shulker_box": {
             "java": "minecraft:blue_shulker_box",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3705,7 +3684,6 @@
         },
         "minecraft:blue_stained_glass": {
             "java": "minecraft:blue_stained_glass",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3725,7 +3703,6 @@
         },
         "minecraft:blue_stained_glass_pane": {
             "java": "minecraft:blue_stained_glass_pane",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -3745,7 +3722,6 @@
         },
         "minecraft:blue_terracotta": {
             "java": "minecraft:blue_terracotta",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4042,7 +4018,6 @@
         },
         "minecraft:brain_coral": {
             "java": "minecraft:brain_coral",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4278,7 +4253,6 @@
         },
         "minecraft:brick_wall": {
             "java": "minecraft:brick_wall",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4356,7 +4330,6 @@
         },
         "minecraft:brown_carpet": {
             "java": "minecraft:brown_carpet",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4388,7 +4361,6 @@
         },
         "minecraft:brown_concrete": {
             "java": "minecraft:brown_concrete",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4408,7 +4380,6 @@
         },
         "minecraft:brown_concrete_powder": {
             "java": "minecraft:brown_concrete_powder",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4597,7 +4568,6 @@
         },
         "minecraft:brown_mushroom_block": {
             "java": "minecraft:brown_mushroom_block",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4618,7 +4588,6 @@
         },
         "minecraft:brown_shulker_box": {
             "java": "minecraft:brown_shulker_box",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4639,7 +4608,6 @@
         },
         "minecraft:brown_stained_glass": {
             "java": "minecraft:brown_stained_glass",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4659,7 +4627,6 @@
         },
         "minecraft:brown_stained_glass_pane": {
             "java": "minecraft:brown_stained_glass_pane",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4679,7 +4646,6 @@
         },
         "minecraft:brown_terracotta": {
             "java": "minecraft:brown_terracotta",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -4789,7 +4755,6 @@
         },
         "minecraft:bubble_coral": {
             "java": "minecraft:bubble_coral",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -6963,7 +6928,6 @@
         },
         "minecraft:cocoa_beans": {
             "java": "minecraft:cocoa_beans",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9035,7 +8999,6 @@
         },
         "minecraft:cyan_carpet": {
             "java": "minecraft:cyan_carpet",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9067,7 +9030,6 @@
         },
         "minecraft:cyan_concrete": {
             "java": "minecraft:cyan_concrete",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9087,7 +9049,6 @@
         },
         "minecraft:cyan_concrete_powder": {
             "java": "minecraft:cyan_concrete_powder",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9236,7 +9197,6 @@
         },
         "minecraft:cyan_shulker_box": {
             "java": "minecraft:cyan_shulker_box",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9257,7 +9217,6 @@
         },
         "minecraft:cyan_stained_glass": {
             "java": "minecraft:cyan_stained_glass",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9277,7 +9236,6 @@
         },
         "minecraft:cyan_stained_glass_pane": {
             "java": "minecraft:cyan_stained_glass_pane",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9297,7 +9255,6 @@
         },
         "minecraft:cyan_terracotta": {
             "java": "minecraft:cyan_terracotta",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9539,7 +9496,6 @@
         },
         "minecraft:dark_oak_fence": {
             "java": "minecraft:dark_oak_fence",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9619,7 +9575,6 @@
         },
         "minecraft:dark_oak_leaves": {
             "java": "minecraft:dark_oak_leaves",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9640,7 +9595,6 @@
         },
         "minecraft:dark_oak_log": {
             "java": "minecraft:dark_oak_log",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9664,7 +9618,6 @@
         },
         "minecraft:dark_oak_planks": {
             "java": "minecraft:dark_oak_planks",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9861,7 +9814,6 @@
         },
         "minecraft:dark_oak_wood": {
             "java": "minecraft:dark_oak_wood",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -9965,7 +9917,6 @@
         },
         "minecraft:dead_brain_coral": {
             "java": "minecraft:dead_brain_coral",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -10023,7 +9974,6 @@
         },
         "minecraft:dead_bubble_coral": {
             "java": "minecraft:dead_bubble_coral",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -10081,7 +10031,6 @@
         },
         "minecraft:dead_fire_coral": {
             "java": "minecraft:dead_fire_coral",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -10139,7 +10088,6 @@
         },
         "minecraft:dead_horn_coral": {
             "java": "minecraft:dead_horn_coral",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -10197,7 +10145,6 @@
         },
         "minecraft:dead_tube_coral": {
             "java": "minecraft:dead_tube_coral",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -11261,7 +11208,6 @@
         },
         "minecraft:diorite": {
             "java": "minecraft:diorite",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -11319,7 +11265,6 @@
         },
         "minecraft:diorite_wall": {
             "java": "minecraft:diorite_wall",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -11396,7 +11341,6 @@
         },
         "minecraft:dispenser": {
             "java": "minecraft:dispenser",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -11613,7 +11557,6 @@
         },
         "minecraft:dropper": {
             "java": "minecraft:dropper",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -12048,7 +11991,6 @@
         },
         "minecraft:end_stone_brick_wall": {
             "java": "minecraft:end_stone_brick_wall",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -12672,22 +12614,22 @@
         "minecraft:filled_map": {
             "java": "minecraft:filled_map",
             "merged": [
-                { "java": "minecraft:abandoned_camp_map" },
-                { "java": "minecraft:buried_ancient_city_map" },
-                { "java": "minecraft:buried_mineshaft_map" },
-                { "java": "minecraft:buried_treasure_map" },
-                { "java": "minecraft:buried_trial_chambers_map" },
-                { "java": "minecraft:desert_pyramid_map" },
-                { "java": "minecraft:desert_village_map" },
-                { "java": "minecraft:jungle_pyramid_map" },
-                { "java": "minecraft:ocean_monument_map" },
-                { "java": "minecraft:plains_village_map" },
-                { "java": "minecraft:savanna_village_map" },
-                { "java": "minecraft:snowy_village_map" },
-                { "java": "minecraft:swamp_hut_map" },
-                { "java": "minecraft:taiga_village_map" },
-                { "java": "minecraft:warm_ocean_ruins_map" },
-                { "java": "minecraft:woodland_mansion_map" }
+                { "java": "minecraft:abandoned_camp_map", "data": 18 },
+                { "java": "minecraft:buried_ancient_city_map", "data": 23 },
+                { "java": "minecraft:buried_mineshaft_map", "data": 24 },
+                { "java": "minecraft:buried_treasure_map", "data": 5 },
+                { "java": "minecraft:buried_trial_chambers_map", "data": 14 },
+                { "java": "minecraft:desert_pyramid_map", "data": 25 },
+                { "java": "minecraft:desert_village_map", "data": 11 },
+                { "java": "minecraft:jungle_pyramid_map", "data": 12 },
+                { "java": "minecraft:ocean_monument_map", "data": 3 },
+                { "java": "minecraft:plains_village_map", "data": 9 },
+                { "java": "minecraft:savanna_village_map", "data": 10 },
+                { "java": "minecraft:snowy_village_map", "data": 7 },
+                { "java": "minecraft:swamp_hut_map", "data": 13 },
+                { "java": "minecraft:taiga_village_map", "data": 8 },
+                { "java": "minecraft:warm_ocean_ruins_map", "data": 26 },
+                { "java": "minecraft:woodland_mansion_map", "data": 4 }
             ],
             "components": {
                 "minecraft:attack_animation": {},
@@ -12728,7 +12670,6 @@
         },
         "minecraft:fire_coral": {
             "java": "minecraft:fire_coral",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14251,7 +14192,6 @@
         },
         "minecraft:granite": {
             "java": "minecraft:granite",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14309,7 +14249,6 @@
         },
         "minecraft:granite_wall": {
             "java": "minecraft:granite_wall",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14425,7 +14364,6 @@
         },
         "minecraft:gray_carpet": {
             "java": "minecraft:gray_carpet",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14457,7 +14395,6 @@
         },
         "minecraft:gray_concrete": {
             "java": "minecraft:gray_concrete",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14477,7 +14414,6 @@
         },
         "minecraft:gray_concrete_powder": {
             "java": "minecraft:gray_concrete_powder",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14626,7 +14562,6 @@
         },
         "minecraft:gray_shulker_box": {
             "java": "minecraft:gray_shulker_box",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14647,7 +14582,6 @@
         },
         "minecraft:gray_stained_glass": {
             "java": "minecraft:gray_stained_glass",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14667,7 +14601,6 @@
         },
         "minecraft:gray_stained_glass_pane": {
             "java": "minecraft:gray_stained_glass_pane",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14687,7 +14620,6 @@
         },
         "minecraft:gray_terracotta": {
             "java": "minecraft:gray_terracotta",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14815,7 +14747,6 @@
         },
         "minecraft:green_carpet": {
             "java": "minecraft:green_carpet",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14847,7 +14778,6 @@
         },
         "minecraft:green_concrete": {
             "java": "minecraft:green_concrete",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -14867,7 +14797,6 @@
         },
         "minecraft:green_concrete_powder": {
             "java": "minecraft:green_concrete_powder",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -15016,7 +14945,6 @@
         },
         "minecraft:green_shulker_box": {
             "java": "minecraft:green_shulker_box",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -15037,7 +14965,6 @@
         },
         "minecraft:green_stained_glass": {
             "java": "minecraft:green_stained_glass",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -15057,7 +14984,6 @@
         },
         "minecraft:green_stained_glass_pane": {
             "java": "minecraft:green_stained_glass_pane",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -15077,7 +15003,6 @@
         },
         "minecraft:green_terracotta": {
             "java": "minecraft:green_terracotta",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -15585,7 +15510,6 @@
         },
         "minecraft:horn_coral": {
             "java": "minecraft:horn_coral",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -16816,7 +16740,6 @@
         },
         "minecraft:jungle_fence": {
             "java": "minecraft:jungle_fence",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -16896,7 +16819,6 @@
         },
         "minecraft:jungle_leaves": {
             "java": "minecraft:jungle_leaves",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -16917,7 +16839,6 @@
         },
         "minecraft:jungle_log": {
             "java": "minecraft:jungle_log",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -16941,7 +16862,6 @@
         },
         "minecraft:jungle_planks": {
             "java": "minecraft:jungle_planks",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17138,7 +17058,6 @@
         },
         "minecraft:jungle_wood": {
             "java": "minecraft:jungle_wood",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17726,7 +17645,6 @@
         },
         "minecraft:light_blue_carpet": {
             "java": "minecraft:light_blue_carpet",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17758,7 +17676,6 @@
         },
         "minecraft:light_blue_concrete": {
             "java": "minecraft:light_blue_concrete",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17778,7 +17695,6 @@
         },
         "minecraft:light_blue_concrete_powder": {
             "java": "minecraft:light_blue_concrete_powder",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17927,7 +17843,6 @@
         },
         "minecraft:light_blue_shulker_box": {
             "java": "minecraft:light_blue_shulker_box",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17948,7 +17863,6 @@
         },
         "minecraft:light_blue_stained_glass": {
             "java": "minecraft:light_blue_stained_glass",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17968,7 +17882,6 @@
         },
         "minecraft:light_blue_stained_glass_pane": {
             "java": "minecraft:light_blue_stained_glass_pane",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -17988,7 +17901,6 @@
         },
         "minecraft:light_blue_terracotta": {
             "java": "minecraft:light_blue_terracotta",
-            "data": 3,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18116,7 +18028,6 @@
         },
         "minecraft:light_gray_carpet": {
             "java": "minecraft:light_gray_carpet",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18148,7 +18059,6 @@
         },
         "minecraft:light_gray_concrete": {
             "java": "minecraft:light_gray_concrete",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18168,7 +18078,6 @@
         },
         "minecraft:light_gray_concrete_powder": {
             "java": "minecraft:light_gray_concrete_powder",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18298,7 +18207,6 @@
         },
         "minecraft:light_gray_shulker_box": {
             "java": "minecraft:light_gray_shulker_box",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18319,7 +18227,6 @@
         },
         "minecraft:light_gray_stained_glass": {
             "java": "minecraft:light_gray_stained_glass",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18339,7 +18246,6 @@
         },
         "minecraft:light_gray_stained_glass_pane": {
             "java": "minecraft:light_gray_stained_glass_pane",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18359,7 +18265,6 @@
         },
         "minecraft:light_gray_terracotta": {
             "java": "minecraft:light_gray_terracotta",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18379,7 +18284,6 @@
         },
         "minecraft:light_gray_wool": {
             "java": "minecraft:light_gray_wool",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18566,7 +18470,6 @@
         },
         "minecraft:lime_carpet": {
             "java": "minecraft:lime_carpet",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18598,7 +18501,6 @@
         },
         "minecraft:lime_concrete": {
             "java": "minecraft:lime_concrete",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18618,7 +18520,6 @@
         },
         "minecraft:lime_concrete_powder": {
             "java": "minecraft:lime_concrete_powder",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18767,7 +18668,6 @@
         },
         "minecraft:lime_shulker_box": {
             "java": "minecraft:lime_shulker_box",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18788,7 +18688,6 @@
         },
         "minecraft:lime_stained_glass": {
             "java": "minecraft:lime_stained_glass",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18808,7 +18707,6 @@
         },
         "minecraft:lime_stained_glass_pane": {
             "java": "minecraft:lime_stained_glass_pane",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -18828,7 +18726,6 @@
         },
         "minecraft:lime_terracotta": {
             "java": "minecraft:lime_terracotta",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19098,7 +18995,6 @@
         },
         "minecraft:magenta_carpet": {
             "java": "minecraft:magenta_carpet",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19130,7 +19026,6 @@
         },
         "minecraft:magenta_concrete": {
             "java": "minecraft:magenta_concrete",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19150,7 +19045,6 @@
         },
         "minecraft:magenta_concrete_powder": {
             "java": "minecraft:magenta_concrete_powder",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19299,7 +19193,6 @@
         },
         "minecraft:magenta_shulker_box": {
             "java": "minecraft:magenta_shulker_box",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19320,7 +19213,6 @@
         },
         "minecraft:magenta_stained_glass": {
             "java": "minecraft:magenta_stained_glass",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19340,7 +19232,6 @@
         },
         "minecraft:magenta_stained_glass_pane": {
             "java": "minecraft:magenta_stained_glass_pane",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -19360,7 +19251,6 @@
         },
         "minecraft:magenta_terracotta": {
             "java": "minecraft:magenta_terracotta",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -20269,7 +20159,6 @@
         },
         "minecraft:mossy_cobblestone_wall": {
             "java": "minecraft:mossy_cobblestone_wall",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -20327,7 +20216,6 @@
         },
         "minecraft:mossy_stone_brick_wall": {
             "java": "minecraft:mossy_stone_brick_wall",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -21196,7 +21084,6 @@
         },
         "minecraft:nether_brick_wall": {
             "java": "minecraft:nether_brick_wall",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22609,7 +22496,6 @@
         },
         "minecraft:orange_carpet": {
             "java": "minecraft:orange_carpet",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22641,7 +22527,6 @@
         },
         "minecraft:orange_concrete": {
             "java": "minecraft:orange_concrete",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22661,7 +22546,6 @@
         },
         "minecraft:orange_concrete_powder": {
             "java": "minecraft:orange_concrete_powder",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22830,7 +22714,6 @@
         },
         "minecraft:orange_shulker_box": {
             "java": "minecraft:orange_shulker_box",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22851,7 +22734,6 @@
         },
         "minecraft:orange_stained_glass": {
             "java": "minecraft:orange_stained_glass",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22871,7 +22753,6 @@
         },
         "minecraft:orange_stained_glass_pane": {
             "java": "minecraft:orange_stained_glass_pane",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -22891,7 +22772,6 @@
         },
         "minecraft:orange_terracotta": {
             "java": "minecraft:orange_terracotta",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24287,7 +24167,6 @@
         },
         "minecraft:pink_carpet": {
             "java": "minecraft:pink_carpet",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24319,7 +24198,6 @@
         },
         "minecraft:pink_concrete": {
             "java": "minecraft:pink_concrete",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24339,7 +24217,6 @@
         },
         "minecraft:pink_concrete_powder": {
             "java": "minecraft:pink_concrete_powder",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24508,7 +24385,6 @@
         },
         "minecraft:pink_shulker_box": {
             "java": "minecraft:pink_shulker_box",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24529,7 +24405,6 @@
         },
         "minecraft:pink_stained_glass": {
             "java": "minecraft:pink_stained_glass",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24549,7 +24424,6 @@
         },
         "minecraft:pink_stained_glass_pane": {
             "java": "minecraft:pink_stained_glass_pane",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24569,7 +24443,6 @@
         },
         "minecraft:pink_terracotta": {
             "java": "minecraft:pink_terracotta",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24678,7 +24551,6 @@
         },
         "minecraft:piston": {
             "java": "minecraft:piston",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -24880,7 +24752,6 @@
         },
         "minecraft:polished_andesite": {
             "java": "minecraft:polished_andesite",
-            "data": 6,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -25451,7 +25322,6 @@
         },
         "minecraft:polished_diorite": {
             "java": "minecraft:polished_diorite",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -25509,7 +25379,6 @@
         },
         "minecraft:polished_granite": {
             "java": "minecraft:polished_granite",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26433,7 +26302,6 @@
         },
         "minecraft:prismarine_wall": {
             "java": "minecraft:prismarine_wall",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26648,7 +26516,6 @@
         },
         "minecraft:purple_carpet": {
             "java": "minecraft:purple_carpet",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26680,7 +26547,6 @@
         },
         "minecraft:purple_concrete": {
             "java": "minecraft:purple_concrete",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26700,7 +26566,6 @@
         },
         "minecraft:purple_concrete_powder": {
             "java": "minecraft:purple_concrete_powder",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26849,7 +26714,6 @@
         },
         "minecraft:purple_shulker_box": {
             "java": "minecraft:purple_shulker_box",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26870,7 +26734,6 @@
         },
         "minecraft:purple_stained_glass": {
             "java": "minecraft:purple_stained_glass",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26890,7 +26753,6 @@
         },
         "minecraft:purple_stained_glass_pane": {
             "java": "minecraft:purple_stained_glass_pane",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -26910,7 +26772,6 @@
         },
         "minecraft:purple_terracotta": {
             "java": "minecraft:purple_terracotta",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27018,7 +26879,6 @@
         },
         "minecraft:purpur_pillar": {
             "java": "minecraft:purpur_pillar",
-            "data": 2,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27541,7 +27401,6 @@
         },
         "minecraft:red_carpet": {
             "java": "minecraft:red_carpet",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27573,7 +27432,6 @@
         },
         "minecraft:red_concrete": {
             "java": "minecraft:red_concrete",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27593,7 +27451,6 @@
         },
         "minecraft:red_concrete_powder": {
             "java": "minecraft:red_concrete_powder",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27762,7 +27619,6 @@
         },
         "minecraft:red_mushroom_block": {
             "java": "minecraft:red_mushroom_block",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27840,7 +27696,6 @@
         },
         "minecraft:red_nether_brick_wall": {
             "java": "minecraft:red_nether_brick_wall",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27956,7 +27811,6 @@
         },
         "minecraft:red_sandstone_wall": {
             "java": "minecraft:red_sandstone_wall",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -27996,7 +27850,6 @@
         },
         "minecraft:red_shulker_box": {
             "java": "minecraft:red_shulker_box",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -28017,7 +27870,6 @@
         },
         "minecraft:red_stained_glass": {
             "java": "minecraft:red_stained_glass",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -28037,7 +27889,6 @@
         },
         "minecraft:red_stained_glass_pane": {
             "java": "minecraft:red_stained_glass_pane",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -28057,7 +27908,6 @@
         },
         "minecraft:red_terracotta": {
             "java": "minecraft:red_terracotta",
-            "data": 14,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -28707,7 +28557,6 @@
         },
         "minecraft:sandstone_wall": {
             "java": "minecraft:sandstone_wall",
-            "data": 5,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30299,7 +30148,6 @@
         },
         "minecraft:spruce_fence": {
             "java": "minecraft:spruce_fence",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30379,7 +30227,6 @@
         },
         "minecraft:spruce_leaves": {
             "java": "minecraft:spruce_leaves",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30400,7 +30247,6 @@
         },
         "minecraft:spruce_log": {
             "java": "minecraft:spruce_log",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30424,7 +30270,6 @@
         },
         "minecraft:spruce_planks": {
             "java": "minecraft:spruce_planks",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30621,7 +30466,6 @@
         },
         "minecraft:spruce_wood": {
             "java": "minecraft:spruce_wood",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30707,7 +30551,6 @@
         },
         "minecraft:sticky_piston": {
             "java": "minecraft:sticky_piston",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -30830,7 +30673,6 @@
         },
         "minecraft:stone_brick_wall": {
             "java": "minecraft:stone_brick_wall",
-            "data": 7,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31295,7 +31137,6 @@
         },
         "minecraft:stripped_acacia_wood": {
             "java": "minecraft:stripped_acacia_wood",
-            "data": 12,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31365,7 +31206,6 @@
         },
         "minecraft:stripped_birch_wood": {
             "java": "minecraft:stripped_birch_wood",
-            "data": 10,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31496,7 +31336,6 @@
         },
         "minecraft:stripped_dark_oak_wood": {
             "java": "minecraft:stripped_dark_oak_wood",
-            "data": 13,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31543,7 +31382,6 @@
         },
         "minecraft:stripped_jungle_wood": {
             "java": "minecraft:stripped_jungle_wood",
-            "data": 11,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31636,7 +31474,6 @@
         },
         "minecraft:stripped_oak_wood": {
             "java": "minecraft:stripped_oak_wood",
-            "data": 8,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -31775,7 +31612,6 @@
         },
         "minecraft:stripped_spruce_wood": {
             "java": "minecraft:stripped_spruce_wood",
-            "data": 9,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -35185,7 +35021,6 @@
         },
         "minecraft:wet_sponge": {
             "java": "minecraft:wet_sponge",
-            "data": 1,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36352,7 +36187,6 @@
         },
         "minecraft:yellow_carpet": {
             "java": "minecraft:yellow_carpet",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36384,7 +36218,6 @@
         },
         "minecraft:yellow_concrete": {
             "java": "minecraft:yellow_concrete",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36404,7 +36237,6 @@
         },
         "minecraft:yellow_concrete_powder": {
             "java": "minecraft:yellow_concrete_powder",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36573,7 +36405,6 @@
         },
         "minecraft:yellow_shulker_box": {
             "java": "minecraft:yellow_shulker_box",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36594,7 +36425,6 @@
         },
         "minecraft:yellow_stained_glass": {
             "java": "minecraft:yellow_stained_glass",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36614,7 +36444,6 @@
         },
         "minecraft:yellow_stained_glass_pane": {
             "java": "minecraft:yellow_stained_glass_pane",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
@@ -36634,7 +36463,6 @@
         },
         "minecraft:yellow_terracotta": {
             "java": "minecraft:yellow_terracotta",
-            "data": 4,
             "components": {
                 "minecraft:attack_animation": {},
                 "minecraft:attribute_modifiers": [],
