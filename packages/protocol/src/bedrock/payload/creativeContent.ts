@@ -71,6 +71,11 @@ export interface CreativeCatalogEntry {
     group: number;
     /** The state the entry places, as base64 little endian NBT carrying a `network_id`. */
     block_states?: string;
+    /**
+     * The hashed runtime id of the state the entry places, for an entry no capture holds a
+     * `block_states` for, such as a pack's block. Read when `block_states` is absent.
+     */
+    block_runtime_id?: number;
     meta?: number;
     /** The entry's own NBT, as base64. */
     nbt?: string;
@@ -205,14 +210,166 @@ export const buildCreativeContent = (
             if (!keepUnknown) continue;
         }
 
+        const item = instance(entry.name, entry.meta ?? 0, entry.block_states, entry.nbt);
         entries.push({
             creativeNetId: entries.length + 1,
-            item: instance(entry.name, entry.meta ?? 0, entry.block_states, entry.nbt),
+            item:
+                entry.block_states === undefined && entry.block_runtime_id !== undefined
+                    ? { ...item, blockRuntimeId: entry.block_runtime_id }
+                    : item,
             group: entry.group
         });
     }
 
     return { groups, entries, unknown };
+};
+
+/**
+ * Where a pack's block or item asks to sit in the creative menu: its `menu_category`.
+ *
+ * A Bedrock Dedicated Server reads it from `description.menu_category` of the block or item
+ * file, and the client knows the content only by what that server sends, so the file is the
+ * whole of the input.
+ */
+export interface PackMenuPlacement {
+    /** The block or item identifier. */
+    readonly name: string;
+    /**
+     * `construction`, `nature`, `equipment`, `items` or `none`, or undefined when the file
+     * declares no `menu_category`. `none` and undefined both keep the entry out of the menu.
+     */
+    readonly category: string | undefined;
+    /** The group key as the file writes it, such as `minecraft:itemGroup.name.stairs`. */
+    readonly group?: string;
+    /** For a block, the hashed runtime id of the state its entry places. */
+    readonly blockRuntimeId?: number;
+}
+
+/** What {@link withPackMenuPlacements} produced. */
+export interface PackCreativeMenu {
+    /** The catalog with the packs' groups and entries after the vanilla ones. */
+    readonly catalog: CreativeCatalog;
+    /**
+     * The `creative_category` and `creative_group` an item's registry entry carries: the
+     * pack's own placement for a pack item, and {@link creativeItemProperties} otherwise.
+     */
+    readonly itemProperties: (identifier: string) => Partial<BedrockOnlyItemProperties>;
+}
+
+/** The namespace a pack writes before a vanilla group's key, which the catalog leaves off. */
+const VANILLA_GROUP_NAMESPACE = 'minecraft:';
+
+/**
+ * The catalog heading a pack's group key names: the key without its `minecraft:` namespace, the
+ * way a Bedrock Dedicated Server matches it, so `minecraft:itemGroup.name.planks` is the vanilla
+ * `itemGroup.name.planks`. Any other key is the heading's name as written.
+ *
+ * @param group - The group key as a pack file writes it.
+ */
+export const creativeGroupName = (group: string): string =>
+    group.startsWith(VANILLA_GROUP_NAMESPACE) ? group.slice(VANILLA_GROUP_NAMESPACE.length) : group;
+
+/**
+ * Files pack blocks and items into a creative catalog, as a Bedrock Dedicated Server
+ * 1.26.60.6 does.
+ *
+ * Every rule here was read off `CreativeContentPacket` from that server with the
+ * `scenarios/pack-blocks/creative_menu` pack of `@jsprismarine/parity` loaded:
+ *
+ * - A `none` category, or no `menu_category`, leaves the entry out of the menu.
+ * - A group in the `minecraft` namespace files the entry under the vanilla group of that key
+ *   without its namespace: `minecraft:itemGroup.name.stairs` joins `itemGroup.name.stairs`.
+ * - Any other group gets a heading of its own, named as the file writes it and drawn with an
+ *   empty icon, after every vanilla heading. Later entries naming it join it.
+ * - An entry with no group joins the last heading of its category when that heading has no
+ *   name, and opens a nameless heading of its own otherwise.
+ * - The packs' entries follow every vanilla entry.
+ *
+ * That server walks the packs' content in an order of its own, which decides the order of the
+ * headings it opens and whether an entry with no group finds a nameless heading or opens one.
+ * This walks the placements tab by tab, construction first, and within a tab the grouped
+ * placements before the rest, so a tab a pack gives a named group still ends with a nameless
+ * heading for the pack's other entries, as the captures show.
+ *
+ * @param catalog - The catalog to add to: the vanilla one, with any pack item catalogs merged in.
+ * @param placements - The packs' blocks and items, in the order to file them. An identifier
+ *   the catalog already lists, or that an earlier placement named, gets no second entry: the
+ *   client already has one. A listed pack item's registry entry still takes its group key from
+ *   its placement.
+ */
+export const withPackMenuPlacements = (
+    catalog: CreativeCatalog,
+    placements: Iterable<PackMenuPlacement>
+): PackCreativeMenu => {
+    const groups = [...catalog.groups];
+    const entries = [...catalog.entries];
+    const listed = new Set(catalog.entries.map((entry) => entry.name));
+    // A named heading by its name, which no two vanilla headings share.
+    const headings = new Map<string, number>();
+    groups.forEach((group, index) => {
+        if (group.name !== '' && !headings.has(group.name)) headings.set(group.name, index);
+    });
+
+    const fromCatalog = creativeItemProperties(catalog);
+    const shown: (PackMenuPlacement & { readonly category: string })[] = [];
+    const properties = new Map<string, Partial<BedrockOnlyItemProperties>>();
+    for (const placement of placements) {
+        if (properties.has(placement.name)) continue;
+        if (listed.has(placement.name)) {
+            // A pack's item catalog filed it: the registry entry takes the tab from there and the
+            // group key from the file, as that server sends it.
+            properties.set(placement.name, {
+                ...fromCatalog(placement.name),
+                creative_group: placement.group ?? ''
+            });
+            continue;
+        }
+        const { category } = placement;
+        const hidden = category === undefined || category.toLowerCase() === 'none';
+        // The registry entry that server sends says 6, not the command-only 5, for both.
+        properties.set(placement.name, {
+            creative_category: hidden ? CreativeItemCategory.UNDEFINED : creativeCategoryOf(category),
+            creative_group: placement.group ?? ''
+        });
+        if (!hidden) shown.push({ ...placement, category });
+    }
+
+    const addHeading = (category: string, name: string): number => {
+        // Air is the empty slot, which is the icon that server draws a pack's heading with.
+        groups.push({ name, category, icon: 'minecraft:air' });
+        return groups.length - 1;
+    };
+
+    const named = (category: string, group: string): number => {
+        const existing = headings.get(creativeGroupName(group)) ?? headings.get(group);
+        if (existing !== undefined) return existing;
+        const added = addHeading(category, group);
+        headings.set(group, added);
+        return added;
+    };
+
+    const nameless = (category: string): number => {
+        const tab = creativeCategoryOf(category);
+        const last = groups.findLastIndex((group) => creativeCategoryOf(group.category) === tab);
+        return groups[last]?.name === '' ? last : addHeading(category, '');
+    };
+
+    const order = (placement: PackMenuPlacement & { readonly category: string }): number =>
+        creativeCategoryOf(placement.category) * 2 + (placement.group ? 0 : 1);
+    // A stable sort keeps the given order within a tab's grouped or ungrouped placements.
+    const ordered = shown.toSorted((a, b) => order(a) - order(b));
+    for (const placement of ordered) {
+        entries.push({
+            name: placement.name,
+            group: placement.group ? named(placement.category, placement.group) : nameless(placement.category),
+            ...(placement.blockRuntimeId === undefined ? {} : { block_runtime_id: placement.blockRuntimeId })
+        });
+    }
+
+    return {
+        catalog: { groups, entries },
+        itemProperties: (identifier) => properties.get(identifier) ?? fromCatalog(identifier)
+    };
 };
 
 /**
