@@ -3,7 +3,13 @@
  * flat-world server over TCP, beside a Bedrock client on a loopback pipe, and each sees what the
  * other does.
  */
-import { SetCenterChunk } from '@jsprismarine/protocol/java/packet/play';
+import {
+    ContainerSetContent,
+    ContainerSetSlot,
+    JavaEntityDataSerializer,
+    SetCenterChunk,
+    SetEntityData
+} from '@jsprismarine/protocol/java/packet/play';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -98,5 +104,44 @@ describe('a Java Edition client', () => {
         await loopback.untilJava(() => java.hasChunk(ahead.x, ahead.z), 'the chunk ahead never came');
 
         expect(center).toEqual({ x: Math.floor((pose.x + 32) / 16), z: ahead.z });
+    });
+
+    it('drops one item of the stack in its hand, and sees its slot and the dropped stack change', async () => {
+        // The hand holds hotbar slot 0, which is window slot 36, as it has since the join. A
+        // slot shows its count through either a one-slot update or the whole window.
+        const HAND = 36;
+        const shows = (count: number) =>
+            Promise.race([
+                java.next(
+                    ContainerSetSlot,
+                    ({ window, slot, item }) => window === 0 && slot === HAND && (item?.count ?? 0) === count
+                ),
+                java.next(
+                    ContainerSetContent,
+                    ({ window, items }) => window === 0 && (items[HAND]?.count ?? 0) === count
+                )
+            ]);
+        const shownStack = java.next(SetEntityData, ({ entries }) =>
+            entries.some(({ serializer }) => serializer === JavaEntityDataSerializer.ItemStack)
+        );
+
+        let given = false;
+        void shows(5).then(() => {
+            given = true;
+        });
+        expect((await loopback.command('give Alex stone 5')).ran).toBe(true);
+        await loopback.untilJava(() => given, "Alex's client was never shown the stone");
+
+        let dropped = false;
+        void shows(4).then(() => {
+            dropped = true;
+        });
+        java.dropHeldItem();
+        await loopback.untilJava(() => dropped, "Alex's client still shows the whole stack");
+
+        const { entries } = await shownStack;
+        expect(
+            entries.find(({ serializer }) => serializer === JavaEntityDataSerializer.ItemStack)?.value
+        ).toMatchObject({ count: 1 });
     });
 });

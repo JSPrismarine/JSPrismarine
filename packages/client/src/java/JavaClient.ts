@@ -49,6 +49,8 @@ import {
     MovePlayerPosRot,
     PlayDisconnect,
     PlayLogin,
+    PlayerAction,
+    PlayerActionStatus,
     PlayerInfoAction,
     PlayerInfoAdd,
     PlayerInfoUpdateGameMode,
@@ -382,6 +384,20 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
         const pose = { ...from, ...to };
         this.pose = pose;
         this.send(MovePlayerPosRot, { ...pose, flags: onGround ? MOVE_ON_GROUND : 0 });
+    }
+
+    /**
+     * Presses the drop key, as one `Player Action`: one item of the stack in the hand, or the
+     * whole stack with `all`, as Ctrl+Q drops it. Vanilla sends a drop at the origin, facing down.
+     * @param all - Whether the whole stack goes.
+     */
+    public dropHeldItem(all = false): void {
+        this.send(PlayerAction, {
+            status: all ? PlayerActionStatus.DropAllItems : PlayerActionStatus.DropItem,
+            position: { x: 0, y: 0, z: 0 },
+            face: 0,
+            sequence: 0
+        });
     }
 
     /** Hangs up. */
