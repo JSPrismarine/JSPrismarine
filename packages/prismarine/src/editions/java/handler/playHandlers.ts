@@ -44,7 +44,7 @@ import { javaLocaleOf, javaViewDistanceOf } from '../javaClientInformation';
 import type { JavaWorldHost } from '../JavaConnections';
 import { hearPluginMessage } from '../javaPlay';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from '../javaInventory';
-import { isBlockStatus, javaMiningIntentOf } from '../javaMining';
+import { isBlockStatus, javaDropIntentOf, javaMiningIntentOf } from '../javaMining';
 import { javaUseItemOnIntentOf } from '../javaUseItemOn';
 import { outOfTurn } from './loginHandlers';
 import type { JavaContext, JavaPacketHandler } from './JavaPacketHandler';
@@ -231,7 +231,7 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     }),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
-        intent: javaMiningIntentOf(action, session.getPlayer().gamemode),
+        intent: javaMiningIntentOf(action, session.getPlayer().gamemode) ?? javaDropIntentOf(action.status),
         // Only the block statuses are numbered for an answer, whether the server acted on them or not.
         sequence: isBlockStatus(action.status) ? action.sequence : undefined
     }))

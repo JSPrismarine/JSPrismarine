@@ -22,6 +22,17 @@ export const pointsForNextLevel = (level: number): number => {
     return 2 * level + 7;
 };
 
+/**
+ * The points a level and a bar hold in all, which Java's `Set Experience` carries beside them.
+ * @param state - The level and the bar.
+ * @returns The points, counted from level 0.
+ */
+export const totalExperiencePoints = ({ level, progress }: ExperienceState): number => {
+    let total = 0;
+    for (let below = 0; below < level; below++) total += pointsForNextLevel(below);
+    return total + Math.round(progress * pointsForNextLevel(level));
+};
+
 /** A player's experience as the two numbers Bedrock sends. */
 export interface ExperienceState {
     /** Whole levels. */

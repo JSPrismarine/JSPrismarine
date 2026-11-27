@@ -136,7 +136,7 @@ import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import type { MoveMode, SessionPresenter, ShownDimension, ShownMessage } from './presenter/SessionPresenter';
 import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
-import { VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
+import { EXPERIENCE_ATTRIBUTES, experienceOf, VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
@@ -2613,8 +2613,14 @@ export default class PlayerSession {
         // attributes come with their replication there.
         if (this.presenter.edition !== 'bedrock') {
             if (entity.getRuntimeId() !== this.runtimeId) return;
-            if (!attributes.some((attribute) => VITAL_ATTRIBUTES.has(attribute.getName()))) return;
-            return this.presenter.showVitals(vitalsOf(this.own().attributes));
+            const own = this.own().attributes;
+            const names = attributes.map((attribute) => attribute.getName());
+            const shown: Promise<void>[] = [];
+            if (names.some((name) => VITAL_ATTRIBUTES.has(name))) shown.push(this.presenter.showVitals(vitalsOf(own)));
+            if (names.some((name) => EXPERIENCE_ATTRIBUTES.has(name)))
+                shown.push(this.presenter.showExperience(experienceOf(own)));
+            await Promise.all(shown);
+            return;
         }
 
         const packet = new UpdateAttributesPacket();

@@ -11,6 +11,7 @@ describe('input/Intent', () => {
             'changeGameMode',
             'chat',
             'closeContainer',
+            'dropHeldItem',
             'eat',
             'emote',
             'finishCredits',

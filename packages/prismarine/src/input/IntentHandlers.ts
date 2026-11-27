@@ -21,6 +21,7 @@ import RunCommandHandler from './handlers/RunCommandHandler';
 import ScriptMessageHandler from './handlers/ScriptMessageHandler';
 import SelectHotbarSlotHandler from './handlers/SelectHotbarSlotHandler';
 import SetCreativeSlotHandler from './handlers/SetCreativeSlotHandler';
+import DropHeldItemHandler from './handlers/DropHeldItemHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetFlyingHandler from './handlers/SetFlyingHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
@@ -58,6 +59,7 @@ export {
     ScriptMessageHandler,
     SelectHotbarSlotHandler,
     SetCreativeSlotHandler,
+    DropHeldItemHandler,
     SetDefaultGameModeHandler,
     SetFlyingHandler,
     SetPlayerPermissionHandler,
