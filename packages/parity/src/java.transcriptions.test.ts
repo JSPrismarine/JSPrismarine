@@ -1,14 +1,27 @@
 import { fileURLToPath } from 'node:url';
 
-import { javaSourceFingerprint, javaSourceKey, javaSourceListing } from '@jsprismarine/java-classfile/fingerprint';
-import type { JavaReference, JavaSourceTag } from '@jsprismarine/java-classfile/sources';
-import { readJavaSourceGolden, resolveJavaSource, scanRepository } from '@jsprismarine/java-classfile/sources';
+import type { JavaSourceMember } from '@jsprismarine/java-classfile/fingerprint';
+import {
+    JavaSourceError,
+    javaSourceFingerprint,
+    javaSourceKey,
+    javaSourceListing
+} from '@jsprismarine/java-classfile/fingerprint';
+import type { JavaClassIndex, JavaReference, JavaSourceTag } from '@jsprismarine/java-classfile/sources';
+import {
+    needsReview,
+    readJavaSourceGolden,
+    resolveJavaSource,
+    scanRepository
+} from '@jsprismarine/java-classfile/sources';
 import { expect, it } from 'vitest';
 
+import type { BehaviorScenario } from './behaviorScenarios.ts';
+import { measureScenarios, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
-import { pinnedClassFile, pinnedJavaClassNames } from './javaClassFile.ts';
+import { jarClassFile, jarClassNames, pinnedClassFile, pinnedJavaClassNames } from './javaClassFile.ts';
 import { describeFamily } from './measure.ts';
-import { REFERENCES, pinnedJavaDataVersion } from './references.ts';
+import { REFERENCES, pinnedJavaDataVersion, previewJavaVersion } from './references.ts';
 import type { ParityTrackerRecord } from './trackerCases.ts';
 import { reportParityCases } from './trackerCases.ts';
 
@@ -21,6 +34,14 @@ import { reportParityCases } from './trackerCases.ts';
  * changes a copied method fails the row and names the code that copies it, instead of leaving a
  * comment that no longer says what Java does. A `@javaSee` tag, which names a member a comment
  * compares with rather than copies, only has to resolve.
+ *
+ * With the preview's jar cached, as a Java bring-up leaves it, each tag is also fingerprinted in
+ * the preview. A member the preview changed, moved or removed is a `deferred` row with the
+ * preview's id in `goldens/behavior-gaps.json`, since the server runs the default release until
+ * the preview replaces it. Its row passes once the golden records the preview's fingerprint for
+ * the member, which `java:sources --update --java <preview> --reviewed <spelling>` stamps after
+ * someone has read the change against the copy.
+
  */
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
@@ -37,6 +58,35 @@ const bySpelling = <Tag extends JavaReference>(tags: readonly Tag[]): Map<string
 
 /** The pinned jar's classes, as the tags resolve against them. */
 const pinnedIndex = () => ({ names: pinnedJavaClassNames('net/minecraft/'), load: pinnedClassFile });
+
+/** The preview jar's classes. */
+const previewIndex = (): JavaClassIndex => ({
+    names: jarClassNames(REFERENCES.javaPreviewServerJar, 'net/minecraft/'),
+    load: (name) => jarClassFile(REFERENCES.javaPreviewServerJar, name)
+});
+
+/**
+ * What the preview does differently to a tagged member, or undefined when the golden records the
+ * member's preview fingerprint under some release.
+ *
+ * @param spelling - The tag's spelling.
+ * @param index - The preview jar's classes.
+ */
+const previewDifference = (spelling: string, index: JavaClassIndex): string | undefined => {
+    let member: JavaSourceMember;
+    try {
+        member = resolveJavaSource(spelling, index);
+    } catch (error) {
+        // A member the preview removed or renamed is a difference to read, not a broken row.
+        if (error instanceof JavaSourceError) return `does not resolve: ${error.message}`;
+        throw error;
+    }
+    const key = javaSourceKey(member);
+    if (golden.names[spelling] !== key)
+        return `resolves to ${key}, the golden says ${golden.names[spelling] ?? 'nothing'}`;
+    const fingerprint = javaSourceFingerprint(javaSourceListing(index.load, member));
+    return needsReview(golden.sources[key], fingerprint) ? 'changed its bytecode' : undefined;
+};
 
 describeFamily(FAMILIES.javaTranscriptions, [REFERENCES.javaServerJar], () => {
     it('finds every tagged Java member in the pinned jar with the fingerprint the golden records', () => {
@@ -103,5 +153,33 @@ describeFamily(FAMILIES.javaTranscriptions, [REFERENCES.javaServerJar], () => {
 
         // A reference that stopped resolving names a member the release renamed or moved.
         expect(failures).toEqual([]);
+    });
+});
+
+describeFamily(FAMILIES.javaTranscriptions, [REFERENCES.javaPreviewServerJar], () => {
+    it('reports each tagged Java member the preview changes as deferred until the preview is the default', () => {
+        const preview = previewJavaVersion() ?? 'unknown';
+        const index = previewIndex();
+        const tags = bySpelling<JavaSourceTag>(scans.flatMap((scan) => scan.tags));
+        const scenario: BehaviorScenario<string> = {
+            name: 'preview',
+            java: `Java ${preview} keeps the bytecode of the member the code copies.`,
+            reference: `Java ${preview}`,
+            subjects: () => [...tags.keys()].sort(),
+            idOf: (spelling) => spelling,
+            covers: () => undefined,
+            run: (spelling) => {
+                const difference = previewDifference(spelling, index);
+                return difference === undefined ? undefined : `${difference} in ${preview}`;
+            },
+            classify: (spelling, difference) => ({
+                kind: 'deferred',
+                reason: `${spelling} ${difference}. The server runs the default release until ${preview} replaces it; read the change against ${(tags.get(spelling) ?? []).map((tag) => tag.file).join(', ')} then.`,
+                reference: `Java ${preview}`
+            })
+        };
+        const rows = measureScenarios(FAMILIES.javaTranscriptions, import.meta.filename, scenarioGroup([scenario]));
+
+        expect(rows.length).toBe(tags.size);
     });
 });

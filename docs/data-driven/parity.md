@@ -234,10 +234,21 @@ against a baseline that only shrinks. It fails when a file has fewer citations t
 allows as well as more, so after tagging a citation, lower the baseline with
 `node scripts/check-java-sources.mts --update-baseline`.
 
+`java:sources --tag <directory>` turns the untagged citations under a directory into tags. It
+resolves each citation in the pinned jar, follows an inherited member to the class that declares
+it, and adds `@javaSee` instead of `@javaSource` to a comment on a type or an interface member. It
+prints each citation it could not settle, such as an overload it cannot choose, for a person to tag.
+
 When a release changes a member, print its listing with `java:sources --list <spelling>` under
 each release's `--java`, read the change against the TypeScript, fix the copy if Java's behavior
-changed, and restamp with `--update --reviewed <spelling>`. The
-[Java transcriptions plan](../plans/java-transcriptions.md) covers the design.
+changed, and restamp with `--update --reviewed <spelling>`.
+
+With the preview's jar in the fetch cache, the family also fingerprints every tag in the preview.
+A member the preview changed, moved or removed is a `deferred` row in `goldens/behavior-gaps.json`,
+named for the preview, until someone reads it and restamps it with
+`--update --java <preview> --reviewed <spelling>`. `java:transcriptions --java <preview>`, which
+the Java bring-up runs, writes the diff of each of those members into the preview's delta note.
+The [Java transcriptions plan](../plans/java-transcriptions.md) covers the design.
 
 ### Keeping the claim honest
 

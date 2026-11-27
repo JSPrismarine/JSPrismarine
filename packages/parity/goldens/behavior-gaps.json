@@ -2728,6 +2728,203 @@
         }
     },
     "items.behavior": {},
+    "java.transcriptions": {
+        "preview:AmethystClusterBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "AmethystClusterBlock.getStateForPlacement does not resolve: AmethystClusterBlock.getStateForPlacement: net/minecraft/world/level/block/AmethystClusterBlock declares no getStateForPlacement in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:BaseCoralPlantTypeBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "BaseCoralPlantTypeBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:BigDripleafBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "BigDripleafBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:BlockTags.MOB_INTERACTABLE_DOORS": {
+            "kind": "deferred",
+            "reason": "BlockTags.MOB_INTERACTABLE_DOORS changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-brains/src/behavior/common.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": {
+            "kind": "deferred",
+            "reason": "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/world.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:CeilingHangingSignBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "CeilingHangingSignBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ChestBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "ChestBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/containers.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:CopperGolemStatueBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "CopperGolemStatueBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:DefaultRedstoneWireEvaluator.updatePowerStrength": {
+            "kind": "deferred",
+            "reason": "DefaultRedstoneWireEvaluator.updatePowerStrength changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/redstone.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:DragonSittingScanningPhase.doServerTick": {
+            "kind": "deferred",
+            "reason": "DragonSittingScanningPhase.doServerTick changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/dragonPhases.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:DriedGhastBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "DriedGhastBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:EmptyMapItem.use": {
+            "kind": "deferred",
+            "reason": "EmptyMapItem.use changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/item/actorPort.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:EnderChestBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "EnderChestBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:EnderDragon.aiStep": {
+            "kind": "deferred",
+            "reason": "EnderDragon.aiStep changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/dragonPhases.ts, packages/entity-goals/src/goals/dragonPhases.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:EnderDragon.findPath": {
+            "kind": "deferred",
+            "reason": "EnderDragon.findPath changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/dragonPhases.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:FlowingFluid.getSpread": {
+            "kind": "deferred",
+            "reason": "FlowingFluid.getSpread changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/fluid.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Fox$DefendTrustedTargetGoal.start": {
+            "kind": "deferred",
+            "reason": "Fox$DefendTrustedTargetGoal.start changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/targeting.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Fox$FoxEatBerriesGoal.onReachedTarget": {
+            "kind": "deferred",
+            "reason": "Fox$FoxEatBerriesGoal.onReachedTarget changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/work.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Fox$FoxEatBerriesGoal.tick": {
+            "kind": "deferred",
+            "reason": "Fox$FoxEatBerriesGoal.tick changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/work.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Fox$FoxPounceGoal.tick": {
+            "kind": "deferred",
+            "reason": "Fox$FoxPounceGoal.tick changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/attacking.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:LadderBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "LadderBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:LanternBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "LanternBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/furniture.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:LeavesBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "LeavesBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:LightningRodBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "LightningRodBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:MangrovePropaguleBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "MangrovePropaguleBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:MapItemSavedData.createFresh": {
+            "kind": "deferred",
+            "reason": "MapItemSavedData.createFresh changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/savedMap.ts, packages/prismarine/src/world/savedMap.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:MushroomBlock.canSurvive": {
+            "kind": "deferred",
+            "reason": "MushroomBlock.canSurvive changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/plants.ts, packages/block-behaviors/src/families/plants.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Player.aiStep": {
+            "kind": "deferred",
+            "reason": "Player.aiStep changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/data/experienceOrbs.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:PortalForcer.createPortal": {
+            "kind": "deferred",
+            "reason": "PortalForcer.createPortal changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/portal.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ShelfBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "ShelfBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:SkeletonTrapGoal.tick": {
+            "kind": "deferred",
+            "reason": "SkeletonTrapGoal.tick changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/specials.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:SpeleothemBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "SpeleothemBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/ground.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:SpeleothemBlock.spawnFallingStalactite": {
+            "kind": "deferred",
+            "reason": "SpeleothemBlock.spawnFallingStalactite changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/dripstone.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:StandingSignBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "StandingSignBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:TrapDoorBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "TrapDoorBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/openable.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Villager.BRAIN_PROVIDER": {
+            "kind": "deferred",
+            "reason": "Villager.BRAIN_PROVIDER changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-brains/src/mobs/villager.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:WallHangingSignBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "WallHangingSignBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:WallSignBlock.getStateForPlacement": {
+            "kind": "deferred",
+            "reason": "WallSignBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Zombie.DOOR_BREAKING_PREDICATE": {
+            "kind": "deferred",
+            "reason": "Zombie.DOOR_BREAKING_PREDICATE changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/goals/movement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        }
+    },
     "scripting.admin": {
         "bds-record:admin-config": {
             "kind": "defect",
