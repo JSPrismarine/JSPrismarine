@@ -103,6 +103,13 @@ export interface Networking {
      */
     getServerName(): ServerName | undefined;
 
+    /**
+     * The TCP port Java Edition clients connect to, which is the system's pick when `java-port`
+     * is 0.
+     * @returns The port, or undefined while `java-enabled` is off or before {@link Networking.start}.
+     */
+    getJavaPort(): number | undefined;
+
     /** Hands worker-delivered network records to the game thread at the end of a tick. */
     pollInbound(): number;
 
@@ -156,8 +163,9 @@ export class ServerNetworking implements Networking {
      * @param inboundPacketRecorder - Opt-in sink for accepted inbound packets.
      * @param outboundPacketRecorder - Opt-in sink for clientbound packets.
      * @param givenTransport - A transport to listen on instead of the ones the config enables,
-     *   such as an in-process loopback for a replay. The server then binds no socket: no RakNet,
-     *   NetherNet or query listener.
+     *   such as an in-process loopback for a replay. The server then binds no RakNet, NetherNet
+     *   or query socket. It still binds the Java Edition listener while `java-enabled` is on, when
+     *   the transport gives the {@link Transport.connectionIds} to number its connections from.
      */
     public constructor(
         private readonly server: Server,
@@ -251,6 +259,11 @@ export class ServerNetworking implements Networking {
                 return transports;
             });
 
+        const givenIds = this.givenTransport?.connectionIds;
+        if (givenIds !== undefined && config.getJavaEnabled()) {
+            this.java = this.startJava(address, config.getJavaPort(), serverName, givenIds, listening, inputs);
+        }
+
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
         // it alive through the listeners it installed.
         this.dispatcher = new NetworkDispatcher({
@@ -342,6 +355,14 @@ export class ServerNetworking implements Networking {
     /** The RakNet listener, or undefined before {@link ServerNetworking.start} or with RakNet off. */
     public getListener(): RakNetListenerLike | undefined {
         return this.raknet;
+    }
+
+    /**
+     * The TCP port Java Edition clients connect to, which is the system's pick when `java-port`
+     * is 0, or undefined while `java-enabled` is off or before the listener is bound.
+     */
+    public getJavaPort(): number | undefined {
+        return this.java?.transport.port();
     }
 
     /** The advertised server name, or undefined before {@link ServerNetworking.start}. */

@@ -1,5 +1,5 @@
 import type { InetAddress } from '@jsprismarine/raknet';
-import type { ConnectionId } from './ConnectionId';
+import type { ConnectionId, ConnectionIds } from './ConnectionId';
 
 /** The display name of each transport a connection can arrive over, keyed by a lowercase id. */
 export const TransportNames = { raknet: 'RakNet', nethernet: 'NetherNet', java: 'Java' } as const;
@@ -103,4 +103,10 @@ export interface Transport<C extends TransportConnection = TransportConnection> 
     onRaw?(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void;
     /** Stops listening and drops every connection. */
     close(): void;
+    /**
+     * The allocator the transport numbers its connections from. A transport handed to the server
+     * in place of its own sockets gives it so the Java Edition listener, which `java-enabled`
+     * starts beside it, numbers its connections from the same one.
+     */
+    readonly connectionIds?: ConnectionIds;
 }

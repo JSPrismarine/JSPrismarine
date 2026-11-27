@@ -1993,6 +1993,10 @@
             "jsprismarine:dist": "./dist/network/transport/ConnectionId.js",
             "default": "./src/network/transport/ConnectionId.ts"
         },
+        "./network/transport/TcpTransport": {
+            "jsprismarine:dist": "./dist/network/transport/TcpTransport.js",
+            "default": "./src/network/transport/TcpTransport.ts"
+        },
         "./network/transport/Transport": {
             "jsprismarine:dist": "./dist/network/transport/Transport.js",
             "default": "./src/network/transport/Transport.ts"
