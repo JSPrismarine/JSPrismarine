@@ -450,6 +450,12 @@ our codecs against our codecs. azalea's 26.3 branch has been open for two months
 node-minecraft-protocol stop at 26.1, and a vanilla 26.3 server kicks mineflayer. MCProtocolLib is
 current but is a packet library with no client behavior.
 
+Since 2026-11-27, `@jsprismarine/client` has a `JavaClient` all the same, for what a real client is
+too slow for: a loopback scenario joins it to an in-process server over TCP on every test run, as
+the Bedrock scenarios join `Client`. It reads and writes with the server's own definitions, so it
+checks the server's behavior and the codecs' symmetry, and HeadlessMC stays the check of the codecs
+against the vanilla client.
+
 ### CI
 
 The `client-e2e` workflow gains a Java pin beside the cinnabar pins, one HeadlessMC and

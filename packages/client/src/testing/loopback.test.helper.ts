@@ -46,7 +46,9 @@ export class LoopbackNetwork {
         onFrame: (listener) => void this.frameListeners.push(listener),
         close: () => {
             for (const end of [...this.ends.values()]) end.hangUp('server closed');
-        }
+        },
+        // A Java client the server lets in beside the pipe is numbered among the pipe's.
+        connectionIds: this.ids
     };
 
     /** A new client end, with an address of its own. Hand it to `new Client({ transport })`. */

@@ -133,5 +133,27 @@ export const ClientErrors = defineErrors('client', {
      * The NetherNet connection failed before it opened. The reason is what the WebRTC layer
      * reported.
      */
-    NethernetConnectionFailed: 'NetherNet connection failed: {reason}'
+    NethernetConnectionFailed: 'NetherNet connection failed: {reason}',
+    /**
+     * A Java Edition server sent a packet at a point of the conversation that has no place for it,
+     * such as a status answer that is not the one asked for. The server speaks the protocol
+     * differently than this client reads it.
+     */
+    UnexpectedJavaPacket: 'Expected {expected} in the {phase} phase, got packet {id}',
+    /**
+     * A Java Edition server sent a packet id the client has no layout for in that phase, so it cannot
+     * read the rest of the conversation. The server speaks another release than the client.
+     */
+    UnknownJavaPacket: 'No {phase} packet has id {id} in Java Edition {release}',
+    /**
+     * A Java Edition server in online mode asked the client to log in through Mojang's session
+     * server, and the client was made without a `joinSession` to do it. Pass one, or join a server
+     * with `online-mode` off.
+     */
+    JavaSessionJoinRequired: 'The server is in online mode, and this client has no session to join it with',
+    /**
+     * The Java Edition server sent a frame that is longer than any frame may be or ends inside its
+     * length. The connection is closed.
+     */
+    JavaFrameMalformed: 'The server sent {malformed}'
 });

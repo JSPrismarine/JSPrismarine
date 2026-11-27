@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 
 import Client from '../Client';
 import ClientWorld from '../ClientWorld';
+import { JavaClient } from '../java/JavaClient';
 import { playerAuthInput } from '../playerAuthInput';
 import { LoopbackNetwork } from './loopback.test.helper';
 
@@ -24,6 +25,12 @@ import type { WorldPosition } from '../ClientWorld';
 
 /** More ticks than a join on a stepped flat-world server needs. */
 const MAX_JOIN_TICKS = 120;
+
+/**
+ * More ticks than a Java join needs. Its packets cross a real TCP socket, which nothing here
+ * waits on, so the server ticks while each answer is on its way.
+ */
+const MAX_JAVA_JOIN_TICKS = 2_000;
 
 const nextTurn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -111,6 +118,19 @@ export interface LoopbackServer {
     /** Joins a client under `displayName`, ticking until the server has spawned it. */
     join(displayName: string): Promise<LoopbackPlayer>;
     /**
+     * Joins a Java Edition client over TCP under `username`, ticking until it loaded the world and
+     * the server put its player in it. The server needs `java-enabled`, and `java-port` 0 lets the
+     * system pick a free port.
+     */
+    joinJava(username: string): Promise<JavaClient>;
+    /**
+     * Ticks until `condition` holds, giving the Java clients' sockets a turn before each check.
+     * @param condition - What to wait for.
+     * @param what - What the wait is for, named in the error when it never holds.
+     * @param maxTicks - How many ticks it may take.
+     */
+    untilJava(condition: () => boolean, what: string, maxTicks?: number): Promise<void>;
+    /**
      * Starts a client's join without waiting for it, for a join that may be refused or
      * replaced. The caller ticks the server until `joined` settles.
      */
@@ -160,6 +180,7 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         transport: network.transport
     });
     const clients: Client[] = [];
+    const javaClients: JavaClient[] = [];
 
     const connections = () => network.connectionIds().flatMap((id) => server.getSessionManager().get(id) ?? []);
     const quiet = (): boolean =>
@@ -308,7 +329,41 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         return joining;
     };
 
+    const untilJava = async (condition: () => boolean, what: string, maxTicks = MAX_JAVA_JOIN_TICKS) => {
+        for (let ticks = 0; !condition(); ticks++) {
+            if (ticks >= maxTicks) throw new Error(`${what}: still false after ${maxTicks} ticks`);
+            // The poll phase, where a socket's bytes arrive, runs before each immediate.
+            await nextTurn();
+            if (condition()) return;
+            await tick();
+        }
+    };
+
+    const joinJava = async (username: string): Promise<JavaClient> => {
+        const port = server.getKernel().get(networkToken).getJavaPort();
+        if (port === undefined) throw new Error('joinJava needs a server started with java-enabled');
+        const client = new JavaClient({ host: '127.0.0.1', port, username });
+        javaClients.push(client);
+        let done = false;
+        const joined = client.connect().finally(() => {
+            done = true;
+        });
+        joined.catch(() => {});
+        await untilJava(() => done, `${username} did not join over Java`);
+        await joined;
+        await untilJava(
+            () =>
+                server
+                    .getSessionManager()
+                    .getSessions()
+                    .some((session) => session.getName() === username),
+            `${username} never entered the world`
+        );
+        return client;
+    };
+
     const close = async (): Promise<void> => {
+        for (const client of javaClients) client.disconnect();
         for (const client of clients) client.disconnect();
         await server.shutdown({ stayAlive: true });
         rmSync(stateRoot, { recursive: true, force: true });
@@ -317,5 +372,5 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
 
     await server.bootstrap('127.0.0.1', 0);
     server.getChunkCompletionQueue().activate();
-    return { server, stateRoot, settle, tick, until, command, join, connect, close };
+    return { server, stateRoot, settle, tick, until, command, join, joinJava, untilJava, connect, close };
 };
