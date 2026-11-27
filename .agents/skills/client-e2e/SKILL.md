@@ -35,11 +35,14 @@ pnpm run e2e:client -- --protocol 2225 --transport nethernet   # over NetherNet,
 The runner boots a scratch flat-world server with `online-mode` off, joins it headlessly, runs
 each scenario, and prints an artifacts directory with screenshots, recordings, and the server
 log. Exit 0 means the join and every scenario passed. When a change alters client-visible
-behavior, add a scenario for it: see "Adding a scenario" in
-[`tools/client-e2e/README.md`](../../../tools/client-e2e/README.md).
+behavior, add a loopback scenario under `packages/client/src/scenarios/` for what the server sends,
+and a cinnabar scenario only for what needs a real client: rendering, screens, client physics or
+the wire itself. "Where a scenario belongs" and "Adding a scenario" in
+[`tools/client-e2e/README.md`](../../../tools/client-e2e/README.md) say how.
 
-CI runs the same suite on Linux through `.github/workflows/ci.yml` for pull requests
-touching the wire or gameplay packages, with each pinned commit's cinnabar build cached once and the
+CI runs the same suite on Linux through `.github/workflows/ci.yml` in the merge group, and for
+pull requests that change code the server shares with `@jsprismarine/client`, the harness, or
+server source a scenario covers (the README's selection section says which), with each pinned commit's cinnabar build cached once and the
 artifacts uploaded as `client-e2e-evidence`. A red Client E2E check means a real client failed
 against the PR's server; read the job summary table and the uploaded artifacts first. Every
 transport a protocol's entry lists runs and gates the check. A scenario a pinned build cannot pass

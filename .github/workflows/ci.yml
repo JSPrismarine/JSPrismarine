@@ -594,16 +594,18 @@ jobs:
                   done
                   echo "No complete scenario coverage for ${BASE} or its last ${DEPTH} ancestors; selecting by package."
 
-            # Every scenario boots the whole server, so without a coverage map most changes run them
-            # all. A pull request that changes only files a running server never loads (tests,
-            # benchmarks, packages the server does not depend on) runs none, and one that changes
-            # only scenario files runs those scenarios. With the base commit's map, a change to
-            # server source runs the scenarios that ran the functions it touches, and all of them
-            # when it touches code that runs outside every scenario. A push and a manual run keep
-            # every scenario, and a failure here leaves the outputs empty, which also runs them all.
+            # A pull request plays cinnabar only for what the loopback scenarios in packages/client
+            # cannot check (`--policy shared`, see tools/client-e2e/src/select.mts): code the server
+            # shares with that client, such as the protocol and the transports, the harness and its
+            # pins, the workspace's own files, and scenario files, which run those scenarios. With
+            # the base commit's map, a change to server source runs the scenarios that ran the
+            # functions it touches; any other server change waits for the merge group, which plays
+            # every scenario on every pin. The `Client E2E` label skips the selection, and a failure
+            # here leaves the outputs empty; either runs every scenario. A push and a manual run
+            # keep every scenario.
             - name: Select the scenarios the pull request affects
               id: select
-              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.e2e == 'true' }}
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.e2e == 'true' && !contains(github.event.pull_request.labels.*.name, 'Client E2E') }}
               continue-on-error: true
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -615,7 +617,7 @@ jobs:
                   if [ -n "$MAP" ]; then map=(--coverage-map "$MAP"); fi
                   gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$NUMBER/files" \
                       --jq '.[] | {filename, previous_filename, patch, changes} | @json' |
-                      node tools/client-e2e/src/select.mts "${map[@]}"
+                      node tools/client-e2e/src/select.mts --policy shared "${map[@]}"
 
             # A pull request whose selection found no scenario plays none; every other event plays
             # what `e2e` above allows.

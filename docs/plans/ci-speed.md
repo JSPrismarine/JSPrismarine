@@ -499,6 +499,33 @@ Done when a pull request that changes one server function some scenarios run pla
 scenarios, and a master push runs only what its commits reach, even when several commits land
 together.
 
+### Phase 11: check server behavior with our own client, and keep cinnabar for what needs it
+
+Added on 2026-11-27. Most client e2e scenarios check only what the server decides and sends.
+`@jsprismarine/client` can see that without a renderer: `startLoopbackServer` joins it to an
+in-process server stepped by hand, and `ClientWorld` keeps what it was sent. Those scenarios now
+live under `packages/client/src/scenarios/` and run in the unit and real-data shards, on a fake
+clock, wherever `--changed` reaches them.
+
+The two clients share the server's packet codecs and transports, so a bug in those is the same on
+both ends of a loopback pipe. A pull request therefore selects cinnabar scenarios with
+`--policy shared`: it plays them for code the server shares with `@jsprismarine/client`, the
+harness and its pins, workspace files, scenario files, and server source the coverage map places
+in a cinnabar scenario. Other server changes wait for the merge group, which plays every scenario
+on every pin. The `Client E2E` label plays them all on a pull request.
+
+Counts per pull request push that changes server source and nothing the client shares:
+
+| Count                                     | Before                       | After                    |
+| ----------------------------------------- | ---------------------------- | ------------------------ |
+| Client e2e jobs, without a coverage map   | 4 shards of the newest pin   | 0                        |
+| Client e2e jobs, with a coverage map      | the shards its reach selects | the same, fewer scenarios |
+| cinnabar build jobs on a cache miss       | 1                            | 0                        |
+| New jobs for the loopback scenarios       | none                         | none                     |
+
+Done when every scenario that does not need rendering, a screen, client physics or the wire
+itself has moved to the loopback suite.
+
 ## Open questions
 
 - Does Renovate's grouping in phase 2 hide which update broke a build often enough to matter? If so,

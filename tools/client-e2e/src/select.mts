@@ -10,6 +10,9 @@
  * that scenario; and, given the base commit's scenario coverage map (`--coverage-map`), a change
  * to server source, which runs the scenarios that ran the functions it touches.
  *
+ * `--policy shared`, which a pull request passes, also leaves out server code the loopback
+ * scenarios in `packages/client` cover: see {@link SelectionPolicy}.
+ *
  * With a map, standard input carries one JSON object per changed file, as GitHub's pull request
  * files list gives it (`filename`, `previous_filename`, `patch`, `changes`); without one, it
  * carries one path per line.
@@ -42,6 +45,23 @@ export interface Selection {
 
 /** The packages a run starts: the server, and the runner that drives the client against it. */
 export const ENTRY_PACKAGES = ['packages/server', 'tools/client-e2e'];
+
+/**
+ * The package whose dependencies the server shares with the loopback scenarios' client. A bug
+ * in shared code, such as a packet codec, is the same on both ends of a loopback pipe, so only a
+ * client that brings its own implementation, cinnabar, can see it.
+ */
+export const LOOPBACK_CLIENT = 'packages/client';
+
+/**
+ * Which changes to code a running server loads play the cinnabar scenarios.
+ *
+ * `loaded` plays them for any such change, as a push or a merge group does. `shared` plays them
+ * only for what the loopback scenarios in `packages/client` cannot check: code the server shares
+ * with that client, the harness, the workspace's own files, and the server source a coverage map
+ * places in a scenario. A pull request uses it; the merge group still plays every scenario.
+ */
+export type SelectionPolicy = 'loaded' | 'shared';
 
 const SCENARIOS = 'tools/client-e2e/src/scenarios/';
 
@@ -76,15 +96,20 @@ export const loadedPackages = (packages: readonly WorkspacePackage[], entries: r
  * the file cannot stand for its scenarios alone, such as a deleted file or one another file imports.
  * @param reach - The scenarios a change to a loaded file reaches, `'all'`, or `undefined` when that
  * is not known, such as without a coverage map or for a file that is not server source.
+ * @param policy - Which loaded changes play every scenario when `reach` cannot place them.
  * @returns The selection. Anything this function cannot place runs every scenario.
  */
 export const selectScenarios = (
     changed: readonly string[],
     packages: readonly WorkspacePackage[],
     scenariosIn: (file: string) => readonly string[] | undefined,
-    reach: (file: string) => readonly string[] | 'all' | undefined = () => undefined
+    reach: (file: string) => readonly string[] | 'all' | undefined = () => undefined,
+    policy: SelectionPolicy = 'loaded'
 ): Selection => {
     const loaded = loadedPackages(packages, ENTRY_PACKAGES);
+    // The client package itself is not shared: the server never loads it.
+    const shared = loadedPackages(packages, [LOOPBACK_CLIENT]);
+    shared.delete(LOOPBACK_CLIENT);
     const scenarios = new Set<string>();
     for (const file of changed) {
         if (NEVER_LOADED.test(file)) continue;
@@ -97,7 +122,12 @@ export const selectScenarios = (
         const owner = packages.find((entry) => file.startsWith(`${entry.root}/`));
         if (owner !== undefined && !loaded.has(owner.root)) continue;
         const reached = reach(file);
-        if (reached === undefined || reached === 'all') return { mode: 'all', scenarios: [], because: file };
+        const placeable = owner !== undefined && owner.root !== 'tools/client-e2e' && !shared.has(owner.root);
+        if (reached === undefined || reached === 'all') {
+            // Under `shared`, server code the loopback scenarios cover waits for the merge group.
+            if (policy === 'shared' && placeable) continue;
+            return { mode: 'all', scenarios: [], because: file };
+        }
         for (const name of reached) scenarios.add(name);
     }
     return scenarios.size > 0 ? { mode: 'some', scenarios: [...scenarios] } : { mode: 'none', scenarios: [] };
@@ -177,7 +207,11 @@ const readChangedFile = (line: string): ChangedFile => {
 };
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    const { values } = parseArgs({ options: { 'coverage-map': { type: 'string' } } });
+    const { values } = parseArgs({
+        options: { 'coverage-map': { type: 'string' }, policy: { type: 'string', default: 'loaded' } }
+    });
+    const policy = values.policy;
+    if (policy !== 'loaded' && policy !== 'shared') throw new Error(`--policy is loaded or shared, not ${policy}`);
     const files = fs
         .readFileSync(0, 'utf8')
         .split('\n')
@@ -206,14 +240,16 @@ if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLTo
         return scenariosReaching(map, change.previousFilename ?? change.filename, change.hunks);
     };
     const names = await readScenarios(changed.filter((file) => file.startsWith(SCENARIOS)));
-    const selection = selectScenarios(changed, readWorkspace(), (file) => names.get(file), reach);
+    const selection = selectScenarios(changed, readWorkspace(), (file) => names.get(file), reach, policy);
 
     const detail =
         selection.mode === 'all'
             ? `every scenario, because ${selection.because} changed`
             : selection.mode === 'some'
               ? selection.scenarios.join(', ')
-              : 'no scenario, because nothing a running server loads changed';
+              : policy === 'shared'
+                ? 'no scenario, because the loopback scenarios cover every change'
+                : 'no scenario, because nothing a running server loads changed';
     console.log(`client e2e: ${detail}`);
     if (process.env.GITHUB_OUTPUT) {
         fs.appendFileSync(

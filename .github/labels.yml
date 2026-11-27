@@ -15,6 +15,10 @@
   description: "Something not working as it should or even going terribly wrong"
   ai_apply_when: "Fixes incorrect or broken behavior."
 
+- name: "Client E2E"
+  color: "5319e7"
+  description: "Plays every cinnabar client e2e scenario on this pull request"
+
 - name: "Dependants"
   color: "4ADECD"
   description: "Issues and bugs for people leveraging us as dependency"
