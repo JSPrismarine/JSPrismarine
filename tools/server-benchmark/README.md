@@ -83,6 +83,12 @@ averages before and after each run and round, the host, each server's version, b
 line, and every setting the harness changed from a server's default, with the reason. The benchmark
 page reads the file that started last and computes its medians and ranges with `src/summary.mts`.
 
+A JSPrismarine run that measures nothing, because the server did not start, a bot did not join or
+the server disconnected the bots, stops the benchmark at once and fails it. The artifact keeps the
+results file and the server logs written so far, and the workflow commits no results file, so the
+next run measures again. A failed run of Bedrock Dedicated Server or Pumpkin is recorded and the
+benchmark goes on.
+
 The harness turns JSPrismarine's `keep-alive-interval` off. The benchmark does not measure the
 keep-alive, and a ping a loaded host answers late would otherwise disconnect a bot.
 

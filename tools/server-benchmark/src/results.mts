@@ -179,6 +179,20 @@ export interface BenchmarkResults {
 }
 
 /**
+ * JSPrismarine's runs that measured nothing, one line each. The benchmark exists to measure
+ * JSPrismarine, so the first of these stops the benchmark with a failure, and CI publishes no
+ * results file for it. A failed run of another server is recorded and does not stop it: that
+ * server's own problem is not this project's regression.
+ *
+ * @param runs - Every run of the benchmark.
+ * @returns `server scenario round n: error` for each failed JSPrismarine run.
+ */
+export const failedJspRuns = (runs: readonly RunResult[]): string[] =>
+    runs
+        .filter((run) => run.server.startsWith('jsprismarine-') && !run.ok)
+        .map((run) => `${run.server} ${run.scenario} round ${run.round + 1}: ${run.error ?? 'failed'}`);
+
+/**
  * Adds one scenario's setting changes to a server's list. A change with the same key and value as
  * one already listed adds the scenario to it; a key set to another value in this scenario gets an
  * entry of its own, so a value that differs between scenarios is kept for each.

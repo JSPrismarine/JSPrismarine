@@ -25,7 +25,7 @@ import {
     stopActiveRuns
 } from './benchmark.mts';
 import { readInputs } from './inputs.mts';
-import { RESULTS_SCHEMA, SCENARIO_IDS, SERVER_IDS, mergeSettings } from './results.mts';
+import { RESULTS_SCHEMA, SCENARIO_IDS, SERVER_IDS, failedJspRuns, mergeSettings } from './results.mts';
 import { resultsDirName } from './resultsFiles.mts';
 import { DEFAULT_PORT, REPO, SERVERS, bdsPin, useJspExecutable } from './servers.mts';
 import { isQuietLoad, quietLoadLimit } from './summary.mts';
@@ -277,6 +277,14 @@ const main = async (): Promise<void> => {
                 roundStart ??= run.load.before;
                 runs.push(run);
                 write();
+                // Fails fast: the runs after a failed JSPrismarine run would spend the rest of the
+                // job measuring a server whose figures are not published.
+                const [failed] = failedJspRuns([run]);
+                if (failed !== undefined) {
+                    log(`not measured: ${failed}; stopping the benchmark`);
+                    process.exitCode = 1;
+                    return;
+                }
             }
         }
         // Measured after the last run's load has had the same chance to decay as before a run.
