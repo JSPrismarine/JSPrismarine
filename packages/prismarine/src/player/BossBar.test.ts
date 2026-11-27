@@ -3,6 +3,15 @@ import BossEventPacket, {
     BossBarOverlay,
     BossEventUpdateType
 } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
+import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import {
+    BossEvent,
+    JavaBossBarColor,
+    JavaBossBarOverlay,
+    JavaBossEventOperation
+} from '@jsprismarine/protocol/java/packet/play';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 import { describe, expect, it } from 'vitest';
 
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
@@ -188,5 +197,58 @@ describe('BossBar', () => {
         ]);
         expect(events[1]?.name).toBe('Ender Dragon');
         expect(events[1]?.healthPercent).toBe(0.5);
+    });
+});
+
+describe('BossBar on a Java client', () => {
+    /** A fake Java player and the `Boss Event`s its client is sent, read back off the wire, in send order. */
+    const javaPlayer = () => {
+        const events: JavaPayload<typeof BossEvent>[] = [];
+        const { session, sent } = fakePlayer({
+            java: <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => {
+                if (definition.key !== BossEvent.key) return;
+                const frame = encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value);
+                events.push(decodeJavaPacket(NEWEST_JAVA_RELEASE, BossEvent, readJavaPacketId(frame).body));
+            }
+        });
+        return { session, sent, events };
+    };
+
+    it('shows, fills, renames and hides the bar under one UUID, and sends no Bedrock packet', async () => {
+        const { session, sent, events } = javaPlayer();
+        const bar = dragonBar();
+
+        await bar.addPlayer(session);
+        await bar.setPercent(0.25);
+        await bar.setName('Wither');
+        await bar.removePlayer(session);
+
+        expect(bossEvents(sent)).toEqual([]);
+        expect(events).toMatchObject([
+            {
+                operation: {
+                    type: JavaBossEventOperation.Add,
+                    title: 'Ender Dragon',
+                    progress: 1,
+                    color: JavaBossBarColor.Red,
+                    overlay: JavaBossBarOverlay.Notched10,
+                    flags: 0
+                }
+            },
+            { operation: { type: JavaBossEventOperation.UpdateProgress, progress: 0.25 } },
+            { operation: { type: JavaBossEventOperation.UpdateName, title: 'Wither' } },
+            { operation: { type: JavaBossEventOperation.Remove } }
+        ]);
+        const uuids = new Set(events.map(({ uuid }) => uuid));
+        expect(uuids.size).toBe(1);
+    });
+
+    it('gives two bars two UUIDs, so a client shows both', async () => {
+        const { session, events } = javaPlayer();
+
+        await dragonBar().addPlayer(session);
+        await dragonBar().addPlayer(session);
+
+        expect(new Set(events.map(({ uuid }) => uuid)).size).toBe(2);
     });
 });

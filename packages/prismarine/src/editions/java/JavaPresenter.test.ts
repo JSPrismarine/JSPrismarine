@@ -13,9 +13,10 @@ import Chunk from '../../world/chunk/Chunk';
 import type { World } from '../../world/World';
 import type { WorldSystems } from '../../world/WorldSystems';
 import type PlayerSession from '../../player/PlayerSession';
-import type { ShownMessage } from '../../player/presenter/SessionPresenter';
+import type { ShownBossBar, ShownMessage } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownEntityFacts } from '../../world/ShownActor';
-import { javaGameModeOf, JavaPresenter, javaTextOf } from './JavaPresenter';
+import { JavaBossBarColor, JavaBossBarOverlay, JavaBossEventOperation } from '@jsprismarine/protocol/java/packet/play';
+import { bossBarUuidOf, javaBossBarTitleOf, javaGameModeOf, JavaPresenter, javaTextOf } from './JavaPresenter';
 
 const message = (fields: Partial<ShownMessage>): ShownMessage => ({
     message: 'hello',
@@ -435,5 +436,67 @@ describe('JavaPresenter', () => {
 
         expect(sent.map(({ name }) => name)).toEqual(['Spawn Entity', 'Set Head Rotation']);
         expect(sent[0]?.value).toMatchObject({ type: ENTITY_TYPES.idOf('minecraft:cow') });
+    });
+});
+
+describe('boss bars', () => {
+    const bar: ShownBossBar = {
+        id: 3,
+        actorUniqueId: 7n,
+        title: 'TPS 20.0',
+        progress: 0.5,
+        color: 'rebeccaPurple',
+        style: 'notched12'
+    };
+
+    it('sends an add with the whole bar, drawing rebecca purple as purple and raising no flags', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+
+        await java.showBossBar('add', bar);
+        await java.showBossBar('progress', { ...bar, progress: 0.75 });
+        await java.showBossBar('name', { ...bar, title: 'TPS 19.9' });
+        await java.showBossBar('remove', bar);
+
+        const uuid = bossBarUuidOf(3);
+        expect(sent).toEqual([
+            {
+                name: 'Boss Event',
+                value: {
+                    uuid,
+                    operation: {
+                        type: JavaBossEventOperation.Add,
+                        title: 'TPS 20.0',
+                        progress: 0.5,
+                        color: JavaBossBarColor.Purple,
+                        overlay: JavaBossBarOverlay.Notched12,
+                        flags: 0
+                    }
+                }
+            },
+            {
+                name: 'Boss Event',
+                value: { uuid, operation: { type: JavaBossEventOperation.UpdateProgress, progress: 0.75 } }
+            },
+            {
+                name: 'Boss Event',
+                value: { uuid, operation: { type: JavaBossEventOperation.UpdateName, title: 'TPS 19.9' } }
+            },
+            { name: 'Boss Event', value: { uuid, operation: { type: JavaBossEventOperation.Remove } } }
+        ]);
+    });
+
+    it('gives each bar its own UUID, the same every time', () => {
+        expect(bossBarUuidOf(3)).toBe('00000000-0000-0000-0000-000000000003');
+        expect(bossBarUuidOf(3)).not.toBe(bossBarUuidOf(4));
+    });
+
+    it('sends a title that is a translation key as a translation, and anything else as written', () => {
+        expect(javaBossBarTitleOf('entity.minecraft.ender_dragon')).toEqual({
+            translate: 'entity.minecraft.ender_dragon'
+        });
+        expect(javaBossBarTitleOf('§aTPS 20.0')).toBe('§aTPS 20.0');
+        expect(javaBossBarTitleOf('1.5')).toBe('1.5');
+        expect(javaBossBarTitleOf('Wither')).toBe('Wither');
     });
 });

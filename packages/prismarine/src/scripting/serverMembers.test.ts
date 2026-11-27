@@ -22,6 +22,7 @@ import type { World } from '../world/World';
 import type { Level } from '../world/Level';
 import { DEFAULT_CREATED_PRESET } from '../world/LevelRegistry';
 import type WorldManager from '../world/WorldManager';
+import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import {
     ScriptBossBarScreens,
     scriptLevelMembers,
@@ -39,6 +40,15 @@ const viewer = (runtimeId: bigint, roundTripTime?: number) => {
     const listNames: (string | undefined)[] = [];
     /** The event type whose next sends fail, as a send to a congested connection can, and how many. */
     let failing: { eventType: BossEventUpdateType; times: number } | undefined;
+    const send = async (packet: unknown): Promise<void> => {
+        if (!(packet instanceof BossEventPacket)) return;
+        if (failing !== undefined && packet.eventType === failing.eventType) {
+            if (--failing.times === 0) failing = undefined;
+            throw new TypeError('the connection dropped the packet');
+        }
+        sent.push(packet);
+        actors.add(packet.targetActorId);
+    };
     const session = stub<PlayerSession>({
         runtimeId,
         getRuntimeId: () => runtimeId,
@@ -46,15 +56,8 @@ const viewer = (runtimeId: bigint, roundTripTime?: number) => {
         setPlayerListName: async (name) => {
             listNames.push(name);
         },
-        send: async (packet) => {
-            if (!(packet instanceof BossEventPacket)) return;
-            if (failing !== undefined && packet.eventType === failing.eventType) {
-                if (--failing.times === 0) failing = undefined;
-                throw new TypeError('the connection dropped the packet');
-            }
-            sent.push(packet);
-            actors.add(packet.targetActorId);
-        },
+        send,
+        presenter: new BedrockPresenter({ sendDataPacket: send }),
         released: (sends) => void pending.push(sends),
         getConnection: () => stub<ClientConnection>({ getRoundTripTime: () => roundTripTime })
     });
