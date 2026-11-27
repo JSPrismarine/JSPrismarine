@@ -24,7 +24,14 @@ import type { ScriptValue } from '@jsprismarine/script-host/values';
 
 import Server from '@jsprismarine/prismarine';
 import { Config } from '@jsprismarine/prismarine/config/Config';
+import { PropertyScreens } from '@jsprismarine/prismarine/scripting/DataDrivenScreens';
 import { NO_LEVEL_ACCESS } from '@jsprismarine/prismarine/scripting/LevelScriptWorld';
+import ClientboundDataDrivenUICloseScreenPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket';
+import ClientboundDataDrivenUIShowScreenPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket';
+import ClientboundDataStorePacket from '@jsprismarine/protocol/bedrock/packet/ClientboundDataStorePacket';
+import DataStoreUpdate, { DataStoreValueType } from '@jsprismarine/protocol/bedrock/structure/DataStoreUpdate';
+import type { DataStoreValue } from '@jsprismarine/protocol/bedrock/structure/DataStoreUpdate';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { LevelScripts } from '@jsprismarine/prismarine/scripting/LevelScripts';
 import type { ScriptHttpTransport } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
 import { networkTransport, ScriptHttpInputs } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
@@ -32,7 +39,7 @@ import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 
 import { isRecord } from '../isRecord.ts';
-import type { FormAnswer } from './formClient.ts';
+import type { FormAnswer, ScreenCloseReason, ScreenStep } from './formClient.ts';
 import { scenarioHttpBase, startScenarioHttpServer } from './httpServer.ts';
 import { cancelByte, FormClientScript } from './formClient.ts';
 import type { ScenarioRecord } from './record.ts';
@@ -125,14 +132,79 @@ const CLIENT_PLAYER = '1';
  * each as the scenario says, one tick later, as a client's answer arrives in a later tick's input
  * step. An answer that is not JSON makes the player leave, as the server disconnects a client
  * that sends one (`ModalFormResponseHandler`).
+ *
+ * Its data-driven screens go through the server's own `PropertyScreens`, which turns them into
+ * the packets a 2225 client gets; the player reads those as BDS's client does, and its writes and
+ * closes go back through it as the server's handlers send them.
  */
 class ScenarioClientPlayer {
     public readonly script: FormClientScript;
     public present = true;
     private queued: { readonly formId: number; readonly answer: FormAnswer }[] = [];
+    /** The screen actions and close reports the last tick's packets asked for, in order. */
+    private screenSteps: (ScreenStep | { readonly formId: number; readonly reason: ScreenCloseReason })[] = [];
+    private readonly screens = new PropertyScreens((packet) => this.received(packet));
 
     public constructor(scenario: ScriptScenario) {
         this.script = new FormClientScript(scenario.client ?? { answers: [] });
+    }
+
+    /** Reads one data-driven UI packet the server sent. */
+    private received(packet: NetworkPacket<unknown>): void {
+        if (packet instanceof ClientboundDataStorePacket) {
+            this.script.dataStore(packet.getPacketData()?.updates ?? []);
+        } else if (packet instanceof ClientboundDataDrivenUIShowScreenPacket) {
+            const data = packet.getPacketData();
+            if (data !== null)
+                this.screenSteps.push(this.script.screenShown(data.screenId, data.formId, data.dataInstanceId ?? 0));
+        } else if (packet instanceof ClientboundDataDrivenUICloseScreenPacket) {
+            this.screenSteps.push(...this.script.screenClosed(packet.getPacketData()?.formId ?? null));
+        }
+    }
+
+    /** Plays the screen actions the last tick asked for, as the next input step admits them. */
+    private playScreens(scripts: LevelScripts): void {
+        for (const step of this.screenSteps.splice(0)) {
+            if (!this.present) return;
+            if ('reason' in step) {
+                this.closeScreen(scripts, step.formId, step.reason);
+                continue;
+            }
+            for (const action of step.actions) {
+                if ('leave' in action) {
+                    this.present = false;
+                    return;
+                }
+                if ('close' in action) {
+                    this.closeScreen(scripts, step.formId, action.close);
+                    continue;
+                }
+                const { propertyUpdateCount, pathUpdateCount } = this.script.written(step.property, action.write);
+                const value = action.value;
+                const data: DataStoreValue =
+                    typeof value === 'number'
+                        ? { type: DataStoreValueType.DOUBLE, value }
+                        : typeof value === 'boolean'
+                          ? { type: DataStoreValueType.BOOLEAN, value }
+                          : { type: DataStoreValueType.STRING, value };
+                const write = this.screens.written({
+                    update: new DataStoreUpdate(
+                        'minecraft',
+                        step.property,
+                        action.write,
+                        data,
+                        propertyUpdateCount,
+                        pathUpdateCount
+                    ),
+                    variableUpdate: null
+                });
+                if (write !== undefined) scripts.answerDataDriven({ player: CLIENT_PLAYER, ...write });
+            }
+        }
+    }
+
+    private closeScreen(scripts: LevelScripts, formId: number, reason: ScreenCloseReason): void {
+        if (this.screens.closed(formId)) scripts.answerDataDriven({ player: CLIENT_PLAYER, formId, reason });
     }
 
     /** The player as the level's script world reaches it, while it is in the level. */
@@ -144,7 +216,8 @@ class ScenarioClientPlayer {
                 sendMessage: () => {},
                 showForm: (formId: number, json: string) =>
                     this.queued.push({ formId, answer: this.script.formRequested(formId, json) }),
-                closeForms: () => this.script.formsClosed()
+                closeForms: () => this.script.formsClosed(),
+                screens: this.screens
             }
         ];
     }
@@ -168,6 +241,7 @@ class ScenarioClientPlayer {
 
     /** Sends the answers to the forms the last tick showed, as the next input step admits them. */
     public answer(scripts: LevelScripts): void {
+        this.playScreens(scripts);
         for (const { formId, answer } of this.queued.splice(0)) {
             if (!this.present || 'ignore' in answer) continue;
             const response = 'leave' in answer ? undefined : answer.response;
