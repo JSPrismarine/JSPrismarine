@@ -6,6 +6,7 @@
  * session's. A message to a player's client becomes the packet a Bedrock Dedicated Server sends
  * for the same call.
  */
+import { scriptHostVerbs } from '../scriptHostVerbs';
 import type {
     ScriptAimAssistCategory,
     ScriptAimAssistPreset,
@@ -201,7 +202,7 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
         presets: []
     };
     const runtimeOf = (actor: StoreActor) => actor.getWorld().dataEntities().runtime;
-    const host = () => server.getCommandManager().getHost(level);
+    const verb = scriptHostVerbs(server, level);
     const send = (session: PlayerSession, packet: NetworkPacket<unknown>): void =>
         session.released(session.getConnection().sendDataPacket(packet));
     const refOf = (actor: StoreActor) => ({
@@ -511,11 +512,13 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
         setRotation: (id, rotation) => {
             const actor = actorOf(id);
             if (actor === undefined) return;
-            host().entities.teleport(
-                refOf(actor),
-                refOf(actor).position,
-                { yaw: rotation.y, pitch: rotation.x },
-                refOf(actor).dimension
+            verb((host) =>
+                host.entities.teleport(
+                    refOf(actor),
+                    refOf(actor).position,
+                    { yaw: rotation.y, pitch: rotation.x },
+                    refOf(actor).dimension
+                )
             );
         },
         setOnFire: (id, ticks) => {
@@ -602,11 +605,13 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
                 return;
             }
             const world = worldOf(point.dimension);
-            host().world.setSpawnPoint(
-                refOf(actor),
-                world?.getDimension().id ?? point.dimension,
-                { x: point.x, y: point.y, z: point.z },
-                0
+            verb((host) =>
+                host.world.setSpawnPoint(
+                    refOf(actor),
+                    world?.getDimension().id ?? point.dimension,
+                    { x: point.x, y: point.y, z: point.z },
+                    0
+                )
             );
         },
         permissions: (id) => {
@@ -642,13 +647,15 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
         playAnimation: (id, animation) => {
             const actor = actorOf(id);
             if (actor === undefined) return;
-            host().server.playAnimation([refOf(actor)], {
-                animation: animation.name,
-                ...(animation.nextState === undefined ? {} : { nextState: animation.nextState }),
-                ...(animation.blendOutTime === undefined ? {} : { blendOutTime: animation.blendOutTime }),
-                ...(animation.stopExpression === undefined ? {} : { stopExpression: animation.stopExpression }),
-                ...(animation.controller === undefined ? {} : { controller: animation.controller })
-            });
+            verb((host) =>
+                host.server.playAnimation([refOf(actor)], {
+                    animation: animation.name,
+                    ...(animation.nextState === undefined ? {} : { nextState: animation.nextState }),
+                    ...(animation.blendOutTime === undefined ? {} : { blendOutTime: animation.blendOutTime }),
+                    ...(animation.stopExpression === undefined ? {} : { stopExpression: animation.stopExpression }),
+                    ...(animation.controller === undefined ? {} : { controller: animation.controller })
+                })
+            );
         },
         eat: (id, typeId) => {
             const session = sessionOf(id);
