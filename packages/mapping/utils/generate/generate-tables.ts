@@ -35,6 +35,12 @@ import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths'
 
 // The pair resolver of the package that owns `sources.json`; generator scripts are not published.
 import { compareJavaReleases } from '../../../bedrock-data/utils/fetch/manifest.ts';
+import {
+    JOIN_PACKET_IDS,
+    readCreativeContent,
+    readItemRegistry,
+    readWirePayload
+} from '../../../bedrock-data/utils/joinPayloads.ts';
 import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
 import { worldgenCachePaths } from '../../../bedrock-data/utils/java/worldgen-cache.ts';
 
@@ -632,6 +638,32 @@ writeTable('blocks.json', {
  */
 const sameNameAfterGeyser = javaVersion !== geyserJavaVersion;
 
+/**
+ * The aux values the pinned server's creative menu gives each item, read from the same capture.
+ * Geyser's `items.json` still carries the aux a flattened item had on the merged item it came
+ * from, such as birch's 2 on the old `minecraft:log`, which no client stack of
+ * `minecraft:birch_log` has. An aux the menu names, such as a bed's color, selects a sub-item and
+ * is kept; any other is dropped.
+ */
+const creativeAux = (() => {
+    const capture = join(repoRoot, 'packages/bedrock-data/src/jsp', `v${pair.protocol}`);
+    const names = new Map(
+        readItemRegistry(readWirePayload(capture, JOIN_PACKET_IDS.itemRegistry)).map((item) => [
+            item.runtimeId,
+            item.name
+        ])
+    );
+    const aux = new Map<string, Set<number>>();
+    for (const { item } of readCreativeContent(readWirePayload(capture, JOIN_PACKET_IDS.creativeContent)).entries) {
+        const name = names.get(item.runtimeId);
+        if (name === undefined) continue;
+        const values = aux.get(name) ?? new Set<number>();
+        values.add(item.meta);
+        aux.set(name, values);
+    }
+    return aux;
+})();
+
 const javaItems = Object.keys(javaRegistries['minecraft:item']?.entries ?? {}).sort();
 const itemsTable: Record<string, { bedrockIdentifier: string; bedrockData?: number }> = {};
 for (const javaId of javaItems) {
@@ -641,15 +673,17 @@ for (const javaId of javaItems) {
     if (!(entry.bedrock_identifier in bedrockItemTable)) {
         throw new Error(`${javaId} maps to ${entry.bedrock_identifier}, which the ${bedrockVersion} item table lacks`);
     }
+    const data = entry.bedrock_data;
+    const selects = data !== undefined && data !== 0 && creativeAux.get(entry.bedrock_identifier)?.has(data) === true;
     itemsTable[javaId] = {
         bedrockIdentifier: entry.bedrock_identifier,
-        ...(entry.bedrock_data !== undefined && entry.bedrock_data !== 0 ? { bedrockData: entry.bedrock_data } : {})
+        ...(selects ? { bedrockData: data } : {})
     };
 }
 
 writeTable('items.json', {
     $notice: notice(
-        `Java ${javaVersion} items to Bedrock ${bedrockVersion} items: GeyserMC items.json (commit ${geyserCommit}), validated against this repository's ItemRegistryPacket capture.`
+        `Java ${javaVersion} items to Bedrock ${bedrockVersion} items: GeyserMC items.json (commit ${geyserCommit}), validated against this repository's ItemRegistryPacket capture, keeping an aux only where its CreativeContentPacket names it.`
     ),
     javaVersion,
     bedrockVersion,
