@@ -1,0 +1,14 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:selection_true",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:selection_box": true
+        }
+    }
+}

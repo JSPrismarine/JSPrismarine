@@ -1,0 +1,17 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Pack block engine 1.20.70",
+        "description": "A pack block parity fixture",
+        "uuid": "7d4c2a10-3e5f-4b6a-8c9d-000000000061",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 20, 70]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "7d4c2a10-3e5f-4b6a-8c9d-000000000062",
+            "version": [1, 0, 0]
+        }
+    ]
+}

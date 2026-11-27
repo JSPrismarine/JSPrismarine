@@ -1,0 +1,20 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:material_isotropic",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:geometry": "minecraft:geometry.full_block",
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "stone",
+                    "isotropic": true
+                }
+            }
+        }
+    }
+}

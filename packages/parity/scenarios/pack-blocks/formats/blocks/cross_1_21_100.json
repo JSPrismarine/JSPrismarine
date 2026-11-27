@@ -1,0 +1,22 @@
+{
+    "format_version": "1.21.100",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:cross_1_21_100",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:geometry": "minecraft:geometry.cross",
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "stone",
+                    "render_method": "alpha_test"
+                }
+            },
+            "minecraft:selection_box": false,
+            "minecraft:collision_box": false
+        }
+    }
+}

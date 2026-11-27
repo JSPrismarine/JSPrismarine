@@ -1,0 +1,20 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:material_no_dimming",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:geometry": "minecraft:geometry.full_block",
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "stone",
+                    "face_dimming": false
+                }
+            }
+        }
+    }
+}

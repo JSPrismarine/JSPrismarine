@@ -1,0 +1,24 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:engine_1_20_70",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:geometry": {
+                "identifier": "geometry.parity",
+                "bone_visibility": {
+                    "state": "q.block_state('x') == 1"
+                }
+            },
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "stone"
+                }
+            }
+        }
+    }
+}

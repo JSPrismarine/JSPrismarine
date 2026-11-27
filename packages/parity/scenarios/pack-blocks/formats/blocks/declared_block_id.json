@@ -1,0 +1,20 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:declared_block_id",
+            "menu_category": {
+                "category": "construction"
+            },
+            "internal_vanilla_data": {
+                "block_id": 40000,
+                "material": "solid"
+            }
+        },
+        "components": {
+            "minecraft:destructible_by_mining": {
+                "seconds_to_destroy": 1
+            }
+        }
+    }
+}
