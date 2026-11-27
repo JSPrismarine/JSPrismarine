@@ -34,6 +34,13 @@ export const AuthErrors = defineErrors('auth', {
      */
     PrismarineAuthNotInstalled:
         'XboxAuthProvider signs in through prismarine-auth; install it beside @jsprismarine/auth',
+    /**
+     * The installed `prismarine-auth` exports no `Authflow` class and `Titles` table, either
+     * directly or under `default`. Install a version that does, such as the one
+     * `@jsprismarine/auth` lists as its peer dependency.
+     */
+    PrismarineAuthUnrecognized:
+        'The installed prismarine-auth exports no Authflow and Titles; install the version @jsprismarine/auth supports',
 
     /** The player's login token has expired. The cause says which token. */
     LoginExpired: { message: 'Your login has expired.', base: LoginRefused },

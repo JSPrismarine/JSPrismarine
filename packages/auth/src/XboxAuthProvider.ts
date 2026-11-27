@@ -1,4 +1,4 @@
-import type { KeyObject } from 'node:crypto';
+import type { Authflow, Titles } from 'prismarine-auth';
 import type { ClientDataOptions } from './ClientData';
 import type { Identity, LoginRequest } from './IAuthProvider';
 import type { IdentityKey } from './IdentityKey';
@@ -38,9 +38,42 @@ export interface XboxTokenSource {
     /**
      * Signs in, or reuses a cached sign-in, and has Minecraft services issue a chain and a
      * multiplayer token for the key.
+     *
+     * @param publicKey - The identity key as base64 SPKI DER, which is what Minecraft services
+     * reads from the request body.
      */
-    getMinecraftBedrockToken(publicKey: KeyObject): Promise<{ chain: string[]; token?: string }>;
+    getMinecraftBedrockToken(publicKey: string): Promise<{ chain: string[]; token?: string }>;
 }
+
+/**
+ * The part of prismarine-auth the provider uses. Its own declarations type the public key as a
+ * `KeyObject`, but it posts the value as JSON, where only the base64 DER string survives.
+ */
+interface PrismarineAuth {
+    readonly Authflow: new (...args: ConstructorParameters<typeof Authflow>) => XboxTokenSource;
+    readonly Titles: typeof Titles;
+}
+
+/**
+ * Whether a module namespace carries prismarine-auth's exports. It asks with `in` before reading
+ * a name, since some namespaces, such as Vitest's module mocks, throw on a name they lack.
+ */
+const isPrismarineAuth = (value: unknown): value is PrismarineAuth =>
+    isRecord(value) &&
+    'Authflow' in value &&
+    typeof value.Authflow === 'function' &&
+    'Titles' in value &&
+    isRecord(value.Titles);
+
+/**
+ * prismarine-auth's exports from its imported namespace. It is CommonJS, so a loader that cannot
+ * see its named exports, such as tsx, puts them only under `default`.
+ */
+const prismarineAuthExports = (namespace: unknown): PrismarineAuth => {
+    if (isPrismarineAuth(namespace)) return namespace;
+    if (isRecord(namespace) && 'default' in namespace && isPrismarineAuth(namespace.default)) return namespace.default;
+    throw new AuthErrors.PrismarineAuthUnrecognized();
+};
 
 /** The code a person enters to sign in, the first time an account is used. */
 export interface DeviceCode {
@@ -85,19 +118,20 @@ export interface XboxAuthOptions {
 const prismarineAuth = (options: XboxAuthOptions): XboxTokenSource => {
     let flow: Promise<XboxTokenSource> | undefined;
     const load = async (): Promise<XboxTokenSource> => {
-        let module: typeof import('prismarine-auth');
+        let namespace: unknown;
         try {
-            module = await import('prismarine-auth');
+            namespace = await import('prismarine-auth');
         } catch (error: unknown) {
             throw new AuthErrors.PrismarineAuthNotInstalled({
                 cause: error
             });
         }
+        const { Authflow, Titles } = prismarineAuthExports(namespace);
         const onDeviceCode = options.onDeviceCode;
-        return new module.Authflow(
+        return new Authflow(
             options.account ?? 'default',
             options.cacheDirectory,
-            { authTitle: module.Titles.MinecraftNintendoSwitch, deviceType: 'Nintendo', flow: 'live' },
+            { authTitle: Titles.MinecraftNintendoSwitch, deviceType: 'Nintendo', flow: 'live' },
             onDeviceCode &&
                 ((code) =>
                     onDeviceCode({
@@ -182,7 +216,7 @@ export default class XboxAuthProvider extends KeyedAuthProvider {
     }
 
     private fetch(): Promise<SignedIn> {
-        const pending = this.tokens.getMinecraftBedrockToken(this.key.publicKey).then(({ chain, token }) => {
+        const pending = this.tokens.getMinecraftBedrockToken(this.key.publicKeyDer).then(({ chain, token }) => {
             if (token === undefined || token === '') {
                 throw new AuthErrors.NoMultiplayerToken();
             }
