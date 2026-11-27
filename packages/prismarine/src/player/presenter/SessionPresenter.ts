@@ -12,6 +12,7 @@
  * the transport has taken them, the way `PlayerSession`'s sends always have, so a caller in the
  * input step can hand that promise to the step's outputs.
  */
+import type { TitleInstruction } from '@jsprismarine/commands';
 import type { Vector3 } from '@jsprismarine/math';
 import type { Gametype } from '@jsprismarine/minecraft';
 
@@ -190,6 +191,31 @@ export interface ShownBossBar {
     readonly progress: number;
     readonly color: ShownBossBarColor;
     readonly style: ShownBossBarStyle;
+}
+
+/**
+ * A title instruction: text for the title, the subtitle or the action bar, the timing, or a clear
+ * or reset of what the screen shows. `/title`, `/titleraw` and the scripts' `ScreenDisplay` send
+ * these.
+ */
+export type ShownTitle = TitleInstruction;
+
+/** One holder's line in an objective. */
+export interface ShownScore {
+    /** The holder's name, which a Java client keys the line by. */
+    readonly holder: string;
+    /** The scoreboard's id for the holder, which a Bedrock client keys the line by. */
+    readonly identity: bigint;
+    readonly value: number;
+}
+
+/** The objective a display slot shows, and every score in it. */
+export interface ShownObjective {
+    readonly name: string;
+    readonly displayName: string;
+    readonly criterion: string;
+    readonly sortOrder: 'ascending' | 'descending';
+    readonly scores: readonly ShownScore[];
 }
 
 /** The outbound contract of one session. */
@@ -382,4 +408,37 @@ export interface SessionPresenter {
      * @param bar - The bar as it is after the change; a `remove` still names everything it showed.
      */
     showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void>;
+
+    /**
+     * Shows the client a title, a subtitle or action bar text, sets how long titles show, or
+     * clears them.
+     *
+     * @param title - The instruction.
+     */
+    showTitle(title: ShownTitle): Promise<void>;
+
+    /**
+     * Draws one display slot of the scoreboard from scratch: the objective it shows with every
+     * score, or nothing.
+     *
+     * @param slot - The slot, such as `sidebar`; a client of an edition without it shows nothing.
+     * @param objective - What it shows, or undefined to empty it.
+     */
+    showDisplaySlot(slot: string, objective: ShownObjective | undefined): Promise<void>;
+
+    /**
+     * Shows a change to one score of an objective a slot shows.
+     *
+     * @param objective - The objective.
+     * @param holder - Whose score changed.
+     * @param value - The new score, or undefined when the score was reset.
+     */
+    showScore(objective: string, holder: Omit<ShownScore, 'value'>, value: number | undefined): Promise<void>;
+
+    /**
+     * Takes an objective that was removed off the client's scoreboard.
+     *
+     * @param objective - The objective.
+     */
+    removeObjective(objective: string): Promise<void>;
 }

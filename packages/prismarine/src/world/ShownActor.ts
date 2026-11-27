@@ -8,6 +8,7 @@
  * hands tracking a {@link ShownEntity} for each entity it holds.
  */
 import type { Vector3 } from '@jsprismarine/math';
+import type { Gametype } from '@jsprismarine/minecraft';
 import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
@@ -55,6 +56,8 @@ export interface ShownProfile {
      * online: a Java client draws the player's skin and cape from it.
      */
     readonly textures?: { readonly value: string; readonly signature: string | null };
+    /** The player's game mode, which a Java client's tab list shows. */
+    readonly gamemode?: Gametype;
 }
 
 /**

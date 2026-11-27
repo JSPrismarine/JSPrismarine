@@ -13,6 +13,7 @@ import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChun
 import {
     AddEntity,
     BossEvent,
+    ClearTitles,
     ChunkBatchFinished,
     ChunkBatchStart,
     SetCenterChunk,
@@ -28,6 +29,8 @@ import {
     PlayerInfoAction,
     PlayerInfoAdd,
     PlayerInfoRemove,
+    PlayerInfoUpdateGameMode,
+    ResetScore,
     RemoveEntities,
     RotateHead,
     JavaEntityDataIndex,
@@ -39,7 +42,17 @@ import {
     SetEntityData,
     SetEquipment,
     SetHeldSlot,
+    SetActionBarText,
+    SetDisplayObjective,
+    SetObjective,
+    SetScore,
+    SetSubtitleText,
+    SetTitlesAnimation,
+    SetTitleText,
     SynchronizePlayerPosition,
+    JavaDisplaySlot,
+    JavaObjectiveMethod,
+    JavaObjectiveRenderType,
     JavaBossBarColor,
     JavaBossBarOverlay,
     JavaBossEventOperation,
@@ -51,6 +64,7 @@ import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
+import { isRecord } from '../../utils/isRecord';
 import type {
     BossBarChange,
     SessionPresenter,
@@ -67,8 +81,11 @@ import type {
     ShownMessage,
     ShownDimension,
     ShownMove,
+    ShownObjective,
     ShownRespawn,
+    ShownScore,
     ShownStack,
+    ShownTitle,
     ShownVitals
 } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
@@ -264,6 +281,89 @@ export const javaSpawnInfoOf = ({ id, seaLevel }: ShownDimension, gamemode: Game
 const KEEP_ALL_DATA = 3;
 
 /**
+ * A `rawtext` object, as `/tellraw` and `/titleraw` send it, as the Java text it reads: its parts'
+ * text joined. Text that is not such an object is shown as written.
+ * @param raw - The object as JSON, a command's argument, which is parsed for its text and never run.
+ * @returns The text.
+ */
+export const javaRawTextOf = (raw: string): JavaText => {
+    try {
+        // A command's argument, parsed for its text and never run.
+        const parsed: unknown = JSON.parse(raw);
+        const parts = rawtextPartsOf(parsed);
+        if (parts !== undefined) return joinedTextOf(parts);
+    } catch {
+        // Not JSON after all; it is shown as written.
+    }
+    return raw;
+};
+
+/** The parts of a `rawtext` object as Java text, or undefined when the value is no such object. */
+const rawtextPartsOf = (value: unknown): JavaText[] | undefined => {
+    const rawtext = isRecord(value) ? value.rawtext : undefined;
+    return Array.isArray(rawtext) ? rawtext.map(rawtextPartOf) : undefined;
+};
+
+/**
+ * One `rawtext` part as Java text: its text, or its translation with the arguments `with` gives,
+ * as a list of strings or as a `rawtext` object of its own. A part this server cannot fill, such
+ * as a selector or a score, shows nothing.
+ */
+const rawtextPartOf = (part: unknown): JavaText => {
+    if (!isRecord(part)) return '';
+    if (typeof part.text === 'string') return part.text;
+    if (typeof part.translate !== 'string') return '';
+    const args = Array.isArray(part.with)
+        ? part.with.map((argument: unknown) => (typeof argument === 'string' ? argument : ''))
+        : rawtextPartsOf(part.with);
+    return args === undefined || args.length === 0
+        ? { translate: part.translate }
+        : { translate: part.translate, with: args };
+};
+
+/**
+ * Parts shown one after another. Plain text joins into one string; a translation among them goes
+ * as a translation of `%s` repeated, whose key a client does not know and so formats as written.
+ */
+const joinedTextOf = (parts: readonly JavaText[]): JavaText => {
+    if (parts.every((part) => typeof part === 'string')) return parts.join('');
+    const [only] = parts;
+    if (parts.length === 1 && only !== undefined) return only;
+    return { translate: '%s'.repeat(parts.length), with: [...parts] };
+};
+
+/**
+ * A title instruction as the Java packet that carries it. A Java client keeps a title's timing
+ * until a reset, as a Bedrock client does.
+ * @param send - Sends the packet.
+ * @param title - The instruction.
+ */
+export const sendJavaTitle = (send: JavaSend, title: ShownTitle): void => {
+    switch (title.kind) {
+        case 'clear':
+            send(ClearTitles, { resetTimes: false });
+            return;
+        case 'reset':
+            send(ClearTitles, { resetTimes: true });
+            return;
+        case 'times':
+            send(SetTitlesAnimation, { fadeIn: title.fadeIn, stay: title.stay, fadeOut: title.fadeOut });
+            return;
+    }
+    const text = title.raw === true ? javaRawTextOf(title.text) : title.text;
+    if (title.kind === 'title') send(SetTitleText, { text });
+    else if (title.kind === 'subtitle') send(SetSubtitleText, { text });
+    else send(SetActionBarText, { text });
+};
+
+/** Java's display slot for each slot Bedrock has; Java has team-colored sidebars Bedrock lacks. */
+const JAVA_DISPLAY_SLOTS: ReadonlyMap<string, JavaDisplaySlot> = new Map([
+    ['list', JavaDisplaySlot.List],
+    ['sidebar', JavaDisplaySlot.Sidebar],
+    ['belowname', JavaDisplaySlot.BelowName]
+]);
+
+/**
  * A message as Java text. A player's chat takes vanilla's `chat.type.text` translation, which
  * draws `<name> message`; a Bedrock translation key loses the `%` Bedrock marks it with; a
  * `rawtext` object, which `/tellraw` sends, is read for its text.
@@ -278,25 +378,7 @@ export const javaTextOf = ({ message, kind, parameters, needsTranslation, source
             with: parameters.map((parameter) => parameter.replace(/^%/, ''))
         };
     }
-    if (kind === 'rawText') {
-        try {
-            // A command's argument, parsed for its text and never run.
-            const parsed: unknown = JSON.parse(message);
-            const rawtext =
-                typeof parsed === 'object' && parsed !== null && 'rawtext' in parsed ? parsed.rawtext : undefined;
-            if (Array.isArray(rawtext)) {
-                return rawtext
-                    .map((part: unknown) =>
-                        typeof part === 'object' && part !== null && 'text' in part && typeof part.text === 'string'
-                            ? part.text
-                            : ''
-                    )
-                    .join('');
-            }
-        } catch {
-            // Not JSON after all; it is shown as written.
-        }
-    }
+    if (kind === 'rawText') return javaRawTextOf(message);
     return message;
 };
 
@@ -310,6 +392,14 @@ export class JavaPresenter implements SessionPresenter {
     private readonly entities = javaEntityTranslation();
     /** The shared flags and pose each shown entity was last sent, as `flags,pose`. */
     private readonly entityData = new Map<bigint, string>();
+    /** The client's own player's UUID, once its tab list entry was sent. */
+    private ownUuid: string | undefined;
+    /** The objectives the client was told of, with the display name it was last sent. */
+    private readonly objectives = new Map<string, string>();
+    /** The objective each Java display slot shows. */
+    private readonly slots = new Map<JavaDisplaySlot, string>();
+    /** The holders each known objective has a score sent for, which a later snapshot without them resets. */
+    private readonly holders = new Map<string, Set<string>>();
 
     /**
      * @param send - Sends to the session's client.
@@ -379,8 +469,18 @@ export class JavaPresenter implements SessionPresenter {
     /** Nothing to answer: a Java client does not wait for the server to confirm a close. */
     public async containerClosed(): Promise<void> {}
 
-    /** Not shown yet: other players' game modes come with the player list in PR 10. */
-    public async sendPlayerGameMode(): Promise<void> {}
+    /**
+     * Sends `Player Info Update` with a listed player's game mode, which its tab list entry
+     * shows. A player the client has no entry for is not shown.
+     */
+    public async sendPlayerGameMode(runtimeId: bigint, gamemode: Gametype): Promise<void> {
+        const uuid = runtimeId === this.ownRuntimeId ? this.ownUuid : this.shownPlayers.get(runtimeId);
+        if (uuid === undefined) return;
+        this.send(PlayerInfoUpdateGameMode, {
+            actions: PlayerInfoAction.UpdateGameMode,
+            players: [{ uuid, gameMode: javaGameModeOf(gamemode) }]
+        });
+    }
 
     /** Not shown: Java has no packet of its own for these; its abilities carry what it needs. */
     public async sendInteractionSettings(): Promise<void> {}
@@ -394,9 +494,10 @@ export class JavaPresenter implements SessionPresenter {
     /**
      * Lists a profile in the client's tab list. A Java client draws a player's skin from the
      * `textures` property of its entry, its own player's included, and the default skin without one.
+     * A profile with a game mode is listed with it.
      * @param profile - The player's profile.
      */
-    public listProfile({ uuid, name, textures }: ShownProfile): void {
+    public listProfile({ uuid, name, textures, gamemode }: ShownProfile): void {
         this.send(PlayerInfoAdd, {
             actions: PlayerInfoAction.AddPlayer | PlayerInfoAction.UpdateListed,
             players: [
@@ -408,6 +509,20 @@ export class JavaPresenter implements SessionPresenter {
                 }
             ]
         });
+        if (gamemode === undefined) return;
+        this.send(PlayerInfoUpdateGameMode, {
+            actions: PlayerInfoAction.UpdateGameMode,
+            players: [{ uuid, gameMode: javaGameModeOf(gamemode) }]
+        });
+    }
+
+    /**
+     * Lists the client's own player in its tab list, which later changes of its game mode update.
+     * @param profile - The player's profile.
+     */
+    public listOwnProfile(profile: ShownProfile): void {
+        this.ownUuid = profile.uuid;
+        this.listProfile(profile);
     }
 
     /**
@@ -610,5 +725,91 @@ export class JavaPresenter implements SessionPresenter {
     /** Sends `Boss Event`; see {@link javaBossEventOf}. */
     public async showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void> {
         this.send(BossEvent, javaBossEventOf(change, bar));
+    }
+
+    /** Sends the title packet the instruction names; see {@link sendJavaTitle}. */
+    public async showTitle(title: ShownTitle): Promise<void> {
+        sendJavaTitle(this.send, title);
+    }
+
+    /** Tells the client of an objective, or of its new display name, before a slot shows it. */
+    private declareObjective({ name, displayName }: ShownObjective): void {
+        const known = this.objectives.get(name);
+        if (known === displayName) return;
+        this.objectives.set(name, displayName);
+        if (known === undefined) this.holders.set(name, new Set());
+        this.send(SetObjective, {
+            objective: name,
+            change: {
+                method: known === undefined ? JavaObjectiveMethod.Add : JavaObjectiveMethod.Change,
+                displayName,
+                renderType: JavaObjectiveRenderType.Integer,
+                numberFormat: null
+            }
+        });
+    }
+
+    /** Takes an objective no slot shows any more off the client, so a later display starts clean. */
+    private forgetUnshown(objective: string): void {
+        if ([...this.slots.values()].includes(objective) || !this.objectives.delete(objective)) return;
+        this.holders.delete(objective);
+        this.send(SetObjective, { objective, change: { method: JavaObjectiveMethod.Remove } });
+    }
+
+    /**
+     * Sends `Display Objective` for the slot, after `Update Objectives` for an objective the client
+     * does not know, then `Update Score` for every score and `Reset Score` for each holder the
+     * client still shows that the snapshot no longer has. A slot Java lacks shows nothing. Java
+     * sorts the sidebar highest first whatever the sort order.
+     */
+    public async showDisplaySlot(slot: string, objective: ShownObjective | undefined): Promise<void> {
+        const javaSlot = JAVA_DISPLAY_SLOTS.get(slot);
+        if (javaSlot === undefined) return;
+        const before = this.slots.get(javaSlot);
+        if (objective === undefined) {
+            if (before === undefined) return;
+            this.slots.delete(javaSlot);
+            this.send(SetDisplayObjective, { slot: javaSlot, objective: '' });
+            this.forgetUnshown(before);
+            return;
+        }
+        this.declareObjective(objective);
+        this.slots.set(javaSlot, objective.name);
+        this.send(SetDisplayObjective, { slot: javaSlot, objective: objective.name });
+        if (before !== undefined && before !== objective.name) this.forgetUnshown(before);
+        const current = new Set(objective.scores.map(({ holder }) => holder));
+        for (const holder of this.holders.get(objective.name) ?? []) {
+            if (!current.has(holder)) this.resetScore(objective.name, holder);
+        }
+        for (const { holder, value } of objective.scores) this.sendScore(objective.name, holder, value);
+    }
+
+    private sendScore(objective: string, owner: string, score: number): void {
+        this.holders.get(objective)?.add(owner);
+        this.send(SetScore, { owner, objective, score, displayName: null, numberFormat: null });
+    }
+
+    private resetScore(objective: string, owner: string): void {
+        this.holders.get(objective)?.delete(owner);
+        this.send(ResetScore, { owner, objective });
+    }
+
+    /** Sends `Update Score`, or `Reset Score` for a reset, for an objective the client knows. */
+    public async showScore(
+        objective: string,
+        { holder }: Omit<ShownScore, 'value'>,
+        value: number | undefined
+    ): Promise<void> {
+        if (!this.objectives.has(objective)) return;
+        if (value === undefined) this.resetScore(objective, holder);
+        else this.sendScore(objective, holder, value);
+    }
+
+    /** Sends `Update Objectives` removing an objective the client knows. */
+    public async removeObjective(objective: string): Promise<void> {
+        for (const [slot, shown] of this.slots) if (shown === objective) this.slots.delete(slot);
+        if (!this.objectives.delete(objective)) return;
+        this.holders.delete(objective);
+        this.send(SetObjective, { objective, change: { method: JavaObjectiveMethod.Remove } });
     }
 }

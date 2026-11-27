@@ -14,7 +14,14 @@ import type PlayerSession from '../../player/PlayerSession';
 import type { ShownBossBar, ShownMessage } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownEntityFacts } from '../../world/ShownActor';
 import { JavaBossBarColor, JavaBossBarOverlay, JavaBossEventOperation } from '@jsprismarine/protocol/java/packet/play';
-import { bossBarUuidOf, javaBossBarTitleOf, javaGameModeOf, JavaPresenter, javaTextOf } from './JavaPresenter';
+import {
+    bossBarUuidOf,
+    javaBossBarTitleOf,
+    javaGameModeOf,
+    JavaPresenter,
+    javaRawTextOf,
+    javaTextOf
+} from './JavaPresenter';
 
 const message = (fields: Partial<ShownMessage>): ShownMessage => ({
     message: 'hello',
@@ -496,5 +503,229 @@ describe('boss bars', () => {
         expect(javaBossBarTitleOf('§aTPS 20.0')).toBe('§aTPS 20.0');
         expect(javaBossBarTitleOf('1.5')).toBe('1.5');
         expect(javaBossBarTitleOf('Wither')).toBe('Wither');
+    });
+});
+
+describe('titles', () => {
+    it('sends each instruction as its own packet, reading a rawtext title for its text', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+
+        await java.showTitle({ kind: 'times', fadeIn: 5, stay: 40, fadeOut: 10 });
+        await java.showTitle({ kind: 'subtitle', text: 'below' });
+        await java.showTitle({ kind: 'title', text: '{"rawtext":[{"text":"Hi"}]}', raw: true });
+        await java.showTitle({ kind: 'actionbar', text: '§cLow health' });
+        await java.showTitle({ kind: 'clear' });
+        await java.showTitle({ kind: 'reset' });
+
+        expect(sent).toEqual([
+            { name: 'Set Title Animation Times', value: { fadeIn: 5, stay: 40, fadeOut: 10 } },
+            { name: 'Set Subtitle Text', value: { text: 'below' } },
+            { name: 'Set Title Text', value: { text: 'Hi' } },
+            { name: 'Set Action Bar Text', value: { text: '§cLow health' } },
+            { name: 'Clear Titles', value: { resetTimes: false } },
+            { name: 'Clear Titles', value: { resetTimes: true } }
+        ]);
+    });
+});
+
+describe('the scoreboard', () => {
+    const kills = {
+        name: 'kills',
+        displayName: 'Kills',
+        criterion: 'dummy',
+        sortOrder: 'descending' as const,
+        scores: [{ holder: 'Steve', identity: 1n, value: 3 }]
+    };
+    const presenter = () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+        return { sent, java };
+    };
+
+    it('adds an objective before a slot shows it, then sends every score in it', async () => {
+        const { sent, java } = presenter();
+
+        await java.showDisplaySlot('sidebar', kills);
+
+        expect(sent).toEqual([
+            {
+                name: 'Update Objectives',
+                value: {
+                    objective: 'kills',
+                    change: { method: 0, displayName: 'Kills', renderType: 0, numberFormat: null }
+                }
+            },
+            { name: 'Display Objective', value: { slot: 1, objective: 'kills' } },
+            {
+                name: 'Update Score',
+                value: { owner: 'Steve', objective: 'kills', score: 3, displayName: null, numberFormat: null }
+            }
+        ]);
+    });
+
+    it('adds an objective two slots show once, and renames it when its display name changes', async () => {
+        const { sent, java } = presenter();
+
+        await java.showDisplaySlot('sidebar', kills);
+        await java.showDisplaySlot('list', kills);
+        await java.showDisplaySlot('belowname', { ...kills, displayName: 'Kills!' });
+
+        expect(sent.filter(({ name }) => name === 'Update Objectives').map(({ value }) => value)).toEqual([
+            { objective: 'kills', change: { method: 0, displayName: 'Kills', renderType: 0, numberFormat: null } },
+            { objective: 'kills', change: { method: 2, displayName: 'Kills!', renderType: 0, numberFormat: null } }
+        ]);
+        expect(sent.filter(({ name }) => name === 'Display Objective').map(({ value }) => value)).toEqual([
+            { slot: 1, objective: 'kills' },
+            { slot: 0, objective: 'kills' },
+            { slot: 2, objective: 'kills' }
+        ]);
+    });
+
+    it('empties a slot and takes off the objective once no slot shows it', async () => {
+        const { sent, java } = presenter();
+        await java.showDisplaySlot('sidebar', kills);
+        sent.length = 0;
+
+        await java.showDisplaySlot('sidebar', undefined);
+        await java.showDisplaySlot('sidebar', undefined);
+        await java.showScore('kills', { holder: 'Steve', identity: 1n }, 4);
+
+        expect(sent).toEqual([
+            { name: 'Display Objective', value: { slot: 1, objective: '' } },
+            { name: 'Update Objectives', value: { objective: 'kills', change: { method: 1 } } }
+        ]);
+    });
+
+    it("sends a shown objective's score changes and resets, and removes it when it goes", async () => {
+        const { sent, java } = presenter();
+        await java.showDisplaySlot('sidebar', kills);
+        sent.length = 0;
+
+        await java.showScore('kills', { holder: 'Alex', identity: 2n }, 5);
+        await java.showScore('kills', { holder: 'Steve', identity: 1n }, undefined);
+        await java.removeObjective('kills');
+        await java.removeObjective('kills');
+
+        expect(sent).toEqual([
+            {
+                name: 'Update Score',
+                value: { owner: 'Alex', objective: 'kills', score: 5, displayName: null, numberFormat: null }
+            },
+            { name: 'Reset Score', value: { owner: 'Steve', objective: 'kills' } },
+            { name: 'Update Objectives', value: { objective: 'kills', change: { method: 1 } } }
+        ]);
+    });
+
+    it('shows nothing in a slot Java does not have', async () => {
+        const { sent, java } = presenter();
+
+        await java.showDisplaySlot('sidebar.team.red', kills);
+
+        expect(sent).toEqual([]);
+    });
+});
+
+describe('tab list game modes', () => {
+    const steve = (gamemode?: Gametype) => ({
+        getRuntimeId: () => 9n,
+        getPosition: () => ({ getX: () => 1, getY: () => 65.62, getZ: () => 2 }),
+        getTrackingRange: () => 8,
+        spawnTo: async () => {},
+        describe: () => ({
+            type: 'minecraft:player',
+            feet: { x: 1, y: 64, z: 2 },
+            yaw: 0,
+            pitch: 0,
+            headYaw: 0,
+            player: {
+                uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0',
+                name: 'Steve',
+                ...(gamemode === undefined ? {} : { gamemode })
+            }
+        })
+    });
+    const gameModeUpdates = (sent: readonly { name: string; value: unknown }[]) =>
+        sent.filter(({ name }) => name === 'Player Info Update (game mode)').map(({ value }) => value);
+
+    it('lists another player with its game mode, and updates the entry when the mode changes', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+
+        await java.showEntity(steve(Gametype.CREATIVE));
+        await java.sendPlayerGameMode(9n, Gametype.SPECTATOR);
+
+        expect(gameModeUpdates(sent)).toEqual([
+            { actions: 0x04, players: [{ uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0', gameMode: 1 }] },
+            { actions: 0x04, players: [{ uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0', gameMode: 3 }] }
+        ]);
+    });
+
+    it('updates its own entry once listed, and leaves a player it has no entry for alone', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+        const own = '00000000-0000-0000-0000-000000000007';
+
+        await java.sendPlayerGameMode(7n, Gametype.CREATIVE);
+        await java.sendPlayerGameMode(9n, Gametype.CREATIVE);
+        java.listOwnProfile({ uuid: own, name: 'Alex' });
+        await java.sendPlayerGameMode(7n, Gametype.ADVENTURE);
+
+        expect(gameModeUpdates(sent)).toEqual([{ actions: 0x04, players: [{ uuid: own, gameMode: 2 }] }]);
+    });
+});
+
+describe('javaRawTextOf', () => {
+    it('turns translated parts into Java translations, with their arguments as strings or rawtext', () => {
+        expect(javaRawTextOf('{"rawtext":[{"translate":"multiplayer.player.joined","with":["Alex"]}]}')).toEqual({
+            translate: 'multiplayer.player.joined',
+            with: ['Alex']
+        });
+        expect(
+            javaRawTextOf('{"rawtext":[{"translate":"chat.type.text","with":{"rawtext":[{"text":"A"},{"text":"B"}]}}]}')
+        ).toEqual({ translate: 'chat.type.text', with: ['A', 'B'] });
+    });
+
+    it('joins text with a translation as one format of %s per part', () => {
+        expect(javaRawTextOf('{"rawtext":[{"text":"> "},{"translate":"gui.done"}]}')).toEqual({
+            translate: '%s%s',
+            with: ['> ', { translate: 'gui.done' }]
+        });
+        expect(javaRawTextOf('{"rawtext":[{"text":"a"},{"selector":"@p"},{"text":"b"}]}')).toBe('ab');
+    });
+});
+
+describe('a scoreboard snapshot that drops holders', () => {
+    const snapshot = (scores: readonly { holder: string; value: number }[]) => ({
+        name: 'kills',
+        displayName: 'Kills',
+        criterion: 'dummy',
+        sortOrder: 'descending' as const,
+        scores: scores.map((score, index) => ({ ...score, identity: BigInt(index + 1) }))
+    });
+
+    it('resets the holders a later snapshot no longer has, and keeps the rest', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+        await java.showDisplaySlot(
+            'sidebar',
+            snapshot([
+                { holder: 'Steve', value: 3 },
+                { holder: 'Alex', value: 2 }
+            ])
+        );
+        sent.length = 0;
+
+        await java.showDisplaySlot('sidebar', snapshot([{ holder: 'Steve', value: 4 }]));
+        await java.showDisplaySlot('sidebar', snapshot([]));
+
+        expect(sent.filter(({ name }) => name !== 'Display Objective')).toEqual([
+            { name: 'Reset Score', value: { owner: 'Alex', objective: 'kills' } },
+            {
+                name: 'Update Score',
+                value: { owner: 'Steve', objective: 'kills', score: 4, displayName: null, numberFormat: null }
+            },
+            { name: 'Reset Score', value: { owner: 'Steve', objective: 'kills' } }
+        ]);
     });
 });
