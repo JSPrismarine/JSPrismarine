@@ -48,6 +48,7 @@ import type { EntityEquipmentSlot } from '@jsprismarine/entities';
 import type { ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { Item } from '../item/Item';
+import { sameStackComponents } from '../item/stackComponents';
 import type { ViewableEquipment } from './predicateView';
 
 /**
@@ -229,7 +230,8 @@ export const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDr
         left.mapId === right.mapId &&
         left.lockMode === right.lockMode &&
         // Plain JSON records in the order a script set them, so two equal sets print the same.
-        JSON.stringify(left.dynamicProperties ?? {}) === JSON.stringify(right.dynamicProperties ?? {})
+        JSON.stringify(left.dynamicProperties ?? {}) === JSON.stringify(right.dynamicProperties ?? {}) &&
+        sameStackComponents(left.components, right.components)
     );
 };
 

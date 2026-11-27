@@ -111,7 +111,8 @@ const mergeable = (held: ContentItemDrop, drop: ContentItemDrop): boolean =>
             stack.keepOnDeath === undefined &&
             stack.mapId === undefined &&
             stack.lockMode === undefined &&
-            stack.dynamicProperties === undefined
+            stack.dynamicProperties === undefined &&
+            stack.components === undefined
     );
 
 /**

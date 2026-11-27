@@ -27,6 +27,9 @@ import type { EnchantmentDefinition, EnchantmentRegistry } from '@jsprismarine/e
 import { bedrockEnchantType } from '../enchantment/bedrockIds';
 import { ITEMS_TAG, addMapIdTags, itemSlotsToNbt } from '../inventory/itemNbt';
 import type { StoredItemStack } from '../inventory/persistence';
+import { addComponentTags } from './componentTags';
+import { hasStackComponents } from './stackComponents';
+import type { StackComponents } from './stackComponents';
 import { EnchantType } from '@jsprismarine/protocol/bedrock/packet/PlayerEnchantOptionsPacket';
 
 /**
@@ -64,6 +67,11 @@ export interface ItemUserData {
     readonly contents: readonly (StoredItemStack | null)[];
     /** Which saved map a filled map shows, which the client asks for the map's pixels by. */
     readonly mapId?: number | undefined;
+    /**
+     * The stack's other Java components, such as a trim, a dye color or a firework's
+     * explosions, which go out as the Bedrock tags that draw them.
+     */
+    readonly components?: StackComponents | undefined;
     /** The definitions, for naming an enchantment the client has no number for. */
     readonly enchantmentRegistry: EnchantmentRegistry | undefined;
 }
@@ -133,7 +141,8 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
         stack.lore.length === 0 &&
         stack.damage === undefined &&
         stack.contents.length === 0 &&
-        stack.mapId === undefined
+        stack.mapId === undefined &&
+        !hasStackComponents(stack.components)
     ) {
         return null;
     }
@@ -189,6 +198,8 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
         addMapIdTags(tag, stack.mapId);
         anything = true;
     }
+
+    if (stack.components !== undefined && addComponentTags(tag, stack.components)) anything = true;
 
     return anything ? tag : null;
 };

@@ -150,6 +150,7 @@
         "DragonStrafePlayerPhase.setTarget": "net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.setTarget(Lnet/minecraft/world/entity/LivingEntity;)V",
         "DragonTakeoffPhase.findNewTarget": "net/minecraft/world/entity/boss/enderdragon/phases/DragonTakeoffPhase.findNewTarget()V",
         "DriedGhastBlock.getStateForPlacement": "net/minecraft/world/level/block/DriedGhastBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "DyeColor.$VALUES": "net/minecraft/world/item/DyeColor.$VALUES",
         "EatBlockGoal.canUse": "net/minecraft/world/entity/ai/goal/EatBlockGoal.canUse()Z",
         "EatBlockGoal.EAT_ANIMATION_TICKS": "net/minecraft/world/entity/ai/goal/EatBlockGoal.EAT_ANIMATION_TICKS",
         "EmptyMapItem.use": "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
@@ -176,6 +177,7 @@
         "FaceAttachedHorizontalDirectionalBlock.getStateForPlacement": "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "FallingBlock.isFree": "net/minecraft/world/level/block/FallingBlock.isFree(Lnet/minecraft/world/level/block/state/BlockState;)Z",
         "FarmlandBlock.shouldMaintainFarmland": "net/minecraft/world/level/block/FarmlandBlock.shouldMaintainFarmland(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Z",
+        "FireworkExplosion$Shape.$VALUES": "net/minecraft/world/item/component/FireworkExplosion$Shape.$VALUES",
         "FlowerBedBlock.getStateForPlacement": "net/minecraft/world/level/block/FlowerBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "FlowingFluid.canPassThroughWall": "net/minecraft/world/level/material/FlowingFluid.canPassThroughWall(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z",
         "FlowingFluid.getSpread": "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;",
@@ -241,9 +243,11 @@
         "MangrovePropaguleBlock.getStateForPlacement": "net/minecraft/world/level/block/MangrovePropaguleBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "MapItem.create": "net/minecraft/world/item/MapItem.create(Lnet/minecraft/server/level/ServerLevel;IIBZZ)Lnet/minecraft/world/item/ItemStack;",
         "MapItem.createNewSavedData": "net/minecraft/world/item/MapItem.createNewSavedData(Lnet/minecraft/server/level/ServerLevel;IIIZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapId;",
+        "MapItem.onCraftedPostProcess": "net/minecraft/world/item/MapItem.onCraftedPostProcess(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;)V",
         "MapItem.renderBiomePreviewMap": "net/minecraft/world/item/MapItem.renderBiomePreviewMap(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;)V",
         "MapItemSavedData.createFresh": "net/minecraft/world/level/saveddata/maps/MapItemSavedData.createFresh(DDBZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;",
         "MapItemSavedData.MAX_SCALE": "net/minecraft/world/level/saveddata/maps/MapItemSavedData.MAX_SCALE",
+        "MapItemSavedData.scaled": "net/minecraft/world/level/saveddata/maps/MapItemSavedData.scaled()Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;",
         "MeleeAttackGoal.canUse": "net/minecraft/world/entity/ai/goal/MeleeAttackGoal.canUse()Z",
         "MemorySlot.NEVER_EXPIRE": "net/minecraft/world/entity/ai/memory/MemorySlot.NEVER_EXPIRE",
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
@@ -1783,6 +1787,9 @@
         "net/minecraft/world/entity/player/Player.aiStep()V": {
             "26.3": "sha256:fa19c95007cbc7f9487094ca0aafb10e3b63cafda595bd22171940a92230759f"
         },
+        "net/minecraft/world/item/component/FireworkExplosion$Shape.$VALUES": {
+            "26.3": "sha256:47a8323a4f0a86f212c38d33e436cdcc92f0e8e8c096f1b1192f9ebc36d273df"
+        },
         "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;": {
             "26.3": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937",
             "26.4-pre-1": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937"
@@ -1794,6 +1801,9 @@
         "net/minecraft/world/item/CrossbowItem.getDefaultProjectileRange()I": {
             "26.3": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c",
             "26.4-pre-1": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c"
+        },
+        "net/minecraft/world/item/DyeColor.$VALUES": {
+            "26.3": "sha256:b490537c82167ed75c252b0d371ca08d5a64a0b1b2d7c1fdb9805567ae2a8c91"
         },
         "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ac32715efe707271607b432252bf1e6e56176c43f9e53ee9a9726074d5c2351b"
@@ -1813,6 +1823,9 @@
         "net/minecraft/world/item/MapItem.createNewSavedData(Lnet/minecraft/server/level/ServerLevel;IIIZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapId;": {
             "26.3": "sha256:c06aa1c0eabadde0f18a84976863a3814eaac53adf88e517f5071702203c7b2d",
             "26.4-pre-1": "sha256:c06aa1c0eabadde0f18a84976863a3814eaac53adf88e517f5071702203c7b2d"
+        },
+        "net/minecraft/world/item/MapItem.onCraftedPostProcess(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;)V": {
+            "26.3": "sha256:74d1cc12dddbfef58ac2b8bb124cd417424299404c998d43feec75f8326b6a1f"
         },
         "net/minecraft/world/item/MapItem.renderBiomePreviewMap(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;)V": {
             "26.3": "sha256:81ceb17e3867c967f835532ee65eb2c947b40fc5425c95b3548a6fa407d493f1",
@@ -2239,6 +2252,9 @@
         "net/minecraft/world/level/saveddata/maps/MapItemSavedData.MAX_SCALE": {
             "26.3": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed",
             "26.4-pre-1": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed"
+        },
+        "net/minecraft/world/level/saveddata/maps/MapItemSavedData.scaled()Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;": {
+            "26.3": "sha256:268585db609ad8479fd389fdf7598da5299988e3d664a51af5cfb1e3fd655f8e"
         },
         "net/minecraft/world/phys/AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z": {
             "26.3": "sha256:6f8a3a85cb528b00b18870badc7570a43852eae44c2e2d40b36833208d3f0906",

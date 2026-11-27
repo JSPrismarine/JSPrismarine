@@ -20,6 +20,8 @@ import type HumanInventory from './HumanInventory';
 import type { ItemContainer } from './ItemContainer';
 import { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
+import { hasStackComponents } from '../item/stackComponents';
+import type { StackComponents } from '../item/stackComponents';
 
 /** What an empty slot holds, and so the name a stored slot never carries. */
 const AIR = 'minecraft:air';
@@ -63,6 +65,11 @@ export interface StoredItemStack {
     readonly dynamicProperties?: ItemDynamicProperties;
     /** Which saved map a filled map shows, Java's `minecraft:map_id`. */
     readonly mapId?: number;
+    /**
+     * The stack's other Java components in Java's JSON form, such as `minecraft:trim` or
+     * `minecraft:firework_explosion`; see `Item.getComponents`.
+     */
+    readonly components?: StackComponents;
 }
 
 /** Whether a value is a dynamic property value: a number, a boolean, a string or a vector. */
@@ -93,6 +100,7 @@ export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
         return false;
     if (value.lockMode !== undefined && value.lockMode !== 'slot' && value.lockMode !== 'inventory') return false;
     if (value.dynamicProperties !== undefined && !isItemDynamicProperties(value.dynamicProperties)) return false;
+    if (value.components !== undefined && !isRecord(value.components)) return false;
     if (value.enchantments !== undefined) {
         if (!isRecord(value.enchantments)) return false;
         if (!Object.values(value.enchantments).every((level) => typeof level === 'number')) return false;
@@ -162,6 +170,7 @@ export const storedItem = (item: Item): StoredItemStack | null => {
     const canPlaceOn = item.getCanPlaceOnBlocks();
     const canDestroy = item.getCanDestroyBlocks();
     const mapId = item.getMapId();
+    const components = item.getComponents();
 
     return {
         name: item.getName(),
@@ -174,7 +183,8 @@ export const storedItem = (item: Item): StoredItemStack | null => {
         ...(contents.length === 0 ? {} : { contents: contents.map((slot) => (slot ? storedItem(slot) : null)) }),
         ...(canPlaceOn.length === 0 ? {} : { canPlaceOn: [...canPlaceOn] }),
         ...(canDestroy.length === 0 ? {} : { canDestroy: [...canDestroy] }),
-        ...(mapId === undefined ? {} : { mapId })
+        ...(mapId === undefined ? {} : { mapId }),
+        ...(hasStackComponents(components) ? { components: { ...components } } : {})
     };
 };
 
@@ -198,6 +208,7 @@ export const restoredItem = (stored: StoredItemStack | null | undefined, content
         canPlaceOnBlocks: stored.canPlaceOn,
         canDestroyBlocks: stored.canDestroy,
         mapId: stored.mapId,
+        components: stored.components,
         ...(stored.contents === undefined
             ? {}
             : { contents: stored.contents.map((slot) => restoredItem(slot, content)) })

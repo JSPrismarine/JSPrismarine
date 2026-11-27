@@ -15,6 +15,10 @@
  * `minecraft:item_lock`, and the script dynamic properties as `DynamicProperties`. What the stack
  * may be placed on and may break go beside `tag`, as `CanPlaceOn` and `CanDestroy`.
  *
+ * A stack's other Java components, such as a trim or a firework's explosions, go out twice for
+ * the same reason: as the Bedrock tags `item/componentTags.ts` writes, which the game draws, and
+ * as Java's JSON under {@link COMPONENTS_TAG}, which is what this reads back.
+ *
  * The enchantments go out twice on purpose. `ench` carries the Bedrock numbers the client and
  * a vanilla tool read, and that table covers 37 of the 43 Java enchantments and none of a
  * datapack's, so the Java ids are written beside it under {@link ENCHANTMENTS_TAG} and read
@@ -28,12 +32,19 @@ import { bedrockEnchantType, javaEnchantmentId } from '../enchantment/bedrockIds
 import type { DynamicProperties } from '../world/dynamicProperties';
 import { DYNAMIC_PROPERTIES_TAG, dynamicPropertiesFromNbt, dynamicPropertiesToNbt } from '../world/dynamicProperties';
 import type { StoredItemStack } from './persistence';
+import { addComponentTags } from '../item/componentTags';
+import { hasStackComponents, stackComponentsOf } from '../item/stackComponents';
+import type { StackComponents } from '../item/stackComponents';
+import { isRecord } from '../utils/isRecord';
 
 /** Bedrock's own list tag for the stacks a container holds. */
 export const ITEMS_TAG = 'Items';
 
 /** The Java enchantment ids, under the stack's `tag`, beside Bedrock's own `ench` list. */
 export const ENCHANTMENTS_TAG = 'jsprismarine:enchantments';
+
+/** The stack's other Java components, under its `tag`, as one JSON string. */
+export const COMPONENTS_TAG = 'jsprismarine:components';
 
 /** Bedrock's tag for a stack kept on death, a byte set to 1. */
 const KEEP_ON_DEATH_TAG = 'minecraft:keep_on_death';
@@ -116,6 +127,21 @@ const enchantmentsFromNbt = (tag: NBTTagCompound | null): Record<string, number>
     return Object.keys(levels).length > 0 ? levels : undefined;
 };
 
+/** The components {@link COMPONENTS_TAG} holds, or undefined for a record without a readable copy. */
+const componentsFromNbt = (tag: NBTTagCompound | null): StackComponents | undefined => {
+    const json = tag?.getString(COMPONENTS_TAG, '') ?? '';
+    if (json === '') return undefined;
+    try {
+        const parsed: unknown = JSON.parse(json);
+        const components = isRecord(parsed) ? stackComponentsOf(parsed) : {};
+        return hasStackComponents(components) ? components : undefined;
+    } catch {
+        // A record somebody else edited by hand. The stack loses what it cannot read rather than
+        // the whole inventory failing to load.
+        return undefined;
+    }
+};
+
 /** Writes both copies of a stack's enchantments into its `tag`. */
 const enchantmentsToNbt = (tag: NBTTagCompound, levels: readonly (readonly [string, number])[]): void => {
     const ench = new Set<NBTTagCompound>();
@@ -192,6 +218,11 @@ export const itemStackToNbt = (stack: StoredItemStack, slot?: number): NBTTagCom
         tag.addValue(ITEM_LOCK_TAG, new Types.ByteVal(LOCK_BYTES[stack.lockMode]));
         anything = true;
     }
+    if (hasStackComponents(stack.components)) {
+        addComponentTags(tag, stack.components);
+        tag.addValue(COMPONENTS_TAG, new Types.StringVal(JSON.stringify(stack.components)));
+        anything = true;
+    }
     const properties = propertyMaps(stack.dynamicProperties ?? {});
     if ([...properties.values()].some((values) => values.size > 0)) {
         tag.addChild(dynamicPropertiesToNbt(properties, DYNAMIC_PROPERTIES_TAG));
@@ -224,6 +255,7 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
     const lockMode = lock === LOCK_BYTES.slot ? 'slot' : lock === LOCK_BYTES.inventory ? 'inventory' : undefined;
     const propertiesTag = tag?.getCompound(DYNAMIC_PROPERTIES_TAG, false) ?? null;
     const dynamicProperties = propertiesTag === null ? {} : propertyRecords(dynamicPropertiesFromNbt(propertiesTag));
+    const components = componentsFromNbt(tag);
 
     return {
         name,
@@ -239,7 +271,8 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
         ...(keepOnDeath ? { keepOnDeath } : {}),
         ...(mapId !== undefined && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(lockMode === undefined ? {} : { lockMode }),
-        ...(Object.keys(dynamicProperties).length === 0 ? {} : { dynamicProperties })
+        ...(Object.keys(dynamicProperties).length === 0 ? {} : { dynamicProperties }),
+        ...(components === undefined ? {} : { components })
     };
 };
 
