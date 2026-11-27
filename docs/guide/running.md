@@ -281,6 +281,15 @@ Changing a `bedrock-data` capture under `src/jsp/` or its generator regenerates 
 
 #### Dropping packets to find a bad one
 
+When a client fails to join through the server's fault, the server logs a
+warning with a link that opens a pre-filled GitHub issue. The issue lists the
+last packets the server sent the client. A Bedrock client reports this when a
+handler throws, when the server cannot decode a packet, when the client sends a
+`PacketViolationWarning`, when it leaves with a `Disconnect` reason that blames
+the server's packets, or when it times out before it spawns. A Java client
+reports it when a handler fails or when the client hangs up between its
+configuration and loading the world. Each connection reports once.
+
 When a client leaves during the join without a `Disconnect` or
 `PacketViolationWarning`, the server log alone does not say which packet it
 choked on. Set `JSP_DEBUG_DROP_PACKETS` to a comma-separated list of packet

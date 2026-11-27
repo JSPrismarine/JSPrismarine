@@ -74,5 +74,13 @@ and [Commands and functions](../data-driven/commands.md) lists the commands you 
   Joining from them takes third-party tools that relay a featured server's slot; JSPrismarine
   does not provide one.
 
+- **The game crashes or drops you while it joins.** This is most often the server's fault: it
+  sent something the game could not read, or failed on something the game sent. The server logs a
+  warning that starts with your name and `could not join because of a server error`, followed by
+  a link. The link opens a GitHub issue with the server's version, your game's version, the join
+  step and the last packets the server sent already filled in. Read it over and submit it. The
+  issue leaves out your name and address. If you only play on the server, send the server's
+  owner a copy of that warning.
+
 If none of this helps, ask on [Discord](https://discord.gg/kZZCDyCBbW) or
 [open an issue](https://github.com/JSPrismarine/JSPrismarine/issues/new).
