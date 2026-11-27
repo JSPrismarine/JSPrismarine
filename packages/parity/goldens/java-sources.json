@@ -159,6 +159,7 @@
         "ClientboundSetDisplayObjectivePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetDisplayObjectivePacket.STREAM_CODEC",
         "ClientboundSetEntityDataPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetEntityDataPacket.STREAM_CODEC",
         "ClientboundSetEquipmentPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.STREAM_CODEC",
+        "ClientboundSetExperiencePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetExperiencePacket.STREAM_CODEC",
         "ClientboundSetHealthPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetHealthPacket.STREAM_CODEC",
         "ClientboundSetHeldSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetHeldSlotPacket.STREAM_CODEC",
         "ClientboundSetObjectivePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetObjectivePacket.STREAM_CODEC",
@@ -170,6 +171,7 @@
         "ClientboundSetTitleTextPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetTitleTextPacket.STREAM_CODEC",
         "ClientboundStatusResponsePacket.STREAM_CODEC": "net/minecraft/network/protocol/status/ClientboundStatusResponsePacket.STREAM_CODEC",
         "ClientboundSystemChatPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSystemChatPacket.STREAM_CODEC",
+        "ClientboundTakeItemEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundTakeItemEntityPacket.STREAM_CODEC",
         "ClientboundTeleportEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundTeleportEntityPacket.STREAM_CODEC",
         "ClientboundTickingStatePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundTickingStatePacket.STREAM_CODEC",
         "ClientboundTickingStepPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundTickingStepPacket.STREAM_CODEC",
@@ -1098,6 +1100,9 @@
         "net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.STREAM_CODEC": {
             "26.3": "sha256:d5ab3585280a0b9933476479da21cf1131d1d4ecfbc66327165517a9ea470edc"
         },
+        "net/minecraft/network/protocol/game/ClientboundSetExperiencePacket.STREAM_CODEC": {
+            "26.3": "sha256:1cb6fe2d977549df6bde1c23e117426c06571d511fe4792869237fec0a16dd47"
+        },
         "net/minecraft/network/protocol/game/ClientboundSetHealthPacket.STREAM_CODEC": {
             "26.3": "sha256:7b730b20afeee854b0989a5445199b60e0fc20623c99cd1776dfec6ef6c12090",
             "26.4-pre-1": "sha256:7b730b20afeee854b0989a5445199b60e0fc20623c99cd1776dfec6ef6c12090"
@@ -1137,6 +1142,9 @@
         "net/minecraft/network/protocol/game/ClientboundSystemChatPacket.STREAM_CODEC": {
             "26.3": "sha256:0268c4f14c175907475aa3cdb73653ccc19ce0d981cbcee16367950fbe11c4ef",
             "26.4-pre-1": "sha256:0268c4f14c175907475aa3cdb73653ccc19ce0d981cbcee16367950fbe11c4ef"
+        },
+        "net/minecraft/network/protocol/game/ClientboundTakeItemEntityPacket.STREAM_CODEC": {
+            "26.3": "sha256:8dc1c45cd66e94bac422bf53fba266fee2a5373953690338834467a83b06e349"
         },
         "net/minecraft/network/protocol/game/ClientboundTeleportEntityPacket.STREAM_CODEC": {
             "26.3": "sha256:e953ab2830b316758aacc8dd62d45461533612e58daf680e13ee44506301edbe",
