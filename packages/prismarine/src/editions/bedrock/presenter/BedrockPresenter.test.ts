@@ -2,6 +2,11 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import BossEventPacket, {
+    BossBarColor,
+    BossBarOverlay,
+    BossEventUpdateType
+} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
@@ -180,5 +185,40 @@ describe('BedrockPresenter', () => {
             ['Steve', 1n, false, false],
             ['Alex', 2n, false, false]
         ]);
+    });
+
+    it('sends each boss bar change as a BossEvent that fills every field', async () => {
+        const { sent, presenter: bedrock } = presenter();
+        const bar = {
+            id: 1,
+            actorUniqueId: 42n,
+            title: 'Ender Dragon',
+            progress: 0.5,
+            color: 'rebeccaPurple',
+            style: 'notched10'
+        } as const;
+
+        await bedrock.showBossBar('add', bar);
+        await bedrock.showBossBar('progress', bar);
+        await bedrock.showBossBar('name', bar);
+        await bedrock.showBossBar('remove', bar);
+
+        const events = sent.filter((packet) => packet instanceof BossEventPacket);
+        expect(events.map((event) => event.eventType)).toEqual([
+            BossEventUpdateType.Add,
+            BossEventUpdateType.UpdatePercent,
+            BossEventUpdateType.UpdateName,
+            BossEventUpdateType.Remove
+        ]);
+        for (const event of events) {
+            expect(event).toMatchObject({
+                targetActorId: 42n,
+                name: 'Ender Dragon',
+                filteredName: '',
+                healthPercent: 0.5,
+                color: BossBarColor.RebeccaPurple,
+                overlay: BossBarOverlay.Notched10
+            });
+        }
     });
 });

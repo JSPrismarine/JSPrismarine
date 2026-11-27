@@ -15,11 +15,14 @@ import type { ShownEntity } from '../../../world/ShownActor';
 import type { ListedPlayer } from '../../../network/playerListEntry';
 import type { AbilityTarget } from '../../../network/replica/firstSight';
 import { abilitiesPacket } from '../../../network/replica/firstSight';
+import { bossEventOf } from './bedrockBossBar';
 import { playerListAddOf } from './bedrockPlayerList';
 import type {
+    BossBarChange,
     MessageKind,
     MoveMode,
     SessionPresenter,
+    ShownBossBar,
     ShownMessage,
     ShownMove
 } from '../../../player/presenter/SessionPresenter';
@@ -224,5 +227,10 @@ export class BedrockPresenter implements SessionPresenter {
                 filtered: ''
             })
         );
+    }
+
+    /** Sends `BossEvent`; see {@link bossEventOf}. */
+    public async showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void> {
+        await this.connection.sendDataPacket(bossEventOf(change, bar));
     }
 }

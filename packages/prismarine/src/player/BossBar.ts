@@ -1,10 +1,8 @@
-import BossEventPacket, {
-    BossBarColor,
-    BossBarOverlay,
-    BossEventUpdateType
-} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
+import { BossBarColor, BossBarOverlay } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 
+import { shownBossBarColorOf, shownBossBarStyleOf } from '../editions/bedrock/presenter/bedrockBossBar';
 import type PlayerSession from './PlayerSession';
+import type { BossBarChange, ShownBossBar } from './presenter/SessionPresenter';
 
 /**
  * The bars each player currently has on screen, so a serverbound `Query` can find the bar it
@@ -13,6 +11,9 @@ import type PlayerSession from './PlayerSession';
  * drops the player, or when {@link BossBar.releasePlayer} runs as the session is torn down.
  */
 const barsByPlayer = new Map<bigint, Set<BossBar>>();
+
+/** The number the next bar takes, which tells it from every other bar for the server's life. */
+let nextBarId = 1;
 
 /** What a new boss bar shows before anything updates it. The bar starts full. */
 export interface BossBarOptions {
@@ -31,14 +32,16 @@ export interface BossBarOptions {
 }
 
 /**
- * One boss bar at the top of subscribed players' screens, driven over `BossEventPacket`.
+ * One boss bar at the top of subscribed players' screens, shown through each player's session
+ * presenter, so a Bedrock client gets `BossEvent` and a Java client `Boss Event`.
  *
  * The bar holds its own state - actor, title, fill, color, overlay - and replays it to whoever
- * subscribes, so a player joining a fight in progress sees the same bar as everyone else.
- * Every event fills every packet field, as the flat layout since protocol 2193 requires. A
+ * subscribes, so a player joining a fight in progress sees the same bar as everyone else. A
  * player who disconnects is dropped from the bar on the next send or `players()` call.
  */
 export class BossBar {
+    /** The bar's number, which a Java client's UUID for it is made from. */
+    private readonly id = nextBarId++;
     private actorUniqueId: bigint;
     private name: string;
     private percent = 1;
@@ -67,7 +70,7 @@ export class BossBar {
         if (!bars) barsByPlayer.set(runtimeId, (bars = new Set()));
         bars.add(this);
 
-        return this.sendTo(session, BossEventUpdateType.Add);
+        return this.sendTo(session, 'add');
     }
 
     /** Hides the bar from a player. A player the bar does not have is left alone. */
@@ -76,19 +79,19 @@ export class BossBar {
         if (!this.subscribers.delete(runtimeId)) return Promise.resolve();
 
         this.unlink(runtimeId);
-        return session.isConnected() ? this.sendTo(session, BossEventUpdateType.Remove) : Promise.resolve();
+        return session.isConnected() ? this.sendTo(session, 'remove') : Promise.resolve();
     }
 
     /** Sets how full the bar is, clamped to 0..1, and updates every subscribed player. */
     public setPercent(value: number): Promise<void> {
         this.percent = Math.min(1, Math.max(0, value));
-        return this.broadcast(BossEventUpdateType.UpdatePercent);
+        return this.broadcast('progress');
     }
 
     /** Sets the title above the bar and updates every subscribed player. */
     public setName(name: string): Promise<void> {
         this.name = name;
-        return this.broadcast(BossEventUpdateType.UpdateName);
+        return this.broadcast('name');
     }
 
     /**
@@ -99,9 +102,9 @@ export class BossBar {
     public setColor(color: BossBarColor): Promise<void> {
         if (color === this.color) return Promise.resolve();
 
-        const removed = this.broadcast(BossEventUpdateType.Remove);
+        const removed = this.broadcast('remove');
         this.color = color;
-        return Promise.all([removed, this.broadcast(BossEventUpdateType.Add)]).then(() => undefined);
+        return Promise.all([removed, this.broadcast('add')]).then(() => undefined);
     }
 
     /**
@@ -113,9 +116,9 @@ export class BossBar {
     public setActorUniqueId(actorUniqueId: bigint): Promise<void> {
         if (actorUniqueId === this.actorUniqueId) return Promise.resolve();
 
-        const removed = this.broadcast(BossEventUpdateType.Remove);
+        const removed = this.broadcast('remove');
         this.actorUniqueId = actorUniqueId;
-        return Promise.all([removed, this.broadcast(BossEventUpdateType.Add)]).then(() => undefined);
+        return Promise.all([removed, this.broadcast('add')]).then(() => undefined);
     }
 
     /** The sessions of the players subscribed to the bar, with disconnected ones dropped. */
@@ -130,7 +133,7 @@ export class BossBar {
      */
     public static async answerQuery(session: PlayerSession, actorUniqueId: bigint): Promise<void> {
         for (const bar of barsByPlayer.get(session.runtimeId) ?? []) {
-            if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(session, BossEventUpdateType.Add);
+            if (bar.actorUniqueId === actorUniqueId) await bar.sendTo(session, 'add');
         }
     }
 
@@ -164,23 +167,27 @@ export class BossBar {
     }
 
     /** Queues an update for every subscribed player before it returns; settles once they are framed. */
-    private broadcast(eventType: BossEventUpdateType): Promise<void> {
+    private broadcast(change: BossBarChange): Promise<void> {
         this.prune();
-        return Promise.all([...this.subscribers.values()].map((session) => this.sendTo(session, eventType))).then(
+        return Promise.all([...this.subscribers.values()].map((session) => this.sendTo(session, change))).then(
             () => undefined
         );
     }
 
     /** Queues one update for one player before it returns; settles once it is framed. */
-    private sendTo(session: PlayerSession, eventType: BossEventUpdateType): Promise<void> {
-        const packet = new BossEventPacket();
-        packet.targetActorId = this.actorUniqueId;
-        packet.eventType = eventType;
-        packet.name = this.name;
-        packet.filteredName = '';
-        packet.healthPercent = this.percent;
-        packet.color = this.color;
-        packet.overlay = this.overlay;
-        return session.send(packet);
+    private sendTo(session: PlayerSession, change: BossBarChange): Promise<void> {
+        return session.presenter.showBossBar(change, this.shown());
+    }
+
+    /** The bar as it is now, in no edition's terms. */
+    private shown(): ShownBossBar {
+        return {
+            id: this.id,
+            actorUniqueId: this.actorUniqueId,
+            title: this.name,
+            progress: this.percent,
+            color: shownBossBarColorOf(this.color),
+            style: shownBossBarStyleOf(this.overlay)
+        };
     }
 }

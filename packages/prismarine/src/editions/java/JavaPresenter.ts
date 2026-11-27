@@ -12,6 +12,7 @@ import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/pa
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
     AddEntity,
+    BossEvent,
     ChunkBatchFinished,
     ChunkBatchStart,
     SetCenterChunk,
@@ -39,6 +40,9 @@ import {
     SetEquipment,
     SetHeldSlot,
     SynchronizePlayerPosition,
+    JavaBossBarColor,
+    JavaBossBarOverlay,
+    JavaBossEventOperation,
     SystemChat,
     TeleportEntity
 } from '@jsprismarine/protocol/java/packet/play';
@@ -48,8 +52,12 @@ import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type {
+    BossBarChange,
     SessionPresenter,
     ShownBlockChange,
+    ShownBossBar,
+    ShownBossBarColor,
+    ShownBossBarStyle,
     ShownContainer,
     ShownDeath,
     ShownEntityMove,
@@ -77,6 +85,83 @@ import {
 
 /** A UUID for an entity that has none of its own to show, made from its id so it stays the same. */
 const entityUuidOf = (runtimeId: bigint): string => hyphenatedUuid(runtimeId.toString(16).padStart(32, '0'));
+
+/**
+ * A boss bar's UUID, made from the bar's number so it stays the same for the bar's life. A
+ * client keys its bars by UUID alone, apart from its entities'.
+ * @param id - The bar.
+ */
+export const bossBarUuidOf = (id: number): string => hyphenatedUuid(id.toString(16).padStart(32, '0'));
+
+/** Java's color for each boss bar color. Java has no rebecca purple, so it draws purple. */
+const JAVA_BOSS_BAR_COLOR = {
+    pink: JavaBossBarColor.Pink,
+    blue: JavaBossBarColor.Blue,
+    red: JavaBossBarColor.Red,
+    green: JavaBossBarColor.Green,
+    yellow: JavaBossBarColor.Yellow,
+    purple: JavaBossBarColor.Purple,
+    rebeccaPurple: JavaBossBarColor.Purple,
+    white: JavaBossBarColor.White
+} as const satisfies Record<ShownBossBarColor, JavaBossBarColor>;
+
+/** Java's overlay for each boss bar style. */
+const JAVA_BOSS_BAR_OVERLAY = {
+    progress: JavaBossBarOverlay.Progress,
+    notched6: JavaBossBarOverlay.Notched6,
+    notched10: JavaBossBarOverlay.Notched10,
+    notched12: JavaBossBarOverlay.Notched12,
+    notched20: JavaBossBarOverlay.Notched20
+} as const satisfies Record<ShownBossBarStyle, JavaBossBarOverlay>;
+
+/**
+ * A dotted lowercase key with a letter in it, such as `entity.minecraft.ender_dragon`, which a
+ * client translates.
+ */
+const TRANSLATION_KEY = /^(?=.*[a-z])[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
+
+/**
+ * A boss bar's title as Java text. A Bedrock client translates a title that is a key, as the
+ * dragon fight's is, so a key goes to Java as a translation and anything else as written.
+ * @param title - The title.
+ * @returns The text.
+ */
+export const javaBossBarTitleOf = (title: string): JavaText =>
+    TRANSLATION_KEY.test(title) ? { translate: title } : title;
+
+/**
+ * A boss bar change as Java's `Boss Event` operation. The bar carries no flags: it neither darkens
+ * the sky, plays boss music nor makes fog.
+ * @param change - What changed.
+ * @param bar - The bar after the change.
+ * @returns The packet's fields.
+ */
+export const javaBossEventOf = (change: BossBarChange, bar: ShownBossBar): JavaPayload<typeof BossEvent> => {
+    const uuid = bossBarUuidOf(bar.id);
+    switch (change) {
+        case 'add':
+            return {
+                uuid,
+                operation: {
+                    type: JavaBossEventOperation.Add,
+                    title: javaBossBarTitleOf(bar.title),
+                    progress: bar.progress,
+                    color: JAVA_BOSS_BAR_COLOR[bar.color],
+                    overlay: JAVA_BOSS_BAR_OVERLAY[bar.style],
+                    flags: 0
+                }
+            };
+        case 'remove':
+            return { uuid, operation: { type: JavaBossEventOperation.Remove } };
+        case 'progress':
+            return { uuid, operation: { type: JavaBossEventOperation.UpdateProgress, progress: bar.progress } };
+        case 'name':
+            return {
+                uuid,
+                operation: { type: JavaBossEventOperation.UpdateName, title: javaBossBarTitleOf(bar.title) }
+            };
+    }
+};
 
 /** The player's own inventory window, which the client always has. */
 const INVENTORY_WINDOW = 0;
@@ -520,5 +605,10 @@ export class JavaPresenter implements SessionPresenter {
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */
     public async sendMessage(message: ShownMessage): Promise<void> {
         this.send(SystemChat, { content: javaTextOf(message), overlay: false });
+    }
+
+    /** Sends `Boss Event`; see {@link javaBossEventOf}. */
+    public async showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void> {
+        this.send(BossEvent, javaBossEventOf(change, bar));
     }
 }

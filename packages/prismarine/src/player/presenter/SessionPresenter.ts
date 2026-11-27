@@ -166,6 +166,32 @@ export interface ShownDeath {
     readonly parameters: readonly string[];
 }
 
+/** A boss bar's color. Bedrock has a `rebeccaPurple` that Java lacks. */
+export type ShownBossBarColor = 'pink' | 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'rebeccaPurple' | 'white';
+
+/** How a boss bar is divided: one undivided bar, or 6, 10, 12 or 20 notches. */
+export type ShownBossBarStyle = 'progress' | 'notched6' | 'notched10' | 'notched12' | 'notched20';
+
+/**
+ * What changed about a boss bar: it appeared, it went away, or its fill or its title changed.
+ * A change of color goes as a `remove` and an `add`.
+ */
+export type BossBarChange = 'add' | 'remove' | 'progress' | 'name';
+
+/** One boss bar as it is now. */
+export interface ShownBossBar {
+    /** The bar, the same number for as long as it exists, which tells one bar from another. */
+    readonly id: number;
+    /** The actor a Bedrock client binds the bar to. */
+    readonly actorUniqueId: bigint;
+    /** The title above the bar. */
+    readonly title: string;
+    /** How full the bar is, 0 to 1. */
+    readonly progress: number;
+    readonly color: ShownBossBarColor;
+    readonly style: ShownBossBarStyle;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -348,4 +374,12 @@ export interface SessionPresenter {
      * @param message - The message, which the session has checked is not empty.
      */
     sendMessage(message: ShownMessage): Promise<void>;
+
+    /**
+     * Shows the client a change to a boss bar at the top of its screen.
+     *
+     * @param change - What changed.
+     * @param bar - The bar as it is after the change; a `remove` still names everything it showed.
+     */
+    showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void>;
 }
