@@ -873,8 +873,12 @@ export class DataDrivenGenerator implements Generator {
      *
      * Every chunk's key repeats the whole noise settings document, which is megabytes in
      * canonical form; hashing it once per pipeline leaves a few dozen bytes per chunk.
+     *
+     * A `Map` rather than a `WeakMap`: {@link pipelines} keeps every pipeline for the generator's
+     * life anyway, and Bun's AOT compiler treats an object handed to a `WeakMap` as one outside
+     * code can change, which left every read of a pipeline's fields a lookup by name.
      */
-    private readonly pipelineKeyStems = new WeakMap<SeededPipeline, { persistent?: string; shared?: string }>();
+    private readonly pipelineKeyStems = new Map<SeededPipeline, { persistent?: string; shared?: string }>();
     /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
     private readonly biomeSources = new Map<string, BiomeSource>();
     /** Optional disk storage for immutable terrain-status proto tiles. */
@@ -894,8 +898,11 @@ export class DataDrivenGenerator implements Generator {
     private readonly sampleContexts = new SampleContextPool();
     /** The save's stored chunks per dimension, as the provider last handed them over. */
     private readonly storedChunks = new Map<string, StoredChunkReader>();
-    /** The old chunks each pipeline has asked about, rebuilt when the provider's reader changes. */
-    private readonly oldChunksByPipeline = new WeakMap<SeededPipeline, { stored: StoredChunkReader; old: OldChunks }>();
+    /**
+     * The old chunks each pipeline has asked about, rebuilt when the provider's reader changes. A
+     * `Map` for the reason {@link pipelineKeyStems} gives.
+     */
+    private readonly oldChunksByPipeline = new Map<SeededPipeline, { stored: StoredChunkReader; old: OldChunks }>();
     /**
      * The `worldgen/noise_settings` documents, the registries' plus any inline document a key
      * brought along. The map {@link DataDrivenGenerator.worldgen} reads, so an entry added here
