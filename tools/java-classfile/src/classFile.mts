@@ -179,6 +179,11 @@ export const ACC_PRIVATE = 0x0002;
 export const ACC_STATIC = 0x0008;
 /** `ACC_SYNCHRONIZED` (JVMS 4.6), which makes a method hold its object's or class's monitor. */
 export const ACC_SYNCHRONIZED = 0x0020;
+/**
+ * `ACC_BRIDGE` (JVMS 4.6), which `javac` sets on the method it writes to forward an erased
+ * override, such as `start(ServerLevel, LivingEntity, long)` to `start(ServerLevel, Sniffer, long)`.
+ */
+export const ACC_BRIDGE = 0x0040;
 /** `ACC_SYNTHETIC` (JVMS 4.6), which `javac` sets on the methods it writes for lambdas. */
 export const ACC_SYNTHETIC = 0x1000;
 

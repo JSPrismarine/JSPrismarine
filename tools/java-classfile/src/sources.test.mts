@@ -3,7 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseJavaClass } from './classFile.mts';
+import type { JavaClass } from './classFile.mts';
+import { ACC_BRIDGE, parseJavaClass } from './classFile.mts';
 import { JavaSourceError } from './fingerprint.mts';
 import {
     formatJavaSourceGolden,
@@ -65,19 +66,20 @@ describe('scanJavaSources', () => {
         expect(scan.untaggedCitations).toBe(0);
     });
 
-    it('accepts a package path, a nested class and a descriptor, and rejects a malformed path', () => {
+    it('accepts a package path, a nested class, a constructor and a descriptor, and rejects a malformed path', () => {
         const spellings = [
             'net/minecraft/world/level/block/SpongeBlock.absorb',
             'MapItemSavedData$HoldingPlayer.step',
             'Sponge.overload(I)I',
+            'TargetGoal.<init>(ZZ)V',
             'net/Minecraft/Sponge.absorb',
             'Sponge.overload(I',
-            'Sponge.'
+            'Sponge.<clinit>'
         ];
         const scan = scanJavaSources('d.ts', spellings.map((spelling) => `/** @javaSee ${spelling} */`).join('\n'));
 
-        expect(scan.references.map((reference) => reference.spelling)).toEqual(spellings.slice(0, 3));
-        expect(scan.problems.map((problem) => problem.line)).toEqual([4, 5, 6]);
+        expect(scan.references.map((reference) => reference.spelling)).toEqual(spellings.slice(0, 4));
+        expect(scan.problems.map((problem) => problem.line)).toEqual([5, 6, 7]);
     });
 
     it('ignores an unclosed comment, however many openings the file repeats', () => {
@@ -139,6 +141,21 @@ describe('resolveJavaSource', () => {
         expect(resolveJavaSource('Sponge.overload(J)I', index).descriptor).toBe('(J)I');
         expect(() => resolveJavaSource('Water.flow', index)).toThrow(/ambiguous/);
         expect(() => resolveJavaSource('Sponge.missing', index)).toThrow(JavaSourceError);
+    });
+
+    it('passes over the bridge javac writes beside an override, unless a descriptor names it', () => {
+        const absorb = sponge.methods.find((method) => method.name === 'absorb');
+        if (absorb === undefined) throw new Error('the fixture has no absorb');
+        const bridged: JavaClass = {
+            ...sponge,
+            methods: [...sponge.methods, { ...absorb, descriptor: '(Ljava/lang/Object;)I', access: ACC_BRIDGE }]
+        };
+        const bridgedIndex: JavaClassIndex = { names: ['net/example/Sponge'], load: () => bridged };
+
+        expect(resolveJavaSource('Sponge.absorb', bridgedIndex).descriptor).toBe('([I)I');
+        expect(resolveJavaSource('Sponge.absorb(Ljava/lang/Object;)I', bridgedIndex).descriptor).toBe(
+            '(Ljava/lang/Object;)I'
+        );
     });
 });
 

@@ -2,6 +2,7 @@ import { globSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { JavaClass } from './classFile.mts';
+import { ACC_BRIDGE } from './classFile.mts';
 import type { JavaSourceMember } from './fingerprint.mts';
 import { JavaSourceError } from './fingerprint.mts';
 
@@ -33,7 +34,8 @@ export const JAVA_VERIFIED_TAG = '@javaVerified';
 export const JAVA_VERIFIED_KINDS = ['vectors', 'read', 'extracted'] as const;
 
 /**
- * Whether a tag's spelling is an optional package path, a class with nested `$` parts, a member,
+ * Whether a tag's spelling is an optional package path, a class with nested `$` parts, a member
+ * or `<init>` for a constructor that sets a field the code copies,
  * and an optional descriptor. Each part is checked on its own, so no pattern backtracks across the
  * whole spelling.
  */
@@ -42,7 +44,7 @@ const isSpelling = (spelling: string): boolean => {
     const path = paren < 0 ? spelling : spelling.slice(0, paren);
     if (paren >= 0 && !/^\([^\s)]*\)\S+$/.test(spelling.slice(paren))) return false;
     const dot = path.lastIndexOf('.');
-    if (dot < 0 || !/^[A-Za-z_$][\w$]*$/.test(path.slice(dot + 1))) return false;
+    if (dot < 0 || !/^(?:[A-Za-z_$][\w$]*|<init>)$/.test(path.slice(dot + 1))) return false;
     const segments = path.slice(0, dot).split('/');
     const className = segments.pop() ?? '';
     return /^[A-Za-z0-9_$]+$/.test(className) && segments.every((segment) => /^[a-z0-9_]+$/.test(segment));
@@ -95,10 +97,12 @@ const tagSpelling = (tag: string, content: string): { readonly spelling: string 
 };
 
 /**
- * Each JSDoc comment in a file, with the line it starts on. A scan by `indexOf` rather than a
- * regular expression, which takes time polynomial in the input on a file of unclosed `/**`.
+ * Each JSDoc comment in a file, with the line and offset it starts at. A scan by `indexOf` rather
+ * than a regular expression, which takes time polynomial in the input on a file of unclosed `/**`.
  */
-function* jsdocComments(text: string): Generator<{ readonly body: string; readonly startLine: number }> {
+export function* jsdocComments(
+    text: string
+): Generator<{ readonly body: string; readonly startLine: number; readonly start: number }> {
     let line = 1;
     let counted = 0;
     for (let start = text.indexOf('/**'); start >= 0;) {
@@ -106,7 +110,7 @@ function* jsdocComments(text: string): Generator<{ readonly body: string; readon
         if (end < 0) return;
         for (let at = text.indexOf('\n', counted); at >= 0 && at < start; at = text.indexOf('\n', at + 1)) line++;
         counted = start;
-        yield { body: text.slice(start, end + 2), startLine: line };
+        yield { body: text.slice(start, end + 2), startLine: line, start };
         start = text.indexOf('/**', end + 2);
     }
 }
@@ -346,8 +350,12 @@ export const resolveJavaSource = (spelling: string, index: JavaClassIndex): Java
     const parsed = index.load(owner);
     if (parsed === undefined) throw new JavaSourceError(`${spelling}: the jar holds no class ${owner}`);
 
+    // A bridge only forwards to the override it was written for, so it is never what code copies,
+    // and the short spelling names the override.
     const methods = parsed.methods.filter(
-        (method) => method.name === name && (descriptor === undefined || method.descriptor === descriptor)
+        (method) =>
+            method.name === name &&
+            (descriptor === undefined ? (method.access & ACC_BRIDGE) === 0 : method.descriptor === descriptor)
     );
     const fields = descriptor === undefined ? parsed.fields.filter((field) => field.name === name) : [];
     if (methods.length + fields.length === 0) throw new JavaSourceError(`${spelling}: ${owner} declares no ${name}`);
