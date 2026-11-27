@@ -27,6 +27,7 @@ import type { ExperienceHolder } from '../../entity/Experience';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import { itemFromContent } from '../../item/itemFromContent';
+import { advancementInventoryChanged } from '../../advancement/triggers';
 import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import { isSummonable } from '../vanillaCommands';
@@ -413,10 +414,14 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
             );
             if (item === null) return 0;
 
-            const leftover = player.getInventory().container('inventory').add(item.withCount(count));
+            const stack = item.withCount(count);
+            const leftover = player.getInventory().container('inventory').add(stack);
             const given = count - leftover;
             if (given === 0) return 0;
 
+            // Java's inventory listener raises this for every slot the stack lands in, and the
+            // `recipes/` advancements that unlock a recipe from its ingredient listen for it.
+            advancementInventoryChanged(session, stack);
             return carryOut(session.sendInventory(), given);
         },
 
