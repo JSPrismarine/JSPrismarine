@@ -130,6 +130,29 @@ module's top level when no function holds it. A change to code that ran outside 
 anything that is not server source, or with no map, still runs them all. A selection of more than 15
 scenarios plays in four shards. A push to `master` and a manual run keep every scenario.
 
+A pull request narrows this further with `--policy shared`. Most of what a scenario checks is what
+the server sends, and the loopback scenarios under `packages/client/src/scenarios/` check that on
+every pull request through the unit tests, with `@jsprismarine/client` joined to an in-process
+server. They share the server's packet codecs and transports, so a bug in those is the same on both
+ends of the pipe, and only cinnabar sees it. A pull request therefore plays cinnabar only when it
+changes code the server shares with `@jsprismarine/client`, this harness or its pins, the
+workspace's own files such as the lockfile or `ci.yml`, a scenario file, or server source that the
+coverage map places in a scenario. Any other server change waits for the merge group, which plays
+every scenario on every pin before the change lands. The `Client E2E` label on a pull request
+skips the selection and plays every scenario; add it, then push or re-run the workflow.
+
+## Where a scenario belongs
+
+Write a loopback scenario in `packages/client/src/scenarios/` when the check is about what the
+server decides and sends: chat, commands, titles, teleports, health, actors appearing and going,
+blocks changing, dimensions, joins and kicks. `startLoopbackServer` in
+`packages/client/src/testing/loopbackServer.test-utils.ts` boots a stepped flat-world server and
+joins clients to it, and `ClientWorld` keeps what each client was sent. These run in the unit
+tests, on a fake clock, in every pull request the change reaches.
+
+Write a cinnabar scenario here only when the check needs a real client: what it renders, a screen
+or a click on one, its own movement physics and prediction, or its handling of the wire itself.
+
 ## Version pin
 
 `cinnabar.json` gives each wire protocol one cinnabar commit, its build, in `commit`, and lists the

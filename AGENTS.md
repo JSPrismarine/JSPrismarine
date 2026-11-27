@@ -248,7 +248,12 @@ by biome, `/locate`, or portals between dimensions.
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
   behavior and public contracts, and add regression coverage for bugs when the task calls for tests.
 - For bug fixes, add a focused unit regression test. When a change alters client-visible behavior,
-  add a client-e2e scenario for it and let the pull request's Client E2E job in `ci.yml` run it.
+  add a loopback scenario under `packages/client/src/scenarios/`, which joins `@jsprismarine/client`
+  to an in-process server and runs with the unit tests. Add a cinnabar scenario under
+  `tools/client-e2e/src/scenarios/` only for what needs a real client: rendering, screens, client
+  physics or the wire codecs the two ends share ([its README](tools/client-e2e/README.md#where-a-scenario-belongs)).
+  The merge group plays every cinnabar scenario, and a pull request's Client E2E job plays the ones
+  its changes reach.
   Do not run `pnpm run e2e:client` or its `ensure` build locally, and do not tell a subagent to:
   the cinnabar build is slow and a shared host's load fails real-clock scenarios. Check that the
   job's path filters and scenario selection reach the new scenario, and read the job's result and

@@ -8,6 +8,7 @@ const packages: WorkspacePackage[] = [
     { root: 'packages/prismarine', name: '@jsp/prismarine', dependencies: ['@jsp/raknet'] },
     { root: 'packages/raknet', name: '@jsp/raknet', dependencies: [] },
     { root: 'packages/parity', name: '@jsp/parity', dependencies: ['@jsp/prismarine'] },
+    { root: 'packages/client', name: '@jsp/client', dependencies: ['@jsp/raknet'] },
     { root: 'tools/client-e2e', name: '@jsp/client-e2e', dependencies: [] }
 ];
 
@@ -98,5 +99,43 @@ describe('selectScenarios with a coverage reach', () => {
     it('runs everything for a change that reaches code outside every scenario, or one it cannot place', () => {
         expect(selectWithReach(['packages/prismarine/src/Tick.ts']).mode).toBe('all');
         expect(selectWithReach(['packages/prismarine/src/data.json']).mode).toBe('all');
+    });
+});
+
+describe('selectScenarios under the shared policy', () => {
+    const reached: Record<string, readonly string[] | 'all'> = {
+        'packages/prismarine/src/Furnace.ts': ['furnace'],
+        'packages/prismarine/src/Tick.ts': 'all'
+    };
+    const selectShared = (changed: readonly string[], reach: (file: string) => readonly string[] | 'all' | undefined) =>
+        selectScenarios(changed, packages, (file) => scenarioNames[file], reach, 'shared');
+
+    it('leaves server code the loopback scenarios cover to the merge group', () => {
+        expect(selectShared(['packages/prismarine/src/World.ts'], () => undefined)).toEqual({
+            mode: 'none',
+            scenarios: []
+        });
+        expect(selectShared(['packages/prismarine/src/Tick.ts'], (file) => reached[file]).mode).toBe('none');
+    });
+
+    it('still runs the scenarios a coverage map places a server change in', () => {
+        expect(selectShared(['packages/prismarine/src/Furnace.ts'], (file) => reached[file])).toEqual({
+            mode: 'some',
+            scenarios: ['furnace']
+        });
+    });
+
+    it.each([
+        'packages/raknet/src/Session.ts',
+        'tools/client-e2e/src/run.mts',
+        'tools/client-e2e/cinnabar.json',
+        'pnpm-lock.yaml',
+        '.github/workflows/ci.yml'
+    ])('runs every scenario when %s, which the loopback client shares or cannot check, changes', (file) => {
+        expect(selectShared([file], () => undefined)).toEqual({ mode: 'all', scenarios: [], because: file });
+    });
+
+    it('runs nothing for a change to the loopback client alone', () => {
+        expect(selectShared(['packages/client/src/Client.ts'], () => undefined).mode).toBe('none');
     });
 });
