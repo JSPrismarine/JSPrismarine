@@ -5,10 +5,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 /** Two brain definitions were registered for the same mob. */
 class DuplicateBrainMob extends JSPrismarineError {
-    public static readonly code = 'ENTITY_BRAINS_DUPLICATE_BRAIN_MOB';
-    public static readonly domain = 'entity-brains';
-    public static readonly template = 'Duplicate brain mob: {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-duplicate-brain-mob';
+    public static get code(): 'ENTITY_BRAINS_DUPLICATE_BRAIN_MOB' {
+        return 'ENTITY_BRAINS_DUPLICATE_BRAIN_MOB';
+    }
+    public static get domain(): 'entity-brains' {
+        return 'entity-brains';
+    }
+    public static get template(): 'Duplicate brain mob: {id}' {
+        return 'Duplicate brain mob: {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-brains#entity-brains-duplicate-brain-mob' {
+        return 'https://jsprismarine.dev/errors/entity-brains#entity-brains-duplicate-brain-mob';
+    }
 
     public override readonly code = 'ENTITY_BRAINS_DUPLICATE_BRAIN_MOB';
     public override readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-duplicate-brain-mob';
@@ -27,10 +35,18 @@ class DuplicateBrainMob extends JSPrismarineError {
 
 /** A test mob was ticked before it was given a brain. Call `attach()` first. */
 class NoBrainAttached extends JSPrismarineError {
-    public static readonly code = 'ENTITY_BRAINS_NO_BRAIN_ATTACHED';
-    public static readonly domain = 'entity-brains';
-    public static readonly template = '{type} has no brain attached; call attach() first';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-no-brain-attached';
+    public static get code(): 'ENTITY_BRAINS_NO_BRAIN_ATTACHED' {
+        return 'ENTITY_BRAINS_NO_BRAIN_ATTACHED';
+    }
+    public static get domain(): 'entity-brains' {
+        return 'entity-brains';
+    }
+    public static get template(): '{type} has no brain attached; call attach() first' {
+        return '{type} has no brain attached; call attach() first';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-brains#entity-brains-no-brain-attached' {
+        return 'https://jsprismarine.dev/errors/entity-brains#entity-brains-no-brain-attached';
+    }
 
     public override readonly code = 'ENTITY_BRAINS_NO_BRAIN_ATTACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-no-brain-attached';
@@ -49,10 +65,18 @@ class NoBrainAttached extends JSPrismarineError {
 
 /** A behavior was built with a pitch range whose minimum is above its maximum. */
 class MinPitchAboveMax extends JSPrismarineError {
-    public static readonly code = 'ENTITY_BRAINS_MIN_PITCH_ABOVE_MAX';
-    public static readonly domain = 'entity-brains';
-    public static readonly template = 'Minimum pitch is larger than maximum pitch! {minPitch} > {maxPitch}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-min-pitch-above-max';
+    public static get code(): 'ENTITY_BRAINS_MIN_PITCH_ABOVE_MAX' {
+        return 'ENTITY_BRAINS_MIN_PITCH_ABOVE_MAX';
+    }
+    public static get domain(): 'entity-brains' {
+        return 'entity-brains';
+    }
+    public static get template(): 'Minimum pitch is larger than maximum pitch! {minPitch} > {maxPitch}' {
+        return 'Minimum pitch is larger than maximum pitch! {minPitch} > {maxPitch}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-brains#entity-brains-min-pitch-above-max' {
+        return 'https://jsprismarine.dev/errors/entity-brains#entity-brains-min-pitch-above-max';
+    }
 
     public override readonly code = 'ENTITY_BRAINS_MIN_PITCH_ABOVE_MAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-min-pitch-above-max';
@@ -77,10 +101,18 @@ class MinPitchAboveMax extends JSPrismarineError {
  * behavior's memory requirements are declared wrongly.
  */
 class AbsentMemory extends JSPrismarineError {
-    public static readonly code = 'ENTITY_BRAINS_ABSENT_MEMORY';
-    public static readonly domain = 'entity-brains';
-    public static readonly template = '{name} read an absent memory: {memoryName}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-absent-memory';
+    public static get code(): 'ENTITY_BRAINS_ABSENT_MEMORY' {
+        return 'ENTITY_BRAINS_ABSENT_MEMORY';
+    }
+    public static get domain(): 'entity-brains' {
+        return 'entity-brains';
+    }
+    public static get template(): '{name} read an absent memory: {memoryName}' {
+        return '{name} read an absent memory: {memoryName}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-brains#entity-brains-absent-memory' {
+        return 'https://jsprismarine.dev/errors/entity-brains#entity-brains-absent-memory';
+    }
 
     public override readonly code = 'ENTITY_BRAINS_ABSENT_MEMORY';
     public override readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-absent-memory';
@@ -102,10 +134,18 @@ class AbsentMemory extends JSPrismarineError {
  * wait. Give it a larger interval.
  */
 class LookIntervalTooShort extends JSPrismarineError {
-    public static readonly code = 'ENTITY_BRAINS_LOOK_INTERVAL_TOO_SHORT';
-    public static readonly domain = 'entity-brains';
-    public static readonly template = 'SetEntityLookTargetSometimes needs an interval above 1, got {min}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-brains#entity-brains-look-interval-too-short';
+    public static get code(): 'ENTITY_BRAINS_LOOK_INTERVAL_TOO_SHORT' {
+        return 'ENTITY_BRAINS_LOOK_INTERVAL_TOO_SHORT';
+    }
+    public static get domain(): 'entity-brains' {
+        return 'entity-brains';
+    }
+    public static get template(): 'SetEntityLookTargetSometimes needs an interval above 1, got {min}' {
+        return 'SetEntityLookTargetSometimes needs an interval above 1, got {min}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-brains#entity-brains-look-interval-too-short' {
+        return 'https://jsprismarine.dev/errors/entity-brains#entity-brains-look-interval-too-short';
+    }
 
     public override readonly code = 'ENTITY_BRAINS_LOOK_INTERVAL_TOO_SHORT';
     public override readonly docs =

@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * archive the server expects. The pinned download may have moved.
  */
 class BdsArchiveHasNoBehaviorPacks extends JSPrismarineError {
-    public static readonly code = 'SERVER_BDS_ARCHIVE_HAS_NO_BEHAVIOR_PACKS';
-    public static readonly domain = 'server';
-    public static readonly template = 'the Bedrock Dedicated Server zip at {url} holds no behavior_packs/';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-bds-archive-has-no-behavior-packs';
+    public static get code(): 'SERVER_BDS_ARCHIVE_HAS_NO_BEHAVIOR_PACKS' {
+        return 'SERVER_BDS_ARCHIVE_HAS_NO_BEHAVIOR_PACKS';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the Bedrock Dedicated Server zip at {url} holds no behavior_packs/' {
+        return 'the Bedrock Dedicated Server zip at {url} holds no behavior_packs/';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-bds-archive-has-no-behavior-packs' {
+        return 'https://jsprismarine.dev/errors/server#server-bds-archive-has-no-behavior-packs';
+    }
 
     public override readonly code = 'SERVER_BDS_ARCHIVE_HAS_NO_BEHAVIOR_PACKS';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-bds-archive-has-no-behavior-packs';
@@ -33,10 +41,18 @@ class BdsArchiveHasNoBehaviorPacks extends JSPrismarineError {
  * a client.
  */
 class UnmaskedWebsocketFrame extends JSPrismarineError {
-    public static readonly code = 'SERVER_UNMASKED_WEBSOCKET_FRAME';
-    public static readonly domain = 'server';
-    public static readonly template = 'Client WebSocket frames must be masked';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-unmasked-websocket-frame';
+    public static get code(): 'SERVER_UNMASKED_WEBSOCKET_FRAME' {
+        return 'SERVER_UNMASKED_WEBSOCKET_FRAME';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Client WebSocket frames must be masked' {
+        return 'Client WebSocket frames must be masked';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-unmasked-websocket-frame' {
+        return 'https://jsprismarine.dev/errors/server#server-unmasked-websocket-frame';
+    }
 
     public override readonly code = 'SERVER_UNMASKED_WEBSOCKET_FRAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-unmasked-websocket-frame';
@@ -57,11 +73,18 @@ class UnmaskedWebsocketFrame extends JSPrismarineError {
  * message names the address and how to supply the pack yourself.
  */
 class BehaviorPackDownloadFailed extends JSPrismarineError {
-    public static readonly code = 'SERVER_BEHAVIOR_PACK_DOWNLOAD_FAILED';
-    public static readonly domain = 'server';
-    public static readonly template =
-        'Could not fetch the vanilla Bedrock behavior pack from {url}: {value}. The server needs it to define blocks and entities. Check the network and retry, or set {bdsOverride} to a local Bedrock Dedicated Server behavior_packs folder.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-behavior-pack-download-failed';
+    public static get code(): 'SERVER_BEHAVIOR_PACK_DOWNLOAD_FAILED' {
+        return 'SERVER_BEHAVIOR_PACK_DOWNLOAD_FAILED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Could not fetch the vanilla Bedrock behavior pack from {url}: {value}. The server needs it to define blocks and entities. Check the network and retry, or set {bdsOverride} to a local Bedrock Dedicated Server behavior_packs folder.' {
+        return 'Could not fetch the vanilla Bedrock behavior pack from {url}: {value}. The server needs it to define blocks and entities. Check the network and retry, or set {bdsOverride} to a local Bedrock Dedicated Server behavior_packs folder.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-behavior-pack-download-failed' {
+        return 'https://jsprismarine.dev/errors/server#server-behavior-pack-download-failed';
+    }
 
     public override readonly code = 'SERVER_BEHAVIOR_PACK_DOWNLOAD_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-behavior-pack-download-failed';
@@ -91,10 +114,18 @@ class BehaviorPackDownloadFailed extends JSPrismarineError {
  * is damaged. Download it again.
  */
 class DataBundleEntryTruncated extends JSPrismarineError {
-    public static readonly code = 'SERVER_DATA_BUNDLE_ENTRY_TRUNCATED';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle entry is truncated: {path}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-entry-truncated';
+    public static get code(): 'SERVER_DATA_BUNDLE_ENTRY_TRUNCATED' {
+        return 'SERVER_DATA_BUNDLE_ENTRY_TRUNCATED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle entry is truncated: {path}' {
+        return 'data bundle entry is truncated: {path}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-data-bundle-entry-truncated' {
+        return 'https://jsprismarine.dev/errors/server#server-data-bundle-entry-truncated';
+    }
 
     public override readonly code = 'SERVER_DATA_BUNDLE_ENTRY_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-entry-truncated';
@@ -116,10 +147,18 @@ class DataBundleEntryTruncated extends JSPrismarineError {
  * damaged. Download it again.
  */
 class InvalidDataBundleIndexEntry extends JSPrismarineError {
-    public static readonly code = 'SERVER_INVALID_DATA_BUNDLE_INDEX_ENTRY';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle index entry is malformed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-data-bundle-index-entry';
+    public static get code(): 'SERVER_INVALID_DATA_BUNDLE_INDEX_ENTRY' {
+        return 'SERVER_INVALID_DATA_BUNDLE_INDEX_ENTRY';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle index entry is malformed' {
+        return 'data bundle index entry is malformed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-invalid-data-bundle-index-entry' {
+        return 'https://jsprismarine.dev/errors/server#server-invalid-data-bundle-index-entry';
+    }
 
     public override readonly code = 'SERVER_INVALID_DATA_BUNDLE_INDEX_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-data-bundle-index-entry';
@@ -140,10 +179,18 @@ class InvalidDataBundleIndexEntry extends JSPrismarineError {
  * damaged. Download it again.
  */
 class DataBundleIndexNotList extends JSPrismarineError {
-    public static readonly code = 'SERVER_DATA_BUNDLE_INDEX_NOT_LIST';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle index is not a list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-index-not-list';
+    public static get code(): 'SERVER_DATA_BUNDLE_INDEX_NOT_LIST' {
+        return 'SERVER_DATA_BUNDLE_INDEX_NOT_LIST';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle index is not a list' {
+        return 'data bundle index is not a list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-data-bundle-index-not-list' {
+        return 'https://jsprismarine.dev/errors/server#server-data-bundle-index-not-list';
+    }
 
     public override readonly code = 'SERVER_DATA_BUNDLE_INDEX_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-index-not-list';
@@ -164,10 +211,18 @@ class DataBundleIndexNotList extends JSPrismarineError {
  * Download it again.
  */
 class DataBundleIndexTruncated extends JSPrismarineError {
-    public static readonly code = 'SERVER_DATA_BUNDLE_INDEX_TRUNCATED';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle index is truncated';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-index-truncated';
+    public static get code(): 'SERVER_DATA_BUNDLE_INDEX_TRUNCATED' {
+        return 'SERVER_DATA_BUNDLE_INDEX_TRUNCATED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle index is truncated' {
+        return 'data bundle index is truncated';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-data-bundle-index-truncated' {
+        return 'https://jsprismarine.dev/errors/server#server-data-bundle-index-truncated';
+    }
 
     public override readonly code = 'SERVER_DATA_BUNDLE_INDEX_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-index-truncated';
@@ -188,10 +243,18 @@ class DataBundleIndexTruncated extends JSPrismarineError {
  * Download it again.
  */
 class DataBundleTruncated extends JSPrismarineError {
-    public static readonly code = 'SERVER_DATA_BUNDLE_TRUNCATED';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle is truncated';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-truncated';
+    public static get code(): 'SERVER_DATA_BUNDLE_TRUNCATED' {
+        return 'SERVER_DATA_BUNDLE_TRUNCATED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle is truncated' {
+        return 'data bundle is truncated';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-data-bundle-truncated' {
+        return 'https://jsprismarine.dev/errors/server#server-data-bundle-truncated';
+    }
 
     public override readonly code = 'SERVER_DATA_BUNDLE_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-truncated';
@@ -212,10 +275,18 @@ class DataBundleTruncated extends JSPrismarineError {
  * it is refused. Download the executable again from the release page.
  */
 class DataBundlePathEscapes extends JSPrismarineError {
-    public static readonly code = 'SERVER_DATA_BUNDLE_PATH_ESCAPES';
-    public static readonly domain = 'server';
-    public static readonly template = 'data bundle path escapes the extraction root: {path}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-path-escapes';
+    public static get code(): 'SERVER_DATA_BUNDLE_PATH_ESCAPES' {
+        return 'SERVER_DATA_BUNDLE_PATH_ESCAPES';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'data bundle path escapes the extraction root: {path}' {
+        return 'data bundle path escapes the extraction root: {path}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-data-bundle-path-escapes' {
+        return 'https://jsprismarine.dev/errors/server#server-data-bundle-path-escapes';
+    }
 
     public override readonly code = 'SERVER_DATA_BUNDLE_PATH_ESCAPES';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-data-bundle-path-escapes';
@@ -237,10 +308,18 @@ class DataBundlePathEscapes extends JSPrismarineError {
  * Run from source for DevTools.
  */
 class InspectorUnavailable extends JSPrismarineError {
-    public static readonly code = 'SERVER_INSPECTOR_UNAVAILABLE';
-    public static readonly domain = 'server';
-    public static readonly template = 'DevTools needs the Node inspector, which this build does not include';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-inspector-unavailable';
+    public static get code(): 'SERVER_INSPECTOR_UNAVAILABLE' {
+        return 'SERVER_INSPECTOR_UNAVAILABLE';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'DevTools needs the Node inspector, which this build does not include' {
+        return 'DevTools needs the Node inspector, which this build does not include';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-inspector-unavailable' {
+        return 'https://jsprismarine.dev/errors/server#server-inspector-unavailable';
+    }
 
     public override readonly code = 'SERVER_INSPECTOR_UNAVAILABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-inspector-unavailable';
@@ -258,10 +337,18 @@ class InspectorUnavailable extends JSPrismarineError {
 
 /** The DevTools relay's socket started without a TCP address. This is a bug in the relay. */
 class RelayHasNoAddress extends JSPrismarineError {
-    public static readonly code = 'SERVER_RELAY_HAS_NO_ADDRESS';
-    public static readonly domain = 'server';
-    public static readonly template = 'DevTools relay did not provide a TCP address';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-relay-has-no-address';
+    public static get code(): 'SERVER_RELAY_HAS_NO_ADDRESS' {
+        return 'SERVER_RELAY_HAS_NO_ADDRESS';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'DevTools relay did not provide a TCP address' {
+        return 'DevTools relay did not provide a TCP address';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-relay-has-no-address' {
+        return 'https://jsprismarine.dev/errors/server#server-relay-has-no-address';
+    }
 
     public override readonly code = 'SERVER_RELAY_HAS_NO_ADDRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-relay-has-no-address';
@@ -279,10 +366,18 @@ class RelayHasNoAddress extends JSPrismarineError {
 
 /** The DevTools relay's address was read before it started listening. */
 class RelayNotStarted extends JSPrismarineError {
-    public static readonly code = 'SERVER_RELAY_NOT_STARTED';
-    public static readonly domain = 'server';
-    public static readonly template = 'DevTools relay has not started';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-relay-not-started';
+    public static get code(): 'SERVER_RELAY_NOT_STARTED' {
+        return 'SERVER_RELAY_NOT_STARTED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'DevTools relay has not started' {
+        return 'DevTools relay has not started';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-relay-not-started' {
+        return 'https://jsprismarine.dev/errors/server#server-relay-not-started';
+    }
 
     public override readonly code = 'SERVER_RELAY_NOT_STARTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-relay-not-started';
@@ -303,10 +398,18 @@ class RelayNotStarted extends JSPrismarineError {
  * elsewhere.
  */
 class InvalidRelayTarget extends JSPrismarineError {
-    public static readonly code = 'SERVER_INVALID_RELAY_TARGET';
-    public static readonly domain = 'server';
-    public static readonly template = 'DevTools relay targets must be Node inspector sockets on 127.0.0.1';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-relay-target';
+    public static get code(): 'SERVER_INVALID_RELAY_TARGET' {
+        return 'SERVER_INVALID_RELAY_TARGET';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'DevTools relay targets must be Node inspector sockets on 127.0.0.1' {
+        return 'DevTools relay targets must be Node inspector sockets on 127.0.0.1';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-invalid-relay-target' {
+        return 'https://jsprismarine.dev/errors/server#server-invalid-relay-target';
+    }
 
     public override readonly code = 'SERVER_INVALID_RELAY_TARGET';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-relay-target';
@@ -324,10 +427,18 @@ class InvalidRelayTarget extends JSPrismarineError {
 
 /** A pinned download failed with that HTTP status. Check the network and retry. */
 class DownloadFailed extends JSPrismarineError {
-    public static readonly code = 'SERVER_DOWNLOAD_FAILED';
-    public static readonly domain = 'server';
-    public static readonly template = 'the download failed with HTTP {status} {statusText}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-download-failed';
+    public static get code(): 'SERVER_DOWNLOAD_FAILED' {
+        return 'SERVER_DOWNLOAD_FAILED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the download failed with HTTP {status} {statusText}' {
+        return 'the download failed with HTTP {status} {statusText}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-download-failed' {
+        return 'https://jsprismarine.dev/errors/server#server-download-failed';
+    }
 
     public override readonly code = 'SERVER_DOWNLOAD_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-download-failed';
@@ -349,10 +460,18 @@ class DownloadFailed extends JSPrismarineError {
  * transit or the file changed upstream. Retry; if it repeats, the pin needs updating.
  */
 class DownloadDigestMismatch extends JSPrismarineError {
-    public static readonly code = 'SERVER_DOWNLOAD_DIGEST_MISMATCH';
-    public static readonly domain = 'server';
-    public static readonly template = "the download's sha256 {digest} does not match the pinned {sha256}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-download-digest-mismatch';
+    public static get code(): 'SERVER_DOWNLOAD_DIGEST_MISMATCH' {
+        return 'SERVER_DOWNLOAD_DIGEST_MISMATCH';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): "the download's sha256 {digest} does not match the pinned {sha256}" {
+        return "the download's sha256 {digest} does not match the pinned {sha256}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-download-digest-mismatch' {
+        return 'https://jsprismarine.dev/errors/server#server-download-digest-mismatch';
+    }
 
     public override readonly code = 'SERVER_DOWNLOAD_DIGEST_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-download-digest-mismatch';
@@ -374,10 +493,18 @@ class DownloadDigestMismatch extends JSPrismarineError {
 
 /** Node's inspector opened without a WebSocket address, so DevTools cannot attach. */
 class InspectorHasNoUrl extends JSPrismarineError {
-    public static readonly code = 'SERVER_INSPECTOR_HAS_NO_URL';
-    public static readonly domain = 'server';
-    public static readonly template = 'Node inspector did not provide a WebSocket URL';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-inspector-has-no-url';
+    public static get code(): 'SERVER_INSPECTOR_HAS_NO_URL' {
+        return 'SERVER_INSPECTOR_HAS_NO_URL';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Node inspector did not provide a WebSocket URL' {
+        return 'Node inspector did not provide a WebSocket URL';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-inspector-has-no-url' {
+        return 'https://jsprismarine.dev/errors/server#server-inspector-has-no-url';
+    }
 
     public override readonly code = 'SERVER_INSPECTOR_HAS_NO_URL';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-inspector-has-no-url';
@@ -395,10 +522,18 @@ class InspectorHasNoUrl extends JSPrismarineError {
 
 /** `--port` is not a valid UDP port. */
 class InvalidPort extends JSPrismarineError {
-    public static readonly code = 'SERVER_INVALID_PORT';
-    public static readonly domain = 'server';
-    public static readonly template = '--port must be a whole number between 1 and 65535';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-port';
+    public static get code(): 'SERVER_INVALID_PORT' {
+        return 'SERVER_INVALID_PORT';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): '--port must be a whole number between 1 and 65535' {
+        return '--port must be a whole number between 1 and 65535';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-invalid-port' {
+        return 'https://jsprismarine.dev/errors/server#server-invalid-port';
+    }
 
     public override readonly code = 'SERVER_INVALID_PORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-port';
@@ -419,10 +554,18 @@ class InvalidPort extends JSPrismarineError {
  * options.
  */
 class UnexpectedArgument extends JSPrismarineError {
-    public static readonly code = 'SERVER_UNEXPECTED_ARGUMENT';
-    public static readonly domain = 'server';
-    public static readonly template = 'Unexpected argument "{argument}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-unexpected-argument';
+    public static get code(): 'SERVER_UNEXPECTED_ARGUMENT' {
+        return 'SERVER_UNEXPECTED_ARGUMENT';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Unexpected argument "{argument}"' {
+        return 'Unexpected argument "{argument}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-unexpected-argument' {
+        return 'https://jsprismarine.dev/errors/server#server-unexpected-argument';
+    }
 
     public override readonly code = 'SERVER_UNEXPECTED_ARGUMENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-unexpected-argument';
@@ -441,10 +584,18 @@ class UnexpectedArgument extends JSPrismarineError {
 
 /** A DevTools client sent a WebSocket frame using an extension the relay does not support. */
 class UnsupportedWebsocketExtension extends JSPrismarineError {
-    public static readonly code = 'SERVER_UNSUPPORTED_WEBSOCKET_EXTENSION';
-    public static readonly domain = 'server';
-    public static readonly template = 'Unsupported WebSocket extension';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-unsupported-websocket-extension';
+    public static get code(): 'SERVER_UNSUPPORTED_WEBSOCKET_EXTENSION' {
+        return 'SERVER_UNSUPPORTED_WEBSOCKET_EXTENSION';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Unsupported WebSocket extension' {
+        return 'Unsupported WebSocket extension';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-unsupported-websocket-extension' {
+        return 'https://jsprismarine.dev/errors/server#server-unsupported-websocket-extension';
+    }
 
     public override readonly code = 'SERVER_UNSUPPORTED_WEBSOCKET_EXTENSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-unsupported-websocket-extension';
@@ -462,10 +613,18 @@ class UnsupportedWebsocketExtension extends JSPrismarineError {
 
 /** `--watch` restarts the server from its console, which `--headless` turns off. */
 class WatchWithoutConsole extends JSPrismarineError {
-    public static readonly code = 'SERVER_WATCH_WITHOUT_CONSOLE';
-    public static readonly domain = 'server';
-    public static readonly template = '--watch needs a console; drop --headless or --watch';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-watch-without-console';
+    public static get code(): 'SERVER_WATCH_WITHOUT_CONSOLE' {
+        return 'SERVER_WATCH_WITHOUT_CONSOLE';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): '--watch needs a console; drop --headless or --watch' {
+        return '--watch needs a console; drop --headless or --watch';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-watch-without-console' {
+        return 'https://jsprismarine.dev/errors/server#server-watch-without-console';
+    }
 
     public override readonly code = 'SERVER_WATCH_WITHOUT_CONSOLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-watch-without-console';
@@ -483,10 +642,18 @@ class WatchWithoutConsole extends JSPrismarineError {
 
 /** A DevTools client sent a WebSocket frame larger than the relay accepts. */
 class WebsocketFrameTooLarge extends JSPrismarineError {
-    public static readonly code = 'SERVER_WEBSOCKET_FRAME_TOO_LARGE';
-    public static readonly domain = 'server';
-    public static readonly template = 'WebSocket frame is too large';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-websocket-frame-too-large';
+    public static get code(): 'SERVER_WEBSOCKET_FRAME_TOO_LARGE' {
+        return 'SERVER_WEBSOCKET_FRAME_TOO_LARGE';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'WebSocket frame is too large' {
+        return 'WebSocket frame is too large';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-websocket-frame-too-large' {
+        return 'https://jsprismarine.dev/errors/server#server-websocket-frame-too-large';
+    }
 
     public override readonly code = 'SERVER_WEBSOCKET_FRAME_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-websocket-frame-too-large';
@@ -504,10 +671,18 @@ class WebsocketFrameTooLarge extends JSPrismarineError {
 
 /** The server's command line could not be read. Run it with `--help` for the options. */
 class InvalidCommandLineArguments extends JSPrismarineError {
-    public static readonly code = 'SERVER_INVALID_COMMAND_LINE_ARGUMENTS';
-    public static readonly domain = 'server';
-    public static readonly template = 'Invalid command-line arguments';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-command-line-arguments';
+    public static get code(): 'SERVER_INVALID_COMMAND_LINE_ARGUMENTS' {
+        return 'SERVER_INVALID_COMMAND_LINE_ARGUMENTS';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Invalid command-line arguments' {
+        return 'Invalid command-line arguments';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-invalid-command-line-arguments' {
+        return 'https://jsprismarine.dev/errors/server#server-invalid-command-line-arguments';
+    }
 
     public override readonly code = 'SERVER_INVALID_COMMAND_LINE_ARGUMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-invalid-command-line-arguments';
@@ -525,10 +700,18 @@ class InvalidCommandLineArguments extends JSPrismarineError {
 
 /** The command-line parser refused the arguments; the message is its own. */
 class CommandLineRejected extends JSPrismarineError {
-    public static readonly code = 'SERVER_COMMAND_LINE_REJECTED';
-    public static readonly domain = 'server';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/server#server-command-line-rejected';
+    public static get code(): 'SERVER_COMMAND_LINE_REJECTED' {
+        return 'SERVER_COMMAND_LINE_REJECTED';
+    }
+    public static get domain(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/server#server-command-line-rejected' {
+        return 'https://jsprismarine.dev/errors/server#server-command-line-rejected';
+    }
 
     public override readonly code = 'SERVER_COMMAND_LINE_REJECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/server#server-command-line-rejected';

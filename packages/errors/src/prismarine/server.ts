@@ -23,12 +23,21 @@ export abstract class ConfigSyntaxError extends JSPrismarineError {
  * report it with the stack trace.
  */
 class AdvertisedCodecWithoutVersion extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADVERTISED_CODEC_WITHOUT_VERSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'The advertised codec names no Minecraft version!';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-advertised-codec-without-version';
+    public static get code(): 'PRISMARINE_ADVERTISED_CODEC_WITHOUT_VERSION' {
+        return 'PRISMARINE_ADVERTISED_CODEC_WITHOUT_VERSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'The advertised codec names no Minecraft version!' {
+        return 'The advertised codec names no Minecraft version!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-advertised-codec-without-version' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-advertised-codec-without-version';
+    }
 
     public override readonly code = 'PRISMARINE_ADVERTISED_CODEC_WITHOUT_VERSION';
     public override readonly docs =
@@ -50,12 +59,21 @@ class AdvertisedCodecWithoutVersion extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class UnknownBlockEntityField extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_BLOCK_ENTITY_FIELD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A block entity has no field {field}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-entity-field';
+    public static get code(): 'PRISMARINE_UNKNOWN_BLOCK_ENTITY_FIELD' {
+        return 'PRISMARINE_UNKNOWN_BLOCK_ENTITY_FIELD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A block entity has no field {field}' {
+        return 'A block entity has no field {field}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-entity-field' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-entity-field';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_BLOCK_ENTITY_FIELD';
     public override readonly docs =
@@ -77,11 +95,21 @@ class UnknownBlockEntityField extends JSPrismarineTypeError {
  * Code read or set a block property the block does not have. The message lists the ones it has.
  */
 class UnknownBlockProperty extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_BLOCK_PROPERTY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Block {name} has no property {key} (has: {properties})';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-property';
+    public static get code(): 'PRISMARINE_UNKNOWN_BLOCK_PROPERTY' {
+        return 'PRISMARINE_UNKNOWN_BLOCK_PROPERTY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Block {name} has no property {key} (has: {properties})' {
+        return 'Block {name} has no property {key} (has: {properties})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-property' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-block-property';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_BLOCK_PROPERTY';
     public override readonly docs =
@@ -109,12 +137,21 @@ class UnknownBlockProperty extends JSPrismarineError {
 
 /** Code read or set a property on a block that has none. */
 class BlockHasNoProperties extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BLOCK_HAS_NO_PROPERTIES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Block {name} has no property {key} (has: none)';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-block-has-no-properties';
+    public static get code(): 'PRISMARINE_BLOCK_HAS_NO_PROPERTIES' {
+        return 'PRISMARINE_BLOCK_HAS_NO_PROPERTIES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Block {name} has no property {key} (has: none)' {
+        return 'Block {name} has no property {key} (has: none)';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-block-has-no-properties' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-block-has-no-properties';
+    }
 
     public override readonly code = 'PRISMARINE_BLOCK_HAS_NO_PROPERTIES';
     public override readonly docs =
@@ -134,12 +171,21 @@ class BlockHasNoProperties extends JSPrismarineError {
 
 /** A test advanced the ticker by hand while its loop was running. Stop the loop first. */
 class ManualTickWhileLooping extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MANUAL_TICK_WHILE_LOOPING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Cannot advance the ticker by hand while its loop runs';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-manual-tick-while-looping';
+    public static get code(): 'PRISMARINE_MANUAL_TICK_WHILE_LOOPING' {
+        return 'PRISMARINE_MANUAL_TICK_WHILE_LOOPING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Cannot advance the ticker by hand while its loop runs' {
+        return 'Cannot advance the ticker by hand while its loop runs';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-manual-tick-while-looping' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-manual-tick-while-looping';
+    }
 
     public override readonly code = 'PRISMARINE_MANUAL_TICK_WHILE_LOOPING';
     public override readonly docs =
@@ -158,11 +204,21 @@ class ManualTickWhileLooping extends JSPrismarineError {
 
 /** A tick advanced the ticker from inside itself. */
 class NestedManualTick extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NESTED_MANUAL_TICK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Cannot advance the ticker while a manual tick is in flight';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nested-manual-tick';
+    public static get code(): 'PRISMARINE_NESTED_MANUAL_TICK' {
+        return 'PRISMARINE_NESTED_MANUAL_TICK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Cannot advance the ticker while a manual tick is in flight' {
+        return 'Cannot advance the ticker while a manual tick is in flight';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nested-manual-tick' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nested-manual-tick';
+    }
 
     public override readonly code = 'PRISMARINE_NESTED_MANUAL_TICK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nested-manual-tick';
@@ -183,11 +239,21 @@ class NestedManualTick extends JSPrismarineError {
  * defaults. Fix the file named in the message, or its permissions.
  */
 class ConfigNotReadable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIG_NOT_READABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Cannot read {path}: {detail}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-readable';
+    public static get code(): 'PRISMARINE_CONFIG_NOT_READABLE' {
+        return 'PRISMARINE_CONFIG_NOT_READABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Cannot read {path}: {detail}' {
+        return 'Cannot read {path}: {detail}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-readable' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-readable';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_NOT_READABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-readable';
@@ -209,12 +275,21 @@ class ConfigNotReadable extends JSPrismarineError {
  * report it with the stack trace.
  */
 class ReplayBeforeNetworking extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_BEFORE_NETWORKING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Cannot replay a packet before networking starts';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-replay-before-networking';
+    public static get code(): 'PRISMARINE_REPLAY_BEFORE_NETWORKING' {
+        return 'PRISMARINE_REPLAY_BEFORE_NETWORKING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Cannot replay a packet before networking starts' {
+        return 'Cannot replay a packet before networking starts';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-replay-before-networking' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-replay-before-networking';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_BEFORE_NETWORKING';
     public override readonly docs =
@@ -236,12 +311,21 @@ class ReplayBeforeNetworking extends JSPrismarineError {
  * cannot be recorded for replay. Use the default random source to record replays.
  */
 class ConfiguredRandomNotSavable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIGURED_RANDOM_NOT_SAVABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'The configured server random callback has no serializable state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-configured-random-not-savable';
+    public static get code(): 'PRISMARINE_CONFIGURED_RANDOM_NOT_SAVABLE' {
+        return 'PRISMARINE_CONFIGURED_RANDOM_NOT_SAVABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'The configured server random callback has no serializable state' {
+        return 'The configured server random callback has no serializable state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-configured-random-not-savable' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-configured-random-not-savable';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIGURED_RANDOM_NOT_SAVABLE';
     public override readonly docs =
@@ -260,12 +344,21 @@ class ConfiguredRandomNotSavable extends JSPrismarineError {
 
 /** A test read the server's content before building it. */
 class TestContentReadTooEarly extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TEST_CONTENT_READ_TOO_EARLY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the content was read before it was built';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-content-read-too-early';
+    public static get code(): 'PRISMARINE_TEST_CONTENT_READ_TOO_EARLY' {
+        return 'PRISMARINE_TEST_CONTENT_READ_TOO_EARLY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the content was read before it was built' {
+        return 'the content was read before it was built';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-content-read-too-early' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-content-read-too-early';
+    }
 
     public override readonly code = 'PRISMARINE_TEST_CONTENT_READ_TOO_EARLY';
     public override readonly docs =
@@ -287,11 +380,21 @@ class TestContentReadTooEarly extends JSPrismarineError {
  * early in startup.
  */
 class ContentReadTooEarly extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_READ_TOO_EARLY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the content was read before the pack stack was built';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-read-too-early';
+    public static get code(): 'PRISMARINE_CONTENT_READ_TOO_EARLY' {
+        return 'PRISMARINE_CONTENT_READ_TOO_EARLY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the content was read before the pack stack was built' {
+        return 'the content was read before the pack stack was built';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-read-too-early' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-read-too-early';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_READ_TOO_EARLY';
     public override readonly docs =
@@ -310,12 +413,21 @@ class ContentReadTooEarly extends JSPrismarineError {
 
 /** Code read the content world before the content was built. */
 class ContentWorldReadBeforeContent extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_WORLD_READ_BEFORE_CONTENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the content world was read before the content was built';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-before-content';
+    public static get code(): 'PRISMARINE_CONTENT_WORLD_READ_BEFORE_CONTENT' {
+        return 'PRISMARINE_CONTENT_WORLD_READ_BEFORE_CONTENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the content world was read before the content was built' {
+        return 'the content world was read before the content was built';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-before-content' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-before-content';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_WORLD_READ_BEFORE_CONTENT';
     public override readonly docs =
@@ -337,12 +449,21 @@ class ContentWorldReadBeforeContent extends JSPrismarineError {
  * too early in startup.
  */
 class ContentWorldReadTooEarly extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_WORLD_READ_TOO_EARLY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the content world was read before the pack stack was built';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-too-early';
+    public static get code(): 'PRISMARINE_CONTENT_WORLD_READ_TOO_EARLY' {
+        return 'PRISMARINE_CONTENT_WORLD_READ_TOO_EARLY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the content world was read before the pack stack was built' {
+        return 'the content world was read before the pack stack was built';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-too-early' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-world-read-too-early';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_WORLD_READ_TOO_EARLY';
     public override readonly docs =
@@ -364,11 +485,21 @@ class ContentWorldReadTooEarly extends JSPrismarineError {
  * permissions or a full disk.
  */
 class ConfigNotWritable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIG_NOT_WRITABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Could not write {key} to {path}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-writable';
+    public static get code(): 'PRISMARINE_CONFIG_NOT_WRITABLE' {
+        return 'PRISMARINE_CONFIG_NOT_WRITABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Could not write {key} to {path}' {
+        return 'Could not write {key} to {path}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-writable' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-writable';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_NOT_WRITABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-writable';
@@ -390,11 +521,21 @@ class ConfigNotWritable extends JSPrismarineError {
  * the stack trace.
  */
 class MissingExecutor extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_EXECUTOR';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = "Executer can't be undefined or null";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-missing-executor';
+    public static get code(): 'PRISMARINE_MISSING_EXECUTOR' {
+        return 'PRISMARINE_MISSING_EXECUTOR';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): "Executer can't be undefined or null" {
+        return "Executer can't be undefined or null";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-missing-executor' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-missing-executor';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_EXECUTOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-missing-executor';
@@ -412,11 +553,21 @@ class MissingExecutor extends JSPrismarineError {
 
 /** A command was given a coordinate that is not a number, `~` or `^`. */
 class ExpectedCoordinate extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EXPECTED_COORDINATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Expected a coordinate, got "{original}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-expected-coordinate';
+    public static get code(): 'PRISMARINE_EXPECTED_COORDINATE' {
+        return 'PRISMARINE_EXPECTED_COORDINATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Expected a coordinate, got "{original}"' {
+        return 'Expected a coordinate, got "{original}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-expected-coordinate' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-expected-coordinate';
+    }
 
     public override readonly code = 'PRISMARINE_EXPECTED_COORDINATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-expected-coordinate';
@@ -438,11 +589,21 @@ class ExpectedCoordinate extends JSPrismarineError {
  * load's error.
  */
 class ContentBuildFailed extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_BUILD_FAILED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Failed to build the content registries; the pack stack was not loaded';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-build-failed';
+    public static get code(): 'PRISMARINE_CONTENT_BUILD_FAILED' {
+        return 'PRISMARINE_CONTENT_BUILD_FAILED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Failed to build the content registries; the pack stack was not loaded' {
+        return 'Failed to build the content registries; the pack stack was not loaded';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-build-failed' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-build-failed';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_BUILD_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-build-failed';
@@ -460,12 +621,21 @@ class ContentBuildFailed extends JSPrismarineError {
 
 /** A test asked its fake level for a dimension it was not given. */
 class FakeLevelHasNoWorld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FAKE_LEVEL_HAS_NO_WORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the fake level has no {dimensionId} world';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-has-no-world';
+    public static get code(): 'PRISMARINE_FAKE_LEVEL_HAS_NO_WORLD' {
+        return 'PRISMARINE_FAKE_LEVEL_HAS_NO_WORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the fake level has no {dimensionId} world' {
+        return 'the fake level has no {dimensionId} world';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-has-no-world' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-has-no-world';
+    }
 
     public override readonly code = 'PRISMARINE_FAKE_LEVEL_HAS_NO_WORLD';
     public override readonly docs =
@@ -485,12 +655,21 @@ class FakeLevelHasNoWorld extends JSPrismarineError {
 
 /** A test's fake level needs a world provider for what the test asked of it. */
 class FakeLevelWithoutProvider extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FAKE_LEVEL_WITHOUT_PROVIDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'the fake level was built without a provider';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-without-provider';
+    public static get code(): 'PRISMARINE_FAKE_LEVEL_WITHOUT_PROVIDER' {
+        return 'PRISMARINE_FAKE_LEVEL_WITHOUT_PROVIDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'the fake level was built without a provider' {
+        return 'the fake level was built without a provider';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-without-provider' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-fake-level-without-provider';
+    }
 
     public override readonly code = 'PRISMARINE_FAKE_LEVEL_WITHOUT_PROVIDER';
     public override readonly docs =
@@ -512,13 +691,21 @@ class FakeLevelWithoutProvider extends JSPrismarineError {
  * in `server-port`.
  */
 class PortAndServerPortBothSet extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PORT_AND_SERVER_PORT_BOTH_SET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        '{configFilePath} has both port and server-port. port is the old name of server-port: remove it, and keep the port you want in server-port.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-port-and-server-port-both-set';
+    public static get code(): 'PRISMARINE_PORT_AND_SERVER_PORT_BOTH_SET' {
+        return 'PRISMARINE_PORT_AND_SERVER_PORT_BOTH_SET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{configFilePath} has both port and server-port. port is the old name of server-port: remove it, and keep the port you want in server-port.' {
+        return '{configFilePath} has both port and server-port. port is the old name of server-port: remove it, and keep the port you want in server-port.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-port-and-server-port-both-set' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-port-and-server-port-both-set';
+    }
 
     public override readonly code = 'PRISMARINE_PORT_AND_SERVER_PORT_BOTH_SET';
     public override readonly docs =
@@ -541,11 +728,21 @@ class PortAndServerPortBothSet extends JSPrismarineError {
 
 /** A target selector was parsed from text that does not start with `@`. */
 class SelectorWithoutAt extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SELECTOR_WITHOUT_AT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'input does not start with "@"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-without-at';
+    public static get code(): 'PRISMARINE_SELECTOR_WITHOUT_AT' {
+        return 'PRISMARINE_SELECTOR_WITHOUT_AT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'input does not start with "@"' {
+        return 'input does not start with "@"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-without-at' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-without-at';
+    }
 
     public override readonly code = 'PRISMARINE_SELECTOR_WITHOUT_AT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-without-at';
@@ -566,12 +763,21 @@ class SelectorWithoutAt extends JSPrismarineError {
  * that entry.
  */
 class InvalidPermissionsEntry extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_PERMISSIONS_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Invalid {permissionFileName} file.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permissions-entry';
+    public static get code(): 'PRISMARINE_INVALID_PERMISSIONS_ENTRY' {
+        return 'PRISMARINE_INVALID_PERMISSIONS_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Invalid {permissionFileName} file.' {
+        return 'Invalid {permissionFileName} file.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permissions-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permissions-entry';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PERMISSIONS_ENTRY';
     public override readonly docs =
@@ -594,13 +800,21 @@ class InvalidPermissionsEntry extends JSPrismarineError {
  * reads. Write `preset`, or a `dimensions` entry, as the message shows.
  */
 class UnsupportedGeneratorKey extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_GENERATOR_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        "Invalid generator with id {generator}. The `generator` key is deprecated: write `preset` as '{defaultWorldPreset}' or '{flatWorldPreset}', or a `dimensions` entry whose generator type is one of: {knownKinds}.";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-generator-key';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_GENERATOR_KEY' {
+        return 'PRISMARINE_UNSUPPORTED_GENERATOR_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): "Invalid generator with id {generator}. The `generator` key is deprecated: write `preset` as '{defaultWorldPreset}' or '{flatWorldPreset}', or a `dimensions` entry whose generator type is one of: {knownKinds}." {
+        return "Invalid generator with id {generator}. The `generator` key is deprecated: write `preset` as '{defaultWorldPreset}' or '{flatWorldPreset}', or a `dimensions` entry whose generator type is one of: {knownKinds}.";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-generator-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-generator-key';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_GENERATOR_KEY';
     public override readonly docs =
@@ -644,13 +858,21 @@ class UnsupportedGeneratorKey extends JSPrismarineError {
  * Remove it, or spell it as one of the ids the message lists.
  */
 class UnknownWorldExperiment extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_WORLD_EXPERIMENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        'Unknown world experiment {experiment}. The experiments this server implements are: {known}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-world-experiment';
+    public static get code(): 'PRISMARINE_UNKNOWN_WORLD_EXPERIMENT' {
+        return 'PRISMARINE_UNKNOWN_WORLD_EXPERIMENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Unknown world experiment {experiment}. The experiments this server implements are: {known}.' {
+        return 'Unknown world experiment {experiment}. The experiments this server implements are: {known}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-world-experiment' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-world-experiment';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_WORLD_EXPERIMENT';
     public override readonly docs =
@@ -673,11 +895,21 @@ class UnknownWorldExperiment extends JSPrismarineError {
 
 /** A coordinate mixes `^` with `~` or a number, which commands do not allow. */
 class MixedCaretNotation extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MIXED_CARET_NOTATION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'invalid input';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-mixed-caret-notation';
+    public static get code(): 'PRISMARINE_MIXED_CARET_NOTATION' {
+        return 'PRISMARINE_MIXED_CARET_NOTATION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'invalid input' {
+        return 'invalid input';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-mixed-caret-notation' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-mixed-caret-notation';
+    }
 
     public override readonly code = 'PRISMARINE_MIXED_CARET_NOTATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-mixed-caret-notation';
@@ -698,12 +930,21 @@ class MixedCaretNotation extends JSPrismarineError {
  * or the replay that holds it is damaged.
  */
 class InvalidServerReplayRandomState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SERVER_REPLAY_RANDOM_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Invalid server replay random state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-server-replay-random-state';
+    public static get code(): 'PRISMARINE_INVALID_SERVER_REPLAY_RANDOM_STATE' {
+        return 'PRISMARINE_INVALID_SERVER_REPLAY_RANDOM_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Invalid server replay random state' {
+        return 'Invalid server replay random state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-server-replay-random-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-server-replay-random-state';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SERVER_REPLAY_RANDOM_STATE';
     public override readonly docs =
@@ -725,12 +966,21 @@ class InvalidServerReplayRandomState extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class InvalidLoggedBlockEntityValue extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_LOGGED_BLOCK_ENTITY_VALUE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A logged block entity field holds {value}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-block-entity-value';
+    public static get code(): 'PRISMARINE_INVALID_LOGGED_BLOCK_ENTITY_VALUE' {
+        return 'PRISMARINE_INVALID_LOGGED_BLOCK_ENTITY_VALUE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A logged block entity field holds {value}' {
+        return 'A logged block entity field holds {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-block-entity-value' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-block-entity-value';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_LOGGED_BLOCK_ENTITY_VALUE';
     public override readonly docs =
@@ -753,11 +1003,21 @@ class InvalidLoggedBlockEntityValue extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class InvalidLoggedSlot extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_LOGGED_SLOT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A logged slot cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-slot';
+    public static get code(): 'PRISMARINE_INVALID_LOGGED_SLOT' {
+        return 'PRISMARINE_INVALID_LOGGED_SLOT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A logged slot cannot hold {value}' {
+        return 'A logged slot cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-slot' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-slot';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_LOGGED_SLOT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-logged-slot';
@@ -779,12 +1039,21 @@ class InvalidLoggedSlot extends JSPrismarineTypeError {
  * the server; report it with the stack trace.
  */
 class UnknownInventoryContainer extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_INVENTORY_CONTAINER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'This inventory has no {container} container';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-inventory-container';
+    public static get code(): 'PRISMARINE_UNKNOWN_INVENTORY_CONTAINER' {
+        return 'PRISMARINE_UNKNOWN_INVENTORY_CONTAINER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'This inventory has no {container} container' {
+        return 'This inventory has no {container} container';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-inventory-container' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-inventory-container';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_INVENTORY_CONTAINER';
     public override readonly docs =
@@ -804,11 +1073,21 @@ class UnknownInventoryContainer extends JSPrismarineTypeError {
 
 /** The ban list file is not a JSON list. Fix it, or delete it to start with no bans. */
 class BanListNotList extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BAN_LIST_NOT_LIST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{fileName} must hold a list of banned players';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ban-list-not-list';
+    public static get code(): 'PRISMARINE_BAN_LIST_NOT_LIST' {
+        return 'PRISMARINE_BAN_LIST_NOT_LIST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{fileName} must hold a list of banned players' {
+        return '{fileName} must hold a list of banned players';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ban-list-not-list' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ban-list-not-list';
+    }
 
     public override readonly code = 'PRISMARINE_BAN_LIST_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ban-list-not-list';
@@ -827,11 +1106,21 @@ class BanListNotList extends JSPrismarineError {
 
 /** `allowlist.json` is not a JSON list. Fix it, or delete it to start with an empty allow list. */
 class AllowListNotList extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ALLOW_LIST_NOT_LIST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{fileName} must hold a list of allowed players';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-allow-list-not-list';
+    public static get code(): 'PRISMARINE_ALLOW_LIST_NOT_LIST' {
+        return 'PRISMARINE_ALLOW_LIST_NOT_LIST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{fileName} must hold a list of allowed players' {
+        return '{fileName} must hold a list of allowed players';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-allow-list-not-list' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-allow-list-not-list';
+    }
 
     public override readonly code = 'PRISMARINE_ALLOW_LIST_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-allow-list-not-list';
@@ -850,11 +1139,21 @@ class AllowListNotList extends JSPrismarineError {
 
 /** `ops.json` is not a JSON list. Fix it, or delete it to start with no operators. */
 class OpsNotList extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_OPS_NOT_LIST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{opsFileName} must hold a list of operators';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ops-not-list';
+    public static get code(): 'PRISMARINE_OPS_NOT_LIST' {
+        return 'PRISMARINE_OPS_NOT_LIST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{opsFileName} must hold a list of operators' {
+        return '{opsFileName} must hold a list of operators';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ops-not-list' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ops-not-list';
+    }
 
     public override readonly code = 'PRISMARINE_OPS_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-ops-not-list';
@@ -877,12 +1176,21 @@ class OpsNotList extends JSPrismarineError {
  * fresh one.
  */
 class VersionedFileNotObject extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_VERSIONED_FILE_NOT_OBJECT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{fileName} must hold an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-versioned-file-not-object';
+    public static get code(): 'PRISMARINE_VERSIONED_FILE_NOT_OBJECT' {
+        return 'PRISMARINE_VERSIONED_FILE_NOT_OBJECT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{fileName} must hold an object' {
+        return '{fileName} must hold an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-versioned-file-not-object' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-versioned-file-not-object';
+    }
 
     public override readonly code = 'PRISMARINE_VERSIONED_FILE_NOT_OBJECT';
     public override readonly docs =
@@ -906,12 +1214,21 @@ class VersionedFileNotObject extends JSPrismarineError {
  * backup the server kept beside the file.
  */
 class FileVersionInvalid extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FILE_VERSION_INVALID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        '{fileName} has {versionKey} {version}, which is not a version from {oldest} to {current}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-invalid';
+    public static get code(): 'PRISMARINE_FILE_VERSION_INVALID' {
+        return 'PRISMARINE_FILE_VERSION_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{fileName} has {versionKey} {version}, which is not a version from {oldest} to {current}' {
+        return '{fileName} has {versionKey} {version}, which is not a version from {oldest} to {current}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-invalid';
+    }
 
     public override readonly code = 'PRISMARINE_FILE_VERSION_INVALID';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-invalid';
@@ -958,11 +1275,21 @@ class FileVersionInvalid extends JSPrismarineError {
  * Update the server, or restore the backup an upgrade kept beside the file.
  */
 class FileVersionTooNew extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FILE_VERSION_TOO_NEW';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{fileName} has {versionKey} {version}, and this server reads up to {current}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-too-new';
+    public static get code(): 'PRISMARINE_FILE_VERSION_TOO_NEW' {
+        return 'PRISMARINE_FILE_VERSION_TOO_NEW';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{fileName} has {versionKey} {version}, and this server reads up to {current}' {
+        return '{fileName} has {versionKey} {version}, and this server reads up to {current}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-too-new' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-too-new';
+    }
 
     public override readonly code = 'PRISMARINE_FILE_VERSION_TOO_NEW';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-version-too-new';
@@ -1001,13 +1328,21 @@ class FileVersionTooNew extends JSPrismarineError {
  * trace.
  */
 class FileMigrationsMisdeclared extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FILE_MIGRATIONS_MISDECLARED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        'The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-migrations-misdeclared';
+    public static get code(): 'PRISMARINE_FILE_MIGRATIONS_MISDECLARED' {
+        return 'PRISMARINE_FILE_MIGRATIONS_MISDECLARED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}' {
+        return 'The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-migrations-misdeclared' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-file-migrations-misdeclared';
+    }
 
     public override readonly code = 'PRISMARINE_FILE_MIGRATIONS_MISDECLARED';
     public override readonly docs =
@@ -1054,12 +1389,21 @@ class FileMigrationsMisdeclared extends JSPrismarineError {
  * `-`. Dots separate non-empty segments, and `*` can only be the last one.
  */
 class InvalidPermissionNode extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_PERMISSION_NODE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Permission node "{node}" is not spelled as scope.name, scope.* or *';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-node';
+    public static get code(): 'PRISMARINE_INVALID_PERMISSION_NODE' {
+        return 'PRISMARINE_INVALID_PERMISSION_NODE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Permission node "{node}" is not spelled as scope.name, scope.* or *' {
+        return 'Permission node "{node}" is not spelled as scope.name, scope.* or *';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-node' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-node';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PERMISSION_NODE';
     public override readonly docs =
@@ -1079,12 +1423,21 @@ class InvalidPermissionNode extends JSPrismarineRangeError {
 
 /** An expiry is not an ISO 8601 instant in the future, such as `2030-01-01T00:00:00Z`. */
 class InvalidPermissionExpiry extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_PERMISSION_EXPIRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Expiry "{expires}" is not an ISO 8601 instant in the future';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-expiry';
+    public static get code(): 'PRISMARINE_INVALID_PERMISSION_EXPIRY' {
+        return 'PRISMARINE_INVALID_PERMISSION_EXPIRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Expiry "{expires}" is not an ISO 8601 instant in the future' {
+        return 'Expiry "{expires}" is not an ISO 8601 instant in the future';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-expiry' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-expiry';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PERMISSION_EXPIRY';
     public override readonly docs =
@@ -1104,12 +1457,21 @@ class InvalidPermissionExpiry extends JSPrismarineRangeError {
 
 /** A command or a script named a permission group `permissions.json` does not have. */
 class PermissionGroupNotFound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSION_GROUP_NOT_FOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'No permission group named "{group}"';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-not-found';
+    public static get code(): 'PRISMARINE_PERMISSION_GROUP_NOT_FOUND' {
+        return 'PRISMARINE_PERMISSION_GROUP_NOT_FOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'No permission group named "{group}"' {
+        return 'No permission group named "{group}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-not-found' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-not-found';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSION_GROUP_NOT_FOUND';
     public override readonly docs =
@@ -1129,12 +1491,21 @@ class PermissionGroupNotFound extends JSPrismarineError {
 
 /** A command or a script asked to create a permission group that already exists. */
 class PermissionGroupExists extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSION_GROUP_EXISTS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A permission group named "{group}" already exists';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-exists';
+    public static get code(): 'PRISMARINE_PERMISSION_GROUP_EXISTS' {
+        return 'PRISMARINE_PERMISSION_GROUP_EXISTS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A permission group named "{group}" already exists' {
+        return 'A permission group named "{group}" already exists';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-exists' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-exists';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSION_GROUP_EXISTS';
     public override readonly docs =
@@ -1154,12 +1525,21 @@ class PermissionGroupExists extends JSPrismarineError {
 
 /** `default` and `operator` cannot be deleted: every subject holds the first and every operator the second. */
 class PermissionGroupBuiltIn extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSION_GROUP_BUILT_IN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'The permission group "{group}" is built in and cannot be deleted';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-built-in';
+    public static get code(): 'PRISMARINE_PERMISSION_GROUP_BUILT_IN' {
+        return 'PRISMARINE_PERMISSION_GROUP_BUILT_IN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'The permission group "{group}" is built in and cannot be deleted' {
+        return 'The permission group "{group}" is built in and cannot be deleted';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-built-in' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-built-in';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSION_GROUP_BUILT_IN';
     public override readonly docs =
@@ -1179,12 +1559,21 @@ class PermissionGroupBuiltIn extends JSPrismarineError {
 
 /** A group's parent must be another group; a group cannot inherit itself. */
 class PermissionGroupOwnParent extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSION_GROUP_OWN_PARENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A permission group cannot be its own parent: {group}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-own-parent';
+    public static get code(): 'PRISMARINE_PERMISSION_GROUP_OWN_PARENT' {
+        return 'PRISMARINE_PERMISSION_GROUP_OWN_PARENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A permission group cannot be its own parent: {group}' {
+        return 'A permission group cannot be its own parent: {group}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-own-parent' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-own-parent';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSION_GROUP_OWN_PARENT';
     public override readonly docs =
@@ -1204,12 +1593,21 @@ class PermissionGroupOwnParent extends JSPrismarineError {
 
 /** A group's name is empty or has whitespace. */
 class InvalidPermissionGroupName extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_PERMISSION_GROUP_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Permission group name "{group}" is empty or has whitespace';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-name';
+    public static get code(): 'PRISMARINE_INVALID_PERMISSION_GROUP_NAME' {
+        return 'PRISMARINE_INVALID_PERMISSION_GROUP_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Permission group name "{group}" is empty or has whitespace' {
+        return 'Permission group name "{group}" is empty or has whitespace';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-name';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PERMISSION_GROUP_NAME';
     public override readonly docs =
@@ -1229,12 +1627,21 @@ class InvalidPermissionGroupName extends JSPrismarineRangeError {
 
 /** A group's weight must be a finite number, since the file holds it as a JSON number. */
 class InvalidPermissionGroupWeight extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_PERMISSION_GROUP_WEIGHT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Permission group weight {weight} is not a finite number';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-weight';
+    public static get code(): 'PRISMARINE_INVALID_PERMISSION_GROUP_WEIGHT' {
+        return 'PRISMARINE_INVALID_PERMISSION_GROUP_WEIGHT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Permission group weight {weight} is not a finite number' {
+        return 'Permission group weight {weight} is not a finite number';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-weight' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-permission-group-weight';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PERMISSION_GROUP_WEIGHT';
     public override readonly docs =
@@ -1257,11 +1664,21 @@ class InvalidPermissionGroupWeight extends JSPrismarineRangeError {
  * the file loader refuse the parent that would close the cycle.
  */
 class PermissionGroupCycle extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSION_GROUP_CYCLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Making {parent} a parent of {group} would make {group} its own ancestor';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-cycle';
+    public static get code(): 'PRISMARINE_PERMISSION_GROUP_CYCLE' {
+        return 'PRISMARINE_PERMISSION_GROUP_CYCLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Making {parent} a parent of {group} would make {group} its own ancestor' {
+        return 'Making {parent} a parent of {group} would make {group} its own ancestor';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-cycle' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permission-group-cycle';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSION_GROUP_CYCLE';
     public override readonly docs =
@@ -1287,13 +1704,21 @@ class PermissionGroupCycle extends JSPrismarineError {
  * an edit cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
  */
 class PermissionsFileNotLoaded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PERMISSIONS_FILE_NOT_LOADED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        '{permissionFileName} is not a version {supported} file, so the edit was not saved';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-permissions-file-not-loaded';
+    public static get code(): 'PRISMARINE_PERMISSIONS_FILE_NOT_LOADED' {
+        return 'PRISMARINE_PERMISSIONS_FILE_NOT_LOADED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{permissionFileName} is not a version {supported} file, so the edit was not saved' {
+        return '{permissionFileName} is not a version {supported} file, so the edit was not saved';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permissions-file-not-loaded' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-permissions-file-not-loaded';
+    }
 
     public override readonly code = 'PRISMARINE_PERMISSIONS_FILE_NOT_LOADED';
     public override readonly docs =
@@ -1324,12 +1749,21 @@ class PermissionsFileNotLoaded extends JSPrismarineError {
  * Free the port, or set `enable-nethernet` to `false`.
  */
 class SignalingPortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SIGNALING_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'NetherNet cannot listen for signaling on TCP port {port}: {errorMessage}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-signaling-port-not-bound';
+    public static get code(): 'PRISMARINE_SIGNALING_PORT_NOT_BOUND' {
+        return 'PRISMARINE_SIGNALING_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'NetherNet cannot listen for signaling on TCP port {port}: {errorMessage}' {
+        return 'NetherNet cannot listen for signaling on TCP port {port}: {errorMessage}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-signaling-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-signaling-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_SIGNALING_PORT_NOT_BOUND';
     public override readonly docs =
@@ -1356,13 +1790,21 @@ class SignalingPortNotBound extends JSPrismarineError {
  * to `false`.
  */
 class NethernetFailedToStart extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NETHERNET_FAILED_TO_START';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        'NetherNet cannot start: {replace} Set "enable-nethernet": false in config.json to run on RakNet alone.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-failed-to-start';
+    public static get code(): 'PRISMARINE_NETHERNET_FAILED_TO_START' {
+        return 'PRISMARINE_NETHERNET_FAILED_TO_START';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'NetherNet cannot start: {replace} Set "enable-nethernet": false in config.json to run on RakNet alone.' {
+        return 'NetherNet cannot start: {replace} Set "enable-nethernet": false in config.json to run on RakNet alone.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-failed-to-start' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-failed-to-start';
+    }
 
     public override readonly code = 'PRISMARINE_NETHERNET_FAILED_TO_START';
     public override readonly docs =
@@ -1388,11 +1830,21 @@ class NethernetFailedToStart extends JSPrismarineError {
  * report it with the stack trace.
  */
 class NoContainerForSlot extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_NO_CONTAINER_FOR_SLOT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'No block entity at {x}, {y}, {z} holds slot {slot}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-container-for-slot';
+    public static get code(): 'PRISMARINE_NO_CONTAINER_FOR_SLOT' {
+        return 'PRISMARINE_NO_CONTAINER_FOR_SLOT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'No block entity at {x}, {y}, {z} holds slot {slot}' {
+        return 'No block entity at {x}, {y}, {z} holds slot {slot}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-container-for-slot' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-container-for-slot';
+    }
 
     public override readonly code = 'PRISMARINE_NO_CONTAINER_FOR_SLOT';
     public override readonly docs =
@@ -1423,11 +1875,21 @@ class NoContainerForSlot extends JSPrismarineTypeError {
 
 /** Code asked for the entities of a dimension the world did not load. */
 class NoEntityRuntime extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_ENTITY_RUNTIME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'no entity runtime was built for {dimension}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-entity-runtime';
+    public static get code(): 'PRISMARINE_NO_ENTITY_RUNTIME' {
+        return 'PRISMARINE_NO_ENTITY_RUNTIME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'no entity runtime was built for {dimension}' {
+        return 'no entity runtime was built for {dimension}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-entity-runtime' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-entity-runtime';
+    }
 
     public override readonly code = 'PRISMARINE_NO_ENTITY_RUNTIME';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-entity-runtime';
@@ -1446,12 +1908,21 @@ class NoEntityRuntime extends JSPrismarineError {
 
 /** A target selector sorted with `@r` matched no one. */
 class SelectorMatchedNoOne extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SELECTOR_MATCHED_NO_ONE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'no results';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-matched-no-one';
+    public static get code(): 'PRISMARINE_SELECTOR_MATCHED_NO_ONE' {
+        return 'PRISMARINE_SELECTOR_MATCHED_NO_ONE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'no results' {
+        return 'no results';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-matched-no-one' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-selector-matched-no-one';
+    }
 
     public override readonly code = 'PRISMARINE_SELECTOR_MATCHED_NO_ONE';
     public override readonly docs =
@@ -1473,12 +1944,21 @@ class SelectorMatchedNoOne extends JSPrismarineError {
  * one.
  */
 class NoTransportEnabled extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_TRANSPORT_ENABLED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template =
-        'No transport is enabled: turn on enable-raknet or enable-nethernet in config.json';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-transport-enabled';
+    public static get code(): 'PRISMARINE_NO_TRANSPORT_ENABLED' {
+        return 'PRISMARINE_NO_TRANSPORT_ENABLED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'No transport is enabled: turn on enable-raknet or enable-nethernet in config.json' {
+        return 'No transport is enabled: turn on enable-raknet or enable-nethernet in config.json';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-transport-enabled' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-transport-enabled';
+    }
 
     public override readonly code = 'PRISMARINE_NO_TRANSPORT_ENABLED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-no-transport-enabled';
@@ -1499,11 +1979,21 @@ class NoTransportEnabled extends JSPrismarineError {
  * defaults; fix the file at the offset given.
  */
 class ConfigNotValidJson extends ConfigSyntaxError {
-    public static readonly code = 'PRISMARINE_CONFIG_NOT_VALID_JSON';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Not valid json: {printParseErrorCode} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-valid-json';
+    public static get code(): 'PRISMARINE_CONFIG_NOT_VALID_JSON' {
+        return 'PRISMARINE_CONFIG_NOT_VALID_JSON';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Not valid json: {printParseErrorCode} at offset {offset}' {
+        return 'Not valid json: {printParseErrorCode} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-valid-json' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-not-valid-json';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_NOT_VALID_JSON';
     public override readonly docs =
@@ -1528,11 +2018,21 @@ class ConfigNotValidJson extends ConfigSyntaxError {
 
 /** A config file holds a single value instead of an object or a list. Fix the file. */
 class ConfigIsSingleValue extends ConfigSyntaxError {
-    public static readonly code = 'PRISMARINE_CONFIG_IS_SINGLE_VALUE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Not valid json: the document is a single value, not an object or an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-is-single-value';
+    public static get code(): 'PRISMARINE_CONFIG_IS_SINGLE_VALUE' {
+        return 'PRISMARINE_CONFIG_IS_SINGLE_VALUE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Not valid json: the document is a single value, not an object or an array' {
+        return 'Not valid json: the document is a single value, not an object or an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-is-single-value' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-config-is-single-value';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_IS_SINGLE_VALUE';
     public override readonly docs =
@@ -1554,12 +2054,21 @@ class ConfigIsSingleValue extends ConfigSyntaxError {
  * values.
  */
 class InvalidBlockPropertyValue extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_BLOCK_PROPERTY_VALUE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Property {name}.{key} does not accept {value} (accepts: {values})';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-block-property-value';
+    public static get code(): 'PRISMARINE_INVALID_BLOCK_PROPERTY_VALUE' {
+        return 'PRISMARINE_INVALID_BLOCK_PROPERTY_VALUE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Property {name}.{key} does not accept {value} (accepts: {values})' {
+        return 'Property {name}.{key} does not accept {value} (accepts: {values})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-block-property-value' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-invalid-block-property-value';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BLOCK_PROPERTY_VALUE';
     public override readonly docs =
@@ -1593,11 +2102,21 @@ class InvalidBlockPropertyValue extends JSPrismarineError {
  * it.
  */
 class UntypedBlockProperty extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNTYPED_BLOCK_PROPERTY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Property {name}.{key} has no declared type';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-untyped-block-property';
+    public static get code(): 'PRISMARINE_UNTYPED_BLOCK_PROPERTY' {
+        return 'PRISMARINE_UNTYPED_BLOCK_PROPERTY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Property {name}.{key} has no declared type' {
+        return 'Property {name}.{key} has no declared type';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-untyped-block-property' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-untyped-block-property';
+    }
 
     public override readonly code = 'PRISMARINE_UNTYPED_BLOCK_PROPERTY';
     public override readonly docs =
@@ -1617,11 +2136,21 @@ class UntypedBlockProperty extends JSPrismarineError {
 
 /** A command or the API named a player who is not online. */
 class PlayerNotFound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_NOT_FOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Player "{username}" not found.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-player-not-found';
+    public static get code(): 'PRISMARINE_PLAYER_NOT_FOUND' {
+        return 'PRISMARINE_PLAYER_NOT_FOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Player "{username}" not found.' {
+        return 'Player "{username}" not found.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-player-not-found' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-player-not-found';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_NOT_FOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-player-not-found';
@@ -1640,11 +2169,21 @@ class PlayerNotFound extends JSPrismarineError {
 
 /** Code asked for the running server's details before it started. */
 class ServerIsNotStarted extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SERVER_IS_NOT_STARTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Server is not started';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-server-is-not-started';
+    public static get code(): 'PRISMARINE_SERVER_IS_NOT_STARTED' {
+        return 'PRISMARINE_SERVER_IS_NOT_STARTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Server is not started' {
+        return 'Server is not started';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-server-is-not-started' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-server-is-not-started';
+    }
 
     public override readonly code = 'PRISMARINE_SERVER_IS_NOT_STARTED';
     public override readonly docs =
@@ -1666,12 +2205,21 @@ class ServerIsNotStarted extends JSPrismarineError {
  * with the stack trace.
  */
 class StackHasNoPlainForm extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_STACK_HAS_NO_PLAIN_FORM';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A stored stack has no plain form: {name}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-stack-has-no-plain-form';
+    public static get code(): 'PRISMARINE_STACK_HAS_NO_PLAIN_FORM' {
+        return 'PRISMARINE_STACK_HAS_NO_PLAIN_FORM';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A stored stack has no plain form: {name}' {
+        return 'A stored stack has no plain form: {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-stack-has-no-plain-form' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-stack-has-no-plain-form';
+    }
 
     public override readonly code = 'PRISMARINE_STACK_HAS_NO_PLAIN_FORM';
     public override readonly docs =
@@ -1691,12 +2239,21 @@ class StackHasNoPlainForm extends JSPrismarineTypeError {
 
 /** A test level was asked for Java registries, which test levels do not load. */
 class TestLevelReadsJavaRegistries extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TEST_LEVEL_READS_JAVA_REGISTRIES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A test level never reads the Java registries';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-level-reads-java-registries';
+    public static get code(): 'PRISMARINE_TEST_LEVEL_READS_JAVA_REGISTRIES' {
+        return 'PRISMARINE_TEST_LEVEL_READS_JAVA_REGISTRIES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A test level never reads the Java registries' {
+        return 'A test level never reads the Java registries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-level-reads-java-registries' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-test-level-reads-java-registries';
+    }
 
     public override readonly code = 'PRISMARINE_TEST_LEVEL_READS_JAVA_REGISTRIES';
     public override readonly docs =
@@ -1715,11 +2272,21 @@ class TestLevelReadsJavaRegistries extends JSPrismarineError {
 
 /** A target selector starts with a letter that is not `a`, `e`, `p`, `r` or `s`. */
 class UnknownSelectorType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_SELECTOR_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'type "{type}" is invalid. Expected "a", "e", "p", "r" or "s"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-selector-type';
+    public static get code(): 'PRISMARINE_UNKNOWN_SELECTOR_TYPE' {
+        return 'PRISMARINE_UNKNOWN_SELECTOR_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'type "{type}" is invalid. Expected "a", "e", "p", "r" or "s"' {
+        return 'type "{type}" is invalid. Expected "a", "e", "p", "r" or "s"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-selector-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unknown-selector-type';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_SELECTOR_TYPE';
     public override readonly docs =
@@ -1742,12 +2309,21 @@ class UnknownSelectorType extends JSPrismarineError {
  * holds it. Free the port, or change `server-port` in `config.json`.
  */
 class SharedUdpPortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SHARED_UDP_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'RakNet and NetherNet cannot share UDP port {port}: {reason}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-shared-udp-port-not-bound';
+    public static get code(): 'PRISMARINE_SHARED_UDP_PORT_NOT_BOUND' {
+        return 'PRISMARINE_SHARED_UDP_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'RakNet and NetherNet cannot share UDP port {port}: {reason}' {
+        return 'RakNet and NetherNet cannot share UDP port {port}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-shared-udp-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-shared-udp-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_UDP_PORT_NOT_BOUND';
     public override readonly docs =
@@ -1770,12 +2346,21 @@ class SharedUdpPortNotBound extends JSPrismarineError {
  * the port, or change `server-udp-ports` in `config.json`.
  */
 class NethernetPortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NETHERNET_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'NetherNet cannot bind UDP port {port}: {reason}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-port-not-bound';
+    public static get code(): 'PRISMARINE_NETHERNET_PORT_NOT_BOUND' {
+        return 'PRISMARINE_NETHERNET_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'NetherNet cannot bind UDP port {port}: {reason}' {
+        return 'NetherNet cannot bind UDP port {port}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-nethernet-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_NETHERNET_PORT_NOT_BOUND';
     public override readonly docs =
@@ -1795,12 +2380,21 @@ class NethernetPortNotBound extends JSPrismarineError {
 
 /** A config file was opened with an extension other than `.json`. */
 class UnsupportedConfigType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_CONFIG_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Unsupported config type. (Supported types: json)';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-config-type';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_CONFIG_TYPE' {
+        return 'PRISMARINE_UNSUPPORTED_CONFIG_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Unsupported config type. (Supported types: json)' {
+        return 'Unsupported config type. (Supported types: json)';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-config-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-unsupported-config-type';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_CONFIG_TYPE';
     public override readonly docs =
@@ -1822,12 +2416,21 @@ class UnsupportedConfigType extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class CraftingGridSizeMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CRAFTING_GRID_SIZE_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'A {width}x{height} grid needs {value} slots, was given {slotsCount}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-crafting-grid-size-mismatch';
+    public static get code(): 'PRISMARINE_CRAFTING_GRID_SIZE_MISMATCH' {
+        return 'PRISMARINE_CRAFTING_GRID_SIZE_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'A {width}x{height} grid needs {value} slots, was given {slotsCount}' {
+        return 'A {width}x{height} grid needs {value} slots, was given {slotsCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-crafting-grid-size-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-crafting-grid-size-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_CRAFTING_GRID_SIZE_MISMATCH';
     public override readonly docs =
@@ -1863,11 +2466,21 @@ class CraftingGridSizeMismatch extends JSPrismarineError {
 
 /** Code read a timer's result while it was still running. */
 class TimerStillRunning extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TIMER_STILL_RUNNING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'You need to stop the timer before getting the result.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-timer-still-running';
+    public static get code(): 'PRISMARINE_TIMER_STILL_RUNNING' {
+        return 'PRISMARINE_TIMER_STILL_RUNNING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'You need to stop the timer before getting the result.' {
+        return 'You need to stop the timer before getting the result.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-timer-still-running' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-timer-still-running';
+    }
 
     public override readonly code = 'PRISMARINE_TIMER_STILL_RUNNING';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-timer-still-running';
@@ -1888,11 +2501,21 @@ class TimerStillRunning extends JSPrismarineError {
  * server, or change `server-port` in `config.json`.
  */
 class RaknetPortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RAKNET_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'RakNet cannot listen on UDP port {port}: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-port-not-bound';
+    public static get code(): 'PRISMARINE_RAKNET_PORT_NOT_BOUND' {
+        return 'PRISMARINE_RAKNET_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'RakNet cannot listen on UDP port {port}: {reason}' {
+        return 'RakNet cannot listen on UDP port {port}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_RAKNET_PORT_NOT_BOUND';
     public override readonly docs =
@@ -1916,11 +2539,21 @@ class RaknetPortNotBound extends JSPrismarineError {
  * `config.json`, or set `java-enabled` to `false`.
  */
 class JavaPortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_JAVA_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'Java Edition cannot listen on TCP port {port}: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-not-bound';
+    public static get code(): 'PRISMARINE_JAVA_PORT_NOT_BOUND' {
+        return 'PRISMARINE_JAVA_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'Java Edition cannot listen on TCP port {port}: {reason}' {
+        return 'Java Edition cannot listen on TCP port {port}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_JAVA_PORT_NOT_BOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-not-bound';
@@ -1942,12 +2575,21 @@ class JavaPortNotBound extends JSPrismarineError {
  * machine has IPv6 turned off. Free the port, or change `server-portv6` in `config.json`.
  */
 class RaknetIpv6PortNotBound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RAKNET_IPV6_PORT_NOT_BOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'RakNet cannot listen for IPv6 clients on UDP port {port}: {reason}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-ipv6-port-not-bound';
+    public static get code(): 'PRISMARINE_RAKNET_IPV6_PORT_NOT_BOUND' {
+        return 'PRISMARINE_RAKNET_IPV6_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'RakNet cannot listen for IPv6 clients on UDP port {port}: {reason}' {
+        return 'RakNet cannot listen for IPv6 clients on UDP port {port}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-ipv6-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-raknet-ipv6-port-not-bound';
+    }
 
     public override readonly code = 'PRISMARINE_RAKNET_IPV6_PORT_NOT_BOUND';
     public override readonly docs =
@@ -1970,12 +2612,21 @@ class RaknetIpv6PortNotBound extends JSPrismarineError {
 
 /** One or more network listeners could not start. The message joins each listener's own reason with `; `, and the first failure is the cause. */
 class ListenersFailedToStart extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LISTENERS_FAILED_TO_START';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = '{reasons}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-listeners-failed-to-start';
+    public static get code(): 'PRISMARINE_LISTENERS_FAILED_TO_START' {
+        return 'PRISMARINE_LISTENERS_FAILED_TO_START';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): '{reasons}' {
+        return '{reasons}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-listeners-failed-to-start' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-listeners-failed-to-start';
+    }
 
     public override readonly code = 'PRISMARINE_LISTENERS_FAILED_TO_START';
     public override readonly docs =
@@ -1998,12 +2649,21 @@ class ListenersFailedToStart extends JSPrismarineError {
  * its content, which reads them. This is a bug in the server; report it with the stack trace.
  */
 class ContentSettingsReadBeforeBuild extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_SETTINGS_READ_BEFORE_BUILD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'server';
-    public static readonly template = 'The content settings are read with the content build';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-settings-read-before-build';
+    public static get code(): 'PRISMARINE_CONTENT_SETTINGS_READ_BEFORE_BUILD' {
+        return 'PRISMARINE_CONTENT_SETTINGS_READ_BEFORE_BUILD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'The content settings are read with the content build' {
+        return 'The content settings are read with the content build';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-settings-read-before-build' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-content-settings-read-before-build';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_SETTINGS_READ_BEFORE_BUILD';
     public override readonly docs =

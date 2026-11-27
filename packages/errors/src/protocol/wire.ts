@@ -13,11 +13,21 @@ import {
  * protocol differently than this server reads it, is the usual cause.
  */
 class ActorFlagsTooLong extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_ACTOR_FLAGS_TOO_LONG';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Actor flag bit set runs past {maxFlagBytes} bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-actor-flags-too-long';
+    public static get code(): 'PROTOCOL_ACTOR_FLAGS_TOO_LONG' {
+        return 'PROTOCOL_ACTOR_FLAGS_TOO_LONG';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Actor flag bit set runs past {maxFlagBytes} bytes' {
+        return 'Actor flag bit set runs past {maxFlagBytes} bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-actor-flags-too-long' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-actor-flags-too-long';
+    }
 
     public override readonly code = 'PROTOCOL_ACTOR_FLAGS_TOO_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-actor-flags-too-long';
@@ -40,11 +50,21 @@ class ActorFlagsTooLong extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class UnknownActorLinkType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ACTOR_LINK_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Actor link {targetA} -> {targetB} carries unknown link type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-actor-link-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_ACTOR_LINK_TYPE' {
+        return 'PROTOCOL_UNKNOWN_ACTOR_LINK_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Actor link {targetA} -> {targetB} carries unknown link type {type}' {
+        return 'Actor link {targetA} -> {targetB} carries unknown link type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-actor-link-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-actor-link-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ACTOR_LINK_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-actor-link-type';
@@ -74,12 +94,21 @@ class UnknownActorLinkType extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class AttributeLayerNeedsNetworkStream extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_ATTRIBUTE_LAYER_NEEDS_NETWORK_STREAM';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'The attribute layer structures need a NetworkBinaryStream';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-attribute-layer-needs-network-stream';
+    public static get code(): 'PROTOCOL_ATTRIBUTE_LAYER_NEEDS_NETWORK_STREAM' {
+        return 'PROTOCOL_ATTRIBUTE_LAYER_NEEDS_NETWORK_STREAM';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'The attribute layer structures need a NetworkBinaryStream' {
+        return 'The attribute layer structures need a NetworkBinaryStream';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-attribute-layer-needs-network-stream' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-attribute-layer-needs-network-stream';
+    }
 
     public override readonly code = 'PROTOCOL_ATTRIBUTE_LAYER_NEEDS_NETWORK_STREAM';
     public override readonly docs =
@@ -102,12 +131,21 @@ class AttributeLayerNeedsNetworkStream extends JSPrismarineTypeError {
  * the protocol differently than this server reads it, is the usual cause.
  */
 class ConnectionRequestHasTrailingBytes extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_CONNECTION_REQUEST_HAS_TRAILING_BYTES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'The connection request has {unread} unread bytes after the client data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-connection-request-has-trailing-bytes';
+    public static get code(): 'PROTOCOL_CONNECTION_REQUEST_HAS_TRAILING_BYTES' {
+        return 'PROTOCOL_CONNECTION_REQUEST_HAS_TRAILING_BYTES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'The connection request has {unread} unread bytes after the client data' {
+        return 'The connection request has {unread} unread bytes after the client data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-connection-request-has-trailing-bytes' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-connection-request-has-trailing-bytes';
+    }
 
     public override readonly code = 'PROTOCOL_CONNECTION_REQUEST_HAS_TRAILING_BYTES';
     public override readonly docs =
@@ -131,11 +169,21 @@ class ConnectionRequestHasTrailingBytes extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownDataItemType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_ITEM_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Data item {id} carries unknown type {selector}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-item-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_ITEM_TYPE' {
+        return 'PROTOCOL_UNKNOWN_DATA_ITEM_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Data item {id} carries unknown type {selector}' {
+        return 'Data item {id} carries unknown type {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-item-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-item-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_ITEM_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-item-type';
@@ -157,11 +205,21 @@ class UnknownDataItemType extends JSPrismarineError {
  * the protocol codecs; report it with the stack trace.
  */
 class DataItemTypeMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_DATA_ITEM_TYPE_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Data item {id} declares type {selector} but carries type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-data-item-type-mismatch';
+    public static get code(): 'PROTOCOL_DATA_ITEM_TYPE_MISMATCH' {
+        return 'PROTOCOL_DATA_ITEM_TYPE_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Data item {id} declares type {selector} but carries type {type}' {
+        return 'Data item {id} declares type {selector} but carries type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-data-item-type-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-data-item-type-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_DATA_ITEM_TYPE_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-data-item-type-mismatch';
@@ -192,12 +250,21 @@ class DataItemTypeMismatch extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class UnknownDataStoreEntryType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_ENTRY_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Data store entry has an unknown type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-entry-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_STORE_ENTRY_TYPE' {
+        return 'PROTOCOL_UNKNOWN_DATA_STORE_ENTRY_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Data store entry has an unknown type {type}' {
+        return 'Data store entry has an unknown type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-entry-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-entry-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_ENTRY_TYPE';
     public override readonly docs =
@@ -221,12 +288,21 @@ class UnknownDataStoreEntryType extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownDataStorePropertyType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_PROPERTY_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Data store property value has an unknown type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-property-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_STORE_PROPERTY_TYPE' {
+        return 'PROTOCOL_UNKNOWN_DATA_STORE_PROPERTY_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Data store property value has an unknown type {type}' {
+        return 'Data store property value has an unknown type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-property-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-property-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_PROPERTY_TYPE';
     public override readonly docs =
@@ -250,12 +326,21 @@ class UnknownDataStorePropertyType extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownDataStoreUpdateType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_UPDATE_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Data store update has an unknown data type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-update-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_STORE_UPDATE_TYPE' {
+        return 'PROTOCOL_UNKNOWN_DATA_STORE_UPDATE_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Data store update has an unknown data type {type}' {
+        return 'Data store update has an unknown data type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-update-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-data-store-update-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_UPDATE_TYPE';
     public override readonly docs =
@@ -278,13 +363,21 @@ class UnknownDataStoreUpdateType extends JSPrismarineError {
  * in the protocol codecs; report it with the stack trace.
  */
 class DurabilityCorrectionTooLarge extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_DURABILITY_CORRECTION_TOO_LARGE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'Durability correction {durabilityCorrection} for slot {slot} does not fit an int16';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-durability-correction-too-large';
+    public static get code(): 'PROTOCOL_DURABILITY_CORRECTION_TOO_LARGE' {
+        return 'PROTOCOL_DURABILITY_CORRECTION_TOO_LARGE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Durability correction {durabilityCorrection} for slot {slot} does not fit an int16' {
+        return 'Durability correction {durabilityCorrection} for slot {slot} does not fit an int16';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-durability-correction-too-large' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-durability-correction-too-large';
+    }
 
     public override readonly code = 'PROTOCOL_DURABILITY_CORRECTION_TOO_LARGE';
     public override readonly docs =
@@ -315,11 +408,21 @@ class DurabilityCorrectionTooLarge extends JSPrismarineRangeError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class UnknownGameRuleType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_GAME_RULE_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Game rule {name} has an unknown value type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_GAME_RULE_TYPE' {
+        return 'PROTOCOL_UNKNOWN_GAME_RULE_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Game rule {name} has an unknown value type {type}' {
+        return 'Game rule {name} has an unknown value type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_GAME_RULE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-type';
@@ -341,11 +444,21 @@ class UnknownGameRuleType extends JSPrismarineError {
  * or read at it. This is a bug in the protocol codecs; report it with the stack trace.
  */
 class NoLayoutAtProtocol extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_NO_LAYOUT_AT_PROTOCOL';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = '{name}.{key} has no layout at protocol {protocolVersion}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-no-layout-at-protocol';
+    public static get code(): 'PROTOCOL_NO_LAYOUT_AT_PROTOCOL' {
+        return 'PROTOCOL_NO_LAYOUT_AT_PROTOCOL';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): '{name}.{key} has no layout at protocol {protocolVersion}' {
+        return '{name}.{key} has no layout at protocol {protocolVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-no-layout-at-protocol' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-no-layout-at-protocol';
+    }
 
     public override readonly code = 'PROTOCOL_NO_LAYOUT_AT_PROTOCOL';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-no-layout-at-protocol';
@@ -375,11 +488,21 @@ class NoLayoutAtProtocol extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class InvalidEnumValueOffset extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_INVALID_ENUM_VALUE_OFFSET';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Invalid enum value offset {valueOffset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-enum-value-offset';
+    public static get code(): 'PROTOCOL_INVALID_ENUM_VALUE_OFFSET' {
+        return 'PROTOCOL_INVALID_ENUM_VALUE_OFFSET';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Invalid enum value offset {valueOffset}' {
+        return 'Invalid enum value offset {valueOffset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-enum-value-offset' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-enum-value-offset';
+    }
 
     public override readonly code = 'PROTOCOL_INVALID_ENUM_VALUE_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-enum-value-offset';
@@ -402,12 +525,21 @@ class InvalidEnumValueOffset extends JSPrismarineError {
  * that writes the protocol differently than this server reads it, is the usual cause.
  */
 class TooManyTransactionActions extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_TRANSACTION_ACTIONS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'An inventory transaction carried {actionsCount} actions; the docs allow {maxInventoryActions}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-transaction-actions';
+    public static get code(): 'PROTOCOL_TOO_MANY_TRANSACTION_ACTIONS' {
+        return 'PROTOCOL_TOO_MANY_TRANSACTION_ACTIONS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An inventory transaction carried {actionsCount} actions; the docs allow {maxInventoryActions}' {
+        return 'An inventory transaction carried {actionsCount} actions; the docs allow {maxInventoryActions}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-transaction-actions' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-transaction-actions';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_TRANSACTION_ACTIONS';
     public override readonly docs =
@@ -438,11 +570,21 @@ class TooManyTransactionActions extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class MissingTransactionPayload extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_TRANSACTION_PAYLOAD';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'An inventory transaction needs its transaction payload';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-transaction-payload';
+    public static get code(): 'PROTOCOL_MISSING_TRANSACTION_PAYLOAD' {
+        return 'PROTOCOL_MISSING_TRANSACTION_PAYLOAD';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An inventory transaction needs its transaction payload' {
+        return 'An inventory transaction needs its transaction payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-transaction-payload' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-transaction-payload';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_TRANSACTION_PAYLOAD';
     public override readonly docs =
@@ -465,12 +607,21 @@ class MissingTransactionPayload extends JSPrismarineTypeError {
  * reads it, is the usual cause.
  */
 class TooManyItemStackActions extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_ITEM_STACK_ACTIONS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'Item stack request {requestId} names {actionCount} actions; the docs allow at most {maxRequestActions}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-actions';
+    public static get code(): 'PROTOCOL_TOO_MANY_ITEM_STACK_ACTIONS' {
+        return 'PROTOCOL_TOO_MANY_ITEM_STACK_ACTIONS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Item stack request {requestId} names {actionCount} actions; the docs allow at most {maxRequestActions}' {
+        return 'Item stack request {requestId} names {actionCount} actions; the docs allow at most {maxRequestActions}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-actions' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-actions';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_ITEM_STACK_ACTIONS';
     public override readonly docs =
@@ -504,12 +655,21 @@ class TooManyItemStackActions extends JSPrismarineRangeError {
  * this server reads it, is the usual cause.
  */
 class TooManyItemStackRequests extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_ITEM_STACK_REQUESTS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'An item stack request packet names {count} requests; the docs allow at most {maxRequests}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-requests';
+    public static get code(): 'PROTOCOL_TOO_MANY_ITEM_STACK_REQUESTS' {
+        return 'PROTOCOL_TOO_MANY_ITEM_STACK_REQUESTS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An item stack request packet names {count} requests; the docs allow at most {maxRequests}' {
+        return 'An item stack request packet names {count} requests; the docs allow at most {maxRequests}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-requests' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-stack-requests';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_ITEM_STACK_REQUESTS';
     public override readonly docs =
@@ -536,11 +696,21 @@ class TooManyItemStackRequests extends JSPrismarineRangeError {
  * reads it, is the usual cause.
  */
 class TooManyMapPixels extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_MAP_PIXELS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'MapInfoRequest claims {count} client pixels; the limit is {maxClientPixels}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-map-pixels';
+    public static get code(): 'PROTOCOL_TOO_MANY_MAP_PIXELS' {
+        return 'PROTOCOL_TOO_MANY_MAP_PIXELS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'MapInfoRequest claims {count} client pixels; the limit is {maxClientPixels}' {
+        return 'MapInfoRequest claims {count} client pixels; the limit is {maxClientPixels}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-map-pixels' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-map-pixels';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_MAP_PIXELS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-map-pixels';
@@ -567,11 +737,21 @@ class TooManyMapPixels extends JSPrismarineError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class UnknownResourcePackStatus extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_RESOURCE_PACK_STATUS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'No resource pack response alternative for status {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-status';
+    public static get code(): 'PROTOCOL_UNKNOWN_RESOURCE_PACK_STATUS' {
+        return 'PROTOCOL_UNKNOWN_RESOURCE_PACK_STATUS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'No resource pack response alternative for status {status}' {
+        return 'No resource pack response alternative for status {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-status' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-status';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_RESOURCE_PACK_STATUS';
     public override readonly docs =
@@ -594,11 +774,21 @@ class UnknownResourcePackStatus extends JSPrismarineError {
  * a bug in the protocol codecs; report it with the stack trace.
  */
 class MissingAttributeLayerData extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'The payload carries no Data in the {layout} layout of this protocol version';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-attribute-layer-data';
+    public static get code(): 'PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA' {
+        return 'PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'The payload carries no Data in the {layout} layout of this protocol version' {
+        return 'The payload carries no Data in the {layout} layout of this protocol version';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-attribute-layer-data' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-attribute-layer-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA';
     public override readonly docs =
@@ -621,11 +811,21 @@ class MissingAttributeLayerData extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class MissingPlayerListEntries extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_PLAYER_LIST_ENTRIES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A player list cannot be written without its entries';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-player-list-entries';
+    public static get code(): 'PROTOCOL_MISSING_PLAYER_LIST_ENTRIES' {
+        return 'PROTOCOL_MISSING_PLAYER_LIST_ENTRIES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A player list cannot be written without its entries' {
+        return 'A player list cannot be written without its entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-player-list-entries' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-player-list-entries';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_PLAYER_LIST_ENTRIES';
     public override readonly docs =
@@ -647,12 +847,21 @@ class MissingPlayerListEntries extends JSPrismarineTypeError {
  * protocol codecs; report it with the stack trace.
  */
 class PlayerListEntryHasNoSkin extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PLAYER_LIST_ENTRY_HAS_NO_SKIN';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Player list entry {uUID} has no skin, so it cannot be added';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-player-list-entry-has-no-skin';
+    public static get code(): 'PROTOCOL_PLAYER_LIST_ENTRY_HAS_NO_SKIN' {
+        return 'PROTOCOL_PLAYER_LIST_ENTRY_HAS_NO_SKIN';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Player list entry {uUID} has no skin, so it cannot be added' {
+        return 'Player list entry {uUID} has no skin, so it cannot be added';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-player-list-entry-has-no-skin' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-player-list-entry-has-no-skin';
+    }
 
     public override readonly code = 'PROTOCOL_PLAYER_LIST_ENTRY_HAS_NO_SKIN';
     public override readonly docs =
@@ -676,12 +885,21 @@ class PlayerListEntryHasNoSkin extends JSPrismarineError {
  * reads it, is the usual cause.
  */
 class PlayerLocationTypeMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PLAYER_LOCATION_TYPE_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Player location selector {selector} does not match type {packetType}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-player-location-type-mismatch';
+    public static get code(): 'PROTOCOL_PLAYER_LOCATION_TYPE_MISMATCH' {
+        return 'PROTOCOL_PLAYER_LOCATION_TYPE_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Player location selector {selector} does not match type {packetType}' {
+        return 'Player location selector {selector} does not match type {packetType}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-player-location-type-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-player-location-type-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_PLAYER_LOCATION_TYPE_MISMATCH';
     public override readonly docs =
@@ -708,12 +926,21 @@ class PlayerLocationTypeMismatch extends JSPrismarineError {
  * reads it, is the usual cause.
  */
 class TooManyBlockActions extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_BLOCK_ACTIONS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'PlayerAuthInput claims {actionCount} block actions; the docs allow {maxBlockActions}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-block-actions';
+    public static get code(): 'PROTOCOL_TOO_MANY_BLOCK_ACTIONS' {
+        return 'PROTOCOL_TOO_MANY_BLOCK_ACTIONS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'PlayerAuthInput claims {actionCount} block actions; the docs allow {maxBlockActions}' {
+        return 'PlayerAuthInput claims {actionCount} block actions; the docs allow {maxBlockActions}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-block-actions' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-block-actions';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_BLOCK_ACTIONS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-block-actions';
@@ -744,11 +971,21 @@ class TooManyBlockActions extends JSPrismarineRangeError {
  * reads it, is the usual cause.
  */
 class TooManyInputFlags extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_INPUT_FLAGS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'PlayerAuthInput claims {flagCount} input flags; there are {inputFlagCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-input-flags';
+    public static get code(): 'PROTOCOL_TOO_MANY_INPUT_FLAGS' {
+        return 'PROTOCOL_TOO_MANY_INPUT_FLAGS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'PlayerAuthInput claims {flagCount} input flags; there are {inputFlagCount}' {
+        return 'PlayerAuthInput claims {flagCount} input flags; there are {inputFlagCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-input-flags' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-input-flags';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_INPUT_FLAGS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-input-flags';
@@ -779,12 +1016,21 @@ class TooManyInputFlags extends JSPrismarineRangeError {
  * this server reads it, is the usual cause.
  */
 class TooManyItemUseActions extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_TOO_MANY_ITEM_USE_ACTIONS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'A PlayerAuthInput item use carried {actionCount} actions; the docs allow {maxInventoryActions}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-use-actions';
+    public static get code(): 'PROTOCOL_TOO_MANY_ITEM_USE_ACTIONS' {
+        return 'PROTOCOL_TOO_MANY_ITEM_USE_ACTIONS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A PlayerAuthInput item use carried {actionCount} actions; the docs allow {maxInventoryActions}' {
+        return 'A PlayerAuthInput item use carried {actionCount} actions; the docs allow {maxInventoryActions}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-use-actions' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-use-actions';
+    }
 
     public override readonly code = 'PROTOCOL_TOO_MANY_ITEM_USE_ACTIONS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-too-many-item-use-actions';
@@ -814,11 +1060,21 @@ class TooManyItemUseActions extends JSPrismarineRangeError {
  * codecs; report it with the stack trace.
  */
 class InvalidRecipeUuid extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_INVALID_RECIPE_UUID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A recipe UUID is sixteen bytes, got {byteLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-recipe-uuid';
+    public static get code(): 'PROTOCOL_INVALID_RECIPE_UUID' {
+        return 'PROTOCOL_INVALID_RECIPE_UUID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A recipe UUID is sixteen bytes, got {byteLength}' {
+        return 'A recipe UUID is sixteen bytes, got {byteLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-recipe-uuid' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-recipe-uuid';
+    }
 
     public override readonly code = 'PROTOCOL_INVALID_RECIPE_UUID';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-recipe-uuid';
@@ -840,11 +1096,21 @@ class InvalidRecipeUuid extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class MissingReleaseItemData extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_RELEASE_ITEM_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A release-item transaction needs release-item data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-release-item-data';
+    public static get code(): 'PROTOCOL_MISSING_RELEASE_ITEM_DATA' {
+        return 'PROTOCOL_MISSING_RELEASE_ITEM_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A release-item transaction needs release-item data' {
+        return 'A release-item transaction needs release-item data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-release-item-data' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-release-item-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_RELEASE_ITEM_DATA';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-release-item-data';
@@ -865,11 +1131,21 @@ class MissingReleaseItemData extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class MissingSkin extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_SKIN';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A skin field cannot be written without a skin';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-skin';
+    public static get code(): 'PROTOCOL_MISSING_SKIN' {
+        return 'PROTOCOL_MISSING_SKIN';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A skin field cannot be written without a skin' {
+        return 'A skin field cannot be written without a skin';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-skin' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-skin';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_SKIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-skin';
@@ -891,11 +1167,21 @@ class MissingSkin extends JSPrismarineTypeError {
  * reads it, is the usual cause.
  */
 class SoundDataTypeMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SOUND_DATA_TYPE_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Sound data update selector {type} does not match its type {tag}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-sound-data-type-mismatch';
+    public static get code(): 'PROTOCOL_SOUND_DATA_TYPE_MISMATCH' {
+        return 'PROTOCOL_SOUND_DATA_TYPE_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Sound data update selector {type} does not match its type {tag}' {
+        return 'Sound data update selector {type} does not match its type {tag}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-sound-data-type-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-sound-data-type-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_SOUND_DATA_TYPE_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-sound-data-type-mismatch';
@@ -920,12 +1206,21 @@ class SoundDataTypeMismatch extends JSPrismarineError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class UndefinedSubChunkResultUnsupported extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_UNDEFINED_SUB_CHUNK_RESULT_UNSUPPORTED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'SubChunkRequestResult.UNDEFINED is unavailable before protocol 2207';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-undefined-sub-chunk-result-unsupported';
+    public static get code(): 'PROTOCOL_UNDEFINED_SUB_CHUNK_RESULT_UNSUPPORTED' {
+        return 'PROTOCOL_UNDEFINED_SUB_CHUNK_RESULT_UNSUPPORTED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'SubChunkRequestResult.UNDEFINED is unavailable before protocol 2207' {
+        return 'SubChunkRequestResult.UNDEFINED is unavailable before protocol 2207';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-undefined-sub-chunk-result-unsupported' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-undefined-sub-chunk-result-unsupported';
+    }
 
     public override readonly code = 'PROTOCOL_UNDEFINED_SUB_CHUNK_RESULT_UNSUPPORTED';
     public override readonly docs =
@@ -948,11 +1243,21 @@ class UndefinedSubChunkResultUnsupported extends JSPrismarineRangeError {
  * this server reads it, is the usual cause.
  */
 class UnknownBookEditAction extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_BOOK_EDIT_ACTION';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown book edit action {action}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-book-edit-action';
+    public static get code(): 'PROTOCOL_UNKNOWN_BOOK_EDIT_ACTION' {
+        return 'PROTOCOL_UNKNOWN_BOOK_EDIT_ACTION';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown book edit action {action}' {
+        return 'Unknown book edit action {action}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-book-edit-action' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-book-edit-action';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_BOOK_EDIT_ACTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-book-edit-action';
@@ -975,12 +1280,21 @@ class UnknownBookEditAction extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownAttributeLayerDataType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_LAYER_DATA_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown ClientboundAttributeLayerSyncPacket data variant {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-attribute-layer-data-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_ATTRIBUTE_LAYER_DATA_TYPE' {
+        return 'PROTOCOL_UNKNOWN_ATTRIBUTE_LAYER_DATA_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown ClientboundAttributeLayerSyncPacket data variant {type}' {
+        return 'Unknown ClientboundAttributeLayerSyncPacket data variant {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-attribute-layer-data-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-attribute-layer-data-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_LAYER_DATA_TYPE';
     public override readonly docs =
@@ -1004,12 +1318,21 @@ class UnknownAttributeLayerDataType extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownCommandBlockTargetAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_COMMAND_BLOCK_TARGET_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown command block target alternative {selector}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-command-block-target-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_COMMAND_BLOCK_TARGET_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_COMMAND_BLOCK_TARGET_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown command block target alternative {selector}' {
+        return 'Unknown command block target alternative {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-command-block-target-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-command-block-target-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_COMMAND_BLOCK_TARGET_ALTERNATIVE';
     public override readonly docs =
@@ -1033,11 +1356,21 @@ class UnknownCommandBlockTargetAlternative extends JSPrismarineError {
  * protocol differently than this server reads it, is the usual cause.
  */
 class UnknownScreenCloseReason extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_SCREEN_CLOSE_REASON';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown DataDrivenScreenClosedReason "{value}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-screen-close-reason';
+    public static get code(): 'PROTOCOL_UNKNOWN_SCREEN_CLOSE_REASON' {
+        return 'PROTOCOL_UNKNOWN_SCREEN_CLOSE_REASON';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown DataDrivenScreenClosedReason "{value}"' {
+        return 'Unknown DataDrivenScreenClosedReason "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-screen-close-reason' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-screen-close-reason';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_SCREEN_CLOSE_REASON';
     public override readonly docs =
@@ -1061,11 +1394,21 @@ class UnknownScreenCloseReason extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownEasingFunction extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_EASING_FUNCTION';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown easing_function "{name}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-easing-function';
+    public static get code(): 'PROTOCOL_UNKNOWN_EASING_FUNCTION' {
+        return 'PROTOCOL_UNKNOWN_EASING_FUNCTION';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown easing_function "{name}"' {
+        return 'Unknown easing_function "{name}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-easing-function' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-easing-function';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_EASING_FUNCTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-easing-function';
@@ -1087,12 +1430,21 @@ class UnknownEasingFunction extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class UnknownEntityOverrideUpdateType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ENTITY_OVERRIDE_UPDATE_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown entity override update type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-entity-override-update-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_ENTITY_OVERRIDE_UPDATE_TYPE' {
+        return 'PROTOCOL_UNKNOWN_ENTITY_OVERRIDE_UPDATE_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown entity override update type {type}' {
+        return 'Unknown entity override update type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-entity-override-update-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-entity-override-update-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ENTITY_OVERRIDE_UPDATE_TYPE';
     public override readonly docs =
@@ -1116,12 +1468,21 @@ class UnknownEntityOverrideUpdateType extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class UnknownGameRuleValueAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_GAME_RULE_VALUE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown game rule value alternative {selector}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-value-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_GAME_RULE_VALUE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_GAME_RULE_VALUE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown game rule value alternative {selector}' {
+        return 'Unknown game rule value alternative {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-value-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-game-rule-value-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_GAME_RULE_VALUE_ALTERNATIVE';
     public override readonly docs =
@@ -1145,11 +1506,21 @@ class UnknownGameRuleValueAlternative extends JSPrismarineError {
  * protocol differently than this server reads it, is the usual cause.
  */
 class UnknownItemDescriptorKind extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ITEM_DESCRIPTOR_KIND';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown item descriptor kind {kind} in an item stack request';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-descriptor-kind';
+    public static get code(): 'PROTOCOL_UNKNOWN_ITEM_DESCRIPTOR_KIND' {
+        return 'PROTOCOL_UNKNOWN_ITEM_DESCRIPTOR_KIND';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown item descriptor kind {kind} in an item stack request' {
+        return 'Unknown item descriptor kind {kind} in an item stack request';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-descriptor-kind' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-descriptor-kind';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ITEM_DESCRIPTOR_KIND';
     public override readonly docs =
@@ -1173,12 +1544,21 @@ class UnknownItemDescriptorKind extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownItemStackRequestActionType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ITEM_STACK_REQUEST_ACTION_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown item stack request action type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-stack-request-action-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_ITEM_STACK_REQUEST_ACTION_TYPE' {
+        return 'PROTOCOL_UNKNOWN_ITEM_STACK_REQUEST_ACTION_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown item stack request action type {type}' {
+        return 'Unknown item stack request action type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-stack-request-action-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-item-stack-request-action-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ITEM_STACK_REQUEST_ACTION_TYPE';
     public override readonly docs =
@@ -1202,11 +1582,21 @@ class UnknownItemStackRequestActionType extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownMusicPlaybackState extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_MUSIC_PLAYBACK_STATE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown MusicPlaybackState "{value}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-music-playback-state';
+    public static get code(): 'PROTOCOL_UNKNOWN_MUSIC_PLAYBACK_STATE' {
+        return 'PROTOCOL_UNKNOWN_MUSIC_PLAYBACK_STATE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown MusicPlaybackState "{value}"' {
+        return 'Unknown MusicPlaybackState "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-music-playback-state' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-music-playback-state';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_MUSIC_PLAYBACK_STATE';
     public override readonly docs =
@@ -1230,12 +1620,21 @@ class UnknownMusicPlaybackState extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownPackSettingValueAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_PACK_SETTING_VALUE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown pack setting value alternative {selector}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-pack-setting-value-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_PACK_SETTING_VALUE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_PACK_SETTING_VALUE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown pack setting value alternative {selector}' {
+        return 'Unknown pack setting value alternative {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-pack-setting-value-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-pack-setting-value-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_PACK_SETTING_VALUE_ALTERNATIVE';
     public override readonly docs =
@@ -1259,12 +1658,21 @@ class UnknownPackSettingValueAlternative extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownPartyDestinationCookieIntent extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_PARTY_DESTINATION_COOKIE_INTENT';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown party destination cookie intent "{name}"';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-party-destination-cookie-intent';
+    public static get code(): 'PROTOCOL_UNKNOWN_PARTY_DESTINATION_COOKIE_INTENT' {
+        return 'PROTOCOL_UNKNOWN_PARTY_DESTINATION_COOKIE_INTENT';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown party destination cookie intent "{name}"' {
+        return 'Unknown party destination cookie intent "{name}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-party-destination-cookie-intent' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-party-destination-cookie-intent';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_PARTY_DESTINATION_COOKIE_INTENT';
     public override readonly docs =
@@ -1288,12 +1696,21 @@ class UnknownPartyDestinationCookieIntent extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownPlayerLocationAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_PLAYER_LOCATION_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown player location alternative {selector}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-player-location-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_PLAYER_LOCATION_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_PLAYER_LOCATION_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown player location alternative {selector}' {
+        return 'Unknown player location alternative {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-player-location-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-player-location-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_PLAYER_LOCATION_ALTERNATIVE';
     public override readonly docs =
@@ -1317,12 +1734,21 @@ class UnknownPlayerLocationAlternative extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownRecipeIngredientDescriptor extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown recipe ingredient descriptor {name}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor';
+    public static get code(): 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR' {
+        return 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown recipe ingredient descriptor {name}' {
+        return 'Unknown recipe ingredient descriptor {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR';
     public override readonly docs =
@@ -1346,12 +1772,21 @@ class UnknownRecipeIngredientDescriptor extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownRecipeIngredientDescriptorVariant extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR_VARIANT';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown recipe ingredient descriptor variant {variant}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor-variant';
+    public static get code(): 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR_VARIANT' {
+        return 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR_VARIANT';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown recipe ingredient descriptor variant {variant}' {
+        return 'Unknown recipe ingredient descriptor variant {variant}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor-variant' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-recipe-ingredient-descriptor-variant';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_RECIPE_INGREDIENT_DESCRIPTOR_VARIANT';
     public override readonly docs =
@@ -1375,12 +1810,21 @@ class UnknownRecipeIngredientDescriptorVariant extends JSPrismarineError {
  * protocol differently than this server reads it, is the usual cause.
  */
 class UnknownResourcePackResponseAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_RESOURCE_PACK_RESPONSE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown resource pack response alternative {selector}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-response-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_RESOURCE_PACK_RESPONSE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_RESOURCE_PACK_RESPONSE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown resource pack response alternative {selector}' {
+        return 'Unknown resource pack response alternative {selector}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-response-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-resource-pack-response-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_RESOURCE_PACK_RESPONSE_ALTERNATIVE';
     public override readonly docs =
@@ -1404,12 +1848,21 @@ class UnknownResourcePackResponseAlternative extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownSetScoreAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_SET_SCORE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown set score alternative {action}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-set-score-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_SET_SCORE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_SET_SCORE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown set score alternative {action}' {
+        return 'Unknown set score alternative {action}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-set-score-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-set-score-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_SET_SCORE_ALTERNATIVE';
     public override readonly docs =
@@ -1433,12 +1886,21 @@ class UnknownSetScoreAlternative extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownSoftEnumUpdateType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_SOFT_ENUM_UPDATE_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown soft enum update type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-soft-enum-update-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_SOFT_ENUM_UPDATE_TYPE' {
+        return 'PROTOCOL_UNKNOWN_SOFT_ENUM_UPDATE_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown soft enum update type {type}' {
+        return 'Unknown soft enum update type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-soft-enum-update-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-soft-enum-update-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_SOFT_ENUM_UPDATE_TYPE';
     public override readonly docs =
@@ -1462,12 +1924,21 @@ class UnknownSoftEnumUpdateType extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class UnknownSoundDataUpdateAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_SOUND_DATA_UPDATE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown sound data update alternative {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sound-data-update-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_SOUND_DATA_UPDATE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_SOUND_DATA_UPDATE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown sound data update alternative {type}' {
+        return 'Unknown sound data update alternative {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sound-data-update-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sound-data-update-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_SOUND_DATA_UPDATE_ALTERNATIVE';
     public override readonly docs =
@@ -1491,12 +1962,21 @@ class UnknownSoundDataUpdateAlternative extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownSubChunkRequestResult extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_SUB_CHUNK_REQUEST_RESULT';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown sub chunk request result {result}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sub-chunk-request-result';
+    public static get code(): 'PROTOCOL_UNKNOWN_SUB_CHUNK_REQUEST_RESULT' {
+        return 'PROTOCOL_UNKNOWN_SUB_CHUNK_REQUEST_RESULT';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown sub chunk request result {result}' {
+        return 'Unknown sub chunk request result {result}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sub-chunk-request-result' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-sub-chunk-request-result';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_SUB_CHUNK_REQUEST_RESULT';
     public override readonly docs =
@@ -1520,12 +2000,21 @@ class UnknownSubChunkRequestResult extends JSPrismarineRangeError {
  * than this server reads it, is the usual cause.
  */
 class UnknownWorldClockDataType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_WORLD_CLOCK_DATA_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown SyncWorldClocksPacket data type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-world-clock-data-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_WORLD_CLOCK_DATA_TYPE' {
+        return 'PROTOCOL_UNKNOWN_WORLD_CLOCK_DATA_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown SyncWorldClocksPacket data type {type}' {
+        return 'Unknown SyncWorldClocksPacket data type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-world-clock-data-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-world-clock-data-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_WORLD_CLOCK_DATA_TYPE';
     public override readonly docs =
@@ -1549,12 +2038,21 @@ class UnknownWorldClockDataType extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownTelemetryEventDataAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_TELEMETRY_EVENT_DATA_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown telemetry event data alternative {ordinal}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-telemetry-event-data-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_TELEMETRY_EVENT_DATA_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_TELEMETRY_EVENT_DATA_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown telemetry event data alternative {ordinal}' {
+        return 'Unknown telemetry event data alternative {ordinal}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-telemetry-event-data-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-telemetry-event-data-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_TELEMETRY_EVENT_DATA_ALTERNATIVE';
     public override readonly docs =
@@ -1578,11 +2076,21 @@ class UnknownTelemetryEventDataAlternative extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class UnknownTextBodyType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_TEXT_BODY_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown TextPacket body variant {variant}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-text-body-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_TEXT_BODY_TYPE' {
+        return 'PROTOCOL_UNKNOWN_TEXT_BODY_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown TextPacket body variant {variant}' {
+        return 'Unknown TextPacket body variant {variant}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-text-body-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-text-body-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_TEXT_BODY_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-text-body-type';
@@ -1605,11 +2113,21 @@ class UnknownTextBodyType extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownTransactionType extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_TRANSACTION_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Unknown transaction type {transactionType}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-transaction-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_TRANSACTION_TYPE' {
+        return 'PROTOCOL_UNKNOWN_TRANSACTION_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Unknown transaction type {transactionType}' {
+        return 'Unknown transaction type {transactionType}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-transaction-type' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-transaction-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_TRANSACTION_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-unknown-transaction-type';
@@ -1631,12 +2149,21 @@ class UnknownTransactionType extends JSPrismarineTypeError {
  * codecs; report it with the stack trace.
  */
 class MissingUseItemOnEntityData extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_USE_ITEM_ON_ENTITY_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A use-item-on-entity transaction needs use-item-on-entity data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-on-entity-data';
+    public static get code(): 'PROTOCOL_MISSING_USE_ITEM_ON_ENTITY_DATA' {
+        return 'PROTOCOL_MISSING_USE_ITEM_ON_ENTITY_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A use-item-on-entity transaction needs use-item-on-entity data' {
+        return 'A use-item-on-entity transaction needs use-item-on-entity data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-on-entity-data' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-on-entity-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_USE_ITEM_ON_ENTITY_DATA';
     public override readonly docs =
@@ -1658,11 +2185,21 @@ class MissingUseItemOnEntityData extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class MissingUseItemData extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_MISSING_USE_ITEM_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A use-item transaction needs use-item data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-data';
+    public static get code(): 'PROTOCOL_MISSING_USE_ITEM_DATA' {
+        return 'PROTOCOL_MISSING_USE_ITEM_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A use-item transaction needs use-item data' {
+        return 'A use-item transaction needs use-item data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-data' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_USE_ITEM_DATA';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-use-item-data';
@@ -1684,13 +2221,21 @@ class MissingUseItemData extends JSPrismarineTypeError {
  * writes the protocol differently than this server reads it, is the usual cause.
  */
 class UseItemTransactionHasTrailingBytes extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_USE_ITEM_TRANSACTION_HAS_TRAILING_BYTES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        "UseItem transaction left {byteLength} bytes unread: the packet layout does not match the client's";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-use-item-transaction-has-trailing-bytes';
+    public static get code(): 'PROTOCOL_USE_ITEM_TRANSACTION_HAS_TRAILING_BYTES' {
+        return 'PROTOCOL_USE_ITEM_TRANSACTION_HAS_TRAILING_BYTES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): "UseItem transaction left {byteLength} bytes unread: the packet layout does not match the client's" {
+        return "UseItem transaction left {byteLength} bytes unread: the packet layout does not match the client's";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-use-item-transaction-has-trailing-bytes' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-use-item-transaction-has-trailing-bytes';
+    }
 
     public override readonly code = 'PROTOCOL_USE_ITEM_TRANSACTION_HAS_TRAILING_BYTES';
     public override readonly docs =
@@ -1716,11 +2261,21 @@ class UseItemTransactionHasTrailingBytes extends JSPrismarineError {
  * stack trace.
  */
 class MissingUuid extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_UUID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'uuid is null or undefined';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-uuid';
+    public static get code(): 'PROTOCOL_MISSING_UUID' {
+        return 'PROTOCOL_MISSING_UUID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'uuid is null or undefined' {
+        return 'uuid is null or undefined';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-uuid' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-uuid';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_UUID';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-missing-uuid';
@@ -1741,11 +2296,21 @@ class MissingUuid extends JSPrismarineError {
  * report it with the stack trace.
  */
 class InvalidUuidLength extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_INVALID_UUID_LENGTH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'UUID must have 16 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-uuid-length';
+    public static get code(): 'PROTOCOL_INVALID_UUID_LENGTH' {
+        return 'PROTOCOL_INVALID_UUID_LENGTH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'UUID must have 16 bytes' {
+        return 'UUID must have 16 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-uuid-length' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-uuid-length';
+    }
 
     public override readonly code = 'PROTOCOL_INVALID_UUID_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-invalid-uuid-length';
@@ -1767,11 +2332,21 @@ class InvalidUuidLength extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class JavaStringTooLong extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_STRING_TOO_LONG';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A string of {length} characters is longer than the {max} its field allows';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-string-too-long';
+    public static get code(): 'PROTOCOL_JAVA_STRING_TOO_LONG' {
+        return 'PROTOCOL_JAVA_STRING_TOO_LONG';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A string of {length} characters is longer than the {max} its field allows' {
+        return 'A string of {length} characters is longer than the {max} its field allows';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-string-too-long' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-string-too-long';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_STRING_TOO_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-string-too-long';
@@ -1797,12 +2372,21 @@ class JavaStringTooLong extends JSPrismarineError {
  * or a modified one, is the usual cause.
  */
 class JavaPacketHasTrailingBytes extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = '{name} has {unread} unread bytes after its fields';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-has-trailing-bytes';
+    public static get code(): 'PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES' {
+        return 'PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): '{name} has {unread} unread bytes after its fields' {
+        return '{name} has {unread} unread bytes after its fields';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-has-trailing-bytes' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-has-trailing-bytes';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES';
     public override readonly docs =
@@ -1826,11 +2410,21 @@ class JavaPacketHasTrailingBytes extends JSPrismarineError {
  * release lists; report it with the stack trace.
  */
 class JavaPacketNotInRelease extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Java Edition {release} has no {name} packet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release';
+    public static get code(): 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE' {
+        return 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Java Edition {release} has no {name} packet' {
+        return 'Java Edition {release} has no {name} packet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_PACKET_NOT_IN_RELEASE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-packet-not-in-release';
@@ -1852,12 +2446,21 @@ class JavaPacketNotInRelease extends JSPrismarineError {
  * not read yet. The connection is dropped.
  */
 class JavaTextComponentNotString extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_TEXT_COMPONENT_NOT_STRING';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A text component with NBT tag {tag} is not plain text';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-text-component-not-string';
+    public static get code(): 'PROTOCOL_JAVA_TEXT_COMPONENT_NOT_STRING' {
+        return 'PROTOCOL_JAVA_TEXT_COMPONENT_NOT_STRING';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A text component with NBT tag {tag} is not plain text' {
+        return 'A text component with NBT tag {tag} is not plain text';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-text-component-not-string' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-text-component-not-string';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_TEXT_COMPONENT_NOT_STRING';
     public override readonly docs =
@@ -1881,11 +2484,21 @@ class JavaTextComponentNotString extends JSPrismarineError {
  * packs exchange.
  */
 class JavaRegistryEntryHasData extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A registry entry carries data, which this server does not read';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-has-data';
+    public static get code(): 'PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA' {
+        return 'PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A registry entry carries data, which this server does not read' {
+        return 'A registry entry carries data, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-has-data' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-has-data';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA';
     public override readonly docs =
@@ -1908,13 +2521,21 @@ class JavaRegistryEntryHasData extends JSPrismarineError {
  * the connection; a modified client is the usual cause.
  */
 class JavaFrameLengthOutOfRange extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'A compressed frame names {length} bytes, outside what threshold {threshold} allows';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-frame-length-out-of-range';
+    public static get code(): 'PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE' {
+        return 'PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A compressed frame names {length} bytes, outside what threshold {threshold} allows' {
+        return 'A compressed frame names {length} bytes, outside what threshold {threshold} allows';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-frame-length-out-of-range' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-frame-length-out-of-range';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE';
     public override readonly docs =
@@ -1941,12 +2562,21 @@ class JavaFrameLengthOutOfRange extends JSPrismarineError {
  * dump:java-protocol`.
  */
 class JavaBlockStateRowMalformed extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_BLOCK_STATE_ROW_MALFORMED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'Block state row {index} is not [name, firstId, properties]';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-block-state-row-malformed';
+    public static get code(): 'PROTOCOL_JAVA_BLOCK_STATE_ROW_MALFORMED' {
+        return 'PROTOCOL_JAVA_BLOCK_STATE_ROW_MALFORMED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'Block state row {index} is not [name, firstId, properties]' {
+        return 'Block state row {index} is not [name, firstId, properties]';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-block-state-row-malformed' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-block-state-row-malformed';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_BLOCK_STATE_ROW_MALFORMED';
     public override readonly docs =
@@ -1969,11 +2599,21 @@ class JavaBlockStateRowMalformed extends JSPrismarineError {
  * or the packet carrying it is malformed. Seen when reading another server's chunk.
  */
 class JavaPalettedContainerBits extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_PALETTED_CONTAINER_BITS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A paletted container of {entries} entries cannot use {bits} bits per entry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-paletted-container-bits';
+    public static get code(): 'PROTOCOL_JAVA_PALETTED_CONTAINER_BITS' {
+        return 'PROTOCOL_JAVA_PALETTED_CONTAINER_BITS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A paletted container of {entries} entries cannot use {bits} bits per entry' {
+        return 'A paletted container of {entries} entries cannot use {bits} bits per entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-paletted-container-bits' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-paletted-container-bits';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_PALETTED_CONTAINER_BITS';
     public override readonly docs =
@@ -1999,12 +2639,21 @@ class JavaPalettedContainerBits extends JSPrismarineError {
  * yet. Seen when reading another server's chunk.
  */
 class JavaChunkHasBlockEntities extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A chunk carries {count} block entities, which this server does not read';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-chunk-has-block-entities';
+    public static get code(): 'PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES' {
+        return 'PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A chunk carries {count} block entities, which this server does not read' {
+        return 'A chunk carries {count} block entities, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-chunk-has-block-entities' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-chunk-has-block-entities';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES';
     public override readonly docs =
@@ -2027,11 +2676,21 @@ class JavaChunkHasBlockEntities extends JSPrismarineError {
  * sends entities at rest. Seen when reading another server's spawn.
  */
 class JavaVelocityNotAtRest extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_VELOCITY_NOT_AT_REST';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A spawned entity carries a velocity, which this server does not read';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-velocity-not-at-rest';
+    public static get code(): 'PROTOCOL_JAVA_VELOCITY_NOT_AT_REST' {
+        return 'PROTOCOL_JAVA_VELOCITY_NOT_AT_REST';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A spawned entity carries a velocity, which this server does not read' {
+        return 'A spawned entity carries a velocity, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-velocity-not-at-rest' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-velocity-not-at-rest';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_VELOCITY_NOT_AT_REST';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-velocity-not-at-rest';
@@ -2052,11 +2711,21 @@ class JavaVelocityNotAtRest extends JSPrismarineError {
  * reader does not read: it sends plain stacks. Seen when reading another server's inventory.
  */
 class JavaItemComponentsUnread extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'An item stack carries {count} data components, which this server does not read';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread';
+    public static get code(): 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD' {
+        return 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An item stack carries {count} data components, which this server does not read' {
+        return 'An item stack carries {count} data components, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD';
     public override readonly docs =
@@ -2082,13 +2751,21 @@ class JavaItemComponentsUnread extends JSPrismarineError {
  * sends the shared flags and the pose only. Seen when reading another server's entity data.
  */
 class JavaEntityDataSerializerUnread extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_ENTITY_DATA_SERIALIZER_UNREAD';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template =
-        'An entity data entry uses serializer {serializer}, which this server does not read';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-entity-data-serializer-unread';
+    public static get code(): 'PROTOCOL_JAVA_ENTITY_DATA_SERIALIZER_UNREAD' {
+        return 'PROTOCOL_JAVA_ENTITY_DATA_SERIALIZER_UNREAD';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'An entity data entry uses serializer {serializer}, which this server does not read' {
+        return 'An entity data entry uses serializer {serializer}, which this server does not read';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-entity-data-serializer-unread' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-entity-data-serializer-unread';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_ENTITY_DATA_SERIALIZER_UNREAD';
     public override readonly docs =
@@ -2115,12 +2792,21 @@ class JavaEntityDataSerializerUnread extends JSPrismarineError {
  * release whose operations this server does not know.
  */
 class JavaBossEventOperationUnknown extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'wire';
-    public static readonly template = 'A boss event names operation {operation}, which Java 26.3 does not define';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-boss-event-operation-unknown';
+    public static get code(): 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN' {
+        return 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'A boss event names operation {operation}, which Java 26.3 does not define' {
+        return 'A boss event names operation {operation}, which Java 26.3 does not define';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-boss-event-operation-unknown' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-boss-event-operation-unknown';
+    }
 
     public override readonly code = 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN';
     public override readonly docs =

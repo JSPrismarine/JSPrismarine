@@ -12,12 +12,21 @@ import {
  * to write there. Use a folder you own.
  */
 class DumpFolderOwnedByOtherUser extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUMP_FOLDER_OWNED_BY_OTHER_USER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{directory} belongs to another user';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-owned-by-other-user';
+    public static get code(): 'PRISMARINE_DUMP_FOLDER_OWNED_BY_OTHER_USER' {
+        return 'PRISMARINE_DUMP_FOLDER_OWNED_BY_OTHER_USER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{directory} belongs to another user' {
+        return '{directory} belongs to another user';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-owned-by-other-user' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-owned-by-other-user';
+    }
 
     public override readonly code = 'PRISMARINE_DUMP_FOLDER_OWNED_BY_OTHER_USER';
     public override readonly docs =
@@ -40,12 +49,21 @@ class DumpFolderOwnedByOtherUser extends JSPrismarineError {
  * bug in the server; report it with the stack trace.
  */
 class EmptyBlockChangeBatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_BLOCK_CHANGE_BATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A block-change batch has no packet to report';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-batch';
+    public static get code(): 'PRISMARINE_EMPTY_BLOCK_CHANGE_BATCH' {
+        return 'PRISMARINE_EMPTY_BLOCK_CHANGE_BATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A block-change batch has no packet to report' {
+        return 'A block-change batch has no packet to report';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-batch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-batch';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_BLOCK_CHANGE_BATCH';
     public override readonly docs =
@@ -67,12 +85,21 @@ class EmptyBlockChangeBatch extends JSPrismarineError {
  * report it with the stack trace.
  */
 class EmptyBlockChangeSubChunk extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_BLOCK_CHANGE_SUB_CHUNK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A block-change subchunk cannot be empty';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-sub-chunk';
+    public static get code(): 'PRISMARINE_EMPTY_BLOCK_CHANGE_SUB_CHUNK' {
+        return 'PRISMARINE_EMPTY_BLOCK_CHANGE_SUB_CHUNK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A block-change subchunk cannot be empty' {
+        return 'A block-change subchunk cannot be empty';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-sub-chunk' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-block-change-sub-chunk';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_BLOCK_CHANGE_SUB_CHUNK';
     public override readonly docs =
@@ -94,11 +121,21 @@ class EmptyBlockChangeSubChunk extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class BookEditNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BOOK_EDIT_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'BookEditPacket has no payload after validation';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-book-edit-not-decoded';
+    public static get code(): 'PRISMARINE_BOOK_EDIT_NOT_DECODED' {
+        return 'PRISMARINE_BOOK_EDIT_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'BookEditPacket has no payload after validation' {
+        return 'BookEditPacket has no payload after validation';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-book-edit-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-book-edit-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_BOOK_EDIT_NOT_DECODED';
     public override readonly docs =
@@ -120,12 +157,21 @@ class BookEditNotDecoded extends JSPrismarineError {
  * in the server; report it with the stack trace.
  */
 class FrameTooLargeForNethernet extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_FRAME_TOO_LARGE_FOR_NETHERNET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = "A {byteLength} byte frame exceeds NetherNet's message limit";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-frame-too-large-for-nethernet';
+    public static get code(): 'PRISMARINE_FRAME_TOO_LARGE_FOR_NETHERNET' {
+        return 'PRISMARINE_FRAME_TOO_LARGE_FOR_NETHERNET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): "A {byteLength} byte frame exceeds NetherNet's message limit" {
+        return "A {byteLength} byte frame exceeds NetherNet's message limit";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-frame-too-large-for-nethernet' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-frame-too-large-for-nethernet';
+    }
 
     public override readonly code = 'PRISMARINE_FRAME_TOO_LARGE_FOR_NETHERNET';
     public override readonly docs =
@@ -148,12 +194,21 @@ class FrameTooLargeForNethernet extends JSPrismarineRangeError {
  * refuses to write there. Remove the group and world write permission, or use another folder.
  */
 class DumpFolderWritableByOthers extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUMP_FOLDER_WRITABLE_BY_OTHERS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{directory} can be written by other users';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-writable-by-others';
+    public static get code(): 'PRISMARINE_DUMP_FOLDER_WRITABLE_BY_OTHERS' {
+        return 'PRISMARINE_DUMP_FOLDER_WRITABLE_BY_OTHERS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{directory} can be written by other users' {
+        return '{directory} can be written by other users';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-writable-by-others' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-folder-writable-by-others';
+    }
 
     public override readonly code = 'PRISMARINE_DUMP_FOLDER_WRITABLE_BY_OTHERS';
     public override readonly docs =
@@ -176,12 +231,21 @@ class DumpFolderWritableByOthers extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class AnvilDamageNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ANVIL_DAMAGE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle an AnvilDamagePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-anvil-damage-not-decoded';
+    public static get code(): 'PRISMARINE_ANVIL_DAMAGE_NOT_DECODED' {
+        return 'PRISMARINE_ANVIL_DAMAGE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle an AnvilDamagePacket without decoded data' {
+        return 'Cannot handle an AnvilDamagePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-anvil-damage-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-anvil-damage-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_ANVIL_DAMAGE_NOT_DECODED';
     public override readonly docs =
@@ -203,12 +267,21 @@ class AnvilDamageNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class BlockPickRequestNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BLOCK_PICK_REQUEST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a BlockPickRequestPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-block-pick-request-not-decoded';
+    public static get code(): 'PRISMARINE_BLOCK_PICK_REQUEST_NOT_DECODED' {
+        return 'PRISMARINE_BLOCK_PICK_REQUEST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a BlockPickRequestPacket without decoded data' {
+        return 'Cannot handle a BlockPickRequestPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-block-pick-request-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-block-pick-request-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_BLOCK_PICK_REQUEST_NOT_DECODED';
     public override readonly docs =
@@ -230,12 +303,21 @@ class BlockPickRequestNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class MovementPredictionSyncNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MOVEMENT_PREDICTION_SYNC_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a ClientMovementPredictionSyncPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-movement-prediction-sync-not-decoded';
+    public static get code(): 'PRISMARINE_MOVEMENT_PREDICTION_SYNC_NOT_DECODED' {
+        return 'PRISMARINE_MOVEMENT_PREDICTION_SYNC_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a ClientMovementPredictionSyncPacket without decoded data' {
+        return 'Cannot handle a ClientMovementPredictionSyncPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-movement-prediction-sync-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-movement-prediction-sync-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_MOVEMENT_PREDICTION_SYNC_NOT_DECODED';
     public override readonly docs =
@@ -257,12 +339,21 @@ class MovementPredictionSyncNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class CommandBlockUpdateNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_COMMAND_BLOCK_UPDATE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a CommandBlockUpdatePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-block-update-not-decoded';
+    public static get code(): 'PRISMARINE_COMMAND_BLOCK_UPDATE_NOT_DECODED' {
+        return 'PRISMARINE_COMMAND_BLOCK_UPDATE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a CommandBlockUpdatePacket without decoded data' {
+        return 'Cannot handle a CommandBlockUpdatePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-block-update-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-block-update-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_COMMAND_BLOCK_UPDATE_NOT_DECODED';
     public override readonly docs =
@@ -284,12 +375,21 @@ class CommandBlockUpdateNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class EmoteListNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMOTE_LIST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle an EmoteListPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-emote-list-not-decoded';
+    public static get code(): 'PRISMARINE_EMOTE_LIST_NOT_DECODED' {
+        return 'PRISMARINE_EMOTE_LIST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle an EmoteListPacket without decoded data' {
+        return 'Cannot handle an EmoteListPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-emote-list-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-emote-list-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_EMOTE_LIST_NOT_DECODED';
     public override readonly docs =
@@ -311,12 +411,21 @@ class EmoteListNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class ScriptMessageNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SCRIPT_MESSAGE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a ScriptMessagePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-script-message-not-decoded';
+    public static get code(): 'PRISMARINE_SCRIPT_MESSAGE_NOT_DECODED' {
+        return 'PRISMARINE_SCRIPT_MESSAGE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a ScriptMessagePacket without decoded data' {
+        return 'Cannot handle a ScriptMessagePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-script-message-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-script-message-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_SCRIPT_MESSAGE_NOT_DECODED';
     public override readonly docs =
@@ -338,11 +447,21 @@ class ScriptMessageNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class LabTableNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LAB_TABLE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a LabTablePacket without decoded data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-lab-table-not-decoded';
+    public static get code(): 'PRISMARINE_LAB_TABLE_NOT_DECODED' {
+        return 'PRISMARINE_LAB_TABLE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a LabTablePacket without decoded data' {
+        return 'Cannot handle a LabTablePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-lab-table-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-lab-table-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_LAB_TABLE_NOT_DECODED';
     public override readonly docs =
@@ -364,12 +483,21 @@ class LabTableNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class LecternUpdateNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LECTERN_UPDATE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a LecternUpdatePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-lectern-update-not-decoded';
+    public static get code(): 'PRISMARINE_LECTERN_UPDATE_NOT_DECODED' {
+        return 'PRISMARINE_LECTERN_UPDATE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a LecternUpdatePacket without decoded data' {
+        return 'Cannot handle a LecternUpdatePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-lectern-update-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-lectern-update-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_LECTERN_UPDATE_NOT_DECODED';
     public override readonly docs =
@@ -391,11 +519,21 @@ class LecternUpdateNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class LoginNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LOGIN_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle LoginPacket without packet data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-not-decoded';
+    public static get code(): 'PRISMARINE_LOGIN_NOT_DECODED' {
+        return 'PRISMARINE_LOGIN_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle LoginPacket without packet data' {
+        return 'Cannot handle LoginPacket without packet data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_LOGIN_NOT_DECODED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-not-decoded';
@@ -416,12 +554,21 @@ class LoginNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class PartyChangedNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PARTY_CHANGED_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a PartyChangedPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-party-changed-not-decoded';
+    public static get code(): 'PRISMARINE_PARTY_CHANGED_NOT_DECODED' {
+        return 'PRISMARINE_PARTY_CHANGED_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a PartyChangedPacket without decoded data' {
+        return 'Cannot handle a PartyChangedPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-party-changed-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-party-changed-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_PARTY_CHANGED_NOT_DECODED';
     public override readonly docs =
@@ -443,12 +590,21 @@ class PartyChangedNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class PlayerLocationNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_LOCATION_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a PlayerLocationPacket without a payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-location-not-decoded';
+    public static get code(): 'PRISMARINE_PLAYER_LOCATION_NOT_DECODED' {
+        return 'PRISMARINE_PLAYER_LOCATION_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a PlayerLocationPacket without a payload' {
+        return 'Cannot handle a PlayerLocationPacket without a payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-location-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-location-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_LOCATION_NOT_DECODED';
     public override readonly docs =
@@ -470,12 +626,21 @@ class PlayerLocationNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class PurchaseReceiptNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PURCHASE_RECEIPT_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a PurchaseReceiptPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-purchase-receipt-not-decoded';
+    public static get code(): 'PRISMARINE_PURCHASE_RECEIPT_NOT_DECODED' {
+        return 'PRISMARINE_PURCHASE_RECEIPT_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a PurchaseReceiptPacket without decoded data' {
+        return 'Cannot handle a PurchaseReceiptPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-purchase-receipt-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-purchase-receipt-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_PURCHASE_RECEIPT_NOT_DECODED';
     public override readonly docs =
@@ -497,11 +662,21 @@ class PurchaseReceiptNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class RespawnNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RESPAWN_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle RespawnPacket without decoded data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-not-decoded';
+    public static get code(): 'PRISMARINE_RESPAWN_NOT_DECODED' {
+        return 'PRISMARINE_RESPAWN_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle RespawnPacket without decoded data' {
+        return 'Cannot handle RespawnPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_RESPAWN_NOT_DECODED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-not-decoded';
@@ -522,12 +697,21 @@ class RespawnNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class LoadingScreenNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LOADING_SCREEN_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a ServerboundLoadingScreenPacket without a payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-loading-screen-not-decoded';
+    public static get code(): 'PRISMARINE_LOADING_SCREEN_NOT_DECODED' {
+        return 'PRISMARINE_LOADING_SCREEN_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a ServerboundLoadingScreenPacket without a payload' {
+        return 'Cannot handle a ServerboundLoadingScreenPacket without a payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-loading-screen-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-loading-screen-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_LOADING_SCREEN_NOT_DECODED';
     public override readonly docs =
@@ -549,12 +733,21 @@ class LoadingScreenNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class PackSettingChangeNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PACK_SETTING_CHANGE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a ServerboundPackSettingChangePacket without a payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-pack-setting-change-not-decoded';
+    public static get code(): 'PRISMARINE_PACK_SETTING_CHANGE_NOT_DECODED' {
+        return 'PRISMARINE_PACK_SETTING_CHANGE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a ServerboundPackSettingChangePacket without a payload' {
+        return 'Cannot handle a ServerboundPackSettingChangePacket without a payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-pack-setting-change-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-pack-setting-change-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_PACK_SETTING_CHANGE_NOT_DECODED';
     public override readonly docs =
@@ -576,12 +769,21 @@ class PackSettingChangeNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class SetDifficultyNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SET_DIFFICULTY_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle SetDifficultyPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-difficulty-not-decoded';
+    public static get code(): 'PRISMARINE_SET_DIFFICULTY_NOT_DECODED' {
+        return 'PRISMARINE_SET_DIFFICULTY_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle SetDifficultyPacket without decoded data' {
+        return 'Cannot handle SetDifficultyPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-difficulty-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-difficulty-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_SET_DIFFICULTY_NOT_DECODED';
     public override readonly docs =
@@ -603,12 +805,21 @@ class SetDifficultyNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class FurnaceOptionsNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FURNACE_OPTIONS_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-furnace-options-not-decoded';
+    public static get code(): 'PRISMARINE_FURNACE_OPTIONS_NOT_DECODED' {
+        return 'PRISMARINE_FURNACE_OPTIONS_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data' {
+        return 'Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-furnace-options-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-furnace-options-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_FURNACE_OPTIONS_NOT_DECODED';
     public override readonly docs =
@@ -630,12 +841,21 @@ class FurnaceOptionsNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class SetGameTypeNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SET_GAME_TYPE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle SetPlayerGameTypePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-game-type-not-decoded';
+    public static get code(): 'PRISMARINE_SET_GAME_TYPE_NOT_DECODED' {
+        return 'PRISMARINE_SET_GAME_TYPE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle SetPlayerGameTypePacket without decoded data' {
+        return 'Cannot handle SetPlayerGameTypePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-game-type-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-set-game-type-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_SET_GAME_TYPE_NOT_DECODED';
     public override readonly docs =
@@ -657,12 +877,21 @@ class SetGameTypeNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class SettingsCommandNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SETTINGS_COMMAND_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a SettingsCommandPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-settings-command-not-decoded';
+    public static get code(): 'PRISMARINE_SETTINGS_COMMAND_NOT_DECODED' {
+        return 'PRISMARINE_SETTINGS_COMMAND_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a SettingsCommandPacket without decoded data' {
+        return 'Cannot handle a SettingsCommandPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-settings-command-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-settings-command-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_SETTINGS_COMMAND_NOT_DECODED';
     public override readonly docs =
@@ -684,12 +913,21 @@ class SettingsCommandNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class StructureBlockUpdateNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STRUCTURE_BLOCK_UPDATE_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a StructureBlockUpdatePacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-block-update-not-decoded';
+    public static get code(): 'PRISMARINE_STRUCTURE_BLOCK_UPDATE_NOT_DECODED' {
+        return 'PRISMARINE_STRUCTURE_BLOCK_UPDATE_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a StructureBlockUpdatePacket without decoded data' {
+        return 'Cannot handle a StructureBlockUpdatePacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-block-update-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-block-update-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_STRUCTURE_BLOCK_UPDATE_NOT_DECODED';
     public override readonly docs =
@@ -711,12 +949,21 @@ class StructureBlockUpdateNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class StructureTemplateRequestNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STRUCTURE_TEMPLATE_REQUEST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Cannot handle a StructureTemplateDataRequestPacket without decoded data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-template-request-not-decoded';
+    public static get code(): 'PRISMARINE_STRUCTURE_TEMPLATE_REQUEST_NOT_DECODED' {
+        return 'PRISMARINE_STRUCTURE_TEMPLATE_REQUEST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Cannot handle a StructureTemplateDataRequestPacket without decoded data' {
+        return 'Cannot handle a StructureTemplateDataRequestPacket without decoded data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-template-request-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-structure-template-request-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_STRUCTURE_TEMPLATE_REQUEST_NOT_DECODED';
     public override readonly docs =
@@ -738,12 +985,21 @@ class StructureTemplateRequestNotDecoded extends JSPrismarineError {
  * bytes.
  */
 class InvalidChunkCacheLimit extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_CHUNK_CACHE_LIMIT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Chunk batch cache limit must be a non-negative integer, got {maxBytes}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-chunk-cache-limit';
+    public static get code(): 'PRISMARINE_INVALID_CHUNK_CACHE_LIMIT' {
+        return 'PRISMARINE_INVALID_CHUNK_CACHE_LIMIT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Chunk batch cache limit must be a non-negative integer, got {maxBytes}' {
+        return 'Chunk batch cache limit must be a non-negative integer, got {maxBytes}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-chunk-cache-limit' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-chunk-cache-limit';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_CHUNK_CACHE_LIMIT';
     public override readonly docs =
@@ -766,13 +1022,21 @@ class InvalidChunkCacheLimit extends JSPrismarineRangeError {
  * bug in the server; report it with the stack trace.
  */
 class ChunkTooLargeForQueue extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_CHUNK_TOO_LARGE_FOR_QUEUE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        'Chunk payload {memoryBytes} exceeds the {queuedChunkBytesLimit}-byte queue limit';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-too-large-for-queue';
+    public static get code(): 'PRISMARINE_CHUNK_TOO_LARGE_FOR_QUEUE' {
+        return 'PRISMARINE_CHUNK_TOO_LARGE_FOR_QUEUE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Chunk payload {memoryBytes} exceeds the {queuedChunkBytesLimit}-byte queue limit' {
+        return 'Chunk payload {memoryBytes} exceeds the {queuedChunkBytesLimit}-byte queue limit';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-too-large-for-queue' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-too-large-for-queue';
+    }
 
     public override readonly code = 'PRISMARINE_CHUNK_TOO_LARGE_FOR_QUEUE';
     public override readonly docs =
@@ -803,12 +1067,21 @@ class ChunkTooLargeForQueue extends JSPrismarineRangeError {
  * up with it. The client is modified or broken.
  */
 class InvalidClientIdentityKey extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_CLIENT_IDENTITY_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'The client identity key is not a {bedrockCurve} public key';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-client-identity-key';
+    public static get code(): 'PRISMARINE_INVALID_CLIENT_IDENTITY_KEY' {
+        return 'PRISMARINE_INVALID_CLIENT_IDENTITY_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'The client identity key is not a {bedrockCurve} public key' {
+        return 'The client identity key is not a {bedrockCurve} public key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-client-identity-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-client-identity-key';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_CLIENT_IDENTITY_KEY';
     public override readonly docs =
@@ -831,12 +1104,21 @@ class InvalidClientIdentityKey extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class CommandRequestNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_COMMAND_REQUEST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'CommandRequestPacket has no decoded payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-request-not-decoded';
+    public static get code(): 'PRISMARINE_COMMAND_REQUEST_NOT_DECODED' {
+        return 'PRISMARINE_COMMAND_REQUEST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'CommandRequestPacket has no decoded payload' {
+        return 'CommandRequestPacket has no decoded payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-request-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-command-request-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_COMMAND_REQUEST_NOT_DECODED';
     public override readonly docs =
@@ -855,11 +1137,21 @@ class CommandRequestNotDecoded extends JSPrismarineError {
 
 /** Code asked for the RakNet session of a player who joined over NetherNet. */
 class NotRaknetConnection extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NOT_RAKNET_CONNECTION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Connection {id} did not connect over RakNet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-raknet-connection';
+    public static get code(): 'PRISMARINE_NOT_RAKNET_CONNECTION' {
+        return 'PRISMARINE_NOT_RAKNET_CONNECTION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Connection {id} did not connect over RakNet' {
+        return 'Connection {id} did not connect over RakNet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-raknet-connection' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-raknet-connection';
+    }
 
     public override readonly code = 'PRISMARINE_NOT_RAKNET_CONNECTION';
     public override readonly docs =
@@ -882,12 +1174,21 @@ class NotRaknetConnection extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class DisconnectNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DISCONNECT_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'DisconnectPacket has no payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-disconnect-not-decoded';
+    public static get code(): 'PRISMARINE_DISCONNECT_NOT_DECODED' {
+        return 'PRISMARINE_DISCONNECT_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'DisconnectPacket has no payload' {
+        return 'DisconnectPacket has no payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-disconnect-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-disconnect-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_DISCONNECT_NOT_DECODED';
     public override readonly docs =
@@ -909,11 +1210,21 @@ class DisconnectNotDecoded extends JSPrismarineError {
  * they left.
  */
 class PlayerHasLeft extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_HAS_LEFT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{name} (entity {runtimeId}) has left: its session has no player';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-has-left';
+    public static get code(): 'PRISMARINE_PLAYER_HAS_LEFT' {
+        return 'PRISMARINE_PLAYER_HAS_LEFT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{name} (entity {runtimeId}) has left: its session has no player' {
+        return '{name} (entity {runtimeId}) has left: its session has no player';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-has-left' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-has-left';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_HAS_LEFT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-player-has-left';
@@ -938,12 +1249,21 @@ class PlayerHasLeft extends JSPrismarineError {
  * This is a bug in the server; report it with the stack trace.
  */
 class FragmentWithoutCodecKey extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FRAGMENT_WITHOUT_CODEC_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Full-flush fragments require a protocol codec cache key';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-without-codec-key';
+    public static get code(): 'PRISMARINE_FRAGMENT_WITHOUT_CODEC_KEY' {
+        return 'PRISMARINE_FRAGMENT_WITHOUT_CODEC_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Full-flush fragments require a protocol codec cache key' {
+        return 'Full-flush fragments require a protocol codec cache key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-without-codec-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-without-codec-key';
+    }
 
     public override readonly code = 'PRISMARINE_FRAGMENT_WITHOUT_CODEC_KEY';
     public override readonly docs =
@@ -962,11 +1282,21 @@ class FragmentWithoutCodecKey extends JSPrismarineError {
 
 /** Two handlers were registered for the same packet. */
 class DuplicateHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Handler for {packetName} already exists!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-duplicate-handler';
+    public static get code(): 'PRISMARINE_DUPLICATE_HANDLER' {
+        return 'PRISMARINE_DUPLICATE_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Handler for {packetName} already exists!' {
+        return 'Handler for {packetName} already exists!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-duplicate-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-duplicate-handler';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_HANDLER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-duplicate-handler';
@@ -988,11 +1318,21 @@ class DuplicateHandler extends JSPrismarineError {
  * the server; report it with the stack trace.
  */
 class NoInputLaneHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_INPUT_LANE_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{name} has no input-lane handler';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-input-lane-handler';
+    public static get code(): 'PRISMARINE_NO_INPUT_LANE_HANDLER' {
+        return 'PRISMARINE_NO_INPUT_LANE_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{name} has no input-lane handler' {
+        return '{name} has no input-lane handler';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-input-lane-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-input-lane-handler';
+    }
 
     public override readonly code = 'PRISMARINE_NO_INPUT_LANE_HANDLER';
     public override readonly docs =
@@ -1012,11 +1352,21 @@ class NoInputLaneHandler extends JSPrismarineError {
 
 /** A packet trace was recorded out of order, so it is damaged. */
 class TraceOutOfOrder extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TRACE_OUT_OF_ORDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Inbound packet trace expected order {capturedCount}, got {order}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-out-of-order';
+    public static get code(): 'PRISMARINE_TRACE_OUT_OF_ORDER' {
+        return 'PRISMARINE_TRACE_OUT_OF_ORDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Inbound packet trace expected order {capturedCount}, got {order}' {
+        return 'Inbound packet trace expected order {capturedCount}, got {order}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-out-of-order' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-out-of-order';
+    }
 
     public override readonly code = 'PRISMARINE_TRACE_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-out-of-order';
@@ -1038,11 +1388,21 @@ class TraceOutOfOrder extends JSPrismarineError {
 
 /** Code asked for the handler of a packet that has none. */
 class NoHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid handler for packet {packetName}!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-handler';
+    public static get code(): 'PRISMARINE_NO_HANDLER' {
+        return 'PRISMARINE_NO_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid handler for packet {packetName}!' {
+        return 'Invalid handler for packet {packetName}!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-handler';
+    }
 
     public override readonly code = 'PRISMARINE_NO_HANDLER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-no-handler';
@@ -1061,11 +1421,21 @@ class NoHandler extends JSPrismarineError {
 
 /** A packet trace file is not JSON, so it is damaged or not a trace. */
 class TraceNotJson extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TRACE_NOT_JSON';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid inbound packet trace JSON';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-not-json';
+    public static get code(): 'PRISMARINE_TRACE_NOT_JSON' {
+        return 'PRISMARINE_TRACE_NOT_JSON';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid inbound packet trace JSON' {
+        return 'Invalid inbound packet trace JSON';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-not-json' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-not-json';
+    }
 
     public override readonly code = 'PRISMARINE_TRACE_NOT_JSON';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-trace-not-json';
@@ -1083,11 +1453,21 @@ class TraceNotJson extends JSPrismarineError {
 
 /** A packet trace holds a record of the wrong shape, so it is damaged. */
 class InvalidTraceRecord extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_TRACE_RECORD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid inbound packet trace record';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-record';
+    public static get code(): 'PRISMARINE_INVALID_TRACE_RECORD' {
+        return 'PRISMARINE_INVALID_TRACE_RECORD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid inbound packet trace record' {
+        return 'Invalid inbound packet trace record';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-record' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-record';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_TRACE_RECORD';
     public override readonly docs =
@@ -1106,11 +1486,21 @@ class InvalidTraceRecord extends JSPrismarineError {
 
 /** A packet trace's records are not a list, so it is damaged. */
 class InvalidTraceRecords extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_TRACE_RECORDS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid inbound packet trace records';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-records';
+    public static get code(): 'PRISMARINE_INVALID_TRACE_RECORDS' {
+        return 'PRISMARINE_INVALID_TRACE_RECORDS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid inbound packet trace records' {
+        return 'Invalid inbound packet trace records';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-records' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-trace-records';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_TRACE_RECORDS';
     public override readonly docs =
@@ -1132,12 +1522,21 @@ class InvalidTraceRecords extends JSPrismarineError {
  * saved. This is a bug in the server; report it with the stack trace.
  */
 class InvalidReplayManifest extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_MANIFEST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid replay initial-state manifest';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-replay-manifest';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_MANIFEST' {
+        return 'PRISMARINE_INVALID_REPLAY_MANIFEST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid replay initial-state manifest' {
+        return 'Invalid replay initial-state manifest';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-replay-manifest' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-invalid-replay-manifest';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_MANIFEST';
     public override readonly docs =
@@ -1156,12 +1555,21 @@ class InvalidReplayManifest extends JSPrismarineTypeError {
 
 /** A replay's starting-state manifest is not JSON, so the replay is damaged. */
 class ReplayManifestNotJson extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_REPLAY_MANIFEST_NOT_JSON';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Invalid replay initial-state manifest JSON';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-manifest-not-json';
+    public static get code(): 'PRISMARINE_REPLAY_MANIFEST_NOT_JSON' {
+        return 'PRISMARINE_REPLAY_MANIFEST_NOT_JSON';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Invalid replay initial-state manifest JSON' {
+        return 'Invalid replay initial-state manifest JSON';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-manifest-not-json' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-manifest-not-json';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_MANIFEST_NOT_JSON';
     public override readonly docs =
@@ -1183,11 +1591,21 @@ class ReplayManifestNotJson extends JSPrismarineTypeError {
  * dumps cannot land elsewhere. Point it at a real folder.
  */
 class DumpPathNotFolder extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUMP_PATH_NOT_FOLDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{directory} is not a directory, or is a symbolic link';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-path-not-folder';
+    public static get code(): 'PRISMARINE_DUMP_PATH_NOT_FOLDER' {
+        return 'PRISMARINE_DUMP_PATH_NOT_FOLDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{directory} is not a directory, or is a symbolic link' {
+        return '{directory} is not a directory, or is a symbolic link';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-path-not-folder' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dump-path-not-folder';
+    }
 
     public override readonly code = 'PRISMARINE_DUMP_PATH_NOT_FOLDER';
     public override readonly docs =
@@ -1210,11 +1628,21 @@ class DumpPathNotFolder extends JSPrismarineError {
  * the server; report it with the stack trace.
  */
 class EmptySharedBatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_SHARED_BATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A large shared batch has no packet to report';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-shared-batch';
+    public static get code(): 'PRISMARINE_EMPTY_SHARED_BATCH' {
+        return 'PRISMARINE_EMPTY_SHARED_BATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A large shared batch has no packet to report' {
+        return 'A large shared batch has no packet to report';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-shared-batch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-shared-batch';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_SHARED_BATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-shared-batch';
@@ -1235,12 +1663,21 @@ class EmptySharedBatch extends JSPrismarineError {
  * The world's dimension config is incomplete.
  */
 class DimensionWithoutType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DIMENSION_WITHOUT_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Level {name} announces dimension {dimensionType} without a type';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-dimension-without-type';
+    public static get code(): 'PRISMARINE_DIMENSION_WITHOUT_TYPE' {
+        return 'PRISMARINE_DIMENSION_WITHOUT_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Level {name} announces dimension {dimensionType} without a type' {
+        return 'Level {name} announces dimension {dimensionType} without a type';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dimension-without-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-dimension-without-type';
+    }
 
     public override readonly code = 'PRISMARINE_DIMENSION_WITHOUT_TYPE';
     public override readonly docs =
@@ -1266,12 +1703,21 @@ class DimensionWithoutType extends JSPrismarineError {
  * broken.
  */
 class LoginTokenIsNotJwt extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LOGIN_TOKEN_IS_NOT_JWT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'The login token is not a JWT';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-token-is-not-jwt';
+    public static get code(): 'PRISMARINE_LOGIN_TOKEN_IS_NOT_JWT' {
+        return 'PRISMARINE_LOGIN_TOKEN_IS_NOT_JWT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'The login token is not a JWT' {
+        return 'The login token is not a JWT';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-token-is-not-jwt' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-login-token-is-not-jwt';
+    }
 
     public override readonly code = 'PRISMARINE_LOGIN_TOKEN_IS_NOT_JWT';
     public override readonly docs =
@@ -1293,12 +1739,21 @@ class LoginTokenIsNotJwt extends JSPrismarineError {
  * bug in the server; report it with the stack trace.
  */
 class SpawnLostDuringJoin extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SPAWN_LOST_DURING_JOIN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = '{name} lost its spawn before the join';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-spawn-lost-during-join';
+    public static get code(): 'PRISMARINE_SPAWN_LOST_DURING_JOIN' {
+        return 'PRISMARINE_SPAWN_LOST_DURING_JOIN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): '{name} lost its spawn before the join' {
+        return '{name} lost its spawn before the join';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-spawn-lost-during-join' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-spawn-lost-during-join';
+    }
 
     public override readonly code = 'PRISMARINE_SPAWN_LOST_DURING_JOIN';
     public override readonly docs =
@@ -1318,11 +1773,21 @@ class SpawnLostDuringJoin extends JSPrismarineError {
 
 /** A message was sent to a player with no text. */
 class EmptyMessage extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_MESSAGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A message is required';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-message';
+    public static get code(): 'PRISMARINE_EMPTY_MESSAGE' {
+        return 'PRISMARINE_EMPTY_MESSAGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A message is required' {
+        return 'A message is required';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-message' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-message';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_MESSAGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-message';
@@ -1343,11 +1808,21 @@ class EmptyMessage extends JSPrismarineError {
  * stack trace.
  */
 class MissingBlockChange extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_BLOCK_CHANGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Missing block change at flush index {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-block-change';
+    public static get code(): 'PRISMARINE_MISSING_BLOCK_CHANGE' {
+        return 'PRISMARINE_MISSING_BLOCK_CHANGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Missing block change at flush index {index}' {
+        return 'Missing block change at flush index {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-block-change' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-block-change';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_BLOCK_CHANGE';
     public override readonly docs =
@@ -1370,12 +1845,21 @@ class MissingBlockChange extends JSPrismarineError {
  * stack trace.
  */
 class MissingEncodedBlockPacket extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_ENCODED_BLOCK_PACKET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Missing encoded block packet';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-block-packet';
+    public static get code(): 'PRISMARINE_MISSING_ENCODED_BLOCK_PACKET' {
+        return 'PRISMARINE_MISSING_ENCODED_BLOCK_PACKET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Missing encoded block packet' {
+        return 'Missing encoded block packet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-block-packet' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-block-packet';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_ENCODED_BLOCK_PACKET';
     public override readonly docs =
@@ -1397,12 +1881,21 @@ class MissingEncodedBlockPacket extends JSPrismarineError {
  * the stack trace.
  */
 class MissingEncodedMovement extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_ENCODED_MOVEMENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Missing encoded movement for runtime id {runtimeId}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-movement';
+    public static get code(): 'PRISMARINE_MISSING_ENCODED_MOVEMENT' {
+        return 'PRISMARINE_MISSING_ENCODED_MOVEMENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Missing encoded movement for runtime id {runtimeId}' {
+        return 'Missing encoded movement for runtime id {runtimeId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-movement' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-encoded-movement';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_ENCODED_MOVEMENT';
     public override readonly docs =
@@ -1425,12 +1918,21 @@ class MissingEncodedMovement extends JSPrismarineError {
  * it with the stack trace.
  */
 class MissingMovementBytes extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_MOVEMENT_BYTES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Missing movement bytes for runtime id {runtimeId}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-movement-bytes';
+    public static get code(): 'PRISMARINE_MISSING_MOVEMENT_BYTES' {
+        return 'PRISMARINE_MISSING_MOVEMENT_BYTES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Missing movement bytes for runtime id {runtimeId}' {
+        return 'Missing movement bytes for runtime id {runtimeId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-movement-bytes' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-missing-movement-bytes';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_MOVEMENT_BYTES';
     public override readonly docs =
@@ -1453,11 +1955,21 @@ class MissingMovementBytes extends JSPrismarineError {
  * bug in the server; report it with the stack trace.
  */
 class EmptyMovementBatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_MOVEMENT_BATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A movement batch has no packet to report';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-movement-batch';
+    public static get code(): 'PRISMARINE_EMPTY_MOVEMENT_BATCH' {
+        return 'PRISMARINE_EMPTY_MOVEMENT_BATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A movement batch has no packet to report' {
+        return 'A movement batch has no packet to report';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-movement-batch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-movement-batch';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_MOVEMENT_BATCH';
     public override readonly docs =
@@ -1479,12 +1991,21 @@ class EmptyMovementBatch extends JSPrismarineError {
  * speaks another protocol.
  */
 class NethernetFrameNotBatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NETHERNET_FRAME_NOT_BATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'A NetherNet frame must be a batch, got id 0x{payload}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-nethernet-frame-not-batch';
+    public static get code(): 'PRISMARINE_NETHERNET_FRAME_NOT_BATCH' {
+        return 'PRISMARINE_NETHERNET_FRAME_NOT_BATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A NetherNet frame must be a batch, got id 0x{payload}' {
+        return 'A NetherNet frame must be a batch, got id 0x{payload}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-nethernet-frame-not-batch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-nethernet-frame-not-batch';
+    }
 
     public override readonly code = 'PRISMARINE_NETHERNET_FRAME_NOT_BATCH';
     public override readonly docs =
@@ -1507,11 +2028,21 @@ class NethernetFrameNotBatch extends JSPrismarineError {
  * disagree.
  */
 class UnknownHeldBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_HELD_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'No block named {name}, held at {x} {y} {z}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unknown-held-block';
+    public static get code(): 'PRISMARINE_UNKNOWN_HELD_BLOCK' {
+        return 'PRISMARINE_UNKNOWN_HELD_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'No block named {name}, held at {x} {y} {z}' {
+        return 'No block named {name}, held at {x} {y} {z}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unknown-held-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unknown-held-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_HELD_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unknown-held-block';
@@ -1544,12 +2075,21 @@ class UnknownHeldBlock extends JSPrismarineError {
  * settings. This is a bug in the server; report it with the stack trace.
  */
 class CompressionChangedDuringFlush extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_COMPRESSION_CHANGED_DURING_FLUSH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Outbound packet compression changed while a queue flush was pending';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-compression-changed-during-flush';
+    public static get code(): 'PRISMARINE_COMPRESSION_CHANGED_DURING_FLUSH' {
+        return 'PRISMARINE_COMPRESSION_CHANGED_DURING_FLUSH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Outbound packet compression changed while a queue flush was pending' {
+        return 'Outbound packet compression changed while a queue flush was pending';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-compression-changed-during-flush' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-compression-changed-during-flush';
+    }
 
     public override readonly code = 'PRISMARINE_COMPRESSION_CHANGED_DURING_FLUSH';
     public override readonly docs =
@@ -1571,12 +2111,21 @@ class CompressionChangedDuringFlush extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class BufferCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BUFFER_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        'Packet and buffer counts differ: {packetsCount} packets, {packetBuffersCount} buffers';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-buffer-count-mismatch';
+    public static get code(): 'PRISMARINE_BUFFER_COUNT_MISMATCH' {
+        return 'PRISMARINE_BUFFER_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Packet and buffer counts differ: {packetsCount} packets, {packetBuffersCount} buffers' {
+        return 'Packet and buffer counts differ: {packetsCount} packets, {packetBuffersCount} buffers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-buffer-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-buffer-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_BUFFER_COUNT_MISMATCH';
     public override readonly docs =
@@ -1607,13 +2156,21 @@ class BufferCountMismatch extends JSPrismarineRangeError {
  * bug in the server; report it with the stack trace.
  */
 class DiscriminatorCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_DISCRIMINATOR_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        'Packet and fragment-discriminator counts differ: {buffersCount} packets, {discriminatorsCount} discriminators';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-discriminator-count-mismatch';
+    public static get code(): 'PRISMARINE_DISCRIMINATOR_COUNT_MISMATCH' {
+        return 'PRISMARINE_DISCRIMINATOR_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Packet and fragment-discriminator counts differ: {buffersCount} packets, {discriminatorsCount} discriminators' {
+        return 'Packet and fragment-discriminator counts differ: {buffersCount} packets, {discriminatorsCount} discriminators';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-discriminator-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-discriminator-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_DISCRIMINATOR_COUNT_MISMATCH';
     public override readonly docs =
@@ -1644,12 +2201,21 @@ class DiscriminatorCountMismatch extends JSPrismarineRangeError {
  * the server; report it with the stack trace.
  */
 class FragmentKeyCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_FRAGMENT_KEY_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Packet and fragment-key counts differ: {buffersCount} packets, {keysCount} keys';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-key-count-mismatch';
+    public static get code(): 'PRISMARINE_FRAGMENT_KEY_COUNT_MISMATCH' {
+        return 'PRISMARINE_FRAGMENT_KEY_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Packet and fragment-key counts differ: {buffersCount} packets, {keysCount} keys' {
+        return 'Packet and fragment-key counts differ: {buffersCount} packets, {keysCount} keys';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-key-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-fragment-key-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_FRAGMENT_KEY_COUNT_MISMATCH';
     public override readonly docs =
@@ -1677,11 +2243,21 @@ class FragmentKeyCountMismatch extends JSPrismarineRangeError {
 
 /** A packet encoded to nothing. This is a bug in the server; report it with the stack trace. */
 class EmptyPacketEncoding extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_EMPTY_PACKET_ENCODING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Packet encoding returned no bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-packet-encoding';
+    public static get code(): 'PRISMARINE_EMPTY_PACKET_ENCODING' {
+        return 'PRISMARINE_EMPTY_PACKET_ENCODING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Packet encoding returned no bytes' {
+        return 'Packet encoding returned no bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-packet-encoding' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-empty-packet-encoding';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_PACKET_ENCODING';
     public override readonly docs =
@@ -1703,12 +2279,21 @@ class EmptyPacketEncoding extends JSPrismarineError {
  * replays with a provider that can.
  */
 class ProviderCannotRestoreReplay extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = "Provider '{provider}' cannot restore replay snapshots";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-provider-cannot-restore-replay';
+    public static get code(): 'PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY' {
+        return 'PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): "Provider '{provider}' cannot restore replay snapshots" {
+        return "Provider '{provider}' cannot restore replay snapshots";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-provider-cannot-restore-replay' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-provider-cannot-restore-replay';
+    }
 
     public override readonly code = 'PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY';
     public override readonly docs =
@@ -1731,12 +2316,21 @@ class ProviderCannotRestoreReplay extends JSPrismarineError {
  * was. It was recorded with a different version of the server.
  */
 class ReplayPacketNotDecodable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PACKET_NOT_DECODABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay bytes did not decode as {name}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-not-decodable';
+    public static get code(): 'PRISMARINE_REPLAY_PACKET_NOT_DECODABLE' {
+        return 'PRISMARINE_REPLAY_PACKET_NOT_DECODABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay bytes did not decode as {name}' {
+        return 'Replay bytes did not decode as {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-not-decodable' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-not-decodable';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PACKET_NOT_DECODABLE';
     public override readonly docs =
@@ -1759,13 +2353,21 @@ class ReplayPacketNotDecodable extends JSPrismarineError {
  * the trace is damaged.
  */
 class ReplayPacketOutOfSequence extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PACKET_OUT_OF_SEQUENCE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        'Replay connection {connectionId} expected packet {expectedSequence}, got {sequence}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-out-of-sequence';
+    public static get code(): 'PRISMARINE_REPLAY_PACKET_OUT_OF_SEQUENCE' {
+        return 'PRISMARINE_REPLAY_PACKET_OUT_OF_SEQUENCE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay connection {connectionId} expected packet {expectedSequence}, got {sequence}' {
+        return 'Replay connection {connectionId} expected packet {expectedSequence}, got {sequence}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-out-of-sequence' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-out-of-sequence';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PACKET_OUT_OF_SEQUENCE';
     public override readonly docs =
@@ -1798,12 +2400,21 @@ class ReplayPacketOutOfSequence extends JSPrismarineError {
  * already closed in the replay.
  */
 class ReplayConnectionClosed extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_CONNECTION_CLOSED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay connection {connectionId} is no longer connected';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-closed';
+    public static get code(): 'PRISMARINE_REPLAY_CONNECTION_CLOSED' {
+        return 'PRISMARINE_REPLAY_CONNECTION_CLOSED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay connection {connectionId} is no longer connected' {
+        return 'Replay connection {connectionId} is no longer connected';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-closed' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-closed';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_CONNECTION_CLOSED';
     public override readonly docs =
@@ -1826,12 +2437,21 @@ class ReplayConnectionClosed extends JSPrismarineError {
  * opened in the replay.
  */
 class ReplayConnectionNotOpen extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_CONNECTION_NOT_OPEN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay connection {connectionId} is not connected';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-not-open';
+    public static get code(): 'PRISMARINE_REPLAY_CONNECTION_NOT_OPEN' {
+        return 'PRISMARINE_REPLAY_CONNECTION_NOT_OPEN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay connection {connectionId} is not connected' {
+        return 'Replay connection {connectionId} is not connected';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-not-open' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-connection-not-open';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_CONNECTION_NOT_OPEN';
     public override readonly docs =
@@ -1854,11 +2474,21 @@ class ReplayConnectionNotOpen extends JSPrismarineError {
  * the trace is damaged.
  */
 class ReplayOutOfOrder extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_OUT_OF_ORDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay expected inbound order {expectedOrder}, got {order}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-out-of-order';
+    public static get code(): 'PRISMARINE_REPLAY_OUT_OF_ORDER' {
+        return 'PRISMARINE_REPLAY_OUT_OF_ORDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay expected inbound order {expectedOrder}, got {order}' {
+        return 'Replay expected inbound order {expectedOrder}, got {order}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-out-of-order' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-out-of-order';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-out-of-order';
@@ -1880,12 +2510,21 @@ class ReplayOutOfOrder extends JSPrismarineError {
  * records per frame.
  */
 class ReplayFrameHasSeveralPackets extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_FRAME_HAS_SEVERAL_PACKETS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay frame for {packetName} contained {packetPayloadsCount} packets';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-frame-has-several-packets';
+    public static get code(): 'PRISMARINE_REPLAY_FRAME_HAS_SEVERAL_PACKETS' {
+        return 'PRISMARINE_REPLAY_FRAME_HAS_SEVERAL_PACKETS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay frame for {packetName} contained {packetPayloadsCount} packets' {
+        return 'Replay frame for {packetName} contained {packetPayloadsCount} packets';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-frame-has-several-packets' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-frame-has-several-packets';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_FRAME_HAS_SEVERAL_PACKETS';
     public override readonly docs =
@@ -1916,12 +2555,21 @@ class ReplayFrameHasSeveralPackets extends JSPrismarineError {
  * server.
  */
 class ReplayPacketHasNoHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PACKET_HAS_NO_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay packet {packetName} has no handler';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-has-no-handler';
+    public static get code(): 'PRISMARINE_REPLAY_PACKET_HAS_NO_HANDLER' {
+        return 'PRISMARINE_REPLAY_PACKET_HAS_NO_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay packet {packetName} has no handler' {
+        return 'Replay packet {packetName} has no handler';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-has-no-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-has-no-handler';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PACKET_HAS_NO_HANDLER';
     public override readonly docs =
@@ -1944,11 +2592,21 @@ class ReplayPacketHasNoHandler extends JSPrismarineError {
  * recorded on, so the replay drifted from the recording.
  */
 class ReplayTickMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_TICK_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay packet tick {expectedTick} does not match server tick {currentTick}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-tick-mismatch';
+    public static get code(): 'PRISMARINE_REPLAY_TICK_MISMATCH' {
+        return 'PRISMARINE_REPLAY_TICK_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay packet tick {expectedTick} does not match server tick {currentTick}' {
+        return 'Replay packet tick {expectedTick} does not match server tick {currentTick}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-tick-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-tick-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_TICK_MISMATCH';
     public override readonly docs =
@@ -1979,12 +2637,21 @@ class ReplayTickMismatch extends JSPrismarineError {
  * was recorded, so this version behaves differently.
  */
 class ReplayPacketRejected extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PACKET_REJECTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay packet {name} was rejected in the {phase} phase';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-rejected';
+    public static get code(): 'PRISMARINE_REPLAY_PACKET_REJECTED' {
+        return 'PRISMARINE_REPLAY_PACKET_REJECTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay packet {name} was rejected in the {phase} phase' {
+        return 'Replay packet {name} was rejected in the {phase} phase';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-rejected' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-packet-rejected';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PACKET_REJECTED';
     public override readonly docs =
@@ -2007,13 +2674,21 @@ class ReplayPacketRejected extends JSPrismarineError {
  * its connection.
  */
 class ReplayProtocolMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PROTOCOL_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        'Replay protocol {protocolVersion} does not match connection protocol {connectionCodecProtocolVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-protocol-mismatch';
+    public static get code(): 'PRISMARINE_REPLAY_PROTOCOL_MISMATCH' {
+        return 'PRISMARINE_REPLAY_PROTOCOL_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay protocol {protocolVersion} does not match connection protocol {connectionCodecProtocolVersion}' {
+        return 'Replay protocol {protocolVersion} does not match connection protocol {connectionCodecProtocolVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-protocol-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-protocol-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PROTOCOL_MISMATCH';
     public override readonly docs =
@@ -2042,12 +2717,21 @@ class ReplayProtocolMismatch extends JSPrismarineError {
 
 /** A replay was started with a different world storage provider than it was recorded with. */
 class ReplayProviderMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_PROVIDER_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Replay snapshot provider does not match the manifest';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-provider-mismatch';
+    public static get code(): 'PRISMARINE_REPLAY_PROVIDER_MISMATCH' {
+        return 'PRISMARINE_REPLAY_PROVIDER_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Replay snapshot provider does not match the manifest' {
+        return 'Replay snapshot provider does not match the manifest';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-provider-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-replay-provider-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_PROVIDER_MISMATCH';
     public override readonly docs =
@@ -2069,12 +2753,21 @@ class ReplayProviderMismatch extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class ChunkRadiusRequestNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CHUNK_RADIUS_REQUEST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'RequestChunkRadiusPacket has no payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-radius-request-not-decoded';
+    public static get code(): 'PRISMARINE_CHUNK_RADIUS_REQUEST_NOT_DECODED' {
+        return 'PRISMARINE_CHUNK_RADIUS_REQUEST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'RequestChunkRadiusPacket has no payload' {
+        return 'RequestChunkRadiusPacket has no payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-radius-request-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-chunk-radius-request-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_CHUNK_RADIUS_REQUEST_NOT_DECODED';
     public override readonly docs =
@@ -2096,12 +2789,21 @@ class ChunkRadiusRequestNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class NetworkSettingsRequestNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NETWORK_SETTINGS_REQUEST_NOT_DECODED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'RequestNetworkSettingsPacket has no payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-network-settings-request-not-decoded';
+    public static get code(): 'PRISMARINE_NETWORK_SETTINGS_REQUEST_NOT_DECODED' {
+        return 'PRISMARINE_NETWORK_SETTINGS_REQUEST_NOT_DECODED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'RequestNetworkSettingsPacket has no payload' {
+        return 'RequestNetworkSettingsPacket has no payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-network-settings-request-not-decoded' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-network-settings-request-not-decoded';
+    }
 
     public override readonly code = 'PRISMARINE_NETWORK_SETTINGS_REQUEST_NOT_DECODED';
     public override readonly docs =
@@ -2123,12 +2825,21 @@ class NetworkSettingsRequestNotDecoded extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class RespawnDimensionNotReady extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RESPAWN_DIMENSION_NOT_READY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'The respawn search answered {dimension}, which is not ready';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-dimension-not-ready';
+    public static get code(): 'PRISMARINE_RESPAWN_DIMENSION_NOT_READY' {
+        return 'PRISMARINE_RESPAWN_DIMENSION_NOT_READY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'The respawn search answered {dimension}, which is not ready' {
+        return 'The respawn search answered {dimension}, which is not ready';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-dimension-not-ready' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-respawn-dimension-not-ready';
+    }
 
     public override readonly code = 'PRISMARINE_RESPAWN_DIMENSION_NOT_READY';
     public override readonly docs =
@@ -2148,12 +2859,21 @@ class RespawnDimensionNotReady extends JSPrismarineError {
 
 /** A packet trace file was written by a different version of the server, or is not a trace. */
 class UnsupportedTraceFormat extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_TRACE_FORMAT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Unsupported inbound packet trace format or version';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-trace-format';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_TRACE_FORMAT' {
+        return 'PRISMARINE_UNSUPPORTED_TRACE_FORMAT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Unsupported inbound packet trace format or version' {
+        return 'Unsupported inbound packet trace format or version';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-trace-format' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-trace-format';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_TRACE_FORMAT';
     public override readonly docs =
@@ -2175,12 +2895,21 @@ class UnsupportedTraceFormat extends JSPrismarineError {
  * damaged.
  */
 class UnsupportedReplayManifest extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_REPLAY_MANIFEST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Unsupported or invalid replay initial-state manifest';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-replay-manifest';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_REPLAY_MANIFEST' {
+        return 'PRISMARINE_UNSUPPORTED_REPLAY_MANIFEST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Unsupported or invalid replay initial-state manifest' {
+        return 'Unsupported or invalid replay initial-state manifest';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-replay-manifest' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unsupported-replay-manifest';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_REPLAY_MANIFEST';
     public override readonly docs =
@@ -2199,12 +2928,21 @@ class UnsupportedReplayManifest extends JSPrismarineTypeError {
 
 /** More than one transport threw while the server closed them. The cause holds every error, in the order the transports were closed. */
 class SeveralTransportsFailedToClose extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SEVERAL_TRANSPORTS_FAILED_TO_CLOSE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Several transports failed to close';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-several-transports-failed-to-close';
+    public static get code(): 'PRISMARINE_SEVERAL_TRANSPORTS_FAILED_TO_CLOSE' {
+        return 'PRISMARINE_SEVERAL_TRANSPORTS_FAILED_TO_CLOSE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Several transports failed to close' {
+        return 'Several transports failed to close';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-several-transports-failed-to-close' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-several-transports-failed-to-close';
+    }
 
     public override readonly code = 'PRISMARINE_SEVERAL_TRANSPORTS_FAILED_TO_CLOSE';
     public override readonly docs =
@@ -2227,13 +2965,21 @@ class SeveralTransportsFailedToClose extends JSPrismarineError {
  * that changes vanilla blocks is the usual cause.
  */
 class ContentPaletteMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_PALETTE_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template =
-        "the content block palette disagrees with the client's in {count} place(s), first: {block} {detail}";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-content-palette-mismatch';
+    public static get code(): 'PRISMARINE_CONTENT_PALETTE_MISMATCH' {
+        return 'PRISMARINE_CONTENT_PALETTE_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): "the content block palette disagrees with the client's in {count} place(s), first: {block} {detail}" {
+        return "the content block palette disagrees with the client's in {count} place(s), first: {block} {detail}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-content-palette-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-content-palette-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_PALETTE_MISMATCH';
     public override readonly docs =
@@ -2264,12 +3010,21 @@ class ContentPaletteMismatch extends JSPrismarineError {
  * closes the connection; a client of another release, or a modified one, is the usual cause.
  */
 class UnexpectedJavaPacket extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNEXPECTED_JAVA_PACKET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'Packet {packetId} has no place in the {phase} phase';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-unexpected-java-packet';
+    public static get code(): 'PRISMARINE_UNEXPECTED_JAVA_PACKET' {
+        return 'PRISMARINE_UNEXPECTED_JAVA_PACKET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'Packet {packetId} has no place in the {phase} phase' {
+        return 'Packet {packetId} has no place in the {phase} phase';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unexpected-java-packet' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-unexpected-java-packet';
+    }
 
     public override readonly code = 'PRISMARINE_UNEXPECTED_JAVA_PACKET';
     public override readonly docs =
@@ -2292,12 +3047,21 @@ class UnexpectedJavaPacket extends JSPrismarineError {
  * it did not encrypt it with the server's key. The server refuses the join.
  */
 class JavaVerifyTokenMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_JAVA_VERIFY_TOKEN_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'network';
-    public static readonly template = 'The encryption response does not carry the token the server sent';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/network#prismarine-java-verify-token-mismatch';
+    public static get code(): 'PRISMARINE_JAVA_VERIFY_TOKEN_MISMATCH' {
+        return 'PRISMARINE_JAVA_VERIFY_TOKEN_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'The encryption response does not carry the token the server sent' {
+        return 'The encryption response does not carry the token the server sent';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-java-verify-token-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-java-verify-token-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_JAVA_VERIFY_TOKEN_MISMATCH';
     public override readonly docs =

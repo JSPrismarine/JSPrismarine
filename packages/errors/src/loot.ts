@@ -8,10 +8,18 @@ import { JSPrismarineError, JSPrismarineTypeError } from '@jsprismarine/errors/J
  * it is damaged.
  */
 class DuplicateLootSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'LOOT_DUPLICATE_LOOT_SEQUENCE_STATE';
-    public static readonly domain = 'loot';
-    public static readonly template = 'Duplicate loot sequence state: {entry}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-duplicate-loot-sequence-state';
+    public static get code(): 'LOOT_DUPLICATE_LOOT_SEQUENCE_STATE' {
+        return 'LOOT_DUPLICATE_LOOT_SEQUENCE_STATE';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'Duplicate loot sequence state: {entry}' {
+        return 'Duplicate loot sequence state: {entry}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-duplicate-loot-sequence-state' {
+        return 'https://jsprismarine.dev/errors/loot#loot-duplicate-loot-sequence-state';
+    }
 
     public override readonly code = 'LOOT_DUPLICATE_LOOT_SEQUENCE_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-duplicate-loot-sequence-state';
@@ -33,10 +41,18 @@ class DuplicateLootSequenceState extends JSPrismarineTypeError {
  * damaged.
  */
 class InvalidAllZeroLootRandomState extends JSPrismarineTypeError {
-    public static readonly code = 'LOOT_INVALID_ALL_ZERO_LOOT_RANDOM_STATE';
-    public static readonly domain = 'loot';
-    public static readonly template = 'Invalid all-zero loot random state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-all-zero-loot-random-state';
+    public static get code(): 'LOOT_INVALID_ALL_ZERO_LOOT_RANDOM_STATE' {
+        return 'LOOT_INVALID_ALL_ZERO_LOOT_RANDOM_STATE';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'Invalid all-zero loot random state' {
+        return 'Invalid all-zero loot random state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-invalid-all-zero-loot-random-state' {
+        return 'https://jsprismarine.dev/errors/loot#loot-invalid-all-zero-loot-random-state';
+    }
 
     public override readonly code = 'LOOT_INVALID_ALL_ZERO_LOOT_RANDOM_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-all-zero-loot-random-state';
@@ -57,10 +73,18 @@ class InvalidAllZeroLootRandomState extends JSPrismarineTypeError {
  * is damaged.
  */
 class InvalidLootRandomState extends JSPrismarineTypeError {
-    public static readonly code = 'LOOT_INVALID_LOOT_RANDOM_STATE';
-    public static readonly domain = 'loot';
-    public static readonly template = 'Invalid loot random state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-random-state';
+    public static get code(): 'LOOT_INVALID_LOOT_RANDOM_STATE' {
+        return 'LOOT_INVALID_LOOT_RANDOM_STATE';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'Invalid loot random state' {
+        return 'Invalid loot random state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-random-state' {
+        return 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-random-state';
+    }
 
     public override readonly code = 'LOOT_INVALID_LOOT_RANDOM_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-random-state';
@@ -81,10 +105,18 @@ class InvalidLootRandomState extends JSPrismarineTypeError {
  * save is damaged.
  */
 class InvalidLootSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'LOOT_INVALID_LOOT_SEQUENCE_STATE';
-    public static readonly domain = 'loot';
-    public static readonly template = 'Invalid loot sequence state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-sequence-state';
+    public static get code(): 'LOOT_INVALID_LOOT_SEQUENCE_STATE' {
+        return 'LOOT_INVALID_LOOT_SEQUENCE_STATE';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'Invalid loot sequence state' {
+        return 'Invalid loot sequence state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-sequence-state' {
+        return 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-sequence-state';
+    }
 
     public override readonly code = 'LOOT_INVALID_LOOT_SEQUENCE_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-loot-sequence-state';
@@ -105,10 +137,18 @@ class InvalidLootSequenceState extends JSPrismarineTypeError {
  * save is damaged.
  */
 class InvalidNamedLootSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'LOOT_INVALID_NAMED_LOOT_SEQUENCE_STATE';
-    public static readonly domain = 'loot';
-    public static readonly template = 'Invalid named loot sequence state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-named-loot-sequence-state';
+    public static get code(): 'LOOT_INVALID_NAMED_LOOT_SEQUENCE_STATE' {
+        return 'LOOT_INVALID_NAMED_LOOT_SEQUENCE_STATE';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'Invalid named loot sequence state' {
+        return 'Invalid named loot sequence state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-invalid-named-loot-sequence-state' {
+        return 'https://jsprismarine.dev/errors/loot#loot-invalid-named-loot-sequence-state';
+    }
 
     public override readonly code = 'LOOT_INVALID_NAMED_LOOT_SEQUENCE_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-invalid-named-loot-sequence-state';
@@ -126,10 +166,18 @@ class InvalidNamedLootSequenceState extends JSPrismarineTypeError {
 
 /** A strict loot table parse found errors. The error's `diagnostics` list every one. */
 class LootTableGrammarErrors extends JSPrismarineError {
-    public static readonly code = 'LOOT_LOOT_TABLE_GRAMMAR_ERRORS';
-    public static readonly domain = 'loot';
-    public static readonly template = 'the loot table reported {count} grammar error(s): {listed}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/loot#loot-loot-table-grammar-errors';
+    public static get code(): 'LOOT_LOOT_TABLE_GRAMMAR_ERRORS' {
+        return 'LOOT_LOOT_TABLE_GRAMMAR_ERRORS';
+    }
+    public static get domain(): 'loot' {
+        return 'loot';
+    }
+    public static get template(): 'the loot table reported {count} grammar error(s): {listed}' {
+        return 'the loot table reported {count} grammar error(s): {listed}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/loot#loot-loot-table-grammar-errors' {
+        return 'https://jsprismarine.dev/errors/loot#loot-loot-table-grammar-errors';
+    }
 
     public override readonly code = 'LOOT_LOOT_TABLE_GRAMMAR_ERRORS';
     public override readonly docs = 'https://jsprismarine.dev/errors/loot#loot-loot-table-grammar-errors';

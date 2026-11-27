@@ -12,10 +12,18 @@ import {
  * one socket per connection.
  */
 class AlreadyConnected extends JSPrismarineError {
-    public static readonly code = 'RAKNET_ALREADY_CONNECTED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Already connecting or connected; use a ClientSocket per connection';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-already-connected';
+    public static get code(): 'RAKNET_ALREADY_CONNECTED' {
+        return 'RAKNET_ALREADY_CONNECTED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Already connecting or connected; use a ClientSocket per connection' {
+        return 'Already connecting or connected; use a ClientSocket per connection';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-already-connected' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-already-connected';
+    }
 
     public override readonly code = 'RAKNET_ALREADY_CONNECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-already-connected';
@@ -33,10 +41,18 @@ class AlreadyConnected extends JSPrismarineError {
 
 /** `connect()` was called on a RakNet client socket that was closed. */
 class ClientSocketClosed extends JSPrismarineError {
-    public static readonly code = 'RAKNET_CLIENT_SOCKET_CLOSED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Cannot connect on a killed ClientSocket';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-closed';
+    public static get code(): 'RAKNET_CLIENT_SOCKET_CLOSED' {
+        return 'RAKNET_CLIENT_SOCKET_CLOSED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Cannot connect on a killed ClientSocket' {
+        return 'Cannot connect on a killed ClientSocket';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-closed' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-closed';
+    }
 
     public override readonly code = 'RAKNET_CLIENT_SOCKET_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-closed';
@@ -54,10 +70,18 @@ class ClientSocketClosed extends JSPrismarineError {
 
 /** `connect()` was called on a loopback socket that was closed. */
 class LoopbackSocketClosed extends JSPrismarineError {
-    public static readonly code = 'RAKNET_LOOPBACK_SOCKET_CLOSED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Cannot connect on a killed LoopbackSocket';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-loopback-socket-closed';
+    public static get code(): 'RAKNET_LOOPBACK_SOCKET_CLOSED' {
+        return 'RAKNET_LOOPBACK_SOCKET_CLOSED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Cannot connect on a killed LoopbackSocket' {
+        return 'Cannot connect on a killed LoopbackSocket';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-loopback-socket-closed' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-loopback-socket-closed';
+    }
 
     public override readonly code = 'RAKNET_LOOPBACK_SOCKET_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-loopback-socket-closed';
@@ -75,10 +99,18 @@ class LoopbackSocketClosed extends JSPrismarineError {
 
 /** `ping()` was called on a RakNet client socket that was closed. */
 class PingOnClosedSocket extends JSPrismarineError {
-    public static readonly code = 'RAKNET_PING_ON_CLOSED_SOCKET';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Cannot ping on a killed ClientSocket';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ping-on-closed-socket';
+    public static get code(): 'RAKNET_PING_ON_CLOSED_SOCKET' {
+        return 'RAKNET_PING_ON_CLOSED_SOCKET';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Cannot ping on a killed ClientSocket' {
+        return 'Cannot ping on a killed ClientSocket';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-ping-on-closed-socket' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-ping-on-closed-socket';
+    }
 
     public override readonly code = 'RAKNET_PING_ON_CLOSED_SOCKET';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ping-on-closed-socket';
@@ -98,10 +130,18 @@ class PingOnClosedSocket extends JSPrismarineError {
  * A packet was sent after the RakNet worker stopped, which happens while the server shuts down.
  */
 class SendOnStoppedWorker extends JSPrismarineError {
-    public static readonly code = 'RAKNET_SEND_ON_STOPPED_WORKER';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Cannot send through a stopped RakNet worker';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-send-on-stopped-worker';
+    public static get code(): 'RAKNET_SEND_ON_STOPPED_WORKER' {
+        return 'RAKNET_SEND_ON_STOPPED_WORKER';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Cannot send through a stopped RakNet worker' {
+        return 'Cannot send through a stopped RakNet worker';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-send-on-stopped-worker' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-send-on-stopped-worker';
+    }
 
     public override readonly code = 'RAKNET_SEND_ON_STOPPED_WORKER';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-send-on-stopped-worker';
@@ -119,10 +159,18 @@ class SendOnStoppedWorker extends JSPrismarineError {
 
 /** A RakNet worker socket was started after it was stopped. Make a new one. */
 class StartStoppedWorkerSocket extends JSPrismarineError {
-    public static readonly code = 'RAKNET_START_STOPPED_WORKER_SOCKET';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Cannot start a stopped Worker RakNet socket';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-start-stopped-worker-socket';
+    public static get code(): 'RAKNET_START_STOPPED_WORKER_SOCKET' {
+        return 'RAKNET_START_STOPPED_WORKER_SOCKET';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Cannot start a stopped Worker RakNet socket' {
+        return 'Cannot start a stopped Worker RakNet socket';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-start-stopped-worker-socket' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-start-stopped-worker-socket';
+    }
 
     public override readonly code = 'RAKNET_START_STOPPED_WORKER_SOCKET';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-start-stopped-worker-socket';
@@ -140,10 +188,18 @@ class StartStoppedWorkerSocket extends JSPrismarineError {
 
 /** The RakNet client socket was closed while a connection or ping was still waiting. */
 class ClientSocketKilled extends JSPrismarineError {
-    public static readonly code = 'RAKNET_CLIENT_SOCKET_KILLED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'ClientSocket was killed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-killed';
+    public static get code(): 'RAKNET_CLIENT_SOCKET_KILLED' {
+        return 'RAKNET_CLIENT_SOCKET_KILLED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'ClientSocket was killed' {
+        return 'ClientSocket was killed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-killed' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-killed';
+    }
 
     public override readonly code = 'RAKNET_CLIENT_SOCKET_KILLED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-client-socket-killed';
@@ -164,10 +220,18 @@ class ClientSocketKilled extends JSPrismarineError {
  * version.
  */
 class ConnectionRefused extends JSPrismarineError {
-    public static readonly code = 'RAKNET_CONNECTION_REFUSED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Connection refused: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-connection-refused';
+    public static get code(): 'RAKNET_CONNECTION_REFUSED' {
+        return 'RAKNET_CONNECTION_REFUSED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Connection refused: {reason}' {
+        return 'Connection refused: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-connection-refused' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-connection-refused';
+    }
 
     public override readonly code = 'RAKNET_CONNECTION_REFUSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-connection-refused';
@@ -189,10 +253,18 @@ class ConnectionRefused extends JSPrismarineError {
  * UDP traffic reaches it.
  */
 class ConnectionTimedOut extends JSPrismarineError {
-    public static readonly code = 'RAKNET_CONNECTION_TIMED_OUT';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Connection to {address}:{port} timed out';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-connection-timed-out';
+    public static get code(): 'RAKNET_CONNECTION_TIMED_OUT' {
+        return 'RAKNET_CONNECTION_TIMED_OUT';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Connection to {address}:{port} timed out' {
+        return 'Connection to {address}:{port} timed out';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-connection-timed-out' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-connection-timed-out';
+    }
 
     public override readonly code = 'RAKNET_CONNECTION_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-connection-timed-out';
@@ -213,10 +285,18 @@ class ConnectionTimedOut extends JSPrismarineError {
  * A datagram was built with more frames than RakNet allows in one. This is a bug in the sender.
  */
 class TooManyFramesInDatagram extends JSPrismarineError {
-    public static readonly code = 'RAKNET_TOO_MANY_FRAMES_IN_DATAGRAM';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Datagram holds more than {maxFramesPerDatagram} frames';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-too-many-frames-in-datagram';
+    public static get code(): 'RAKNET_TOO_MANY_FRAMES_IN_DATAGRAM' {
+        return 'RAKNET_TOO_MANY_FRAMES_IN_DATAGRAM';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Datagram holds more than {maxFramesPerDatagram} frames' {
+        return 'Datagram holds more than {maxFramesPerDatagram} frames';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-too-many-frames-in-datagram' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-too-many-frames-in-datagram';
+    }
 
     public override readonly code = 'RAKNET_TOO_MANY_FRAMES_IN_DATAGRAM';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-too-many-frames-in-datagram';
@@ -235,11 +315,18 @@ class TooManyFramesInDatagram extends JSPrismarineError {
 
 /** The connection closed before the RakNet handshake finished. */
 class DisconnectedBeforeHandshakeCompleted extends JSPrismarineError {
-    public static readonly code = 'RAKNET_DISCONNECTED_BEFORE_HANDSHAKE_COMPLETED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Disconnected before the handshake completed: {reason}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/raknet#raknet-disconnected-before-handshake-completed';
+    public static get code(): 'RAKNET_DISCONNECTED_BEFORE_HANDSHAKE_COMPLETED' {
+        return 'RAKNET_DISCONNECTED_BEFORE_HANDSHAKE_COMPLETED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Disconnected before the handshake completed: {reason}' {
+        return 'Disconnected before the handshake completed: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-disconnected-before-handshake-completed' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-disconnected-before-handshake-completed';
+    }
 
     public override readonly code = 'RAKNET_DISCONNECTED_BEFORE_HANDSHAKE_COMPLETED';
     public override readonly docs =
@@ -259,10 +346,18 @@ class DisconnectedBeforeHandshakeCompleted extends JSPrismarineError {
 
 /** A peer sent a fragment whose index is past its fragment count, so the frame is malformed. */
 class InvalidFragmentIndex extends JSPrismarineError {
-    public static readonly code = 'RAKNET_INVALID_FRAGMENT_INDEX';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Invalid Frame fragment index={fragmentIndex}, count={fragmentSize}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-fragment-index';
+    public static get code(): 'RAKNET_INVALID_FRAGMENT_INDEX' {
+        return 'RAKNET_INVALID_FRAGMENT_INDEX';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Invalid Frame fragment index={fragmentIndex}, count={fragmentSize}' {
+        return 'Invalid Frame fragment index={fragmentIndex}, count={fragmentSize}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-fragment-index' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-fragment-index';
+    }
 
     public override readonly code = 'RAKNET_INVALID_FRAGMENT_INDEX';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-fragment-index';
@@ -289,10 +384,18 @@ class InvalidFragmentIndex extends JSPrismarineError {
 
 /** A peer sent a frame with no payload, so it is malformed. */
 class InvalidFrameLength extends JSPrismarineError {
-    public static readonly code = 'RAKNET_INVALID_FRAME_LENGTH';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Invalid Frame length={length}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-frame-length';
+    public static get code(): 'RAKNET_INVALID_FRAME_LENGTH' {
+        return 'RAKNET_INVALID_FRAME_LENGTH';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Invalid Frame length={length}' {
+        return 'Invalid Frame length={length}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-frame-length' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-frame-length';
+    }
 
     public override readonly code = 'RAKNET_INVALID_FRAME_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-frame-length';
@@ -311,10 +414,18 @@ class InvalidFrameLength extends JSPrismarineError {
 
 /** An address was written as IPv4 but is not one. */
 class InvalidIpv4Address extends JSPrismarineError {
-    public static readonly code = 'RAKNET_INVALID_IPV4_ADDRESS';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Invalid IPv4 address: {address}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv4-address';
+    public static get code(): 'RAKNET_INVALID_IPV4_ADDRESS' {
+        return 'RAKNET_INVALID_IPV4_ADDRESS';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Invalid IPv4 address: {address}' {
+        return 'Invalid IPv4 address: {address}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv4-address' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv4-address';
+    }
 
     public override readonly code = 'RAKNET_INVALID_IPV4_ADDRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv4-address';
@@ -333,10 +444,18 @@ class InvalidIpv4Address extends JSPrismarineError {
 
 /** An address was written as IPv6 but is not one. */
 class InvalidIpv6Address extends JSPrismarineError {
-    public static readonly code = 'RAKNET_INVALID_IPV6_ADDRESS';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Invalid IPv6 address: {text}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv6-address';
+    public static get code(): 'RAKNET_INVALID_IPV6_ADDRESS' {
+        return 'RAKNET_INVALID_IPV6_ADDRESS';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Invalid IPv6 address: {text}' {
+        return 'Invalid IPv6 address: {text}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv6-address' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv6-address';
+    }
 
     public override readonly code = 'RAKNET_INVALID_IPV6_ADDRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ipv6-address';
@@ -358,10 +477,18 @@ class InvalidIpv6Address extends JSPrismarineError {
  * loopback socket or the test that drives it.
  */
 class LoopbackHandshakeTimedOut extends JSPrismarineError {
-    public static readonly code = 'RAKNET_LOOPBACK_HANDSHAKE_TIMED_OUT';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Loopback handshake timed out';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-loopback-handshake-timed-out';
+    public static get code(): 'RAKNET_LOOPBACK_HANDSHAKE_TIMED_OUT' {
+        return 'RAKNET_LOOPBACK_HANDSHAKE_TIMED_OUT';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Loopback handshake timed out' {
+        return 'Loopback handshake timed out';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-loopback-handshake-timed-out' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-loopback-handshake-timed-out';
+    }
 
     public override readonly code = 'RAKNET_LOOPBACK_HANDSHAKE_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-loopback-handshake-timed-out';
@@ -379,10 +506,18 @@ class LoopbackHandshakeTimedOut extends JSPrismarineError {
 
 /** The server did not answer a RakNet ping in time. */
 class PingTimedOut extends JSPrismarineError {
-    public static readonly code = 'RAKNET_PING_TIMED_OUT';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Ping to {token} timed out';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ping-timed-out';
+    public static get code(): 'RAKNET_PING_TIMED_OUT' {
+        return 'RAKNET_PING_TIMED_OUT';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Ping to {token} timed out' {
+        return 'Ping to {token} timed out';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-ping-timed-out' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-ping-timed-out';
+    }
 
     public override readonly code = 'RAKNET_PING_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ping-timed-out';
@@ -404,10 +539,18 @@ class PingTimedOut extends JSPrismarineError {
  * the protocol table.
  */
 class ServerNameWithoutVersion extends JSPrismarineError {
-    public static readonly code = 'RAKNET_SERVER_NAME_WITHOUT_VERSION';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'A server name requires a supported Minecraft version!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-server-name-without-version';
+    public static get code(): 'RAKNET_SERVER_NAME_WITHOUT_VERSION' {
+        return 'RAKNET_SERVER_NAME_WITHOUT_VERSION';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'A server name requires a supported Minecraft version!' {
+        return 'A server name requires a supported Minecraft version!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-server-name-without-version' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-server-name-without-version';
+    }
 
     public override readonly code = 'RAKNET_SERVER_NAME_WITHOUT_VERSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-server-name-without-version';
@@ -428,10 +571,18 @@ class ServerNameWithoutVersion extends JSPrismarineError {
  * buffer, so the two sides disagree on its layout. This is a bug.
  */
 class InvalidRingRecord extends JSPrismarineRangeError {
-    public static readonly code = 'RAKNET_INVALID_RING_RECORD';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Shared byte ring contains an invalid {length}-byte record';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-record';
+    public static get code(): 'RAKNET_INVALID_RING_RECORD' {
+        return 'RAKNET_INVALID_RING_RECORD';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Shared byte ring contains an invalid {length}-byte record' {
+        return 'Shared byte ring contains an invalid {length}-byte record';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-record' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-record';
+    }
 
     public override readonly code = 'RAKNET_INVALID_RING_RECORD';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-record';
@@ -453,10 +604,18 @@ class InvalidRingRecord extends JSPrismarineRangeError {
  * worker's setup.
  */
 class RingMemoryWrongSize extends JSPrismarineRangeError {
-    public static readonly code = 'RAKNET_RING_MEMORY_WRONG_SIZE';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Shared byte ring memory has {byteLength} bytes; expected {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ring-memory-wrong-size';
+    public static get code(): 'RAKNET_RING_MEMORY_WRONG_SIZE' {
+        return 'RAKNET_RING_MEMORY_WRONG_SIZE';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Shared byte ring memory has {byteLength} bytes; expected {value}' {
+        return 'Shared byte ring memory has {byteLength} bytes; expected {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-ring-memory-wrong-size' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-ring-memory-wrong-size';
+    }
 
     public override readonly code = 'RAKNET_RING_MEMORY_WRONG_SIZE';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-ring-memory-wrong-size';
@@ -481,11 +640,18 @@ class RingMemoryWrongSize extends JSPrismarineRangeError {
  * bytes and 1 GiB.
  */
 class InvalidRingCapacity extends JSPrismarineRangeError {
-    public static readonly code = 'RAKNET_INVALID_RING_CAPACITY';
-    public static readonly domain = 'raknet';
-    public static readonly template =
-        'A shared byte ring needs a power-of-two capacity from 8 to 2^30 bytes; got {capacity}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-capacity';
+    public static get code(): 'RAKNET_INVALID_RING_CAPACITY' {
+        return 'RAKNET_INVALID_RING_CAPACITY';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'A shared byte ring needs a power-of-two capacity from 8 to 2^30 bytes; got {capacity}' {
+        return 'A shared byte ring needs a power-of-two capacity from 8 to 2^30 bytes; got {capacity}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-capacity' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-capacity';
+    }
 
     public override readonly code = 'RAKNET_INVALID_RING_CAPACITY';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-ring-capacity';
@@ -507,10 +673,18 @@ class InvalidRingCapacity extends JSPrismarineRangeError {
 
 /** A UDP socket buffer size setting is not a positive whole number. */
 class InvalidUdpBufferSize extends JSPrismarineRangeError {
-    public static readonly code = 'RAKNET_INVALID_UDP_BUFFER_SIZE';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'UDP {name} buffer size must be a positive safe integer, got {size}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-udp-buffer-size';
+    public static get code(): 'RAKNET_INVALID_UDP_BUFFER_SIZE' {
+        return 'RAKNET_INVALID_UDP_BUFFER_SIZE';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'UDP {name} buffer size must be a positive safe integer, got {size}' {
+        return 'UDP {name} buffer size must be a positive safe integer, got {size}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-invalid-udp-buffer-size' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-invalid-udp-buffer-size';
+    }
 
     public override readonly code = 'RAKNET_INVALID_UDP_BUFFER_SIZE';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-invalid-udp-buffer-size';
@@ -535,10 +709,18 @@ class InvalidUdpBufferSize extends JSPrismarineRangeError {
  * line says why.
  */
 class WorkerExitedWithCode extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_EXITED_WITH_CODE';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'RakNet worker exited with code {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-exited-with-code';
+    public static get code(): 'RAKNET_WORKER_EXITED_WITH_CODE' {
+        return 'RAKNET_WORKER_EXITED_WITH_CODE';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'RakNet worker exited with code {code}' {
+        return 'RakNet worker exited with code {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-exited-with-code' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-exited-with-code';
+    }
 
     public override readonly code = 'RAKNET_WORKER_EXITED_WITH_CODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-exited-with-code';
@@ -557,10 +739,18 @@ class WorkerExitedWithCode extends JSPrismarineError {
 
 /** The RakNet worker module was run as a main thread. Only the server starts it. */
 class WorkerHasNoParentPort extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_HAS_NO_PARENT_PORT';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'RakNet worker has no parent port';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-has-no-parent-port';
+    public static get code(): 'RAKNET_WORKER_HAS_NO_PARENT_PORT' {
+        return 'RAKNET_WORKER_HAS_NO_PARENT_PORT';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'RakNet worker has no parent port' {
+        return 'RakNet worker has no parent port';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-has-no-parent-port' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-has-no-parent-port';
+    }
 
     public override readonly code = 'RAKNET_WORKER_HAS_NO_PARENT_PORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-has-no-parent-port';
@@ -581,10 +771,18 @@ class WorkerHasNoParentPort extends JSPrismarineError {
  * This is a bug in how the packager defined the worker.
  */
 class EmbeddedWorkerOutsideExecutable extends JSPrismarineError {
-    public static readonly code = 'RAKNET_EMBEDDED_WORKER_OUTSIDE_EXECUTABLE';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'The embedded RakNet worker requires a Node single executable';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-embedded-worker-outside-executable';
+    public static get code(): 'RAKNET_EMBEDDED_WORKER_OUTSIDE_EXECUTABLE' {
+        return 'RAKNET_EMBEDDED_WORKER_OUTSIDE_EXECUTABLE';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'The embedded RakNet worker requires a Node single executable' {
+        return 'The embedded RakNet worker requires a Node single executable';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-embedded-worker-outside-executable' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-embedded-worker-outside-executable';
+    }
 
     public override readonly code = 'RAKNET_EMBEDDED_WORKER_OUTSIDE_EXECUTABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-embedded-worker-outside-executable';
@@ -602,10 +800,18 @@ class EmbeddedWorkerOutsideExecutable extends JSPrismarineError {
 
 /** A RakNet worker socket was started twice. */
 class WorkerSocketAlreadyStarted extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_SOCKET_ALREADY_STARTED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Worker RakNet socket has already been started';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-already-started';
+    public static get code(): 'RAKNET_WORKER_SOCKET_ALREADY_STARTED' {
+        return 'RAKNET_WORKER_SOCKET_ALREADY_STARTED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Worker RakNet socket has already been started' {
+        return 'Worker RakNet socket has already been started';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-already-started' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-already-started';
+    }
 
     public override readonly code = 'RAKNET_WORKER_SOCKET_ALREADY_STARTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-already-started';
@@ -623,10 +829,18 @@ class WorkerSocketAlreadyStarted extends JSPrismarineError {
 
 /** Code waited for a RakNet worker socket that was never started. */
 class WorkerSocketNotStarted extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_SOCKET_NOT_STARTED';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'Worker RakNet socket has not been started';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-not-started';
+    public static get code(): 'RAKNET_WORKER_SOCKET_NOT_STARTED' {
+        return 'RAKNET_WORKER_SOCKET_NOT_STARTED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'Worker RakNet socket has not been started' {
+        return 'Worker RakNet socket has not been started';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-not-started' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-not-started';
+    }
 
     public override readonly code = 'RAKNET_WORKER_SOCKET_NOT_STARTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-socket-not-started';
@@ -647,10 +861,18 @@ class WorkerSocketNotStarted extends JSPrismarineError {
  * in the worker's setup.
  */
 class WorkerReceivedInvalidStartupData extends JSPrismarineTypeError {
-    public static readonly code = 'RAKNET_WORKER_RECEIVED_INVALID_STARTUP_DATA';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'RakNet worker received invalid startup data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-received-invalid-startup-data';
+    public static get code(): 'RAKNET_WORKER_RECEIVED_INVALID_STARTUP_DATA' {
+        return 'RAKNET_WORKER_RECEIVED_INVALID_STARTUP_DATA';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'RakNet worker received invalid startup data' {
+        return 'RakNet worker received invalid startup data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-received-invalid-startup-data' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-received-invalid-startup-data';
+    }
 
     public override readonly code = 'RAKNET_WORKER_RECEIVED_INVALID_STARTUP_DATA';
     public override readonly docs =
@@ -669,10 +891,18 @@ class WorkerReceivedInvalidStartupData extends JSPrismarineTypeError {
 
 /** The RakNet worker thread failed. The message is the worker's own. */
 class WorkerFailed extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_FAILED';
-    public static readonly domain = 'raknet';
-    public static readonly template = '{message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-failed';
+    public static get code(): 'RAKNET_WORKER_FAILED' {
+        return 'RAKNET_WORKER_FAILED';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-failed' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-failed';
+    }
 
     public override readonly code = 'RAKNET_WORKER_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-failed';
@@ -694,10 +924,18 @@ class WorkerFailed extends JSPrismarineError {
  * the worker fell behind. Raise the buffer size or lower the load.
  */
 class WorkerQueueIsFull extends JSPrismarineError {
-    public static readonly code = 'RAKNET_WORKER_QUEUE_IS_FULL';
-    public static readonly domain = 'raknet';
-    public static readonly template = 'RakNet worker queue is full ({queuedBytes}/{capacity} bytes queued)';
-    public static readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-queue-is-full';
+    public static get code(): 'RAKNET_WORKER_QUEUE_IS_FULL' {
+        return 'RAKNET_WORKER_QUEUE_IS_FULL';
+    }
+    public static get domain(): 'raknet' {
+        return 'raknet';
+    }
+    public static get template(): 'RakNet worker queue is full ({queuedBytes}/{capacity} bytes queued)' {
+        return 'RakNet worker queue is full ({queuedBytes}/{capacity} bytes queued)';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/raknet#raknet-worker-queue-is-full' {
+        return 'https://jsprismarine.dev/errors/raknet#raknet-worker-queue-is-full';
+    }
 
     public override readonly code = 'RAKNET_WORKER_QUEUE_IS_FULL';
     public override readonly docs = 'https://jsprismarine.dev/errors/raknet#raknet-worker-queue-is-full';

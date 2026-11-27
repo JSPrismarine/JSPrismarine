@@ -8,11 +8,18 @@ import { JSPrismarineError, JSPrismarineTypeError } from '@jsprismarine/errors/J
  * damaged.
  */
 class InvalidMulberry32RandomState extends JSPrismarineTypeError {
-    public static readonly code = 'PREDICATES_INVALID_MULBERRY32_RANDOM_STATE';
-    public static readonly domain = 'predicates';
-    public static readonly template = 'Invalid mulberry32 random state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/predicates#predicates-invalid-mulberry32-random-state';
+    public static get code(): 'PREDICATES_INVALID_MULBERRY32_RANDOM_STATE' {
+        return 'PREDICATES_INVALID_MULBERRY32_RANDOM_STATE';
+    }
+    public static get domain(): 'predicates' {
+        return 'predicates';
+    }
+    public static get template(): 'Invalid mulberry32 random state' {
+        return 'Invalid mulberry32 random state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/predicates#predicates-invalid-mulberry32-random-state' {
+        return 'https://jsprismarine.dev/errors/predicates#predicates-invalid-mulberry32-random-state';
+    }
 
     public override readonly code = 'PREDICATES_INVALID_MULBERRY32_RANDOM_STATE';
     public override readonly docs =
@@ -31,11 +38,18 @@ class InvalidMulberry32RandomState extends JSPrismarineTypeError {
 
 /** A test made a scripted random source with no values to replay. */
 class ScriptedrandomNeedsAtLeastOneValue extends JSPrismarineError {
-    public static readonly code = 'PREDICATES_SCRIPTEDRANDOM_NEEDS_AT_LEAST_ONE_VALUE';
-    public static readonly domain = 'predicates';
-    public static readonly template = 'scriptedRandom needs at least one value';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/predicates#predicates-scriptedrandom-needs-at-least-one-value';
+    public static get code(): 'PREDICATES_SCRIPTEDRANDOM_NEEDS_AT_LEAST_ONE_VALUE' {
+        return 'PREDICATES_SCRIPTEDRANDOM_NEEDS_AT_LEAST_ONE_VALUE';
+    }
+    public static get domain(): 'predicates' {
+        return 'predicates';
+    }
+    public static get template(): 'scriptedRandom needs at least one value' {
+        return 'scriptedRandom needs at least one value';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/predicates#predicates-scriptedrandom-needs-at-least-one-value' {
+        return 'https://jsprismarine.dev/errors/predicates#predicates-scriptedrandom-needs-at-least-one-value';
+    }
 
     public override readonly code = 'PREDICATES_SCRIPTEDRANDOM_NEEDS_AT_LEAST_ONE_VALUE';
     public override readonly docs =

@@ -5,11 +5,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 /** An entity component registered its state twice. Each component declares its state once. */
 class DeclaresItsComponentStateTwice extends JSPrismarineError {
-    public static readonly code = 'ENTITIES_DECLARES_ITS_COMPONENT_STATE_TWICE';
-    public static readonly domain = 'entities';
-    public static readonly template = '{component} declares its component state twice';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/entities#entities-declares-its-component-state-twice';
+    public static get code(): 'ENTITIES_DECLARES_ITS_COMPONENT_STATE_TWICE' {
+        return 'ENTITIES_DECLARES_ITS_COMPONENT_STATE_TWICE';
+    }
+    public static get domain(): 'entities' {
+        return 'entities';
+    }
+    public static get template(): '{component} declares its component state twice' {
+        return '{component} declares its component state twice';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entities#entities-declares-its-component-state-twice' {
+        return 'https://jsprismarine.dev/errors/entities#entities-declares-its-component-state-twice';
+    }
 
     public override readonly code = 'ENTITIES_DECLARES_ITS_COMPONENT_STATE_TWICE';
     public override readonly docs =

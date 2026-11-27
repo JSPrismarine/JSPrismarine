@@ -28,10 +28,18 @@ export abstract class ZipError extends JSPrismarineError {
 
 /** A `.brarchive` file's table of contents runs past its end, so the archive is truncated. */
 class BrarchiveEntryTableTruncated extends BrarchiveError {
-    public static readonly code = 'PACKS_BRARCHIVE_ENTRY_TABLE_TRUNCATED';
-    public static readonly domain = 'packs';
-    public static readonly template = 'brarchive entry table runs past the end of the data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-entry-table-truncated';
+    public static get code(): 'PACKS_BRARCHIVE_ENTRY_TABLE_TRUNCATED' {
+        return 'PACKS_BRARCHIVE_ENTRY_TABLE_TRUNCATED';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'brarchive entry table runs past the end of the data' {
+        return 'brarchive entry table runs past the end of the data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-brarchive-entry-table-truncated' {
+        return 'https://jsprismarine.dev/errors/packs#packs-brarchive-entry-table-truncated';
+    }
 
     public override readonly code = 'PACKS_BRARCHIVE_ENTRY_TABLE_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-entry-table-truncated';
@@ -49,10 +57,18 @@ class BrarchiveEntryTableTruncated extends BrarchiveError {
 
 /** A `.brarchive` file has bytes after its last member, so it is damaged. */
 class BrarchiveTrailingBytes extends BrarchiveError {
-    public static readonly code = 'PACKS_BRARCHIVE_TRAILING_BYTES';
-    public static readonly domain = 'packs';
-    public static readonly template = 'brarchive files end at {cursor} of {byteLength} bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-trailing-bytes';
+    public static get code(): 'PACKS_BRARCHIVE_TRAILING_BYTES' {
+        return 'PACKS_BRARCHIVE_TRAILING_BYTES';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'brarchive files end at {cursor} of {byteLength} bytes' {
+        return 'brarchive files end at {cursor} of {byteLength} bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-brarchive-trailing-bytes' {
+        return 'https://jsprismarine.dev/errors/packs#packs-brarchive-trailing-bytes';
+    }
 
     public override readonly code = 'PACKS_BRARCHIVE_TRAILING_BYTES';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-trailing-bytes';
@@ -71,10 +87,18 @@ class BrarchiveTrailingBytes extends BrarchiveError {
 
 /** A `.brarchive` member runs past the end of the archive, so it is truncated. */
 class BrarchiveMemberTruncated extends BrarchiveError {
-    public static readonly code = 'PACKS_BRARCHIVE_MEMBER_TRUNCATED';
-    public static readonly domain = 'packs';
-    public static readonly template = 'brarchive member {name} runs past the end of the data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-member-truncated';
+    public static get code(): 'PACKS_BRARCHIVE_MEMBER_TRUNCATED' {
+        return 'PACKS_BRARCHIVE_MEMBER_TRUNCATED';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'brarchive member {name} runs past the end of the data' {
+        return 'brarchive member {name} runs past the end of the data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-brarchive-member-truncated' {
+        return 'https://jsprismarine.dev/errors/packs#packs-brarchive-member-truncated';
+    }
 
     public override readonly code = 'PACKS_BRARCHIVE_MEMBER_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-brarchive-member-truncated';
@@ -93,10 +117,18 @@ class BrarchiveMemberTruncated extends BrarchiveError {
 
 /** A `.brarchive` file uses a layout version this server does not read. */
 class UnsupportedBrarchiveVersion extends BrarchiveError {
-    public static readonly code = 'PACKS_UNSUPPORTED_BRARCHIVE_VERSION';
-    public static readonly domain = 'packs';
-    public static readonly template = 'brarchive version {version} is not readable, only version 1 is';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unsupported-brarchive-version';
+    public static get code(): 'PACKS_UNSUPPORTED_BRARCHIVE_VERSION' {
+        return 'PACKS_UNSUPPORTED_BRARCHIVE_VERSION';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'brarchive version {version} is not readable, only version 1 is' {
+        return 'brarchive version {version} is not readable, only version 1 is';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unsupported-brarchive-version' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unsupported-brarchive-version';
+    }
 
     public override readonly code = 'PACKS_UNSUPPORTED_BRARCHIVE_VERSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unsupported-brarchive-version';
@@ -118,10 +150,18 @@ class UnsupportedBrarchiveVersion extends BrarchiveError {
  * loader.
  */
 class CachePrefixOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'PACKS_CACHE_PREFIX_OUT_OF_RANGE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'cache prefix length {prefixLength} is outside the pack stack';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-cache-prefix-out-of-range';
+    public static get code(): 'PACKS_CACHE_PREFIX_OUT_OF_RANGE' {
+        return 'PACKS_CACHE_PREFIX_OUT_OF_RANGE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'cache prefix length {prefixLength} is outside the pack stack' {
+        return 'cache prefix length {prefixLength} is outside the pack stack';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-cache-prefix-out-of-range' {
+        return 'https://jsprismarine.dev/errors/packs#packs-cache-prefix-out-of-range';
+    }
 
     public override readonly code = 'PACKS_CACHE_PREFIX_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-cache-prefix-out-of-range';
@@ -140,10 +180,18 @@ class CachePrefixOutOfRange extends JSPrismarineRangeError {
 
 /** A zip entry's compressed data is damaged. Re-create the pack's archive. */
 class ZipEntryNotInflatable extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ENTRY_NOT_INFLATABLE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'could not inflate {name}: {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-not-inflatable';
+    public static get code(): 'PACKS_ZIP_ENTRY_NOT_INFLATABLE' {
+        return 'PACKS_ZIP_ENTRY_NOT_INFLATABLE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'could not inflate {name}: {value}' {
+        return 'could not inflate {name}: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-entry-not-inflatable' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-entry-not-inflatable';
+    }
 
     public override readonly code = 'PACKS_ZIP_ENTRY_NOT_INFLATABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-not-inflatable';
@@ -162,10 +210,18 @@ class ZipEntryNotInflatable extends ZipError {
 
 /** A pack's filter has a `domain` that is not text, a number or a boolean. */
 class InvalidFilterDomain extends FilterParseError {
-    public static readonly code = 'PACKS_INVALID_FILTER_DOMAIN';
-    public static readonly domain = 'packs';
-    public static readonly template = 'domain must be a string, number or boolean';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-domain';
+    public static get code(): 'PACKS_INVALID_FILTER_DOMAIN' {
+        return 'PACKS_INVALID_FILTER_DOMAIN';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'domain must be a string, number or boolean' {
+        return 'domain must be a string, number or boolean';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-domain' {
+        return 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-domain';
+    }
 
     public override readonly code = 'PACKS_INVALID_FILTER_DOMAIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-domain';
@@ -186,10 +242,18 @@ class InvalidFilterDomain extends FilterParseError {
  * against zip bombs. Ship the pack as a folder, or make it smaller.
  */
 class ZipArchiveTooLarge extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ARCHIVE_TOO_LARGE';
-    public static readonly domain = 'packs';
-    public static readonly template = '{name} expands past the {remaining} bytes left of the archive budget';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-archive-too-large';
+    public static get code(): 'PACKS_ZIP_ARCHIVE_TOO_LARGE' {
+        return 'PACKS_ZIP_ARCHIVE_TOO_LARGE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): '{name} expands past the {remaining} bytes left of the archive budget' {
+        return '{name} expands past the {remaining} bytes left of the archive budget';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-archive-too-large' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-archive-too-large';
+    }
 
     public override readonly code = 'PACKS_ZIP_ARCHIVE_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-archive-too-large';
@@ -214,10 +278,18 @@ class ZipArchiveTooLarge extends ZipError {
  * guards against zip bombs.
  */
 class ZipEntryTooLarge extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ENTRY_TOO_LARGE';
-    public static readonly domain = 'packs';
-    public static readonly template = '{name} expands to {entryCount} bytes, past the {maxEntryBytes} allowed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-too-large';
+    public static get code(): 'PACKS_ZIP_ENTRY_TOO_LARGE' {
+        return 'PACKS_ZIP_ENTRY_TOO_LARGE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): '{name} expands to {entryCount} bytes, past the {maxEntryBytes} allowed' {
+        return '{name} expands to {entryCount} bytes, past the {maxEntryBytes} allowed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-entry-too-large' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-entry-too-large';
+    }
 
     public override readonly code = 'PACKS_ZIP_ENTRY_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-too-large';
@@ -246,10 +318,18 @@ class ZipEntryTooLarge extends ZipError {
 
 /** A pack's filter group mixes `all_of`, `any_of` or `none_of` with other keys. */
 class FilterGroupMixesKeys extends FilterParseError {
-    public static readonly code = 'PACKS_FILTER_GROUP_MIXES_KEYS';
-    public static readonly domain = 'packs';
-    public static readonly template = 'a filter group map holds only combinator keys, got {rest}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-filter-group-mixes-keys';
+    public static get code(): 'PACKS_FILTER_GROUP_MIXES_KEYS' {
+        return 'PACKS_FILTER_GROUP_MIXES_KEYS';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'a filter group map holds only combinator keys, got {rest}' {
+        return 'a filter group map holds only combinator keys, got {rest}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-filter-group-mixes-keys' {
+        return 'https://jsprismarine.dev/errors/packs#packs-filter-group-mixes-keys';
+    }
 
     public override readonly code = 'PACKS_FILTER_GROUP_MIXES_KEYS';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-filter-group-mixes-keys';
@@ -268,10 +348,18 @@ class FilterGroupMixesKeys extends FilterParseError {
 
 /** A pack's filter is not an object or a list of filters. */
 class InvalidFilter extends FilterParseError {
-    public static readonly code = 'PACKS_INVALID_FILTER';
-    public static readonly domain = 'packs';
-    public static readonly template = 'a filter must be an object or array, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter';
+    public static get code(): 'PACKS_INVALID_FILTER' {
+        return 'PACKS_INVALID_FILTER';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'a filter must be an object or array, got {value}' {
+        return 'a filter must be an object or array, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-invalid-filter' {
+        return 'https://jsprismarine.dev/errors/packs#packs-invalid-filter';
+    }
 
     public override readonly code = 'PACKS_INVALID_FILTER';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter';
@@ -290,10 +378,18 @@ class InvalidFilter extends FilterParseError {
 
 /** A pack's filter test has no `test` name. */
 class FilterTestHasNoName extends FilterParseError {
-    public static readonly code = 'PACKS_FILTER_TEST_HAS_NO_NAME';
-    public static readonly domain = 'packs';
-    public static readonly template = 'a filter test needs a string test name';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-filter-test-has-no-name';
+    public static get code(): 'PACKS_FILTER_TEST_HAS_NO_NAME' {
+        return 'PACKS_FILTER_TEST_HAS_NO_NAME';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'a filter test needs a string test name' {
+        return 'a filter test needs a string test name';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-filter-test-has-no-name' {
+        return 'https://jsprismarine.dev/errors/packs#packs-filter-test-has-no-name';
+    }
 
     public override readonly code = 'PACKS_FILTER_TEST_HAS_NO_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-filter-test-has-no-name';
@@ -311,10 +407,18 @@ class FilterTestHasNoName extends FilterParseError {
 
 /** The pack cache file is not one this version wrote, so it is ignored and rebuilt. */
 class InvalidPackCache extends JSPrismarineError {
-    public static readonly code = 'PACKS_INVALID_PACK_CACHE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'invalid cache shape';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-pack-cache';
+    public static get code(): 'PACKS_INVALID_PACK_CACHE' {
+        return 'PACKS_INVALID_PACK_CACHE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'invalid cache shape' {
+        return 'invalid cache shape';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-invalid-pack-cache' {
+        return 'https://jsprismarine.dev/errors/packs#packs-invalid-pack-cache';
+    }
 
     public override readonly code = 'PACKS_INVALID_PACK_CACHE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-pack-cache';
@@ -335,10 +439,18 @@ class InvalidPackCache extends JSPrismarineError {
  * zip.
  */
 class NotDatapack extends JSPrismarineError {
-    public static readonly code = 'PACKS_NOT_DATAPACK';
-    public static readonly domain = 'packs';
-    public static readonly template = '{path} is neither a directory nor a zip archive';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-datapack';
+    public static get code(): 'PACKS_NOT_DATAPACK' {
+        return 'PACKS_NOT_DATAPACK';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): '{path} is neither a directory nor a zip archive' {
+        return '{path} is neither a directory nor a zip archive';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-not-datapack' {
+        return 'https://jsprismarine.dev/errors/packs#packs-not-datapack';
+    }
 
     public override readonly code = 'PACKS_NOT_DATAPACK';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-datapack';
@@ -357,10 +469,18 @@ class NotDatapack extends JSPrismarineError {
 
 /** A pack archive's file list is damaged. Re-create the archive. */
 class ZipBadCentralDirectoryEntry extends ZipError {
-    public static readonly code = 'PACKS_ZIP_BAD_CENTRAL_DIRECTORY_ENTRY';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: bad central directory entry signature';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-bad-central-directory-entry';
+    public static get code(): 'PACKS_ZIP_BAD_CENTRAL_DIRECTORY_ENTRY' {
+        return 'PACKS_ZIP_BAD_CENTRAL_DIRECTORY_ENTRY';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: bad central directory entry signature' {
+        return 'malformed zip: bad central directory entry signature';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-bad-central-directory-entry' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-bad-central-directory-entry';
+    }
 
     public override readonly code = 'PACKS_ZIP_BAD_CENTRAL_DIRECTORY_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-bad-central-directory-entry';
@@ -378,10 +498,18 @@ class ZipBadCentralDirectoryEntry extends ZipError {
 
 /** A pack archive's entry header is damaged. Re-create the archive. */
 class ZipBadLocalHeader extends ZipError {
-    public static readonly code = 'PACKS_ZIP_BAD_LOCAL_HEADER';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: bad local header for {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-bad-local-header';
+    public static get code(): 'PACKS_ZIP_BAD_LOCAL_HEADER' {
+        return 'PACKS_ZIP_BAD_LOCAL_HEADER';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: bad local header for {name}' {
+        return 'malformed zip: bad local header for {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-bad-local-header' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-bad-local-header';
+    }
 
     public override readonly code = 'PACKS_ZIP_BAD_LOCAL_HEADER';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-bad-local-header';
@@ -403,10 +531,18 @@ class ZipBadLocalHeader extends ZipError {
  * damaged.
  */
 class ZipEntrySizeMismatch extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ENTRY_SIZE_MISMATCH';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: {name} inflates to more or less than its declared {size} bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-size-mismatch';
+    public static get code(): 'PACKS_ZIP_ENTRY_SIZE_MISMATCH' {
+        return 'PACKS_ZIP_ENTRY_SIZE_MISMATCH';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: {name} inflates to more or less than its declared {size} bytes' {
+        return 'malformed zip: {name} inflates to more or less than its declared {size} bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-entry-size-mismatch' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-entry-size-mismatch';
+    }
 
     public override readonly code = 'PACKS_ZIP_ENTRY_SIZE_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-size-mismatch';
@@ -430,10 +566,18 @@ class ZipEntrySizeMismatch extends ZipError {
  * Two entries in a pack archive share bytes, a trick zip bombs use, so the archive is refused.
  */
 class ZipEntriesOverlap extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ENTRIES_OVERLAP';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: {name} overlaps another entry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entries-overlap';
+    public static get code(): 'PACKS_ZIP_ENTRIES_OVERLAP' {
+        return 'PACKS_ZIP_ENTRIES_OVERLAP';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: {name} overlaps another entry' {
+        return 'malformed zip: {name} overlaps another entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-entries-overlap' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-entries-overlap';
+    }
 
     public override readonly code = 'PACKS_ZIP_ENTRIES_OVERLAP';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entries-overlap';
@@ -452,10 +596,18 @@ class ZipEntriesOverlap extends ZipError {
 
 /** A pack archive's entry runs past its end, so the archive is truncated. */
 class ZipEntryTruncated extends ZipError {
-    public static readonly code = 'PACKS_ZIP_ENTRY_TRUNCATED';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: {name} runs past the end of the archive';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-truncated';
+    public static get code(): 'PACKS_ZIP_ENTRY_TRUNCATED' {
+        return 'PACKS_ZIP_ENTRY_TRUNCATED';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: {name} runs past the end of the archive' {
+        return 'malformed zip: {name} runs past the end of the archive';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-entry-truncated' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-entry-truncated';
+    }
 
     public override readonly code = 'PACKS_ZIP_ENTRY_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-entry-truncated';
@@ -477,10 +629,18 @@ class ZipEntryTruncated extends ZipError {
  * damaged.
  */
 class ZipStoredEntrySizesDiffer extends ZipError {
-    public static readonly code = 'PACKS_ZIP_STORED_ENTRY_SIZES_DIFFER';
-    public static readonly domain = 'packs';
-    public static readonly template = 'malformed zip: stored {name} has two sizes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-stored-entry-sizes-differ';
+    public static get code(): 'PACKS_ZIP_STORED_ENTRY_SIZES_DIFFER' {
+        return 'PACKS_ZIP_STORED_ENTRY_SIZES_DIFFER';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'malformed zip: stored {name} has two sizes' {
+        return 'malformed zip: stored {name} has two sizes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-stored-entry-sizes-differ' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-stored-entry-sizes-differ';
+    }
 
     public override readonly code = 'PACKS_ZIP_STORED_ENTRY_SIZES_DIFFER';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-stored-entry-sizes-differ';
@@ -499,10 +659,18 @@ class ZipStoredEntrySizesDiffer extends ZipError {
 
 /** The Java data validator started without its schema language. This is a bug in its setup. */
 class McdocLanguageIsNotRegistered extends JSPrismarineError {
-    public static readonly code = 'PACKS_MCDOC_LANGUAGE_IS_NOT_REGISTERED';
-    public static readonly domain = 'packs';
-    public static readonly template = 'the mcdoc language is not registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-mcdoc-language-is-not-registered';
+    public static get code(): 'PACKS_MCDOC_LANGUAGE_IS_NOT_REGISTERED' {
+        return 'PACKS_MCDOC_LANGUAGE_IS_NOT_REGISTERED';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'the mcdoc language is not registered' {
+        return 'the mcdoc language is not registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-mcdoc-language-is-not-registered' {
+        return 'https://jsprismarine.dev/errors/packs#packs-mcdoc-language-is-not-registered';
+    }
 
     public override readonly code = 'PACKS_MCDOC_LANGUAGE_IS_NOT_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-mcdoc-language-is-not-registered';
@@ -520,10 +688,18 @@ class McdocLanguageIsNotRegistered extends JSPrismarineError {
 
 /** A pack's filter group holds something other than a filter or a list of filters. */
 class InvalidFilterGroupMembers extends FilterParseError {
-    public static readonly code = 'PACKS_INVALID_FILTER_GROUP_MEMBERS';
-    public static readonly domain = 'packs';
-    public static readonly template = '{key} must hold a filter or an array of filters, got {members}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-group-members';
+    public static get code(): 'PACKS_INVALID_FILTER_GROUP_MEMBERS' {
+        return 'PACKS_INVALID_FILTER_GROUP_MEMBERS';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): '{key} must hold a filter or an array of filters, got {members}' {
+        return '{key} must hold a filter or an array of filters, got {members}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-group-members' {
+        return 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-group-members';
+    }
 
     public override readonly code = 'PACKS_INVALID_FILTER_GROUP_MEMBERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-group-members';
@@ -548,10 +724,18 @@ class InvalidFilterGroupMembers extends FilterParseError {
  * sources with `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`.
  */
 class NoBedrockSamplesSchemas extends JSPrismarineError {
-    public static readonly code = 'PACKS_NO_BEDROCK_SAMPLES_SCHEMAS';
-    public static readonly domain = 'packs';
-    public static readonly template = 'no bedrock-samples schemas under {base}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-no-bedrock-samples-schemas';
+    public static get code(): 'PACKS_NO_BEDROCK_SAMPLES_SCHEMAS' {
+        return 'PACKS_NO_BEDROCK_SAMPLES_SCHEMAS';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'no bedrock-samples schemas under {base}' {
+        return 'no bedrock-samples schemas under {base}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-no-bedrock-samples-schemas' {
+        return 'https://jsprismarine.dev/errors/packs#packs-no-bedrock-samples-schemas';
+    }
 
     public override readonly code = 'PACKS_NO_BEDROCK_SAMPLES_SCHEMAS';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-no-bedrock-samples-schemas';
@@ -572,10 +756,18 @@ class NoBedrockSamplesSchemas extends JSPrismarineError {
  * The Java data validator found no schemas in the folder it was given. Fetch the sources first.
  */
 class NoMcdocFiles extends JSPrismarineError {
-    public static readonly code = 'PACKS_NO_MCDOC_FILES';
-    public static readonly domain = 'packs';
-    public static readonly template = 'no .mcdoc files under {root}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-no-mcdoc-files';
+    public static get code(): 'PACKS_NO_MCDOC_FILES' {
+        return 'PACKS_NO_MCDOC_FILES';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'no .mcdoc files under {root}' {
+        return 'no .mcdoc files under {root}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-no-mcdoc-files' {
+        return 'https://jsprismarine.dev/errors/packs#packs-no-mcdoc-files';
+    }
 
     public override readonly code = 'PACKS_NO_MCDOC_FILES';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-no-mcdoc-files';
@@ -599,11 +791,18 @@ class NoMcdocFiles extends JSPrismarineError {
  * such as `26.4-snapshot-10`. Pass `release` to the validator to name the release to gate on.
  */
 class UncomparableJavaRelease extends JSPrismarineError {
-    public static readonly code = 'PACKS_UNCOMPARABLE_JAVA_RELEASE';
-    public static readonly domain = 'packs';
-    public static readonly template =
-        'cannot place Java {release} among releases to gate the schema on; pass `release`';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-uncomparable-java-release';
+    public static get code(): 'PACKS_UNCOMPARABLE_JAVA_RELEASE' {
+        return 'PACKS_UNCOMPARABLE_JAVA_RELEASE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'cannot place Java {release} among releases to gate the schema on; pass `release`' {
+        return 'cannot place Java {release} among releases to gate the schema on; pass `release`';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-uncomparable-java-release' {
+        return 'https://jsprismarine.dev/errors/packs#packs-uncomparable-java-release';
+    }
 
     public override readonly code = 'PACKS_UNCOMPARABLE_JAVA_RELEASE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-uncomparable-java-release';
@@ -628,10 +827,18 @@ class UncomparableJavaRelease extends JSPrismarineError {
  * format.
  */
 class NotBrarchive extends BrarchiveError {
-    public static readonly code = 'PACKS_NOT_BRARCHIVE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'not a brarchive: bad magic number';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-brarchive';
+    public static get code(): 'PACKS_NOT_BRARCHIVE' {
+        return 'PACKS_NOT_BRARCHIVE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'not a brarchive: bad magic number' {
+        return 'not a brarchive: bad magic number';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-not-brarchive' {
+        return 'https://jsprismarine.dev/errors/packs#packs-not-brarchive';
+    }
 
     public override readonly code = 'PACKS_NOT_BRARCHIVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-brarchive';
@@ -652,10 +859,18 @@ class NotBrarchive extends BrarchiveError {
  * write Zip64. Split the files across several archives.
  */
 class ZipTooLargeToWrite extends ZipError {
-    public static readonly code = 'PACKS_ZIP_TOO_LARGE_TO_WRITE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'cannot write {count} entries totalling {bytes} bytes into a zip without Zip64';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-too-large-to-write';
+    public static get code(): 'PACKS_ZIP_TOO_LARGE_TO_WRITE' {
+        return 'PACKS_ZIP_TOO_LARGE_TO_WRITE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'cannot write {count} entries totalling {bytes} bytes into a zip without Zip64' {
+        return 'cannot write {count} entries totalling {bytes} bytes into a zip without Zip64';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-too-large-to-write' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-too-large-to-write';
+    }
 
     public override readonly code = 'PACKS_ZIP_TOO_LARGE_TO_WRITE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-too-large-to-write';
@@ -680,11 +895,18 @@ class ZipTooLargeToWrite extends ZipError {
  * does not fit. Shorten the path.
  */
 class ZipNameTooLong extends ZipError {
-    public static readonly code = 'PACKS_ZIP_NAME_TOO_LONG';
-    public static readonly domain = 'packs';
-    public static readonly template =
-        'cannot write {name} into a zip: its name is {length} bytes, past the 65535 a zip records';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-name-too-long';
+    public static get code(): 'PACKS_ZIP_NAME_TOO_LONG' {
+        return 'PACKS_ZIP_NAME_TOO_LONG';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'cannot write {name} into a zip: its name is {length} bytes, past the 65535 a zip records' {
+        return 'cannot write {name} into a zip: its name is {length} bytes, past the 65535 a zip records';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-zip-name-too-long' {
+        return 'https://jsprismarine.dev/errors/packs#packs-zip-name-too-long';
+    }
 
     public override readonly code = 'PACKS_ZIP_NAME_TOO_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-zip-name-too-long';
@@ -706,10 +928,18 @@ class ZipNameTooLong extends ZipError {
 
 /** A file read as a pack archive is not a zip, or is truncated. */
 class NotZip extends ZipError {
-    public static readonly code = 'PACKS_NOT_ZIP';
-    public static readonly domain = 'packs';
-    public static readonly template = 'not a zip: no end-of-central-directory record';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-zip';
+    public static get code(): 'PACKS_NOT_ZIP' {
+        return 'PACKS_NOT_ZIP';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'not a zip: no end-of-central-directory record' {
+        return 'not a zip: no end-of-central-directory record';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-not-zip' {
+        return 'https://jsprismarine.dev/errors/packs#packs-not-zip';
+    }
 
     public override readonly code = 'PACKS_NOT_ZIP';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-zip';
@@ -730,10 +960,18 @@ class NotZip extends ZipError {
  * package is damaged.
  */
 class PackageVersionMissing extends JSPrismarineError {
-    public static readonly code = 'PACKS_PACKAGE_VERSION_MISSING';
-    public static readonly domain = 'packs';
-    public static readonly template = 'packages/packs/package.json has no string version';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-package-version-missing';
+    public static get code(): 'PACKS_PACKAGE_VERSION_MISSING' {
+        return 'PACKS_PACKAGE_VERSION_MISSING';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'packages/packs/package.json has no string version' {
+        return 'packages/packs/package.json has no string version';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-package-version-missing' {
+        return 'https://jsprismarine.dev/errors/packs#packs-package-version-missing';
+    }
 
     public override readonly code = 'PACKS_PACKAGE_VERSION_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-package-version-missing';
@@ -751,10 +989,18 @@ class PackageVersionMissing extends JSPrismarineError {
 
 /** A pack's legacy filter uses an operator Bedrock does not define. */
 class UnknownIntegerOperator extends FilterParseError {
-    public static readonly code = 'PACKS_UNKNOWN_INTEGER_OPERATOR';
-    public static readonly domain = 'packs';
-    public static readonly template = 'unknown integer operator {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-operator';
+    public static get code(): 'PACKS_UNKNOWN_INTEGER_OPERATOR' {
+        return 'PACKS_UNKNOWN_INTEGER_OPERATOR';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'unknown integer operator {value}' {
+        return 'unknown integer operator {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-operator' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-operator';
+    }
 
     public override readonly code = 'PACKS_UNKNOWN_INTEGER_OPERATOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-operator';
@@ -773,10 +1019,18 @@ class UnknownIntegerOperator extends FilterParseError {
 
 /** A pack's legacy filter names a subject Bedrock does not define. */
 class UnknownIntegerSubject extends FilterParseError {
-    public static readonly code = 'PACKS_UNKNOWN_INTEGER_SUBJECT';
-    public static readonly domain = 'packs';
-    public static readonly template = 'unknown integer subject {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-subject';
+    public static get code(): 'PACKS_UNKNOWN_INTEGER_SUBJECT' {
+        return 'PACKS_UNKNOWN_INTEGER_SUBJECT';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'unknown integer subject {value}' {
+        return 'unknown integer subject {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-subject' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-subject';
+    }
 
     public override readonly code = 'PACKS_UNKNOWN_INTEGER_SUBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-integer-subject';
@@ -795,10 +1049,18 @@ class UnknownIntegerSubject extends FilterParseError {
 
 /** A pack's filter uses an operator Bedrock does not define. */
 class UnknownOperator extends FilterParseError {
-    public static readonly code = 'PACKS_UNKNOWN_OPERATOR';
-    public static readonly domain = 'packs';
-    public static readonly template = 'unknown operator {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-operator';
+    public static get code(): 'PACKS_UNKNOWN_OPERATOR' {
+        return 'PACKS_UNKNOWN_OPERATOR';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'unknown operator {value}' {
+        return 'unknown operator {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unknown-operator' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unknown-operator';
+    }
 
     public override readonly code = 'PACKS_UNKNOWN_OPERATOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-operator';
@@ -817,10 +1079,18 @@ class UnknownOperator extends FilterParseError {
 
 /** A pack's filter names a subject Bedrock does not define, such as `self` misspelled. */
 class UnknownSubject extends FilterParseError {
-    public static readonly code = 'PACKS_UNKNOWN_SUBJECT';
-    public static readonly domain = 'packs';
-    public static readonly template = 'unknown subject {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-subject';
+    public static get code(): 'PACKS_UNKNOWN_SUBJECT' {
+        return 'PACKS_UNKNOWN_SUBJECT';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'unknown subject {value}' {
+        return 'unknown subject {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unknown-subject' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unknown-subject';
+    }
 
     public override readonly code = 'PACKS_UNKNOWN_SUBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unknown-subject';
@@ -842,10 +1112,18 @@ class UnknownSubject extends FilterParseError {
  * with ordinary zip settings.
  */
 class UnsupportedZipCompressionMethod extends ZipError {
-    public static readonly code = 'PACKS_UNSUPPORTED_ZIP_COMPRESSION_METHOD';
-    public static readonly domain = 'packs';
-    public static readonly template = 'unsupported zip compression method {method} for {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unsupported-zip-compression-method';
+    public static get code(): 'PACKS_UNSUPPORTED_ZIP_COMPRESSION_METHOD' {
+        return 'PACKS_UNSUPPORTED_ZIP_COMPRESSION_METHOD';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'unsupported zip compression method {method} for {name}' {
+        return 'unsupported zip compression method {method} for {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-unsupported-zip-compression-method' {
+        return 'https://jsprismarine.dev/errors/packs#packs-unsupported-zip-compression-method';
+    }
 
     public override readonly code = 'PACKS_UNSUPPORTED_ZIP_COMPRESSION_METHOD';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-unsupported-zip-compression-method';
@@ -864,10 +1142,18 @@ class UnsupportedZipCompressionMethod extends ZipError {
 
 /** A pack's filter has a `value` that is not text, a number or a boolean. */
 class InvalidFilterValue extends FilterParseError {
-    public static readonly code = 'PACKS_INVALID_FILTER_VALUE';
-    public static readonly domain = 'packs';
-    public static readonly template = 'value must be a string, number or boolean';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-value';
+    public static get code(): 'PACKS_INVALID_FILTER_VALUE' {
+        return 'PACKS_INVALID_FILTER_VALUE';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'value must be a string, number or boolean' {
+        return 'value must be a string, number or boolean';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-value' {
+        return 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-value';
+    }
 
     public override readonly code = 'PACKS_INVALID_FILTER_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-invalid-filter-value';
@@ -885,10 +1171,18 @@ class InvalidFilterValue extends FilterParseError {
 
 /** A pack file is not valid JSON even after comments and trailing commas are removed. The message is the JSON parser's own. */
 class NotValidJson extends JsonParseError {
-    public static readonly code = 'PACKS_NOT_VALID_JSON';
-    public static readonly domain = 'packs';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-valid-json';
+    public static get code(): 'PACKS_NOT_VALID_JSON' {
+        return 'PACKS_NOT_VALID_JSON';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-not-valid-json' {
+        return 'https://jsprismarine.dev/errors/packs#packs-not-valid-json';
+    }
 
     public override readonly code = 'PACKS_NOT_VALID_JSON';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-not-valid-json';
@@ -910,10 +1204,18 @@ class NotValidJson extends JsonParseError {
  * and the message shows the first.
  */
 class PackStackDidNotLoadCleanly extends JSPrismarineError {
-    public static readonly code = 'PACKS_PACK_STACK_DID_NOT_LOAD_CLEANLY';
-    public static readonly domain = 'packs';
-    public static readonly template = 'the pack stack did not load cleanly: {count} error(s), first: {first}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/packs#packs-pack-stack-did-not-load-cleanly';
+    public static get code(): 'PACKS_PACK_STACK_DID_NOT_LOAD_CLEANLY' {
+        return 'PACKS_PACK_STACK_DID_NOT_LOAD_CLEANLY';
+    }
+    public static get domain(): 'packs' {
+        return 'packs';
+    }
+    public static get template(): 'the pack stack did not load cleanly: {count} error(s), first: {first}' {
+        return 'the pack stack did not load cleanly: {count} error(s), first: {first}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/packs#packs-pack-stack-did-not-load-cleanly' {
+        return 'https://jsprismarine.dev/errors/packs#packs-pack-stack-did-not-load-cleanly';
+    }
 
     public override readonly code = 'PACKS_PACK_STACK_DID_NOT_LOAD_CLEANLY';
     public override readonly docs = 'https://jsprismarine.dev/errors/packs#packs-pack-stack-did-not-load-cleanly';

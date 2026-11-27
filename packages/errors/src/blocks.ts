@@ -22,10 +22,18 @@ export abstract class BlockError extends ContentError {
  * Recapture it with `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock`.
  */
 class DuplicateCapturedBlock extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_DUPLICATE_CAPTURED_BLOCK';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{id} appears twice in the Bedrock block capture';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-captured-block';
+    public static get code(): 'BLOCKS_DUPLICATE_CAPTURED_BLOCK' {
+        return 'BLOCKS_DUPLICATE_CAPTURED_BLOCK';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{id} appears twice in the Bedrock block capture' {
+        return '{id} appears twice in the Bedrock block capture';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-captured-block' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-captured-block';
+    }
 
     public override readonly code = 'BLOCKS_DUPLICATE_CAPTURED_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-captured-block';
@@ -47,10 +55,18 @@ class DuplicateCapturedBlock extends JSPrismarineError {
  * the palette passed a duplicate.
  */
 class DuplicatePaletteBlock extends BlockError {
-    public static readonly code = 'BLOCKS_DUPLICATE_PALETTE_BLOCK';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{identifier} appears twice in the palette';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-palette-block';
+    public static get code(): 'BLOCKS_DUPLICATE_PALETTE_BLOCK' {
+        return 'BLOCKS_DUPLICATE_PALETTE_BLOCK';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{identifier} appears twice in the palette' {
+        return '{identifier} appears twice in the palette';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-palette-block' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-palette-block';
+    }
 
     public override readonly code = 'BLOCKS_DUPLICATE_PALETTE_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-palette-block';
@@ -72,10 +88,18 @@ class DuplicatePaletteBlock extends BlockError {
  * accepts, so the client could not be sent its true shape.
  */
 class TooManyCollisionBoxes extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_TOO_MANY_COLLISION_BOXES';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'Bedrock collision_box accepts at most 16 boxes, got {boxesCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-too-many-collision-boxes';
+    public static get code(): 'BLOCKS_TOO_MANY_COLLISION_BOXES' {
+        return 'BLOCKS_TOO_MANY_COLLISION_BOXES';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'Bedrock collision_box accepts at most 16 boxes, got {boxesCount}' {
+        return 'Bedrock collision_box accepts at most 16 boxes, got {boxesCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-too-many-collision-boxes' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-too-many-collision-boxes';
+    }
 
     public override readonly code = 'BLOCKS_TOO_MANY_COLLISION_BOXES';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-too-many-collision-boxes';
@@ -97,10 +121,18 @@ class TooManyCollisionBoxes extends JSPrismarineError {
  * Recapture the Bedrock data for the pinned server version.
  */
 class MissingCollisionGeometry extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_MISSING_COLLISION_GEOMETRY';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{identifier} has no captured Bedrock collision geometry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-missing-collision-geometry';
+    public static get code(): 'BLOCKS_MISSING_COLLISION_GEOMETRY' {
+        return 'BLOCKS_MISSING_COLLISION_GEOMETRY';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{identifier} has no captured Bedrock collision geometry' {
+        return '{identifier} has no captured Bedrock collision geometry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-missing-collision-geometry' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-missing-collision-geometry';
+    }
 
     public override readonly code = 'BLOCKS_MISSING_COLLISION_GEOMETRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-missing-collision-geometry';
@@ -122,10 +154,18 @@ class MissingCollisionGeometry extends JSPrismarineError {
  * pinned server version.
  */
 class MissingDisplayName extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_MISSING_DISPLAY_NAME';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{identifier} has no captured Bedrock display name';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-missing-display-name';
+    public static get code(): 'BLOCKS_MISSING_DISPLAY_NAME' {
+        return 'BLOCKS_MISSING_DISPLAY_NAME';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{identifier} has no captured Bedrock display name' {
+        return '{identifier} has no captured Bedrock display name';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-missing-display-name' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-missing-display-name';
+    }
 
     public override readonly code = 'BLOCKS_MISSING_DISPLAY_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-missing-display-name';
@@ -148,10 +188,18 @@ class MissingDisplayName extends JSPrismarineError {
  * this block.
  */
 class LiquidReactionVariesByState extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_LIQUID_REACTION_VARIES_BY_STATE';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{id} is {reaction} by default but reacts differently in {states}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-liquid-reaction-varies-by-state';
+    public static get code(): 'BLOCKS_LIQUID_REACTION_VARIES_BY_STATE' {
+        return 'BLOCKS_LIQUID_REACTION_VARIES_BY_STATE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{id} is {reaction} by default but reacts differently in {states}' {
+        return '{id} is {reaction} by default but reacts differently in {states}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-liquid-reaction-varies-by-state' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-liquid-reaction-varies-by-state';
+    }
 
     public override readonly code = 'BLOCKS_LIQUID_REACTION_VARIES_BY_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-liquid-reaction-varies-by-state';
@@ -181,10 +229,18 @@ class LiquidReactionVariesByState extends JSPrismarineError {
  * it does have.
  */
 class UnknownState extends BlockError {
-    public static readonly code = 'BLOCKS_UNKNOWN_STATE';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{name} is not a state of this block (has: {states})';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-unknown-state';
+    public static get code(): 'BLOCKS_UNKNOWN_STATE' {
+        return 'BLOCKS_UNKNOWN_STATE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{name} is not a state of this block (has: {states})' {
+        return '{name} is not a state of this block (has: {states})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-unknown-state' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-unknown-state';
+    }
 
     public override readonly code = 'BLOCKS_UNKNOWN_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-unknown-state';
@@ -203,10 +259,18 @@ class UnknownState extends BlockError {
 
 /** Code asked for a block state on a block that has none. */
 class BlockHasNoStates extends BlockError {
-    public static readonly code = 'BLOCKS_BLOCK_HAS_NO_STATES';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{name} is not a state of this block (has: none)';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-block-has-no-states';
+    public static get code(): 'BLOCKS_BLOCK_HAS_NO_STATES' {
+        return 'BLOCKS_BLOCK_HAS_NO_STATES';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{name} is not a state of this block (has: none)' {
+        return '{name} is not a state of this block (has: none)';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-block-has-no-states' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-block-has-no-states';
+    }
 
     public override readonly code = 'BLOCKS_BLOCK_HAS_NO_STATES';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-block-has-no-states';
@@ -225,10 +289,18 @@ class BlockHasNoStates extends BlockError {
 
 /** Code set a block state to a value outside that state's domain. */
 class InvalidStateValue extends BlockError {
-    public static readonly code = 'BLOCKS_INVALID_STATE_VALUE';
-    public static readonly domain = 'blocks';
-    public static readonly template = '{given} is not a value of the state {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-invalid-state-value';
+    public static get code(): 'BLOCKS_INVALID_STATE_VALUE' {
+        return 'BLOCKS_INVALID_STATE_VALUE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): '{given} is not a value of the state {name}' {
+        return '{given} is not a value of the state {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-invalid-state-value' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-invalid-state-value';
+    }
 
     public override readonly code = 'BLOCKS_INVALID_STATE_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-invalid-state-value';
@@ -250,10 +322,18 @@ class InvalidStateValue extends BlockError {
  * identifier is misspelled.
  */
 class PaletteHasNoBlock extends BlockError {
-    public static readonly code = 'BLOCKS_PALETTE_HAS_NO_BLOCK';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the palette has no block {identifier}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-palette-has-no-block';
+    public static get code(): 'BLOCKS_PALETTE_HAS_NO_BLOCK' {
+        return 'BLOCKS_PALETTE_HAS_NO_BLOCK';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the palette has no block {identifier}' {
+        return 'the palette has no block {identifier}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-palette-has-no-block' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-palette-has-no-block';
+    }
 
     public override readonly code = 'BLOCKS_PALETTE_HAS_NO_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-palette-has-no-block';
@@ -275,10 +355,18 @@ class PaletteHasNoBlock extends BlockError {
  * different palette.
  */
 class RuntimeIdOutOfRange extends BlockError {
-    public static readonly code = 'BLOCKS_RUNTIME_ID_OUT_OF_RANGE';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the runtime id {runtimeId} is outside 0 to {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-runtime-id-out-of-range';
+    public static get code(): 'BLOCKS_RUNTIME_ID_OUT_OF_RANGE' {
+        return 'BLOCKS_RUNTIME_ID_OUT_OF_RANGE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the runtime id {runtimeId} is outside 0 to {value}' {
+        return 'the runtime id {runtimeId} is outside 0 to {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-runtime-id-out-of-range' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-runtime-id-out-of-range';
+    }
 
     public override readonly code = 'BLOCKS_RUNTIME_ID_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-runtime-id-out-of-range';
@@ -297,10 +385,18 @@ class RuntimeIdOutOfRange extends BlockError {
 
 /** A block state was declared with an empty list of values, so no block could ever hold it. */
 class StateHasNoValues extends BlockError {
-    public static readonly code = 'BLOCKS_STATE_HAS_NO_VALUES';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the state {name} has no values';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-state-has-no-values';
+    public static get code(): 'BLOCKS_STATE_HAS_NO_VALUES' {
+        return 'BLOCKS_STATE_HAS_NO_VALUES';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the state {name} has no values' {
+        return 'the state {name} has no values';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-state-has-no-values' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-state-has-no-values';
+    }
 
     public override readonly code = 'BLOCKS_STATE_HAS_NO_VALUES';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-state-has-no-values';
@@ -322,10 +418,18 @@ class StateHasNoValues extends BlockError {
  * saved against a different definition of the block.
  */
 class StateIndexOutOfRange extends BlockError {
-    public static readonly code = 'BLOCKS_STATE_INDEX_OUT_OF_RANGE';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the state index {index} is outside 0 to {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-state-index-out-of-range';
+    public static get code(): 'BLOCKS_STATE_INDEX_OUT_OF_RANGE' {
+        return 'BLOCKS_STATE_INDEX_OUT_OF_RANGE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the state index {index} is outside 0 to {value}' {
+        return 'the state index {index} is outside 0 to {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-state-index-out-of-range' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-state-index-out-of-range';
+    }
 
     public override readonly code = 'BLOCKS_STATE_INDEX_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-state-index-out-of-range';
@@ -344,10 +448,18 @@ class StateIndexOutOfRange extends BlockError {
 
 /** A block declares the same state name twice. */
 class DuplicateState extends BlockError {
-    public static readonly code = 'BLOCKS_DUPLICATE_STATE';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the state {name} is declared twice';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-state';
+    public static get code(): 'BLOCKS_DUPLICATE_STATE' {
+        return 'BLOCKS_DUPLICATE_STATE';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the state {name} is declared twice' {
+        return 'the state {name} is declared twice';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-state' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-state';
+    }
 
     public override readonly code = 'BLOCKS_DUPLICATE_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-duplicate-state';
@@ -369,10 +481,18 @@ class DuplicateState extends BlockError {
  * shows the first.
  */
 class BlocksDidNotResolveCleanly extends JSPrismarineError {
-    public static readonly code = 'BLOCKS_BLOCKS_DID_NOT_RESOLVE_CLEANLY';
-    public static readonly domain = 'blocks';
-    public static readonly template = 'the blocks did not resolve cleanly: {count} diagnostic(s), first: {first}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-blocks-did-not-resolve-cleanly';
+    public static get code(): 'BLOCKS_BLOCKS_DID_NOT_RESOLVE_CLEANLY' {
+        return 'BLOCKS_BLOCKS_DID_NOT_RESOLVE_CLEANLY';
+    }
+    public static get domain(): 'blocks' {
+        return 'blocks';
+    }
+    public static get template(): 'the blocks did not resolve cleanly: {count} diagnostic(s), first: {first}' {
+        return 'the blocks did not resolve cleanly: {count} diagnostic(s), first: {first}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/blocks#blocks-blocks-did-not-resolve-cleanly' {
+        return 'https://jsprismarine.dev/errors/blocks#blocks-blocks-did-not-resolve-cleanly';
+    }
 
     public override readonly code = 'BLOCKS_BLOCKS_DID_NOT_RESOLVE_CLEANLY';
     public override readonly docs = 'https://jsprismarine.dev/errors/blocks#blocks-blocks-did-not-resolve-cleanly';

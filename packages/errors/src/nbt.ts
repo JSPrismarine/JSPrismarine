@@ -8,10 +8,18 @@ import { JSPrismarineError, JSPrismarineTypeError } from '@jsprismarine/errors/J
  * against data built to exhaust memory. The data is malformed or hostile.
  */
 class AllocationLimitReached extends JSPrismarineError {
-    public static readonly code = 'NBT_ALLOCATION_LIMIT_REACHED';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Could not allocate more bytes due to reaching the set limit';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-allocation-limit-reached';
+    public static get code(): 'NBT_ALLOCATION_LIMIT_REACHED' {
+        return 'NBT_ALLOCATION_LIMIT_REACHED';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Could not allocate more bytes due to reaching the set limit' {
+        return 'Could not allocate more bytes due to reaching the set limit';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-allocation-limit-reached' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-allocation-limit-reached';
+    }
 
     public override readonly code = 'NBT_ALLOCATION_LIMIT_REACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-allocation-limit-reached';
@@ -29,10 +37,18 @@ class AllocationLimitReached extends JSPrismarineError {
 
 /** A compound tag was added under a name that differs from its own. */
 class CompoundNameMismatch extends JSPrismarineError {
-    public static readonly code = 'NBT_COMPOUND_NAME_MISMATCH';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Failed to add NBTTagCompound with name {name} given name {name2}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-compound-name-mismatch';
+    public static get code(): 'NBT_COMPOUND_NAME_MISMATCH' {
+        return 'NBT_COMPOUND_NAME_MISMATCH';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Failed to add NBTTagCompound with name {name} given name {name2}' {
+        return 'Failed to add NBTTagCompound with name {name} given name {name2}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-compound-name-mismatch' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-compound-name-mismatch';
+    }
 
     public override readonly code = 'NBT_COMPOUND_NAME_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-compound-name-mismatch';
@@ -54,10 +70,18 @@ class CompoundNameMismatch extends JSPrismarineError {
 
 /** A value was written as NBT that has no NBT type, such as a function or a class instance. */
 class UnknownValueType extends JSPrismarineTypeError {
-    public static readonly code = 'NBT_UNKNOWN_VALUE_TYPE';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Cannot deduce NBT type of class {name} ({value})';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-value-type';
+    public static get code(): 'NBT_UNKNOWN_VALUE_TYPE' {
+        return 'NBT_UNKNOWN_VALUE_TYPE';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Cannot deduce NBT type of class {name} ({value})' {
+        return 'Invalid NBT Data: Cannot deduce NBT type of class {name} ({value})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-unknown-value-type' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-unknown-value-type';
+    }
 
     public override readonly code = 'NBT_UNKNOWN_VALUE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-value-type';
@@ -79,10 +103,18 @@ class UnknownValueType extends JSPrismarineTypeError {
 
 /** The NBT data ended where a byte should be, so it is truncated. */
 class ExpectedByte extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_BYTE';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected byte';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte';
+    public static get code(): 'NBT_EXPECTED_BYTE' {
+        return 'NBT_EXPECTED_BYTE';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected byte' {
+        return 'Invalid NBT Data: Expected byte';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte';
+    }
 
     public override readonly code = 'NBT_EXPECTED_BYTE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte';
@@ -100,10 +132,18 @@ class ExpectedByte extends JSPrismarineError {
 
 /** The NBT data ended inside a byte array, so it is truncated. */
 class ExpectedByteArray extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_BYTE_ARRAY';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected byte array data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-array';
+    public static get code(): 'NBT_EXPECTED_BYTE_ARRAY' {
+        return 'NBT_EXPECTED_BYTE_ARRAY';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected byte array data' {
+        return 'Invalid NBT Data: Expected byte array data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-array' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-array';
+    }
 
     public override readonly code = 'NBT_EXPECTED_BYTE_ARRAY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-array';
@@ -121,10 +161,18 @@ class ExpectedByteArray extends JSPrismarineError {
 
 /** The NBT data ended inside a list of bytes, so it is truncated. */
 class ExpectedByteList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_BYTE_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected bytes for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-list';
+    public static get code(): 'NBT_EXPECTED_BYTE_LIST' {
+        return 'NBT_EXPECTED_BYTE_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected bytes for list' {
+        return 'Invalid NBT Data: Expected bytes for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_BYTE_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-byte-list';
@@ -142,10 +190,18 @@ class ExpectedByteList extends JSPrismarineError {
 
 /** The NBT data ended where a double should be, so it is truncated. */
 class ExpectedDouble extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_DOUBLE';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected double';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-double';
+    public static get code(): 'NBT_EXPECTED_DOUBLE' {
+        return 'NBT_EXPECTED_DOUBLE';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected double' {
+        return 'Invalid NBT Data: Expected double';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-double' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-double';
+    }
 
     public override readonly code = 'NBT_EXPECTED_DOUBLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-double';
@@ -163,10 +219,18 @@ class ExpectedDouble extends JSPrismarineError {
 
 /** The NBT data ended inside a list of doubles, so it is truncated. */
 class ExpectedDoubleList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_DOUBLE_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected doubles for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-double-list';
+    public static get code(): 'NBT_EXPECTED_DOUBLE_LIST' {
+        return 'NBT_EXPECTED_DOUBLE_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected doubles for list' {
+        return 'Invalid NBT Data: Expected doubles for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-double-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-double-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_DOUBLE_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-double-list';
@@ -184,10 +248,18 @@ class ExpectedDoubleList extends JSPrismarineError {
 
 /** The NBT data ended inside a list of floats, so it is truncated. */
 class ExpectedFloatList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_FLOAT_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected floats for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-float-list';
+    public static get code(): 'NBT_EXPECTED_FLOAT_LIST' {
+        return 'NBT_EXPECTED_FLOAT_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected floats for list' {
+        return 'Invalid NBT Data: Expected floats for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-float-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-float-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_FLOAT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-float-list';
@@ -205,10 +277,18 @@ class ExpectedFloatList extends JSPrismarineError {
 
 /** The NBT data ended where an int should be, so it is truncated. */
 class ExpectedInt extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_INT';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected int';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int';
+    public static get code(): 'NBT_EXPECTED_INT' {
+        return 'NBT_EXPECTED_INT';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected int' {
+        return 'Invalid NBT Data: Expected int';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-int' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-int';
+    }
 
     public override readonly code = 'NBT_EXPECTED_INT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int';
@@ -226,10 +306,18 @@ class ExpectedInt extends JSPrismarineError {
 
 /** The NBT data ended inside an int array, so it is truncated. */
 class ExpectedIntArray extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_INT_ARRAY';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected int array data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-array';
+    public static get code(): 'NBT_EXPECTED_INT_ARRAY' {
+        return 'NBT_EXPECTED_INT_ARRAY';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected int array data' {
+        return 'Invalid NBT Data: Expected int array data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-array' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-array';
+    }
 
     public override readonly code = 'NBT_EXPECTED_INT_ARRAY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-array';
@@ -247,10 +335,18 @@ class ExpectedIntArray extends JSPrismarineError {
 
 /** The NBT data ended inside a list of ints, so it is truncated. */
 class ExpectedIntList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_INT_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected ints for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-list';
+    public static get code(): 'NBT_EXPECTED_INT_LIST' {
+        return 'NBT_EXPECTED_INT_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected ints for list' {
+        return 'Invalid NBT Data: Expected ints for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_INT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-int-list';
@@ -268,10 +364,18 @@ class ExpectedIntList extends JSPrismarineError {
 
 /** The NBT data ended where a long should be, so it is truncated. */
 class ExpectedLong extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_LONG';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected long';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-long';
+    public static get code(): 'NBT_EXPECTED_LONG' {
+        return 'NBT_EXPECTED_LONG';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected long' {
+        return 'Invalid NBT Data: Expected long';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-long' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-long';
+    }
 
     public override readonly code = 'NBT_EXPECTED_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-long';
@@ -289,10 +393,18 @@ class ExpectedLong extends JSPrismarineError {
 
 /** The NBT data ended inside a list of longs, so it is truncated. */
 class ExpectedLongList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_LONG_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected longs for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-long-list';
+    public static get code(): 'NBT_EXPECTED_LONG_LIST' {
+        return 'NBT_EXPECTED_LONG_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected longs for list' {
+        return 'Invalid NBT Data: Expected longs for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-long-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-long-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_LONG_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-long-list';
@@ -310,10 +422,18 @@ class ExpectedLongList extends JSPrismarineError {
 
 /** The NBT data ended where a short should be, so it is truncated. */
 class ExpectedShort extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_SHORT';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected short';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-short';
+    public static get code(): 'NBT_EXPECTED_SHORT' {
+        return 'NBT_EXPECTED_SHORT';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected short' {
+        return 'Invalid NBT Data: Expected short';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-short' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-short';
+    }
 
     public override readonly code = 'NBT_EXPECTED_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-short';
@@ -331,10 +451,18 @@ class ExpectedShort extends JSPrismarineError {
 
 /** The NBT data ended inside a list of shorts, so it is truncated. */
 class ExpectedShortList extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_SHORT_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected shorts for list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-short-list';
+    public static get code(): 'NBT_EXPECTED_SHORT_LIST' {
+        return 'NBT_EXPECTED_SHORT_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected shorts for list' {
+        return 'Invalid NBT Data: Expected shorts for list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-short-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-short-list';
+    }
 
     public override readonly code = 'NBT_EXPECTED_SHORT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-short-list';
@@ -352,10 +480,18 @@ class ExpectedShortList extends JSPrismarineError {
 
 /** The NBT data ended inside a string, so it is truncated. */
 class ExpectedString extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_STRING';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected string bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-string';
+    public static get code(): 'NBT_EXPECTED_STRING' {
+        return 'NBT_EXPECTED_STRING';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected string bytes' {
+        return 'Invalid NBT Data: Expected string bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-string' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-string';
+    }
 
     public override readonly code = 'NBT_EXPECTED_STRING';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-string';
@@ -373,10 +509,18 @@ class ExpectedString extends JSPrismarineError {
 
 /** The NBT data ended where a string's length should be, so it is truncated. */
 class ExpectedStringLength extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_STRING_LENGTH';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected string length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-string-length';
+    public static get code(): 'NBT_EXPECTED_STRING_LENGTH' {
+        return 'NBT_EXPECTED_STRING_LENGTH';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected string length' {
+        return 'Invalid NBT Data: Expected string length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-string-length' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-string-length';
+    }
 
     public override readonly code = 'NBT_EXPECTED_STRING_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-string-length';
@@ -394,10 +538,18 @@ class ExpectedStringLength extends JSPrismarineError {
 
 /** The NBT data ended inside a compound tag before its end tag, so it is truncated. */
 class ExpectedCompoundTagId extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_COMPOUND_TAG_ID';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected Tag ID in compound tag';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-compound-tag-id';
+    public static get code(): 'NBT_EXPECTED_COMPOUND_TAG_ID' {
+        return 'NBT_EXPECTED_COMPOUND_TAG_ID';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected Tag ID in compound tag' {
+        return 'Invalid NBT Data: Expected Tag ID in compound tag';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-compound-tag-id' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-compound-tag-id';
+    }
 
     public override readonly code = 'NBT_EXPECTED_COMPOUND_TAG_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-compound-tag-id';
@@ -415,10 +567,18 @@ class ExpectedCompoundTagId extends JSPrismarineError {
 
 /** The NBT data ended inside a nested compound tag, so it is truncated. */
 class ExpectedNestedTagId extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_NESTED_TAG_ID';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected tag ID in tag compound';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-nested-tag-id';
+    public static get code(): 'NBT_EXPECTED_NESTED_TAG_ID' {
+        return 'NBT_EXPECTED_NESTED_TAG_ID';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected tag ID in tag compound' {
+        return 'Invalid NBT Data: Expected tag ID in tag compound';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-nested-tag-id' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-nested-tag-id';
+    }
 
     public override readonly code = 'NBT_EXPECTED_NESTED_TAG_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-nested-tag-id';
@@ -436,10 +596,18 @@ class ExpectedNestedTagId extends JSPrismarineError {
 
 /** The NBT data ended where a list's type and length should be, so it is truncated. */
 class ExpectedListHeader extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_LIST_HEADER';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Expected TAGList header';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-list-header';
+    public static get code(): 'NBT_EXPECTED_LIST_HEADER' {
+        return 'NBT_EXPECTED_LIST_HEADER';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Expected TAGList header' {
+        return 'Invalid NBT Data: Expected TAGList header';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-list-header' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-list-header';
+    }
 
     public override readonly code = 'NBT_EXPECTED_LIST_HEADER';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-list-header';
@@ -457,10 +625,18 @@ class ExpectedListHeader extends JSPrismarineError {
 
 /** The NBT data declares a byte array with a negative length, so it is malformed. */
 class NegativeByteArrayLength extends JSPrismarineError {
-    public static readonly code = 'NBT_NEGATIVE_BYTE_ARRAY_LENGTH';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Negative byte array length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-byte-array-length';
+    public static get code(): 'NBT_NEGATIVE_BYTE_ARRAY_LENGTH' {
+        return 'NBT_NEGATIVE_BYTE_ARRAY_LENGTH';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Negative byte array length' {
+        return 'Invalid NBT Data: Negative byte array length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-negative-byte-array-length' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-negative-byte-array-length';
+    }
 
     public override readonly code = 'NBT_NEGATIVE_BYTE_ARRAY_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-byte-array-length';
@@ -478,10 +654,18 @@ class NegativeByteArrayLength extends JSPrismarineError {
 
 /** The NBT data declares an int array with a negative length, so it is malformed. */
 class NegativeIntArrayLength extends JSPrismarineError {
-    public static readonly code = 'NBT_NEGATIVE_INT_ARRAY_LENGTH';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Negative int array length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-int-array-length';
+    public static get code(): 'NBT_NEGATIVE_INT_ARRAY_LENGTH' {
+        return 'NBT_NEGATIVE_INT_ARRAY_LENGTH';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Negative int array length' {
+        return 'Invalid NBT Data: Negative int array length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-negative-int-array-length' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-negative-int-array-length';
+    }
 
     public override readonly code = 'NBT_NEGATIVE_INT_ARRAY_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-int-array-length';
@@ -499,10 +683,18 @@ class NegativeIntArrayLength extends JSPrismarineError {
 
 /** The NBT data declares a list with a negative length, so it is malformed. */
 class NegativeListLength extends JSPrismarineError {
-    public static readonly code = 'NBT_NEGATIVE_LIST_LENGTH';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Negative list length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-list-length';
+    public static get code(): 'NBT_NEGATIVE_LIST_LENGTH' {
+        return 'NBT_NEGATIVE_LIST_LENGTH';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Negative list length' {
+        return 'Invalid NBT Data: Negative list length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-negative-list-length' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-negative-list-length';
+    }
 
     public override readonly code = 'NBT_NEGATIVE_LIST_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-negative-list-length';
@@ -523,10 +715,18 @@ class NegativeListLength extends JSPrismarineError {
  * order.
  */
 class NoRootTag extends JSPrismarineError {
-    public static readonly code = 'NBT_NO_ROOT_TAG';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: No root tag found';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-no-root-tag';
+    public static get code(): 'NBT_NO_ROOT_TAG' {
+        return 'NBT_NO_ROOT_TAG';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: No root tag found' {
+        return 'Invalid NBT Data: No root tag found';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-no-root-tag' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-no-root-tag';
+    }
 
     public override readonly code = 'NBT_NO_ROOT_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-no-root-tag';
@@ -544,10 +744,18 @@ class NoRootTag extends JSPrismarineError {
 
 /** The NBT data ended where the next tag's header should be, so it is truncated. */
 class ExpectedTagHeader extends JSPrismarineError {
-    public static readonly code = 'NBT_EXPECTED_TAG_HEADER';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Not enough data to read new tag';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-tag-header';
+    public static get code(): 'NBT_EXPECTED_TAG_HEADER' {
+        return 'NBT_EXPECTED_TAG_HEADER';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Not enough data to read new tag' {
+        return 'Invalid NBT Data: Not enough data to read new tag';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-expected-tag-header' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-expected-tag-header';
+    }
 
     public override readonly code = 'NBT_EXPECTED_TAG_HEADER';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-expected-tag-header';
@@ -565,10 +773,18 @@ class ExpectedTagHeader extends JSPrismarineError {
 
 /** The NBT data was read as a list, but it does not start with a list tag. */
 class NotListTag extends JSPrismarineError {
-    public static readonly code = 'NBT_NOT_LIST_TAG';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Not list tag found';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-not-list-tag';
+    public static get code(): 'NBT_NOT_LIST_TAG' {
+        return 'NBT_NOT_LIST_TAG';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Not list tag found' {
+        return 'Invalid NBT Data: Not list tag found';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-not-list-tag' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-not-list-tag';
+    }
 
     public override readonly code = 'NBT_NOT_LIST_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-not-list-tag';
@@ -586,10 +802,18 @@ class NotListTag extends JSPrismarineError {
 
 /** The NBT data has a tag type that does not exist, so it is malformed or not NBT. */
 class UnknownTag extends JSPrismarineError {
-    public static readonly code = 'NBT_UNKNOWN_TAG';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT Data: Unknown tag <{tagID}>';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-tag';
+    public static get code(): 'NBT_UNKNOWN_TAG' {
+        return 'NBT_UNKNOWN_TAG';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT Data: Unknown tag <{tagID}>' {
+        return 'Invalid NBT Data: Unknown tag <{tagID}>';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-unknown-tag' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-unknown-tag';
+    }
 
     public override readonly code = 'NBT_UNKNOWN_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-tag';
@@ -608,10 +832,18 @@ class UnknownTag extends JSPrismarineError {
 
 /** A list was written with an element type that does not exist. */
 class UnknownListType extends JSPrismarineError {
-    public static readonly code = 'NBT_UNKNOWN_LIST_TYPE';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBTTagType';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-list-type';
+    public static get code(): 'NBT_UNKNOWN_LIST_TYPE' {
+        return 'NBT_UNKNOWN_LIST_TYPE';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBTTagType' {
+        return 'Invalid NBTTagType';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-unknown-list-type' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-unknown-list-type';
+    }
 
     public override readonly code = 'NBT_UNKNOWN_LIST_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-unknown-list-type';
@@ -632,10 +864,18 @@ class UnknownListType extends JSPrismarineError {
  * for its suffix. Fix the text at the position the message names.
  */
 class SnbtSyntax extends JSPrismarineError {
-    public static readonly code = 'NBT_SNBT_SYNTAX';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid SNBT at position {position}: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-snbt-syntax';
+    public static get code(): 'NBT_SNBT_SYNTAX' {
+        return 'NBT_SNBT_SYNTAX';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid SNBT at position {position}: {reason}' {
+        return 'Invalid SNBT at position {position}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-snbt-syntax' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-snbt-syntax';
+    }
 
     public override readonly code = 'NBT_SNBT_SYNTAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-snbt-syntax';
@@ -657,10 +897,18 @@ class SnbtSyntax extends JSPrismarineError {
  * Fix the path at the position the message names.
  */
 class NbtPathSyntax extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_SYNTAX';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid NBT path {path} at position {position}: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-syntax';
+    public static get code(): 'NBT_NBT_PATH_SYNTAX' {
+        return 'NBT_NBT_PATH_SYNTAX';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid NBT path {path} at position {position}: {reason}' {
+        return 'Invalid NBT path {path} at position {position}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-syntax' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-syntax';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_SYNTAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-syntax';
@@ -687,10 +935,18 @@ class NbtPathSyntax extends JSPrismarineError {
 
 /** An NBT path matched nothing in the data a command read. Check the path against the data. */
 class NbtPathNothingFound extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_NOTHING_FOUND';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Found no elements matching {path}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-nothing-found';
+    public static get code(): 'NBT_NBT_PATH_NOTHING_FOUND' {
+        return 'NBT_NBT_PATH_NOTHING_FOUND';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Found no elements matching {path}' {
+        return 'Found no elements matching {path}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-nothing-found' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-nothing-found';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_NOTHING_FOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-nothing-found';
@@ -712,10 +968,18 @@ class NbtPathNothingFound extends JSPrismarineError {
  * Narrow the path to one element with an index or a pattern.
  */
 class NbtPathMultiple extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_MULTIPLE';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Only one element allowed, but path {path} matched {count}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-multiple';
+    public static get code(): 'NBT_NBT_PATH_MULTIPLE' {
+        return 'NBT_NBT_PATH_MULTIPLE';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Only one element allowed, but path {path} matched {count}' {
+        return 'Only one element allowed, but path {path} matched {count}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-multiple' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-multiple';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_MULTIPLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-multiple';
@@ -734,10 +998,18 @@ class NbtPathMultiple extends JSPrismarineError {
 
 /** `/data modify … append`, `prepend` or `insert` named a tag that is not a list or an array. */
 class NbtPathExpectedList extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_EXPECTED_LIST';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Expected list, got: {got}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-list';
+    public static get code(): 'NBT_NBT_PATH_EXPECTED_LIST' {
+        return 'NBT_NBT_PATH_EXPECTED_LIST';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Expected list, got: {got}' {
+        return 'Expected list, got: {got}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-list' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-list';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_EXPECTED_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-list';
@@ -756,10 +1028,18 @@ class NbtPathExpectedList extends JSPrismarineError {
 
 /** `/data modify … merge` named a tag that is not a compound. */
 class NbtPathExpectedObject extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_EXPECTED_OBJECT';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Expected object, got: {got}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-object';
+    public static get code(): 'NBT_NBT_PATH_EXPECTED_OBJECT' {
+        return 'NBT_NBT_PATH_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Expected object, got: {got}' {
+        return 'Expected object, got: {got}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-object' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-object';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_EXPECTED_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-expected-object';
@@ -781,10 +1061,18 @@ class NbtPathExpectedObject extends JSPrismarineError {
  * value it cannot hold, such as a string in an int array.
  */
 class NbtPathInvalidIndex extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_INVALID_INDEX';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Invalid list index: {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-invalid-index';
+    public static get code(): 'NBT_NBT_PATH_INVALID_INDEX' {
+        return 'NBT_NBT_PATH_INVALID_INDEX';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Invalid list index: {index}' {
+        return 'Invalid list index: {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-invalid-index' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-invalid-index';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_INVALID_INDEX';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-invalid-index';
@@ -806,10 +1094,18 @@ class NbtPathInvalidIndex extends JSPrismarineError {
  * scale on a compound.
  */
 class NbtPathNotNumeric extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_NOT_NUMERIC';
-    public static readonly domain = 'nbt';
-    public static readonly template = "Can't get {path}; only numeric tags are allowed";
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-not-numeric';
+    public static get code(): 'NBT_NBT_PATH_NOT_NUMERIC' {
+        return 'NBT_NBT_PATH_NOT_NUMERIC';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): "Can't get {path}; only numeric tags are allowed" {
+        return "Can't get {path}; only numeric tags are allowed";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-not-numeric' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-not-numeric';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_NOT_NUMERIC';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-not-numeric';
@@ -832,10 +1128,18 @@ class NbtPathNotNumeric extends JSPrismarineError {
  * shorter path or a value that nests less.
  */
 class NbtPathTooDeep extends JSPrismarineError {
-    public static readonly code = 'NBT_NBT_PATH_TOO_DEEP';
-    public static readonly domain = 'nbt';
-    public static readonly template = 'Resulting NBT too deeply nested';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-too-deep';
+    public static get code(): 'NBT_NBT_PATH_TOO_DEEP' {
+        return 'NBT_NBT_PATH_TOO_DEEP';
+    }
+    public static get domain(): 'nbt' {
+        return 'nbt';
+    }
+    public static get template(): 'Resulting NBT too deeply nested' {
+        return 'Resulting NBT too deeply nested';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-too-deep' {
+        return 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-too-deep';
+    }
 
     public override readonly code = 'NBT_NBT_PATH_TOO_DEEP';
     public override readonly docs = 'https://jsprismarine.dev/errors/nbt#nbt-nbt-path-too-deep';

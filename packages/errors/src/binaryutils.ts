@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * creating a stream you read.
  */
 class WriteOnlyStream extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_WRITE_ONLY_STREAM';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'Buffer is write only!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-write-only-stream';
+    public static get code(): 'BINARYUTILS_WRITE_ONLY_STREAM' {
+        return 'BINARYUTILS_WRITE_ONLY_STREAM';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'Buffer is write only!' {
+        return 'Buffer is write only!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-write-only-stream' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-write-only-stream';
+    }
 
     public override readonly code = 'BINARYUTILS_WRITE_ONLY_STREAM';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-write-only-stream';
@@ -32,10 +40,18 @@ class WriteOnlyStream extends JSPrismarineError {
  * they should be, so they are truncated or not that format.
  */
 class EndOfBuffer extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_END_OF_BUFFER';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'No bytes left in buffer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-end-of-buffer';
+    public static get code(): 'BINARYUTILS_END_OF_BUFFER' {
+        return 'BINARYUTILS_END_OF_BUFFER';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'No bytes left in buffer' {
+        return 'No bytes left in buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-end-of-buffer' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-end-of-buffer';
+    }
 
     public override readonly code = 'BINARYUTILS_END_OF_BUFFER';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-end-of-buffer';
@@ -56,10 +72,18 @@ class EndOfBuffer extends JSPrismarineError {
  * so the data is malformed.
  */
 class VarintUnterminated extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_VARINT_UNTERMINATED';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'VarInt did not terminate after 5 bytes!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-unterminated';
+    public static get code(): 'BINARYUTILS_VARINT_UNTERMINATED' {
+        return 'BINARYUTILS_VARINT_UNTERMINATED';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'VarInt did not terminate after 5 bytes!' {
+        return 'VarInt did not terminate after 5 bytes!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-unterminated' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-unterminated';
+    }
 
     public override readonly code = 'BINARYUTILS_VARINT_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-unterminated';
@@ -80,10 +104,18 @@ class VarintUnterminated extends JSPrismarineError {
  * fit and the data is malformed.
  */
 class VarintOverflows32Bits extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_VARINT_OVERFLOWS32_BITS';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'VarInt overflows 32 bits!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-overflows32-bits';
+    public static get code(): 'BINARYUTILS_VARINT_OVERFLOWS32_BITS' {
+        return 'BINARYUTILS_VARINT_OVERFLOWS32_BITS';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'VarInt overflows 32 bits!' {
+        return 'VarInt overflows 32 bits!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-overflows32-bits' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-overflows32-bits';
+    }
 
     public override readonly code = 'BINARYUTILS_VARINT_OVERFLOWS32_BITS';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varint-overflows32-bits';
@@ -104,10 +136,18 @@ class VarintOverflows32Bits extends JSPrismarineError {
  * so the data is malformed.
  */
 class VarlongUnterminated extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_VARLONG_UNTERMINATED';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'VarLong did not terminate after 10 bytes!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-unterminated';
+    public static get code(): 'BINARYUTILS_VARLONG_UNTERMINATED' {
+        return 'BINARYUTILS_VARLONG_UNTERMINATED';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'VarLong did not terminate after 10 bytes!' {
+        return 'VarLong did not terminate after 10 bytes!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-unterminated' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-unterminated';
+    }
 
     public override readonly code = 'BINARYUTILS_VARLONG_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-unterminated';
@@ -128,10 +168,18 @@ class VarlongUnterminated extends JSPrismarineError {
  * is malformed.
  */
 class VarlongOverflows64Bits extends JSPrismarineError {
-    public static readonly code = 'BINARYUTILS_VARLONG_OVERFLOWS64_BITS';
-    public static readonly domain = 'binaryutils';
-    public static readonly template = 'VarLong overflows 64 bits!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-overflows64-bits';
+    public static get code(): 'BINARYUTILS_VARLONG_OVERFLOWS64_BITS' {
+        return 'BINARYUTILS_VARLONG_OVERFLOWS64_BITS';
+    }
+    public static get domain(): 'binaryutils' {
+        return 'binaryutils';
+    }
+    public static get template(): 'VarLong overflows 64 bits!' {
+        return 'VarLong overflows 64 bits!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-overflows64-bits' {
+        return 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-overflows64-bits';
+    }
 
     public override readonly code = 'BINARYUTILS_VARLONG_OVERFLOWS64_BITS';
     public override readonly docs = 'https://jsprismarine.dev/errors/binaryutils#binaryutils-varlong-overflows64-bits';

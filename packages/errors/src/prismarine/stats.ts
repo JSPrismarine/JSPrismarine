@@ -8,12 +8,21 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * such as `jsprismarine:players`. Rename the metric.
  */
 class BadMetricName extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BAD_METRIC_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template =
-        'Stats metric name "{name}" must be a snake_case namespace and name, such as "jsprismarine:players"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-metric-name';
+    public static get code(): 'PRISMARINE_BAD_METRIC_NAME' {
+        return 'PRISMARINE_BAD_METRIC_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'Stats metric name "{name}" must be a snake_case namespace and name, such as "jsprismarine:players"' {
+        return 'Stats metric name "{name}" must be a snake_case namespace and name, such as "jsprismarine:players"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-metric-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-metric-name';
+    }
 
     public override readonly code = 'PRISMARINE_BAD_METRIC_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-metric-name';
@@ -38,11 +47,21 @@ class BadMetricName extends JSPrismarineError {
  * name of its own, or dispose the other registration first.
  */
 class DuplicateMetric extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_METRIC';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'Stats metric "{name}" is already registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-duplicate-metric';
+    public static get code(): 'PRISMARINE_DUPLICATE_METRIC' {
+        return 'PRISMARINE_DUPLICATE_METRIC';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'Stats metric "{name}" is already registered' {
+        return 'Stats metric "{name}" is already registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-duplicate-metric' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-duplicate-metric';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_METRIC';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-duplicate-metric';
@@ -64,11 +83,21 @@ class DuplicateMetric extends JSPrismarineError {
  * report it with the stack trace.
  */
 class BadChartName extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BAD_CHART_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'bStats chart name "{name}" is not snake_case and has no chart ID';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-chart-name';
+    public static get code(): 'PRISMARINE_BAD_CHART_NAME' {
+        return 'PRISMARINE_BAD_CHART_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'bStats chart name "{name}" is not snake_case and has no chart ID' {
+        return 'bStats chart name "{name}" is not snake_case and has no chart ID';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-chart-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-chart-name';
+    }
 
     public override readonly code = 'PRISMARINE_BAD_CHART_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-bad-chart-name';
@@ -90,11 +119,21 @@ class BadChartName extends JSPrismarineError {
  * report it with the stack trace.
  */
 class ChartTakesDefaultId extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CHART_TAKES_DEFAULT_ID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'bStats chart name "{name}" maps onto the default chart "{id}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-chart-takes-default-id';
+    public static get code(): 'PRISMARINE_CHART_TAKES_DEFAULT_ID' {
+        return 'PRISMARINE_CHART_TAKES_DEFAULT_ID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'bStats chart name "{name}" maps onto the default chart "{id}"' {
+        return 'bStats chart name "{name}" maps onto the default chart "{id}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-chart-takes-default-id' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-chart-takes-default-id';
+    }
 
     public override readonly code = 'PRISMARINE_CHART_TAKES_DEFAULT_ID';
     public override readonly docs =
@@ -120,11 +159,21 @@ class ChartTakesDefaultId extends JSPrismarineError {
  * is sent on schedule; it is logged only when `stats.bstats.log-errors` is on.
  */
 class SubmitRejected extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SUBMIT_REJECTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'bStats answered {status} {statusText}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-rejected';
+    public static get code(): 'PRISMARINE_SUBMIT_REJECTED' {
+        return 'PRISMARINE_SUBMIT_REJECTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'bStats answered {status} {statusText}' {
+        return 'bStats answered {status} {statusText}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-rejected' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-rejected';
+    }
 
     public override readonly code = 'PRISMARINE_SUBMIT_REJECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-rejected';
@@ -146,11 +195,21 @@ class SubmitRejected extends JSPrismarineError {
  * sent on schedule; it is logged only when `stats.bstats.log-errors` is on.
  */
 class SubmitTimedOut extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SUBMIT_TIMED_OUT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'no answer within {seconds} seconds';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-timed-out';
+    public static get code(): 'PRISMARINE_SUBMIT_TIMED_OUT' {
+        return 'PRISMARINE_SUBMIT_TIMED_OUT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'no answer within {seconds} seconds' {
+        return 'no answer within {seconds} seconds';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-timed-out' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-timed-out';
+    }
 
     public override readonly code = 'PRISMARINE_SUBMIT_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-timed-out';
@@ -172,11 +231,21 @@ class SubmitTimedOut extends JSPrismarineError {
  * never logged, since the server logs nothing from bStats after it stops.
  */
 class SubmitAbandoned extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SUBMIT_ABANDONED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'stats';
-    public static readonly template = 'the server stopped';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-abandoned';
+    public static get code(): 'PRISMARINE_SUBMIT_ABANDONED' {
+        return 'PRISMARINE_SUBMIT_ABANDONED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'stats' {
+        return 'stats';
+    }
+    public static get template(): 'the server stopped' {
+        return 'the server stopped';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-abandoned' {
+        return 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-abandoned';
+    }
 
     public override readonly code = 'PRISMARINE_SUBMIT_ABANDONED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/stats#prismarine-submit-abandoned';

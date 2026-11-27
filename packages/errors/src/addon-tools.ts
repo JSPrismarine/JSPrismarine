@@ -19,10 +19,18 @@ export abstract class InvalidAddonIndexError extends JSPrismarineError {
  * folder.
  */
 class InvalidAddonName extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ADDON_NAME';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = '{name} is not an addon name: use lowercase letters, digits and single hyphens';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-name';
+    public static get code(): 'ADDON_TOOLS_INVALID_ADDON_NAME' {
+        return 'ADDON_TOOLS_INVALID_ADDON_NAME';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): '{name} is not an addon name: use lowercase letters, digits and single hyphens' {
+        return '{name} is not an addon name: use lowercase letters, digits and single hyphens';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-name' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-name';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ADDON_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-name';
@@ -44,10 +52,18 @@ class InvalidAddonName extends InvalidAddonError {
 
 /** An addon's folder lacks a file every addon needs. Add the file the message names. */
 class MissingAddonFile extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_MISSING_ADDON_FILE';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = 'addon {addon} has no {file}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-addon-file';
+    public static get code(): 'ADDON_TOOLS_MISSING_ADDON_FILE' {
+        return 'ADDON_TOOLS_MISSING_ADDON_FILE';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'addon {addon} has no {file}' {
+        return 'addon {addon} has no {file}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-addon-file' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-addon-file';
+    }
 
     public override readonly code = 'ADDON_TOOLS_MISSING_ADDON_FILE';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-addon-file';
@@ -72,10 +88,18 @@ class MissingAddonFile extends InvalidAddonError {
  * The addon's version lives in its `manifest.json` header, not here.
  */
 class InvalidAddonJson extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ADDON_JSON';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = "addon {addon}'s addon.json is invalid: {problem}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-json';
+    public static get code(): 'ADDON_TOOLS_INVALID_ADDON_JSON' {
+        return 'ADDON_TOOLS_INVALID_ADDON_JSON';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s addon.json is invalid: {problem}" {
+        return "addon {addon}'s addon.json is invalid: {problem}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-json' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-json';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ADDON_JSON';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-json';
@@ -97,10 +121,18 @@ class InvalidAddonJson extends InvalidAddonError {
  * square PNG image. Save it as a PNG of equal width and height, such as 256 by 256 pixels.
  */
 class InvalidAddonIcon extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ADDON_ICON';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = "addon {addon}'s pack_icon.png is invalid: {problem}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-icon';
+    public static get code(): 'ADDON_TOOLS_INVALID_ADDON_ICON' {
+        return 'ADDON_TOOLS_INVALID_ADDON_ICON';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s pack_icon.png is invalid: {problem}" {
+        return "addon {addon}'s pack_icon.png is invalid: {problem}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-icon' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-icon';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ADDON_ICON';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-icon';
@@ -119,10 +151,18 @@ class InvalidAddonIcon extends InvalidAddonError {
 
 /** An addon's `manifest.json` is not a valid behavior pack manifest. Fix what the message names. */
 class InvalidAddonManifest extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ADDON_MANIFEST';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = "addon {addon}'s manifest.json is invalid: {problem}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-manifest';
+    public static get code(): 'ADDON_TOOLS_INVALID_ADDON_MANIFEST' {
+        return 'ADDON_TOOLS_INVALID_ADDON_MANIFEST';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s manifest.json is invalid: {problem}" {
+        return "addon {addon}'s manifest.json is invalid: {problem}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-manifest' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-manifest';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ADDON_MANIFEST';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-manifest';
@@ -144,11 +184,18 @@ class InvalidAddonManifest extends InvalidAddonError {
  * Move resource pack content into a pack of its own.
  */
 class NotABehaviorPack extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_NOT_ABEHAVIOR_PACK';
-    public static readonly domain = 'addon-tools';
-    public static readonly template =
-        'addon {addon} has a {type} module; an addon is a behavior pack with data and script modules only';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-not-abehavior-pack';
+    public static get code(): 'ADDON_TOOLS_NOT_ABEHAVIOR_PACK' {
+        return 'ADDON_TOOLS_NOT_ABEHAVIOR_PACK';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'addon {addon} has a {type} module; an addon is a behavior pack with data and script modules only' {
+        return 'addon {addon} has a {type} module; an addon is a behavior pack with data and script modules only';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-not-abehavior-pack' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-not-abehavior-pack';
+    }
 
     public override readonly code = 'ADDON_TOOLS_NOT_ABEHAVIOR_PACK';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-not-abehavior-pack';
@@ -173,11 +220,18 @@ class NotABehaviorPack extends InvalidAddonError {
  * the same one, so a release never mixes versions. Set the module's version to the header's.
  */
 class ModuleVersionDiffers extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_MODULE_VERSION_DIFFERS';
-    public static readonly domain = 'addon-tools';
-    public static readonly template =
-        "addon {addon}'s {type} module is version {moduleVersion}, but its header is {version}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-module-version-differs';
+    public static get code(): 'ADDON_TOOLS_MODULE_VERSION_DIFFERS' {
+        return 'ADDON_TOOLS_MODULE_VERSION_DIFFERS';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s {type} module is version {moduleVersion}, but its header is {version}" {
+        return "addon {addon}'s {type} module is version {moduleVersion}, but its header is {version}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-module-version-differs' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-module-version-differs';
+    }
 
     public override readonly code = 'ADDON_TOOLS_MODULE_VERSION_DIFFERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-module-version-differs';
@@ -212,10 +266,18 @@ class ModuleVersionDiffers extends InvalidAddonError {
 
 /** An addon's script module names an `entry` file the folder does not have. */
 class MissingScriptEntry extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_MISSING_SCRIPT_ENTRY';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = "addon {addon}'s script entry {entry} does not exist";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-script-entry';
+    public static get code(): 'ADDON_TOOLS_MISSING_SCRIPT_ENTRY' {
+        return 'ADDON_TOOLS_MISSING_SCRIPT_ENTRY';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s script entry {entry} does not exist" {
+        return "addon {addon}'s script entry {entry} does not exist";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-script-entry' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-script-entry';
+    }
 
     public override readonly code = 'ADDON_TOOLS_MISSING_SCRIPT_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-missing-script-entry';
@@ -237,10 +299,18 @@ class MissingScriptEntry extends InvalidAddonError {
  * A pack holds files only, so replace the link with the file it points at.
  */
 class UnsupportedAddonEntry extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_UNSUPPORTED_ADDON_ENTRY';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = 'addon {addon} has {path}, which is neither a file nor a folder';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-entry';
+    public static get code(): 'ADDON_TOOLS_UNSUPPORTED_ADDON_ENTRY' {
+        return 'ADDON_TOOLS_UNSUPPORTED_ADDON_ENTRY';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'addon {addon} has {path}, which is neither a file nor a folder' {
+        return 'addon {addon} has {path}, which is neither a file nor a folder';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-entry' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-entry';
+    }
 
     public override readonly code = 'ADDON_TOOLS_UNSUPPORTED_ADDON_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-entry';
@@ -266,10 +336,18 @@ class UnsupportedAddonEntry extends InvalidAddonError {
  * `@minecraft/server` means the addon's dependencies are not installed: install them first.
  */
 class AddonCompileFailed extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_ADDON_COMPILE_FAILED';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = "addon {addon}'s scripts did not compile:\n{output}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-addon-compile-failed';
+    public static get code(): 'ADDON_TOOLS_ADDON_COMPILE_FAILED' {
+        return 'ADDON_TOOLS_ADDON_COMPILE_FAILED';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): "addon {addon}'s scripts did not compile:\n{output}" {
+        return "addon {addon}'s scripts did not compile:\n{output}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-addon-compile-failed' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-addon-compile-failed';
+    }
 
     public override readonly code = 'ADDON_TOOLS_ADDON_COMPILE_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-addon-compile-failed';
@@ -296,11 +374,18 @@ ${String(params?.output)}`,
  * version in the addon's `manifest.json` header.
  */
 class PublishedVersionChanged extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_PUBLISHED_VERSION_CHANGED';
-    public static readonly domain = 'addon-tools';
-    public static readonly template =
-        '{name} {version} is already published with other contents; raise the version in its manifest header';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-version-changed';
+    public static get code(): 'ADDON_TOOLS_PUBLISHED_VERSION_CHANGED' {
+        return 'ADDON_TOOLS_PUBLISHED_VERSION_CHANGED';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): '{name} {version} is already published with other contents; raise the version in its manifest header' {
+        return '{name} {version} is already published with other contents; raise the version in its manifest header';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-version-changed' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-version-changed';
+    }
 
     public override readonly code = 'ADDON_TOOLS_PUBLISHED_VERSION_CHANGED';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-version-changed';
@@ -326,11 +411,18 @@ class PublishedVersionChanged extends InvalidAddonError {
  * the addon's `manifest.json` header to publish the new files.
  */
 class PublishedListingChanged extends InvalidAddonError {
-    public static readonly code = 'ADDON_TOOLS_PUBLISHED_LISTING_CHANGED';
-    public static readonly domain = 'addon-tools';
-    public static readonly template =
-        '{name} {version} is already published with other listing files; raise the version in its manifest header';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-listing-changed';
+    public static get code(): 'ADDON_TOOLS_PUBLISHED_LISTING_CHANGED' {
+        return 'ADDON_TOOLS_PUBLISHED_LISTING_CHANGED';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): '{name} {version} is already published with other listing files; raise the version in its manifest header' {
+        return '{name} {version} is already published with other listing files; raise the version in its manifest header';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-listing-changed' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-listing-changed';
+    }
 
     public override readonly code = 'ADDON_TOOLS_PUBLISHED_LISTING_CHANGED';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-listing-changed';
@@ -352,10 +444,18 @@ class PublishedListingChanged extends InvalidAddonError {
 
 /** An addon index is not the object its schema describes. Fix what the message names. */
 class InvalidAddonIndex extends InvalidAddonIndexError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ADDON_INDEX';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = 'the addon index is invalid: {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-index';
+    public static get code(): 'ADDON_TOOLS_INVALID_ADDON_INDEX' {
+        return 'ADDON_TOOLS_INVALID_ADDON_INDEX';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'the addon index is invalid: {problem}' {
+        return 'the addon index is invalid: {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-index' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-index';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ADDON_INDEX';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-addon-index';
@@ -377,12 +477,18 @@ class InvalidAddonIndex extends InvalidAddonIndexError {
  * the tools, or the server that reads the index.
  */
 class UnsupportedAddonIndexVersion extends InvalidAddonIndexError {
-    public static readonly code = 'ADDON_TOOLS_UNSUPPORTED_ADDON_INDEX_VERSION';
-    public static readonly domain = 'addon-tools';
-    public static readonly template =
-        'the addon index has schema version {schemaVersion}, and only version {supported} is readable';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-index-version';
+    public static get code(): 'ADDON_TOOLS_UNSUPPORTED_ADDON_INDEX_VERSION' {
+        return 'ADDON_TOOLS_UNSUPPORTED_ADDON_INDEX_VERSION';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'the addon index has schema version {schemaVersion}, and only version {supported} is readable' {
+        return 'the addon index has schema version {schemaVersion}, and only version {supported} is readable';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-index-version' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-unsupported-addon-index-version';
+    }
 
     public override readonly code = 'ADDON_TOOLS_UNSUPPORTED_ADDON_INDEX_VERSION';
     public override readonly docs =
@@ -414,10 +520,18 @@ class UnsupportedAddonIndexVersion extends InvalidAddonIndexError {
  * yet and is not an error.
  */
 class PublishedIndexUnavailable extends JSPrismarineError {
-    public static readonly code = 'ADDON_TOOLS_PUBLISHED_INDEX_UNAVAILABLE';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = 'could not download the published index {url}: {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-index-unavailable';
+    public static get code(): 'ADDON_TOOLS_PUBLISHED_INDEX_UNAVAILABLE' {
+        return 'ADDON_TOOLS_PUBLISHED_INDEX_UNAVAILABLE';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'could not download the published index {url}: {status}' {
+        return 'could not download the published index {url}: {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-index-unavailable' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-published-index-unavailable';
+    }
 
     public override readonly code = 'ADDON_TOOLS_PUBLISHED_INDEX_UNAVAILABLE';
     public override readonly docs =
@@ -437,10 +551,18 @@ class PublishedIndexUnavailable extends JSPrismarineError {
 
 /** The URL a release's files download from must be an `https:` URL. */
 class InvalidBaseUrl extends JSPrismarineTypeError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_BASE_URL';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = 'the base URL {url} is not an https URL';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-base-url';
+    public static get code(): 'ADDON_TOOLS_INVALID_BASE_URL' {
+        return 'ADDON_TOOLS_INVALID_BASE_URL';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): 'the base URL {url} is not an https URL' {
+        return 'the base URL {url} is not an https URL';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-base-url' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-base-url';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_BASE_URL';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-base-url';
@@ -459,10 +581,18 @@ class InvalidBaseUrl extends JSPrismarineTypeError {
 
 /** The `jsp-addon` command line was given arguments it does not take. Run `jsp-addon --help`. */
 class InvalidArguments extends JSPrismarineTypeError {
-    public static readonly code = 'ADDON_TOOLS_INVALID_ARGUMENTS';
-    public static readonly domain = 'addon-tools';
-    public static readonly template = '{problem}; run jsp-addon --help for usage';
-    public static readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-arguments';
+    public static get code(): 'ADDON_TOOLS_INVALID_ARGUMENTS' {
+        return 'ADDON_TOOLS_INVALID_ARGUMENTS';
+    }
+    public static get domain(): 'addon-tools' {
+        return 'addon-tools';
+    }
+    public static get template(): '{problem}; run jsp-addon --help for usage' {
+        return '{problem}; run jsp-addon --help for usage';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-arguments' {
+        return 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-arguments';
+    }
 
     public override readonly code = 'ADDON_TOOLS_INVALID_ARGUMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/addon-tools#addon-tools-invalid-arguments';

@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * The generated mapping tables are stale; regenerate them.
  */
 class UnmappedBiome extends JSPrismarineError {
-    public static readonly code = 'MAPPING_UNMAPPED_BIOME';
-    public static readonly domain = 'mapping';
-    public static readonly template = '{identifier} has no Java source and no reviewed loss';
-    public static readonly docs = 'https://jsprismarine.dev/errors/mapping#mapping-unmapped-biome';
+    public static get code(): 'MAPPING_UNMAPPED_BIOME' {
+        return 'MAPPING_UNMAPPED_BIOME';
+    }
+    public static get domain(): 'mapping' {
+        return 'mapping';
+    }
+    public static get template(): '{identifier} has no Java source and no reviewed loss' {
+        return '{identifier} has no Java source and no reviewed loss';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/mapping#mapping-unmapped-biome' {
+        return 'https://jsprismarine.dev/errors/mapping#mapping-unmapped-biome';
+    }
 
     public override readonly code = 'MAPPING_UNMAPPED_BIOME';
     public override readonly docs = 'https://jsprismarine.dev/errors/mapping#mapping-unmapped-biome';

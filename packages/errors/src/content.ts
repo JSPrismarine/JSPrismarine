@@ -19,10 +19,18 @@ export abstract class FlattenError extends ContentError {
 
 /** Two behaviors were registered under the same name. */
 class BehaviorIsAlreadyRegistered extends ContentError {
-    public static readonly code = 'CONTENT_BEHAVIOR_IS_ALREADY_REGISTERED';
-    public static readonly domain = 'content';
-    public static readonly template = 'the behavior {name} is already registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-behavior-is-already-registered';
+    public static get code(): 'CONTENT_BEHAVIOR_IS_ALREADY_REGISTERED' {
+        return 'CONTENT_BEHAVIOR_IS_ALREADY_REGISTERED';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the behavior {name} is already registered' {
+        return 'the behavior {name} is already registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-behavior-is-already-registered' {
+        return 'https://jsprismarine.dev/errors/content#content-behavior-is-already-registered';
+    }
 
     public override readonly code = 'CONTENT_BEHAVIOR_IS_ALREADY_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-behavior-is-already-registered';
@@ -44,10 +52,18 @@ class BehaviorIsAlreadyRegistered extends ContentError {
  * declaration.
  */
 class BehaviorUndeclaredHook extends ContentError {
-    public static readonly code = 'CONTENT_BEHAVIOR_UNDECLARED_HOOK';
-    public static readonly domain = 'content';
-    public static readonly template = 'the behavior {name} returned a handler for {hook}, which it does not declare';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-behavior-undeclared-hook';
+    public static get code(): 'CONTENT_BEHAVIOR_UNDECLARED_HOOK' {
+        return 'CONTENT_BEHAVIOR_UNDECLARED_HOOK';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the behavior {name} returned a handler for {hook}, which it does not declare' {
+        return 'the behavior {name} returned a handler for {hook}, which it does not declare';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-behavior-undeclared-hook' {
+        return 'https://jsprismarine.dev/errors/content#content-behavior-undeclared-hook';
+    }
 
     public override readonly code = 'CONTENT_BEHAVIOR_UNDECLARED_HOOK';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-behavior-undeclared-hook';
@@ -72,10 +88,18 @@ class BehaviorUndeclaredHook extends ContentError {
  * the column needs a wider type.
  */
 class ColumnValueOutOfRange extends FlattenError {
-    public static readonly code = 'CONTENT_COLUMN_VALUE_OUT_OF_RANGE';
-    public static readonly domain = 'content';
-    public static readonly template = 'column {column} got {value} at id {id}, outside the {kind} range {min} to {max}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-out-of-range';
+    public static get code(): 'CONTENT_COLUMN_VALUE_OUT_OF_RANGE' {
+        return 'CONTENT_COLUMN_VALUE_OUT_OF_RANGE';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'column {column} got {value} at id {id}, outside the {kind} range {min} to {max}' {
+        return 'column {column} got {value} at id {id}, outside the {kind} range {min} to {max}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-column-value-out-of-range' {
+        return 'https://jsprismarine.dev/errors/content#content-column-value-out-of-range';
+    }
 
     public override readonly code = 'CONTENT_COLUMN_VALUE_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-out-of-range';
@@ -124,10 +148,18 @@ class ColumnValueOutOfRange extends FlattenError {
  * a numeric column.
  */
 class ColumnValueUnstorable extends FlattenError {
-    public static readonly code = 'CONTENT_COLUMN_VALUE_UNSTORABLE';
-    public static readonly domain = 'content';
-    public static readonly template = 'column {column} got {value} at id {id}, which a {kind} array cannot hold';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-unstorable';
+    public static get code(): 'CONTENT_COLUMN_VALUE_UNSTORABLE' {
+        return 'CONTENT_COLUMN_VALUE_UNSTORABLE';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'column {column} got {value} at id {id}, which a {kind} array cannot hold' {
+        return 'column {column} got {value} at id {id}, which a {kind} array cannot hold';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-column-value-unstorable' {
+        return 'https://jsprismarine.dev/errors/content#content-column-value-unstorable';
+    }
 
     public override readonly code = 'CONTENT_COLUMN_VALUE_UNSTORABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-unstorable';
@@ -157,10 +189,18 @@ class ColumnValueUnstorable extends FlattenError {
 
 /** A content table's value has a fraction, and its integer column would drop it. */
 class ColumnValueTruncated extends FlattenError {
-    public static readonly code = 'CONTENT_COLUMN_VALUE_TRUNCATED';
-    public static readonly domain = 'content';
-    public static readonly template = 'column {column} got {value} at id {id}, which a {kind} array would truncate';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-truncated';
+    public static get code(): 'CONTENT_COLUMN_VALUE_TRUNCATED' {
+        return 'CONTENT_COLUMN_VALUE_TRUNCATED';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'column {column} got {value} at id {id}, which a {kind} array would truncate' {
+        return 'column {column} got {value} at id {id}, which a {kind} array would truncate';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-column-value-truncated' {
+        return 'https://jsprismarine.dev/errors/content#content-column-value-truncated';
+    }
 
     public override readonly code = 'CONTENT_COLUMN_VALUE_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-column-value-truncated';
@@ -190,10 +230,18 @@ class ColumnValueTruncated extends FlattenError {
 
 /** Two components were registered under the same name. */
 class ComponentIsAlreadyRegistered extends ContentError {
-    public static readonly code = 'CONTENT_COMPONENT_IS_ALREADY_REGISTERED';
-    public static readonly domain = 'content';
-    public static readonly template = 'the component {name} is already registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-component-is-already-registered';
+    public static get code(): 'CONTENT_COMPONENT_IS_ALREADY_REGISTERED' {
+        return 'CONTENT_COMPONENT_IS_ALREADY_REGISTERED';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the component {name} is already registered' {
+        return 'the component {name} is already registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-component-is-already-registered' {
+        return 'https://jsprismarine.dev/errors/content#content-component-is-already-registered';
+    }
 
     public override readonly code = 'CONTENT_COMPONENT_IS_ALREADY_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-component-is-already-registered';
@@ -215,10 +263,18 @@ class ComponentIsAlreadyRegistered extends ContentError {
  * its declaration.
  */
 class ComponentUndeclaredHook extends ContentError {
-    public static readonly code = 'CONTENT_COMPONENT_UNDECLARED_HOOK';
-    public static readonly domain = 'content';
-    public static readonly template = 'the component {name} returned a handler for {hook}, which it does not declare';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-component-undeclared-hook';
+    public static get code(): 'CONTENT_COMPONENT_UNDECLARED_HOOK' {
+        return 'CONTENT_COMPONENT_UNDECLARED_HOOK';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the component {name} returned a handler for {hook}, which it does not declare' {
+        return 'the component {name} returned a handler for {hook}, which it does not declare';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-component-undeclared-hook' {
+        return 'https://jsprismarine.dev/errors/content#content-component-undeclared-hook';
+    }
 
     public override readonly code = 'CONTENT_COMPONENT_UNDECLARED_HOOK';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-component-undeclared-hook';
@@ -240,10 +296,18 @@ class ComponentUndeclaredHook extends ContentError {
 
 /** A behavior was attached by a name nothing registered. */
 class NoBehaviorIsRegistered extends ContentError {
-    public static readonly code = 'CONTENT_NO_BEHAVIOR_IS_REGISTERED';
-    public static readonly domain = 'content';
-    public static readonly template = 'no behavior is registered as {behaviorName}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-no-behavior-is-registered';
+    public static get code(): 'CONTENT_NO_BEHAVIOR_IS_REGISTERED' {
+        return 'CONTENT_NO_BEHAVIOR_IS_REGISTERED';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'no behavior is registered as {behaviorName}' {
+        return 'no behavior is registered as {behaviorName}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-no-behavior-is-registered' {
+        return 'https://jsprismarine.dev/errors/content#content-no-behavior-is-registered';
+    }
 
     public override readonly code = 'CONTENT_NO_BEHAVIOR_IS_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-no-behavior-is-registered';
@@ -265,10 +329,18 @@ class NoBehaviorIsRegistered extends ContentError {
  * explains why. Supply the values, or record the gaps as reviewed exceptions.
  */
 class MissingColumnValues extends FlattenError {
-    public static readonly code = 'CONTENT_MISSING_COLUMN_VALUES';
-    public static readonly domain = 'content';
-    public static readonly template = 'no value and no reviewed exception for {shown}{rest}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-missing-column-values';
+    public static get code(): 'CONTENT_MISSING_COLUMN_VALUES' {
+        return 'CONTENT_MISSING_COLUMN_VALUES';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'no value and no reviewed exception for {shown}{rest}' {
+        return 'no value and no reviewed exception for {shown}{rest}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-missing-column-values' {
+        return 'https://jsprismarine.dev/errors/content#content-missing-column-values';
+    }
 
     public override readonly code = 'CONTENT_MISSING_COLUMN_VALUES';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-missing-column-values';
@@ -290,10 +362,18 @@ class MissingColumnValues extends FlattenError {
  * defining one identifier in the same layer.
  */
 class DuplicateRegistryKey extends ContentError {
-    public static readonly code = 'CONTENT_DUPLICATE_REGISTRY_KEY';
-    public static readonly domain = 'content';
-    public static readonly template = 'the {name} registry got {key} twice in one build';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-duplicate-registry-key';
+    public static get code(): 'CONTENT_DUPLICATE_REGISTRY_KEY' {
+        return 'CONTENT_DUPLICATE_REGISTRY_KEY';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the {name} registry got {key} twice in one build' {
+        return 'the {name} registry got {key} twice in one build';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-duplicate-registry-key' {
+        return 'https://jsprismarine.dev/errors/content#content-duplicate-registry-key';
+    }
 
     public override readonly code = 'CONTENT_DUPLICATE_REGISTRY_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-duplicate-registry-key';
@@ -315,10 +395,18 @@ class DuplicateRegistryKey extends ContentError {
  * declares.
  */
 class RegistryHasNoEntry extends ContentError {
-    public static readonly code = 'CONTENT_REGISTRY_HAS_NO_ENTRY';
-    public static readonly domain = 'content';
-    public static readonly template = 'the {name} registry has no entry for {key}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-registry-has-no-entry';
+    public static get code(): 'CONTENT_REGISTRY_HAS_NO_ENTRY' {
+        return 'CONTENT_REGISTRY_HAS_NO_ENTRY';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the {name} registry has no entry for {key}' {
+        return 'the {name} registry has no entry for {key}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-registry-has-no-entry' {
+        return 'https://jsprismarine.dev/errors/content#content-registry-has-no-entry';
+    }
 
     public override readonly code = 'CONTENT_REGISTRY_HAS_NO_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-registry-has-no-entry';
@@ -340,10 +428,18 @@ class RegistryHasNoEntry extends ContentError {
  * exceptions.
  */
 class StaleReviewedExceptions extends FlattenError {
-    public static readonly code = 'CONTENT_STALE_REVIEWED_EXCEPTIONS';
-    public static readonly domain = 'content';
-    public static readonly template = 'reviewed exceptions matched nothing and should be removed: {shown}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-stale-reviewed-exceptions';
+    public static get code(): 'CONTENT_STALE_REVIEWED_EXCEPTIONS' {
+        return 'CONTENT_STALE_REVIEWED_EXCEPTIONS';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'reviewed exceptions matched nothing and should be removed: {shown}' {
+        return 'reviewed exceptions matched nothing and should be removed: {shown}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-stale-reviewed-exceptions' {
+        return 'https://jsprismarine.dev/errors/content#content-stale-reviewed-exceptions';
+    }
 
     public override readonly code = 'CONTENT_STALE_REVIEWED_EXCEPTIONS';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-stale-reviewed-exceptions';
@@ -362,10 +458,18 @@ class StaleReviewedExceptions extends FlattenError {
 
 /** A content source asked for a numeric id outside the table. */
 class SourceIdOutOfRange extends FlattenError {
-    public static readonly code = 'CONTENT_SOURCE_ID_OUT_OF_RANGE';
-    public static readonly domain = 'content';
-    public static readonly template = 'a source claims id {id}, outside the 0 to {value} range';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-source-id-out-of-range';
+    public static get code(): 'CONTENT_SOURCE_ID_OUT_OF_RANGE' {
+        return 'CONTENT_SOURCE_ID_OUT_OF_RANGE';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'a source claims id {id}, outside the 0 to {value} range' {
+        return 'a source claims id {id}, outside the 0 to {value} range';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-source-id-out-of-range' {
+        return 'https://jsprismarine.dev/errors/content#content-source-id-out-of-range';
+    }
 
     public override readonly code = 'CONTENT_SOURCE_ID_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-source-id-out-of-range';
@@ -384,10 +488,18 @@ class SourceIdOutOfRange extends FlattenError {
 
 /** Two content sources asked for the same numeric id. */
 class DuplicateSourceId extends FlattenError {
-    public static readonly code = 'CONTENT_DUPLICATE_SOURCE_ID';
-    public static readonly domain = 'content';
-    public static readonly template = 'two sources claim id {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-duplicate-source-id';
+    public static get code(): 'CONTENT_DUPLICATE_SOURCE_ID' {
+        return 'CONTENT_DUPLICATE_SOURCE_ID';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'two sources claim id {id}' {
+        return 'two sources claim id {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-duplicate-source-id' {
+        return 'https://jsprismarine.dev/errors/content#content-duplicate-source-id';
+    }
 
     public override readonly code = 'CONTENT_DUPLICATE_SOURCE_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-duplicate-source-id';
@@ -409,10 +521,18 @@ class DuplicateSourceId extends FlattenError {
  * message shows the first.
  */
 class ContentDidNotResolveCleanly extends ContentError {
-    public static readonly code = 'CONTENT_CONTENT_DID_NOT_RESOLVE_CLEANLY';
-    public static readonly domain = 'content';
-    public static readonly template = 'the content did not resolve cleanly: {count} diagnostic(s), first: {first}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/content#content-content-did-not-resolve-cleanly';
+    public static get code(): 'CONTENT_CONTENT_DID_NOT_RESOLVE_CLEANLY' {
+        return 'CONTENT_CONTENT_DID_NOT_RESOLVE_CLEANLY';
+    }
+    public static get domain(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the content did not resolve cleanly: {count} diagnostic(s), first: {first}' {
+        return 'the content did not resolve cleanly: {count} diagnostic(s), first: {first}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/content#content-content-did-not-resolve-cleanly' {
+        return 'https://jsprismarine.dev/errors/content#content-content-did-not-resolve-cleanly';
+    }
 
     public override readonly code = 'CONTENT_CONTENT_DID_NOT_RESOLVE_CLEANLY';
     public override readonly docs = 'https://jsprismarine.dev/errors/content#content-content-did-not-resolve-cleanly';

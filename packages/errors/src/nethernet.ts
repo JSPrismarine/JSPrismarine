@@ -38,11 +38,18 @@ export abstract class RefusedRequest extends JSPrismarineError {
  * packet batch larger than the protocol can carry.
  */
 class MessageTooLongToSegment extends JSPrismarineRangeError {
-    public static readonly code = 'NETHERNET_MESSAGE_TOO_LONG_TO_SEGMENT';
-    public static readonly domain = 'nethernet';
-    public static readonly template =
-        "A {byteLength} byte message is longer than NetherNet's {maxSegments} segments of {segmentBytes}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-long-to-segment';
+    public static get code(): 'NETHERNET_MESSAGE_TOO_LONG_TO_SEGMENT' {
+        return 'NETHERNET_MESSAGE_TOO_LONG_TO_SEGMENT';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): "A {byteLength} byte message is longer than NetherNet's {maxSegments} segments of {segmentBytes}" {
+        return "A {byteLength} byte message is longer than NetherNet's {maxSegments} segments of {segmentBytes}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-long-to-segment' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-long-to-segment';
+    }
 
     public override readonly code = 'NETHERNET_MESSAGE_TOO_LONG_TO_SEGMENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-long-to-segment';
@@ -73,10 +80,18 @@ class MessageTooLongToSegment extends JSPrismarineRangeError {
  * `connect()` was called twice on one NetherNet client. Make a new client for each connection.
  */
 class ClientConnectsOnce extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_CLIENT_CONNECTS_ONCE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet client connects once';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-client-connects-once';
+    public static get code(): 'NETHERNET_CLIENT_CONNECTS_ONCE' {
+        return 'NETHERNET_CLIENT_CONNECTS_ONCE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet client connects once' {
+        return 'A NetherNet client connects once';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-client-connects-once' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-client-connects-once';
+    }
 
     public override readonly code = 'NETHERNET_CLIENT_CONNECTS_ONCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-client-connects-once';
@@ -94,10 +109,18 @@ class ClientConnectsOnce extends JSPrismarineError {
 
 /** A message was sent on a NetherNet connection after it closed. */
 class ConnectionIsClosed extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_CONNECTION_IS_CLOSED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The NetherNet connection is closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-closed';
+    public static get code(): 'NETHERNET_CONNECTION_IS_CLOSED' {
+        return 'NETHERNET_CONNECTION_IS_CLOSED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The NetherNet connection is closed' {
+        return 'The NetherNet connection is closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-closed' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-closed';
+    }
 
     public override readonly code = 'NETHERNET_CONNECTION_IS_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-closed';
@@ -115,10 +138,18 @@ class ConnectionIsClosed extends JSPrismarineError {
 
 /** A message was sent before the NetherNet connection opened or after it closed. */
 class ConnectionIsNotOpen extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_CONNECTION_IS_NOT_OPEN';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The NetherNet connection is not open';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-not-open';
+    public static get code(): 'NETHERNET_CONNECTION_IS_NOT_OPEN' {
+        return 'NETHERNET_CONNECTION_IS_NOT_OPEN';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The NetherNet connection is not open' {
+        return 'The NetherNet connection is not open';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-not-open' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-not-open';
+    }
 
     public override readonly code = 'NETHERNET_CONNECTION_IS_NOT_OPEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-connection-is-not-open';
@@ -139,10 +170,18 @@ class ConnectionIsNotOpen extends JSPrismarineError {
  * client is not a Bedrock client, or is offline-mode only.
  */
 class DescriptionHasNoIdentity extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_DESCRIPTION_HAS_NO_IDENTITY';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The description carries no a=identity';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-description-has-no-identity';
+    public static get code(): 'NETHERNET_DESCRIPTION_HAS_NO_IDENTITY' {
+        return 'NETHERNET_DESCRIPTION_HAS_NO_IDENTITY';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The description carries no a=identity' {
+        return 'The description carries no a=identity';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-description-has-no-identity' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-description-has-no-identity';
+    }
 
     public override readonly code = 'NETHERNET_DESCRIPTION_HAS_NO_IDENTITY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-description-has-no-identity';
@@ -160,10 +199,18 @@ class DescriptionHasNoIdentity extends JSPrismarineError {
 
 /** A LAN discovery datagram is too short to be one, so something else sent to UDP port 7551. */
 class DiscoveryPacketIsTooShort extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_DISCOVERY_PACKET_IS_TOO_SHORT';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A discovery packet is too short';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-is-too-short';
+    public static get code(): 'NETHERNET_DISCOVERY_PACKET_IS_TOO_SHORT' {
+        return 'NETHERNET_DISCOVERY_PACKET_IS_TOO_SHORT';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A discovery packet is too short' {
+        return 'A discovery packet is too short';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-is-too-short' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-is-too-short';
+    }
 
     public override readonly code = 'NETHERNET_DISCOVERY_PACKET_IS_TOO_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-is-too-short';
@@ -184,11 +231,18 @@ class DiscoveryPacketIsTooShort extends JSPrismarineError {
  * Minecraft.
  */
 class DiscoveryPacketChecksumDoesNotMatch extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_DISCOVERY_PACKET_CHECKSUM_DOES_NOT_MATCH';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A discovery packet’s checksum does not match';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-checksum-does-not-match';
+    public static get code(): 'NETHERNET_DISCOVERY_PACKET_CHECKSUM_DOES_NOT_MATCH' {
+        return 'NETHERNET_DISCOVERY_PACKET_CHECKSUM_DOES_NOT_MATCH';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A discovery packet’s checksum does not match' {
+        return 'A discovery packet’s checksum does not match';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-checksum-does-not-match' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-checksum-does-not-match';
+    }
 
     public override readonly code = 'NETHERNET_DISCOVERY_PACKET_CHECKSUM_DOES_NOT_MATCH';
     public override readonly docs =
@@ -207,11 +261,18 @@ class DiscoveryPacketChecksumDoesNotMatch extends JSPrismarineError {
 
 /** A LAN discovery datagram's text field runs past its end, so it is malformed. */
 class DiscoveryPacketTextRunsPastEnd extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_DISCOVERY_PACKET_TEXT_RUNS_PAST_END';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A discovery packet’s text runs past its end';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-text-runs-past-end';
+    public static get code(): 'NETHERNET_DISCOVERY_PACKET_TEXT_RUNS_PAST_END' {
+        return 'NETHERNET_DISCOVERY_PACKET_TEXT_RUNS_PAST_END';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A discovery packet’s text runs past its end' {
+        return 'A discovery packet’s text runs past its end';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-text-runs-past-end' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-discovery-packet-text-runs-past-end';
+    }
 
     public override readonly code = 'NETHERNET_DISCOVERY_PACKET_TEXT_RUNS_PAST_END';
     public override readonly docs =
@@ -230,10 +291,18 @@ class DiscoveryPacketTextRunsPastEnd extends JSPrismarineError {
 
 /** A peer's `a=identity` holds an assertion that is not the JSON Bedrock writes. */
 class IdentityAssertionIsMalformed extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_ASSERTION_IS_MALFORMED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The identity assertion is malformed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-assertion-is-malformed';
+    public static get code(): 'NETHERNET_IDENTITY_ASSERTION_IS_MALFORMED' {
+        return 'NETHERNET_IDENTITY_ASSERTION_IS_MALFORMED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The identity assertion is malformed' {
+        return 'The identity assertion is malformed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-assertion-is-malformed' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-assertion-is-malformed';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_ASSERTION_IS_MALFORMED';
     public override readonly docs =
@@ -255,10 +324,18 @@ class IdentityAssertionIsMalformed extends JSPrismarineError {
  * session's identity.
  */
 class IdentityFingerprintMismatch extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_FINGERPRINT_MISMATCH';
-    public static readonly domain = 'nethernet';
-    public static readonly template = "The identity does not sign this description's fingerprints";
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-fingerprint-mismatch';
+    public static get code(): 'NETHERNET_IDENTITY_FINGERPRINT_MISMATCH' {
+        return 'NETHERNET_IDENTITY_FINGERPRINT_MISMATCH';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): "The identity does not sign this description's fingerprints" {
+        return "The identity does not sign this description's fingerprints";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-fingerprint-mismatch' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-fingerprint-mismatch';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_FINGERPRINT_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-fingerprint-mismatch';
@@ -276,10 +353,18 @@ class IdentityFingerprintMismatch extends JSPrismarineError {
 
 /** A peer's `a=identity` line carries no assertion. */
 class IdentityHasNoAssertion extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_HAS_NO_ASSERTION';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The a=identity has no assertion';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-has-no-assertion';
+    public static get code(): 'NETHERNET_IDENTITY_HAS_NO_ASSERTION' {
+        return 'NETHERNET_IDENTITY_HAS_NO_ASSERTION';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The a=identity has no assertion' {
+        return 'The a=identity has no assertion';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-has-no-assertion' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-has-no-assertion';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_HAS_NO_ASSERTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-has-no-assertion';
@@ -300,10 +385,18 @@ class IdentityHasNoAssertion extends JSPrismarineError {
  * the key on that curve.
  */
 class InvalidIdentityKeyCurve extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_INVALID_IDENTITY_KEY_CURVE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet identity key must be {bedrockCurve}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-identity-key-curve';
+    public static get code(): 'NETHERNET_INVALID_IDENTITY_KEY_CURVE' {
+        return 'NETHERNET_INVALID_IDENTITY_KEY_CURVE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet identity key must be {bedrockCurve}' {
+        return 'A NetherNet identity key must be {bedrockCurve}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-identity-key-curve' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-identity-key-curve';
+    }
 
     public override readonly code = 'NETHERNET_INVALID_IDENTITY_KEY_CURVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-identity-key-curve';
@@ -325,10 +418,18 @@ class InvalidIdentityKeyCurve extends JSPrismarineError {
  * far off refuses every peer this way.
  */
 class IdentityTokenHasExpired extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_EXPIRED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The identity token has expired';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-expired';
+    public static get code(): 'NETHERNET_IDENTITY_TOKEN_HAS_EXPIRED' {
+        return 'NETHERNET_IDENTITY_TOKEN_HAS_EXPIRED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The identity token has expired' {
+        return 'The identity token has expired';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-expired' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-expired';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_EXPIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-expired';
@@ -346,10 +447,18 @@ class IdentityTokenHasExpired extends JSPrismarineError {
 
 /** A peer's identity token has no claims. */
 class IdentityTokenHasNoClaims extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_NO_CLAIMS';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The identity token has no claims';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-claims';
+    public static get code(): 'NETHERNET_IDENTITY_TOKEN_HAS_NO_CLAIMS' {
+        return 'NETHERNET_IDENTITY_TOKEN_HAS_NO_CLAIMS';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The identity token has no claims' {
+        return 'The identity token has no claims';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-claims' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-claims';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_NO_CLAIMS';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-claims';
@@ -367,10 +476,18 @@ class IdentityTokenHasNoClaims extends JSPrismarineError {
 
 /** A peer's identity token does not carry a public key the server can read. */
 class IdentityTokenHasNoKey extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_NO_KEY';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The identity token has no usable cpk claim';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-key';
+    public static get code(): 'NETHERNET_IDENTITY_TOKEN_HAS_NO_KEY' {
+        return 'NETHERNET_IDENTITY_TOKEN_HAS_NO_KEY';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The identity token has no usable cpk claim' {
+        return 'The identity token has no usable cpk claim';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-key' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-key';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_TOKEN_HAS_NO_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-has-no-key';
@@ -388,10 +505,18 @@ class IdentityTokenHasNoKey extends JSPrismarineError {
 
 /** A peer's identity token is not signed by the key it names, so it is forged. */
 class IdentityTokenNotSelfSigned extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_IDENTITY_TOKEN_NOT_SELF_SIGNED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The identity token is not signed by its own key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-not-self-signed';
+    public static get code(): 'NETHERNET_IDENTITY_TOKEN_NOT_SELF_SIGNED' {
+        return 'NETHERNET_IDENTITY_TOKEN_NOT_SELF_SIGNED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The identity token is not signed by its own key' {
+        return 'The identity token is not signed by its own key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-not-self-signed' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-identity-token-not-self-signed';
+    }
 
     public override readonly code = 'NETHERNET_IDENTITY_TOKEN_NOT_SELF_SIGNED';
     public override readonly docs =
@@ -413,10 +538,18 @@ class IdentityTokenNotSelfSigned extends JSPrismarineError {
  * server at, without a port.
  */
 class InvalidServerPublicIp extends UdpPortsError {
-    public static readonly code = 'NETHERNET_INVALID_SERVER_PUBLIC_IP';
-    public static readonly domain = 'nethernet';
-    public static readonly template = "Invalid value '{text}' for server-public-ip: {notAnIp}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-public-ip';
+    public static get code(): 'NETHERNET_INVALID_SERVER_PUBLIC_IP' {
+        return 'NETHERNET_INVALID_SERVER_PUBLIC_IP';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): "Invalid value '{text}' for server-public-ip: {notAnIp}" {
+        return "Invalid value '{text}' for server-public-ip: {notAnIp}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-public-ip' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-public-ip';
+    }
 
     public override readonly code = 'NETHERNET_INVALID_SERVER_PUBLIC_IP';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-public-ip';
@@ -438,10 +571,18 @@ class InvalidServerPublicIp extends UdpPortsError {
  * client understands.
  */
 class JoinStatusHasNoNumber extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_JOIN_STATUS_HAS_NO_NUMBER';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The join status has no number {key}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-number';
+    public static get code(): 'NETHERNET_JOIN_STATUS_HAS_NO_NUMBER' {
+        return 'NETHERNET_JOIN_STATUS_HAS_NO_NUMBER';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The join status has no number {key}' {
+        return 'The join status has no number {key}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-number' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-number';
+    }
 
     public override readonly code = 'NETHERNET_JOIN_STATUS_HAS_NO_NUMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-number';
@@ -463,10 +604,18 @@ class JoinStatusHasNoNumber extends JSPrismarineError {
  * this client understands.
  */
 class JoinStatusHasNoString extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_JOIN_STATUS_HAS_NO_STRING';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The join status has no string {key}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-string';
+    public static get code(): 'NETHERNET_JOIN_STATUS_HAS_NO_STRING' {
+        return 'NETHERNET_JOIN_STATUS_HAS_NO_STRING';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The join status has no string {key}' {
+        return 'The join status has no string {key}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-string' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-string';
+    }
 
     public override readonly code = 'NETHERNET_JOIN_STATUS_HAS_NO_STRING';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-has-no-string';
@@ -487,10 +636,18 @@ class JoinStatusHasNoString extends JSPrismarineError {
  * A NetherNet server answered the join status request with something other than a JSON object.
  */
 class JoinStatusIsNotObject extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_JOIN_STATUS_IS_NOT_OBJECT';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The join status is not an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-is-not-object';
+    public static get code(): 'NETHERNET_JOIN_STATUS_IS_NOT_OBJECT' {
+        return 'NETHERNET_JOIN_STATUS_IS_NOT_OBJECT';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The join status is not an object' {
+        return 'The join status is not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-is-not-object' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-is-not-object';
+    }
 
     public override readonly code = 'NETHERNET_JOIN_STATUS_IS_NOT_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-status-is-not-object';
@@ -508,10 +665,18 @@ class JoinStatusIsNotObject extends JSPrismarineError {
 
 /** An empty message was sent on a NetherNet connection. */
 class MessageCannotBeEmpty extends JSPrismarineRangeError {
-    public static readonly code = 'NETHERNET_MESSAGE_CANNOT_BE_EMPTY';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet message cannot be empty';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-cannot-be-empty';
+    public static get code(): 'NETHERNET_MESSAGE_CANNOT_BE_EMPTY' {
+        return 'NETHERNET_MESSAGE_CANNOT_BE_EMPTY';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet message cannot be empty' {
+        return 'A NetherNet message cannot be empty';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-message-cannot-be-empty' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-message-cannot-be-empty';
+    }
 
     public override readonly code = 'NETHERNET_MESSAGE_CANNOT_BE_EMPTY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-cannot-be-empty';
@@ -532,10 +697,18 @@ class MessageCannotBeEmpty extends JSPrismarineRangeError {
  * disconnected.
  */
 class MessageTooLarge extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_MESSAGE_TOO_LARGE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet message is longer than the {maxBytes} bytes accepted';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-large';
+    public static get code(): 'NETHERNET_MESSAGE_TOO_LARGE' {
+        return 'NETHERNET_MESSAGE_TOO_LARGE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet message is longer than the {maxBytes} bytes accepted' {
+        return 'A NetherNet message is longer than the {maxBytes} bytes accepted';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-large' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-large';
+    }
 
     public override readonly code = 'NETHERNET_MESSAGE_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-message-too-large';
@@ -557,10 +730,18 @@ class MessageTooLarge extends JSPrismarineError {
  * message ends with the loader's reason; the `native-network` errors explain how to install it.
  */
 class NativeLibraryCannotLoad extends NetherNetUnavailableError {
-    public static readonly code = 'NETHERNET_NATIVE_LIBRARY_CANNOT_LOAD';
-    public static readonly domain = 'nethernet';
-    public static readonly template = "NetherNet's native library cannot load on {platform}-{arch}: {value}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-native-library-cannot-load';
+    public static get code(): 'NETHERNET_NATIVE_LIBRARY_CANNOT_LOAD' {
+        return 'NETHERNET_NATIVE_LIBRARY_CANNOT_LOAD';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): "NetherNet's native library cannot load on {platform}-{arch}: {value}" {
+        return "NetherNet's native library cannot load on {platform}-{arch}: {value}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-native-library-cannot-load' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-native-library-cannot-load';
+    }
 
     public override readonly code = 'NETHERNET_NATIVE_LIBRARY_CANNOT_LOAD';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-native-library-cannot-load';
@@ -590,10 +771,18 @@ class NativeLibraryCannotLoad extends NetherNetUnavailableError {
  * network and that UDP port 7551 is open.
  */
 class NoLanServerAnswered extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_NO_LAN_SERVER_ANSWERED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'No NetherNet server {networkId} answered on the LAN';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-no-lan-server-answered';
+    public static get code(): 'NETHERNET_NO_LAN_SERVER_ANSWERED' {
+        return 'NETHERNET_NO_LAN_SERVER_ANSWERED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'No NetherNet server {networkId} answered on the LAN' {
+        return 'No NetherNet server {networkId} answered on the LAN';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-no-lan-server-answered' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-no-lan-server-answered';
+    }
 
     public override readonly code = 'NETHERNET_NO_LAN_SERVER_ANSWERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-no-lan-server-answered';
@@ -615,10 +804,18 @@ class NoLanServerAnswered extends JSPrismarineError {
  * says why.
  */
 class PeerEndedBeforeDescription extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_PEER_ENDED_BEFORE_DESCRIPTION';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The peer {state} before it had a description';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-ended-before-description';
+    public static get code(): 'NETHERNET_PEER_ENDED_BEFORE_DESCRIPTION' {
+        return 'NETHERNET_PEER_ENDED_BEFORE_DESCRIPTION';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The peer {state} before it had a description' {
+        return 'The peer {state} before it had a description';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-ended-before-description' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-ended-before-description';
+    }
 
     public override readonly code = 'NETHERNET_PEER_ENDED_BEFORE_DESCRIPTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-ended-before-description';
@@ -640,10 +837,18 @@ class PeerEndedBeforeDescription extends JSPrismarineError {
  * native driver.
  */
 class PeerHasNoDescription extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_PEER_HAS_NO_DESCRIPTION';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The peer gathered its candidates but has no description';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-has-no-description';
+    public static get code(): 'NETHERNET_PEER_HAS_NO_DESCRIPTION' {
+        return 'NETHERNET_PEER_HAS_NO_DESCRIPTION';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The peer gathered its candidates but has no description' {
+        return 'The peer gathered its candidates but has no description';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-has-no-description' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-has-no-description';
+    }
 
     public override readonly code = 'NETHERNET_PEER_HAS_NO_DESCRIPTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-peer-has-no-description';
@@ -664,10 +869,18 @@ class PeerHasNoDescription extends JSPrismarineError {
  * fingerprints. This is a bug in the caller.
  */
 class UnsignableDescription extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_UNSIGNABLE_DESCRIPTION';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'An SDP description without a fingerprint cannot be signed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unsignable-description';
+    public static get code(): 'NETHERNET_UNSIGNABLE_DESCRIPTION' {
+        return 'NETHERNET_UNSIGNABLE_DESCRIPTION';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'An SDP description without a fingerprint cannot be signed' {
+        return 'An SDP description without a fingerprint cannot be signed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-unsignable-description' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-unsignable-description';
+    }
 
     public override readonly code = 'NETHERNET_UNSIGNABLE_DESCRIPTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unsignable-description';
@@ -685,10 +898,18 @@ class UnsignableDescription extends JSPrismarineError {
 
 /** A peer sent an empty NetherNet segment, so it is malformed. */
 class EmptySegment extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_EMPTY_SEGMENT';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet segment needs a count and at least one byte';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-empty-segment';
+    public static get code(): 'NETHERNET_EMPTY_SEGMENT' {
+        return 'NETHERNET_EMPTY_SEGMENT';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet segment needs a count and at least one byte' {
+        return 'A NetherNet segment needs a count and at least one byte';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-empty-segment' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-empty-segment';
+    }
 
     public override readonly code = 'NETHERNET_EMPTY_SEGMENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-empty-segment';
@@ -706,10 +927,18 @@ class EmptySegment extends JSPrismarineError {
 
 /** A peer's NetherNet segments arrived out of sequence, so the message is damaged. */
 class SegmentOutOfSequence extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_SEGMENT_OUT_OF_SEQUENCE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'A NetherNet segment says {left} more follow, where {value} were due';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-segment-out-of-sequence';
+    public static get code(): 'NETHERNET_SEGMENT_OUT_OF_SEQUENCE' {
+        return 'NETHERNET_SEGMENT_OUT_OF_SEQUENCE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'A NetherNet segment says {left} more follow, where {value} were due' {
+        return 'A NetherNet segment says {left} more follow, where {value} were due';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-segment-out-of-sequence' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-segment-out-of-sequence';
+    }
 
     public override readonly code = 'NETHERNET_SEGMENT_OUT_OF_SEQUENCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-segment-out-of-sequence';
@@ -731,10 +960,18 @@ class SegmentOutOfSequence extends JSPrismarineError {
 
 /** `listen()` was called on a NetherNet server that was closed. */
 class ServerIsClosed extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_SERVER_IS_CLOSED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The NetherNet server is closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-server-is-closed';
+    public static get code(): 'NETHERNET_SERVER_IS_CLOSED' {
+        return 'NETHERNET_SERVER_IS_CLOSED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The NetherNet server is closed' {
+        return 'The NetherNet server is closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-server-is-closed' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-server-is-closed';
+    }
 
     public override readonly code = 'NETHERNET_SERVER_IS_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-server-is-closed';
@@ -755,10 +992,18 @@ class ServerIsClosed extends JSPrismarineError {
  * gives for the same value.
  */
 class InvalidServerUdpPorts extends UdpPortsError {
-    public static readonly code = 'NETHERNET_INVALID_SERVER_UDP_PORTS';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'server-udp-ports: {message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-udp-ports';
+    public static get code(): 'NETHERNET_INVALID_SERVER_UDP_PORTS' {
+        return 'NETHERNET_INVALID_SERVER_UDP_PORTS';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'server-udp-ports: {message}' {
+        return 'server-udp-ports: {message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-udp-ports' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-udp-ports';
+    }
 
     public override readonly code = 'NETHERNET_INVALID_SERVER_UDP_PORTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-invalid-server-udp-ports';
@@ -777,11 +1022,18 @@ class InvalidServerUdpPorts extends UdpPortsError {
 
 /** A NetherNet signal's connection id is not a number, so the signal is malformed. */
 class SignalConnectionIdIsNotNumber extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_SIGNAL_CONNECTION_ID_IS_NOT_NUMBER';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'NetherNet signal connection ID {id} is not a number';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/nethernet#nethernet-signal-connection-id-is-not-number';
+    public static get code(): 'NETHERNET_SIGNAL_CONNECTION_ID_IS_NOT_NUMBER' {
+        return 'NETHERNET_SIGNAL_CONNECTION_ID_IS_NOT_NUMBER';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'NetherNet signal connection ID {id} is not a number' {
+        return 'NetherNet signal connection ID {id} is not a number';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-signal-connection-id-is-not-number' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-signal-connection-id-is-not-number';
+    }
 
     public override readonly code = 'NETHERNET_SIGNAL_CONNECTION_ID_IS_NOT_NUMBER';
     public override readonly docs =
@@ -803,10 +1055,18 @@ class SignalConnectionIdIsNotNumber extends JSPrismarineError {
  * The port allocation strategy picked a port outside its range. This is a bug in the strategy.
  */
 class PortStrategyOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'NETHERNET_PORT_STRATEGY_OUT_OF_RANGE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The strategy picked {port}, outside {start}-{end}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-port-strategy-out-of-range';
+    public static get code(): 'NETHERNET_PORT_STRATEGY_OUT_OF_RANGE' {
+        return 'NETHERNET_PORT_STRATEGY_OUT_OF_RANGE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The strategy picked {port}, outside {start}-{end}' {
+        return 'The strategy picked {port}, outside {start}-{end}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-port-strategy-out-of-range' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-port-strategy-out-of-range';
+    }
 
     public override readonly code = 'NETHERNET_PORT_STRATEGY_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-port-strategy-out-of-range';
@@ -836,10 +1096,18 @@ class PortStrategyOutOfRange extends JSPrismarineRangeError {
  * Minecraft.
  */
 class UnknownDiscoveryPacketType extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_UNKNOWN_DISCOVERY_PACKET_TYPE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'Unknown discovery packet type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-discovery-packet-type';
+    public static get code(): 'NETHERNET_UNKNOWN_DISCOVERY_PACKET_TYPE' {
+        return 'NETHERNET_UNKNOWN_DISCOVERY_PACKET_TYPE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'Unknown discovery packet type {type}' {
+        return 'Unknown discovery packet type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-discovery-packet-type' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-discovery-packet-type';
+    }
 
     public override readonly code = 'NETHERNET_UNKNOWN_DISCOVERY_PACKET_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-discovery-packet-type';
@@ -860,10 +1128,18 @@ class UnknownDiscoveryPacketType extends JSPrismarineError {
  * A NetherNet signal has a type this server does not know, such as one from a newer Minecraft.
  */
 class UnknownNethernetSignalType extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_UNKNOWN_NETHERNET_SIGNAL_TYPE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'Unknown NetherNet signal type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-nethernet-signal-type';
+    public static get code(): 'NETHERNET_UNKNOWN_NETHERNET_SIGNAL_TYPE' {
+        return 'NETHERNET_UNKNOWN_NETHERNET_SIGNAL_TYPE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'Unknown NetherNet signal type {type}' {
+        return 'Unknown NetherNet signal type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-nethernet-signal-type' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-nethernet-signal-type';
+    }
 
     public override readonly code = 'NETHERNET_UNKNOWN_NETHERNET_SIGNAL_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-unknown-nethernet-signal-type';
@@ -885,11 +1161,18 @@ class UnknownNethernetSignalType extends JSPrismarineError {
  * Minecraft.
  */
 class UnsupportedLanAdvertisementVersion extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_UNSUPPORTED_LAN_ADVERTISEMENT_VERSION';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'Unsupported LAN advertisement version {version}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/nethernet#nethernet-unsupported-lan-advertisement-version';
+    public static get code(): 'NETHERNET_UNSUPPORTED_LAN_ADVERTISEMENT_VERSION' {
+        return 'NETHERNET_UNSUPPORTED_LAN_ADVERTISEMENT_VERSION';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'Unsupported LAN advertisement version {version}' {
+        return 'Unsupported LAN advertisement version {version}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-unsupported-lan-advertisement-version' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-unsupported-lan-advertisement-version';
+    }
 
     public override readonly code = 'NETHERNET_UNSUPPORTED_LAN_ADVERTISEMENT_VERSION';
     public override readonly docs =
@@ -909,10 +1192,18 @@ class UnsupportedLanAdvertisementVersion extends JSPrismarineError {
 
 /** A call into the native NetherNet library failed. The message is the library's error followed by what it logged during the call; the cause is the original error. */
 class NativeCallFailed extends JSPrismarineError {
-    public static readonly code = 'NETHERNET_NATIVE_CALL_FAILED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = '{message}: {log}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-native-call-failed';
+    public static get code(): 'NETHERNET_NATIVE_CALL_FAILED' {
+        return 'NETHERNET_NATIVE_CALL_FAILED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): '{message}: {log}' {
+        return '{message}: {log}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-native-call-failed' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-native-call-failed';
+    }
 
     public override readonly code = 'NETHERNET_NATIVE_CALL_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-native-call-failed';
@@ -931,10 +1222,18 @@ class NativeCallFailed extends JSPrismarineError {
 
 /** The NetherNet server refused the join offer with that HTTP status and no explanation. */
 class JoinRefused extends JoinRefusedError {
-    public static readonly code = 'NETHERNET_JOIN_REFUSED';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The server refused the offer with HTTP {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused';
+    public static get code(): 'NETHERNET_JOIN_REFUSED' {
+        return 'NETHERNET_JOIN_REFUSED';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The server refused the offer with HTTP {status}' {
+        return 'The server refused the offer with HTTP {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused';
+    }
 
     public override readonly code = 'NETHERNET_JOIN_REFUSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused';
@@ -955,10 +1254,18 @@ class JoinRefused extends JoinRefusedError {
  * The NetherNet server refused the join offer, with that HTTP status and its own explanation.
  */
 class JoinRefusedWithBody extends JoinRefusedError {
-    public static readonly code = 'NETHERNET_JOIN_REFUSED_WITH_BODY';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'The server refused the offer with HTTP {status}: {body}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused-with-body';
+    public static get code(): 'NETHERNET_JOIN_REFUSED_WITH_BODY' {
+        return 'NETHERNET_JOIN_REFUSED_WITH_BODY';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'The server refused the offer with HTTP {status}: {body}' {
+        return 'The server refused the offer with HTTP {status}: {body}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused-with-body' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused-with-body';
+    }
 
     public override readonly code = 'NETHERNET_JOIN_REFUSED_WITH_BODY';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-join-refused-with-body';
@@ -980,10 +1287,18 @@ class JoinRefusedWithBody extends JoinRefusedError {
  * 400.
  */
 class ExpectedJoinPath extends RefusedRequest {
-    public static readonly code = 'NETHERNET_EXPECTED_JOIN_PATH';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'Expected /v1/join/<networkId>';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-expected-join-path';
+    public static get code(): 'NETHERNET_EXPECTED_JOIN_PATH' {
+        return 'NETHERNET_EXPECTED_JOIN_PATH';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'Expected /v1/join/<networkId>' {
+        return 'Expected /v1/join/<networkId>';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-expected-join-path' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-expected-join-path';
+    }
 
     public override readonly code = 'NETHERNET_EXPECTED_JOIN_PATH';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-expected-join-path';
@@ -1001,10 +1316,18 @@ class ExpectedJoinPath extends RefusedRequest {
 
 /** A join request's WebRTC offer is larger than the server accepts. The server answers 413. */
 class SdpOfferTooLarge extends RefusedRequest {
-    public static readonly code = 'NETHERNET_SDP_OFFER_TOO_LARGE';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'SDP offer is too large';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-sdp-offer-too-large';
+    public static get code(): 'NETHERNET_SDP_OFFER_TOO_LARGE' {
+        return 'NETHERNET_SDP_OFFER_TOO_LARGE';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'SDP offer is too large' {
+        return 'SDP offer is too large';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-sdp-offer-too-large' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-sdp-offer-too-large';
+    }
 
     public override readonly code = 'NETHERNET_SDP_OFFER_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-sdp-offer-too-large';
@@ -1022,10 +1345,18 @@ class SdpOfferTooLarge extends RefusedRequest {
 
 /** A join request had an empty body where the WebRTC offer belongs. The server answers 400. */
 class MissingSdpOffer extends RefusedRequest {
-    public static readonly code = 'NETHERNET_MISSING_SDP_OFFER';
-    public static readonly domain = 'nethernet';
-    public static readonly template = 'Missing SDP offer in request body';
-    public static readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-missing-sdp-offer';
+    public static get code(): 'NETHERNET_MISSING_SDP_OFFER' {
+        return 'NETHERNET_MISSING_SDP_OFFER';
+    }
+    public static get domain(): 'nethernet' {
+        return 'nethernet';
+    }
+    public static get template(): 'Missing SDP offer in request body' {
+        return 'Missing SDP offer in request body';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/nethernet#nethernet-missing-sdp-offer' {
+        return 'https://jsprismarine.dev/errors/nethernet#nethernet-missing-sdp-offer';
+    }
 
     public override readonly code = 'NETHERNET_MISSING_SDP_OFFER';
     public override readonly docs = 'https://jsprismarine.dev/errors/nethernet#nethernet-missing-sdp-offer';

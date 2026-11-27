@@ -20,7 +20,7 @@ export const LeveldbErrors = defineErrors('leveldb', {
 });`)
         );
         expect(module).toContain('/** Nothing to fill in. */\nclass Plain extends JSPrismarineError {');
-        expect(module).toContain('public static readonly code = "LEVELDB_PLAIN";');
+        expect(module).toContain('public static get code(): "LEVELDB_PLAIN" {\nreturn "LEVELDB_PLAIN";\n}');
         expect(module).toContain('public constructor(options?: ErrorOptions) {');
         expect(module).toContain('class Filled extends JSPrismarineRangeError {');
         expect(module).toContain(
@@ -33,7 +33,7 @@ export const LeveldbErrors = defineErrors('leveldb', {
             'import { JSPrismarineError, JSPrismarineRangeError } from "@jsprismarine/errors/JSPrismarineError";'
         );
         expect(module).not.toContain('defineErrors');
-        expect(module).not.toContain('static readonly module');
+        expect(module).not.toContain('static get module');
     });
 
     it('gives a module of a split domain its module and its page', () => {
@@ -41,8 +41,8 @@ export const LeveldbErrors = defineErrors('leveldb', {
             'prismarine/world.ts',
             catalog("export const PrismarineWorldErrors = defineErrors('prismarine/world', { Plain: 'x' });")
         );
-        expect(module).toContain('public static readonly code = "PRISMARINE_PLAIN";');
-        expect(module).toContain('public static readonly module = "world";');
+        expect(module).toContain('public static get code(): "PRISMARINE_PLAIN" {\nreturn "PRISMARINE_PLAIN";\n}');
+        expect(module).toContain('public static get module(): "world" {\nreturn "world";\n}');
         expect(module).toContain('"https://jsprismarine.dev/errors/prismarine/world#prismarine-plain"');
     });
 

@@ -15,11 +15,21 @@ export abstract class AddonIntegrityError extends JSPrismarineError {
  * `^1.2.3`, `~1.2.3`, `1.2.3` or `*`. Fix what the message names.
  */
 class InvalidAddonSpec extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_ADDON_SPEC';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{spec} is not an addon to install: {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-spec';
+    public static get code(): 'PRISMARINE_INVALID_ADDON_SPEC' {
+        return 'PRISMARINE_INVALID_ADDON_SPEC';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{spec} is not an addon to install: {problem}' {
+        return '{spec} is not an addon to install: {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-spec' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-spec';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ADDON_SPEC';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-spec';
@@ -42,12 +52,21 @@ class InvalidAddonSpec extends JSPrismarineTypeError {
  * with `addon install <addon> as <name>`.
  */
 class InvalidAddonKey extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_ADDON_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template =
-        '{key} is not a local addon name: use lowercase letters, digits and single hyphens';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-key';
+    public static get code(): 'PRISMARINE_INVALID_ADDON_KEY' {
+        return 'PRISMARINE_INVALID_ADDON_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} is not a local addon name: use lowercase letters, digits and single hyphens' {
+        return '{key} is not a local addon name: use lowercase letters, digits and single hyphens';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-key';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ADDON_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-key';
@@ -72,12 +91,21 @@ class InvalidAddonKey extends JSPrismarineTypeError {
  * a newer version, or install the other addon under another name with `as <name>`.
  */
 class AddonAlreadyInstalled extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_ALREADY_INSTALLED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template =
-        '{key} is already installed; run addon update {key}, or install this one with as <another name>';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-already-installed';
+    public static get code(): 'PRISMARINE_ADDON_ALREADY_INSTALLED' {
+        return 'PRISMARINE_ADDON_ALREADY_INSTALLED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} is already installed; run addon update {key}, or install this one with as <another name>' {
+        return '{key} is already installed; run addon update {key}, or install this one with as <another name>';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-already-installed' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-already-installed';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_ALREADY_INSTALLED';
     public override readonly docs =
@@ -100,11 +128,21 @@ class AddonAlreadyInstalled extends JSPrismarineError {
 
 /** No addon is installed under this local name. `addon list` shows what is. */
 class AddonNotInstalled extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_NOT_INSTALLED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = 'no addon is installed as {key}; addon list shows what is';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-not-installed';
+    public static get code(): 'PRISMARINE_ADDON_NOT_INSTALLED' {
+        return 'PRISMARINE_ADDON_NOT_INSTALLED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): 'no addon is installed as {key}; addon list shows what is' {
+        return 'no addon is installed as {key}; addon list shows what is';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-not-installed' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-not-installed';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_NOT_INSTALLED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-not-installed';
@@ -126,11 +164,21 @@ class AddonNotInstalled extends JSPrismarineError {
  * or the release has no `index.json` yet. Check the repository's name.
  */
 class NoAddonIndex extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_ADDON_INDEX';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{source} publishes no addon index at {url}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-no-addon-index';
+    public static get code(): 'PRISMARINE_NO_ADDON_INDEX' {
+        return 'PRISMARINE_NO_ADDON_INDEX';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{source} publishes no addon index at {url}' {
+        return '{source} publishes no addon index at {url}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-no-addon-index' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-no-addon-index';
+    }
 
     public override readonly code = 'PRISMARINE_NO_ADDON_INDEX';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-no-addon-index';
@@ -149,11 +197,21 @@ class NoAddonIndex extends JSPrismarineError {
 
 /** The source's index has no version of the addon that falls in the range. */
 class AddonVersionNotFound extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_VERSION_NOT_FOUND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{source} has no version of {name} in {range}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-not-found';
+    public static get code(): 'PRISMARINE_ADDON_VERSION_NOT_FOUND' {
+        return 'PRISMARINE_ADDON_VERSION_NOT_FOUND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{source} has no version of {name} in {range}' {
+        return '{source} has no version of {name} in {range}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-not-found' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-not-found';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_VERSION_NOT_FOUND';
     public override readonly docs =
@@ -184,13 +242,21 @@ class AddonVersionNotFound extends JSPrismarineError {
  * the server, or ask for an older version of the addon with `@<version>`.
  */
 class AddonNeedsNewerServer extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_NEEDS_NEWER_SERVER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template =
-        '{name} {version} needs JSPrismarine {minServer} or newer, and this server is {server}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-needs-newer-server';
+    public static get code(): 'PRISMARINE_ADDON_NEEDS_NEWER_SERVER' {
+        return 'PRISMARINE_ADDON_NEEDS_NEWER_SERVER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{name} {version} needs JSPrismarine {minServer} or newer, and this server is {server}' {
+        return '{name} {version} needs JSPrismarine {minServer} or newer, and this server is {server}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-needs-newer-server' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-needs-newer-server';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_NEEDS_NEWER_SERVER';
     public override readonly docs =
@@ -230,11 +296,21 @@ class AddonNeedsNewerServer extends JSPrismarineError {
  * later.
  */
 class AddonDownloadFailed extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_DOWNLOAD_FAILED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = 'could not download {url}: {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-download-failed';
+    public static get code(): 'PRISMARINE_ADDON_DOWNLOAD_FAILED' {
+        return 'PRISMARINE_ADDON_DOWNLOAD_FAILED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): 'could not download {url}: {status}' {
+        return 'could not download {url}: {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-download-failed' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-download-failed';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_DOWNLOAD_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-download-failed';
@@ -257,11 +333,21 @@ class AddonDownloadFailed extends JSPrismarineError {
  * large is not one.
  */
 class AddonTooLarge extends AddonIntegrityError {
-    public static readonly code = 'PRISMARINE_ADDON_TOO_LARGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{url} is larger than the {limit} bytes an addon pack may be';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-too-large';
+    public static get code(): 'PRISMARINE_ADDON_TOO_LARGE' {
+        return 'PRISMARINE_ADDON_TOO_LARGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{url} is larger than the {limit} bytes an addon pack may be' {
+        return '{url} is larger than the {limit} bytes an addon pack may be';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-too-large' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-too-large';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-too-large';
@@ -284,11 +370,21 @@ class AddonTooLarge extends AddonIntegrityError {
  * Ask its author to publish it again.
  */
 class AddonVersionDiffers extends AddonIntegrityError {
-    public static readonly code = 'PRISMARINE_ADDON_VERSION_DIFFERS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{key} is version {actual} inside, but {recordedBy} lists it as {expected}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-differs';
+    public static get code(): 'PRISMARINE_ADDON_VERSION_DIFFERS' {
+        return 'PRISMARINE_ADDON_VERSION_DIFFERS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} is version {actual} inside, but {recordedBy} lists it as {expected}' {
+        return '{key} is version {actual} inside, but {recordedBy} lists it as {expected}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-differs' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-differs';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_VERSION_DIFFERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-version-differs';
@@ -328,11 +424,21 @@ class AddonVersionDiffers extends AddonIntegrityError {
  * update <name>` to install what the source publishes now.
  */
 class AddonHashMismatch extends AddonIntegrityError {
-    public static readonly code = 'PRISMARINE_ADDON_HASH_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{url} has SHA-256 {actual}, not the {expected} {recordedBy} records';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-hash-mismatch';
+    public static get code(): 'PRISMARINE_ADDON_HASH_MISMATCH' {
+        return 'PRISMARINE_ADDON_HASH_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{url} has SHA-256 {actual}, not the {expected} {recordedBy} records' {
+        return '{url} has SHA-256 {actual}, not the {expected} {recordedBy} records';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-hash-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-hash-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_HASH_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-hash-mismatch';
@@ -377,11 +483,21 @@ class AddonHashMismatch extends AddonIntegrityError {
  * the packs again from the game or the Editor.
  */
 class InvalidAddonPack extends AddonIntegrityError {
-    public static readonly code = 'PRISMARINE_INVALID_ADDON_PACK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{key} is not a pack the server installs: {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-pack';
+    public static get code(): 'PRISMARINE_INVALID_ADDON_PACK' {
+        return 'PRISMARINE_INVALID_ADDON_PACK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} is not a pack the server installs: {problem}' {
+        return '{key} is not a pack the server installs: {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-pack' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-pack';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ADDON_PACK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addon-pack';
@@ -405,11 +521,21 @@ class InvalidAddonPack extends AddonIntegrityError {
  * newer versions within each range than the ones locked.
  */
 class InvalidAddonsFile extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_ADDONS_FILE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{file} is invalid: {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addons-file';
+    public static get code(): 'PRISMARINE_INVALID_ADDONS_FILE' {
+        return 'PRISMARINE_INVALID_ADDONS_FILE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{file} is invalid: {problem}' {
+        return '{file} is invalid: {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addons-file' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addons-file';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ADDONS_FILE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-invalid-addons-file';
@@ -431,11 +557,21 @@ class InvalidAddonsFile extends JSPrismarineTypeError {
  * Put it back, or run `addon remove <name>`.
  */
 class AddonPathMissing extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_PATH_MISSING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{key} is installed from {path}, which does not exist';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-missing';
+    public static get code(): 'PRISMARINE_ADDON_PATH_MISSING' {
+        return 'PRISMARINE_ADDON_PATH_MISSING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} is installed from {path}, which does not exist' {
+        return '{key} is installed from {path}, which does not exist';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-missing' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-missing';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_PATH_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-missing';
@@ -457,11 +593,21 @@ class AddonPathMissing extends JSPrismarineError {
  * now names a folder. Run `addon remove <name>`, then install the folder.
  */
 class AddonPathNotPack extends AddonIntegrityError {
-    public static readonly code = 'PRISMARINE_ADDON_PATH_NOT_PACK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template = '{key} was installed from the .mcpack {path}, which is now a folder';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-not-pack';
+    public static get code(): 'PRISMARINE_ADDON_PATH_NOT_PACK' {
+        return 'PRISMARINE_ADDON_PATH_NOT_PACK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): '{key} was installed from the .mcpack {path}, which is now a folder' {
+        return '{key} was installed from the .mcpack {path}, which is now a folder';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-not-pack' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-not-pack';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_PATH_NOT_PACK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-path-not-pack';
@@ -487,13 +633,21 @@ class AddonPathNotPack extends AddonIntegrityError {
  * from there.
  */
 class AddonSourceInsideTarget extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ADDON_SOURCE_INSIDE_TARGET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'addon';
-    public static readonly template =
-        'cannot install {key} from {path}: it is inside addons/{key}, which the install replaces';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-source-inside-target';
+    public static get code(): 'PRISMARINE_ADDON_SOURCE_INSIDE_TARGET' {
+        return 'PRISMARINE_ADDON_SOURCE_INSIDE_TARGET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'addon' {
+        return 'addon';
+    }
+    public static get template(): 'cannot install {key} from {path}: it is inside addons/{key}, which the install replaces' {
+        return 'cannot install {key} from {path}: it is inside addons/{key}, which the install replaces';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-source-inside-target' {
+        return 'https://jsprismarine.dev/errors/prismarine/addon#prismarine-addon-source-inside-target';
+    }
 
     public override readonly code = 'PRISMARINE_ADDON_SOURCE_INSIDE_TARGET';
     public override readonly docs =

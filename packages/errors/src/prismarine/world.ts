@@ -18,11 +18,21 @@ export abstract class ChangeLogError extends JSPrismarineError {
  * repair what it can, or restore a backup.
  */
 class InvalidActorDigest extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_ACTOR_DIGEST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'An actor digest is a whole number of 8 byte ids, got {byteLength} bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-digest';
+    public static get code(): 'PRISMARINE_INVALID_ACTOR_DIGEST' {
+        return 'PRISMARINE_INVALID_ACTOR_DIGEST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'An actor digest is a whole number of 8 byte ids, got {byteLength} bytes' {
+        return 'An actor digest is a whole number of 8 byte ids, got {byteLength} bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-digest' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-digest';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ACTOR_DIGEST';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-digest';
@@ -44,11 +54,21 @@ class InvalidActorDigest extends JSPrismarineRangeError {
  * the stack trace.
  */
 class InvalidActorId extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_ACTOR_ID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'An actor id is 8 bytes, got {byteLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-id';
+    public static get code(): 'PRISMARINE_INVALID_ACTOR_ID' {
+        return 'PRISMARINE_INVALID_ACTOR_ID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'An actor id is 8 bytes, got {byteLength}' {
+        return 'An actor id is 8 bytes, got {byteLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-id' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-id';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ACTOR_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-id';
@@ -70,11 +90,21 @@ class InvalidActorId extends JSPrismarineRangeError {
  * server; report it with the stack trace.
  */
 class AirNotRegistered extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_AIR_NOT_REGISTERED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The air block state is not registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-air-not-registered';
+    public static get code(): 'PRISMARINE_AIR_NOT_REGISTERED' {
+        return 'PRISMARINE_AIR_NOT_REGISTERED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The air block state is not registered' {
+        return 'The air block state is not registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-air-not-registered' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-air-not-registered';
+    }
 
     public override readonly code = 'PRISMARINE_AIR_NOT_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-air-not-registered';
@@ -95,13 +125,21 @@ class AirNotRegistered extends JSPrismarineError {
  * dimension in a world. Give one of them another type.
  */
 class ConfigDimensionsShareType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIG_DIMENSIONS_SHARE_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        'The {first} and {second} dimensions both bind the dimension type {type}; a type backs one dimension per level';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-dimensions-share-type';
+    public static get code(): 'PRISMARINE_CONFIG_DIMENSIONS_SHARE_TYPE' {
+        return 'PRISMARINE_CONFIG_DIMENSIONS_SHARE_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The {first} and {second} dimensions both bind the dimension type {type}; a type backs one dimension per level' {
+        return 'The {first} and {second} dimensions both bind the dimension type {type}; a type backs one dimension per level';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-dimensions-share-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-dimensions-share-type';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_DIMENSIONS_SHARE_TYPE';
     public override readonly docs =
@@ -132,12 +170,21 @@ class ConfigDimensionsShareType extends JSPrismarineError {
  * a world. Give one of them another type.
  */
 class DimensionsShareType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DIMENSIONS_SHARE_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        'The {earlier} and {id} stems of level {name} both bind the dimension type {type}; a type backs one dimension per level';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-dimensions-share-type';
+    public static get code(): 'PRISMARINE_DIMENSIONS_SHARE_TYPE' {
+        return 'PRISMARINE_DIMENSIONS_SHARE_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The {earlier} and {id} stems of level {name} both bind the dimension type {type}; a type backs one dimension per level' {
+        return 'The {earlier} and {id} stems of level {name} both bind the dimension type {type}; a type backs one dimension per level';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-dimensions-share-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-dimensions-share-type';
+    }
 
     public override readonly code = 'PRISMARINE_DIMENSIONS_SHARE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-dimensions-share-type';
@@ -170,11 +217,21 @@ class DimensionsShareType extends JSPrismarineError {
  * it with the stack trace.
  */
 class BiomeIdOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BIOME_ID_OUT_OF_RANGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A biome id is an integer from 0 to {maxBiomeId}, got {biome}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-id-out-of-range';
+    public static get code(): 'PRISMARINE_BIOME_ID_OUT_OF_RANGE' {
+        return 'PRISMARINE_BIOME_ID_OUT_OF_RANGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A biome id is an integer from 0 to {maxBiomeId}, got {biome}' {
+        return 'A biome id is an integer from 0 to {maxBiomeId}, got {biome}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-id-out-of-range' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-id-out-of-range';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_ID_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-id-out-of-range';
@@ -200,12 +257,21 @@ class BiomeIdOutOfRange extends JSPrismarineRangeError {
  * let it repair what it can, or restore a backup.
  */
 class InvalidBiomePaletteWidth extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_WIDTH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Biome palette declares {bitsPerBlock} bits per block';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-width';
+    public static get code(): 'PRISMARINE_INVALID_BIOME_PALETTE_WIDTH' {
+        return 'PRISMARINE_INVALID_BIOME_PALETTE_WIDTH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Biome palette declares {bitsPerBlock} bits per block' {
+        return 'Biome palette declares {bitsPerBlock} bits per block';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-width' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-width';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_WIDTH';
     public override readonly docs =
@@ -229,12 +295,21 @@ class InvalidBiomePaletteWidth extends JSPrismarineError {
  * repair what it can, or restore a backup.
  */
 class InvalidBiomePaletteCount extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_COUNT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Biome palette declares {uniformSize} entries';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-count';
+    public static get code(): 'PRISMARINE_INVALID_BIOME_PALETTE_COUNT' {
+        return 'PRISMARINE_INVALID_BIOME_PALETTE_COUNT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Biome palette declares {uniformSize} entries' {
+        return 'Biome palette declares {uniformSize} entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-count' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-count';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_COUNT';
     public override readonly docs =
@@ -257,12 +332,21 @@ class InvalidBiomePaletteCount extends JSPrismarineError {
  * the stack trace.
  */
 class BiomeIndexOutOfPalette extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BIOME_INDEX_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Biome palette index {paletteIndex} is out of range';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-index-out-of-palette';
+    public static get code(): 'PRISMARINE_BIOME_INDEX_OUT_OF_PALETTE' {
+        return 'PRISMARINE_BIOME_INDEX_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Biome palette index {paletteIndex} is out of range' {
+        return 'Biome palette index {paletteIndex} is out of range';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-index-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-index-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_INDEX_OUT_OF_PALETTE';
     public override readonly docs =
@@ -286,12 +370,21 @@ class BiomeIndexOutOfPalette extends JSPrismarineError {
  * or restore a backup.
  */
 class SavedBiomeOutOfPalette extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SAVED_BIOME_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Biome {i} refers to palette entry {paletteIndex} of {paletteSize}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-biome-out-of-palette';
+    public static get code(): 'PRISMARINE_SAVED_BIOME_OUT_OF_PALETTE' {
+        return 'PRISMARINE_SAVED_BIOME_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Biome {i} refers to palette entry {paletteIndex} of {paletteSize}' {
+        return 'Biome {i} refers to palette entry {paletteIndex} of {paletteSize}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-biome-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-biome-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_SAVED_BIOME_OUT_OF_PALETTE';
     public override readonly docs =
@@ -323,12 +416,21 @@ class SavedBiomeOutOfPalette extends JSPrismarineError {
  * let it repair what it can, or restore a backup.
  */
 class BiomeSectionInheritsMissing extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BIOME_SECTION_INHERITS_MISSING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A biome section inherited from a missing section';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-section-inherits-missing';
+    public static get code(): 'PRISMARINE_BIOME_SECTION_INHERITS_MISSING' {
+        return 'PRISMARINE_BIOME_SECTION_INHERITS_MISSING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A biome section inherited from a missing section' {
+        return 'A biome section inherited from a missing section';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-section-inherits-missing' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-biome-section-inherits-missing';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_SECTION_INHERITS_MISSING';
     public override readonly docs =
@@ -351,12 +453,21 @@ class BiomeSectionInheritsMissing extends JSPrismarineError {
  * what it can, or restore a backup.
  */
 class SavedBlockOutOfPalette extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SAVED_BLOCK_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Block {index} refers to palette entry {paletteIndex} of {paletteSize}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-block-out-of-palette';
+    public static get code(): 'PRISMARINE_SAVED_BLOCK_OUT_OF_PALETTE' {
+        return 'PRISMARINE_SAVED_BLOCK_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Block {index} refers to palette entry {paletteIndex} of {paletteSize}' {
+        return 'Block {index} refers to palette entry {paletteIndex} of {paletteSize}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-block-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-saved-block-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_SAVED_BLOCK_OUT_OF_PALETTE';
     public override readonly docs =
@@ -389,12 +500,21 @@ class SavedBlockOutOfPalette extends JSPrismarineError {
  * link. Remove it before recording.
  */
 class UncapturablePlayerDataEntry extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNCAPTURABLE_PLAYER_DATA_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "Cannot capture unsupported replay player data entry '{name}'";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-uncapturable-player-data-entry';
+    public static get code(): 'PRISMARINE_UNCAPTURABLE_PLAYER_DATA_ENTRY' {
+        return 'PRISMARINE_UNCAPTURABLE_PLAYER_DATA_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "Cannot capture unsupported replay player data entry '{name}'" {
+        return "Cannot capture unsupported replay player data entry '{name}'";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-uncapturable-player-data-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-uncapturable-player-data-entry';
+    }
 
     public override readonly code = 'PRISMARINE_UNCAPTURABLE_PLAYER_DATA_ENTRY';
     public override readonly docs =
@@ -414,11 +534,21 @@ class UncapturablePlayerDataEntry extends JSPrismarineError {
 
 /** A chunk was asked of a world after it closed, such as a task that ran during shutdown. */
 class ChunkLoadAfterClose extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CHUNK_LOAD_AFTER_CLOSE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot load chunk {x},{z}: world {name} has been closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-chunk-load-after-close';
+    public static get code(): 'PRISMARINE_CHUNK_LOAD_AFTER_CLOSE' {
+        return 'PRISMARINE_CHUNK_LOAD_AFTER_CLOSE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot load chunk {x},{z}: world {name} has been closed' {
+        return 'Cannot load chunk {x},{z}: world {name} has been closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-chunk-load-after-close' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-chunk-load-after-close';
+    }
 
     public override readonly code = 'PRISMARINE_CHUNK_LOAD_AFTER_CLOSE';
     public override readonly docs =
@@ -446,12 +576,21 @@ class ChunkLoadAfterClose extends JSPrismarineError {
 
 /** Code placed a block above or below the dimension's height range. */
 class BlockOutsideHeightRange extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_BLOCK_OUTSIDE_HEIGHT_RANGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot place a block at y {y}: {name} spans {minY} to {maxY}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-outside-height-range';
+    public static get code(): 'PRISMARINE_BLOCK_OUTSIDE_HEIGHT_RANGE' {
+        return 'PRISMARINE_BLOCK_OUTSIDE_HEIGHT_RANGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot place a block at y {y}: {name} spans {minY} to {maxY}' {
+        return 'Cannot place a block at y {y}: {name} spans {minY} to {maxY}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-outside-height-range' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-outside-height-range';
+    }
 
     public override readonly code = 'PRISMARINE_BLOCK_OUTSIDE_HEIGHT_RANGE';
     public override readonly docs =
@@ -485,12 +624,21 @@ class BlockOutsideHeightRange extends JSPrismarineError {
  * replay again.
  */
 class PlayerDataPathNotFolder extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_DATA_PATH_NOT_FOLDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot restore replay player data into a non-directory path';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-not-folder';
+    public static get code(): 'PRISMARINE_PLAYER_DATA_PATH_NOT_FOLDER' {
+        return 'PRISMARINE_PLAYER_DATA_PATH_NOT_FOLDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot restore replay player data into a non-directory path' {
+        return 'Cannot restore replay player data into a non-directory path';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-not-folder' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-not-folder';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_DATA_PATH_NOT_FOLDER';
     public override readonly docs =
@@ -511,11 +659,21 @@ class PlayerDataPathNotFolder extends JSPrismarineError {
  * A replay snapshot was restored into a world that is open. Restore it before the world opens.
  */
 class RestoreIntoOpenWorld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RESTORE_INTO_OPEN_WORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot restore a replay snapshot while the LevelDB provider is enabled';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-restore-into-open-world';
+    public static get code(): 'PRISMARINE_RESTORE_INTO_OPEN_WORLD' {
+        return 'PRISMARINE_RESTORE_INTO_OPEN_WORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot restore a replay snapshot while the LevelDB provider is enabled' {
+        return 'Cannot restore a replay snapshot while the LevelDB provider is enabled';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-restore-into-open-world' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-restore-into-open-world';
+    }
 
     public override readonly code = 'PRISMARINE_RESTORE_INTO_OPEN_WORLD';
     public override readonly docs =
@@ -537,11 +695,21 @@ class RestoreIntoOpenWorld extends JSPrismarineError {
  * in the server; report it with the stack trace.
  */
 class RevertPastChunkEntry extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_REVERT_PAST_CHUNK_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot revert a span past the chunk entry at tick {tick}, sequence {sequence}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-past-chunk-entry';
+    public static get code(): 'PRISMARINE_REVERT_PAST_CHUNK_ENTRY' {
+        return 'PRISMARINE_REVERT_PAST_CHUNK_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot revert a span past the chunk entry at tick {tick}, sequence {sequence}' {
+        return 'Cannot revert a span past the chunk entry at tick {tick}, sequence {sequence}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-past-chunk-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-past-chunk-entry';
+    }
 
     public override readonly code = 'PRISMARINE_REVERT_PAST_CHUNK_ENTRY';
     public override readonly docs =
@@ -566,12 +734,21 @@ class RevertPastChunkEntry extends ChangeLogError {
  * A player's data was saved after the world closed, such as a player who left during shutdown.
  */
 class PlayerDataSaveAfterClose extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_DATA_SAVE_AFTER_CLOSE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot save replay player data for {key} after level {levelName} closed';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-save-after-close';
+    public static get code(): 'PRISMARINE_PLAYER_DATA_SAVE_AFTER_CLOSE' {
+        return 'PRISMARINE_PLAYER_DATA_SAVE_AFTER_CLOSE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot save replay player data for {key} after level {levelName} closed' {
+        return 'Cannot save replay player data for {key} after level {levelName} closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-save-after-close' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-save-after-close';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_DATA_SAVE_AFTER_CLOSE';
     public override readonly docs =
@@ -597,11 +774,21 @@ class PlayerDataSaveAfterClose extends JSPrismarineError {
  * of order. This is a bug in the server; report it with the stack trace.
  */
 class SealWithOpenSpans extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_SEAL_WITH_OPEN_SPANS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot seal tick {tick}: {spansCount} span(s) still open';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-seal-with-open-spans';
+    public static get code(): 'PRISMARINE_SEAL_WITH_OPEN_SPANS' {
+        return 'PRISMARINE_SEAL_WITH_OPEN_SPANS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot seal tick {tick}: {spansCount} span(s) still open' {
+        return 'Cannot seal tick {tick}: {spansCount} span(s) still open';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-seal-with-open-spans' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-seal-with-open-spans';
+    }
 
     public override readonly code = 'PRISMARINE_SEAL_WITH_OPEN_SPANS';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-seal-with-open-spans';
@@ -623,11 +810,21 @@ class SealWithOpenSpans extends ChangeLogError {
  * order. This is a bug in the server; report it with the stack trace.
  */
 class TickSealed extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_TICK_SEALED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot {action} tick {lastBegun}: it is sealed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-sealed';
+    public static get code(): 'PRISMARINE_TICK_SEALED' {
+        return 'PRISMARINE_TICK_SEALED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot {action} tick {lastBegun}: it is sealed' {
+        return 'Cannot {action} tick {lastBegun}: it is sealed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-sealed' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-sealed';
+    }
 
     public override readonly code = 'PRISMARINE_TICK_SEALED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-sealed';
@@ -649,11 +846,21 @@ class TickSealed extends ChangeLogError {
  * in the server; report it with the stack trace.
  */
 class NoOpenTick extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_NO_OPEN_TICK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot {action} a tick: none is open';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-open-tick';
+    public static get code(): 'PRISMARINE_NO_OPEN_TICK' {
+        return 'PRISMARINE_NO_OPEN_TICK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot {action} a tick: none is open' {
+        return 'Cannot {action} a tick: none is open';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-open-tick' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-open-tick';
+    }
 
     public override readonly code = 'PRISMARINE_NO_OPEN_TICK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-open-tick';
@@ -675,11 +882,21 @@ class NoOpenTick extends ChangeLogError {
  * server; report it with the stack trace.
  */
 class UndoInUnloadedChunk extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNDO_IN_UNLOADED_CHUNK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot undo the {field} at {x}, {y}, {z}: its chunk left';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-undo-in-unloaded-chunk';
+    public static get code(): 'PRISMARINE_UNDO_IN_UNLOADED_CHUNK' {
+        return 'PRISMARINE_UNDO_IN_UNLOADED_CHUNK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot undo the {field} at {x}, {y}, {z}: its chunk left' {
+        return 'Cannot undo the {field} at {x}, {y}, {z}: its chunk left';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-undo-in-unloaded-chunk' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-undo-in-unloaded-chunk';
+    }
 
     public override readonly code = 'PRISMARINE_UNDO_IN_UNLOADED_CHUNK';
     public override readonly docs =
@@ -713,11 +930,21 @@ class UndoInUnloadedChunk extends JSPrismarineError {
  * This is a bug in the server; report it with the stack trace.
  */
 class ChangeDuringRevert extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_CHANGE_DURING_REVERT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot {action} while a span is being reverted';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-change-during-revert';
+    public static get code(): 'PRISMARINE_CHANGE_DURING_REVERT' {
+        return 'PRISMARINE_CHANGE_DURING_REVERT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot {action} while a span is being reverted' {
+        return 'Cannot {action} while a span is being reverted';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-change-during-revert' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-change-during-revert';
+    }
 
     public override readonly code = 'PRISMARINE_CHANGE_DURING_REVERT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-change-during-revert';
@@ -739,11 +966,21 @@ class ChangeDuringRevert extends ChangeLogError {
  * server; report it with the stack trace.
  */
 class UnsavableRuntimeId extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSAVABLE_RUNTIME_ID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Cannot write runtime id {runtimeId}: no registered block produces it';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsavable-runtime-id';
+    public static get code(): 'PRISMARINE_UNSAVABLE_RUNTIME_ID' {
+        return 'PRISMARINE_UNSAVABLE_RUNTIME_ID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Cannot write runtime id {runtimeId}: no registered block produces it' {
+        return 'Cannot write runtime id {runtimeId}: no registered block produces it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsavable-runtime-id' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsavable-runtime-id';
+    }
 
     public override readonly code = 'PRISMARINE_UNSAVABLE_RUNTIME_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsavable-runtime-id';
@@ -765,11 +1002,21 @@ class UnsavableRuntimeId extends JSPrismarineError {
  * it with the stack trace.
  */
 class UnknownRuntimeId extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_RUNTIME_ID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Chunk holds runtime id {runtimeId}, which no registered block produces';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-runtime-id';
+    public static get code(): 'PRISMARINE_UNKNOWN_RUNTIME_ID' {
+        return 'PRISMARINE_UNKNOWN_RUNTIME_ID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Chunk holds runtime id {runtimeId}, which no registered block produces' {
+        return 'Chunk holds runtime id {runtimeId}, which no registered block produces';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-runtime-id' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-runtime-id';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_RUNTIME_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-runtime-id';
@@ -791,11 +1038,21 @@ class UnknownRuntimeId extends JSPrismarineError {
  * entities than it should.
  */
 class ActorIdsExhausted extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ACTOR_IDS_EXHAUSTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Could not allocate a unique actor id after 32 attempts';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-actor-ids-exhausted';
+    public static get code(): 'PRISMARINE_ACTOR_IDS_EXHAUSTED' {
+        return 'PRISMARINE_ACTOR_IDS_EXHAUSTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Could not allocate a unique actor id after 32 attempts' {
+        return 'Could not allocate a unique actor id after 32 attempts';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-actor-ids-exhausted' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-actor-ids-exhausted';
+    }
 
     public override readonly code = 'PRISMARINE_ACTOR_IDS_EXHAUSTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-actor-ids-exhausted';
@@ -816,12 +1073,21 @@ class ActorIdsExhausted extends JSPrismarineError {
  * or load the datapack that defines it.
  */
 class UnknownConfigDimensionType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_CONFIG_DIMENSION_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The {id} dimension names the dimension type {type}, which no pack defines';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-config-dimension-type';
+    public static get code(): 'PRISMARINE_UNKNOWN_CONFIG_DIMENSION_TYPE' {
+        return 'PRISMARINE_UNKNOWN_CONFIG_DIMENSION_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The {id} dimension names the dimension type {type}, which no pack defines' {
+        return 'The {id} dimension names the dimension type {type}, which no pack defines';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-config-dimension-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-config-dimension-type';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_CONFIG_DIMENSION_TYPE';
     public override readonly docs =
@@ -847,12 +1113,21 @@ class UnknownConfigDimensionType extends JSPrismarineError {
  * dimension needs. The message names them.
  */
 class IncompleteAddedDimension extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INCOMPLETE_ADDED_DIMENSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "dimensions['{id}'] adds a dimension {preset} lacks, so it needs {missing}";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-incomplete-added-dimension';
+    public static get code(): 'PRISMARINE_INCOMPLETE_ADDED_DIMENSION' {
+        return 'PRISMARINE_INCOMPLETE_ADDED_DIMENSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "dimensions['{id}'] adds a dimension {preset} lacks, so it needs {missing}" {
+        return "dimensions['{id}'] adds a dimension {preset} lacks, so it needs {missing}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-incomplete-added-dimension' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-incomplete-added-dimension';
+    }
 
     public override readonly code = 'PRISMARINE_INCOMPLETE_ADDED_DIMENSION';
     public override readonly docs =
@@ -883,12 +1158,21 @@ class IncompleteAddedDimension extends JSPrismarineError {
  * the server; report it with the stack trace.
  */
 class MissingBiomePaletteHeader extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_BIOME_PALETTE_HEADER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Expected a network biome palette header, got {header}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-missing-biome-palette-header';
+    public static get code(): 'PRISMARINE_MISSING_BIOME_PALETTE_HEADER' {
+        return 'PRISMARINE_MISSING_BIOME_PALETTE_HEADER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Expected a network biome palette header, got {header}' {
+        return 'Expected a network biome palette header, got {header}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-missing-biome-palette-header' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-missing-biome-palette-header';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_BIOME_PALETTE_HEADER';
     public override readonly docs =
@@ -912,12 +1196,21 @@ class MissingBiomePaletteHeader extends JSPrismarineError {
  * repair what it can, or restore a backup.
  */
 class LowestBiomeSectionInherits extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LOWEST_BIOME_SECTION_INHERITS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The first biome section cannot inherit from below';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-lowest-biome-section-inherits';
+    public static get code(): 'PRISMARINE_LOWEST_BIOME_SECTION_INHERITS' {
+        return 'PRISMARINE_LOWEST_BIOME_SECTION_INHERITS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The first biome section cannot inherit from below' {
+        return 'The first biome section cannot inherit from below';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-lowest-biome-section-inherits' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-lowest-biome-section-inherits';
+    }
 
     public override readonly code = 'PRISMARINE_LOWEST_BIOME_SECTION_INHERITS';
     public override readonly docs =
@@ -936,12 +1229,21 @@ class LowestBiomeSectionInherits extends JSPrismarineError {
 
 /** Two world generators were registered under the same kind. */
 class DuplicateGeneratorFactory extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_GENERATOR_FACTORY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A generator factory for {kind} is already registered';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-duplicate-generator-factory';
+    public static get code(): 'PRISMARINE_DUPLICATE_GENERATOR_FACTORY' {
+        return 'PRISMARINE_DUPLICATE_GENERATOR_FACTORY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A generator factory for {kind} is already registered' {
+        return 'A generator factory for {kind} is already registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-duplicate-generator-factory' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-duplicate-generator-factory';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_GENERATOR_FACTORY';
     public override readonly docs =
@@ -964,13 +1266,21 @@ class DuplicateGeneratorFactory extends JSPrismarineError {
  * it an id at or above the first custom id.
  */
 class CustomDimensionIdTooLow extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_CUSTOM_DIMENSION_ID_TOO_LOW';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        '{javaId} has no Bedrock dimension overlay and needs a custom id of {firstCustomDimensionId} or more, got {customId}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-custom-dimension-id-too-low';
+    public static get code(): 'PRISMARINE_CUSTOM_DIMENSION_ID_TOO_LOW' {
+        return 'PRISMARINE_CUSTOM_DIMENSION_ID_TOO_LOW';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): '{javaId} has no Bedrock dimension overlay and needs a custom id of {firstCustomDimensionId} or more, got {customId}' {
+        return '{javaId} has no Bedrock dimension overlay and needs a custom id of {firstCustomDimensionId} or more, got {customId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-custom-dimension-id-too-low' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-custom-dimension-id-too-low';
+    }
 
     public override readonly code = 'PRISMARINE_CUSTOM_DIMENSION_ID_TOO_LOW';
     public override readonly docs =
@@ -1004,12 +1314,21 @@ class CustomDimensionIdTooLow extends JSPrismarineRangeError {
  * can, or restore a backup.
  */
 class InvalidBiomePaletteSize extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_SIZE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid biome palette size {paletteSize}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-size';
+    public static get code(): 'PRISMARINE_INVALID_BIOME_PALETTE_SIZE' {
+        return 'PRISMARINE_INVALID_BIOME_PALETTE_SIZE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid biome palette size {paletteSize}' {
+        return 'Invalid biome palette size {paletteSize}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-size' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-biome-palette-size';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BIOME_PALETTE_SIZE';
     public override readonly docs =
@@ -1032,11 +1351,21 @@ class InvalidBiomePaletteSize extends JSPrismarineError {
  * settings and the loaded packs.
  */
 class UnknownGeneratedBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_GENERATED_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'invalid block with id {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generated-block';
+    public static get code(): 'PRISMARINE_UNKNOWN_GENERATED_BLOCK' {
+        return 'PRISMARINE_UNKNOWN_GENERATED_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'invalid block with id {name}' {
+        return 'invalid block with id {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generated-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generated-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_GENERATED_BLOCK';
     public override readonly docs =
@@ -1059,11 +1388,21 @@ class UnknownGeneratedBlock extends JSPrismarineError {
  * worlds.
  */
 class InvalidLevelName extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_LEVEL_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid level-name';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-level-name';
+    public static get code(): 'PRISMARINE_INVALID_LEVEL_NAME' {
+        return 'PRISMARINE_INVALID_LEVEL_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid level-name' {
+        return 'Invalid level-name';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-level-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-level-name';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_LEVEL_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-level-name';
@@ -1084,11 +1423,21 @@ class InvalidLevelName extends JSPrismarineError {
  * server was still starting. This is a bug in the server; report it with the stack trace.
  */
 class EntryWorldNotLoaded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ENTRY_WORLD_NOT_LOADED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The entry world has not loaded yet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-world-not-loaded';
+    public static get code(): 'PRISMARINE_ENTRY_WORLD_NOT_LOADED' {
+        return 'PRISMARINE_ENTRY_WORLD_NOT_LOADED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The entry world has not loaded yet' {
+        return 'The entry world has not loaded yet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-world-not-loaded' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-world-not-loaded';
+    }
 
     public override readonly code = 'PRISMARINE_ENTRY_WORLD_NOT_LOADED';
     public override readonly docs =
@@ -1110,12 +1459,21 @@ class EntryWorldNotLoaded extends JSPrismarineError {
  * damaged.
  */
 class InvalidReplaySnapshotEntry extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid LevelDB replay snapshot entry';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-entry';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_ENTRY' {
+        return 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid LevelDB replay snapshot entry' {
+        return 'Invalid LevelDB replay snapshot entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-entry';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_ENTRY';
     public override readonly docs =
@@ -1137,12 +1495,21 @@ class InvalidReplaySnapshotEntry extends JSPrismarineTypeError {
  * damaged.
  */
 class InvalidReplaySnapshotFiles extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_FILES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid LevelDB replay snapshot files';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-files';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_FILES' {
+        return 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_FILES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid LevelDB replay snapshot files' {
+        return 'Invalid LevelDB replay snapshot files';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-files' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-files';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_FILES';
     public override readonly docs =
@@ -1164,12 +1531,21 @@ class InvalidReplaySnapshotFiles extends JSPrismarineTypeError {
  * damaged.
  */
 class InvalidReplaySnapshotJson extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_JSON';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid LevelDB replay snapshot JSON';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-json';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_JSON' {
+        return 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_JSON';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid LevelDB replay snapshot JSON' {
+        return 'Invalid LevelDB replay snapshot JSON';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-json' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-json';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_JSON';
     public override readonly docs =
@@ -1191,12 +1567,21 @@ class InvalidReplaySnapshotJson extends JSPrismarineTypeError {
  * damaged.
  */
 class InvalidReplaySnapshotLevelDat extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_LEVEL_DAT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid LevelDB replay snapshot level.dat';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-level-dat';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_LEVEL_DAT' {
+        return 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_LEVEL_DAT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid LevelDB replay snapshot level.dat' {
+        return 'Invalid LevelDB replay snapshot level.dat';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-level-dat' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-level-dat';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_LEVEL_DAT';
     public override readonly docs =
@@ -1218,12 +1603,21 @@ class InvalidReplaySnapshotLevelDat extends JSPrismarineTypeError {
  * damaged.
  */
 class InvalidReplaySnapshotPlayerData extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_PLAYER_DATA';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid LevelDB replay snapshot player data';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-player-data';
+    public static get code(): 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_PLAYER_DATA' {
+        return 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_PLAYER_DATA';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid LevelDB replay snapshot player data' {
+        return 'Invalid LevelDB replay snapshot player data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-player-data' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-replay-snapshot-player-data';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_REPLAY_SNAPSHOT_PLAYER_DATA';
     public override readonly docs =
@@ -1245,12 +1639,21 @@ class InvalidReplaySnapshotPlayerData extends JSPrismarineTypeError {
  * damaged; regenerate it.
  */
 class InvalidMinecraftCatalogVersion extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_MINECRAFT_CATALOG_VERSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid Minecraft catalog version: {minecraftVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-minecraft-catalog-version';
+    public static get code(): 'PRISMARINE_INVALID_MINECRAFT_CATALOG_VERSION' {
+        return 'PRISMARINE_INVALID_MINECRAFT_CATALOG_VERSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid Minecraft catalog version: {minecraftVersion}' {
+        return 'Invalid Minecraft catalog version: {minecraftVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-minecraft-catalog-version' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-minecraft-catalog-version';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_MINECRAFT_CATALOG_VERSION';
     public override readonly docs =
@@ -1273,11 +1676,21 @@ class InvalidMinecraftCatalogVersion extends JSPrismarineError {
  * report it with the stack trace.
  */
 class InvalidSubchunkHeight extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_SUBCHUNK_HEIGHT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid subchunk height: {y}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-subchunk-height';
+    public static get code(): 'PRISMARINE_INVALID_SUBCHUNK_HEIGHT' {
+        return 'PRISMARINE_INVALID_SUBCHUNK_HEIGHT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid subchunk height: {y}' {
+        return 'Invalid subchunk height: {y}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-subchunk-height' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-subchunk-height';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SUBCHUNK_HEIGHT';
     public override readonly docs =
@@ -1300,11 +1713,21 @@ class InvalidSubchunkHeight extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class SubChunkOutOfRange extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SUB_CHUNK_OUT_OF_RANGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid subchunk height: {y}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-out-of-range';
+    public static get code(): 'PRISMARINE_SUB_CHUNK_OUT_OF_RANGE' {
+        return 'PRISMARINE_SUB_CHUNK_OUT_OF_RANGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid subchunk height: {y}' {
+        return 'Invalid subchunk height: {y}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-out-of-range' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-out-of-range';
+    }
 
     public override readonly code = 'PRISMARINE_SUB_CHUNK_OUT_OF_RANGE';
     public override readonly docs =
@@ -1324,11 +1747,21 @@ class SubChunkOutOfRange extends JSPrismarineError {
 
 /** A world's entry in `config.json` is not an object with the fields a world needs. */
 class InvalidWorldConfig extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_WORLD_CONFIG';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid world data';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-world-config';
+    public static get code(): 'PRISMARINE_INVALID_WORLD_CONFIG' {
+        return 'PRISMARINE_INVALID_WORLD_CONFIG';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid world data' {
+        return 'Invalid world data';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-world-config' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-world-config';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_WORLD_CONFIG';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-world-config';
@@ -1349,12 +1782,21 @@ class InvalidWorldConfig extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyEntitySnapshotsAreInvalid extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_ARE_INVALID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy entity snapshots are invalid';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-are-invalid';
+    public static get code(): 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_ARE_INVALID' {
+        return 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_ARE_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy entity snapshots are invalid' {
+        return 'Legacy entity snapshots are invalid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-are-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-are-invalid';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_ARE_INVALID';
     public override readonly docs =
@@ -1376,12 +1818,21 @@ class LegacyEntitySnapshotsAreInvalid extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyEntitySnapshotsContainInvalidEntries extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_CONTAIN_INVALID_ENTRIES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy entity snapshots contain invalid entries';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-contain-invalid-entries';
+    public static get code(): 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_CONTAIN_INVALID_ENTRIES' {
+        return 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_CONTAIN_INVALID_ENTRIES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy entity snapshots contain invalid entries' {
+        return 'Legacy entity snapshots contain invalid entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-contain-invalid-entries' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-entity-snapshots-contain-invalid-entries';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_CONTAIN_INVALID_ENTRIES';
     public override readonly docs =
@@ -1403,12 +1854,21 @@ class LegacyEntitySnapshotsContainInvalidEntries extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyGameRulesAreInvalid extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_GAME_RULES_ARE_INVALID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy game rules are invalid';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-are-invalid';
+    public static get code(): 'PRISMARINE_LEGACY_GAME_RULES_ARE_INVALID' {
+        return 'PRISMARINE_LEGACY_GAME_RULES_ARE_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy game rules are invalid' {
+        return 'Legacy game rules are invalid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-are-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-are-invalid';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_GAME_RULES_ARE_INVALID';
     public override readonly docs =
@@ -1430,12 +1890,21 @@ class LegacyGameRulesAreInvalid extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyGameRulesContainInvalidEntries extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_GAME_RULES_CONTAIN_INVALID_ENTRIES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy game rules contain invalid entries';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-contain-invalid-entries';
+    public static get code(): 'PRISMARINE_LEGACY_GAME_RULES_CONTAIN_INVALID_ENTRIES' {
+        return 'PRISMARINE_LEGACY_GAME_RULES_CONTAIN_INVALID_ENTRIES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy game rules contain invalid entries' {
+        return 'Legacy game rules contain invalid entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-contain-invalid-entries' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-game-rules-contain-invalid-entries';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_GAME_RULES_CONTAIN_INVALID_ENTRIES';
     public override readonly docs =
@@ -1457,12 +1926,21 @@ class LegacyGameRulesContainInvalidEntries extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacySpawnPositionIsInvalid extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_SPAWN_POSITION_IS_INVALID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy spawn position is invalid';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-spawn-position-is-invalid';
+    public static get code(): 'PRISMARINE_LEGACY_SPAWN_POSITION_IS_INVALID' {
+        return 'PRISMARINE_LEGACY_SPAWN_POSITION_IS_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy spawn position is invalid' {
+        return 'Legacy spawn position is invalid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-spawn-position-is-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-spawn-position-is-invalid';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_SPAWN_POSITION_IS_INVALID';
     public override readonly docs =
@@ -1484,12 +1962,21 @@ class LegacySpawnPositionIsInvalid extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyWeatherIsInvalid extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_WEATHER_IS_INVALID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy weather is invalid';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-weather-is-invalid';
+    public static get code(): 'PRISMARINE_LEGACY_WEATHER_IS_INVALID' {
+        return 'PRISMARINE_LEGACY_WEATHER_IS_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy weather is invalid' {
+        return 'Legacy weather is invalid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-weather-is-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-weather-is-invalid';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_WEATHER_IS_INVALID';
     public override readonly docs =
@@ -1511,12 +1998,21 @@ class LegacyWeatherIsInvalid extends JSPrismarineError {
  * migrate. Restore the world from a backup taken before the error.
  */
 class LegacyWorldDataMustBeObject extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEGACY_WORLD_DATA_MUST_BE_OBJECT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Legacy world data must be an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-world-data-must-be-object';
+    public static get code(): 'PRISMARINE_LEGACY_WORLD_DATA_MUST_BE_OBJECT' {
+        return 'PRISMARINE_LEGACY_WORLD_DATA_MUST_BE_OBJECT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Legacy world data must be an object' {
+        return 'Legacy world data must be an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-world-data-must-be-object' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-legacy-world-data-must-be-object';
+    }
 
     public override readonly code = 'PRISMARINE_LEGACY_WORLD_DATA_MUST_BE_OBJECT';
     public override readonly docs =
@@ -1538,12 +2034,21 @@ class LegacyWorldDataMustBeObject extends JSPrismarineError {
  * server runs. Name another level in `level-name` and restart the server first.
  */
 class EntryLevelCannotDetach extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ENTRY_LEVEL_CANNOT_DETACH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Level {name} is the level players join first, so it cannot be detached';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-level-cannot-detach';
+    public static get code(): 'PRISMARINE_ENTRY_LEVEL_CANNOT_DETACH' {
+        return 'PRISMARINE_ENTRY_LEVEL_CANNOT_DETACH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Level {name} is the level players join first, so it cannot be detached' {
+        return 'Level {name} is the level players join first, so it cannot be detached';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-level-cannot-detach' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-entry-level-cannot-detach';
+    }
 
     public override readonly code = 'PRISMARINE_ENTRY_LEVEL_CANNOT_DETACH';
     public override readonly docs =
@@ -1563,11 +2068,21 @@ class EntryLevelCannotDetach extends JSPrismarineError {
 
 /** No attached level has that name or UUID. `/world list` shows the attached levels. */
 class LevelNotAttached extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_NOT_ATTACHED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No attached level is named {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-attached';
+    public static get code(): 'PRISMARINE_LEVEL_NOT_ATTACHED' {
+        return 'PRISMARINE_LEVEL_NOT_ATTACHED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No attached level is named {name}' {
+        return 'No attached level is named {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-attached' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-attached';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_NOT_ATTACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-attached';
@@ -1589,13 +2104,21 @@ class LevelNotAttached extends JSPrismarineError {
  * detach it, remove its entry from `config.json` and restart the server.
  */
 class ConfigLevelCannotDetach extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIG_LEVEL_CANNOT_DETACH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        'Level {name} is declared in config.json; remove it from `worlds` and restart the server to detach it';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-level-cannot-detach';
+    public static get code(): 'PRISMARINE_CONFIG_LEVEL_CANNOT_DETACH' {
+        return 'PRISMARINE_CONFIG_LEVEL_CANNOT_DETACH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Level {name} is declared in config.json; remove it from `worlds` and restart the server to detach it' {
+        return 'Level {name} is declared in config.json; remove it from `worlds` and restart the server to detach it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-level-cannot-detach' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-config-level-cannot-detach';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIG_LEVEL_CANNOT_DETACH';
     public override readonly docs =
@@ -1621,12 +2144,21 @@ class ConfigLevelCannotDetach extends JSPrismarineError {
  * level's folder under `worlds/`. Choose a name of those characters.
  */
 class InvalidNewLevelName extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_NEW_LEVEL_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        '{name} is not a level name: use 1 to 64 letters, digits, underscores and hyphens';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-new-level-name';
+    public static get code(): 'PRISMARINE_INVALID_NEW_LEVEL_NAME' {
+        return 'PRISMARINE_INVALID_NEW_LEVEL_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): '{name} is not a level name: use 1 to 64 letters, digits, underscores and hyphens' {
+        return '{name} is not a level name: use 1 to 64 letters, digits, underscores and hyphens';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-new-level-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-new-level-name';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_NEW_LEVEL_NAME';
     public override readonly docs =
@@ -1652,11 +2184,21 @@ class InvalidNewLevelName extends JSPrismarineError {
  * config declares. Choose another name, or detach the level that has it.
  */
 class LevelNameTaken extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_NAME_TAKEN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A level named {name} is attached or declared in config.json already';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-name-taken';
+    public static get code(): 'PRISMARINE_LEVEL_NAME_TAKEN' {
+        return 'PRISMARINE_LEVEL_NAME_TAKEN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A level named {name} is attached or declared in config.json already' {
+        return 'A level named {name} is attached or declared in config.json already';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-name-taken' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-name-taken';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_NAME_TAKEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-name-taken';
@@ -1675,11 +2217,21 @@ class LevelNameTaken extends JSPrismarineError {
 
 /** No detached level in `levels.json` has that name or UUID. `/world list` shows them. */
 class LevelNotRegistered extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_NOT_REGISTERED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No detached level is named {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-registered';
+    public static get code(): 'PRISMARINE_LEVEL_NOT_REGISTERED' {
+        return 'PRISMARINE_LEVEL_NOT_REGISTERED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No detached level is named {name}' {
+        return 'No detached level is named {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-registered' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-registered';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_NOT_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-registered';
@@ -1701,11 +2253,21 @@ class LevelNotRegistered extends JSPrismarineError {
  * to attach by its UUID, which `/world list` shows.
  */
 class AmbiguousLevelName extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_AMBIGUOUS_LEVEL_NAME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'More than one detached level is named {name}: {ids}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-ambiguous-level-name';
+    public static get code(): 'PRISMARINE_AMBIGUOUS_LEVEL_NAME' {
+        return 'PRISMARINE_AMBIGUOUS_LEVEL_NAME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'More than one detached level is named {name}: {ids}' {
+        return 'More than one detached level is named {name}: {ids}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-ambiguous-level-name' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-ambiguous-level-name';
+    }
 
     public override readonly code = 'PRISMARINE_AMBIGUOUS_LEVEL_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-ambiguous-level-name';
@@ -1727,11 +2289,21 @@ class AmbiguousLevelName extends JSPrismarineError {
  * `config.json`.
  */
 class LevelWithoutOverworld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_WITHOUT_OVERWORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Level {defaultName} built no {overworldStemId} world';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-without-overworld';
+    public static get code(): 'PRISMARINE_LEVEL_WITHOUT_OVERWORLD' {
+        return 'PRISMARINE_LEVEL_WITHOUT_OVERWORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Level {defaultName} built no {overworldStemId} world' {
+        return 'Level {defaultName} built no {overworldStemId} world';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-without-overworld' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-without-overworld';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_WITHOUT_OVERWORLD';
     public override readonly docs =
@@ -1759,11 +2331,21 @@ class LevelWithoutOverworld extends JSPrismarineError {
  * edited. Restore it from `level.dat_old` or a backup.
  */
 class LevelDatSizeMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_DAT_SIZE_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'level.dat declares {declared} bytes of payload but carries {byteLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-size-mismatch';
+    public static get code(): 'PRISMARINE_LEVEL_DAT_SIZE_MISMATCH' {
+        return 'PRISMARINE_LEVEL_DAT_SIZE_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'level.dat declares {declared} bytes of payload but carries {byteLength}' {
+        return 'level.dat declares {declared} bytes of payload but carries {byteLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-size-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-size-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_DAT_SIZE_MISMATCH';
     public override readonly docs =
@@ -1789,11 +2371,21 @@ class LevelDatSizeMismatch extends JSPrismarineError {
  * `level.dat_old` or a backup.
  */
 class LevelDatTruncated extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_DAT_TRUNCATED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'level.dat is {byteLength} bytes, the header alone is {headerBytes}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-truncated';
+    public static get code(): 'PRISMARINE_LEVEL_DAT_TRUNCATED' {
+        return 'PRISMARINE_LEVEL_DAT_TRUNCATED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'level.dat is {byteLength} bytes, the header alone is {headerBytes}' {
+        return 'level.dat is {byteLength} bytes, the header alone is {headerBytes}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-truncated' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-truncated';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_DAT_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-dat-truncated';
@@ -1820,11 +2412,21 @@ class LevelDatTruncated extends JSPrismarineError {
 
 /** Code asked for a dimension the world does not have. The message lists the ones it has. */
 class UnknownLevelDimension extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_LEVEL_DIMENSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Level {name} has no {dimensionId} dimension. It has: {stems}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-level-dimension';
+    public static get code(): 'PRISMARINE_UNKNOWN_LEVEL_DIMENSION' {
+        return 'PRISMARINE_UNKNOWN_LEVEL_DIMENSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Level {name} has no {dimensionId} dimension. It has: {stems}' {
+        return 'Level {name} has no {dimensionId} dimension. It has: {stems}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-level-dimension' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-level-dimension';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_LEVEL_DIMENSION';
     public override readonly docs =
@@ -1855,12 +2457,21 @@ class UnknownLevelDimension extends JSPrismarineError {
  * dimensions.
  */
 class LevelHasNoOverworld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_HAS_NO_OVERWORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        "Level {name} has no {overworldStemId} stem; Bedrock's spawn and clock live there";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-has-no-overworld';
+    public static get code(): 'PRISMARINE_LEVEL_HAS_NO_OVERWORLD' {
+        return 'PRISMARINE_LEVEL_HAS_NO_OVERWORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "Level {name} has no {overworldStemId} stem; Bedrock's spawn and clock live there" {
+        return "Level {name} has no {overworldStemId} stem; Bedrock's spawn and clock live there";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-has-no-overworld' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-has-no-overworld';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_HAS_NO_OVERWORLD';
     public override readonly docs =
@@ -1886,11 +2497,21 @@ class LevelHasNoOverworld extends JSPrismarineError {
  * with the stack trace.
  */
 class LevelNotOpened extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_LEVEL_NOT_OPENED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Level {name} is not enabled, so it cannot build {dimensionId}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-opened';
+    public static get code(): 'PRISMARINE_LEVEL_NOT_OPENED' {
+        return 'PRISMARINE_LEVEL_NOT_OPENED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Level {name} is not enabled, so it cannot build {dimensionId}' {
+        return 'Level {name} is not enabled, so it cannot build {dimensionId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-opened' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-opened';
+    }
 
     public override readonly code = 'PRISMARINE_LEVEL_NOT_OPENED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-level-not-opened';
@@ -1915,11 +2536,21 @@ class LevelNotOpened extends JSPrismarineError {
  * report it with the stack trace.
  */
 class CompletionReplaced extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_COMPLETION_REPLACED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A newer completion replaced {key} before it was admitted';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-completion-replaced';
+    public static get code(): 'PRISMARINE_COMPLETION_REPLACED' {
+        return 'PRISMARINE_COMPLETION_REPLACED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A newer completion replaced {key} before it was admitted' {
+        return 'A newer completion replaced {key} before it was admitted';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-completion-replaced' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-completion-replaced';
+    }
 
     public override readonly code = 'PRISMARINE_COMPLETION_REPLACED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-completion-replaced';
@@ -1941,11 +2572,21 @@ class CompletionReplaced extends JSPrismarineError {
  * added that is no longer loaded. Load it again, or remove the block.
  */
 class UnknownSavedBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_SAVED_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No block named {name}, held at {x} {y} {z} in world {name2}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-saved-block';
+    public static get code(): 'PRISMARINE_UNKNOWN_SAVED_BLOCK' {
+        return 'PRISMARINE_UNKNOWN_SAVED_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No block named {name}, held at {x} {y} {z} in world {name2}' {
+        return 'No block named {name}, held at {x} {y} {z} in world {name2}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-saved-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-saved-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_SAVED_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-saved-block';
@@ -1982,11 +2623,21 @@ class UnknownSavedBlock extends JSPrismarineError {
 
 /** Code set a block in a state the block registry does not have. */
 class UnknownBlockState extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_BLOCK_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No block state registered for {name} with {states}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block-state';
+    public static get code(): 'PRISMARINE_UNKNOWN_BLOCK_STATE' {
+        return 'PRISMARINE_UNKNOWN_BLOCK_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No block state registered for {name} with {states}' {
+        return 'No block state registered for {name} with {states}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block-state';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_BLOCK_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block-state';
@@ -2008,11 +2659,21 @@ class UnknownBlockState extends JSPrismarineError {
  * pack added that is no longer loaded.
  */
 class UnknownBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No block state schema registered for {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block';
+    public static get code(): 'PRISMARINE_UNKNOWN_BLOCK' {
+        return 'PRISMARINE_UNKNOWN_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No block state schema registered for {name}' {
+        return 'No block state schema registered for {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-block';
@@ -2031,11 +2692,21 @@ class UnknownBlock extends JSPrismarineError {
 
 /** Content acted in a dimension that has no loaded world. */
 class NoWorldInDimension extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_WORLD_IN_DIMENSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'no {dimension} world is loaded, so it cannot be read or written';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-world-in-dimension';
+    public static get code(): 'PRISMARINE_NO_WORLD_IN_DIMENSION' {
+        return 'PRISMARINE_NO_WORLD_IN_DIMENSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'no {dimension} world is loaded, so it cannot be read or written' {
+        return 'no {dimension} world is loaded, so it cannot be read or written';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-world-in-dimension' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-world-in-dimension';
+    }
 
     public override readonly code = 'PRISMARINE_NO_WORLD_IN_DIMENSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-no-world-in-dimension';
@@ -2057,12 +2728,21 @@ class NoWorldInDimension extends JSPrismarineError {
  * order. This is a bug in the server; report it with the stack trace.
  */
 class SpanClosedOutOfOrder extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_SPAN_CLOSED_OUT_OF_ORDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Only the innermost open span can be closed';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-span-closed-out-of-order';
+    public static get code(): 'PRISMARINE_SPAN_CLOSED_OUT_OF_ORDER' {
+        return 'PRISMARINE_SPAN_CLOSED_OUT_OF_ORDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Only the innermost open span can be closed' {
+        return 'Only the innermost open span can be closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-span-closed-out-of-order' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-span-closed-out-of-order';
+    }
 
     public override readonly code = 'PRISMARINE_SPAN_CLOSED_OUT_OF_ORDER';
     public override readonly docs =
@@ -2084,11 +2764,21 @@ class SpanClosedOutOfOrder extends ChangeLogError {
  * in the server; report it with the stack trace.
  */
 class RevertClosedSpan extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_REVERT_CLOSED_SPAN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Only an open span can be reverted';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-closed-span';
+    public static get code(): 'PRISMARINE_REVERT_CLOSED_SPAN' {
+        return 'PRISMARINE_REVERT_CLOSED_SPAN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Only an open span can be reverted' {
+        return 'Only an open span can be reverted';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-closed-span' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-closed-span';
+    }
 
     public override readonly code = 'PRISMARINE_REVERT_CLOSED_SPAN';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-revert-closed-span';
@@ -2110,11 +2800,21 @@ class RevertClosedSpan extends ChangeLogError {
  * what it can, or restore a backup.
  */
 class UnnamedPaletteEntry extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNNAMED_PALETTE_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Palette entry has no name';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unnamed-palette-entry';
+    public static get code(): 'PRISMARINE_UNNAMED_PALETTE_ENTRY' {
+        return 'PRISMARINE_UNNAMED_PALETTE_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Palette entry has no name' {
+        return 'Palette entry has no name';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unnamed-palette-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unnamed-palette-entry';
+    }
 
     public override readonly code = 'PRISMARINE_UNNAMED_PALETTE_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unnamed-palette-entry';
@@ -2135,11 +2835,21 @@ class UnnamedPaletteEntry extends JSPrismarineError {
  * before the error.
  */
 class InvalidActorMigration extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_ACTOR_MIGRATION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Pending actor migration data is not an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-migration';
+    public static get code(): 'PRISMARINE_INVALID_ACTOR_MIGRATION' {
+        return 'PRISMARINE_INVALID_ACTOR_MIGRATION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Pending actor migration data is not an array' {
+        return 'Pending actor migration data is not an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-migration' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-actor-migration';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_ACTOR_MIGRATION';
     public override readonly docs =
@@ -2158,12 +2868,21 @@ class InvalidActorMigration extends JSPrismarineError {
 
 /** A player's data file name would resolve outside the player data folder, so it is refused. */
 class PlayerDataPathEscapes extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PLAYER_DATA_PATH_ESCAPES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Player data for {key} would leave {folder}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-escapes';
+    public static get code(): 'PRISMARINE_PLAYER_DATA_PATH_ESCAPES' {
+        return 'PRISMARINE_PLAYER_DATA_PATH_ESCAPES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Player data for {key} would leave {folder}' {
+        return 'Player data for {key} would leave {folder}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-escapes' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-player-data-path-escapes';
+    }
 
     public override readonly code = 'PRISMARINE_PLAYER_DATA_PATH_ESCAPES';
     public override readonly docs =
@@ -2186,11 +2905,21 @@ class PlayerDataPathEscapes extends JSPrismarineError {
  * stack trace.
  */
 class PositionWithoutWorld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_POSITION_WITHOUT_WORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A Position requires the world it is in';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-position-without-world';
+    public static get code(): 'PRISMARINE_POSITION_WITHOUT_WORLD' {
+        return 'PRISMARINE_POSITION_WITHOUT_WORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A Position requires the world it is in' {
+        return 'A Position requires the world it is in';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-position-without-world' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-position-without-world';
+    }
 
     public override readonly code = 'PRISMARINE_POSITION_WITHOUT_WORLD';
     public override readonly docs =
@@ -2212,12 +2941,21 @@ class PositionWithoutWorld extends JSPrismarineError {
  * with a provider that can.
  */
 class ProviderCannotCaptureReplay extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_PROVIDER_CANNOT_CAPTURE_REPLAY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "Provider '{name}' cannot capture replay snapshots";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-provider-cannot-capture-replay';
+    public static get code(): 'PRISMARINE_PROVIDER_CANNOT_CAPTURE_REPLAY' {
+        return 'PRISMARINE_PROVIDER_CANNOT_CAPTURE_REPLAY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "Provider '{name}' cannot capture replay snapshots" {
+        return "Provider '{name}' cannot capture replay snapshots";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-provider-cannot-capture-replay' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-provider-cannot-capture-replay';
+    }
 
     public override readonly code = 'PRISMARINE_PROVIDER_CANNOT_CAPTURE_REPLAY';
     public override readonly docs =
@@ -2237,11 +2975,21 @@ class ProviderCannotCaptureReplay extends JSPrismarineError {
 
 /** A replay was started on a world whose dimensions or settings differ from the recording's. */
 class ReplayLevelMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_LEVEL_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "Replay manifest does not match this level's current initial state";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-replay-level-mismatch';
+    public static get code(): 'PRISMARINE_REPLAY_LEVEL_MISMATCH' {
+        return 'PRISMARINE_REPLAY_LEVEL_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "Replay manifest does not match this level's current initial state" {
+        return "Replay manifest does not match this level's current initial state";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-replay-level-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-replay-level-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_LEVEL_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-replay-level-mismatch';
@@ -2262,12 +3010,21 @@ class ReplayLevelMismatch extends JSPrismarineError {
  * report it with the stack trace.
  */
 class UnresolvedDimensionType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNRESOLVED_DIMENSION_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The {dimensionId} stem of level {name} has no resolved type';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unresolved-dimension-type';
+    public static get code(): 'PRISMARINE_UNRESOLVED_DIMENSION_TYPE' {
+        return 'PRISMARINE_UNRESOLVED_DIMENSION_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The {dimensionId} stem of level {name} has no resolved type' {
+        return 'The {dimensionId} stem of level {name} has no resolved type';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unresolved-dimension-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unresolved-dimension-type';
+    }
 
     public override readonly code = 'PRISMARINE_UNRESOLVED_DIMENSION_TYPE';
     public override readonly docs =
@@ -2290,12 +3047,21 @@ class UnresolvedDimensionType extends JSPrismarineError {
  * datapack that defines it.
  */
 class UnknownDimensionType extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_DIMENSION_TYPE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        'The {id} stem of level {name} names the dimension type {type}, which is not loaded';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-dimension-type';
+    public static get code(): 'PRISMARINE_UNKNOWN_DIMENSION_TYPE' {
+        return 'PRISMARINE_UNKNOWN_DIMENSION_TYPE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The {id} stem of level {name} names the dimension type {type}, which is not loaded' {
+        return 'The {id} stem of level {name} names the dimension type {type}, which is not loaded';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-dimension-type' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-dimension-type';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_DIMENSION_TYPE';
     public override readonly docs =
@@ -2327,11 +3093,21 @@ class UnknownDimensionType extends JSPrismarineError {
  * or restore a backup.
  */
 class BlockOutOfPalette extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BLOCK_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Sub chunk block refers to missing palette index {originalIndex}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-out-of-palette';
+    public static get code(): 'PRISMARINE_BLOCK_OUT_OF_PALETTE' {
+        return 'PRISMARINE_BLOCK_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Sub chunk block refers to missing palette index {originalIndex}' {
+        return 'Sub chunk block refers to missing palette index {originalIndex}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_BLOCK_OUT_OF_PALETTE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-block-out-of-palette';
@@ -2353,12 +3129,21 @@ class BlockOutOfPalette extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class SubChunkBiomeCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_SUB_CHUNK_BIOME_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A sub chunk holds {blocksPerSubchunk} biomes, got {idsCount}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-biome-count-mismatch';
+    public static get code(): 'PRISMARINE_SUB_CHUNK_BIOME_COUNT_MISMATCH' {
+        return 'PRISMARINE_SUB_CHUNK_BIOME_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A sub chunk holds {blocksPerSubchunk} biomes, got {idsCount}' {
+        return 'A sub chunk holds {blocksPerSubchunk} biomes, got {idsCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-biome-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-biome-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_SUB_CHUNK_BIOME_COUNT_MISMATCH';
     public override readonly docs =
@@ -2389,11 +3174,21 @@ class SubChunkBiomeCountMismatch extends JSPrismarineRangeError {
  * server; report it with the stack trace.
  */
 class SubChunkPaletteFull extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_SUB_CHUNK_PALETTE_FULL';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A sub chunk palette holds at most {maxPaletteSize} entries';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-palette-full';
+    public static get code(): 'PRISMARINE_SUB_CHUNK_PALETTE_FULL' {
+        return 'PRISMARINE_SUB_CHUNK_PALETTE_FULL';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A sub chunk palette holds at most {maxPaletteSize} entries' {
+        return 'A sub chunk palette holds at most {maxPaletteSize} entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-palette-full' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-sub-chunk-palette-full';
+    }
 
     public override readonly code = 'PRISMARINE_SUB_CHUNK_PALETTE_FULL';
     public override readonly docs =
@@ -2417,11 +3212,21 @@ class SubChunkPaletteFull extends JSPrismarineRangeError {
  * repair what it can, or restore a backup.
  */
 class InvalidSubChunkWidth extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_SUB_CHUNK_WIDTH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Sub chunk storage declares {bitsPerBlock} bits per block';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-width';
+    public static get code(): 'PRISMARINE_INVALID_SUB_CHUNK_WIDTH' {
+        return 'PRISMARINE_INVALID_SUB_CHUNK_WIDTH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Sub chunk storage declares {bitsPerBlock} bits per block' {
+        return 'Sub chunk storage declares {bitsPerBlock} bits per block';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-width' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-width';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SUB_CHUNK_WIDTH';
     public override readonly docs =
@@ -2445,12 +3250,21 @@ class InvalidSubChunkWidth extends JSPrismarineError {
  * repair what it can, or restore a backup.
  */
 class InvalidSubChunkPaletteSize extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_SUB_CHUNK_PALETTE_SIZE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Sub chunk storage declares a palette of {paletteSize} entries';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-palette-size';
+    public static get code(): 'PRISMARINE_INVALID_SUB_CHUNK_PALETTE_SIZE' {
+        return 'PRISMARINE_INVALID_SUB_CHUNK_PALETTE_SIZE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Sub chunk storage declares a palette of {paletteSize} entries' {
+        return 'Sub chunk storage declares a palette of {paletteSize} entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-palette-size' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-sub-chunk-palette-size';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SUB_CHUNK_PALETTE_SIZE';
     public override readonly docs =
@@ -2474,12 +3288,21 @@ class InvalidSubChunkPaletteSize extends JSPrismarineError {
  * it in the game to let it repair what it can, or restore a backup.
  */
 class RuntimeIdStorageOnDisk extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RUNTIME_ID_STORAGE_ON_DISK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Sub chunk storage is marked as holding runtime ids, which never appears on disk';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-runtime-id-storage-on-disk';
+    public static get code(): 'PRISMARINE_RUNTIME_ID_STORAGE_ON_DISK' {
+        return 'PRISMARINE_RUNTIME_ID_STORAGE_ON_DISK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Sub chunk storage is marked as holding runtime ids, which never appears on disk' {
+        return 'Sub chunk storage is marked as holding runtime ids, which never appears on disk';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-runtime-id-storage-on-disk' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-runtime-id-storage-on-disk';
+    }
 
     public override readonly code = 'PRISMARINE_RUNTIME_ID_STORAGE_ON_DISK';
     public override readonly docs =
@@ -2501,12 +3324,21 @@ class RuntimeIdStorageOnDisk extends JSPrismarineError {
  * holds one. This is a bug in the server; report it with the stack trace.
  */
 class SecondLayerInVersionOne extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SECOND_LAYER_IN_VERSION_ONE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Sub chunk version 1 holds a single layer, so a second one would be lost';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-second-layer-in-version-one';
+    public static get code(): 'PRISMARINE_SECOND_LAYER_IN_VERSION_ONE' {
+        return 'PRISMARINE_SECOND_LAYER_IN_VERSION_ONE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Sub chunk version 1 holds a single layer, so a second one would be lost' {
+        return 'Sub chunk version 1 holds a single layer, so a second one would be lost';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-second-layer-in-version-one' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-second-layer-in-version-one';
+    }
 
     public override readonly code = 'PRISMARINE_SECOND_LAYER_IN_VERSION_ONE';
     public override readonly docs =
@@ -2528,11 +3360,21 @@ class SecondLayerInVersionOne extends JSPrismarineError {
  * the stack trace.
  */
 class SavePassCommitted extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SAVE_PASS_COMMITTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'This save pass has already committed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-save-pass-committed';
+    public static get code(): 'PRISMARINE_SAVE_PASS_COMMITTED' {
+        return 'PRISMARINE_SAVE_PASS_COMMITTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'This save pass has already committed' {
+        return 'This save pass has already committed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-save-pass-committed' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-save-pass-committed';
+    }
 
     public override readonly code = 'PRISMARINE_SAVE_PASS_COMMITTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-save-pass-committed';
@@ -2553,11 +3395,21 @@ class SavePassCommitted extends JSPrismarineError {
  * as moving.
  */
 class UnmovableBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNMOVABLE_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "this server's block catalog cannot move {name} at {x}, {y}, {z}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unmovable-block';
+    public static get code(): 'PRISMARINE_UNMOVABLE_BLOCK' {
+        return 'PRISMARINE_UNMOVABLE_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "this server's block catalog cannot move {name} at {x}, {y}, {z}" {
+        return "this server's block catalog cannot move {name} at {x}, {y}, {z}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unmovable-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unmovable-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNMOVABLE_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unmovable-block';
@@ -2590,11 +3442,21 @@ class UnmovableBlock extends JSPrismarineError {
  * that names a state of a newer Minecraft.
  */
 class UnknownCatalogBlock extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_CATALOG_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = "this server's block catalog has no {identifier} in state {states}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-catalog-block';
+    public static get code(): 'PRISMARINE_UNKNOWN_CATALOG_BLOCK' {
+        return 'PRISMARINE_UNKNOWN_CATALOG_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "this server's block catalog has no {identifier} in state {states}" {
+        return "this server's block catalog has no {identifier} in state {states}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-catalog-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-catalog-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_CATALOG_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-catalog-block';
@@ -2619,11 +3481,21 @@ class UnknownCatalogBlock extends JSPrismarineError {
  * is a bug in the server; report it with the stack trace.
  */
 class TickOutOfSequence extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_TICK_OUT_OF_SEQUENCE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Tick {tick} does not follow tick {lastBegun}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-out-of-sequence';
+    public static get code(): 'PRISMARINE_TICK_OUT_OF_SEQUENCE' {
+        return 'PRISMARINE_TICK_OUT_OF_SEQUENCE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Tick {tick} does not follow tick {lastBegun}' {
+        return 'Tick {tick} does not follow tick {lastBegun}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-out-of-sequence' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-out-of-sequence';
+    }
 
     public override readonly code = 'PRISMARINE_TICK_OUT_OF_SEQUENCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-out-of-sequence';
@@ -2645,11 +3517,21 @@ class TickOutOfSequence extends ChangeLogError {
  * This is a bug in the server; report it with the stack trace.
  */
 class TickIsStillOpen extends ChangeLogError {
-    public static readonly code = 'PRISMARINE_TICK_IS_STILL_OPEN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Tick {tick} is still open';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-is-still-open';
+    public static get code(): 'PRISMARINE_TICK_IS_STILL_OPEN' {
+        return 'PRISMARINE_TICK_IS_STILL_OPEN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Tick {tick} is still open' {
+        return 'Tick {tick} is still open';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-is-still-open' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-is-still-open';
+    }
 
     public override readonly code = 'PRISMARINE_TICK_IS_STILL_OPEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-tick-is-still-open';
@@ -2668,11 +3550,21 @@ class TickIsStillOpen extends ChangeLogError {
 
 /** A world names a generator nothing registered. The message lists the ones that are. */
 class UnknownGeneratorKind extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_GENERATOR_KIND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Unknown generator kind {kind}. Registered kinds: {kinds}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generator-kind';
+    public static get code(): 'PRISMARINE_UNKNOWN_GENERATOR_KIND' {
+        return 'PRISMARINE_UNKNOWN_GENERATOR_KIND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Unknown generator kind {kind}. Registered kinds: {kinds}' {
+        return 'Unknown generator kind {kind}. Registered kinds: {kinds}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generator-kind' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-generator-kind';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_GENERATOR_KIND';
     public override readonly docs =
@@ -2695,11 +3587,21 @@ class UnknownGeneratorKind extends JSPrismarineError {
  * do.
  */
 class UnknownWorldPreset extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_WORLD_PRESET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Unknown world preset {preset}. Known presets: {presets}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-preset';
+    public static get code(): 'PRISMARINE_UNKNOWN_WORLD_PRESET' {
+        return 'PRISMARINE_UNKNOWN_WORLD_PRESET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Unknown world preset {preset}. Known presets: {presets}' {
+        return 'Unknown world preset {preset}. Known presets: {presets}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-preset' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-preset';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_WORLD_PRESET';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-preset';
@@ -2721,12 +3623,21 @@ class UnknownWorldPreset extends JSPrismarineError {
  * ones that do.
  */
 class UnknownWorldProvider extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_WORLD_PROVIDER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        "Unknown world provider '{provider}' for world '{folderName}'. Available providers: {providers}.";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-provider';
+    public static get code(): 'PRISMARINE_UNKNOWN_WORLD_PROVIDER' {
+        return 'PRISMARINE_UNKNOWN_WORLD_PROVIDER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): "Unknown world provider '{provider}' for world '{folderName}'. Available providers: {providers}." {
+        return "Unknown world provider '{provider}' for world '{folderName}'. Available providers: {providers}.";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-provider' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-world-provider';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_WORLD_PROVIDER';
     public override readonly docs =
@@ -2760,12 +3671,21 @@ class UnknownWorldProvider extends JSPrismarineError {
  * what it can, or restore a backup.
  */
 class UnsupportedBiomePaletteWidth extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_BIOME_PALETTE_WIDTH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Unsupported biome palette width {bitsPerBlock}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-biome-palette-width';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_BIOME_PALETTE_WIDTH' {
+        return 'PRISMARINE_UNSUPPORTED_BIOME_PALETTE_WIDTH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Unsupported biome palette width {bitsPerBlock}' {
+        return 'Unsupported biome palette width {bitsPerBlock}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-biome-palette-width' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-biome-palette-width';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_BIOME_PALETTE_WIDTH';
     public override readonly docs =
@@ -2787,12 +3707,21 @@ class UnsupportedBiomePaletteWidth extends JSPrismarineError {
  * A replay's world snapshot was written by a different version of the server, or is damaged.
  */
 class UnsupportedReplaySnapshot extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_REPLAY_SNAPSHOT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Unsupported or invalid LevelDB replay snapshot';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-replay-snapshot';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_REPLAY_SNAPSHOT' {
+        return 'PRISMARINE_UNSUPPORTED_REPLAY_SNAPSHOT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Unsupported or invalid LevelDB replay snapshot' {
+        return 'Unsupported or invalid LevelDB replay snapshot';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-replay-snapshot' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-replay-snapshot';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_REPLAY_SNAPSHOT';
     public override readonly docs =
@@ -2814,12 +3743,21 @@ class UnsupportedReplaySnapshot extends JSPrismarineTypeError {
  * newer game.
  */
 class UnsupportedSubChunkVersion extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_SUB_CHUNK_VERSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Unsupported sub chunk version {version}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-sub-chunk-version';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_SUB_CHUNK_VERSION' {
+        return 'PRISMARINE_UNSUPPORTED_SUB_CHUNK_VERSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Unsupported sub chunk version {version}' {
+        return 'Unsupported sub chunk version {version}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-sub-chunk-version' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unsupported-sub-chunk-version';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_SUB_CHUNK_VERSION';
     public override readonly docs =
@@ -2839,11 +3777,21 @@ class UnsupportedSubChunkVersion extends JSPrismarineError {
 
 /** A world was loaded twice. */
 class WorldAlreadyLoaded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_WORLD_ALREADY_LOADED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'World {folderName} has already been loaded';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-already-loaded';
+    public static get code(): 'PRISMARINE_WORLD_ALREADY_LOADED' {
+        return 'PRISMARINE_WORLD_ALREADY_LOADED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'World {folderName} has already been loaded' {
+        return 'World {folderName} has already been loaded';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-already-loaded' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-already-loaded';
+    }
 
     public override readonly code = 'PRISMARINE_WORLD_ALREADY_LOADED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-already-loaded';
@@ -2865,11 +3813,21 @@ class WorldAlreadyLoaded extends JSPrismarineError {
  * it was created.
  */
 class SpawnNotFoundYet extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SPAWN_NOT_FOUND_YET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'the {dimension} world has not found its spawn point yet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-spawn-not-found-yet';
+    public static get code(): 'PRISMARINE_SPAWN_NOT_FOUND_YET' {
+        return 'PRISMARINE_SPAWN_NOT_FOUND_YET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'the {dimension} world has not found its spawn point yet' {
+        return 'the {dimension} world has not found its spawn point yet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-spawn-not-found-yet' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-spawn-not-found-yet';
+    }
 
     public override readonly code = 'PRISMARINE_SPAWN_NOT_FOUND_YET';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-spawn-not-found-yet';
@@ -2891,13 +3849,21 @@ class SpawnNotFoundYet extends JSPrismarineError {
  * bug in the server; report it with the stack trace.
  */
 class WorldMessagesUnsettled extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_WORLD_MESSAGES_UNSETTLED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        '{pendingCount} world message(s) were still being filed after {drainPasses} passes';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-messages-unsettled';
+    public static get code(): 'PRISMARINE_WORLD_MESSAGES_UNSETTLED' {
+        return 'PRISMARINE_WORLD_MESSAGES_UNSETTLED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): '{pendingCount} world message(s) were still being filed after {drainPasses} passes' {
+        return '{pendingCount} world message(s) were still being filed after {drainPasses} passes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-messages-unsettled' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-messages-unsettled';
+    }
 
     public override readonly code = 'PRISMARINE_WORLD_MESSAGES_UNSETTLED';
     public override readonly docs =
@@ -2925,11 +3891,21 @@ class WorldMessagesUnsettled extends JSPrismarineError {
 
 /** The world's storage was used before it opened or after it closed. */
 class WorldStorageClosed extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_WORLD_STORAGE_CLOSED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'The world provider is not enabled';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-storage-closed';
+    public static get code(): 'PRISMARINE_WORLD_STORAGE_CLOSED' {
+        return 'PRISMARINE_WORLD_STORAGE_CLOSED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'The world provider is not enabled' {
+        return 'The world provider is not enabled';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-storage-closed' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-storage-closed';
+    }
 
     public override readonly code = 'PRISMARINE_WORLD_STORAGE_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-world-storage-closed';
@@ -2950,12 +3926,21 @@ class WorldStorageClosed extends JSPrismarineError {
  * it from a backup taken before the error.
  */
 class InvalidLegacyWorldGenSettings extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_LEGACY_WORLD_GEN_SETTINGS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'worldGenSettings needs a seed string and a dimensions object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-legacy-world-gen-settings';
+    public static get code(): 'PRISMARINE_INVALID_LEGACY_WORLD_GEN_SETTINGS' {
+        return 'PRISMARINE_INVALID_LEGACY_WORLD_GEN_SETTINGS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'worldGenSettings needs a seed string and a dimensions object' {
+        return 'worldGenSettings needs a seed string and a dimensions object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-legacy-world-gen-settings' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-legacy-world-gen-settings';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_LEGACY_WORLD_GEN_SETTINGS';
     public override readonly docs =
@@ -2978,12 +3963,21 @@ class InvalidLegacyWorldGenSettings extends JSPrismarineError {
  * repair what it can, or restore a backup.
  */
 class EmptySingleBlockStorage extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_EMPTY_SINGLE_BLOCK_STORAGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'A zero-bit storage needs its runtime id';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-empty-single-block-storage';
+    public static get code(): 'PRISMARINE_EMPTY_SINGLE_BLOCK_STORAGE' {
+        return 'PRISMARINE_EMPTY_SINGLE_BLOCK_STORAGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'A zero-bit storage needs its runtime id' {
+        return 'A zero-bit storage needs its runtime id';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-empty-single-block-storage' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-empty-single-block-storage';
+    }
 
     public override readonly code = 'PRISMARINE_EMPTY_SINGLE_BLOCK_STORAGE';
     public override readonly docs =
@@ -3005,11 +3999,21 @@ class EmptySingleBlockStorage extends JSPrismarineRangeError {
  * shuts down.
  */
 class GenerationStopped extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_GENERATION_STOPPED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Chunk {cx},{cz} was not generated: the generator has stopped';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-generation-stopped';
+    public static get code(): 'PRISMARINE_GENERATION_STOPPED' {
+        return 'PRISMARINE_GENERATION_STOPPED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Chunk {cx},{cz} was not generated: the generator has stopped' {
+        return 'Chunk {cx},{cz} was not generated: the generator has stopped';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-generation-stopped' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-generation-stopped';
+    }
 
     public override readonly code = 'PRISMARINE_GENERATION_STOPPED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-generation-stopped';
@@ -3036,12 +4040,21 @@ class GenerationStopped extends JSPrismarineError {
  * setting `content-java-version`, or start the server on another world.
  */
 class JavaDataDowngrade extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_JAVA_DATA_DOWNGRADE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template =
-        'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-java-data-downgrade';
+    public static get code(): 'PRISMARINE_JAVA_DATA_DOWNGRADE' {
+        return 'PRISMARINE_JAVA_DATA_DOWNGRADE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one' {
+        return 'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-java-data-downgrade' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-java-data-downgrade';
+    }
 
     public override readonly code = 'PRISMARINE_JAVA_DATA_DOWNGRADE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-java-data-downgrade';
@@ -3080,12 +4093,21 @@ class JavaDataDowngrade extends JSPrismarineError {
  * that the id came from this world's scoreboard.
  */
 class UnknownScoreboardParticipant extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_SCOREBOARD_PARTICIPANT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'No scoreboard participant has the id {participant}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-scoreboard-participant';
+    public static get code(): 'PRISMARINE_UNKNOWN_SCOREBOARD_PARTICIPANT' {
+        return 'PRISMARINE_UNKNOWN_SCOREBOARD_PARTICIPANT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'No scoreboard participant has the id {participant}' {
+        return 'No scoreboard participant has the id {participant}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-scoreboard-participant' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-unknown-scoreboard-participant';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_SCOREBOARD_PARTICIPANT';
     public override readonly docs =
@@ -3110,11 +4132,21 @@ class UnknownScoreboardParticipant extends JSPrismarineRangeError {
  * namespace the id is in `minecraft`.
  */
 class InvalidStorageId extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_STORAGE_ID';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'world';
-    public static readonly template = 'Invalid storage id {id}: expected a resource location such as mypack:state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-storage-id';
+    public static get code(): 'PRISMARINE_INVALID_STORAGE_ID' {
+        return 'PRISMARINE_INVALID_STORAGE_ID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'world' {
+        return 'world';
+    }
+    public static get template(): 'Invalid storage id {id}: expected a resource location such as mypack:state' {
+        return 'Invalid storage id {id}: expected a resource location such as mypack:state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-storage-id' {
+        return 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-storage-id';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_STORAGE_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/world#prismarine-invalid-storage-id';

@@ -13,10 +13,18 @@ export abstract class UsageError extends JSPrismarineError {
  * connection.
  */
 class AlreadyConnected extends JSPrismarineError {
-    public static readonly code = 'CLIENT_ALREADY_CONNECTED';
-    public static readonly domain = 'client';
-    public static readonly template = 'Already connected';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-already-connected';
+    public static get code(): 'CLIENT_ALREADY_CONNECTED' {
+        return 'CLIENT_ALREADY_CONNECTED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Already connected' {
+        return 'Already connected';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-already-connected' {
+        return 'https://jsprismarine.dev/errors/client#client-already-connected';
+    }
 
     public override readonly code = 'CLIENT_ALREADY_CONNECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-already-connected';
@@ -37,10 +45,18 @@ class AlreadyConnected extends JSPrismarineError {
  * nowhere to go.
  */
 class PickFromEmptyList extends JSPrismarineError {
-    public static readonly code = 'CLIENT_PICK_FROM_EMPTY_LIST';
-    public static readonly domain = 'client';
-    public static readonly template = 'Cannot pick from an empty list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-pick-from-empty-list';
+    public static get code(): 'CLIENT_PICK_FROM_EMPTY_LIST' {
+        return 'CLIENT_PICK_FROM_EMPTY_LIST';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Cannot pick from an empty list' {
+        return 'Cannot pick from an empty list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-pick-from-empty-list' {
+        return 'https://jsprismarine.dev/errors/client#client-pick-from-empty-list';
+    }
 
     public override readonly code = 'CLIENT_PICK_FROM_EMPTY_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-pick-from-empty-list';
@@ -58,10 +74,18 @@ class PickFromEmptyList extends JSPrismarineError {
 
 /** A duration option is not a number with an optional `ms`, `s`, `m` or `h` unit. */
 class InvalidDuration extends UsageError {
-    public static readonly code = 'CLIENT_INVALID_DURATION';
-    public static readonly domain = 'client';
-    public static readonly template = 'Cannot read "{value}" as a duration. Try 30s, 10m, or 500ms.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-duration';
+    public static get code(): 'CLIENT_INVALID_DURATION' {
+        return 'CLIENT_INVALID_DURATION';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Cannot read "{value}" as a duration. Try 30s, 10m, or 500ms.' {
+        return 'Cannot read "{value}" as a duration. Try 30s, 10m, or 500ms.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-duration' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-duration';
+    }
 
     public override readonly code = 'CLIENT_INVALID_DURATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-duration';
@@ -80,10 +104,18 @@ class InvalidDuration extends UsageError {
 
 /** A rate option is not a number of events per second. */
 class InvalidRate extends UsageError {
-    public static readonly code = 'CLIENT_INVALID_RATE';
-    public static readonly domain = 'client';
-    public static readonly template = 'Cannot read "{value}" as a rate. Try 5 or 5/s.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-rate';
+    public static get code(): 'CLIENT_INVALID_RATE' {
+        return 'CLIENT_INVALID_RATE';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Cannot read "{value}" as a rate. Try 5 or 5/s.' {
+        return 'Cannot read "{value}" as a rate. Try 5 or 5/s.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-rate' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-rate';
+    }
 
     public override readonly code = 'CLIENT_INVALID_RATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-rate';
@@ -102,10 +134,18 @@ class InvalidRate extends UsageError {
 
 /** A packet was sent before the NetherNet connection opened or after it closed. */
 class TransportNotConnected extends JSPrismarineError {
-    public static readonly code = 'CLIENT_TRANSPORT_NOT_CONNECTED';
-    public static readonly domain = 'client';
-    public static readonly template = 'Cannot send on a transport that is not connected';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-transport-not-connected';
+    public static get code(): 'CLIENT_TRANSPORT_NOT_CONNECTED' {
+        return 'CLIENT_TRANSPORT_NOT_CONNECTED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Cannot send on a transport that is not connected' {
+        return 'Cannot send on a transport that is not connected';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-transport-not-connected' {
+        return 'https://jsprismarine.dev/errors/client#client-transport-not-connected';
+    }
 
     public override readonly code = 'CLIENT_TRANSPORT_NOT_CONNECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-transport-not-connected';
@@ -123,10 +163,18 @@ class TransportNotConnected extends JSPrismarineError {
 
 /** `--count` asks for no bots at all. Give it 1 or more. */
 class CountBelowOne extends UsageError {
-    public static readonly code = 'CLIENT_COUNT_BELOW_ONE';
-    public static readonly domain = 'client';
-    public static readonly template = '--count must be at least 1';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-count-below-one';
+    public static get code(): 'CLIENT_COUNT_BELOW_ONE' {
+        return 'CLIENT_COUNT_BELOW_ONE';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '--count must be at least 1' {
+        return '--count must be at least 1';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-count-below-one' {
+        return 'https://jsprismarine.dev/errors/client#client-count-below-one';
+    }
 
     public override readonly code = 'CLIENT_COUNT_BELOW_ONE';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-count-below-one';
@@ -144,10 +192,18 @@ class CountBelowOne extends UsageError {
 
 /** The server disconnected the client during login and said why. */
 class DisconnectedByServer extends JSPrismarineError {
-    public static readonly code = 'CLIENT_DISCONNECTED_BY_SERVER';
-    public static readonly domain = 'client';
-    public static readonly template = 'Disconnected by the server: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-disconnected-by-server';
+    public static get code(): 'CLIENT_DISCONNECTED_BY_SERVER' {
+        return 'CLIENT_DISCONNECTED_BY_SERVER';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Disconnected by the server: {reason}' {
+        return 'Disconnected by the server: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-disconnected-by-server' {
+        return 'https://jsprismarine.dev/errors/client#client-disconnected-by-server';
+    }
 
     public override readonly code = 'CLIENT_DISCONNECTED_BY_SERVER';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-disconnected-by-server';
@@ -166,10 +222,18 @@ class DisconnectedByServer extends JSPrismarineError {
 
 /** The server disconnected the client during login without saying why. Its log says why. */
 class DisconnectedByServerWithoutReason extends JSPrismarineError {
-    public static readonly code = 'CLIENT_DISCONNECTED_BY_SERVER_WITHOUT_REASON';
-    public static readonly domain = 'client';
-    public static readonly template = 'Disconnected by the server: no reason given';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-disconnected-by-server-without-reason';
+    public static get code(): 'CLIENT_DISCONNECTED_BY_SERVER_WITHOUT_REASON' {
+        return 'CLIENT_DISCONNECTED_BY_SERVER_WITHOUT_REASON';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Disconnected by the server: no reason given' {
+        return 'Disconnected by the server: no reason given';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-disconnected-by-server-without-reason' {
+        return 'https://jsprismarine.dev/errors/client#client-disconnected-by-server-without-reason';
+    }
 
     public override readonly code = 'CLIENT_DISCONNECTED_BY_SERVER_WITHOUT_REASON';
     public override readonly docs =
@@ -191,10 +255,18 @@ class DisconnectedByServerWithoutReason extends JSPrismarineError {
  * that stopped.
  */
 class DisconnectedDuringLogin extends JSPrismarineError {
-    public static readonly code = 'CLIENT_DISCONNECTED_DURING_LOGIN';
-    public static readonly domain = 'client';
-    public static readonly template = 'Disconnected during login: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-disconnected-during-login';
+    public static get code(): 'CLIENT_DISCONNECTED_DURING_LOGIN' {
+        return 'CLIENT_DISCONNECTED_DURING_LOGIN';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Disconnected during login: {reason}' {
+        return 'Disconnected during login: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-disconnected-during-login' {
+        return 'https://jsprismarine.dev/errors/client#client-disconnected-during-login';
+    }
 
     public override readonly code = 'CLIENT_DISCONNECTED_DURING_LOGIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-disconnected-during-login';
@@ -216,10 +288,18 @@ class DisconnectedDuringLogin extends JSPrismarineError {
  * the server has NetherNet turned on.
  */
 class NotNethernetServer extends JSPrismarineError {
-    public static readonly code = 'CLIENT_NOT_NETHERNET_SERVER';
-    public static readonly domain = 'client';
-    public static readonly template = '{host}:{port} does not speak NetherNet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-not-nethernet-server';
+    public static get code(): 'CLIENT_NOT_NETHERNET_SERVER' {
+        return 'CLIENT_NOT_NETHERNET_SERVER';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{host}:{port} does not speak NetherNet' {
+        return '{host}:{port} does not speak NetherNet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-not-nethernet-server' {
+        return 'https://jsprismarine.dev/errors/client#client-not-nethernet-server';
+    }
 
     public override readonly code = 'CLIENT_NOT_NETHERNET_SERVER';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-not-nethernet-server';
@@ -241,10 +321,18 @@ class NotNethernetServer extends JSPrismarineError {
  * server is not a Bedrock server or is broken.
  */
 class HandshakeTokenHasNoSalt extends JSPrismarineError {
-    public static readonly code = 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_SALT';
-    public static readonly domain = 'client';
-    public static readonly template = 'The handshake token carries no `salt`';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-salt';
+    public static get code(): 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_SALT' {
+        return 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_SALT';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The handshake token carries no `salt`' {
+        return 'The handshake token carries no `salt`';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-salt' {
+        return 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-salt';
+    }
 
     public override readonly code = 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_SALT';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-salt';
@@ -265,10 +353,18 @@ class HandshakeTokenHasNoSalt extends JSPrismarineError {
  * the key.
  */
 class HandshakeTokenHasNoKey extends JSPrismarineError {
-    public static readonly code = 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_KEY';
-    public static readonly domain = 'client';
-    public static readonly template = 'The handshake token carries no `x5u` public key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-key';
+    public static get code(): 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_KEY' {
+        return 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_KEY';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The handshake token carries no `x5u` public key' {
+        return 'The handshake token carries no `x5u` public key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-key' {
+        return 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-key';
+    }
 
     public override readonly code = 'CLIENT_HANDSHAKE_TOKEN_HAS_NO_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-has-no-key';
@@ -286,10 +382,18 @@ class HandshakeTokenHasNoKey extends JSPrismarineError {
 
 /** The server's encryption handshake is not a JSON web token. */
 class HandshakeTokenNotJwt extends JSPrismarineError {
-    public static readonly code = 'CLIENT_HANDSHAKE_TOKEN_NOT_JWT';
-    public static readonly domain = 'client';
-    public static readonly template = 'A handshake token has a header and a payload separated by dots';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-not-jwt';
+    public static get code(): 'CLIENT_HANDSHAKE_TOKEN_NOT_JWT' {
+        return 'CLIENT_HANDSHAKE_TOKEN_NOT_JWT';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'A handshake token has a header and a payload separated by dots' {
+        return 'A handshake token has a header and a payload separated by dots';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-handshake-token-not-jwt' {
+        return 'https://jsprismarine.dev/errors/client#client-handshake-token-not-jwt';
+    }
 
     public override readonly code = 'CLIENT_HANDSHAKE_TOKEN_NOT_JWT';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-handshake-token-not-jwt';
@@ -307,10 +411,18 @@ class HandshakeTokenNotJwt extends JSPrismarineError {
 
 /** A command was run without an option it needs. */
 class MissingOption extends UsageError {
-    public static readonly code = 'CLIENT_MISSING_OPTION';
-    public static readonly domain = 'client';
-    public static readonly template = '--{flag} is required';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-missing-option';
+    public static get code(): 'CLIENT_MISSING_OPTION' {
+        return 'CLIENT_MISSING_OPTION';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '--{flag} is required' {
+        return '--{flag} is required';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-missing-option' {
+        return 'https://jsprismarine.dev/errors/client#client-missing-option';
+    }
 
     public override readonly code = 'CLIENT_MISSING_OPTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-missing-option';
@@ -329,10 +441,18 @@ class MissingOption extends UsageError {
 
 /** The simulated link was given a negative latency. */
 class NegativeLinkLatency extends JSPrismarineRangeError {
-    public static readonly code = 'CLIENT_NEGATIVE_LINK_LATENCY';
-    public static readonly domain = 'client';
-    public static readonly template = 'Link latency must be at least 0 ms, got {latencyMs}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-negative-link-latency';
+    public static get code(): 'CLIENT_NEGATIVE_LINK_LATENCY' {
+        return 'CLIENT_NEGATIVE_LINK_LATENCY';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Link latency must be at least 0 ms, got {latencyMs}' {
+        return 'Link latency must be at least 0 ms, got {latencyMs}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-negative-link-latency' {
+        return 'https://jsprismarine.dev/errors/client#client-negative-link-latency';
+    }
 
     public override readonly code = 'CLIENT_NEGATIVE_LINK_LATENCY';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-negative-link-latency';
@@ -351,10 +471,18 @@ class NegativeLinkLatency extends JSPrismarineRangeError {
 
 /** The simulated link was given a packet loss outside 0 to 1. */
 class InvalidLinkLoss extends JSPrismarineRangeError {
-    public static readonly code = 'CLIENT_INVALID_LINK_LOSS';
-    public static readonly domain = 'client';
-    public static readonly template = 'Link loss must be from 0 to 1, got {loss}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-link-loss';
+    public static get code(): 'CLIENT_INVALID_LINK_LOSS' {
+        return 'CLIENT_INVALID_LINK_LOSS';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Link loss must be from 0 to 1, got {loss}' {
+        return 'Link loss must be from 0 to 1, got {loss}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-link-loss' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-link-loss';
+    }
 
     public override readonly code = 'CLIENT_INVALID_LINK_LOSS';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-link-loss';
@@ -376,10 +504,18 @@ class InvalidLinkLoss extends JSPrismarineRangeError {
  * came.
  */
 class LoginTimedOut extends JSPrismarineError {
-    public static readonly code = 'CLIENT_LOGIN_TIMED_OUT';
-    public static readonly domain = 'client';
-    public static readonly template = 'Login timed out at stage {stage}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-login-timed-out';
+    public static get code(): 'CLIENT_LOGIN_TIMED_OUT' {
+        return 'CLIENT_LOGIN_TIMED_OUT';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Login timed out at stage {stage}' {
+        return 'Login timed out at stage {stage}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-login-timed-out' {
+        return 'https://jsprismarine.dev/errors/client#client-login-timed-out';
+    }
 
     public override readonly code = 'CLIENT_LOGIN_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-login-timed-out';
@@ -398,10 +534,18 @@ class LoginTimedOut extends JSPrismarineError {
 
 /** A percentage option is not a number from 0 to 100, with or without `%`. */
 class InvalidPercentage extends UsageError {
-    public static readonly code = 'CLIENT_INVALID_PERCENTAGE';
-    public static readonly domain = 'client';
-    public static readonly template = '{flag} must be a percentage from 0 to 100, got "{value}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-percentage';
+    public static get code(): 'CLIENT_INVALID_PERCENTAGE' {
+        return 'CLIENT_INVALID_PERCENTAGE';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{flag} must be a percentage from 0 to 100, got "{value}"' {
+        return '{flag} must be a percentage from 0 to 100, got "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-percentage' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-percentage';
+    }
 
     public override readonly code = 'CLIENT_INVALID_PERCENTAGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-percentage';
@@ -420,10 +564,18 @@ class InvalidPercentage extends UsageError {
 
 /** A count option is not a whole, non-negative number. */
 class InvalidWholeNumber extends UsageError {
-    public static readonly code = 'CLIENT_INVALID_WHOLE_NUMBER';
-    public static readonly domain = 'client';
-    public static readonly template = '{flag} must be a whole number, got "{value}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-whole-number';
+    public static get code(): 'CLIENT_INVALID_WHOLE_NUMBER' {
+        return 'CLIENT_INVALID_WHOLE_NUMBER';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{flag} must be a whole number, got "{value}"' {
+        return '{flag} must be a whole number, got "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-whole-number' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-whole-number';
+    }
 
     public override readonly code = 'CLIENT_INVALID_WHOLE_NUMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-whole-number';
@@ -445,10 +597,18 @@ class InvalidWholeNumber extends UsageError {
  * the protocol.
  */
 class NethernetFrameNotBatch extends JSPrismarineError {
-    public static readonly code = 'CLIENT_NETHERNET_FRAME_NOT_BATCH';
-    public static readonly domain = 'client';
-    public static readonly template = 'A NetherNet frame must be a batch, got id 0x{payload}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-frame-not-batch';
+    public static get code(): 'CLIENT_NETHERNET_FRAME_NOT_BATCH' {
+        return 'CLIENT_NETHERNET_FRAME_NOT_BATCH';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'A NetherNet frame must be a batch, got id 0x{payload}' {
+        return 'A NetherNet frame must be a batch, got id 0x{payload}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-nethernet-frame-not-batch' {
+        return 'https://jsprismarine.dev/errors/client#client-nethernet-frame-not-batch';
+    }
 
     public override readonly code = 'CLIENT_NETHERNET_FRAME_NOT_BATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-frame-not-batch';
@@ -467,10 +627,18 @@ class NethernetFrameNotBatch extends JSPrismarineError {
 
 /** `--network` names a transport the client does not have. */
 class UnknownNetwork extends UsageError {
-    public static readonly code = 'CLIENT_UNKNOWN_NETWORK';
-    public static readonly domain = 'client';
-    public static readonly template = '--network must be raknet or nethernet, got "{value}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-unknown-network';
+    public static get code(): 'CLIENT_UNKNOWN_NETWORK' {
+        return 'CLIENT_UNKNOWN_NETWORK';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '--network must be raknet or nethernet, got "{value}"' {
+        return '--network must be raknet or nethernet, got "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-unknown-network' {
+        return 'https://jsprismarine.dev/errors/client#client-unknown-network';
+    }
 
     public override readonly code = 'CLIENT_UNKNOWN_NETWORK';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-unknown-network';
@@ -489,10 +657,18 @@ class UnknownNetwork extends UsageError {
 
 /** A packet from the server ended inside its header, so it is truncated. */
 class PacketHeaderTruncated extends JSPrismarineError {
-    public static readonly code = 'CLIENT_PACKET_HEADER_TRUNCATED';
-    public static readonly domain = 'client';
-    public static readonly template = 'Packet header runs past the end of the buffer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-packet-header-truncated';
+    public static get code(): 'CLIENT_PACKET_HEADER_TRUNCATED' {
+        return 'CLIENT_PACKET_HEADER_TRUNCATED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Packet header runs past the end of the buffer' {
+        return 'Packet header runs past the end of the buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-packet-header-truncated' {
+        return 'https://jsprismarine.dev/errors/client#client-packet-header-truncated';
+    }
 
     public override readonly code = 'CLIENT_PACKET_HEADER_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-packet-header-truncated';
@@ -510,10 +686,18 @@ class PacketHeaderTruncated extends JSPrismarineError {
 
 /** A packet header from the server is not a valid variable-length integer. */
 class PacketHeaderUnterminated extends JSPrismarineError {
-    public static readonly code = 'CLIENT_PACKET_HEADER_UNTERMINATED';
-    public static readonly domain = 'client';
-    public static readonly template = 'Packet header varint did not terminate after 5 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-packet-header-unterminated';
+    public static get code(): 'CLIENT_PACKET_HEADER_UNTERMINATED' {
+        return 'CLIENT_PACKET_HEADER_UNTERMINATED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Packet header varint did not terminate after 5 bytes' {
+        return 'Packet header varint did not terminate after 5 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-packet-header-unterminated' {
+        return 'https://jsprismarine.dev/errors/client#client-packet-header-unterminated';
+    }
 
     public override readonly code = 'CLIENT_PACKET_HEADER_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-packet-header-unterminated';
@@ -531,10 +715,18 @@ class PacketHeaderUnterminated extends JSPrismarineError {
 
 /** Two packet classes were registered under the same id. */
 class DuplicatePacketId extends JSPrismarineError {
-    public static readonly code = 'CLIENT_DUPLICATE_PACKET_ID';
-    public static readonly domain = 'client';
-    public static readonly template = 'Packet id 0x{id} is already registered to {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-duplicate-packet-id';
+    public static get code(): 'CLIENT_DUPLICATE_PACKET_ID' {
+        return 'CLIENT_DUPLICATE_PACKET_ID';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Packet id 0x{id} is already registered to {name}' {
+        return 'Packet id 0x{id} is already registered to {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-duplicate-packet-id' {
+        return 'https://jsprismarine.dev/errors/client#client-duplicate-packet-id';
+    }
 
     public override readonly code = 'CLIENT_DUPLICATE_PACKET_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-duplicate-packet-id';
@@ -553,10 +745,18 @@ class DuplicatePacketId extends JSPrismarineError {
 
 /** The server has no room for another player. */
 class ServerFull extends JSPrismarineError {
-    public static readonly code = 'CLIENT_SERVER_FULL';
-    public static readonly domain = 'client';
-    public static readonly template = 'The server refused the login: the server is full';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-server-full';
+    public static get code(): 'CLIENT_SERVER_FULL' {
+        return 'CLIENT_SERVER_FULL';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server refused the login: the server is full' {
+        return 'The server refused the login: the server is full';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-server-full' {
+        return 'https://jsprismarine.dev/errors/client#client-server-full';
+    }
 
     public override readonly code = 'CLIENT_SERVER_FULL';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-server-full';
@@ -577,10 +777,18 @@ class ServerFull extends JSPrismarineError {
  * supports.
  */
 class ServerOutdated extends JSPrismarineError {
-    public static readonly code = 'CLIENT_SERVER_OUTDATED';
-    public static readonly domain = 'client';
-    public static readonly template = 'The server refused the login: the server is out of date';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-server-outdated';
+    public static get code(): 'CLIENT_SERVER_OUTDATED' {
+        return 'CLIENT_SERVER_OUTDATED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server refused the login: the server is out of date' {
+        return 'The server refused the login: the server is out of date';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-server-outdated' {
+        return 'https://jsprismarine.dev/errors/client#client-server-outdated';
+    }
 
     public override readonly code = 'CLIENT_SERVER_OUTDATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-server-outdated';
@@ -601,10 +809,18 @@ class ServerOutdated extends JSPrismarineError {
  * supports.
  */
 class ClientOutdated extends JSPrismarineError {
-    public static readonly code = 'CLIENT_CLIENT_OUTDATED';
-    public static readonly domain = 'client';
-    public static readonly template = 'The server refused the login: this client is out of date';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-client-outdated';
+    public static get code(): 'CLIENT_CLIENT_OUTDATED' {
+        return 'CLIENT_CLIENT_OUTDATED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server refused the login: this client is out of date' {
+        return 'The server refused the login: this client is out of date';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-client-outdated' {
+        return 'https://jsprismarine.dev/errors/client#client-client-outdated';
+    }
 
     public override readonly code = 'CLIENT_CLIENT_OUTDATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-client-outdated';
@@ -625,10 +841,18 @@ class ClientOutdated extends JSPrismarineError {
  * why.
  */
 class LoginRefused extends JSPrismarineError {
-    public static readonly code = 'CLIENT_LOGIN_REFUSED';
-    public static readonly domain = 'client';
-    public static readonly template = 'The server refused the login with status {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-login-refused';
+    public static get code(): 'CLIENT_LOGIN_REFUSED' {
+        return 'CLIENT_LOGIN_REFUSED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server refused the login with status {status}' {
+        return 'The server refused the login with status {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-login-refused' {
+        return 'https://jsprismarine.dev/errors/client#client-login-refused';
+    }
 
     public override readonly code = 'CLIENT_LOGIN_REFUSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-login-refused';
@@ -650,10 +874,18 @@ class LoginRefused extends JSPrismarineError {
  * never does.
  */
 class SpawnedWithoutStartGame extends JSPrismarineError {
-    public static readonly code = 'CLIENT_SPAWNED_WITHOUT_START_GAME';
-    public static readonly domain = 'client';
-    public static readonly template = 'The server spawned us without ever sending StartGame';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-spawned-without-start-game';
+    public static get code(): 'CLIENT_SPAWNED_WITHOUT_START_GAME' {
+        return 'CLIENT_SPAWNED_WITHOUT_START_GAME';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server spawned us without ever sending StartGame' {
+        return 'The server spawned us without ever sending StartGame';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-spawned-without-start-game' {
+        return 'https://jsprismarine.dev/errors/client#client-spawned-without-start-game';
+    }
 
     public override readonly code = 'CLIENT_SPAWNED_WITHOUT_START_GAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-spawned-without-start-game';
@@ -674,10 +906,18 @@ class SpawnedWithoutStartGame extends JSPrismarineError {
  * ones it does.
  */
 class UnsupportedProtocol extends JSPrismarineError {
-    public static readonly code = 'CLIENT_UNSUPPORTED_PROTOCOL';
-    public static readonly domain = 'client';
-    public static readonly template = 'This client speaks protocol {protocols}, not {protocolVersion}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-unsupported-protocol';
+    public static get code(): 'CLIENT_UNSUPPORTED_PROTOCOL' {
+        return 'CLIENT_UNSUPPORTED_PROTOCOL';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'This client speaks protocol {protocols}, not {protocolVersion}' {
+        return 'This client speaks protocol {protocols}, not {protocolVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-unsupported-protocol' {
+        return 'https://jsprismarine.dev/errors/client#client-unsupported-protocol';
+    }
 
     public override readonly code = 'CLIENT_UNSUPPORTED_PROTOCOL';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-unsupported-protocol';
@@ -704,10 +944,18 @@ class UnsupportedProtocol extends JSPrismarineError {
 
 /** A simulated network link was set up twice in one process. Set it up once. */
 class LinkAlreadyConditioned extends JSPrismarineError {
-    public static readonly code = 'CLIENT_LINK_ALREADY_CONDITIONED';
-    public static readonly domain = 'client';
-    public static readonly template = 'This process is already sending over a conditioned link';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-link-already-conditioned';
+    public static get code(): 'CLIENT_LINK_ALREADY_CONDITIONED' {
+        return 'CLIENT_LINK_ALREADY_CONDITIONED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'This process is already sending over a conditioned link' {
+        return 'This process is already sending over a conditioned link';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-link-already-conditioned' {
+        return 'https://jsprismarine.dev/errors/client#client-link-already-conditioned';
+    }
 
     public override readonly code = 'CLIENT_LINK_ALREADY_CONDITIONED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-link-already-conditioned';
@@ -725,10 +973,18 @@ class LinkAlreadyConditioned extends JSPrismarineError {
 
 /** A bot was given a behavior name that does not exist. The message lists the ones that do. */
 class UnknownBehavior extends JSPrismarineError {
-    public static readonly code = 'CLIENT_UNKNOWN_BEHAVIOR';
-    public static readonly domain = 'client';
-    public static readonly template = 'Unknown behavior "{name}". Known behaviors: {behaviorNames}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-unknown-behavior';
+    public static get code(): 'CLIENT_UNKNOWN_BEHAVIOR' {
+        return 'CLIENT_UNKNOWN_BEHAVIOR';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Unknown behavior "{name}". Known behaviors: {behaviorNames}' {
+        return 'Unknown behavior "{name}". Known behaviors: {behaviorNames}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-unknown-behavior' {
+        return 'https://jsprismarine.dev/errors/client#client-unknown-behavior';
+    }
 
     public override readonly code = 'CLIENT_UNKNOWN_BEHAVIOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-unknown-behavior';
@@ -747,10 +1003,18 @@ class UnknownBehavior extends JSPrismarineError {
 
 /** The client's command line could not be read. Run it with `--help` for the options. */
 class InvalidCommandLineArguments extends UsageError {
-    public static readonly code = 'CLIENT_INVALID_COMMAND_LINE_ARGUMENTS';
-    public static readonly domain = 'client';
-    public static readonly template = 'Invalid command-line arguments';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-command-line-arguments';
+    public static get code(): 'CLIENT_INVALID_COMMAND_LINE_ARGUMENTS' {
+        return 'CLIENT_INVALID_COMMAND_LINE_ARGUMENTS';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Invalid command-line arguments' {
+        return 'Invalid command-line arguments';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-invalid-command-line-arguments' {
+        return 'https://jsprismarine.dev/errors/client#client-invalid-command-line-arguments';
+    }
 
     public override readonly code = 'CLIENT_INVALID_COMMAND_LINE_ARGUMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-invalid-command-line-arguments';
@@ -768,10 +1032,18 @@ class InvalidCommandLineArguments extends UsageError {
 
 /** The command-line parser refused the arguments; the message is its own. */
 class CommandLineRejected extends UsageError {
-    public static readonly code = 'CLIENT_COMMAND_LINE_REJECTED';
-    public static readonly domain = 'client';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-command-line-rejected';
+    public static get code(): 'CLIENT_COMMAND_LINE_REJECTED' {
+        return 'CLIENT_COMMAND_LINE_REJECTED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-command-line-rejected' {
+        return 'https://jsprismarine.dev/errors/client#client-command-line-rejected';
+    }
 
     public override readonly code = 'CLIENT_COMMAND_LINE_REJECTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-command-line-rejected';
@@ -793,10 +1065,18 @@ class CommandLineRejected extends UsageError {
  * UDP traffic WebRTC needs.
  */
 class NethernetConnectionTimedOut extends JSPrismarineError {
-    public static readonly code = 'CLIENT_NETHERNET_CONNECTION_TIMED_OUT';
-    public static readonly domain = 'client';
-    public static readonly template = 'NetherNet connection did not open within {timeoutMs} ms';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-connection-timed-out';
+    public static get code(): 'CLIENT_NETHERNET_CONNECTION_TIMED_OUT' {
+        return 'CLIENT_NETHERNET_CONNECTION_TIMED_OUT';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'NetherNet connection did not open within {timeoutMs} ms' {
+        return 'NetherNet connection did not open within {timeoutMs} ms';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-nethernet-connection-timed-out' {
+        return 'https://jsprismarine.dev/errors/client#client-nethernet-connection-timed-out';
+    }
 
     public override readonly code = 'CLIENT_NETHERNET_CONNECTION_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-connection-timed-out';
@@ -818,10 +1098,18 @@ class NethernetConnectionTimedOut extends JSPrismarineError {
  * reported.
  */
 class NethernetConnectionFailed extends JSPrismarineError {
-    public static readonly code = 'CLIENT_NETHERNET_CONNECTION_FAILED';
-    public static readonly domain = 'client';
-    public static readonly template = 'NetherNet connection failed: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-connection-failed';
+    public static get code(): 'CLIENT_NETHERNET_CONNECTION_FAILED' {
+        return 'CLIENT_NETHERNET_CONNECTION_FAILED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'NetherNet connection failed: {reason}' {
+        return 'NetherNet connection failed: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-nethernet-connection-failed' {
+        return 'https://jsprismarine.dev/errors/client#client-nethernet-connection-failed';
+    }
 
     public override readonly code = 'CLIENT_NETHERNET_CONNECTION_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/client#client-nethernet-connection-failed';

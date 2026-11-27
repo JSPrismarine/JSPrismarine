@@ -65,10 +65,18 @@ export abstract class DebuggerTransportError extends JSPrismarineError {
  * `pnpm --filter @jsprismarine/script-host run build:native`.
  */
 class LibraryInterfaceMismatch extends NativeLibraryError {
-    public static readonly code = 'SCRIPT_HOST_LIBRARY_INTERFACE_MISMATCH';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{path} has interface version {version}, and this binding speaks {abiVersion}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-library-interface-mismatch';
+    public static get code(): 'SCRIPT_HOST_LIBRARY_INTERFACE_MISMATCH' {
+        return 'SCRIPT_HOST_LIBRARY_INTERFACE_MISMATCH';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{path} has interface version {version}, and this binding speaks {abiVersion}' {
+        return '{path} has interface version {version}, and this binding speaks {abiVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-library-interface-mismatch' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-library-interface-mismatch';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LIBRARY_INTERFACE_MISMATCH';
     public override readonly docs =
@@ -99,10 +107,18 @@ class LibraryInterfaceMismatch extends NativeLibraryError {
  * memory. Free memory, or run fewer worlds with scripts.
  */
 class EngineNotCreated extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_ENGINE_NOT_CREATED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The script engine could not be created';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-not-created';
+    public static get code(): 'SCRIPT_HOST_ENGINE_NOT_CREATED' {
+        return 'SCRIPT_HOST_ENGINE_NOT_CREATED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The script engine could not be created' {
+        return 'The script engine could not be created';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-engine-not-created' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-engine-not-created';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ENGINE_NOT_CREATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-not-created';
@@ -123,10 +139,18 @@ class EngineNotCreated extends JSPrismarineError {
  * `EngineDebugger.detach` before attaching another.
  */
 class DebuggerAlreadyAttached extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_ALREADY_ATTACHED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A debugger is already attached to this engine';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-already-attached';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_ALREADY_ATTACHED' {
+        return 'SCRIPT_HOST_DEBUGGER_ALREADY_ATTACHED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A debugger is already attached to this engine' {
+        return 'A debugger is already attached to this engine';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-already-attached' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-already-attached';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_ALREADY_ATTACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-already-attached';
@@ -147,11 +171,18 @@ class DebuggerAlreadyAttached extends JSPrismarineError {
  * it returns. This is a bug in the server; report it with the stack trace.
  */
 class EngineDestroyedDuringHostCall extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_ENGINE_DESTROYED_DURING_HOST_CALL';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A script engine cannot be destroyed while it calls the host';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed-during-host-call';
+    public static get code(): 'SCRIPT_HOST_ENGINE_DESTROYED_DURING_HOST_CALL' {
+        return 'SCRIPT_HOST_ENGINE_DESTROYED_DURING_HOST_CALL';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A script engine cannot be destroyed while it calls the host' {
+        return 'A script engine cannot be destroyed while it calls the host';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed-during-host-call' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed-during-host-call';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ENGINE_DESTROYED_DURING_HOST_CALL';
     public override readonly docs =
@@ -173,10 +204,18 @@ class EngineDestroyedDuringHostCall extends JSPrismarineError {
  * the stack trace.
  */
 class EngineDestroyed extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_ENGINE_DESTROYED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The script engine has been destroyed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed';
+    public static get code(): 'SCRIPT_HOST_ENGINE_DESTROYED' {
+        return 'SCRIPT_HOST_ENGINE_DESTROYED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The script engine has been destroyed' {
+        return 'The script engine has been destroyed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ENGINE_DESTROYED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-destroyed';
@@ -197,10 +236,18 @@ class EngineDestroyed extends JSPrismarineError {
  * freed. This is a bug in the script host; report it with the stack trace.
  */
 class EngineRejectedValue extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_ENGINE_REJECTED_VALUE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The engine rejected a handle or a value';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-rejected-value';
+    public static get code(): 'SCRIPT_HOST_ENGINE_REJECTED_VALUE' {
+        return 'SCRIPT_HOST_ENGINE_REJECTED_VALUE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The engine rejected a handle or a value' {
+        return 'The engine rejected a handle or a value';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-engine-rejected-value' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-engine-rejected-value';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ENGINE_REJECTED_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-rejected-value';
@@ -221,10 +268,18 @@ class EngineRejectedValue extends JSPrismarineRangeError {
  * the package come from different builds. Rebuild the library with `build:native`.
  */
 class UnknownEngineRequest extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_ENGINE_REQUEST';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The engine sent an unknown request {op}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-engine-request';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_ENGINE_REQUEST' {
+        return 'SCRIPT_HOST_UNKNOWN_ENGINE_REQUEST';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The engine sent an unknown request {op}' {
+        return 'The engine sent an unknown request {op}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-engine-request' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-engine-request';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_ENGINE_REQUEST';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-engine-request';
@@ -246,10 +301,18 @@ class UnknownEngineRequest extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class UnknownHostFunction extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_HOST_FUNCTION';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'No host function has id {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-host-function';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_HOST_FUNCTION' {
+        return 'SCRIPT_HOST_UNKNOWN_HOST_FUNCTION';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'No host function has id {id}' {
+        return 'No host function has id {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-host-function' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-host-function';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_HOST_FUNCTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-host-function';
@@ -271,10 +334,18 @@ class UnknownHostFunction extends JSPrismarineReferenceError {
  * the package come from different builds. Rebuild the library with `build:native`.
  */
 class UnknownPauseReason extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_PAUSE_REASON';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The engine stopped for an unknown reason {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-pause-reason';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_PAUSE_REASON' {
+        return 'SCRIPT_HOST_UNKNOWN_PAUSE_REASON';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The engine stopped for an unknown reason {code}' {
+        return 'The engine stopped for an unknown reason {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-pause-reason' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-pause-reason';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_PAUSE_REASON';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-pause-reason';
@@ -296,10 +367,18 @@ class UnknownPauseReason extends JSPrismarineRangeError {
  * as a `ReferenceError`. Check the import's name and the pack's files.
  */
 class ModuleNotFound extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_MODULE_NOT_FOUND';
-    public static readonly domain = 'script-host';
-    public static readonly template = "Could not find module '{name}'";
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-not-found';
+    public static get code(): 'SCRIPT_HOST_MODULE_NOT_FOUND' {
+        return 'SCRIPT_HOST_MODULE_NOT_FOUND';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "Could not find module '{name}'" {
+        return "Could not find module '{name}'";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-module-not-found' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-module-not-found';
+    }
 
     public override readonly code = 'SCRIPT_HOST_MODULE_NOT_FOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-not-found';
@@ -322,10 +401,18 @@ class ModuleNotFound extends JSPrismarineReferenceError {
  * value that is not an error. Fix the script; its stack is on the error as `scriptStack`.
  */
 class ScriptThrew extends ScriptError {
-    public static readonly code = 'SCRIPT_HOST_SCRIPT_THREW';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{error}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-threw';
+    public static get code(): 'SCRIPT_HOST_SCRIPT_THREW' {
+        return 'SCRIPT_HOST_SCRIPT_THREW';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{error}' {
+        return '{error}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-script-threw' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-script-threw';
+    }
 
     public override readonly code = 'SCRIPT_HOST_SCRIPT_THREW';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-threw';
@@ -347,10 +434,18 @@ class ScriptThrew extends ScriptError {
  * Fix the loop, or raise the watchdog's limits in the server's script settings.
  */
 class ScriptTerminated extends ScriptTerminatedError {
-    public static readonly code = 'SCRIPT_HOST_SCRIPT_TERMINATED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{error}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-terminated';
+    public static get code(): 'SCRIPT_HOST_SCRIPT_TERMINATED' {
+        return 'SCRIPT_HOST_SCRIPT_TERMINATED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{error}' {
+        return '{error}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-script-terminated' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-script-terminated';
+    }
 
     public override readonly code = 'SCRIPT_HOST_SCRIPT_TERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-terminated';
@@ -372,10 +467,18 @@ class ScriptTerminated extends ScriptTerminatedError {
  * limit in the server's script settings.
  */
 class ScriptOutOfMemory extends ScriptOutOfMemoryError {
-    public static readonly code = 'SCRIPT_HOST_SCRIPT_OUT_OF_MEMORY';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{error}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-out-of-memory';
+    public static get code(): 'SCRIPT_HOST_SCRIPT_OUT_OF_MEMORY' {
+        return 'SCRIPT_HOST_SCRIPT_OUT_OF_MEMORY';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{error}' {
+        return '{error}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-script-out-of-memory' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-script-out-of-memory';
+    }
 
     public override readonly code = 'SCRIPT_HOST_SCRIPT_OUT_OF_MEMORY';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-out-of-memory';
@@ -399,10 +502,18 @@ class ScriptOutOfMemory extends ScriptOutOfMemoryError {
  * `@jsprismarine/script-host`.
  */
 class NotImplemented extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_NOT_IMPLEMENTED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{member} from {module} is not implemented';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-implemented';
+    public static get code(): 'SCRIPT_HOST_NOT_IMPLEMENTED' {
+        return 'SCRIPT_HOST_NOT_IMPLEMENTED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{member} from {module} is not implemented' {
+        return '{member} from {module} is not implemented';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-not-implemented' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-not-implemented';
+    }
 
     public override readonly code = 'SCRIPT_HOST_NOT_IMPLEMENTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-implemented';
@@ -425,10 +536,18 @@ class NotImplemented extends JSPrismarineError {
  * reaches Node.js only when code outside a member call throws it.
  */
 class ApiError extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_API_ERROR';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-api-error';
+    public static get code(): 'SCRIPT_HOST_API_ERROR' {
+        return 'SCRIPT_HOST_API_ERROR';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-api-error' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-api-error';
+    }
 
     public override readonly code = 'SCRIPT_HOST_API_ERROR';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-api-error';
@@ -451,11 +570,18 @@ class ApiError extends JSPrismarineError {
  * the module to the `dependencies` of the pack's `manifest.json`.
  */
 class UnrecognizedModule extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_UNRECOGNIZED_MODULE';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Module [{name}] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unrecognized-module';
+    public static get code(): 'SCRIPT_HOST_UNRECOGNIZED_MODULE' {
+        return 'SCRIPT_HOST_UNRECOGNIZED_MODULE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Module [{name}] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?' {
+        return 'Module [{name}] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unrecognized-module' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unrecognized-module';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNRECOGNIZED_MODULE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unrecognized-module';
@@ -480,10 +606,18 @@ class UnrecognizedModule extends JSPrismarineReferenceError {
  * pack gets one version of each module; make its manifest and its dependencies agree.
  */
 class ModuleVersionConflict extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_MODULE_VERSION_CONFLICT';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{pack} already has {module} {bound}, not {requested}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-version-conflict';
+    public static get code(): 'SCRIPT_HOST_MODULE_VERSION_CONFLICT' {
+        return 'SCRIPT_HOST_MODULE_VERSION_CONFLICT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{pack} already has {module} {bound}, not {requested}' {
+        return '{pack} already has {module} {bound}, not {requested}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-module-version-conflict' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-module-version-conflict';
+    }
 
     public override readonly code = 'SCRIPT_HOST_MODULE_VERSION_CONFLICT';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-version-conflict';
@@ -521,10 +655,18 @@ class ModuleVersionConflict extends JSPrismarineError {
  * Regenerate the shapes with `pnpm --filter @jsprismarine/script-host run generate:shape`.
  */
 class DependencyHasNoShape extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEPENDENCY_HAS_NO_SHAPE';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{module} {version}, a dependency of the bound modules, has no generated shape';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-dependency-has-no-shape';
+    public static get code(): 'SCRIPT_HOST_DEPENDENCY_HAS_NO_SHAPE' {
+        return 'SCRIPT_HOST_DEPENDENCY_HAS_NO_SHAPE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{module} {version}, a dependency of the bound modules, has no generated shape' {
+        return '{module} {version}, a dependency of the bound modules, has no generated shape';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-dependency-has-no-shape' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-dependency-has-no-shape';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEPENDENCY_HAS_NO_SHAPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-dependency-has-no-shape';
@@ -549,10 +691,18 @@ class DependencyHasNoShape extends JSPrismarineError {
  * the script host; report it with the stack trace.
  */
 class UnknownApiMember extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_API_MEMBER';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'No Script API member has id {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-api-member';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_API_MEMBER' {
+        return 'SCRIPT_HOST_UNKNOWN_API_MEMBER';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'No Script API member has id {id}' {
+        return 'No Script API member has id {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-api-member' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-api-member';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_API_MEMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-api-member';
@@ -575,10 +725,18 @@ class UnknownApiMember extends JSPrismarineRangeError {
  * the call into `system.run`.
  */
 class MemberNotPrivileged extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_MEMBER_NOT_PRIVILEGED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{member} cannot be used in {privilege}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-member-not-privileged';
+    public static get code(): 'SCRIPT_HOST_MEMBER_NOT_PRIVILEGED' {
+        return 'SCRIPT_HOST_MEMBER_NOT_PRIVILEGED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{member} cannot be used in {privilege}.' {
+        return '{member} cannot be used in {privilege}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-member-not-privileged' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-member-not-privileged';
+    }
 
     public override readonly code = 'SCRIPT_HOST_MEMBER_NOT_PRIVILEGED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-member-not-privileged';
@@ -600,10 +758,18 @@ class MemberNotPrivileged extends JSPrismarineReferenceError {
  * generator wrote a broken file; regenerate the shapes.
  */
 class ExportNotOfModuleClass extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_EXPORT_NOT_OF_MODULE_CLASS';
-    public static readonly domain = 'script-host';
-    public static readonly template = "{module}'s {name} is not of a class in it";
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-export-not-of-module-class';
+    public static get code(): 'SCRIPT_HOST_EXPORT_NOT_OF_MODULE_CLASS' {
+        return 'SCRIPT_HOST_EXPORT_NOT_OF_MODULE_CLASS';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "{module}'s {name} is not of a class in it" {
+        return "{module}'s {name} is not of a class in it";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-export-not-of-module-class' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-export-not-of-module-class';
+    }
 
     public override readonly code = 'SCRIPT_HOST_EXPORT_NOT_OF_MODULE_CLASS';
     public override readonly docs =
@@ -626,10 +792,18 @@ class ExportNotOfModuleClass extends JSPrismarineTypeError {
  * shape generator wrote a broken file; regenerate the shapes.
  */
 class SegmentVersionMissing extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_SEGMENT_VERSION_MISSING';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A segment names the version {version}, which the history lacks';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-segment-version-missing';
+    public static get code(): 'SCRIPT_HOST_SEGMENT_VERSION_MISSING' {
+        return 'SCRIPT_HOST_SEGMENT_VERSION_MISSING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A segment names the version {version}, which the history lacks' {
+        return 'A segment names the version {version}, which the history lacks';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-segment-version-missing' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-segment-version-missing';
+    }
 
     public override readonly code = 'SCRIPT_HOST_SEGMENT_VERSION_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-segment-version-missing';
@@ -648,10 +822,18 @@ class SegmentVersionMissing extends JSPrismarineRangeError {
 
 /** Code asked for a Script API module version that its generated history does not have. */
 class ModuleVersionMissing extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_MODULE_VERSION_MISSING';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{module} has no version {version}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-version-missing';
+    public static get code(): 'SCRIPT_HOST_MODULE_VERSION_MISSING' {
+        return 'SCRIPT_HOST_MODULE_VERSION_MISSING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{module} has no version {version}' {
+        return '{module} has no version {version}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-module-version-missing' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-module-version-missing';
+    }
 
     public override readonly code = 'SCRIPT_HOST_MODULE_VERSION_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-module-version-missing';
@@ -672,10 +854,18 @@ class ModuleVersionMissing extends JSPrismarineRangeError {
  * Two implementations were registered for the same Script API member. Remove one of them.
  */
 class ImplementedTwice extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_IMPLEMENTED_TWICE';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{owner}.{member} from {module} is implemented twice';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-implemented-twice';
+    public static get code(): 'SCRIPT_HOST_IMPLEMENTED_TWICE' {
+        return 'SCRIPT_HOST_IMPLEMENTED_TWICE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{owner}.{member} from {module} is implemented twice' {
+        return '{owner}.{member} from {module} is implemented twice';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-implemented-twice' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-implemented-twice';
+    }
 
     public override readonly code = 'SCRIPT_HOST_IMPLEMENTED_TWICE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-implemented-twice';
@@ -702,10 +892,18 @@ class ImplementedTwice extends JSPrismarineError {
 
 /** Code compared a version string that is not a `major.minor.patch` version. */
 class VersionsNotComparable extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_VERSIONS_NOT_COMPARABLE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Cannot compare {left} with {right}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-versions-not-comparable';
+    public static get code(): 'SCRIPT_HOST_VERSIONS_NOT_COMPARABLE' {
+        return 'SCRIPT_HOST_VERSIONS_NOT_COMPARABLE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Cannot compare {left} with {right}' {
+        return 'Cannot compare {left} with {right}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-versions-not-comparable' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-versions-not-comparable';
+    }
 
     public override readonly code = 'SCRIPT_HOST_VERSIONS_NOT_COMPARABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-versions-not-comparable';
@@ -727,11 +925,18 @@ class VersionsNotComparable extends JSPrismarineRangeError {
  * script. This is a bug in the script host; report it with the stack trace.
  */
 class ValueCannotCrossIntoScript extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_VALUE_CANNOT_CROSS_INTO_SCRIPT';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A {type} cannot cross into a script';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-value-cannot-cross-into-script';
+    public static get code(): 'SCRIPT_HOST_VALUE_CANNOT_CROSS_INTO_SCRIPT' {
+        return 'SCRIPT_HOST_VALUE_CANNOT_CROSS_INTO_SCRIPT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A {type} cannot cross into a script' {
+        return 'A {type} cannot cross into a script';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-value-cannot-cross-into-script' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-value-cannot-cross-into-script';
+    }
 
     public override readonly code = 'SCRIPT_HOST_VALUE_CANNOT_CROSS_INTO_SCRIPT';
     public override readonly docs =
@@ -754,10 +959,18 @@ class ValueCannotCrossIntoScript extends JSPrismarineTypeError {
  * from different builds. Rebuild the library with `build:native`.
  */
 class UnknownValueTag extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_VALUE_TAG';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Unknown value tag {tag}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-value-tag';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_VALUE_TAG' {
+        return 'SCRIPT_HOST_UNKNOWN_VALUE_TAG';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Unknown value tag {tag}' {
+        return 'Unknown value tag {tag}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-value-tag' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-value-tag';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_VALUE_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-value-tag';
@@ -776,10 +989,18 @@ class UnknownValueTag extends JSPrismarineRangeError {
 
 /** The engine sent another kind of value where the host reads a string. This is a bug in the script host. */
 class ExpectedStringValue extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_EXPECTED_STRING_VALUE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Expected a string value';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-expected-string-value';
+    public static get code(): 'SCRIPT_HOST_EXPECTED_STRING_VALUE' {
+        return 'SCRIPT_HOST_EXPECTED_STRING_VALUE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Expected a string value' {
+        return 'Expected a string value';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-expected-string-value' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-expected-string-value';
+    }
 
     public override readonly code = 'SCRIPT_HOST_EXPECTED_STRING_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-expected-string-value';
@@ -801,10 +1022,18 @@ class ExpectedStringValue extends JSPrismarineRangeError {
  * `build:native`.
  */
 class ValueRunsPastBytes extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_VALUE_RUNS_PAST_BYTES';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The value runs past its bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-value-runs-past-bytes';
+    public static get code(): 'SCRIPT_HOST_VALUE_RUNS_PAST_BYTES' {
+        return 'SCRIPT_HOST_VALUE_RUNS_PAST_BYTES';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The value runs past its bytes' {
+        return 'The value runs past its bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-value-runs-past-bytes' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-value-runs-past-bytes';
+    }
 
     public override readonly code = 'SCRIPT_HOST_VALUE_RUNS_PAST_BYTES';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-value-runs-past-bytes';
@@ -825,10 +1054,18 @@ class ValueRunsPastBytes extends JSPrismarineRangeError {
  * bug in the script host; report it with the stack trace.
  */
 class NotAnObject extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_NOT_AN_OBJECT';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{what} is not an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-an-object';
+    public static get code(): 'SCRIPT_HOST_NOT_AN_OBJECT' {
+        return 'SCRIPT_HOST_NOT_AN_OBJECT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{what} is not an object' {
+        return '{what} is not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-not-an-object' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-not-an-object';
+    }
 
     public override readonly code = 'SCRIPT_HOST_NOT_AN_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-an-object';
@@ -850,10 +1087,18 @@ class NotAnObject extends JSPrismarineTypeError {
  * not a function. This is a bug in the script host; report it with the stack trace.
  */
 class NotAFunction extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_NOT_AFUNCTION';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{what} is not a function';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-afunction';
+    public static get code(): 'SCRIPT_HOST_NOT_AFUNCTION' {
+        return 'SCRIPT_HOST_NOT_AFUNCTION';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{what} is not a function' {
+        return '{what} is not a function';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-not-afunction' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-not-afunction';
+    }
 
     public override readonly code = 'SCRIPT_HOST_NOT_AFUNCTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-afunction';
@@ -875,11 +1120,18 @@ class NotAFunction extends JSPrismarineTypeError {
  * in the script host; report it with the stack trace.
  */
 class LiteralEvaluatedToPrimitive extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_LITERAL_EVALUATED_TO_PRIMITIVE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'An {kind} literal evaluated to a primitive';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-literal-evaluated-to-primitive';
+    public static get code(): 'SCRIPT_HOST_LITERAL_EVALUATED_TO_PRIMITIVE' {
+        return 'SCRIPT_HOST_LITERAL_EVALUATED_TO_PRIMITIVE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'An {kind} literal evaluated to a primitive' {
+        return 'An {kind} literal evaluated to a primitive';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-literal-evaluated-to-primitive' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-literal-evaluated-to-primitive';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LITERAL_EVALUATED_TO_PRIMITIVE';
     public override readonly docs =
@@ -902,11 +1154,18 @@ class LiteralEvaluatedToPrimitive extends JSPrismarineTypeError {
  * object, although the binding checked them. This is a bug in the script host.
  */
 class DisplayOptionsNotAnObject extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_DISPLAY_OPTIONS_NOT_AN_OBJECT';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The display options are not an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-display-options-not-an-object';
+    public static get code(): 'SCRIPT_HOST_DISPLAY_OPTIONS_NOT_AN_OBJECT' {
+        return 'SCRIPT_HOST_DISPLAY_OPTIONS_NOT_AN_OBJECT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The display options are not an object' {
+        return 'The display options are not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-display-options-not-an-object' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-display-options-not-an-object';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DISPLAY_OPTIONS_NOT_AN_OBJECT';
     public override readonly docs =
@@ -928,10 +1187,18 @@ class DisplayOptionsNotAnObject extends JSPrismarineTypeError {
  * or deleted it.
  */
 class EngineGlobalMissing extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_ENGINE_GLOBAL_MISSING';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{name} is missing';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-global-missing';
+    public static get code(): 'SCRIPT_HOST_ENGINE_GLOBAL_MISSING' {
+        return 'SCRIPT_HOST_ENGINE_GLOBAL_MISSING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{name} is missing' {
+        return '{name} is missing';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-engine-global-missing' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-engine-global-missing';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ENGINE_GLOBAL_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-engine-global-missing';
@@ -953,10 +1220,18 @@ class EngineGlobalMissing extends JSPrismarineTypeError {
  * two settle functions. This is a bug in the script host; report it with the stack trace.
  */
 class DeferredPromiseNotAList extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_DEFERRED_PROMISE_NOT_ALIST';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The deferred promise is not a list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-not-alist';
+    public static get code(): 'SCRIPT_HOST_DEFERRED_PROMISE_NOT_ALIST' {
+        return 'SCRIPT_HOST_DEFERRED_PROMISE_NOT_ALIST';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The deferred promise is not a list' {
+        return 'The deferred promise is not a list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-not-alist' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-not-alist';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEFERRED_PROMISE_NOT_ALIST';
     public override readonly docs =
@@ -978,10 +1253,18 @@ class DeferredPromiseNotAList extends JSPrismarineTypeError {
  * function. This is a bug in the script host; report it with the stack trace.
  */
 class DeferredPromiseIncomplete extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_DEFERRED_PROMISE_INCOMPLETE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The deferred promise is incomplete';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-incomplete';
+    public static get code(): 'SCRIPT_HOST_DEFERRED_PROMISE_INCOMPLETE' {
+        return 'SCRIPT_HOST_DEFERRED_PROMISE_INCOMPLETE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The deferred promise is incomplete' {
+        return 'The deferred promise is incomplete';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-incomplete' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-deferred-promise-incomplete';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEFERRED_PROMISE_INCOMPLETE';
     public override readonly docs =
@@ -1003,10 +1286,18 @@ class DeferredPromiseIncomplete extends JSPrismarineTypeError {
  * entity. The host wrote every state, so this is a bug in the script host.
  */
 class ObjectCarriesNoState extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_OBJECT_CARRIES_NO_STATE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The object carries no {what}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-object-carries-no-state';
+    public static get code(): 'SCRIPT_HOST_OBJECT_CARRIES_NO_STATE' {
+        return 'SCRIPT_HOST_OBJECT_CARRIES_NO_STATE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The object carries no {what}' {
+        return 'The object carries no {what}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-object-carries-no-state' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-object-carries-no-state';
+    }
 
     public override readonly code = 'SCRIPT_HOST_OBJECT_CARRIES_NO_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-object-carries-no-state';
@@ -1028,10 +1319,18 @@ class ObjectCarriesNoState extends JSPrismarineTypeError {
  * another type. This is a bug in the script host; report it with the stack trace.
  */
 class ArgumentNotOfType extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_ARGUMENT_NOT_OF_TYPE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The {argument} is not a {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-argument-not-of-type';
+    public static get code(): 'SCRIPT_HOST_ARGUMENT_NOT_OF_TYPE' {
+        return 'SCRIPT_HOST_ARGUMENT_NOT_OF_TYPE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The {argument} is not a {type}' {
+        return 'The {argument} is not a {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-argument-not-of-type' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-argument-not-of-type';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ARGUMENT_NOT_OF_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-argument-not-of-type';
@@ -1054,10 +1353,18 @@ class ArgumentNotOfType extends JSPrismarineTypeError {
  * handler runs.
  */
 class EventNoLongerValid extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_EVENT_NO_LONGER_VALID';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The event is no longer valid';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-event-no-longer-valid';
+    public static get code(): 'SCRIPT_HOST_EVENT_NO_LONGER_VALID' {
+        return 'SCRIPT_HOST_EVENT_NO_LONGER_VALID';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The event is no longer valid' {
+        return 'The event is no longer valid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-event-no-longer-valid' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-event-no-longer-valid';
+    }
 
     public override readonly code = 'SCRIPT_HOST_EVENT_NO_LONGER_VALID';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-event-no-longer-valid';
@@ -1079,11 +1386,18 @@ class EventNoLongerValid extends JSPrismarineReferenceError {
  * `TypeError`.
  */
 class ArgumentConversionFailed extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_ARGUMENT_CONVERSION_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Native type conversion failed. Function argument [{index}] expected type: {expected}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-argument-conversion-failed';
+    public static get code(): 'SCRIPT_HOST_ARGUMENT_CONVERSION_FAILED' {
+        return 'SCRIPT_HOST_ARGUMENT_CONVERSION_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Native type conversion failed. Function argument [{index}] expected type: {expected}' {
+        return 'Native type conversion failed. Function argument [{index}] expected type: {expected}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-argument-conversion-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-argument-conversion-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ARGUMENT_CONVERSION_FAILED';
     public override readonly docs =
@@ -1109,12 +1423,18 @@ class ArgumentConversionFailed extends JSPrismarineTypeError {
  * Bedrock Dedicated Server's `TypeError`. Make each hook of the component a function.
  */
 class InterfacePropertyConversionFailed extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_CONVERSION_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        "Native type conversion failed. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [1]).";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-interface-property-conversion-failed';
+    public static get code(): 'SCRIPT_HOST_INTERFACE_PROPERTY_CONVERSION_FAILED' {
+        return 'SCRIPT_HOST_INTERFACE_PROPERTY_CONVERSION_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "Native type conversion failed. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [1])." {
+        return "Native type conversion failed. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [1]).";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-conversion-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-conversion-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_CONVERSION_FAILED';
     public override readonly docs =
@@ -1142,11 +1462,18 @@ class InterfacePropertyConversionFailed extends JSPrismarineTypeError {
  * Pass an object with every property the interface lists.
  */
 class InterfacePropertyMissing extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_MISSING';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).";
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-missing';
+    public static get code(): 'SCRIPT_HOST_INTERFACE_PROPERTY_MISSING' {
+        return 'SCRIPT_HOST_INTERFACE_PROPERTY_MISSING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target})." {
+        return "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-missing' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-missing';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_MISSING';
     public override readonly docs =
@@ -1179,12 +1506,18 @@ class InterfacePropertyMissing extends JSPrismarineTypeError {
  * a property. Give every number property a finite value.
  */
 class InterfacePropertyNotFinite extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_NOT_FINITE';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        "{value} value is not supported. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-interface-property-not-finite';
+    public static get code(): 'SCRIPT_HOST_INTERFACE_PROPERTY_NOT_FINITE' {
+        return 'SCRIPT_HOST_INTERFACE_PROPERTY_NOT_FINITE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "{value} value is not supported. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target})." {
+        return "{value} value is not supported. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-not-finite' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-interface-property-not-finite';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INTERFACE_PROPERTY_NOT_FINITE';
     public override readonly docs =
@@ -1223,10 +1556,18 @@ class InterfacePropertyNotFinite extends JSPrismarineTypeError {
  * The script sees Bedrock Dedicated Server's `TypeError`.
  */
 class VariantConversionFailed extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_VARIANT_CONVERSION_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Native variant type conversion failed.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-variant-conversion-failed';
+    public static get code(): 'SCRIPT_HOST_VARIANT_CONVERSION_FAILED' {
+        return 'SCRIPT_HOST_VARIANT_CONVERSION_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Native variant type conversion failed.' {
+        return 'Native variant type conversion failed.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-variant-conversion-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-variant-conversion-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_VARIANT_CONVERSION_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-variant-conversion-failed';
@@ -1247,11 +1588,18 @@ class VariantConversionFailed extends JSPrismarineTypeError {
  * Bedrock Dedicated Server's `TypeError`.
  */
 class TextConversionFailed extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_TEXT_CONVERSION_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Native variant type conversion failed. Function argument [{argument}] expected type: string | RawMessage';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-text-conversion-failed';
+    public static get code(): 'SCRIPT_HOST_TEXT_CONVERSION_FAILED' {
+        return 'SCRIPT_HOST_TEXT_CONVERSION_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Native variant type conversion failed. Function argument [{argument}] expected type: string | RawMessage' {
+        return 'Native variant type conversion failed. Function argument [{argument}] expected type: string | RawMessage';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-text-conversion-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-text-conversion-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_TEXT_CONVERSION_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-text-conversion-failed';
@@ -1277,10 +1625,18 @@ class TextConversionFailed extends JSPrismarineTypeError {
  * `TypeError`.
  */
 class InfinityNotSupported extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_INFINITY_NOT_SUPPORTED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Infinity value is not supported.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-infinity-not-supported';
+    public static get code(): 'SCRIPT_HOST_INFINITY_NOT_SUPPORTED' {
+        return 'SCRIPT_HOST_INFINITY_NOT_SUPPORTED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Infinity value is not supported.' {
+        return 'Infinity value is not supported.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-infinity-not-supported' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-infinity-not-supported';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INFINITY_NOT_SUPPORTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-infinity-not-supported';
@@ -1303,12 +1659,18 @@ class InfinityNotSupported extends JSPrismarineTypeError {
  * Server's `TypeError`.
  */
 class ArgumentVariantConversionFailed extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_ARGUMENT_VARIANT_CONVERSION_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Native variant type conversion failed. Function argument [{argument}] expected type: {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-argument-variant-conversion-failed';
+    public static get code(): 'SCRIPT_HOST_ARGUMENT_VARIANT_CONVERSION_FAILED' {
+        return 'SCRIPT_HOST_ARGUMENT_VARIANT_CONVERSION_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Native variant type conversion failed. Function argument [{argument}] expected type: {type}' {
+        return 'Native variant type conversion failed. Function argument [{argument}] expected type: {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-argument-variant-conversion-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-argument-variant-conversion-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_ARGUMENT_VARIANT_CONVERSION_FAILED';
     public override readonly docs =
@@ -1336,10 +1698,18 @@ class ArgumentVariantConversionFailed extends JSPrismarineTypeError {
  * what the modules' declarations in `@jsprismarine/script-types` name.
  */
 class JspModuleArgument extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_JSP_MODULE_ARGUMENT';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{member} takes {expected} as its {argument}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-jsp-module-argument';
+    public static get code(): 'SCRIPT_HOST_JSP_MODULE_ARGUMENT' {
+        return 'SCRIPT_HOST_JSP_MODULE_ARGUMENT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{member} takes {expected} as its {argument}' {
+        return '{member} takes {expected} as its {argument}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-jsp-module-argument' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-jsp-module-argument';
+    }
 
     public override readonly code = 'SCRIPT_HOST_JSP_MODULE_ARGUMENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-jsp-module-argument';
@@ -1366,10 +1736,18 @@ class JspModuleArgument extends JSPrismarineTypeError {
 
 /** A pack called a member of `@jsprismarine/server` this server does not provide, which it should have checked for with `in`. */
 class JspMemberUnavailable extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_JSP_MEMBER_UNAVAILABLE';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{member} of @jsprismarine/server is not available on this server';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-jsp-member-unavailable';
+    public static get code(): 'SCRIPT_HOST_JSP_MEMBER_UNAVAILABLE' {
+        return 'SCRIPT_HOST_JSP_MEMBER_UNAVAILABLE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{member} of @jsprismarine/server is not available on this server' {
+        return '{member} of @jsprismarine/server is not available on this server';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-jsp-member-unavailable' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-jsp-member-unavailable';
+    }
 
     public override readonly code = 'SCRIPT_HOST_JSP_MEMBER_UNAVAILABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-jsp-member-unavailable';
@@ -1392,11 +1770,18 @@ class JspMemberUnavailable extends JSPrismarineError {
  * unmistakably a token. The script sees a `TypeError`. Rename the namespace or the key.
  */
 class PlaceholderName extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_PLACEHOLDER_NAME';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        '{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-name';
+    public static get code(): 'SCRIPT_HOST_PLACEHOLDER_NAME' {
+        return 'SCRIPT_HOST_PLACEHOLDER_NAME';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter' {
+        return '{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-name' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-name';
+    }
 
     public override readonly code = 'SCRIPT_HOST_PLACEHOLDER_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-name';
@@ -1421,10 +1806,18 @@ class PlaceholderName extends JSPrismarineTypeError {
  * resolver. The script sees a `TypeError`. List every key the resolver answers in `keys`.
  */
 class PlaceholderNoKeys extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_PLACEHOLDER_NO_KEYS';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The placeholder namespace {namespace} lists no keys';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-no-keys';
+    public static get code(): 'SCRIPT_HOST_PLACEHOLDER_NO_KEYS' {
+        return 'SCRIPT_HOST_PLACEHOLDER_NO_KEYS';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The placeholder namespace {namespace} lists no keys' {
+        return 'The placeholder namespace {namespace} lists no keys';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-no-keys' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-no-keys';
+    }
 
     public override readonly code = 'SCRIPT_HOST_PLACEHOLDER_NO_KEYS';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-no-keys';
@@ -1447,10 +1840,18 @@ class PlaceholderNoKeys extends JSPrismarineTypeError {
  * `placeholders.namespaces` lists the names in use.
  */
 class PlaceholderNamespaceTaken extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_PLACEHOLDER_NAMESPACE_TAKEN';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The placeholder namespace {namespace} is registered already';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-namespace-taken';
+    public static get code(): 'SCRIPT_HOST_PLACEHOLDER_NAMESPACE_TAKEN' {
+        return 'SCRIPT_HOST_PLACEHOLDER_NAMESPACE_TAKEN';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The placeholder namespace {namespace} is registered already' {
+        return 'The placeholder namespace {namespace} is registered already';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-namespace-taken' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-placeholder-namespace-taken';
+    }
 
     public override readonly code = 'SCRIPT_HOST_PLACEHOLDER_NAMESPACE_TAKEN';
     public override readonly docs =
@@ -1475,10 +1876,18 @@ class PlaceholderNamespaceTaken extends JSPrismarineError {
  * each node the shape the module's `TemplateNode` type declares.
  */
 class TemplateInvalid extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_TEMPLATE_INVALID';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The template node at {where} {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-template-invalid';
+    public static get code(): 'SCRIPT_HOST_TEMPLATE_INVALID' {
+        return 'SCRIPT_HOST_TEMPLATE_INVALID';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The template node at {where} {problem}' {
+        return 'The template node at {where} {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-template-invalid' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-template-invalid';
+    }
 
     public override readonly code = 'SCRIPT_HOST_TEMPLATE_INVALID';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-template-invalid';
@@ -1502,10 +1911,18 @@ class TemplateInvalid extends JSPrismarineTypeError {
  * The script sees a `TypeError`. Fix the condition where the message says.
  */
 class TemplateCondition extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_TEMPLATE_CONDITION';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The condition {condition} {problem}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-template-condition';
+    public static get code(): 'SCRIPT_HOST_TEMPLATE_CONDITION' {
+        return 'SCRIPT_HOST_TEMPLATE_CONDITION';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The condition {condition} {problem}' {
+        return 'The condition {condition} {problem}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-template-condition' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-template-condition';
+    }
 
     public override readonly code = 'SCRIPT_HOST_TEMPLATE_CONDITION';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-template-condition';
@@ -1527,10 +1944,18 @@ class TemplateCondition extends JSPrismarineTypeError {
  * Server's `Error`.
  */
 class InvalidPlayerHandle extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_INVALID_PLAYER_HANDLE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Invalid Player handle.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-player-handle';
+    public static get code(): 'SCRIPT_HOST_INVALID_PLAYER_HANDLE' {
+        return 'SCRIPT_HOST_INVALID_PLAYER_HANDLE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Invalid Player handle.' {
+        return 'Invalid Player handle.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-invalid-player-handle' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-invalid-player-handle';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INVALID_PLAYER_HANDLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-player-handle';
@@ -1551,10 +1976,18 @@ class InvalidPlayerHandle extends JSPrismarineError {
  * Dedicated Server's `ReferenceError`.
  */
 class TestNoLongerBound extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_TEST_NO_LONGER_BOUND';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Native function [Test::{member}] object bound to prototype does not exist.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-test-no-longer-bound';
+    public static get code(): 'SCRIPT_HOST_TEST_NO_LONGER_BOUND' {
+        return 'SCRIPT_HOST_TEST_NO_LONGER_BOUND';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Native function [Test::{member}] object bound to prototype does not exist.' {
+        return 'Native function [Test::{member}] object bound to prototype does not exist.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-test-no-longer-bound' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-test-no-longer-bound';
+    }
 
     public override readonly code = 'SCRIPT_HOST_TEST_NO_LONGER_BOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-test-no-longer-bound';
@@ -1576,10 +2009,18 @@ class TestNoLongerBound extends JSPrismarineReferenceError {
  * script host; report it with the stack trace.
  */
 class NotAFormBuilderMember extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_NOT_AFORM_BUILDER_MEMBER';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{member} is not a member of a {kind} form builder';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-aform-builder-member';
+    public static get code(): 'SCRIPT_HOST_NOT_AFORM_BUILDER_MEMBER' {
+        return 'SCRIPT_HOST_NOT_AFORM_BUILDER_MEMBER';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{member} is not a member of a {kind} form builder' {
+        return '{member} is not a member of a {kind} form builder';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-not-aform-builder-member' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-not-aform-builder-member';
+    }
 
     public override readonly code = 'SCRIPT_HOST_NOT_AFORM_BUILDER_MEMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-not-aform-builder-member';
@@ -1601,10 +2042,18 @@ class NotAFormBuilderMember extends JSPrismarineRangeError {
  * the script host; report it with the stack trace.
  */
 class FormKitFunctionMissing extends JSPrismarineReferenceError {
-    public static readonly code = 'SCRIPT_HOST_FORM_KIT_FUNCTION_MISSING';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The form kit has no {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-form-kit-function-missing';
+    public static get code(): 'SCRIPT_HOST_FORM_KIT_FUNCTION_MISSING' {
+        return 'SCRIPT_HOST_FORM_KIT_FUNCTION_MISSING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The form kit has no {name}' {
+        return 'The form kit has no {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-form-kit-function-missing' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-form-kit-function-missing';
+    }
 
     public override readonly code = 'SCRIPT_HOST_FORM_KIT_FUNCTION_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-form-kit-function-missing';
@@ -1626,10 +2075,18 @@ class FormKitFunctionMissing extends JSPrismarineReferenceError {
  * that is not an object. Fix the file.
  */
 class PackFileNotAnObject extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_PACK_FILE_NOT_AN_OBJECT';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{path} is not an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-pack-file-not-an-object';
+    public static get code(): 'SCRIPT_HOST_PACK_FILE_NOT_AN_OBJECT' {
+        return 'SCRIPT_HOST_PACK_FILE_NOT_AN_OBJECT';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{path} is not an object' {
+        return '{path} is not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-pack-file-not-an-object' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-pack-file-not-an-object';
+    }
 
     public override readonly code = 'SCRIPT_HOST_PACK_FILE_NOT_AN_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-pack-file-not-an-object';
@@ -1650,10 +2107,18 @@ class PackFileNotAnObject extends JSPrismarineError {
  * A pack's `manifest.json` lacks its header's `name`, `uuid` or `version`. Fix the manifest.
  */
 class ManifestHeaderIncomplete extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_MANIFEST_HEADER_INCOMPLETE';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{path} has no header name, uuid and version';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-manifest-header-incomplete';
+    public static get code(): 'SCRIPT_HOST_MANIFEST_HEADER_INCOMPLETE' {
+        return 'SCRIPT_HOST_MANIFEST_HEADER_INCOMPLETE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{path} has no header name, uuid and version' {
+        return '{path} has no header name, uuid and version';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-manifest-header-incomplete' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-manifest-header-incomplete';
+    }
 
     public override readonly code = 'SCRIPT_HOST_MANIFEST_HEADER_INCOMPLETE';
     public override readonly docs =
@@ -1676,10 +2141,18 @@ class ManifestHeaderIncomplete extends JSPrismarineError {
  * manifest.
  */
 class ScriptModuleWithoutUuid extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_SCRIPT_MODULE_WITHOUT_UUID';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{path} has a script module without a uuid';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-script-module-without-uuid';
+    public static get code(): 'SCRIPT_HOST_SCRIPT_MODULE_WITHOUT_UUID' {
+        return 'SCRIPT_HOST_SCRIPT_MODULE_WITHOUT_UUID';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{path} has a script module without a uuid' {
+        return '{path} has a script module without a uuid';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-script-module-without-uuid' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-script-module-without-uuid';
+    }
 
     public override readonly code = 'SCRIPT_HOST_SCRIPT_MODULE_WITHOUT_UUID';
     public override readonly docs =
@@ -1703,10 +2176,18 @@ class ScriptModuleWithoutUuid extends JSPrismarineError {
  * script host.
  */
 class TaskDelayNotFinite extends JSPrismarineRangeError {
-    public static readonly code = 'SCRIPT_HOST_TASK_DELAY_NOT_FINITE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A task delay must be a finite number, not {delay}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-task-delay-not-finite';
+    public static get code(): 'SCRIPT_HOST_TASK_DELAY_NOT_FINITE' {
+        return 'SCRIPT_HOST_TASK_DELAY_NOT_FINITE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A task delay must be a finite number, not {delay}' {
+        return 'A task delay must be a finite number, not {delay}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-task-delay-not-finite' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-task-delay-not-finite';
+    }
 
     public override readonly code = 'SCRIPT_HOST_TASK_DELAY_NOT_FINITE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-task-delay-not-finite';
@@ -1728,11 +2209,18 @@ class TaskDelayNotFinite extends JSPrismarineRangeError {
  * for each connection.
  */
 class DebugSessionAlreadyAttached extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUG_SESSION_ALREADY_ATTACHED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The session is already attached to an engine';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-debug-session-already-attached';
+    public static get code(): 'SCRIPT_HOST_DEBUG_SESSION_ALREADY_ATTACHED' {
+        return 'SCRIPT_HOST_DEBUG_SESSION_ALREADY_ATTACHED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The session is already attached to an engine' {
+        return 'The session is already attached to an engine';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-already-attached' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-already-attached';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUG_SESSION_ALREADY_ATTACHED';
     public override readonly docs =
@@ -1755,10 +2243,18 @@ class DebugSessionAlreadyAttached extends JSPrismarineError {
  * Server's debugger supports.
  */
 class UnhandledDebuggerCommand extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_UNHANDLED_DEBUGGER_COMMAND';
-    public static readonly domain = 'script-host';
-    public static readonly template = "JSPrismarine does not handle the debugger command '{command}'";
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unhandled-debugger-command';
+    public static get code(): 'SCRIPT_HOST_UNHANDLED_DEBUGGER_COMMAND' {
+        return 'SCRIPT_HOST_UNHANDLED_DEBUGGER_COMMAND';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "JSPrismarine does not handle the debugger command '{command}'" {
+        return "JSPrismarine does not handle the debugger command '{command}'";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unhandled-debugger-command' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unhandled-debugger-command';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNHANDLED_DEBUGGER_COMMAND';
     public override readonly docs =
@@ -1778,10 +2274,18 @@ class UnhandledDebuggerCommand extends JSPrismarineError {
 
 /** The debugger extension asked for the stack or the variables while no script was stopped. */
 class NoScriptStopped extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_NO_SCRIPT_STOPPED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'No script is stopped';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-no-script-stopped';
+    public static get code(): 'SCRIPT_HOST_NO_SCRIPT_STOPPED' {
+        return 'SCRIPT_HOST_NO_SCRIPT_STOPPED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'No script is stopped' {
+        return 'No script is stopped';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-no-script-stopped' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-no-script-stopped';
+    }
 
     public override readonly code = 'SCRIPT_HOST_NO_SCRIPT_STOPPED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-no-script-stopped';
@@ -1802,10 +2306,18 @@ class NoScriptStopped extends JSPrismarineError {
  * when the script resumed.
  */
 class UnknownVariablesReference extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_UNKNOWN_VARIABLES_REFERENCE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'No variables have reference {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-unknown-variables-reference';
+    public static get code(): 'SCRIPT_HOST_UNKNOWN_VARIABLES_REFERENCE' {
+        return 'SCRIPT_HOST_UNKNOWN_VARIABLES_REFERENCE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'No variables have reference {id}' {
+        return 'No variables have reference {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-unknown-variables-reference' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-unknown-variables-reference';
+    }
 
     public override readonly code = 'SCRIPT_HOST_UNKNOWN_VARIABLES_REFERENCE';
     public override readonly docs =
@@ -1825,10 +2337,18 @@ class UnknownVariablesReference extends JSPrismarineError {
 
 /** The debugger extension asked to evaluate an expression while the script runs. Pause it first. */
 class EvaluateWhileRunning extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_EVALUATE_WHILE_RUNNING';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A running script cannot evaluate';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-evaluate-while-running';
+    public static get code(): 'SCRIPT_HOST_EVALUATE_WHILE_RUNNING' {
+        return 'SCRIPT_HOST_EVALUATE_WHILE_RUNNING';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A running script cannot evaluate' {
+        return 'A running script cannot evaluate';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-evaluate-while-running' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-evaluate-while-running';
+    }
 
     public override readonly code = 'SCRIPT_HOST_EVALUATE_WHILE_RUNNING';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-evaluate-while-running';
@@ -1846,10 +2366,18 @@ class EvaluateWhileRunning extends JSPrismarineError {
 
 /** The debugger session was used after it detached from its engine. */
 class DebugSessionDetached extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUG_SESSION_DETACHED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The session has detached';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-detached';
+    public static get code(): 'SCRIPT_HOST_DEBUG_SESSION_DETACHED' {
+        return 'SCRIPT_HOST_DEBUG_SESSION_DETACHED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The session has detached' {
+        return 'The session has detached';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-detached' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-detached';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUG_SESSION_DETACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debug-session-detached';
@@ -1867,10 +2395,18 @@ class DebugSessionDetached extends JSPrismarineError {
 
 /** The engine's debugger was used after it detached. */
 class DebuggerDetached extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_DETACHED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger has detached';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-detached';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_DETACHED' {
+        return 'SCRIPT_HOST_DEBUGGER_DETACHED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger has detached' {
+        return 'The debugger has detached';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-detached' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-detached';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_DETACHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-detached';
@@ -1891,11 +2427,18 @@ class DebuggerDetached extends JSPrismarineError {
  * worker `DebuggerThread` starts.
  */
 class ConnectionWorkerOnMainThread extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_CONNECTION_WORKER_ON_MAIN_THREAD';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger connection worker runs on a worker thread';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-connection-worker-on-main-thread';
+    public static get code(): 'SCRIPT_HOST_CONNECTION_WORKER_ON_MAIN_THREAD' {
+        return 'SCRIPT_HOST_CONNECTION_WORKER_ON_MAIN_THREAD';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger connection worker runs on a worker thread' {
+        return 'The debugger connection worker runs on a worker thread';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-connection-worker-on-main-thread' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-connection-worker-on-main-thread';
+    }
 
     public override readonly code = 'SCRIPT_HOST_CONNECTION_WORKER_ON_MAIN_THREAD';
     public override readonly docs =
@@ -1914,10 +2457,18 @@ class ConnectionWorkerOnMainThread extends JSPrismarineError {
 
 /** The debugger extension sent a message that is not an object with a `type`. */
 class InvalidDebuggerMessage extends JSPrismarineTypeError {
-    public static readonly code = 'SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A debugger message is an object with a type';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-debugger-message';
+    public static get code(): 'SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE' {
+        return 'SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A debugger message is an object with a type' {
+        return 'A debugger message is an object with a type';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-invalid-debugger-message' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-invalid-debugger-message';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-debugger-message';
@@ -1938,10 +2489,18 @@ class InvalidDebuggerMessage extends JSPrismarineTypeError {
  * value as a string.
  */
 class DebuggerThreadThrew extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_THREW';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-threw';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_THREAD_THREW' {
+        return 'SCRIPT_HOST_DEBUGGER_THREAD_THREW';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{value}' {
+        return '{value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-threw' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-threw';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_THREW';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-threw';
@@ -1960,10 +2519,18 @@ class DebuggerThreadThrew extends JSPrismarineError {
 
 /** The debugger's connection thread exited, so the listener or connection it held is gone. */
 class DebuggerThreadExited extends JSPrismarineError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_EXITED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger thread exited with code {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-exited';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_THREAD_EXITED' {
+        return 'SCRIPT_HOST_DEBUGGER_THREAD_EXITED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger thread exited with code {code}' {
+        return 'The debugger thread exited with code {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-exited' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-exited';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_EXITED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-exited';
@@ -1985,10 +2552,18 @@ class DebuggerThreadExited extends JSPrismarineError {
  * again.
  */
 class DebuggerClosedConnection extends DebuggerConnectionError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_CLOSED_CONNECTION';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger closed the connection';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-closed-connection';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_CLOSED_CONNECTION' {
+        return 'SCRIPT_HOST_DEBUGGER_CLOSED_CONNECTION';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger closed the connection' {
+        return 'The debugger closed the connection';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-closed-connection' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-closed-connection';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_CLOSED_CONNECTION';
     public override readonly docs =
@@ -2010,11 +2585,18 @@ class DebuggerClosedConnection extends DebuggerConnectionError {
  * Minecraft Bedrock Debugger extension.
  */
 class DebuggerProtocolVersionMismatch extends DebuggerConnectionError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_PROTOCOL_VERSION_MISMATCH';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Debugger connection failed, protocol version mismatch.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-debugger-protocol-version-mismatch';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_PROTOCOL_VERSION_MISMATCH' {
+        return 'SCRIPT_HOST_DEBUGGER_PROTOCOL_VERSION_MISMATCH';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Debugger connection failed, protocol version mismatch.' {
+        return 'Debugger connection failed, protocol version mismatch.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-protocol-version-mismatch' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-protocol-version-mismatch';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_PROTOCOL_VERSION_MISMATCH';
     public override readonly docs =
@@ -2036,10 +2618,18 @@ class DebuggerProtocolVersionMismatch extends DebuggerConnectionError {
  * Set the same passcode in the extension's `launch.json`.
  */
 class DebuggerPasscodeMismatch extends DebuggerConnectionError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_PASSCODE_MISMATCH';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'Debugger connection failed, passcode mismatch.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-passcode-mismatch';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_PASSCODE_MISMATCH' {
+        return 'SCRIPT_HOST_DEBUGGER_PASSCODE_MISMATCH';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Debugger connection failed, passcode mismatch.' {
+        return 'Debugger connection failed, passcode mismatch.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-passcode-mismatch' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-passcode-mismatch';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_PASSCODE_MISMATCH';
     public override readonly docs =
@@ -2061,11 +2651,18 @@ class DebuggerPasscodeMismatch extends DebuggerConnectionError {
  * world runs. Set it to the `uuid` of the pack's `script` module.
  */
 class DebuggerPluginNotFound extends DebuggerConnectionError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_PLUGIN_NOT_FOUND';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Debugger connection failed, no plugin found with targetModuleUUID [{uuid}] (see launch.json).';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-plugin-not-found';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_PLUGIN_NOT_FOUND' {
+        return 'SCRIPT_HOST_DEBUGGER_PLUGIN_NOT_FOUND';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Debugger connection failed, no plugin found with targetModuleUUID [{uuid}] (see launch.json).' {
+        return 'Debugger connection failed, no plugin found with targetModuleUUID [{uuid}] (see launch.json).';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-plugin-not-found' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-plugin-not-found';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_PLUGIN_NOT_FOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-plugin-not-found';
@@ -2090,10 +2687,18 @@ class DebuggerPluginNotFound extends DebuggerConnectionError {
  * This is a bug in the debugger; report it with the stack trace.
  */
 class FrameTooLong extends DebuggerFramingError {
-    public static readonly code = 'SCRIPT_HOST_FRAME_TOO_LONG';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A {length}-byte message does not fit a frame';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-too-long';
+    public static get code(): 'SCRIPT_HOST_FRAME_TOO_LONG' {
+        return 'SCRIPT_HOST_FRAME_TOO_LONG';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A {length}-byte message does not fit a frame' {
+        return 'A {length}-byte message does not fit a frame';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-frame-too-long' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-frame-too-long';
+    }
 
     public override readonly code = 'SCRIPT_HOST_FRAME_TOO_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-too-long';
@@ -2115,10 +2720,18 @@ class FrameTooLong extends DebuggerFramingError {
  * Minecraft Bedrock Debugger extension. The connection is closed.
  */
 class InvalidFrameHeader extends DebuggerFramingError {
-    public static readonly code = 'SCRIPT_HOST_INVALID_FRAME_HEADER';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A frame header is 8 hexadecimal digits and a newline, not {header}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-frame-header';
+    public static get code(): 'SCRIPT_HOST_INVALID_FRAME_HEADER' {
+        return 'SCRIPT_HOST_INVALID_FRAME_HEADER';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A frame header is 8 hexadecimal digits and a newline, not {header}' {
+        return 'A frame header is 8 hexadecimal digits and a newline, not {header}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-invalid-frame-header' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-invalid-frame-header';
+    }
 
     public override readonly code = 'SCRIPT_HOST_INVALID_FRAME_HEADER';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-invalid-frame-header';
@@ -2140,10 +2753,18 @@ class InvalidFrameHeader extends DebuggerFramingError {
  * closed before the body is buffered.
  */
 class ReceivedFrameTooLong extends DebuggerFramingError {
-    public static readonly code = 'SCRIPT_HOST_RECEIVED_FRAME_TOO_LONG';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'A {length}-byte frame is over the {limit}-byte limit';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-received-frame-too-long';
+    public static get code(): 'SCRIPT_HOST_RECEIVED_FRAME_TOO_LONG' {
+        return 'SCRIPT_HOST_RECEIVED_FRAME_TOO_LONG';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'A {length}-byte frame is over the {limit}-byte limit' {
+        return 'A {length}-byte frame is over the {limit}-byte limit';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-received-frame-too-long' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-received-frame-too-long';
+    }
 
     public override readonly code = 'SCRIPT_HOST_RECEIVED_FRAME_TOO_LONG';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-received-frame-too-long';
@@ -2162,10 +2783,18 @@ class ReceivedFrameTooLong extends DebuggerFramingError {
 
 /** The debugger peer sent a frame whose body is not JSON. The connection is closed. */
 class FrameBodyNotJson extends DebuggerFramingError {
-    public static readonly code = 'SCRIPT_HOST_FRAME_BODY_NOT_JSON';
-    public static readonly domain = 'script-host';
-    public static readonly template = "A frame's body is not JSON: {reason}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-body-not-json';
+    public static get code(): 'SCRIPT_HOST_FRAME_BODY_NOT_JSON' {
+        return 'SCRIPT_HOST_FRAME_BODY_NOT_JSON';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): "A frame's body is not JSON: {reason}" {
+        return "A frame's body is not JSON: {reason}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-frame-body-not-json' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-frame-body-not-json';
+    }
 
     public override readonly code = 'SCRIPT_HOST_FRAME_BODY_NOT_JSON';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-body-not-json';
@@ -2187,10 +2816,18 @@ class FrameBodyNotJson extends DebuggerFramingError {
  * bytes. The message is that failure's own. The connection is closed.
  */
 class FrameNotRead extends DebuggerFramingError {
-    public static readonly code = 'SCRIPT_HOST_FRAME_NOT_READ';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-not-read';
+    public static get code(): 'SCRIPT_HOST_FRAME_NOT_READ' {
+        return 'SCRIPT_HOST_FRAME_NOT_READ';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-frame-not-read' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-frame-not-read';
+    }
 
     public override readonly code = 'SCRIPT_HOST_FRAME_NOT_READ';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-frame-not-read';
@@ -2212,11 +2849,18 @@ class FrameNotRead extends DebuggerFramingError {
  * reach without a passcode. Set `script-debugger-passcode`, or listen on a loopback address.
  */
 class ListenerNeedsPasscode extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_LISTENER_NEEDS_PASSCODE';
-    public static readonly domain = 'script-host';
-    public static readonly template =
-        'Refusing to start script debugger listener on non-loopback address [{address}] without a passcode.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-needs-passcode';
+    public static get code(): 'SCRIPT_HOST_LISTENER_NEEDS_PASSCODE' {
+        return 'SCRIPT_HOST_LISTENER_NEEDS_PASSCODE';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'Refusing to start script debugger listener on non-loopback address [{address}] without a passcode.' {
+        return 'Refusing to start script debugger listener on non-loopback address [{address}] without a passcode.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-listener-needs-passcode' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-listener-needs-passcode';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LISTENER_NEEDS_PASSCODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-needs-passcode';
@@ -2241,10 +2885,18 @@ class ListenerNeedsPasscode extends DebuggerTransportError {
  * message is the operating system's.
  */
 class ListenFailed extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_LISTEN_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listen-failed';
+    public static get code(): 'SCRIPT_HOST_LISTEN_FAILED' {
+        return 'SCRIPT_HOST_LISTEN_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-listen-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-listen-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LISTEN_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listen-failed';
@@ -2263,10 +2915,18 @@ class ListenFailed extends DebuggerTransportError {
 
 /** The debugger listener is bound to something other than a TCP address. */
 class ListenerHasNoAddress extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_LISTENER_HAS_NO_ADDRESS';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The listener has no TCP address';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-has-no-address';
+    public static get code(): 'SCRIPT_HOST_LISTENER_HAS_NO_ADDRESS' {
+        return 'SCRIPT_HOST_LISTENER_HAS_NO_ADDRESS';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The listener has no TCP address' {
+        return 'The listener has no TCP address';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-listener-has-no-address' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-listener-has-no-address';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LISTENER_HAS_NO_ADDRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-has-no-address';
@@ -2284,10 +2944,18 @@ class ListenerHasNoAddress extends DebuggerTransportError {
 
 /** The debugger listener closed before an extension connected. */
 class ListenerClosed extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_LISTENER_CLOSED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger listener closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-closed';
+    public static get code(): 'SCRIPT_HOST_LISTENER_CLOSED' {
+        return 'SCRIPT_HOST_LISTENER_CLOSED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger listener closed' {
+        return 'The debugger listener closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-listener-closed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-listener-closed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_LISTENER_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-listener-closed';
@@ -2309,10 +2977,18 @@ class ListenerClosed extends DebuggerTransportError {
  * mode first.
  */
 class ConnectFailed extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_CONNECT_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-connect-failed';
+    public static get code(): 'SCRIPT_HOST_CONNECT_FAILED' {
+        return 'SCRIPT_HOST_CONNECT_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-connect-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-connect-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_CONNECT_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-connect-failed';
@@ -2331,10 +3007,18 @@ class ConnectFailed extends DebuggerTransportError {
 
 /** The debugger's connection thread was stopped while a request to it was pending. */
 class DebuggerThreadStopped extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_STOPPED';
-    public static readonly domain = 'script-host';
-    public static readonly template = 'The debugger thread stopped';
-    public static readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-stopped';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_THREAD_STOPPED' {
+        return 'SCRIPT_HOST_DEBUGGER_THREAD_STOPPED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): 'The debugger thread stopped' {
+        return 'The debugger thread stopped';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-stopped' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-stopped';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_STOPPED';
     public override readonly docs = 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-stopped';
@@ -2355,11 +3039,18 @@ class DebuggerThreadStopped extends DebuggerTransportError {
  * thread gave.
  */
 class DebuggerThreadRequestFailed extends DebuggerTransportError {
-    public static readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_REQUEST_FAILED';
-    public static readonly domain = 'script-host';
-    public static readonly template = '{reason}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-request-failed';
+    public static get code(): 'SCRIPT_HOST_DEBUGGER_THREAD_REQUEST_FAILED' {
+        return 'SCRIPT_HOST_DEBUGGER_THREAD_REQUEST_FAILED';
+    }
+    public static get domain(): 'script-host' {
+        return 'script-host';
+    }
+    public static get template(): '{reason}' {
+        return '{reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-request-failed' {
+        return 'https://jsprismarine.dev/errors/script-host#script-host-debugger-thread-request-failed';
+    }
 
     public override readonly code = 'SCRIPT_HOST_DEBUGGER_THREAD_REQUEST_FAILED';
     public override readonly docs =

@@ -5,10 +5,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The goal harness could not load its test entity. The message joins the load's error diagnostics with `; `. */
 class TestEntityDidNotLoad extends JSPrismarineError {
-    public static readonly code = 'ENTITY_GOALS_TEST_ENTITY_DID_NOT_LOAD';
-    public static readonly domain = 'entity-goals';
-    public static readonly template = '{diagnostics}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/entity-goals#entity-goals-test-entity-did-not-load';
+    public static get code(): 'ENTITY_GOALS_TEST_ENTITY_DID_NOT_LOAD' {
+        return 'ENTITY_GOALS_TEST_ENTITY_DID_NOT_LOAD';
+    }
+    public static get domain(): 'entity-goals' {
+        return 'entity-goals';
+    }
+    public static get template(): '{diagnostics}' {
+        return '{diagnostics}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/entity-goals#entity-goals-test-entity-did-not-load' {
+        return 'https://jsprismarine.dev/errors/entity-goals#entity-goals-test-entity-did-not-load';
+    }
 
     public override readonly code = 'ENTITY_GOALS_TEST_ENTITY_DID_NOT_LOAD';
     public override readonly docs =

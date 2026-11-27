@@ -8,11 +8,18 @@ import { JSPrismarineRangeError } from '@jsprismarine/errors/JSPrismarineError';
  * holds it is damaged.
  */
 class InvalidRandomTickState extends JSPrismarineRangeError {
-    public static readonly code = 'ENGINE_SYSTEMS_INVALID_RANDOM_TICK_STATE';
-    public static readonly domain = 'engine-systems';
-    public static readonly template = 'Random tick state must be a signed 32-bit integer';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/engine-systems#engine-systems-invalid-random-tick-state';
+    public static get code(): 'ENGINE_SYSTEMS_INVALID_RANDOM_TICK_STATE' {
+        return 'ENGINE_SYSTEMS_INVALID_RANDOM_TICK_STATE';
+    }
+    public static get domain(): 'engine-systems' {
+        return 'engine-systems';
+    }
+    public static get template(): 'Random tick state must be a signed 32-bit integer' {
+        return 'Random tick state must be a signed 32-bit integer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/engine-systems#engine-systems-invalid-random-tick-state' {
+        return 'https://jsprismarine.dev/errors/engine-systems#engine-systems-invalid-random-tick-state';
+    }
 
     public override readonly code = 'ENGINE_SYSTEMS_INVALID_RANDOM_TICK_STATE';
     public override readonly docs =

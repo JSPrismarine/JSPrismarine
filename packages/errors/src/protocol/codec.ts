@@ -12,11 +12,21 @@ import {
  * protocol codecs; report it with the stack trace.
  */
 class DuplicatePacketId extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_DUPLICATE_PACKET_ID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Protocol {protocolVersion} assigns packet id {id} to multiple classes!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-packet-id';
+    public static get code(): 'PROTOCOL_DUPLICATE_PACKET_ID' {
+        return 'PROTOCOL_DUPLICATE_PACKET_ID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Protocol {protocolVersion} assigns packet id {id} to multiple classes!' {
+        return 'Protocol {protocolVersion} assigns packet id {id} to multiple classes!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-packet-id' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-packet-id';
+    }
 
     public override readonly code = 'PROTOCOL_DUPLICATE_PACKET_ID';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-packet-id';
@@ -41,12 +51,21 @@ class DuplicatePacketId extends JSPrismarineError {
  * fall back on. This is a bug in the protocol codecs; report it with the stack trace.
  */
 class MissingActorIdentifiers extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_ACTOR_IDENTIFIERS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'AvailableActorIdentifiersPacket requires entity identifier data in the packet or protocol context';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-actor-identifiers';
+    public static get code(): 'PROTOCOL_MISSING_ACTOR_IDENTIFIERS' {
+        return 'PROTOCOL_MISSING_ACTOR_IDENTIFIERS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'AvailableActorIdentifiersPacket requires entity identifier data in the packet or protocol context' {
+        return 'AvailableActorIdentifiersPacket requires entity identifier data in the packet or protocol context';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-actor-identifiers' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-actor-identifiers';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_ACTOR_IDENTIFIERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-actor-identifiers';
@@ -70,12 +89,21 @@ class MissingActorIdentifiers extends JSPrismarineError {
  * fall back on. This is a bug in the protocol codecs; report it with the stack trace.
  */
 class MissingBiomeDefinitions extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_BIOME_DEFINITIONS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-biome-definitions';
+    public static get code(): 'PROTOCOL_MISSING_BIOME_DEFINITIONS' {
+        return 'PROTOCOL_MISSING_BIOME_DEFINITIONS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context' {
+        return 'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-biome-definitions' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-biome-definitions';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_BIOME_DEFINITIONS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-biome-definitions';
@@ -96,11 +124,21 @@ class MissingBiomeDefinitions extends JSPrismarineError {
  * report it with the stack trace.
  */
 class NoReadBuffer extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_NO_READ_BUFFER';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Cannot decode {name} without a read buffer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-read-buffer';
+    public static get code(): 'PROTOCOL_NO_READ_BUFFER' {
+        return 'PROTOCOL_NO_READ_BUFFER';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Cannot decode {name} without a read buffer' {
+        return 'Cannot decode {name} without a read buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-read-buffer' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-read-buffer';
+    }
 
     public override readonly code = 'PROTOCOL_NO_READ_BUFFER';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-read-buffer';
@@ -122,11 +160,21 @@ class NoReadBuffer extends JSPrismarineError {
  * it with the stack trace.
  */
 class PacketHasNoData extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PACKET_HAS_NO_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Cannot serialize packet without data, PID: {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-data';
+    public static get code(): 'PROTOCOL_PACKET_HAS_NO_DATA' {
+        return 'PROTOCOL_PACKET_HAS_NO_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Cannot serialize packet without data, PID: {id}' {
+        return 'Cannot serialize packet without data, PID: {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-data' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-data';
+    }
 
     public override readonly code = 'PROTOCOL_PACKET_HAS_NO_DATA';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-data';
@@ -149,11 +197,21 @@ class PacketHasNoData extends JSPrismarineError {
  * writes the protocol differently than this server reads it, is the usual cause.
  */
 class BatchChecksumMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_CHECKSUM_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Checksum mismatch on batch {value}: expected {expected}, got {carried}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-checksum-mismatch';
+    public static get code(): 'PROTOCOL_BATCH_CHECKSUM_MISMATCH' {
+        return 'PROTOCOL_BATCH_CHECKSUM_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Checksum mismatch on batch {value}: expected {expected}, got {carried}' {
+        return 'Checksum mismatch on batch {value}: expected {expected}, got {carried}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-checksum-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-checksum-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_CHECKSUM_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-checksum-mismatch';
@@ -183,11 +241,21 @@ class BatchChecksumMismatch extends JSPrismarineError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class InvalidChunkCoordinates extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_INVALID_CHUNK_COORDINATES';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A chunk coordinate pair must have numeric x and z fields';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-chunk-coordinates';
+    public static get code(): 'PROTOCOL_INVALID_CHUNK_COORDINATES' {
+        return 'PROTOCOL_INVALID_CHUNK_COORDINATES';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A chunk coordinate pair must have numeric x and z fields' {
+        return 'A chunk coordinate pair must have numeric x and z fields';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-chunk-coordinates' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-chunk-coordinates';
+    }
 
     public override readonly code = 'PROTOCOL_INVALID_CHUNK_COORDINATES';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-chunk-coordinates';
@@ -208,11 +276,21 @@ class InvalidChunkCoordinates extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class EmptyCodecRegistry extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_EMPTY_CODEC_REGISTRY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A protocol codec registry requires at least one codec!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-codec-registry';
+    public static get code(): 'PROTOCOL_EMPTY_CODEC_REGISTRY' {
+        return 'PROTOCOL_EMPTY_CODEC_REGISTRY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A protocol codec registry requires at least one codec!' {
+        return 'A protocol codec registry requires at least one codec!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-codec-registry' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-codec-registry';
+    }
 
     public override readonly code = 'PROTOCOL_EMPTY_CODEC_REGISTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-codec-registry';
@@ -233,11 +311,21 @@ class EmptyCodecRegistry extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class NoReleaseCodec extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_NO_RELEASE_CODEC';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A protocol codec registry requires at least one release codec!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-release-codec';
+    public static get code(): 'PROTOCOL_NO_RELEASE_CODEC' {
+        return 'PROTOCOL_NO_RELEASE_CODEC';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A protocol codec registry requires at least one release codec!' {
+        return 'A protocol codec registry requires at least one release codec!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-release-codec' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-release-codec';
+    }
 
     public override readonly code = 'PROTOCOL_NO_RELEASE_CODEC';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-no-release-codec';
@@ -255,12 +343,21 @@ class NoReleaseCodec extends JSPrismarineError {
 
 /** A command list refers to a subcommand table it does not hold, so the packet is malformed. */
 class MissingCommandSubcommandTable extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_COMMAND_SUBCOMMAND_TABLE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Command {wireValue} points at missing subcommand table {index}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-command-subcommand-table';
+    public static get code(): 'PROTOCOL_MISSING_COMMAND_SUBCOMMAND_TABLE' {
+        return 'PROTOCOL_MISSING_COMMAND_SUBCOMMAND_TABLE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Command {wireValue} points at missing subcommand table {index}' {
+        return 'Command {wireValue} points at missing subcommand table {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-command-subcommand-table' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-command-subcommand-table';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_COMMAND_SUBCOMMAND_TABLE';
     public override readonly docs =
@@ -286,11 +383,21 @@ class MissingCommandSubcommandTable extends JSPrismarineError {
  * malformed.
  */
 class MissingConstraintEnum extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_CONSTRAINT_ENUM';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A constraint points at missing enum {enumSymbol} or value {enumValueSymbol}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-constraint-enum';
+    public static get code(): 'PROTOCOL_MISSING_CONSTRAINT_ENUM' {
+        return 'PROTOCOL_MISSING_CONSTRAINT_ENUM';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A constraint points at missing enum {enumSymbol} or value {enumValueSymbol}' {
+        return 'A constraint points at missing enum {enumSymbol} or value {enumValueSymbol}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-constraint-enum' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-constraint-enum';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_CONSTRAINT_ENUM';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-constraint-enum';
@@ -320,12 +427,21 @@ class MissingConstraintEnum extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class ContextCodecMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_CONTEXT_CODEC_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'Protocol context {protocolVersion} does not match codec {definitionProtocolVersion}!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-context-codec-mismatch';
+    public static get code(): 'PROTOCOL_CONTEXT_CODEC_MISMATCH' {
+        return 'PROTOCOL_CONTEXT_CODEC_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Protocol context {protocolVersion} does not match codec {definitionProtocolVersion}!' {
+        return 'Protocol context {protocolVersion} does not match codec {definitionProtocolVersion}!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-context-codec-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-context-codec-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_CONTEXT_CODEC_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-context-codec-mismatch';
@@ -354,11 +470,21 @@ class ContextCodecMismatch extends JSPrismarineError {
  * An entity metadata item has a type this protocol does not define, so the packet is malformed.
  */
 class UnknownDataItemPayload extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_ITEM_PAYLOAD';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Data item {id} has an unknown type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-item-payload';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_ITEM_PAYLOAD' {
+        return 'PROTOCOL_UNKNOWN_DATA_ITEM_PAYLOAD';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Data item {id} has an unknown type {type}' {
+        return 'Data item {id} has an unknown type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-item-payload' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-item-payload';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_ITEM_PAYLOAD';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-item-payload';
@@ -380,11 +506,21 @@ class UnknownDataItemPayload extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class DataItemPayloadMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_DATA_ITEM_PAYLOAD_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Data item {id} selects payload {selector} but carries type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-data-item-payload-mismatch';
+    public static get code(): 'PROTOCOL_DATA_ITEM_PAYLOAD_MISMATCH' {
+        return 'PROTOCOL_DATA_ITEM_PAYLOAD_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Data item {id} selects payload {selector} but carries type {type}' {
+        return 'Data item {id} selects payload {selector} but carries type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-data-item-payload-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-data-item-payload-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_DATA_ITEM_PAYLOAD_MISMATCH';
     public override readonly docs =
@@ -415,12 +551,21 @@ class DataItemPayloadMismatch extends JSPrismarineError {
  * malformed.
  */
 class UnknownDataStoreValueType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_VALUE_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Data store update {dataStoreName}/{property} has an unknown data type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-store-value-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_DATA_STORE_VALUE_TYPE' {
+        return 'PROTOCOL_UNKNOWN_DATA_STORE_VALUE_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Data store update {dataStoreName}/{property} has an unknown data type {type}' {
+        return 'Data store update {dataStoreName}/{property} has an unknown data type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-store-value-type' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-data-store-value-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_DATA_STORE_VALUE_TYPE';
     public override readonly docs =
@@ -454,11 +599,21 @@ class UnknownDataStoreValueType extends JSPrismarineError {
  * reads it, is the usual cause.
  */
 class EncryptedBatchTooShort extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_ENCRYPTED_BATCH_TOO_SHORT';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'An encrypted batch is at least {checksumLength} bytes, got {byteLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-encrypted-batch-too-short';
+    public static get code(): 'PROTOCOL_ENCRYPTED_BATCH_TOO_SHORT' {
+        return 'PROTOCOL_ENCRYPTED_BATCH_TOO_SHORT';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'An encrypted batch is at least {checksumLength} bytes, got {byteLength}' {
+        return 'An encrypted batch is at least {checksumLength} bytes, got {byteLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-encrypted-batch-too-short' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-encrypted-batch-too-short';
+    }
 
     public override readonly code = 'PROTOCOL_ENCRYPTED_BATCH_TOO_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-encrypted-batch-too-short';
@@ -488,11 +643,21 @@ class EncryptedBatchTooShort extends JSPrismarineError {
  * report it with the stack trace.
  */
 class InvalidEncryptionKey extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_INVALID_ENCRYPTION_KEY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'An encryption key is 32 bytes, got {byteLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-encryption-key';
+    public static get code(): 'PROTOCOL_INVALID_ENCRYPTION_KEY' {
+        return 'PROTOCOL_INVALID_ENCRYPTION_KEY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'An encryption key is 32 bytes, got {byteLength}' {
+        return 'An encryption key is 32 bytes, got {byteLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-encryption-key' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-encryption-key';
+    }
 
     public override readonly code = 'PROTOCOL_INVALID_ENCRYPTION_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-invalid-encryption-key';
@@ -511,11 +676,21 @@ class InvalidEncryptionKey extends JSPrismarineError {
 
 /** A command list's enum refers to a value it does not hold, so the packet is malformed. */
 class MissingEnumValue extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_ENUM_VALUE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Enum {wireValue} points at missing enum value {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-enum-value';
+    public static get code(): 'PROTOCOL_MISSING_ENUM_VALUE' {
+        return 'PROTOCOL_MISSING_ENUM_VALUE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Enum {wireValue} points at missing enum value {index}' {
+        return 'Enum {wireValue} points at missing enum value {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-enum-value' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-enum-value';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_ENUM_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-enum-value';
@@ -538,11 +713,21 @@ class MissingEnumValue extends JSPrismarineError {
  * reads it, is the usual cause.
  */
 class PayloadNotDecodable extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PAYLOAD_NOT_DECODABLE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Error deserializing packet payload: {e}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-payload-not-decodable';
+    public static get code(): 'PROTOCOL_PAYLOAD_NOT_DECODABLE' {
+        return 'PROTOCOL_PAYLOAD_NOT_DECODABLE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Error deserializing packet payload: {e}' {
+        return 'Error deserializing packet payload: {e}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-payload-not-decodable' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-payload-not-decodable';
+    }
 
     public override readonly code = 'PROTOCOL_PAYLOAD_NOT_DECODABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-payload-not-decodable';
@@ -564,12 +749,21 @@ class PayloadNotDecodable extends JSPrismarineError {
  * the protocol codecs; report it with the stack trace.
  */
 class FragmentWithoutCompression extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_FRAGMENT_WITHOUT_COMPRESSION';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Full-flush fragments require negotiated compression';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-compression';
+    public static get code(): 'PROTOCOL_FRAGMENT_WITHOUT_COMPRESSION' {
+        return 'PROTOCOL_FRAGMENT_WITHOUT_COMPRESSION';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Full-flush fragments require negotiated compression' {
+        return 'Full-flush fragments require negotiated compression';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-compression' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-compression';
+    }
 
     public override readonly code = 'PROTOCOL_FRAGMENT_WITHOUT_COMPRESSION';
     public override readonly docs =
@@ -591,11 +785,21 @@ class FragmentWithoutCompression extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class FragmentWithoutZlib extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_FRAGMENT_WITHOUT_ZLIB';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Full-flush fragments require zlib compression';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-zlib';
+    public static get code(): 'PROTOCOL_FRAGMENT_WITHOUT_ZLIB' {
+        return 'PROTOCOL_FRAGMENT_WITHOUT_ZLIB';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Full-flush fragments require zlib compression' {
+        return 'Full-flush fragments require zlib compression';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-zlib' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-zlib';
+    }
 
     public override readonly code = 'PROTOCOL_FRAGMENT_WITHOUT_ZLIB';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-without-zlib';
@@ -616,11 +820,21 @@ class FragmentWithoutZlib extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class HandshakePacketHasNoId extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_HANDSHAKE_PACKET_HAS_NO_ID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Handshake packet {name} has no id in the base codec!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-handshake-packet-has-no-id';
+    public static get code(): 'PROTOCOL_HANDSHAKE_PACKET_HAS_NO_ID' {
+        return 'PROTOCOL_HANDSHAKE_PACKET_HAS_NO_ID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Handshake packet {name} has no id in the base codec!' {
+        return 'Handshake packet {name} has no id in the base codec!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-handshake-packet-has-no-id' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-handshake-packet-has-no-id';
+    }
 
     public override readonly code = 'PROTOCOL_HANDSHAKE_PACKET_HAS_NO_ID';
     public override readonly docs =
@@ -643,11 +857,21 @@ class HandshakePacketHasNoId extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class HeightmapWrongRowCount extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_HEIGHTMAP_WRONG_ROW_COUNT';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A heightmap needs {heightMapSide} rows, got {heightMapCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-wrong-row-count';
+    public static get code(): 'PROTOCOL_HEIGHTMAP_WRONG_ROW_COUNT' {
+        return 'PROTOCOL_HEIGHTMAP_WRONG_ROW_COUNT';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A heightmap needs {heightMapSide} rows, got {heightMapCount}' {
+        return 'A heightmap needs {heightMapSide} rows, got {heightMapCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-wrong-row-count' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-wrong-row-count';
+    }
 
     public override readonly code = 'PROTOCOL_HEIGHTMAP_WRONG_ROW_COUNT';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-wrong-row-count';
@@ -677,11 +901,21 @@ class HeightmapWrongRowCount extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class HeightmapRowWrongLength extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_HEIGHTMAP_ROW_WRONG_LENGTH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'A heightmap row needs {heightMapSide} heights, got {rowCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-row-wrong-length';
+    public static get code(): 'PROTOCOL_HEIGHTMAP_ROW_WRONG_LENGTH' {
+        return 'PROTOCOL_HEIGHTMAP_ROW_WRONG_LENGTH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A heightmap row needs {heightMapSide} heights, got {rowCount}' {
+        return 'A heightmap row needs {heightMapSide} heights, got {rowCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-row-wrong-length' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-heightmap-row-wrong-length';
+    }
 
     public override readonly code = 'PROTOCOL_HEIGHTMAP_ROW_WRONG_LENGTH';
     public override readonly docs =
@@ -712,11 +946,21 @@ class HeightmapRowWrongLength extends JSPrismarineError {
  * in the protocol codecs; report it with the stack trace.
  */
 class MissingTransactionBody extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_TRANSACTION_BODY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Inventory Transaction has no versioned transaction body';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-transaction-body';
+    public static get code(): 'PROTOCOL_MISSING_TRANSACTION_BODY' {
+        return 'PROTOCOL_MISSING_TRANSACTION_BODY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Inventory Transaction has no versioned transaction body' {
+        return 'Inventory Transaction has no versioned transaction body';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-transaction-body' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-transaction-body';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_TRANSACTION_BODY';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-transaction-body';
@@ -737,11 +981,21 @@ class MissingTransactionBody extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class ItemDataCodecMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_ITEM_DATA_CODEC_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Item data {protocolVersion} does not match codec {definitionProtocolVersion}!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-item-data-codec-mismatch';
+    public static get code(): 'PROTOCOL_ITEM_DATA_CODEC_MISMATCH' {
+        return 'PROTOCOL_ITEM_DATA_CODEC_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Item data {protocolVersion} does not match codec {definitionProtocolVersion}!' {
+        return 'Item data {protocolVersion} does not match codec {definitionProtocolVersion}!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-item-data-codec-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-item-data-codec-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_ITEM_DATA_CODEC_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-item-data-codec-mismatch';
@@ -772,12 +1026,21 @@ class ItemDataCodecMismatch extends JSPrismarineError {
  * differently than this server reads it, is the usual cause.
  */
 class UnknownItemUserDataMarker extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_MARKER';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Item user data marker {marker} is neither {noTag} nor {tagFollows}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-marker';
+    public static get code(): 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_MARKER' {
+        return 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_MARKER';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Item user data marker {marker} is neither {noTag} nor {tagFollows}' {
+        return 'Item user data marker {marker} is neither {noTag} nor {tagFollows}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-marker' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-marker';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_MARKER';
     public override readonly docs =
@@ -809,12 +1072,21 @@ class UnknownItemUserDataMarker extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class UnknownItemUserDataVersion extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_VERSION';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Item user data version {version} is not {userDataVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-version';
+    public static get code(): 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_VERSION' {
+        return 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_VERSION';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Item user data version {version} is not {userDataVersion}' {
+        return 'Item user data version {version} is not {userDataVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-version' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-item-user-data-version';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ITEM_USER_DATA_VERSION';
     public override readonly docs =
@@ -842,13 +1114,21 @@ class UnknownItemUserDataVersion extends JSPrismarineError {
  * to fall back on. This is a bug in the protocol codecs; report it with the stack trace.
  */
 class MissingJigsawStructureData extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_JIGSAW_STRUCTURE_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'JigsawStructureDataPacket requires structure data in the packet or protocol context';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-jigsaw-structure-data';
+    public static get code(): 'PROTOCOL_MISSING_JIGSAW_STRUCTURE_DATA' {
+        return 'PROTOCOL_MISSING_JIGSAW_STRUCTURE_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'JigsawStructureDataPacket requires structure data in the packet or protocol context' {
+        return 'JigsawStructureDataPacket requires structure data in the packet or protocol context';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-jigsaw-structure-data' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-jigsaw-structure-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_JIGSAW_STRUCTURE_DATA';
     public override readonly docs =
@@ -870,12 +1150,21 @@ class MissingJigsawStructureData extends JSPrismarineError {
  * in the protocol codecs; report it with the stack trace.
  */
 class AttributeLayerDataNotDecoded extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_ATTRIBUTE_LAYER_DATA_NOT_DECODED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'The layout read no Data variant';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-attribute-layer-data-not-decoded';
+    public static get code(): 'PROTOCOL_ATTRIBUTE_LAYER_DATA_NOT_DECODED' {
+        return 'PROTOCOL_ATTRIBUTE_LAYER_DATA_NOT_DECODED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'The layout read no Data variant' {
+        return 'The layout read no Data variant';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-attribute-layer-data-not-decoded' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-attribute-layer-data-not-decoded';
+    }
 
     public override readonly code = 'PROTOCOL_ATTRIBUTE_LAYER_DATA_NOT_DECODED';
     public override readonly docs =
@@ -896,12 +1185,21 @@ class AttributeLayerDataNotDecoded extends JSPrismarineError {
  * Level settings were decoded on their own; they are decoded as part of the start game packet.
  */
 class LevelSettingsNotDecodable extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_LEVEL_SETTINGS_NOT_DECODABLE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'LevelSettings.deserialize is not implemented; decode StartGamePacket instead.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-level-settings-not-decodable';
+    public static get code(): 'PROTOCOL_LEVEL_SETTINGS_NOT_DECODABLE' {
+        return 'PROTOCOL_LEVEL_SETTINGS_NOT_DECODABLE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'LevelSettings.deserialize is not implemented; decode StartGamePacket instead.' {
+        return 'LevelSettings.deserialize is not implemented; decode StartGamePacket instead.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-level-settings-not-decodable' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-level-settings-not-decodable';
+    }
 
     public override readonly code = 'PROTOCOL_LEVEL_SETTINGS_NOT_DECODABLE';
     public override readonly docs =
@@ -924,12 +1222,21 @@ class LevelSettingsNotDecodable extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class BatchPacketTruncated extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_PACKET_TRUNCATED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'Malformed batch: packet at offset {start} declares {length} bytes, {value} remain';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-packet-truncated';
+    public static get code(): 'PROTOCOL_BATCH_PACKET_TRUNCATED' {
+        return 'PROTOCOL_BATCH_PACKET_TRUNCATED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed batch: packet at offset {start} declares {length} bytes, {value} remain' {
+        return 'Malformed batch: packet at offset {start} declares {length} bytes, {value} remain';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-packet-truncated' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-packet-truncated';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_PACKET_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-packet-truncated';
@@ -959,11 +1266,21 @@ class BatchPacketTruncated extends JSPrismarineError {
  * that writes the protocol differently than this server reads it, is the usual cause.
  */
 class BatchLengthUnterminated extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_LENGTH_UNTERMINATED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed batch: varint at offset {offset} did not terminate after 5 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-unterminated';
+    public static get code(): 'PROTOCOL_BATCH_LENGTH_UNTERMINATED' {
+        return 'PROTOCOL_BATCH_LENGTH_UNTERMINATED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed batch: varint at offset {offset} did not terminate after 5 bytes' {
+        return 'Malformed batch: varint at offset {offset} did not terminate after 5 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-unterminated' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-unterminated';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_LENGTH_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-unterminated';
@@ -986,11 +1303,21 @@ class BatchLengthUnterminated extends JSPrismarineError {
  * cause.
  */
 class BatchLengthOverflow extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_LENGTH_OVERFLOW';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed batch: varint at offset {offset} overflows 32 bits';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-overflow';
+    public static get code(): 'PROTOCOL_BATCH_LENGTH_OVERFLOW' {
+        return 'PROTOCOL_BATCH_LENGTH_OVERFLOW';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed batch: varint at offset {offset} overflows 32 bits' {
+        return 'Malformed batch: varint at offset {offset} overflows 32 bits';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-overflow' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-overflow';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_LENGTH_OVERFLOW';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-overflow';
@@ -1013,11 +1340,21 @@ class BatchLengthOverflow extends JSPrismarineError {
  * the usual cause.
  */
 class BatchLengthTruncated extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_LENGTH_TRUNCATED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed batch: varint at offset {offset} runs past the end of the payload';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-truncated';
+    public static get code(): 'PROTOCOL_BATCH_LENGTH_TRUNCATED' {
+        return 'PROTOCOL_BATCH_LENGTH_TRUNCATED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed batch: varint at offset {offset} runs past the end of the payload' {
+        return 'Malformed batch: varint at offset {offset} runs past the end of the payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-truncated' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-truncated';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_LENGTH_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-length-truncated';
@@ -1040,11 +1377,21 @@ class BatchLengthTruncated extends JSPrismarineError {
  * the usual cause.
  */
 class EmptyBatchPacket extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_EMPTY_BATCH_PACKET';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed batch: zero length packet at offset {start}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-batch-packet';
+    public static get code(): 'PROTOCOL_EMPTY_BATCH_PACKET' {
+        return 'PROTOCOL_EMPTY_BATCH_PACKET';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed batch: zero length packet at offset {start}' {
+        return 'Malformed batch: zero length packet at offset {start}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-batch-packet' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-batch-packet';
+    }
 
     public override readonly code = 'PROTOCOL_EMPTY_BATCH_PACKET';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-empty-batch-packet';
@@ -1067,11 +1414,21 @@ class EmptyBatchPacket extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class SnappyCopyOutOfRange extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_COPY_OUT_OF_RANGE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: copy exceeds its output';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-copy-out-of-range';
+    public static get code(): 'PROTOCOL_SNAPPY_COPY_OUT_OF_RANGE' {
+        return 'PROTOCOL_SNAPPY_COPY_OUT_OF_RANGE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: copy exceeds its output' {
+        return 'Malformed Snappy block: copy exceeds its output';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-copy-out-of-range' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-copy-out-of-range';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_COPY_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-copy-out-of-range';
@@ -1093,11 +1450,21 @@ class SnappyCopyOutOfRange extends JSPrismarineError {
  * than this server reads it, is the usual cause.
  */
 class SnappyLengthMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_LENGTH_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: decoded {outputCursor} of {length} bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-mismatch';
+    public static get code(): 'PROTOCOL_SNAPPY_LENGTH_MISMATCH' {
+        return 'PROTOCOL_SNAPPY_LENGTH_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: decoded {outputCursor} of {length} bytes' {
+        return 'Malformed Snappy block: decoded {outputCursor} of {length} bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_LENGTH_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-mismatch';
@@ -1123,11 +1490,21 @@ class SnappyLengthMismatch extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyLengthOverflow extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_LENGTH_OVERFLOW';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: length overflows 32 bits';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-overflow';
+    public static get code(): 'PROTOCOL_SNAPPY_LENGTH_OVERFLOW' {
+        return 'PROTOCOL_SNAPPY_LENGTH_OVERFLOW';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: length overflows 32 bits' {
+        return 'Malformed Snappy block: length overflows 32 bits';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-overflow' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-overflow';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_LENGTH_OVERFLOW';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-overflow';
@@ -1149,11 +1526,21 @@ class SnappyLengthOverflow extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class SnappyLiteralOutOfRange extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_LITERAL_OUT_OF_RANGE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: literal exceeds its input or output';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-literal-out-of-range';
+    public static get code(): 'PROTOCOL_SNAPPY_LITERAL_OUT_OF_RANGE' {
+        return 'PROTOCOL_SNAPPY_LITERAL_OUT_OF_RANGE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: literal exceeds its input or output' {
+        return 'Malformed Snappy block: literal exceeds its input or output';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-literal-out-of-range' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-literal-out-of-range';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_LITERAL_OUT_OF_RANGE';
     public override readonly docs =
@@ -1176,12 +1563,21 @@ class SnappyLiteralOutOfRange extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyTruncatedOneByteCopy extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: truncated 1-byte copy';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-one-byte-copy';
+    public static get code(): 'PROTOCOL_SNAPPY_TRUNCATED_ONE_BYTE_COPY' {
+        return 'PROTOCOL_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: truncated 1-byte copy' {
+        return 'Malformed Snappy block: truncated 1-byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-one-byte-copy' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-one-byte-copy';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
     public override readonly docs =
@@ -1204,12 +1600,21 @@ class SnappyTruncatedOneByteCopy extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyTruncatedTwoByteCopy extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: truncated 2-byte copy';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-two-byte-copy';
+    public static get code(): 'PROTOCOL_SNAPPY_TRUNCATED_TWO_BYTE_COPY' {
+        return 'PROTOCOL_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: truncated 2-byte copy' {
+        return 'Malformed Snappy block: truncated 2-byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-two-byte-copy' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-two-byte-copy';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
     public override readonly docs =
@@ -1232,12 +1637,21 @@ class SnappyTruncatedTwoByteCopy extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyTruncatedFourByteCopy extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: truncated 4-byte copy';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-four-byte-copy';
+    public static get code(): 'PROTOCOL_SNAPPY_TRUNCATED_FOUR_BYTE_COPY' {
+        return 'PROTOCOL_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: truncated 4-byte copy' {
+        return 'Malformed Snappy block: truncated 4-byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-four-byte-copy' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-four-byte-copy';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
     public override readonly docs =
@@ -1260,12 +1674,21 @@ class SnappyTruncatedFourByteCopy extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyTruncatedLengthPrefix extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_LENGTH_PREFIX';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: truncated length prefix';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-length-prefix';
+    public static get code(): 'PROTOCOL_SNAPPY_TRUNCATED_LENGTH_PREFIX' {
+        return 'PROTOCOL_SNAPPY_TRUNCATED_LENGTH_PREFIX';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: truncated length prefix' {
+        return 'Malformed Snappy block: truncated length prefix';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-length-prefix' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-length-prefix';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_LENGTH_PREFIX';
     public override readonly docs =
@@ -1288,12 +1711,21 @@ class SnappyTruncatedLengthPrefix extends JSPrismarineError {
  * the usual cause.
  */
 class SnappyTruncatedLiteralLength extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_LITERAL_LENGTH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: truncated literal length';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-literal-length';
+    public static get code(): 'PROTOCOL_SNAPPY_TRUNCATED_LITERAL_LENGTH' {
+        return 'PROTOCOL_SNAPPY_TRUNCATED_LITERAL_LENGTH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: truncated literal length' {
+        return 'Malformed Snappy block: truncated literal length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-literal-length' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-truncated-literal-length';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_TRUNCATED_LITERAL_LENGTH';
     public override readonly docs =
@@ -1316,12 +1748,21 @@ class SnappyTruncatedLiteralLength extends JSPrismarineError {
  * cause.
  */
 class SnappyLengthPrefixUnterminated extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Malformed Snappy block: unterminated length prefix';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-prefix-unterminated';
+    public static get code(): 'PROTOCOL_SNAPPY_LENGTH_PREFIX_UNTERMINATED' {
+        return 'PROTOCOL_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Malformed Snappy block: unterminated length prefix' {
+        return 'Malformed Snappy block: unterminated length prefix';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-prefix-unterminated' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-length-prefix-unterminated';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
     public override readonly docs =
@@ -1343,11 +1784,21 @@ class SnappyLengthPrefixUnterminated extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class PacketIdMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PACKET_ID_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'NetworkPacket ID mismatch: expected {expected}, got {pid}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-id-mismatch';
+    public static get code(): 'PROTOCOL_PACKET_ID_MISMATCH' {
+        return 'PROTOCOL_PACKET_ID_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'NetworkPacket ID mismatch: expected {expected}, got {pid}' {
+        return 'NetworkPacket ID mismatch: expected {expected}, got {pid}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-id-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-id-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_PACKET_ID_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-id-mismatch';
@@ -1369,11 +1820,21 @@ class PacketIdMismatch extends JSPrismarineError {
  * speak the Bedrock protocol, or the connection fell out of step.
  */
 class NotBatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_NOT_BATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Not a batch: expected id 0x{batchPacketId}, got 0x{batch}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-batch';
+    public static get code(): 'PROTOCOL_NOT_BATCH' {
+        return 'PROTOCOL_NOT_BATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Not a batch: expected id 0x{batchPacketId}, got 0x{batch}' {
+        return 'Not a batch: expected id 0x{batchPacketId}, got 0x{batch}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-batch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-batch';
+    }
 
     public override readonly code = 'PROTOCOL_NOT_BATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-batch';
@@ -1395,11 +1856,21 @@ class NotBatch extends JSPrismarineError {
  * codecs; report it with the stack trace.
  */
 class NotNbtTag extends JSPrismarineTypeError {
-    public static readonly code = 'PROTOCOL_NOT_NBT_TAG';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'not an NBT tag: {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-nbt-tag';
+    public static get code(): 'PROTOCOL_NOT_NBT_TAG' {
+        return 'PROTOCOL_NOT_NBT_TAG';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'not an NBT tag: {value}' {
+        return 'not an NBT tag: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-nbt-tag' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-nbt-tag';
+    }
 
     public override readonly code = 'PROTOCOL_NOT_NBT_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-not-nbt-tag';
@@ -1421,11 +1892,21 @@ class NotNbtTag extends JSPrismarineTypeError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class SeveralPreviewCodecs extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SEVERAL_PREVIEW_CODECS';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Only the newest preview is supported, but codecs {previews} are previews!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-several-preview-codecs';
+    public static get code(): 'PROTOCOL_SEVERAL_PREVIEW_CODECS' {
+        return 'PROTOCOL_SEVERAL_PREVIEW_CODECS';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Only the newest preview is supported, but codecs {previews} are previews!' {
+        return 'Only the newest preview is supported, but codecs {previews} are previews!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-several-preview-codecs' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-several-preview-codecs';
+    }
 
     public override readonly code = 'PROTOCOL_SEVERAL_PREVIEW_CODECS';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-several-preview-codecs';
@@ -1447,12 +1928,21 @@ class SeveralPreviewCodecs extends JSPrismarineError {
  * bug in the protocol codecs; report it with the stack trace.
  */
 class FragmentCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PROTOCOL_FRAGMENT_COUNT_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'Packet and fragment counts differ: {packetsCount} packets, {fragmentsCount} fragments';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-count-mismatch';
+    public static get code(): 'PROTOCOL_FRAGMENT_COUNT_MISMATCH' {
+        return 'PROTOCOL_FRAGMENT_COUNT_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Packet and fragment counts differ: {packetsCount} packets, {fragmentsCount} fragments' {
+        return 'Packet and fragment counts differ: {packetsCount} packets, {fragmentsCount} fragments';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-count-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_FRAGMENT_COUNT_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-fragment-count-mismatch';
@@ -1482,12 +1972,21 @@ class FragmentCountMismatch extends JSPrismarineRangeError {
  * version-specific codec. This is a bug in the protocol codecs; report it with the stack trace.
  */
 class PacketHasNoDefaultNetworkId extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_PACKET_HAS_NO_DEFAULT_NETWORK_ID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Packet {name} has no default network id';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-default-network-id';
+    public static get code(): 'PROTOCOL_PACKET_HAS_NO_DEFAULT_NETWORK_ID' {
+        return 'PROTOCOL_PACKET_HAS_NO_DEFAULT_NETWORK_ID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Packet {name} has no default network id' {
+        return 'Packet {name} has no default network id';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-default-network-id' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-packet-has-no-default-network-id';
+    }
 
     public override readonly code = 'PROTOCOL_PACKET_HAS_NO_DEFAULT_NETWORK_ID';
     public override readonly docs =
@@ -1510,11 +2009,21 @@ class PacketHasNoDefaultNetworkId extends JSPrismarineError {
  * is malformed.
  */
 class UnknownParameterType extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_PARAMETER_TYPE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Parameter {wireValue} carries unknown parse symbol {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-parameter-type';
+    public static get code(): 'PROTOCOL_UNKNOWN_PARAMETER_TYPE' {
+        return 'PROTOCOL_UNKNOWN_PARAMETER_TYPE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Parameter {wireValue} carries unknown parse symbol {type}' {
+        return 'Parameter {wireValue} carries unknown parse symbol {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-parameter-type' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-parameter-type';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_PARAMETER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-parameter-type';
@@ -1535,11 +2044,21 @@ class UnknownParameterType extends JSPrismarineError {
  * A command list's parameter refers to an enum it does not hold, so the packet is malformed.
  */
 class MissingParameterEnum extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_PARAMETER_ENUM';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Parameter {wireValue} points at missing enum {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-enum';
+    public static get code(): 'PROTOCOL_MISSING_PARAMETER_ENUM' {
+        return 'PROTOCOL_MISSING_PARAMETER_ENUM';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Parameter {wireValue} points at missing enum {index}' {
+        return 'Parameter {wireValue} points at missing enum {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-enum' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-enum';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_PARAMETER_ENUM';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-enum';
@@ -1560,11 +2079,21 @@ class MissingParameterEnum extends JSPrismarineError {
  * A command list's parameter refers to a postfix it does not hold, so the packet is malformed.
  */
 class MissingParameterPostfix extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_PARAMETER_POSTFIX';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Parameter {wireValue} points at missing postfix {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-postfix';
+    public static get code(): 'PROTOCOL_MISSING_PARAMETER_POSTFIX' {
+        return 'PROTOCOL_MISSING_PARAMETER_POSTFIX';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Parameter {wireValue} points at missing postfix {index}' {
+        return 'Parameter {wireValue} points at missing postfix {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-postfix' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-postfix';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_PARAMETER_POSTFIX';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-postfix';
@@ -1586,11 +2115,21 @@ class MissingParameterPostfix extends JSPrismarineError {
  * malformed.
  */
 class MissingParameterSoftEnum extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_PARAMETER_SOFT_ENUM';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Parameter {wireValue} points at missing soft enum {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-soft-enum';
+    public static get code(): 'PROTOCOL_MISSING_PARAMETER_SOFT_ENUM' {
+        return 'PROTOCOL_MISSING_PARAMETER_SOFT_ENUM';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Parameter {wireValue} points at missing soft enum {index}' {
+        return 'Parameter {wireValue} points at missing soft enum {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-soft-enum' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-soft-enum';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_PARAMETER_SOFT_ENUM';
     public override readonly docs =
@@ -1613,12 +2152,21 @@ class MissingParameterSoftEnum extends JSPrismarineError {
  * malformed.
  */
 class MissingParameterSubcommandTable extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_PARAMETER_SUBCOMMAND_TABLE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Parameter {wireValue} points at missing subcommand table {index}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-subcommand-table';
+    public static get code(): 'PROTOCOL_MISSING_PARAMETER_SUBCOMMAND_TABLE' {
+        return 'PROTOCOL_MISSING_PARAMETER_SUBCOMMAND_TABLE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Parameter {wireValue} points at missing subcommand table {index}' {
+        return 'Parameter {wireValue} points at missing subcommand table {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-subcommand-table' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-parameter-subcommand-table';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_PARAMETER_SUBCOMMAND_TABLE';
     public override readonly docs =
@@ -1644,12 +2192,21 @@ class MissingParameterSubcommandTable extends JSPrismarineError {
  * client speaks. Drop its codec.
  */
 class StalePreviewCodec extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_STALE_PREVIEW_CODEC';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'Preview protocol {protocolVersion} is older than release {advertisedProtocolVersion}; drop it!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-stale-preview-codec';
+    public static get code(): 'PROTOCOL_STALE_PREVIEW_CODEC' {
+        return 'PROTOCOL_STALE_PREVIEW_CODEC';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Preview protocol {protocolVersion} is older than release {advertisedProtocolVersion}; drop it!' {
+        return 'Preview protocol {protocolVersion} is older than release {advertisedProtocolVersion}; drop it!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-stale-preview-codec' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-stale-preview-codec';
+    }
 
     public override readonly code = 'PROTOCOL_STALE_PREVIEW_CODEC';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-stale-preview-codec';
@@ -1679,11 +2236,21 @@ class StalePreviewCodec extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class MissingItemData extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_ITEM_DATA';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Protocol {protocolVersion} requires versioned item data!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-item-data';
+    public static get code(): 'PROTOCOL_MISSING_ITEM_DATA' {
+        return 'PROTOCOL_MISSING_ITEM_DATA';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Protocol {protocolVersion} requires versioned item data!' {
+        return 'Protocol {protocolVersion} requires versioned item data!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-item-data' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-item-data';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_ITEM_DATA';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-item-data';
@@ -1706,11 +2273,21 @@ class MissingItemData extends JSPrismarineError {
  * that writes the protocol differently than this server reads it, is the usual cause.
  */
 class SnappyBlockTooLarge extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_SNAPPY_BLOCK_TOO_LARGE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Snappy block expands to {length} bytes, limit is {maxOutputLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-block-too-large';
+    public static get code(): 'PROTOCOL_SNAPPY_BLOCK_TOO_LARGE' {
+        return 'PROTOCOL_SNAPPY_BLOCK_TOO_LARGE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Snappy block expands to {length} bytes, limit is {maxOutputLength}' {
+        return 'Snappy block expands to {length} bytes, limit is {maxOutputLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-block-too-large' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-block-too-large';
+    }
 
     public override readonly code = 'PROTOCOL_SNAPPY_BLOCK_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-snappy-block-too-large';
@@ -1740,13 +2317,21 @@ class SnappyBlockTooLarge extends JSPrismarineError {
  * the protocol codecs; report it with the stack trace.
  */
 class StringAttributeUnsupported extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_STRING_ATTRIBUTE_UNSUPPORTED';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'A string attribute needs protocol {protocol2259}; this packet is for {codecProtocol}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-string-attribute-unsupported';
+    public static get code(): 'PROTOCOL_STRING_ATTRIBUTE_UNSUPPORTED' {
+        return 'PROTOCOL_STRING_ATTRIBUTE_UNSUPPORTED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'A string attribute needs protocol {protocol2259}; this packet is for {codecProtocol}' {
+        return 'A string attribute needs protocol {protocol2259}; this packet is for {codecProtocol}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-string-attribute-unsupported' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-string-attribute-unsupported';
+    }
 
     public override readonly code = 'PROTOCOL_STRING_ATTRIBUTE_UNSUPPORTED';
     public override readonly docs =
@@ -1776,11 +2361,21 @@ class StringAttributeUnsupported extends JSPrismarineError {
  * A command list's subcommand refers to a value it does not hold, so the packet is malformed.
  */
 class MissingSubcommandValue extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_MISSING_SUBCOMMAND_VALUE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Subcommand {wireValue} points at missing value {first}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-subcommand-value';
+    public static get code(): 'PROTOCOL_MISSING_SUBCOMMAND_VALUE' {
+        return 'PROTOCOL_MISSING_SUBCOMMAND_VALUE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Subcommand {wireValue} points at missing value {first}' {
+        return 'Subcommand {wireValue} points at missing value {first}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-subcommand-value' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-subcommand-value';
+    }
 
     public override readonly code = 'PROTOCOL_MISSING_SUBCOMMAND_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-missing-subcommand-value';
@@ -1803,12 +2398,21 @@ class MissingSubcommandValue extends JSPrismarineError {
  * this server reads it, is the usual cause.
  */
 class BatchMissingCompressionByte extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BATCH_MISSING_COMPRESSION_BYTE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Truncated batch: compression is negotiated but the algorithm byte is missing';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-missing-compression-byte';
+    public static get code(): 'PROTOCOL_BATCH_MISSING_COMPRESSION_BYTE' {
+        return 'PROTOCOL_BATCH_MISSING_COMPRESSION_BYTE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Truncated batch: compression is negotiated but the algorithm byte is missing' {
+        return 'Truncated batch: compression is negotiated but the algorithm byte is missing';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-missing-compression-byte' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-batch-missing-compression-byte';
+    }
 
     public override readonly code = 'PROTOCOL_BATCH_MISSING_COMPRESSION_BYTE';
     public override readonly docs =
@@ -1830,11 +2434,21 @@ class BatchMissingCompressionByte extends JSPrismarineError {
  * protocol codecs; report it with the stack trace.
  */
 class DuplicateCodecVersion extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_DUPLICATE_CODEC_VERSION';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Two codecs claim the same protocol version!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-codec-version';
+    public static get code(): 'PROTOCOL_DUPLICATE_CODEC_VERSION' {
+        return 'PROTOCOL_DUPLICATE_CODEC_VERSION';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Two codecs claim the same protocol version!' {
+        return 'Two codecs claim the same protocol version!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-codec-version' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-codec-version';
+    }
 
     public override readonly code = 'PROTOCOL_DUPLICATE_CODEC_VERSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-duplicate-codec-version';
@@ -1855,11 +2469,21 @@ class DuplicateCodecVersion extends JSPrismarineError {
  * malformed.
  */
 class UnknownEnumValue extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ENUM_VALUE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown {label} {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-value';
+    public static get code(): 'PROTOCOL_UNKNOWN_ENUM_VALUE' {
+        return 'PROTOCOL_UNKNOWN_ENUM_VALUE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown {label} {value}' {
+        return 'Unknown {label} {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-value' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-value';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ENUM_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-value';
@@ -1881,11 +2505,21 @@ class UnknownEnumValue extends JSPrismarineError {
  * malformed.
  */
 class UnknownEnumName extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ENUM_NAME';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown {label} "{name}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-name';
+    public static get code(): 'PROTOCOL_UNKNOWN_ENUM_NAME' {
+        return 'PROTOCOL_UNKNOWN_ENUM_NAME';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown {label} "{name}"' {
+        return 'Unknown {label} "{name}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-name' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-name';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ENUM_NAME';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-enum-name';
@@ -1907,12 +2541,21 @@ class UnknownEnumName extends JSPrismarineError {
  * malformed.
  */
 class UnknownAttributePayloadAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_PAYLOAD_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown attribute payload alternative {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-payload-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_ATTRIBUTE_PAYLOAD_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_ATTRIBUTE_PAYLOAD_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown attribute payload alternative {type}' {
+        return 'Unknown attribute payload alternative {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-payload-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-payload-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_PAYLOAD_ALTERNATIVE';
     public override readonly docs =
@@ -1935,12 +2578,21 @@ class UnknownAttributePayloadAlternative extends JSPrismarineError {
  * malformed.
  */
 class UnknownAttributeValueAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_VALUE_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown attribute value alternative {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-value-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_ATTRIBUTE_VALUE_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_ATTRIBUTE_VALUE_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown attribute value alternative {type}' {
+        return 'Unknown attribute value alternative {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-value-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-attribute-value-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_ATTRIBUTE_VALUE_ALTERNATIVE';
     public override readonly docs =
@@ -1963,11 +2615,21 @@ class UnknownAttributeValueAlternative extends JSPrismarineError {
  * the packet is malformed.
  */
 class UnknownEasingFunctionId extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_EASING_FUNCTION_ID';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown easing_function {easing}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-easing-function-id';
+    public static get code(): 'PROTOCOL_UNKNOWN_EASING_FUNCTION_ID' {
+        return 'PROTOCOL_UNKNOWN_EASING_FUNCTION_ID';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown easing_function {easing}' {
+        return 'Unknown easing_function {easing}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-easing-function-id' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-easing-function-id';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_EASING_FUNCTION_ID';
     public override readonly docs =
@@ -1990,12 +2652,21 @@ class UnknownEasingFunctionId extends JSPrismarineError {
  * malformed.
  */
 class UnknownPrimitiveShapeExtraDataAlternative extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNKNOWN_PRIMITIVE_SHAPE_EXTRA_DATA_ALTERNATIVE';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unknown primitive shape extra data alternative {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-primitive-shape-extra-data-alternative';
+    public static get code(): 'PROTOCOL_UNKNOWN_PRIMITIVE_SHAPE_EXTRA_DATA_ALTERNATIVE' {
+        return 'PROTOCOL_UNKNOWN_PRIMITIVE_SHAPE_EXTRA_DATA_ALTERNATIVE';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unknown primitive shape extra data alternative {type}' {
+        return 'Unknown primitive shape extra data alternative {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-primitive-shape-extra-data-alternative' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unknown-primitive-shape-extra-data-alternative';
+    }
 
     public override readonly code = 'PROTOCOL_UNKNOWN_PRIMITIVE_SHAPE_EXTRA_DATA_ALTERNATIVE';
     public override readonly docs =
@@ -2019,12 +2690,21 @@ class UnknownPrimitiveShapeExtraDataAlternative extends JSPrismarineError {
  * reads it, is the usual cause.
  */
 class UnsupportedCompressionAlgorithm extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_UNSUPPORTED_COMPRESSION_ALGORITHM';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template = 'Unsupported compression algorithm: {algorithm}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/protocol/codec#protocol-unsupported-compression-algorithm';
+    public static get code(): 'PROTOCOL_UNSUPPORTED_COMPRESSION_ALGORITHM' {
+        return 'PROTOCOL_UNSUPPORTED_COMPRESSION_ALGORITHM';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Unsupported compression algorithm: {algorithm}' {
+        return 'Unsupported compression algorithm: {algorithm}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-unsupported-compression-algorithm' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-unsupported-compression-algorithm';
+    }
 
     public override readonly code = 'PROTOCOL_UNSUPPORTED_COMPRESSION_ALGORITHM';
     public override readonly docs =
@@ -2048,12 +2728,21 @@ class UnsupportedCompressionAlgorithm extends JSPrismarineError {
  * difference; regenerate the block data for the pinned server.
  */
 class BlockPaletteMismatch extends JSPrismarineError {
-    public static readonly code = 'PROTOCOL_BLOCK_PALETTE_MISMATCH';
-    public static readonly domain = 'protocol';
-    public static readonly module = 'codec';
-    public static readonly template =
-        'the block registry disagrees with the captured palette in {count} place(s), first: {block} {detail}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-block-palette-mismatch';
+    public static get code(): 'PROTOCOL_BLOCK_PALETTE_MISMATCH' {
+        return 'PROTOCOL_BLOCK_PALETTE_MISMATCH';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'the block registry disagrees with the captured palette in {count} place(s), first: {block} {detail}' {
+        return 'the block registry disagrees with the captured palette in {count} place(s), first: {block} {detail}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-block-palette-mismatch' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-block-palette-mismatch';
+    }
 
     public override readonly code = 'PROTOCOL_BLOCK_PALETTE_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/protocol/codec#protocol-block-palette-mismatch';
