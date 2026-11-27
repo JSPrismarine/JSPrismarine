@@ -31,7 +31,9 @@
  * `--tag <directory>` runs the citation codemod over the scanned sources under each directory, such
  * as `packages/features`: every JSDoc comment whose ``Java's `Class.member` `` citations all
  * resolve in the jar gets a tag per member, and the rest are printed for a person to tag. Review
- * the diff, then stamp with `--update`.
+ * the diff, then stamp with `--update`. `--hints <file>` settles the printed ones: a JSON object
+ * from a citation, such as `"Mth.floor"` or `"LivingEntity.knockback(power, xd, zd)"`, to its tag
+ * lines, such as `["@javaSource Mth.floor(D)I"]`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -213,14 +215,23 @@ const update = async (tags: readonly JavaSourceTag[], golden: JavaSourceGolden, 
  *
  * @returns Each citation it left for a person, as `file:line: citation: reason`.
  */
-const tag = async (directories: readonly string[]): Promise<string[]> => {
+const tag = async (directories: readonly string[], hintFiles: readonly string[]): Promise<string[]> => {
     const { index } = await readJar();
+    const hints = new Map<string, readonly string[]>();
+    for (const file of hintFiles) {
+        // Parsed JSON boundary: a hints file maps a citation to its tag lines.
+        const parsed: unknown = JSON.parse(readFileSync(resolve(process.env.INIT_CWD ?? process.cwd(), file), 'utf8'));
+        if (typeof parsed !== 'object' || parsed === null) throw new Error(`${file} is not an object of tag lists`);
+        for (const [citation, lines] of Object.entries(parsed))
+            if (Array.isArray(lines) && lines.every((line) => typeof line === 'string')) hints.set(citation, lines);
+            else throw new Error(`${file}: ${citation} needs a list of tag lines`);
+    }
     const left: string[] = [];
     let tagged = 0;
     for (const file of scanRepository(repoRoot).keys()) {
         if (!directories.some((directory) => file.startsWith(`${directory.replace(/\/$/, '')}/`))) continue;
         const path = join(repoRoot, file);
-        const result = tagCitations(readFileSync(path, 'utf8'), index);
+        const result = tagCitations(readFileSync(path, 'utf8'), index, hints);
         if (result.added.length > 0) writeFileSync(path, result.text);
         tagged += result.added.length;
         for (const citation of result.untagged)
@@ -234,7 +245,7 @@ if (import.meta.filename === process.argv[1]) {
     const lists = flagValues(process.argv, '--list');
     const directories = flagValues(process.argv, '--tag');
     if (directories.length > 0) {
-        for (const citation of await tag(directories)) console.log(citation);
+        for (const citation of await tag(directories, flagValues(process.argv, '--hints'))) console.log(citation);
     } else if (lists.length > 0) {
         const { version, index } = await readJar();
         for (const spelling of lists) {
