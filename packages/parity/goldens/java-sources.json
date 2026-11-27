@@ -408,397 +408,524 @@
     },
     "sources": {
         "net/minecraft/core/BlockPos.betweenClosed(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/lang/Iterable;": {
-            "26.3": "sha256:cc5e38e3fc47c4580e9effaf6e224098ca202a11fd3126fa50dd994972af4d79"
+            "26.3": "sha256:cc5e38e3fc47c4580e9effaf6e224098ca202a11fd3126fa50dd994972af4d79",
+            "26.4-pre-1": "sha256:cc5e38e3fc47c4580e9effaf6e224098ca202a11fd3126fa50dd994972af4d79"
         },
         "net/minecraft/core/BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;": {
-            "26.3": "sha256:8c0eab7a4b93b9df20288bad0a5069a8f1083f3688f1c333e7a2ef89570c3b7d"
+            "26.3": "sha256:8c0eab7a4b93b9df20288bad0a5069a8f1083f3688f1c333e7a2ef89570c3b7d",
+            "26.4-pre-1": "sha256:8c0eab7a4b93b9df20288bad0a5069a8f1083f3688f1c333e7a2ef89570c3b7d"
         },
         "net/minecraft/core/BlockPos.withinBoxByManhattanDistance(Lnet/minecraft/core/BlockPos;III)Ljava/lang/Iterable;": {
-            "26.3": "sha256:46f4219108fc909bdc4a64798e3251984ad64a269ffe84bf6de6d3cd2c001b44"
+            "26.3": "sha256:46f4219108fc909bdc4a64798e3251984ad64a269ffe84bf6de6d3cd2c001b44",
+            "26.4-pre-1": "sha256:46f4219108fc909bdc4a64798e3251984ad64a269ffe84bf6de6d3cd2c001b44"
         },
         "net/minecraft/core/Direction.fromYRot(D)Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:c4f30c7c768abf97158d280b9d35ac9bf96885ce02c604a7f0bd8b099a985884"
+            "26.3": "sha256:c4f30c7c768abf97158d280b9d35ac9bf96885ce02c604a7f0bd8b099a985884",
+            "26.4-pre-1": "sha256:c4f30c7c768abf97158d280b9d35ac9bf96885ce02c604a7f0bd8b099a985884"
         },
         "net/minecraft/core/Direction.getClockWise()Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:3472c1dc37d8c889b738f291e859e283dcbe0b8b89eff560544c489d98919ce6"
+            "26.3": "sha256:3472c1dc37d8c889b738f291e859e283dcbe0b8b89eff560544c489d98919ce6",
+            "26.4-pre-1": "sha256:3472c1dc37d8c889b738f291e859e283dcbe0b8b89eff560544c489d98919ce6"
         },
         "net/minecraft/core/Direction.orderedByNearest(Lnet/minecraft/world/entity/Entity;)[Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:58a51dfc10d49ff9c639743335cd7248999819075db67be1a52e07dcc429a46a"
+            "26.3": "sha256:58a51dfc10d49ff9c639743335cd7248999819075db67be1a52e07dcc429a46a",
+            "26.4-pre-1": "sha256:58a51dfc10d49ff9c639743335cd7248999819075db67be1a52e07dcc429a46a"
         },
         "net/minecraft/core/Direction.values()[Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:7c1090f22089f8ccb5087e22511500071613447dc339bbeb50169f413f49014f"
+            "26.3": "sha256:7c1090f22089f8ccb5087e22511500071613447dc339bbeb50169f413f49014f",
+            "26.4-pre-1": "sha256:7c1090f22089f8ccb5087e22511500071613447dc339bbeb50169f413f49014f"
         },
         "net/minecraft/core/Direction$Plane.HORIZONTAL": {
-            "26.3": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8"
+            "26.3": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8",
+            "26.4-pre-1": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8"
         },
         "net/minecraft/core/Vec3i.hashCode()I": {
-            "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
+            "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db",
+            "26.4-pre-1": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
         },
         "net/minecraft/server/level/ServerLevel.getFreeMapId()Lnet/minecraft/world/level/saveddata/maps/MapId;": {
-            "26.3": "sha256:d9bd784d2e5a5b3e4c7c078ac43f72fd182152d0e76924e39dd0c638cd7b0a7a"
+            "26.3": "sha256:d9bd784d2e5a5b3e4c7c078ac43f72fd182152d0e76924e39dd0c638cd7b0a7a",
+            "26.4-pre-1": "sha256:d9bd784d2e5a5b3e4c7c078ac43f72fd182152d0e76924e39dd0c638cd7b0a7a"
         },
         "net/minecraft/server/level/ServerLevel.setMapData(Lnet/minecraft/world/level/saveddata/maps/MapId;Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;)V": {
-            "26.3": "sha256:8ed3070ee0bd7604886e87a085f5909e86ea9f708477f84f103b264d4dede5b7"
+            "26.3": "sha256:8ed3070ee0bd7604886e87a085f5909e86ea9f708477f84f103b264d4dede5b7",
+            "26.4-pre-1": "sha256:8ed3070ee0bd7604886e87a085f5909e86ea9f708477f84f103b264d4dede5b7"
         },
         "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V": {
-            "26.3": "sha256:2c34830cea879af1209e5a084d33a16eb66a1c131efbd12ba441e1aec2b8b4d6"
+            "26.3": "sha256:2c34830cea879af1209e5a084d33a16eb66a1c131efbd12ba441e1aec2b8b4d6",
+            "26.4-pre-1": "sha256:2c34830cea879af1209e5a084d33a16eb66a1c131efbd12ba441e1aec2b8b4d6"
         },
         "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS": {
             "26.3": "sha256:5ae0262e14974845a3b361f17c0400e67151f7469bdb9c790f62c4f61f5b327d"
         },
         "net/minecraft/util/Mth.atan2(DD)D": {
-            "26.3": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321"
+            "26.3": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321",
+            "26.4-pre-1": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321"
         },
         "net/minecraft/util/Mth.nextDouble(Lnet/minecraft/util/RandomSource;DD)D": {
-            "26.3": "sha256:140617a4f1a0577e058450f83d1fa4a353488c7a66bb9aa31ad1480880216222"
+            "26.3": "sha256:140617a4f1a0577e058450f83d1fa4a353488c7a66bb9aa31ad1480880216222",
+            "26.4-pre-1": "sha256:140617a4f1a0577e058450f83d1fa4a353488c7a66bb9aa31ad1480880216222"
         },
         "net/minecraft/util/Mth.normal(Lnet/minecraft/util/RandomSource;FF)F": {
-            "26.3": "sha256:15e4c71c6f99731ca9bd36020924f86000d3cd0292d05e3f7c696959213cb52e"
+            "26.3": "sha256:15e4c71c6f99731ca9bd36020924f86000d3cd0292d05e3f7c696959213cb52e",
+            "26.4-pre-1": "sha256:15e4c71c6f99731ca9bd36020924f86000d3cd0292d05e3f7c696959213cb52e"
         },
         "net/minecraft/util/Mth.randomBetween(Lnet/minecraft/util/RandomSource;FF)F": {
-            "26.3": "sha256:861e6345e5e586a018b04b89924f3cb9b9e7b03f82b05a30d32a22fe0c20dea6"
+            "26.3": "sha256:861e6345e5e586a018b04b89924f3cb9b9e7b03f82b05a30d32a22fe0c20dea6",
+            "26.4-pre-1": "sha256:861e6345e5e586a018b04b89924f3cb9b9e7b03f82b05a30d32a22fe0c20dea6"
         },
         "net/minecraft/util/Mth.randomBetweenInclusive(Lnet/minecraft/util/RandomSource;II)I": {
-            "26.3": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc"
+            "26.3": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc",
+            "26.4-pre-1": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc"
         },
         "net/minecraft/util/Mth.wrapDegrees(D)D": {
-            "26.3": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf"
+            "26.3": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf",
+            "26.4-pre-1": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf"
         },
         "net/minecraft/util/random/WeightedList.getRandomOrThrow(Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": {
-            "26.3": "sha256:8ee507911c14f55cf243e0c27990a2fd34939f960c7a2adcfa6119e4a39e8f1b"
+            "26.3": "sha256:8ee507911c14f55cf243e0c27990a2fd34939f960c7a2adcfa6119e4a39e8f1b",
+            "26.4-pre-1": "sha256:8ee507911c14f55cf243e0c27990a2fd34939f960c7a2adcfa6119e4a39e8f1b"
         },
         "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
-            "26.3": "sha256:7648f46895b9feba5948f8c752b875cd30d0644a3469e167cf1b3c759b273103"
+            "26.3": "sha256:7648f46895b9feba5948f8c752b875cd30d0644a3469e167cf1b3c759b273103",
+            "26.4-pre-1": "sha256:7648f46895b9feba5948f8c752b875cd30d0644a3469e167cf1b3c759b273103"
         },
         "net/minecraft/util/Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": {
-            "26.3": "sha256:1a059ab2961c53c66724ce9711dfeb1382e645a4d2581c6556e5a08e73fc45f8"
+            "26.3": "sha256:1a059ab2961c53c66724ce9711dfeb1382e645a4d2581c6556e5a08e73fc45f8",
+            "26.4-pre-1": "sha256:1a059ab2961c53c66724ce9711dfeb1382e645a4d2581c6556e5a08e73fc45f8"
         },
         "net/minecraft/util/Util.shuffle(Ljava/util/List;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:6157691aa53f49c1043ab374ae083aad6510e8ce0bd93d710f0aeef77076b9a3"
+            "26.3": "sha256:6157691aa53f49c1043ab374ae083aad6510e8ce0bd93d710f0aeef77076b9a3",
+            "26.4-pre-1": "sha256:6157691aa53f49c1043ab374ae083aad6510e8ce0bd93d710f0aeef77076b9a3"
         },
         "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
-            "26.3": "sha256:5c16eacfbd67fc6dca18279961c72cd3f745ff8853db9ab9b3efa4894a5a8b6b"
+            "26.3": "sha256:5c16eacfbd67fc6dca18279961c72cd3f745ff8853db9ab9b3efa4894a5a8b6b",
+            "26.4-pre-1": "sha256:5c16eacfbd67fc6dca18279961c72cd3f745ff8853db9ab9b3efa4894a5a8b6b"
         },
         "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;": {
-            "26.3": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919"
+            "26.3": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919",
+            "26.4-pre-1": "sha256:b8c100ad0fff61bfbec287e5a887feca9c23956774286cec4f73f721ee802919"
         },
         "net/minecraft/world/entity/ai/attributes/Attributes.FOLLOW_RANGE": {
-            "26.3": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574"
+            "26.3": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574",
+            "26.4-pre-1": "sha256:d23d61550abe75c5bdffca95be7406cf7dbdbf1a983297f5a08e5f970d481574"
         },
         "net/minecraft/world/entity/ai/attributes/Attributes.TEMPT_RANGE": {
-            "26.3": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687"
+            "26.3": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687",
+            "26.4-pre-1": "sha256:a72b3b4e1c7ee864889270d089cbb765b40971cc742ca4cc2bab44bfdb3ed687"
         },
         "net/minecraft/world/entity/ai/behavior/AnimalMakeLove.BREED_RANGE": {
-            "26.3": "sha256:f9b0660c9cd49b34930218425293cc44c13fde8b49acf4d7b9ede9da82e5846c"
+            "26.3": "sha256:f9b0660c9cd49b34930218425293cc44c13fde8b49acf4d7b9ede9da82e5846c",
+            "26.4-pre-1": "sha256:f9b0660c9cd49b34930218425293cc44c13fde8b49acf4d7b9ede9da82e5846c"
         },
         "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_DISTANCE_HORIZONTAL": {
-            "26.3": "sha256:c45cacc6d39628bddc444e89bac5cf86b0999add572a52cbf70b9d93ebe96ad7"
+            "26.3": "sha256:c45cacc6d39628bddc444e89bac5cf86b0999add572a52cbf70b9d93ebe96ad7",
+            "26.4-pre-1": "sha256:c45cacc6d39628bddc444e89bac5cf86b0999add572a52cbf70b9d93ebe96ad7"
         },
         "net/minecraft/world/entity/ai/behavior/AnimalPanic.PANIC_MIN_DURATION": {
-            "26.3": "sha256:3f6e281600cc9c435dda0c4ce1883f92fbd8342295cb5b2792282dc3a006429a"
+            "26.3": "sha256:3f6e281600cc9c435dda0c4ce1883f92fbd8342295cb5b2792282dc3a006429a",
+            "26.4-pre-1": "sha256:3f6e281600cc9c435dda0c4ce1883f92fbd8342295cb5b2792282dc3a006429a"
         },
         "net/minecraft/world/entity/ai/behavior/BackUpIfTooClose.create(IF)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:f0b6d8d491dfe4351fe01a47715e0c09f4a8dbc13fba4f2308babb6b238b3dcf"
+            "26.3": "sha256:f0b6d8d491dfe4351fe01a47715e0c09f4a8dbc13fba4f2308babb6b238b3dcf",
+            "26.4-pre-1": "sha256:f0b6d8d491dfe4351fe01a47715e0c09f4a8dbc13fba4f2308babb6b238b3dcf"
         },
         "net/minecraft/world/entity/ai/behavior/Behavior.DEFAULT_DURATION": {
-            "26.3": "sha256:e60487e802b9f8f204425ed6623deb856fafd76906b5d155ad6b7913c2213f7c"
+            "26.3": "sha256:e60487e802b9f8f204425ed6623deb856fafd76906b5d155ad6b7913c2213f7c",
+            "26.4-pre-1": "sha256:e60487e802b9f8f204425ed6623deb856fafd76906b5d155ad6b7913c2213f7c"
         },
         "net/minecraft/world/entity/ai/behavior/Behavior$Status.$VALUES": {
-            "26.3": "sha256:f3d71e7eb5cfd1c6ca3006b5576d06f563373930a7b18364a6defda5955b3ee3"
+            "26.3": "sha256:f3d71e7eb5cfd1c6ca3006b5576d06f563373930a7b18364a6defda5955b3ee3",
+            "26.4-pre-1": "sha256:f3d71e7eb5cfd1c6ca3006b5576d06f563373930a7b18364a6defda5955b3ee3"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getLivingEntityFromUUIDMemory(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;)Ljava/util/Optional;": {
-            "26.3": "sha256:8b1aaab023b9abaf30c6e3f939774f7d1ebbddcac11d12f92b4a84f5d7e3d7df"
+            "26.3": "sha256:8b1aaab023b9abaf30c6e3f939774f7d1ebbddcac11d12f92b4a84f5d7e3d7df",
+            "26.4-pre-1": "sha256:8b1aaab023b9abaf30c6e3f939774f7d1ebbddcac11d12f92b4a84f5d7e3d7df"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.getNearestTarget(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/Optional;Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/entity/LivingEntity;": {
-            "26.3": "sha256:3eb35303fe995dcec87172a4c58e5fcdfdcadc7b2aa73fdcaf5d03883cc382d8"
+            "26.3": "sha256:3eb35303fe995dcec87172a4c58e5fcdfdcadc7b2aa73fdcaf5d03883cc382d8",
+            "26.4-pre-1": "sha256:3eb35303fe995dcec87172a4c58e5fcdfdcadc7b2aa73fdcaf5d03883cc382d8"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isBreeding(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:fcc5edc1dbcf157f3e8929fd5e7c7c420e0b09284f99c67dafaf5e8e539bbcc6"
+            "26.3": "sha256:fcc5edc1dbcf157f3e8929fd5e7c7c420e0b09284f99c67dafaf5e8e539bbcc6",
+            "26.4-pre-1": "sha256:fcc5edc1dbcf157f3e8929fd5e7c7c420e0b09284f99c67dafaf5e8e539bbcc6"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;D)Z": {
-            "26.3": "sha256:cbf1f7f9bbfdfde8d3ea2555a503fbf3ca3b23d625da0ab182f125b6c714d93c"
+            "26.3": "sha256:cbf1f7f9bbfdfde8d3ea2555a503fbf3ca3b23d625da0ab182f125b6c714d93c",
+            "26.4-pre-1": "sha256:cbf1f7f9bbfdfde8d3ea2555a503fbf3ca3b23d625da0ab182f125b6c714d93c"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.isWithinAttackRange(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/LivingEntity;I)Z": {
-            "26.3": "sha256:634fd4da0f5626313232984ae5fa478cd289426ca78c86045de17a53d96d3624"
+            "26.3": "sha256:634fd4da0f5626313232984ae5fa478cd289426ca78c86045de17a53d96d3624",
+            "26.4-pre-1": "sha256:634fd4da0f5626313232984ae5fa478cd289426ca78c86045de17a53d96d3624"
         },
         "net/minecraft/world/entity/ai/behavior/BehaviorUtils.setWalkAndLookTargetMemories(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/behavior/PositionTracker;FI)V": {
-            "26.3": "sha256:8cefc9560885b1620dd4a79a66524c9d77978b9ce1345213f52712559abd84c0"
+            "26.3": "sha256:8cefc9560885b1620dd4a79a66524c9d77978b9ce1345213f52712559abd84c0",
+            "26.4-pre-1": "sha256:8cefc9560885b1620dd4a79a66524c9d77978b9ce1345213f52712559abd84c0"
         },
         "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.sequence(Lnet/minecraft/world/entity/ai/behavior/declarative/Trigger;Lnet/minecraft/world/entity/ai/behavior/OneShot;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:43860f8d51a8c2a48dceb764f24516e0101dde78bd6d46965b88a34156e1f4e0"
+            "26.3": "sha256:43860f8d51a8c2a48dceb764f24516e0101dde78bd6d46965b88a34156e1f4e0",
+            "26.4-pre-1": "sha256:43860f8d51a8c2a48dceb764f24516e0101dde78bd6d46965b88a34156e1f4e0"
         },
         "net/minecraft/world/entity/ai/behavior/declarative/BehaviorBuilder.triggerIf(Ljava/util/function/Predicate;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:0241f64b0b9358789de1a761c01a2dc9f212c554371c4af706b803c6acfcb996"
+            "26.3": "sha256:0241f64b0b9358789de1a761c01a2dc9f212c554371c4af706b803c6acfcb996",
+            "26.4-pre-1": "sha256:0241f64b0b9358789de1a761c01a2dc9f212c554371c4af706b803c6acfcb996"
         },
         "net/minecraft/world/entity/ai/behavior/DismountOrSkipMounting.create(ILjava/util/function/BiPredicate;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:8b3eca0ffbf07594308c424dc1a27de990477fc20541ac331c6e58feec195728"
+            "26.3": "sha256:8b3eca0ffbf07594308c424dc1a27de990477fc20541ac331c6e58feec195728",
+            "26.4-pre-1": "sha256:8b3eca0ffbf07594308c424dc1a27de990477fc20541ac331c6e58feec195728"
         },
         "net/minecraft/world/entity/ai/behavior/FollowTemptation.DEFAULT_CLOSE_ENOUGH_DIST": {
-            "26.3": "sha256:387e56ec2d22a72600ca6738a63fedd000ee95f1439e42b896a84589c3443b9d"
+            "26.3": "sha256:387e56ec2d22a72600ca6738a63fedd000ee95f1439e42b896a84589c3443b9d",
+            "26.4-pre-1": "sha256:387e56ec2d22a72600ca6738a63fedd000ee95f1439e42b896a84589c3443b9d"
         },
         "net/minecraft/world/entity/ai/behavior/FollowTemptation.TEMPTATION_COOLDOWN": {
-            "26.3": "sha256:a6a0003f6bf2810a4b961cbb456bc19eae5411922a44f1089b6cfebc6e1ccfe3"
+            "26.3": "sha256:a6a0003f6bf2810a4b961cbb456bc19eae5411922a44f1089b6cfebc6e1ccfe3",
+            "26.4-pre-1": "sha256:a6a0003f6bf2810a4b961cbb456bc19eae5411922a44f1089b6cfebc6e1ccfe3"
         },
         "net/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy.$VALUES": {
-            "26.3": "sha256:2ad4917e6da1b7ba3647685925780620e87ceab012aa24bfd4a82a43134a9562"
+            "26.3": "sha256:2ad4917e6da1b7ba3647685925780620e87ceab012aa24bfd4a82a43134a9562",
+            "26.4-pre-1": "sha256:2ad4917e6da1b7ba3647685925780620e87ceab012aa24bfd4a82a43134a9562"
         },
         "net/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy.$VALUES": {
-            "26.3": "sha256:08409d11c24995556d26b07983d3e5671030d843fda618ec4d57a2f498700765"
+            "26.3": "sha256:08409d11c24995556d26b07983d3e5671030d843fda618ec4d57a2f498700765",
+            "26.4-pre-1": "sha256:08409d11c24995556d26b07983d3e5671030d843fda618ec4d57a2f498700765"
         },
         "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": {
-            "26.3": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef"
+            "26.3": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef",
+            "26.4-pre-1": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.fly(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:56c8855f2ad154a27879ea72859c57e8042b11bacab2eee5b1a4abc1c94f14f2"
+            "26.3": "sha256:56c8855f2ad154a27879ea72859c57e8042b11bacab2eee5b1a4abc1c94f14f2",
+            "26.4-pre-1": "sha256:56c8855f2ad154a27879ea72859c57e8042b11bacab2eee5b1a4abc1c94f14f2"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.MAX_XZ_DIST": {
-            "26.3": "sha256:5931c74eacc14bce16b4494272de063b0c6441b9a2e1a10855f891f2cda8826b"
+            "26.3": "sha256:5931c74eacc14bce16b4494272de063b0c6441b9a2e1a10855f891f2cda8826b",
+            "26.4-pre-1": "sha256:5931c74eacc14bce16b4494272de063b0c6441b9a2e1a10855f891f2cda8826b"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FII)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:2637f88b719fb4e572e67b0b32e17ae70143937711be77d40c5d685ac6cd45ea"
+            "26.3": "sha256:2637f88b719fb4e572e67b0b32e17ae70143937711be77d40c5d685ac6cd45ea",
+            "26.4-pre-1": "sha256:2637f88b719fb4e572e67b0b32e17ae70143937711be77d40c5d685ac6cd45ea"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:2d9783d0b259359466a0bcbd388b82ed4f5fc7803b3aa4b93627879524f023f6"
+            "26.3": "sha256:2d9783d0b259359466a0bcbd388b82ed4f5fc7803b3aa4b93627879524f023f6",
+            "26.4-pre-1": "sha256:2d9783d0b259359466a0bcbd388b82ed4f5fc7803b3aa4b93627879524f023f6"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.swim(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:595c466622b186a23433d944b0256d802ba95ced78470c6366810a4b181e8fb5"
+            "26.3": "sha256:595c466622b186a23433d944b0256d802ba95ced78470c6366810a4b181e8fb5",
+            "26.4-pre-1": "sha256:595c466622b186a23433d944b0256d802ba95ced78470c6366810a4b181e8fb5"
         },
         "net/minecraft/world/entity/ai/behavior/SetHiddenState.create(II)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:8ad84e19bbccc6d94d04437702f59b9a61b82d741c0f2ba5ae90a3a77b406377"
+            "26.3": "sha256:8ad84e19bbccc6d94d04437702f59b9a61b82d741c0f2ba5ae90a3a77b406377",
+            "26.4-pre-1": "sha256:8ad84e19bbccc6d94d04437702f59b9a61b82d741c0f2ba5ae90a3a77b406377"
         },
         "net/minecraft/world/entity/ai/behavior/SetWalkTargetAwayFrom.pos(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;FIZ)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:7de4229bb7cd99f5fcb861503e28101631234c9305848a0366e3055fa510bc11"
+            "26.3": "sha256:7de4229bb7cd99f5fcb861503e28101631234c9305848a0366e3055fa510bc11",
+            "26.4-pre-1": "sha256:7de4229bb7cd99f5fcb861503e28101631234c9305848a0366e3055fa510bc11"
         },
         "net/minecraft/world/entity/ai/behavior/SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER": {
-            "26.3": "sha256:7dde1ef53c3f2bdd8308a94aa0b70c7315cb87d19123e01b2d608241c8d65cb4"
+            "26.3": "sha256:7dde1ef53c3f2bdd8308a94aa0b70c7315cb87d19123e01b2d608241c8d65cb4",
+            "26.4-pre-1": "sha256:7dde1ef53c3f2bdd8308a94aa0b70c7315cb87d19123e01b2d608241c8d65cb4"
         },
         "net/minecraft/world/entity/ai/behavior/SpearAttack$SpearStatus.$VALUES": {
-            "26.3": "sha256:7e770ee6ba22ba4827f485ae8d075112a21d5f13ef442ebfeeaf1a0040de1429"
+            "26.3": "sha256:7e770ee6ba22ba4827f485ae8d075112a21d5f13ef442ebfeeaf1a0040de1429",
+            "26.4-pre-1": "sha256:7e770ee6ba22ba4827f485ae8d075112a21d5f13ef442ebfeeaf1a0040de1429"
         },
         "net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE": {
-            "26.3": "sha256:847febc2abdcdef68ad25920a0f802ae9c474de4901af52892e6c78022b66711"
+            "26.3": "sha256:847febc2abdcdef68ad25920a0f802ae9c474de4901af52892e6c78022b66711",
+            "26.4-pre-1": "sha256:847febc2abdcdef68ad25920a0f802ae9c474de4901af52892e6c78022b66711"
         },
         "net/minecraft/world/entity/ai/behavior/StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS": {
-            "26.3": "sha256:82e761cce8865830b376523cfcc80f5aaf09fdc3c1bca8239936a1a8b7cee917"
+            "26.3": "sha256:82e761cce8865830b376523cfcc80f5aaf09fdc3c1bca8239936a1a8b7cee917",
+            "26.4-pre-1": "sha256:82e761cce8865830b376523cfcc80f5aaf09fdc3c1bca8239936a1a8b7cee917"
         },
         "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerGate(Ljava/util/List;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:d28796487697eb7f7dd6e7c13dce3a7f56ffd136bd5eb77239f33b15c32395f8"
+            "26.3": "sha256:d28796487697eb7f7dd6e7c13dce3a7f56ffd136bd5eb77239f33b15c32395f8",
+            "26.4-pre-1": "sha256:d28796487697eb7f7dd6e7c13dce3a7f56ffd136bd5eb77239f33b15c32395f8"
         },
         "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerOneShuffled(Ljava/util/List;)Lnet/minecraft/world/entity/ai/behavior/OneShot;": {
-            "26.3": "sha256:059aeb26bbd46363230952c3cfe97e9f119e8f43205905e4456ab4b2e330e255"
+            "26.3": "sha256:059aeb26bbd46363230952c3cfe97e9f119e8f43205905e4456ab4b2e330e255",
+            "26.4-pre-1": "sha256:059aeb26bbd46363230952c3cfe97e9f119e8f43205905e4456ab4b2e330e255"
         },
         "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getFullLookBehavior()Lcom/mojang/datafixers/util/Pair;": {
-            "26.3": "sha256:acf316b706b2bb6eb0a19a9a3fa36ff18d2ce9c1f4a97c9a32d121bd5a801e63"
+            "26.3": "sha256:acf316b706b2bb6eb0a19a9a3fa36ff18d2ce9c1f4a97c9a32d121bd5a801e63",
+            "26.4-pre-1": "sha256:acf316b706b2bb6eb0a19a9a3fa36ff18d2ce9c1f4a97c9a32d121bd5a801e63"
         },
         "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMinimalLookBehavior()Lcom/mojang/datafixers/util/Pair;": {
-            "26.3": "sha256:7e35e4b84734caac2654e3c54b748a1b2624ce218e757c938f46b5191fd75f52"
+            "26.3": "sha256:7e35e4b84734caac2654e3c54b748a1b2624ce218e757c938f46b5191fd75f52",
+            "26.4-pre-1": "sha256:7e35e4b84734caac2654e3c54b748a1b2624ce218e757c938f46b5191fd75f52"
         },
         "net/minecraft/world/entity/ai/behavior/warden/SonicBoom.setCooldown(Lnet/minecraft/world/entity/LivingEntity;I)V": {
-            "26.3": "sha256:2bc1942a5c888f789048ed1ef6d898938fc20389a374a7695b3281c619f4e128"
+            "26.3": "sha256:2bc1942a5c888f789048ed1ef6d898938fc20389a374a7695b3281c619f4e128",
+            "26.4-pre-1": "sha256:2bc1942a5c888f789048ed1ef6d898938fc20389a374a7695b3281c619f4e128"
         },
         "net/minecraft/world/entity/ai/Brain.checkMemory(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryStatus;)Z": {
-            "26.3": "sha256:05d28213305876996e258841ddc23b9a46a6aeea649d81e47f6362639350a450"
+            "26.3": "sha256:05d28213305876996e258841ddc23b9a46a6aeea649d81e47f6362639350a450",
+            "26.4-pre-1": "sha256:05d28213305876996e258841ddc23b9a46a6aeea649d81e47f6362639350a450"
         },
         "net/minecraft/world/entity/ai/Brain.isMemoryValue(Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Ljava/lang/Object;)Z": {
-            "26.3": "sha256:7edbb1dffa11a7fb56751161aee34009a71dda6a1e5bda640d45816c68710dac"
+            "26.3": "sha256:7edbb1dffa11a7fb56751161aee34009a71dda6a1e5bda640d45816c68710dac",
+            "26.4-pre-1": "sha256:7edbb1dffa11a7fb56751161aee34009a71dda6a1e5bda640d45816c68710dac"
         },
         "net/minecraft/world/entity/ai/Brain.SCHEDULE_UPDATE_DELAY": {
-            "26.3": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9"
+            "26.3": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9",
+            "26.4-pre-1": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9"
         },
         "net/minecraft/world/entity/ai/goal/AvoidEntityGoal.tick()V": {
-            "26.3": "sha256:f548cdcb7bb64bdeb44b73a52dee3dadc5bed8ed362600f43bf19a2f70ee4b15"
+            "26.3": "sha256:f548cdcb7bb64bdeb44b73a52dee3dadc5bed8ed362600f43bf19a2f70ee4b15",
+            "26.4-pre-1": "sha256:f548cdcb7bb64bdeb44b73a52dee3dadc5bed8ed362600f43bf19a2f70ee4b15"
         },
         "net/minecraft/world/entity/ai/goal/BreathAirGoal.canUse()Z": {
-            "26.3": "sha256:2681d6dc629c78abcffc0cd93ecf3adddb288aa4020058df0f2e19d25f864d2d"
+            "26.3": "sha256:2681d6dc629c78abcffc0cd93ecf3adddb288aa4020058df0f2e19d25f864d2d",
+            "26.4-pre-1": "sha256:2681d6dc629c78abcffc0cd93ecf3adddb288aa4020058df0f2e19d25f864d2d"
         },
         "net/minecraft/world/entity/ai/goal/BreedGoal.PARTNER_TARGETING": {
-            "26.3": "sha256:a8aa694020a03d99cc9378a52aed0e55a7d4ad21548b07dbdb69c6c27eca911b"
+            "26.3": "sha256:a8aa694020a03d99cc9378a52aed0e55a7d4ad21548b07dbdb69c6c27eca911b",
+            "26.4-pre-1": "sha256:a8aa694020a03d99cc9378a52aed0e55a7d4ad21548b07dbdb69c6c27eca911b"
         },
         "net/minecraft/world/entity/ai/goal/EatBlockGoal.canUse()Z": {
-            "26.3": "sha256:3377578c403b663313d28a82c20a7cc386cdae1176add8d37554b873215edb61"
+            "26.3": "sha256:3377578c403b663313d28a82c20a7cc386cdae1176add8d37554b873215edb61",
+            "26.4-pre-1": "sha256:3377578c403b663313d28a82c20a7cc386cdae1176add8d37554b873215edb61"
         },
         "net/minecraft/world/entity/ai/goal/EatBlockGoal.EAT_ANIMATION_TICKS": {
-            "26.3": "sha256:5b0f1675e391c4385b700a71bf855122c5e0d8fdc57f1275159b423b79ee0c11"
+            "26.3": "sha256:5b0f1675e391c4385b700a71bf855122c5e0d8fdc57f1275159b423b79ee0c11",
+            "26.4-pre-1": "sha256:5b0f1675e391c4385b700a71bf855122c5e0d8fdc57f1275159b423b79ee0c11"
         },
         "net/minecraft/world/entity/ai/goal/FollowFlockLeaderGoal.nextStartTick(Lnet/minecraft/world/entity/animal/fish/AbstractSchoolingFish;)I": {
-            "26.3": "sha256:68ffa9b86ff50e84d06a7f96549d2691015fecf195e89cff989deff5ce043935"
+            "26.3": "sha256:68ffa9b86ff50e84d06a7f96549d2691015fecf195e89cff989deff5ce043935",
+            "26.4-pre-1": "sha256:68ffa9b86ff50e84d06a7f96549d2691015fecf195e89cff989deff5ce043935"
         },
         "net/minecraft/world/entity/ai/goal/FollowParentGoal.canContinueToUse()Z": {
-            "26.3": "sha256:46b9684226dacde22ff767ebee19b04420014d2b162ba95ab4f4fae4ef90bb07"
+            "26.3": "sha256:46b9684226dacde22ff767ebee19b04420014d2b162ba95ab4f4fae4ef90bb07",
+            "26.4-pre-1": "sha256:46b9684226dacde22ff767ebee19b04420014d2b162ba95ab4f4fae4ef90bb07"
         },
         "net/minecraft/world/entity/ai/goal/FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN": {
-            "26.3": "sha256:b7998df3968eb4c48b08a9e57398a03caca712d152102ec9b59248d915772136"
+            "26.3": "sha256:b7998df3968eb4c48b08a9e57398a03caca712d152102ec9b59248d915772136",
+            "26.4-pre-1": "sha256:b7998df3968eb4c48b08a9e57398a03caca712d152102ec9b59248d915772136"
         },
         "net/minecraft/world/entity/ai/goal/FollowParentGoal.HORIZONTAL_SCAN_RANGE": {
-            "26.3": "sha256:b9aa1de1b6fe5f9daa6ba63d29f3f8aaa31a1522e73eaf95a752fb674fb0a675"
+            "26.3": "sha256:b9aa1de1b6fe5f9daa6ba63d29f3f8aaa31a1522e73eaf95a752fb674fb0a675",
+            "26.4-pre-1": "sha256:b9aa1de1b6fe5f9daa6ba63d29f3f8aaa31a1522e73eaf95a752fb674fb0a675"
         },
         "net/minecraft/world/entity/ai/goal/Goal.adjustedTickDelay(I)I": {
-            "26.3": "sha256:6978576d36ef69287e1aeda48ded70eedc9d784464064f0f993e2850020ec5d1"
+            "26.3": "sha256:6978576d36ef69287e1aeda48ded70eedc9d784464064f0f993e2850020ec5d1",
+            "26.4-pre-1": "sha256:6978576d36ef69287e1aeda48ded70eedc9d784464064f0f993e2850020ec5d1"
         },
         "net/minecraft/world/entity/ai/goal/Goal.canContinueToUse()Z": {
-            "26.3": "sha256:64c2646d007169a97fb25cf47142f364fa9223550ffee0a0165d84ffc3880e3b"
+            "26.3": "sha256:64c2646d007169a97fb25cf47142f364fa9223550ffee0a0165d84ffc3880e3b",
+            "26.4-pre-1": "sha256:64c2646d007169a97fb25cf47142f364fa9223550ffee0a0165d84ffc3880e3b"
         },
         "net/minecraft/world/entity/ai/goal/Goal.reducedTickDelay(I)I": {
-            "26.3": "sha256:529cd081d80aa12dbeee3a9f3dbde4b5e5f752843fc8305785f25f501580d2fa"
+            "26.3": "sha256:529cd081d80aa12dbeee3a9f3dbde4b5e5f752843fc8305785f25f501580d2fa",
+            "26.4-pre-1": "sha256:529cd081d80aa12dbeee3a9f3dbde4b5e5f752843fc8305785f25f501580d2fa"
         },
         "net/minecraft/world/entity/ai/goal/LookAtPlayerGoal.canContinueToUse()Z": {
-            "26.3": "sha256:55d42dc5c496eb2c5d83e2c31f464363a88c2f8d2ca1335d628f82a84e94fe62"
+            "26.3": "sha256:55d42dc5c496eb2c5d83e2c31f464363a88c2f8d2ca1335d628f82a84e94fe62",
+            "26.4-pre-1": "sha256:55d42dc5c496eb2c5d83e2c31f464363a88c2f8d2ca1335d628f82a84e94fe62"
         },
         "net/minecraft/world/entity/ai/goal/LookAtPlayerGoal.DEFAULT_PROBABILITY": {
-            "26.3": "sha256:6cfef2d06b6cd1e05034e66d696ac3f0f7fa73087d88833a90491c76b315f9d5"
+            "26.3": "sha256:6cfef2d06b6cd1e05034e66d696ac3f0f7fa73087d88833a90491c76b315f9d5",
+            "26.4-pre-1": "sha256:6cfef2d06b6cd1e05034e66d696ac3f0f7fa73087d88833a90491c76b315f9d5"
         },
         "net/minecraft/world/entity/ai/goal/LookAtPlayerGoal.start()V": {
-            "26.3": "sha256:aa5184b1bac5dcb70902b7a9c6eaa71709b0ba2688262ccf070deb3fd638099a"
+            "26.3": "sha256:aa5184b1bac5dcb70902b7a9c6eaa71709b0ba2688262ccf070deb3fd638099a",
+            "26.4-pre-1": "sha256:aa5184b1bac5dcb70902b7a9c6eaa71709b0ba2688262ccf070deb3fd638099a"
         },
         "net/minecraft/world/entity/ai/goal/MeleeAttackGoal.canUse()Z": {
-            "26.3": "sha256:a678189ab229ac5e25b0390282269381c66afde6b4808d08e12fca41007648f1"
+            "26.3": "sha256:a678189ab229ac5e25b0390282269381c66afde6b4808d08e12fca41007648f1",
+            "26.4-pre-1": "sha256:a678189ab229ac5e25b0390282269381c66afde6b4808d08e12fca41007648f1"
         },
         "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": {
-            "26.3": "sha256:a0ed13b3ccc2ec2e194667d6bff34fb0be8f53d3efc2280f7fbb008cc4aa70bb"
+            "26.3": "sha256:a0ed13b3ccc2ec2e194667d6bff34fb0be8f53d3efc2280f7fbb008cc4aa70bb",
+            "26.4-pre-1": "sha256:a0ed13b3ccc2ec2e194667d6bff34fb0be8f53d3efc2280f7fbb008cc4aa70bb"
         },
         "net/minecraft/world/entity/ai/goal/OfferFlowerGoal.canUse()Z": {
-            "26.3": "sha256:7aac50765aade450658e99deb2c0a53e10dec21a1a12fc078c519fa98b12da8d"
+            "26.3": "sha256:7aac50765aade450658e99deb2c0a53e10dec21a1a12fc078c519fa98b12da8d",
+            "26.4-pre-1": "sha256:7aac50765aade450658e99deb2c0a53e10dec21a1a12fc078c519fa98b12da8d"
         },
         "net/minecraft/world/entity/ai/goal/OfferFlowerGoal.start()V": {
-            "26.3": "sha256:291fe878ee8a8daf9cee4d2f9a4e2d7b4b1f3136af69ab8d9d9d1f34a8e5bbad"
+            "26.3": "sha256:291fe878ee8a8daf9cee4d2f9a4e2d7b4b1f3136af69ab8d9d9d1f34a8e5bbad",
+            "26.4-pre-1": "sha256:291fe878ee8a8daf9cee4d2f9a4e2d7b4b1f3136af69ab8d9d9d1f34a8e5bbad"
         },
         "net/minecraft/world/entity/ai/goal/RandomLookAroundGoal.start()V": {
-            "26.3": "sha256:9158a06a89eda00f6ff35a7992e0d50dbca14a273b98339f4b17a06755c12106"
+            "26.3": "sha256:9158a06a89eda00f6ff35a7992e0d50dbca14a273b98339f4b17a06755c12106",
+            "26.4-pre-1": "sha256:9158a06a89eda00f6ff35a7992e0d50dbca14a273b98339f4b17a06755c12106"
         },
         "net/minecraft/world/entity/ai/goal/RandomStrollGoal.DEFAULT_INTERVAL": {
-            "26.3": "sha256:7b4bed2e1af33a3143fa9b97b1cb72a2c079afb9068ba361a130d4ba2d6618ab"
+            "26.3": "sha256:7b4bed2e1af33a3143fa9b97b1cb72a2c079afb9068ba361a130d4ba2d6618ab",
+            "26.4-pre-1": "sha256:7b4bed2e1af33a3143fa9b97b1cb72a2c079afb9068ba361a130d4ba2d6618ab"
         },
         "net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL": {
-            "26.3": "sha256:e67c874cfbca76e2a8c394d5fa3aa4e907ef00a8704fc102d32446a6f8dd8ef8"
+            "26.3": "sha256:e67c874cfbca76e2a8c394d5fa3aa4e907ef00a8704fc102d32446a6f8dd8ef8",
+            "26.4-pre-1": "sha256:e67c874cfbca76e2a8c394d5fa3aa4e907ef00a8704fc102d32446a6f8dd8ef8"
         },
         "net/minecraft/world/entity/ai/goal/target/TargetGoal.<init>(Lnet/minecraft/world/entity/Mob;ZZ)V": {
-            "26.3": "sha256:ce6a9e54e524639209c87358e30f898627e9f3bd8c8bb9108f4daa3a680ce73c"
+            "26.3": "sha256:ce6a9e54e524639209c87358e30f898627e9f3bd8c8bb9108f4daa3a680ce73c",
+            "26.4-pre-1": "sha256:ce6a9e54e524639209c87358e30f898627e9f3bd8c8bb9108f4daa3a680ce73c"
         },
         "net/minecraft/world/entity/ai/goal/TemptGoal.DEFAULT_STOP_DISTANCE": {
-            "26.3": "sha256:673e7405830aed5143fc35af28c1e728cfbf41e04f61d7a18686118170945901"
+            "26.3": "sha256:673e7405830aed5143fc35af28c1e728cfbf41e04f61d7a18686118170945901",
+            "26.4-pre-1": "sha256:673e7405830aed5143fc35af28c1e728cfbf41e04f61d7a18686118170945901"
         },
         "net/minecraft/world/entity/ai/memory/MemorySlot.NEVER_EXPIRE": {
-            "26.3": "sha256:9b0cbfb80131d9f58825eb2763499646e6df8a62c4c54a3e82fc42df61396cd5"
+            "26.3": "sha256:9b0cbfb80131d9f58825eb2763499646e6df8a62c4c54a3e82fc42df61396cd5",
+            "26.4-pre-1": "sha256:9b0cbfb80131d9f58825eb2763499646e6df8a62c4c54a3e82fc42df61396cd5"
         },
         "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.empty()Lnet/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities;": {
-            "26.3": "sha256:9b83aba01877569d32640f11a747aa50f0a9ee80e15e8c3d32cdb73a8280bf24"
+            "26.3": "sha256:9b83aba01877569d32640f11a747aa50f0a9ee80e15e8c3d32cdb73a8280bf24",
+            "26.4-pre-1": "sha256:9b83aba01877569d32640f11a747aa50f0a9ee80e15e8c3d32cdb73a8280bf24"
         },
         "net/minecraft/world/entity/ai/navigation/PathNavigation.MAX_TIME_RECOMPUTE": {
-            "26.3": "sha256:9e7a9d8e29683e0b0a9301176f9ec4cc2e7d5f512846b2b232086d262b11f570"
+            "26.3": "sha256:9e7a9d8e29683e0b0a9301176f9ec4cc2e7d5f512846b2b232086d262b11f570",
+            "26.4-pre-1": "sha256:9e7a9d8e29683e0b0a9301176f9ec4cc2e7d5f512846b2b232086d262b11f570"
         },
         "net/minecraft/world/entity/ai/navigation/PathNavigation.setSpeedModifier(D)V": {
-            "26.3": "sha256:ad561401165c39d24749ba43861eca21eb56a43a7a54d51b6c35e410edcaf0e0"
+            "26.3": "sha256:ad561401165c39d24749ba43861eca21eb56a43a7a54d51b6c35e410edcaf0e0",
+            "26.4-pre-1": "sha256:ad561401165c39d24749ba43861eca21eb56a43a7a54d51b6c35e410edcaf0e0"
         },
         "net/minecraft/world/entity/ai/sensing/AxolotlAttackablesSensor.TARGET_DETECTION_DISTANCE": {
-            "26.3": "sha256:10f309219e0340300a9f3ea3bf5671b7d81ec749297b19dd257b386febffe126"
+            "26.3": "sha256:10f309219e0340300a9f3ea3bf5671b7d81ec749297b19dd257b386febffe126",
+            "26.4-pre-1": "sha256:10f309219e0340300a9f3ea3bf5671b7d81ec749297b19dd257b386febffe126"
         },
         "net/minecraft/world/entity/ai/sensing/FrogAttackablesSensor.TARGET_DETECTION_DISTANCE": {
-            "26.3": "sha256:3890e234d46cc890a930ff2ac94fe92e29693a221c71d29f95995c14db524385"
+            "26.3": "sha256:3890e234d46cc890a930ff2ac94fe92e29693a221c71d29f95995c14db524385",
+            "26.4-pre-1": "sha256:3890e234d46cc890a930ff2ac94fe92e29693a221c71d29f95995c14db524385"
         },
         "net/minecraft/world/entity/ai/sensing/GolemSensor.GOLEM_SCAN_RATE": {
-            "26.3": "sha256:0c1a644c7afd6eac6c5f44918ed6bac5e11cd62e9f5627ee4d306502c13b03c3"
+            "26.3": "sha256:0c1a644c7afd6eac6c5f44918ed6bac5e11cd62e9f5627ee4d306502c13b03c3",
+            "26.4-pre-1": "sha256:0c1a644c7afd6eac6c5f44918ed6bac5e11cd62e9f5627ee4d306502c13b03c3"
         },
         "net/minecraft/world/entity/ai/sensing/NearestBedSensor.CACHE_TIMEOUT": {
-            "26.3": "sha256:ce134540af55e98f883d29c4df02ffeac2cb414ef4d37bf333a7d12bb0446f82"
+            "26.3": "sha256:ce134540af55e98f883d29c4df02ffeac2cb414ef4d37bf333a7d12bb0446f82",
+            "26.4-pre-1": "sha256:ce134540af55e98f883d29c4df02ffeac2cb414ef4d37bf333a7d12bb0446f82"
         },
         "net/minecraft/world/entity/ai/sensing/NearestItemSensor.XZ_RANGE": {
-            "26.3": "sha256:bf0178f2acaa7694345d9dda2593ffceb0c335fee0c1b1c9fa894de4edab4977"
+            "26.3": "sha256:bf0178f2acaa7694345d9dda2593ffceb0c335fee0c1b1c9fa894de4edab4977",
+            "26.4-pre-1": "sha256:bf0178f2acaa7694345d9dda2593ffceb0c335fee0c1b1c9fa894de4edab4977"
         },
         "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE": {
-            "26.3": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521"
+            "26.3": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521",
+            "26.4-pre-1": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521"
         },
         "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE": {
-            "26.3": "sha256:f52e0210922ecf8d7a3417463766713dc082f6cffdc16454660183416b04e8ae"
+            "26.3": "sha256:f52e0210922ecf8d7a3417463766713dc082f6cffdc16454660183416b04e8ae",
+            "26.4-pre-1": "sha256:f52e0210922ecf8d7a3417463766713dc082f6cffdc16454660183416b04e8ae"
         },
         "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE": {
-            "26.3": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85"
+            "26.3": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85",
+            "26.4-pre-1": "sha256:119041ea0c77538d206e767c28f2ccd2d2ae83ad1377e3c3e070dc6b651b9e85"
         },
         "net/minecraft/world/entity/ai/sensing/SensorType.ARMADILLO_SCARE_DETECTED": {
-            "26.3": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14"
+            "26.3": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14",
+            "26.4-pre-1": "sha256:ee34119b656d1eafaf97ce47736f7dc4e6fed79ef5e9b1a7d3e1064a9656ee14"
         },
         "net/minecraft/world/entity/ai/sensing/TemptingSensor.forAnimal()Lnet/minecraft/world/entity/ai/sensing/TemptingSensor;": {
-            "26.3": "sha256:f1f93d1f49736ee94f679cf60e59c65bea1ad808645d5334616b33ce2433e6d8"
+            "26.3": "sha256:f1f93d1f49736ee94f679cf60e59c65bea1ad808645d5334616b33ce2433e6d8",
+            "26.4-pre-1": "sha256:f1f93d1f49736ee94f679cf60e59c65bea1ad808645d5334616b33ce2433e6d8"
         },
         "net/minecraft/world/entity/animal/allay/AllayAi.getItemDepositPosition(Lnet/minecraft/world/entity/LivingEntity;)Ljava/util/Optional;": {
-            "26.3": "sha256:ebd969217d93ea29d208a1c6de623cb50ef1449ae77c258dee316120ec8091cb"
+            "26.3": "sha256:ebd969217d93ea29d208a1c6de623cb50ef1449ae77c258dee316120ec8091cb",
+            "26.4-pre-1": "sha256:ebd969217d93ea29d208a1c6de623cb50ef1449ae77c258dee316120ec8091cb"
         },
         "net/minecraft/world/entity/animal/allay/AllayAi.hearNoteblock(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/core/BlockPos;)V": {
-            "26.3": "sha256:56110dfedba2634c8bcef7bc5198d19bcb87b762b5767c5c8dc8165ab66b6a17"
+            "26.3": "sha256:56110dfedba2634c8bcef7bc5198d19bcb87b762b5767c5c8dc8165ab66b6a17",
+            "26.4-pre-1": "sha256:56110dfedba2634c8bcef7bc5198d19bcb87b762b5767c5c8dc8165ab66b6a17"
         },
         "net/minecraft/world/entity/animal/Animal.getWalkTargetValue(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/LevelReader;)F": {
-            "26.3": "sha256:55fcb41b8983dbf4c320422c91d8bfddc4d9e39fa6e03099157f5cbab9c1615c"
+            "26.3": "sha256:55fcb41b8983dbf4c320422c91d8bfddc4d9e39fa6e03099157f5cbab9c1615c",
+            "26.4-pre-1": "sha256:55fcb41b8983dbf4c320422c91d8bfddc4d9e39fa6e03099157f5cbab9c1615c"
         },
         "net/minecraft/world/entity/animal/armadillo/Armadillo.isScaredBy(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:8201dbaf03ff572e2bfaf1926ab6a87e304844cfaaa3918d6c3dfaa952d94d62"
+            "26.3": "sha256:8201dbaf03ff572e2bfaf1926ab6a87e304844cfaaa3918d6c3dfaa952d94d62",
+            "26.4-pre-1": "sha256:8201dbaf03ff572e2bfaf1926ab6a87e304844cfaaa3918d6c3dfaa952d94d62"
         },
         "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)Z": {
-            "26.3": "sha256:d609d6dcaa80c49c1bbd993ef97293ce1f7ee5170d4f0ab9b2aefff05925863e"
+            "26.3": "sha256:d609d6dcaa80c49c1bbd993ef97293ce1f7ee5170d4f0ab9b2aefff05925863e",
+            "26.4-pre-1": "sha256:d609d6dcaa80c49c1bbd993ef97293ce1f7ee5170d4f0ab9b2aefff05925863e"
         },
         "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;)Z": {
-            "26.3": "sha256:187092e6dc75fea908711c48076b3f38e6540fc2b2603972c3c30971f7d4162d"
+            "26.3": "sha256:187092e6dc75fea908711c48076b3f38e6540fc2b2603972c3c30971f7d4162d",
+            "26.4-pre-1": "sha256:187092e6dc75fea908711c48076b3f38e6540fc2b2603972c3c30971f7d4162d"
         },
         "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
-            "26.3": "sha256:f27399412da3922c14f69346b459e3560d77772ab1d3a5fe73c9a53e937f75cc"
+            "26.3": "sha256:f27399412da3922c14f69346b459e3560d77772ab1d3a5fe73c9a53e937f75cc",
+            "26.4-pre-1": "sha256:f27399412da3922c14f69346b459e3560d77772ab1d3a5fe73c9a53e937f75cc"
         },
         "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
-            "26.3": "sha256:f7e90d31cd059813a3c7e805048154e48e24f60df10778347580ce02d81d9733"
+            "26.3": "sha256:f7e90d31cd059813a3c7e805048154e48e24f60df10778347580ce02d81d9733",
+            "26.4-pre-1": "sha256:f7e90d31cd059813a3c7e805048154e48e24f60df10778347580ce02d81d9733"
         },
         "net/minecraft/world/entity/animal/armadillo/ArmadilloAi$ArmadilloBallUp.tick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/armadillo/Armadillo;J)V": {
-            "26.3": "sha256:9179ea7ddc3e53fe775338ce3d4a086c9338abad5c3c49cceaa90737ed791a39"
+            "26.3": "sha256:9179ea7ddc3e53fe775338ce3d4a086c9338abad5c3c49cceaa90737ed791a39",
+            "26.4-pre-1": "sha256:9179ea7ddc3e53fe775338ce3d4a086c9338abad5c3c49cceaa90737ed791a39"
         },
         "net/minecraft/world/entity/animal/axolotl/AxolotlAi.canSetWalkTargetFromLookTarget(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:4aff46e269db2e032d02407acb231de1a9f628516c7620979a2357013a7c1028"
+            "26.3": "sha256:4aff46e269db2e032d02407acb231de1a9f628516c7620979a2357013a7c1028",
+            "26.4-pre-1": "sha256:4aff46e269db2e032d02407acb231de1a9f628516c7620979a2357013a7c1028"
         },
         "net/minecraft/world/entity/animal/axolotl/AxolotlAi.getSpeedModifier(Lnet/minecraft/world/entity/LivingEntity;)F": {
-            "26.3": "sha256:10d57640cbb63717b8937c49817a7289877186664c62d628297f67c3f7cc0ad0"
+            "26.3": "sha256:10d57640cbb63717b8937c49817a7289877186664c62d628297f67c3f7cc0ad0",
+            "26.4-pre-1": "sha256:10d57640cbb63717b8937c49817a7289877186664c62d628297f67c3f7cc0ad0"
         },
         "net/minecraft/world/entity/animal/axolotl/AxolotlAi.updateActivity(Lnet/minecraft/world/entity/animal/axolotl/Axolotl;)V": {
-            "26.3": "sha256:ec22d1de740a4cfba2729fb263db1c38f756f83de328c0971fc87cbb19301e99"
+            "26.3": "sha256:ec22d1de740a4cfba2729fb263db1c38f756f83de328c0971fc87cbb19301e99",
+            "26.4-pre-1": "sha256:ec22d1de740a4cfba2729fb263db1c38f756f83de328c0971fc87cbb19301e99"
         },
         "net/minecraft/world/entity/animal/bee/Bee$BeeWanderGoal.findPos()Lnet/minecraft/world/phys/Vec3;": {
-            "26.3": "sha256:90d1d20eba3cd2423da3a406ec62c9c3b1c630363f76d41b84747b0a6dcbc12d"
+            "26.3": "sha256:90d1d20eba3cd2423da3a406ec62c9c3b1c630363f76d41b84747b0a6dcbc12d",
+            "26.4-pre-1": "sha256:90d1d20eba3cd2423da3a406ec62c9c3b1c630363f76d41b84747b0a6dcbc12d"
         },
         "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;)Z": {
-            "26.3": "sha256:f70fe00301cbb6cd8cf69cad809c2bbe0e2a0bbe1167a53d3f5e3ded11884018"
+            "26.3": "sha256:f70fe00301cbb6cd8cf69cad809c2bbe0e2a0bbe1167a53d3f5e3ded11884018",
+            "26.4-pre-1": "sha256:f70fe00301cbb6cd8cf69cad809c2bbe0e2a0bbe1167a53d3f5e3ded11884018"
         },
         "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;J)V": {
-            "26.3": "sha256:a6801e08470ac403eaa4ced9f74898768002e1a07196c4b7ce515b7191df65e1"
+            "26.3": "sha256:a6801e08470ac403eaa4ced9f74898768002e1a07196c4b7ce515b7191df65e1",
+            "26.4-pre-1": "sha256:a6801e08470ac403eaa4ced9f74898768002e1a07196c4b7ce515b7191df65e1"
         },
         "net/minecraft/world/entity/animal/equine/SkeletonHorse.aiStep()V": {
-            "26.3": "sha256:d088c2f2c73faa26129921e6f5fd030f762b05ee3f5c2b833a54da78fb676255"
+            "26.3": "sha256:d088c2f2c73faa26129921e6f5fd030f762b05ee3f5c2b833a54da78fb676255",
+            "26.4-pre-1": "sha256:d088c2f2c73faa26129921e6f5fd030f762b05ee3f5c2b833a54da78fb676255"
         },
         "net/minecraft/world/entity/animal/equine/SkeletonTrapGoal.tick()V": {
             "26.3": "sha256:1d0056bf031d8d0d1e382462d7c17533a075dd715c9648f0d8e06a412e70d0c2"
         },
         "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.canRandomSwim()Z": {
-            "26.3": "sha256:6bfdd336ba5fa63bd0f2b6303cd4d00fae3eb51474157064d9f2b432f7cb87a1"
+            "26.3": "sha256:6bfdd336ba5fa63bd0f2b6303cd4d00fae3eb51474157064d9f2b432f7cb87a1",
+            "26.4-pre-1": "sha256:6bfdd336ba5fa63bd0f2b6303cd4d00fae3eb51474157064d9f2b432f7cb87a1"
         },
         "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.tick()V": {
-            "26.3": "sha256:dd8799620f1ab2dbe3d262149452762b66db79560d483416b1877a60de913a0b"
+            "26.3": "sha256:dd8799620f1ab2dbe3d262149452762b66db79560d483416b1877a60de913a0b",
+            "26.4-pre-1": "sha256:dd8799620f1ab2dbe3d262149452762b66db79560d483416b1877a60de913a0b"
         },
         "net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.canUse()Z": {
-            "26.3": "sha256:f6c4304991a6e99691c70202966253a9111815731103106427dcfc1ca4e59e9e"
+            "26.3": "sha256:f6c4304991a6e99691c70202966253a9111815731103106427dcfc1ca4e59e9e",
+            "26.4-pre-1": "sha256:f6c4304991a6e99691c70202966253a9111815731103106427dcfc1ca4e59e9e"
         },
         "net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.start()V": {
             "26.3": "sha256:4880bcb58efcd18e9feb646dbad92b4392b4cfac8ce2412deaafef523886cbe2"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.acceptedDistance()D": {
-            "26.3": "sha256:e89a2defb798d526c9405929fe27788ab79eb259bc23ccf8245a05f0fbea84f6"
+            "26.3": "sha256:e89a2defb798d526c9405929fe27788ab79eb259bc23ccf8245a05f0fbea84f6",
+            "26.4-pre-1": "sha256:e89a2defb798d526c9405929fe27788ab79eb259bc23ccf8245a05f0fbea84f6"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.canUse()Z": {
-            "26.3": "sha256:b357c24caaa4c630105ab0988938f7253e042c8eb17346108510997dd8f4c892"
+            "26.3": "sha256:b357c24caaa4c630105ab0988938f7253e042c8eb17346108510997dd8f4c892",
+            "26.4-pre-1": "sha256:b357c24caaa4c630105ab0988938f7253e042c8eb17346108510997dd8f4c892"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.isValidTarget(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:39a41dd2ecf205eb5c11c47aeafa2fa648df9583b804b1590a3ed8a8b0118866"
+            "26.3": "sha256:39a41dd2ecf205eb5c11c47aeafa2fa648df9583b804b1590a3ed8a8b0118866",
+            "26.4-pre-1": "sha256:39a41dd2ecf205eb5c11c47aeafa2fa648df9583b804b1590a3ed8a8b0118866"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.onReachedTarget()V": {
             "26.3": "sha256:d4cde42fda0e8d43026af7940ab4d7fea3050af8385be528f55b023d61a82a49"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.shouldRecalculatePath()Z": {
-            "26.3": "sha256:1731f00a572d40510dd7ef0d3ed93a04dd9e91a59383c3a0b34517f94cce0efd"
+            "26.3": "sha256:1731f00a572d40510dd7ef0d3ed93a04dd9e91a59383c3a0b34517f94cce0efd",
+            "26.4-pre-1": "sha256:1731f00a572d40510dd7ef0d3ed93a04dd9e91a59383c3a0b34517f94cce0efd"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.start()V": {
-            "26.3": "sha256:d9cb61cc8d16e411a31017b24c79050ebae4057295f72fe11f80c3562d9fe899"
+            "26.3": "sha256:d9cb61cc8d16e411a31017b24c79050ebae4057295f72fe11f80c3562d9fe899",
+            "26.4-pre-1": "sha256:d9cb61cc8d16e411a31017b24c79050ebae4057295f72fe11f80c3562d9fe899"
         },
         "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.tick()V": {
             "26.3": "sha256:0cf5883bb63c1de89b2e3dcb25f00e9777640ef9baa280ed638730e9c72a8906"
@@ -807,439 +934,581 @@
             "26.3": "sha256:66b9041f758fba773848fd359e6ada006e104179b1734ee0cb1df2493172273a"
         },
         "net/minecraft/world/entity/animal/frog/FrogAi.initMemories(Lnet/minecraft/world/entity/animal/frog/Frog;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:4854bacae618a889ad7bc04254573b7e0944c05bc749b8e0df7c0a6f666c457c"
+            "26.3": "sha256:4854bacae618a889ad7bc04254573b7e0944c05bc749b8e0df7c0a6f666c457c",
+            "26.4-pre-1": "sha256:4854bacae618a889ad7bc04254573b7e0944c05bc749b8e0df7c0a6f666c457c"
         },
         "net/minecraft/world/entity/animal/goat/GoatAi.initMemories(Lnet/minecraft/world/entity/animal/goat/Goat;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:2d130b675253746c00ef8228c07fd9a32100b01b2f5416106a869380a2de3939"
+            "26.3": "sha256:2d130b675253746c00ef8228c07fd9a32100b01b2f5416106a869380a2de3939",
+            "26.4-pre-1": "sha256:2d130b675253746c00ef8228c07fd9a32100b01b2f5416106a869380a2de3939"
         },
         "net/minecraft/world/entity/animal/happyghast/HappyGhast.customServerAiStep(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:f7f1f3244d0649bddc08f2a539a7899c95f71999e6a95581c380db7812924839"
+            "26.3": "sha256:f7f1f3244d0649bddc08f2a539a7899c95f71999e6a95581c380db7812924839",
+            "26.4-pre-1": "sha256:f7f1f3244d0649bddc08f2a539a7899c95f71999e6a95581c380db7812924839"
         },
         "net/minecraft/world/entity/animal/nautilus/NautilusAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;)Ljava/util/Optional;": {
-            "26.3": "sha256:024c364aca9236d501640cb44bdffa8f0d020de70bcdcdbf6628637b706aeabb"
+            "26.3": "sha256:024c364aca9236d501640cb44bdffa8f0d020de70bcdcdbf6628637b706aeabb",
+            "26.4-pre-1": "sha256:024c364aca9236d501640cb44bdffa8f0d020de70bcdcdbf6628637b706aeabb"
         },
         "net/minecraft/world/entity/animal/nautilus/NautilusAi.initMemories(Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:d9cb65c88611b89e71cf143f09a456fa4495ef6c145d791cadc085c4e78343a7"
+            "26.3": "sha256:d9cb65c88611b89e71cf143f09a456fa4495ef6c145d791cadc085c4e78343a7",
+            "26.4-pre-1": "sha256:d9cb65c88611b89e71cf143f09a456fa4495ef6c145d791cadc085c4e78343a7"
         },
         "net/minecraft/world/entity/animal/nautilus/NautilusAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:02f53221ee73e2b140aecc14b903005cb53b420c74cb272d5b5681f767efb356"
+            "26.3": "sha256:02f53221ee73e2b140aecc14b903005cb53b420c74cb272d5b5681f767efb356",
+            "26.4-pre-1": "sha256:02f53221ee73e2b140aecc14b903005cb53b420c74cb272d5b5681f767efb356"
         },
         "net/minecraft/world/entity/animal/panda/Panda.handleRoll()V": {
-            "26.3": "sha256:6cc75b3c12001f8217eee3c2199d5f221d68837f33df613e8adda549943383f7"
+            "26.3": "sha256:6cc75b3c12001f8217eee3c2199d5f221d68837f33df613e8adda549943383f7",
+            "26.4-pre-1": "sha256:6cc75b3c12001f8217eee3c2199d5f221d68837f33df613e8adda549943383f7"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaRollGoal.canContinueToUse()Z": {
-            "26.3": "sha256:1c337558d91b30986ac6f7934ce9bebabc7bceb839bdb9716d260d2e99913953"
+            "26.3": "sha256:1c337558d91b30986ac6f7934ce9bebabc7bceb839bdb9716d260d2e99913953",
+            "26.4-pre-1": "sha256:1c337558d91b30986ac6f7934ce9bebabc7bceb839bdb9716d260d2e99913953"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaRollGoal.canUse()Z": {
-            "26.3": "sha256:288c0b6bf1d120807776395f985b5a11bcba27e3ba1e2134f0cd8a2248e3c8c9"
+            "26.3": "sha256:288c0b6bf1d120807776395f985b5a11bcba27e3ba1e2134f0cd8a2248e3c8c9",
+            "26.4-pre-1": "sha256:288c0b6bf1d120807776395f985b5a11bcba27e3ba1e2134f0cd8a2248e3c8c9"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaRollGoal.isInterruptable()Z": {
-            "26.3": "sha256:2ab49f843937805d448a8b927688e35d60a205683c2f390dd375951f95dfe220"
+            "26.3": "sha256:2ab49f843937805d448a8b927688e35d60a205683c2f390dd375951f95dfe220",
+            "26.4-pre-1": "sha256:2ab49f843937805d448a8b927688e35d60a205683c2f390dd375951f95dfe220"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaRollGoal.start()V": {
-            "26.3": "sha256:45385c6fa9d1800a6c9378655de0ff737bfee78deddbbdd318f750d2b62565f7"
+            "26.3": "sha256:45385c6fa9d1800a6c9378655de0ff737bfee78deddbbdd318f750d2b62565f7",
+            "26.4-pre-1": "sha256:45385c6fa9d1800a6c9378655de0ff737bfee78deddbbdd318f750d2b62565f7"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaSitGoal.canContinueToUse()Z": {
-            "26.3": "sha256:05a865ba1ffec6561f58177d864e84371908f224c25755564934cbed7ffd64ca"
+            "26.3": "sha256:05a865ba1ffec6561f58177d864e84371908f224c25755564934cbed7ffd64ca",
+            "26.4-pre-1": "sha256:05a865ba1ffec6561f58177d864e84371908f224c25755564934cbed7ffd64ca"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaSitGoal.canUse()Z": {
-            "26.3": "sha256:6c1e04df94e0f0c89db1cc330704a85a2e2f9a1ebce011c27eb14c24c797d86d"
+            "26.3": "sha256:6c1e04df94e0f0c89db1cc330704a85a2e2f9a1ebce011c27eb14c24c797d86d",
+            "26.4-pre-1": "sha256:6c1e04df94e0f0c89db1cc330704a85a2e2f9a1ebce011c27eb14c24c797d86d"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaSitGoal.start()V": {
-            "26.3": "sha256:e830075f59e5296db7e60b3c3fd38121e40a95855e8b2d249ab3655b3e833755"
+            "26.3": "sha256:e830075f59e5296db7e60b3c3fd38121e40a95855e8b2d249ab3655b3e833755",
+            "26.4-pre-1": "sha256:e830075f59e5296db7e60b3c3fd38121e40a95855e8b2d249ab3655b3e833755"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaSitGoal.stop()V": {
-            "26.3": "sha256:832d37bc035de07e21360092f176c955f33e2cd5d2a516b278b41cbc8b1050aa"
+            "26.3": "sha256:832d37bc035de07e21360092f176c955f33e2cd5d2a516b278b41cbc8b1050aa",
+            "26.4-pre-1": "sha256:832d37bc035de07e21360092f176c955f33e2cd5d2a516b278b41cbc8b1050aa"
         },
         "net/minecraft/world/entity/animal/panda/Panda$PandaSitGoal.tick()V": {
-            "26.3": "sha256:0100a404b0a3e4576fb80f9304079a52697761613e90b6725064835526e270c5"
+            "26.3": "sha256:0100a404b0a3e4576fb80f9304079a52697761613e90b6725064835526e270c5",
+            "26.4-pre-1": "sha256:0100a404b0a3e4576fb80f9304079a52697761613e90b6725064835526e270c5"
         },
         "net/minecraft/world/entity/animal/pig/Pig.getControllingPassenger()Lnet/minecraft/world/entity/LivingEntity;": {
-            "26.3": "sha256:a86e4018899b84fbc940434d009c6f9ca5ad0be676855b562d06ddc74e77a6ae"
+            "26.3": "sha256:a86e4018899b84fbc940434d009c6f9ca5ad0be676855b562d06ddc74e77a6ae",
+            "26.4-pre-1": "sha256:a86e4018899b84fbc940434d009c6f9ca5ad0be676855b562d06ddc74e77a6ae"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi.resetSniffing(Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Lnet/minecraft/world/entity/animal/sniffer/Sniffer;": {
-            "26.3": "sha256:7ada01cd528bb35878049de6376f8409e22ff2ab33d45f340b1469bf35698adf"
+            "26.3": "sha256:7ada01cd528bb35878049de6376f8409e22ff2ab33d45f340b1469bf35698adf",
+            "26.4-pre-1": "sha256:7ada01cd528bb35878049de6376f8409e22ff2ab33d45f340b1469bf35698adf"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:93ad515e4be361f70fc6e74354de9e9e756a0c8e087152fa18d11e3891e34189"
+            "26.3": "sha256:93ad515e4be361f70fc6e74354de9e9e756a0c8e087152fa18d11e3891e34189",
+            "26.4-pre-1": "sha256:93ad515e4be361f70fc6e74354de9e9e756a0c8e087152fa18d11e3891e34189"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
-            "26.3": "sha256:2981426797880a41901ccbb555bdc5ca799bc7a265d83bdc8fdb841c880acb1d"
+            "26.3": "sha256:2981426797880a41901ccbb555bdc5ca799bc7a265d83bdc8fdb841c880acb1d",
+            "26.4-pre-1": "sha256:2981426797880a41901ccbb555bdc5ca799bc7a265d83bdc8fdb841c880acb1d"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:21f58cf7169aa2acd0bf80b098e44141037c2c578ade1c93ccc51f8d44c7fe50"
+            "26.3": "sha256:21f58cf7169aa2acd0bf80b098e44141037c2c578ade1c93ccc51f8d44c7fe50",
+            "26.4-pre-1": "sha256:21f58cf7169aa2acd0bf80b098e44141037c2c578ade1c93ccc51f8d44c7fe50"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Digging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:1d604006202f4aa824deedc0c03257645962a8496309de6cef978eacdae54557"
+            "26.3": "sha256:1d604006202f4aa824deedc0c03257645962a8496309de6cef978eacdae54557",
+            "26.4-pre-1": "sha256:1d604006202f4aa824deedc0c03257645962a8496309de6cef978eacdae54557"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:3484be301dbb39d7bc60797061e6f33e726afa4f508e9f6ece6911994aa95fbd"
+            "26.3": "sha256:3484be301dbb39d7bc60797061e6f33e726afa4f508e9f6ece6911994aa95fbd",
+            "26.4-pre-1": "sha256:3484be301dbb39d7bc60797061e6f33e726afa4f508e9f6ece6911994aa95fbd"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:d869574ca4767a57239c05088c9be05788861e913569e2b9d99942895700876f"
+            "26.3": "sha256:d869574ca4767a57239c05088c9be05788861e913569e2b9d99942895700876f",
+            "26.4-pre-1": "sha256:d869574ca4767a57239c05088c9be05788861e913569e2b9d99942895700876f"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FeelingHappy.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:e4d0a009e4cef9cd79894ee1d765b9339991e3af83e783bde5c97635d11024bd"
+            "26.3": "sha256:e4d0a009e4cef9cd79894ee1d765b9339991e3af83e783bde5c97635d11024bd",
+            "26.4-pre-1": "sha256:e4d0a009e4cef9cd79894ee1d765b9339991e3af83e783bde5c97635d11024bd"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:dfa204a298498c876489067173649e3a9dcfaa5333d9cc716178bcbac6171bcd"
+            "26.3": "sha256:dfa204a298498c876489067173649e3a9dcfaa5333d9cc716178bcbac6171bcd",
+            "26.4-pre-1": "sha256:dfa204a298498c876489067173649e3a9dcfaa5333d9cc716178bcbac6171bcd"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
-            "26.3": "sha256:a5eb9cbd069a18270b2aae9ec4bafbb635bdb338301800cbdb903669a67cdb8d"
+            "26.3": "sha256:a5eb9cbd069a18270b2aae9ec4bafbb635bdb338301800cbdb903669a67cdb8d",
+            "26.4-pre-1": "sha256:a5eb9cbd069a18270b2aae9ec4bafbb635bdb338301800cbdb903669a67cdb8d"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:2f593b2875197368b52afc8c6eef2d3739dea51fd68708603714818d557d1741"
+            "26.3": "sha256:2f593b2875197368b52afc8c6eef2d3739dea51fd68708603714818d557d1741",
+            "26.4-pre-1": "sha256:2f593b2875197368b52afc8c6eef2d3739dea51fd68708603714818d557d1741"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$FinishedDigging.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:86bc3a26b195be449558016a3c1f6afee0b7f37d24f7ca07865902ca84e83550"
+            "26.3": "sha256:86bc3a26b195be449558016a3c1f6afee0b7f37d24f7ca07865902ca84e83550",
+            "26.4-pre-1": "sha256:86bc3a26b195be449558016a3c1f6afee0b7f37d24f7ca07865902ca84e83550"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:81384d43ad04cfa9a998969edcb420fbb1a7185419778e4b75e57f19a6b17c8b"
+            "26.3": "sha256:81384d43ad04cfa9a998969edcb420fbb1a7185419778e4b75e57f19a6b17c8b",
+            "26.4-pre-1": "sha256:81384d43ad04cfa9a998969edcb420fbb1a7185419778e4b75e57f19a6b17c8b"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
-            "26.3": "sha256:24eab7bba0fcc3499a7a4ae41aa8016a6a391805a89ee3b075e09eeec62c8f6c"
+            "26.3": "sha256:24eab7bba0fcc3499a7a4ae41aa8016a6a391805a89ee3b075e09eeec62c8f6c",
+            "26.4-pre-1": "sha256:24eab7bba0fcc3499a7a4ae41aa8016a6a391805a89ee3b075e09eeec62c8f6c"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:1c6a7a5e5532fad9961df62e61207fc1e66b5353ebfbd50fc7b8fbdbf5c07d95"
+            "26.3": "sha256:1c6a7a5e5532fad9961df62e61207fc1e66b5353ebfbd50fc7b8fbdbf5c07d95",
+            "26.4-pre-1": "sha256:1c6a7a5e5532fad9961df62e61207fc1e66b5353ebfbd50fc7b8fbdbf5c07d95"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Scenting.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:263ddaaac114665f7bfe9dc1ed8f92b5d9ed6fe5cff2c3ce436ea6479e9650bf"
+            "26.3": "sha256:263ddaaac114665f7bfe9dc1ed8f92b5d9ed6fe5cff2c3ce436ea6479e9650bf",
+            "26.4-pre-1": "sha256:263ddaaac114665f7bfe9dc1ed8f92b5d9ed6fe5cff2c3ce436ea6479e9650bf"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:ccd405c6eb746cf838d25c252791debb03cc98b983755a8259fb3a914a0d7b22"
+            "26.3": "sha256:ccd405c6eb746cf838d25c252791debb03cc98b983755a8259fb3a914a0d7b22",
+            "26.4-pre-1": "sha256:ccd405c6eb746cf838d25c252791debb03cc98b983755a8259fb3a914a0d7b22"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
-            "26.3": "sha256:3a108027790a64981d690b05ad50300964e9126b59d7502a00a18a22b4432e1a"
+            "26.3": "sha256:3a108027790a64981d690b05ad50300964e9126b59d7502a00a18a22b4432e1a",
+            "26.4-pre-1": "sha256:3a108027790a64981d690b05ad50300964e9126b59d7502a00a18a22b4432e1a"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:1c5a2385e639cbfca772bf9276c099a48fbe1582497b620713f2bc27c78b101b"
+            "26.3": "sha256:1c5a2385e639cbfca772bf9276c099a48fbe1582497b620713f2bc27c78b101b",
+            "26.4-pre-1": "sha256:1c5a2385e639cbfca772bf9276c099a48fbe1582497b620713f2bc27c78b101b"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Searching.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:82af648863719380289fff1502cee1b4d9d3c394b3928f17cf22892fd86f1ef4"
+            "26.3": "sha256:82af648863719380289fff1502cee1b4d9d3c394b3928f17cf22892fd86f1ef4",
+            "26.4-pre-1": "sha256:82af648863719380289fff1502cee1b4d9d3c394b3928f17cf22892fd86f1ef4"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.canStillUse(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)Z": {
-            "26.3": "sha256:acae4252e4b64f4d130909aecdce72e73d0748f28e638f18c507007bbdd37b4d"
+            "26.3": "sha256:acae4252e4b64f4d130909aecdce72e73d0748f28e638f18c507007bbdd37b4d",
+            "26.4-pre-1": "sha256:acae4252e4b64f4d130909aecdce72e73d0748f28e638f18c507007bbdd37b4d"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;)Z": {
-            "26.3": "sha256:da2bfc009312bdda3eb0fa46ce7c16a424dcbc70263526f2471ef115b87f8a2f"
+            "26.3": "sha256:da2bfc009312bdda3eb0fa46ce7c16a424dcbc70263526f2471ef115b87f8a2f",
+            "26.4-pre-1": "sha256:da2bfc009312bdda3eb0fa46ce7c16a424dcbc70263526f2471ef115b87f8a2f"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:308085d2bde59659395e2ab6fd2eaa900676d58d144abb45fd4e5bb1da703be6"
+            "26.3": "sha256:308085d2bde59659395e2ab6fd2eaa900676d58d144abb45fd4e5bb1da703be6",
+            "26.4-pre-1": "sha256:308085d2bde59659395e2ab6fd2eaa900676d58d144abb45fd4e5bb1da703be6"
         },
         "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V": {
-            "26.3": "sha256:1b2f89a59b8c3abe6019e847ac72ecb313f239b5534b7ee512b421ff7454b022"
+            "26.3": "sha256:1b2f89a59b8c3abe6019e847ac72ecb313f239b5534b7ee512b421ff7454b022",
+            "26.4-pre-1": "sha256:1b2f89a59b8c3abe6019e847ac72ecb313f239b5534b7ee512b421ff7454b022"
         },
         "net/minecraft/world/entity/animal/squid/Squid$SquidFleeGoal.canUse()Z": {
-            "26.3": "sha256:becb43a2646af2b4789530b325fd18897aede4c4d1f2769bb8f42bfa76e61d31"
+            "26.3": "sha256:becb43a2646af2b4789530b325fd18897aede4c4d1f2769bb8f42bfa76e61d31",
+            "26.4-pre-1": "sha256:becb43a2646af2b4789530b325fd18897aede4c4d1f2769bb8f42bfa76e61d31"
         },
         "net/minecraft/world/entity/animal/squid/Squid$SquidFleeGoal.tick()V": {
-            "26.3": "sha256:87905585f581683e3f60b512e53200e9b0298a70f2f286e201878c1fe74056e5"
+            "26.3": "sha256:87905585f581683e3f60b512e53200e9b0298a70f2f286e201878c1fe74056e5",
+            "26.4-pre-1": "sha256:87905585f581683e3f60b512e53200e9b0298a70f2f286e201878c1fe74056e5"
         },
         "net/minecraft/world/entity/Avatar.STANDING_DIMENSIONS": {
-            "26.3": "sha256:baf7682092b515c58a295ea204c1c0b18608f337879f4ec9c3a2c314984642b8"
+            "26.3": "sha256:baf7682092b515c58a295ea204c1c0b18608f337879f4ec9c3a2c314984642b8",
+            "26.4-pre-1": "sha256:baf7682092b515c58a295ea204c1c0b18608f337879f4ec9c3a2c314984642b8"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.aiStep()V": {
             "26.3": "sha256:6a64306cedfa70a3cc79bf50b521304527d6c5d3d0bfdcfda18627ed457feba5"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.checkWalls(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/AABB;)Z": {
-            "26.3": "sha256:322f7882121760f64c2d82509e13fc6816481ca46a38a50c16eb87e1afa613c3"
+            "26.3": "sha256:322f7882121760f64c2d82509e13fc6816481ca46a38a50c16eb87e1afa613c3",
+            "26.4-pre-1": "sha256:322f7882121760f64c2d82509e13fc6816481ca46a38a50c16eb87e1afa613c3"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findClosestNode()I": {
-            "26.3": "sha256:f812374327d6ff73bbbb9f9b7977d5e29c1bcb9d9ae75f3ac3969f8dc2d8aa46"
+            "26.3": "sha256:f812374327d6ff73bbbb9f9b7977d5e29c1bcb9d9ae75f3ac3969f8dc2d8aa46",
+            "26.4-pre-1": "sha256:f812374327d6ff73bbbb9f9b7977d5e29c1bcb9d9ae75f3ac3969f8dc2d8aa46"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findPath(IILnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Path;": {
             "26.3": "sha256:f4decd6672e284e6e8d5804365938d43a94bc63a1c3b87366708f7b6e62e7316"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.getFightOrigin()Lnet/minecraft/core/BlockPos;": {
-            "26.3": "sha256:3810b60985cc54550953ed12951a94fba5044a5593b960568cb4b46384cb484d"
+            "26.3": "sha256:3810b60985cc54550953ed12951a94fba5044a5593b960568cb4b46384cb484d",
+            "26.4-pre-1": "sha256:3810b60985cc54550953ed12951a94fba5044a5593b960568cb4b46384cb484d"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
-            "26.3": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9"
+            "26.3": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9",
+            "26.4-pre-1": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonChargePlayerPhase.CHARGE_RECOVERY_TIME": {
-            "26.3": "sha256:7e97f09feaf7c79f54acfd670a6d9e7b9c68d8d85923194c59ad2f9fa7c8998a"
+            "26.3": "sha256:7e97f09feaf7c79f54acfd670a6d9e7b9c68d8d85923194c59ad2f9fa7c8998a",
+            "26.4-pre-1": "sha256:7e97f09feaf7c79f54acfd670a6d9e7b9c68d8d85923194c59ad2f9fa7c8998a"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonChargePlayerPhase.doServerTick(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:665da5fc4010c703efd8e44a916ca6b2a8ef85ebd0c0837f52d59c77cb91ca4c"
+            "26.3": "sha256:665da5fc4010c703efd8e44a916ca6b2a8ef85ebd0c0837f52d59c77cb91ca4c",
+            "26.4-pre-1": "sha256:665da5fc4010c703efd8e44a916ca6b2a8ef85ebd0c0837f52d59c77cb91ca4c"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonHoldingPatternPhase.findNewTarget(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:88a15ffd6b69edbc1561bae2493ee1d1789538c6a525c0e5e39dd99b521539a5"
+            "26.3": "sha256:88a15ffd6b69edbc1561bae2493ee1d1789538c6a525c0e5e39dd99b521539a5",
+            "26.4-pre-1": "sha256:88a15ffd6b69edbc1561bae2493ee1d1789538c6a525c0e5e39dd99b521539a5"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonLandingApproachPhase.findNewTarget(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:d86ad4862249eb47b16999edd069bbf35b3ef8dd988fc0f633fe9aaeb72baa32"
+            "26.3": "sha256:d86ad4862249eb47b16999edd069bbf35b3ef8dd988fc0f633fe9aaeb72baa32",
+            "26.4-pre-1": "sha256:d86ad4862249eb47b16999edd069bbf35b3ef8dd988fc0f633fe9aaeb72baa32"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingAttackingPhase.ROAR_DURATION": {
-            "26.3": "sha256:ccb2eebfb3486395a325fa3de98b9d0d07f48ca2bc6d0c2d425fb8797b677e55"
+            "26.3": "sha256:ccb2eebfb3486395a325fa3de98b9d0d07f48ca2bc6d0c2d425fb8797b677e55",
+            "26.4-pre-1": "sha256:ccb2eebfb3486395a325fa3de98b9d0d07f48ca2bc6d0c2d425fb8797b677e55"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.doServerTick(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:1b260c7c0942e652883e4ce219d7290a10617c5c2515d176fa2c808fed4386f6"
+            "26.3": "sha256:1b260c7c0942e652883e4ce219d7290a10617c5c2515d176fa2c808fed4386f6",
+            "26.4-pre-1": "sha256:1b260c7c0942e652883e4ce219d7290a10617c5c2515d176fa2c808fed4386f6"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.FLAME_DURATION": {
-            "26.3": "sha256:3456ec6327e6861e53c8ff6383b5d825f17cade1896c77f66675cdb930180b9b"
+            "26.3": "sha256:3456ec6327e6861e53c8ff6383b5d825f17cade1896c77f66675cdb930180b9b",
+            "26.4-pre-1": "sha256:3456ec6327e6861e53c8ff6383b5d825f17cade1896c77f66675cdb930180b9b"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.SITTING_FLAME_ATTACKS_COUNT": {
-            "26.3": "sha256:2d8c3915ef6c5fe4fcd661376188277999e02aca4c190582f6022b38a70905e5"
+            "26.3": "sha256:2d8c3915ef6c5fe4fcd661376188277999e02aca4c190582f6022b38a70905e5",
+            "26.4-pre-1": "sha256:2d8c3915ef6c5fe4fcd661376188277999e02aca4c190582f6022b38a70905e5"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.WARMUP_TIME": {
-            "26.3": "sha256:5378c6300d3ffd36b685a1bfd60beab27f898379ba2f60bacfc3c954ae66f2b6"
+            "26.3": "sha256:5378c6300d3ffd36b685a1bfd60beab27f898379ba2f60bacfc3c954ae66f2b6",
+            "26.4-pre-1": "sha256:5378c6300d3ffd36b685a1bfd60beab27f898379ba2f60bacfc3c954ae66f2b6"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingScanningPhase.doServerTick(Lnet/minecraft/server/level/ServerLevel;)V": {
             "26.3": "sha256:0529966591ef18e5ffb11b7d1d8d022c56fa36a46c6631c77d8a5c9930c13e3a"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingScanningPhase.SITTING_SCANNING_IDLE_TICKS": {
-            "26.3": "sha256:b48d583d215fd7dfdeb38c5b858fc248b8a7f1b8848fd2906adeb7d6af12f3d4"
+            "26.3": "sha256:b48d583d215fd7dfdeb38c5b858fc248b8a7f1b8848fd2906adeb7d6af12f3d4",
+            "26.4-pre-1": "sha256:b48d583d215fd7dfdeb38c5b858fc248b8a7f1b8848fd2906adeb7d6af12f3d4"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.doServerTick(Lnet/minecraft/server/level/ServerLevel;)V": {
-            "26.3": "sha256:5f222766a55c62a0b3674ad1b8cb32db559f95dfb4a9d3c49393dcf97cbd2507"
+            "26.3": "sha256:5f222766a55c62a0b3674ad1b8cb32db559f95dfb4a9d3c49393dcf97cbd2507",
+            "26.4-pre-1": "sha256:5f222766a55c62a0b3674ad1b8cb32db559f95dfb4a9d3c49393dcf97cbd2507"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT": {
-            "26.3": "sha256:ba3c0e6f03e8743726f97b9ddc5935b5be762e8a6d36408c9bade536a9ff6874"
+            "26.3": "sha256:ba3c0e6f03e8743726f97b9ddc5935b5be762e8a6d36408c9bade536a9ff6874",
+            "26.4-pre-1": "sha256:ba3c0e6f03e8743726f97b9ddc5935b5be762e8a6d36408c9bade536a9ff6874"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.setTarget(Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:e314214b406f3628214c8b655510f55169b48e37c9c399610195cc95f622125e"
+            "26.3": "sha256:e314214b406f3628214c8b655510f55169b48e37c9c399610195cc95f622125e",
+            "26.4-pre-1": "sha256:e314214b406f3628214c8b655510f55169b48e37c9c399610195cc95f622125e"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/DragonTakeoffPhase.findNewTarget()V": {
-            "26.3": "sha256:f46448c9aa5cf997a977b33ec7e651f5e4ef930d07978b8a9a85a22c3ded4b40"
+            "26.3": "sha256:f46448c9aa5cf997a977b33ec7e651f5e4ef930d07978b8a9a85a22c3ded4b40",
+            "26.4-pre-1": "sha256:f46448c9aa5cf997a977b33ec7e651f5e4ef930d07978b8a9a85a22c3ded4b40"
         },
         "net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.setPhase(Lnet/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhase;)V": {
-            "26.3": "sha256:e9e53f6a3be88c39fac666c62497f385c8531c2d85831324a4d21f02fe8510f4"
+            "26.3": "sha256:e9e53f6a3be88c39fac666c62497f385c8531c2d85831324a4d21f02fe8510f4",
+            "26.4-pre-1": "sha256:e9e53f6a3be88c39fac666c62497f385c8531c2d85831324a4d21f02fe8510f4"
         },
         "net/minecraft/world/entity/Entity.getBoundingBox()Lnet/minecraft/world/phys/AABB;": {
-            "26.3": "sha256:f74e51e4745e18ee0714f37caaf05bd18964d2921dd0da2b354573089353e772"
+            "26.3": "sha256:f74e51e4745e18ee0714f37caaf05bd18964d2921dd0da2b354573089353e772",
+            "26.4-pre-1": "sha256:f74e51e4745e18ee0714f37caaf05bd18964d2921dd0da2b354573089353e772"
         },
         "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;": {
-            "26.3": "sha256:1d491c0702aa7fcb3739834319d1d64e3b84cc7697bbc1b11ce58672668ff375"
+            "26.3": "sha256:1d491c0702aa7fcb3739834319d1d64e3b84cc7697bbc1b11ce58672668ff375",
+            "26.4-pre-1": "sha256:1d491c0702aa7fcb3739834319d1d64e3b84cc7697bbc1b11ce58672668ff375"
         },
         "net/minecraft/world/entity/ExperienceOrb.award(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;I)V": {
-            "26.3": "sha256:e7a1761657f5625708e8c00236e9f6c8789a90527e544390262c94acc4902df9"
+            "26.3": "sha256:e7a1761657f5625708e8c00236e9f6c8789a90527e544390262c94acc4902df9",
+            "26.4-pre-1": "sha256:e7a1761657f5625708e8c00236e9f6c8789a90527e544390262c94acc4902df9"
         },
         "net/minecraft/world/entity/ExperienceOrb.playerTouch(Lnet/minecraft/world/entity/player/Player;)V": {
-            "26.3": "sha256:cc69a658f6837fed0ca6127408e38ca234f10cabef0a4e7e399bdb37671cc9d7"
+            "26.3": "sha256:cc69a658f6837fed0ca6127408e38ca234f10cabef0a4e7e399bdb37671cc9d7",
+            "26.4-pre-1": "sha256:cc69a658f6837fed0ca6127408e38ca234f10cabef0a4e7e399bdb37671cc9d7"
         },
         "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V": {
-            "26.3": "sha256:0caf8cdafba1e72278b72997a67772f85d0bdf151d6abbd84264cfba77daece0"
+            "26.3": "sha256:0caf8cdafba1e72278b72997a67772f85d0bdf151d6abbd84264cfba77daece0",
+            "26.4-pre-1": "sha256:0caf8cdafba1e72278b72997a67772f85d0bdf151d6abbd84264cfba77daece0"
         },
         "net/minecraft/world/entity/monster/breeze/BreezeAi$SlideToTargetSink.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;J)V": {
-            "26.3": "sha256:af9001a135ddffb0266ae8bef81db695be8faced4e555b7de9363488606d8c65"
+            "26.3": "sha256:af9001a135ddffb0266ae8bef81db695be8faced4e555b7de9363488606d8c65",
+            "26.4-pre-1": "sha256:af9001a135ddffb0266ae8bef81db695be8faced4e555b7de9363488606d8c65"
         },
         "net/minecraft/world/entity/monster/breeze/BreezeUtil.randomPointBehindTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/phys/Vec3;": {
-            "26.3": "sha256:d3a16e60cfd0c2b25764f87d59d7019a0af12e499eb6a399d59dbf9af81bc9ef"
+            "26.3": "sha256:d3a16e60cfd0c2b25764f87d59d7019a0af12e499eb6a399d59dbf9af81bc9ef",
+            "26.4-pre-1": "sha256:d3a16e60cfd0c2b25764f87d59d7019a0af12e499eb6a399d59dbf9af81bc9ef"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
-            "26.3": "sha256:e6419c0a81dd824bf79ff5ed1022d7e95bdf46154dc326d010d96ff902feac5d"
+            "26.3": "sha256:e6419c0a81dd824bf79ff5ed1022d7e95bdf46154dc326d010d96ff902feac5d",
+            "26.4-pre-1": "sha256:e6419c0a81dd824bf79ff5ed1022d7e95bdf46154dc326d010d96ff902feac5d"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Ljava/util/Optional;": {
-            "26.3": "sha256:a3f26e86f945bf76aca2dc42664b432883ccc003cdcfe6f5e9f290aa23340266"
+            "26.3": "sha256:a3f26e86f945bf76aca2dc42664b432883ccc003cdcfe6f5e9f290aa23340266",
+            "26.4-pre-1": "sha256:a3f26e86f945bf76aca2dc42664b432883ccc003cdcfe6f5e9f290aa23340266"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.piglinsOutnumberHoglins(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z": {
-            "26.3": "sha256:5e53600ff9b8c999aa8d471f2cc6197ae1128e51f9e2be3eddf44ffc5d6bc1ec"
+            "26.3": "sha256:5e53600ff9b8c999aa8d471f2cc6197ae1128e51f9e2be3eddf44ffc5d6bc1ec",
+            "26.4-pre-1": "sha256:5e53600ff9b8c999aa8d471f2cc6197ae1128e51f9e2be3eddf44ffc5d6bc1ec"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.retreatFromNearestTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:e12c5524343ca0634b39e6c495b510d9e46a93c9288db881f2e62b45037623fd"
+            "26.3": "sha256:e12c5524343ca0634b39e6c495b510d9e46a93c9288db881f2e62b45037623fd",
+            "26.4-pre-1": "sha256:e12c5524343ca0634b39e6c495b510d9e46a93c9288db881f2e62b45037623fd"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.setAttackTarget(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:1fbd5caa3c712f2496f7f0b96610c28a52b9ab0ac4619334625ed6490984937e"
+            "26.3": "sha256:1fbd5caa3c712f2496f7f0b96610c28a52b9ab0ac4619334625ed6490984937e",
+            "26.4-pre-1": "sha256:1fbd5caa3c712f2496f7f0b96610c28a52b9ab0ac4619334625ed6490984937e"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)Z": {
-            "26.3": "sha256:594585c3654f0495a43edb6ab2159fd195623849a1f27402608ff5a9a827daea"
+            "26.3": "sha256:594585c3654f0495a43edb6ab2159fd195623849a1f27402608ff5a9a827daea",
+            "26.4-pre-1": "sha256:594585c3654f0495a43edb6ab2159fd195623849a1f27402608ff5a9a827daea"
         },
         "net/minecraft/world/entity/monster/hoglin/HoglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:59706a81662afceb9a24b7932a529db12492c2217e36cd6e89e36b27412acda1"
+            "26.3": "sha256:59706a81662afceb9a24b7932a529db12492c2217e36cd6e89e36b27412acda1",
+            "26.4-pre-1": "sha256:59706a81662afceb9a24b7932a529db12492c2217e36cd6e89e36b27412acda1"
         },
         "net/minecraft/world/entity/monster/illager/Evoker$EvokerAttackSpellGoal.createSpellEntity(DDDDFI)V": {
-            "26.3": "sha256:c66298e1af7c7a6bb5e58dba40078425da4b7fd775af282985dbff376edb61a9"
+            "26.3": "sha256:c66298e1af7c7a6bb5e58dba40078425da4b7fd775af282985dbff376edb61a9",
+            "26.4-pre-1": "sha256:c66298e1af7c7a6bb5e58dba40078425da4b7fd775af282985dbff376edb61a9"
         },
         "net/minecraft/world/entity/monster/illager/Evoker$EvokerSummonSpellGoal.canUse()Z": {
-            "26.3": "sha256:45f29095d026f12e48908277826d479fd70fe43973377d4a7f012fae6fef8be9"
+            "26.3": "sha256:45f29095d026f12e48908277826d479fd70fe43973377d4a7f012fae6fef8be9",
+            "26.4-pre-1": "sha256:45f29095d026f12e48908277826d479fd70fe43973377d4a7f012fae6fef8be9"
         },
         "net/minecraft/world/entity/monster/illager/Vindicator.DOOR_BREAKING_PREDICATE": {
-            "26.3": "sha256:4c774e8f789151dcfee8d2f88b4a16cae7dd226c801980dc04d50954d26751aa"
+            "26.3": "sha256:4c774e8f789151dcfee8d2f88b4a16cae7dd226c801980dc04d50954d26751aa",
+            "26.4-pre-1": "sha256:4c774e8f789151dcfee8d2f88b4a16cae7dd226c801980dc04d50954d26751aa"
         },
         "net/minecraft/world/entity/monster/Phantom$PhantomSweepAttackGoal.canContinueToUse()Z": {
-            "26.3": "sha256:ef60cd1c3a191f5e8c6e7403e99cf1ae9d1f5b5e98f9b6e8f8947918be99924b"
+            "26.3": "sha256:ef60cd1c3a191f5e8c6e7403e99cf1ae9d1f5b5e98f9b6e8f8947918be99924b",
+            "26.4-pre-1": "sha256:ef60cd1c3a191f5e8c6e7403e99cf1ae9d1f5b5e98f9b6e8f8947918be99924b"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidRepellent()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:ac10230f3373f8aae8f062663777fdc50cf0ea60e2fcb248ff38ed8e28cd852d"
+            "26.3": "sha256:ac10230f3373f8aae8f062663777fdc50cf0ea60e2fcb248ff38ed8e28cd852d",
+            "26.4-pre-1": "sha256:ac10230f3373f8aae8f062663777fdc50cf0ea60e2fcb248ff38ed8e28cd852d"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.avoidZombified()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:dca7d24ae026becd4f7bf8f2e4414132ec08d2f72a8b2f82ed620a8a9784bcd1"
+            "26.3": "sha256:dca7d24ae026becd4f7bf8f2e4414132ec08d2f72a8b2f82ed620a8a9784bcd1",
+            "26.4-pre-1": "sha256:dca7d24ae026becd4f7bf8f2e4414132ec08d2f72a8b2f82ed620a8a9784bcd1"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.babyAvoidNemesis()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:ae9d1ccd99008055554a9aa9407019ca443e9ba0392f41c83cb6c56185cd6ae2"
+            "26.3": "sha256:ae9d1ccd99008055554a9aa9407019ca443e9ba0392f41c83cb6c56185cd6ae2",
+            "26.4-pre-1": "sha256:ae9d1ccd99008055554a9aa9407019ca443e9ba0392f41c83cb6c56185cd6ae2"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.babySometimesRideBabyHoglin()Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
-            "26.3": "sha256:977bf663707374361cce5448c9ecaa700b69bd3b0a431f78a535284ede10a32f"
+            "26.3": "sha256:977bf663707374361cce5448c9ecaa700b69bd3b0a431f78a535284ede10a32f",
+            "26.4-pre-1": "sha256:977bf663707374361cce5448c9ecaa700b69bd3b0a431f78a535284ede10a32f"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:29d1cd225ca99833a626b44f4350f571db1240102958bc467a1d5cdb16fb559c"
+            "26.3": "sha256:29d1cd225ca99833a626b44f4350f571db1240102958bc467a1d5cdb16fb559c",
+            "26.4-pre-1": "sha256:29d1cd225ca99833a626b44f4350f571db1240102958bc467a1d5cdb16fb559c"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.broadcastRetreat(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:e287056e3e708b0a18734b1fa891d73b03850fadfd965f1c0b6e8449409a0b60"
+            "26.3": "sha256:e287056e3e708b0a18734b1fa891d73b03850fadfd965f1c0b6e8449409a0b60",
+            "26.4-pre-1": "sha256:e287056e3e708b0a18734b1fa891d73b03850fadfd965f1c0b6e8449409a0b60"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.canAdmire(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z": {
-            "26.3": "sha256:1adfc6ea91f14381d108ca3e668a6bb1349aec6f0bbd5a189e4ce48e3e10f1d3"
+            "26.3": "sha256:1adfc6ea91f14381d108ca3e668a6bb1349aec6f0bbd5a189e4ce48e3e10f1d3",
+            "26.4-pre-1": "sha256:1adfc6ea91f14381d108ca3e668a6bb1349aec6f0bbd5a189e4ce48e3e10f1d3"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
-            "26.3": "sha256:053c398a32bda43a1e61161c22f450a25616ee58d729101eb30c2a9a5ccae394"
+            "26.3": "sha256:053c398a32bda43a1e61161c22f450a25616ee58d729101eb30c2a9a5ccae394",
+            "26.4-pre-1": "sha256:053c398a32bda43a1e61161c22f450a25616ee58d729101eb30c2a9a5ccae394"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
-            "26.3": "sha256:47859d04dae41d2b4247de7acae79061ca9798503cce445a835fe35408f5beac"
+            "26.3": "sha256:47859d04dae41d2b4247de7acae79061ca9798503cce445a835fe35408f5beac",
+            "26.4-pre-1": "sha256:47859d04dae41d2b4247de7acae79061ca9798503cce445a835fe35408f5beac"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.createLookBehaviors()Lcom/google/common/collect/ImmutableList;": {
-            "26.3": "sha256:1b6363e222848c1e7d67162b11293256a9786e1094f7d4aff668949a3406d2f3"
+            "26.3": "sha256:1b6363e222848c1e7d67162b11293256a9786e1094f7d4aff668949a3406d2f3",
+            "26.4-pre-1": "sha256:1b6363e222848c1e7d67162b11293256a9786e1094f7d4aff668949a3406d2f3"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.dontKillAnyMoreHoglinsForAWhile(Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)V": {
-            "26.3": "sha256:e3e6b78f3812cb6bcac55314f3123e078117f58e8515b05b68be0ec2da6ebbed"
+            "26.3": "sha256:e3e6b78f3812cb6bcac55314f3123e078117f58e8515b05b68be0ec2da6ebbed",
+            "26.4-pre-1": "sha256:e3e6b78f3812cb6bcac55314f3123e078117f58e8515b05b68be0ec2da6ebbed"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearbyAdultPiglins(Lnet/minecraft/world/entity/ai/Brain;)Ljava/util/List;": {
-            "26.3": "sha256:03c6785f1671bf53029b08a20ecfd20af989889856e20149daea0452bb82729d"
+            "26.3": "sha256:03c6785f1671bf53029b08a20ecfd20af989889856e20149daea0452bb82729d",
+            "26.4-pre-1": "sha256:03c6785f1671bf53029b08a20ecfd20af989889856e20149daea0452bb82729d"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;)Ljava/util/Optional;": {
-            "26.3": "sha256:af27ff83ccc8a6c96a64d9ac010675c085692ec2a5c27b6f01024d3627c4fee5"
+            "26.3": "sha256:af27ff83ccc8a6c96a64d9ac010675c085692ec2a5c27b6f01024d3627c4fee5",
+            "26.4-pre-1": "sha256:af27ff83ccc8a6c96a64d9ac010675c085692ec2a5c27b6f01024d3627c4fee5"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.hasCrossbow(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:2a2b2b8b1755a84f590b2f2005b3ad48cf1552377d143e7197a60bccf56e0248"
+            "26.3": "sha256:2a2b2b8b1755a84f590b2f2005b3ad48cf1552377d143e7197a60bccf56e0248",
+            "26.4-pre-1": "sha256:2a2b2b8b1755a84f590b2f2005b3ad48cf1552377d143e7197a60bccf56e0248"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.hoglinsOutnumberPiglins(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
-            "26.3": "sha256:301eaa6ffb029560bd4c7c84d01de86a027f1f985bb34e54885c4e1af151e2be"
+            "26.3": "sha256:301eaa6ffb029560bd4c7c84d01de86a027f1f985bb34e54885c4e1af151e2be",
+            "26.4-pre-1": "sha256:301eaa6ffb029560bd4c7c84d01de86a027f1f985bb34e54885c4e1af151e2be"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:a8bf6f68addad1e90c64a588c9265cd78b2a30513cad6be48f360969b9b13e04"
+            "26.3": "sha256:a8bf6f68addad1e90c64a588c9265cd78b2a30513cad6be48f360969b9b13e04",
+            "26.4-pre-1": "sha256:a8bf6f68addad1e90c64a588c9265cd78b2a30513cad6be48f360969b9b13e04"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isBarterCurrency(Lnet/minecraft/world/item/ItemStack;)Z": {
-            "26.3": "sha256:8aeb0d4c2d7d5aaab85cd4c9a7fa3a5624d9c0f501cab140ae42edc848804144"
+            "26.3": "sha256:8aeb0d4c2d7d5aaab85cd4c9a7fa3a5624d9c0f501cab140ae42edc848804144",
+            "26.4-pre-1": "sha256:8aeb0d4c2d7d5aaab85cd4c9a7fa3a5624d9c0f501cab140ae42edc848804144"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z": {
-            "26.3": "sha256:a0404888a2d0879805c95e1a9c4cfeb662d28fb1545728c387bf5a7733256859"
+            "26.3": "sha256:a0404888a2d0879805c95e1a9c4cfeb662d28fb1545728c387bf5a7733256859",
+            "26.4-pre-1": "sha256:a0404888a2d0879805c95e1a9c4cfeb662d28fb1545728c387bf5a7733256859"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isNearZombified(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
-            "26.3": "sha256:31e61243b25cc1c2d6e5d09ffb92613721bcf3148685debfe77ae0800f55991c"
+            "26.3": "sha256:31e61243b25cc1c2d6e5d09ffb92613721bcf3148685debfe77ae0800f55991c",
+            "26.4-pre-1": "sha256:31e61243b25cc1c2d6e5d09ffb92613721bcf3148685debfe77ae0800f55991c"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isNotHoldingLovedItemInOffHand(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
-            "26.3": "sha256:8e88db4e360a6d3fe37724d0cd769c73b21dfe32358d0fac24a1b6a662bfd735"
+            "26.3": "sha256:8e88db4e360a6d3fe37724d0cd769c73b21dfe32358d0fac24a1b6a662bfd735",
+            "26.4-pre-1": "sha256:8e88db4e360a6d3fe37724d0cd769c73b21dfe32358d0fac24a1b6a662bfd735"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isPlayerHoldingLovedItem(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:7990d0d9bcdfc00d1ef2d4b60a2878209032f308bd00bc4e214408395558bc8b"
+            "26.3": "sha256:7990d0d9bcdfc00d1ef2d4b60a2878209032f308bd00bc4e214408395558bc8b",
+            "26.4-pre-1": "sha256:7990d0d9bcdfc00d1ef2d4b60a2878209032f308bd00bc4e214408395558bc8b"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.isWearingSafeArmor(Lnet/minecraft/world/entity/LivingEntity;)Z": {
-            "26.3": "sha256:cc0a89b4111fde5e4aa6ae75243e59d4872c224293c73c78531ef673d88ad2f9"
+            "26.3": "sha256:cc0a89b4111fde5e4aa6ae75243e59d4872c224293c73c78531ef673d88ad2f9",
+            "26.4-pre-1": "sha256:cc0a89b4111fde5e4aa6ae75243e59d4872c224293c73c78531ef673d88ad2f9"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.maybeRetaliate(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:9c5f6e706794324ad2857200fb8eb53e785827d47ac94c82c3100e8570d8d0c3"
+            "26.3": "sha256:9c5f6e706794324ad2857200fb8eb53e785827d47ac94c82c3100e8570d8d0c3",
+            "26.4-pre-1": "sha256:9c5f6e706794324ad2857200fb8eb53e785827d47ac94c82c3100e8570d8d0c3"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.mobInteract(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
-            "26.3": "sha256:03a0e537405c9d9144852f91ebde8d87f18f761dd074c64a6878e169d8574891"
+            "26.3": "sha256:03a0e537405c9d9144852f91ebde8d87f18f761dd074c64a6878e169d8574891",
+            "26.4-pre-1": "sha256:03a0e537405c9d9144852f91ebde8d87f18f761dd074c64a6878e169d8574891"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.REPELLENT_DETECTION_RANGE_HORIZONTAL": {
-            "26.3": "sha256:1845fab6873dec8d366a29a5afa9a314b24e95ac1d0e55a537ab678be8a4e074"
+            "26.3": "sha256:1845fab6873dec8d366a29a5afa9a314b24e95ac1d0e55a537ab678be8a4e074",
+            "26.4-pre-1": "sha256:1845fab6873dec8d366a29a5afa9a314b24e95ac1d0e55a537ab678be8a4e074"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.setAngerTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:a6bb5ec2ca04799dde432464be433a5e728fb09158368d22d3dd039790738cec"
+            "26.3": "sha256:a6bb5ec2ca04799dde432464be433a5e728fb09158368d22d3dd039790738cec",
+            "26.4-pre-1": "sha256:a6bb5ec2ca04799dde432464be433a5e728fb09158368d22d3dd039790738cec"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.setAvoidTargetAndDontHuntForAWhile(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:785113db3dcbf18f6d819a2e9dc4f8ff485b72f58689aff8a4010b6714e97477"
+            "26.3": "sha256:785113db3dcbf18f6d819a2e9dc4f8ff485b72f58689aff8a4010b6714e97477",
+            "26.4-pre-1": "sha256:785113db3dcbf18f6d819a2e9dc4f8ff485b72f58689aff8a4010b6714e97477"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToPickup(Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/item/ItemStack;)Z": {
-            "26.3": "sha256:d463d09e3bec19b6a005a03be2830b54effbfcb8fac72e622a48a0d9814740c2"
+            "26.3": "sha256:d463d09e3bec19b6a005a03be2830b54effbfcb8fac72e622a48a0d9814740c2",
+            "26.4-pre-1": "sha256:d463d09e3bec19b6a005a03be2830b54effbfcb8fac72e622a48a0d9814740c2"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.wantsToStopFleeing(Lnet/minecraft/world/entity/monster/piglin/Piglin;)Z": {
-            "26.3": "sha256:9f74200e57414ae3f6f7acea525864acb2f2148131014dc27d4c0547778b8909"
+            "26.3": "sha256:9f74200e57414ae3f6f7acea525864acb2f2148131014dc27d4c0547778b8909",
+            "26.4-pre-1": "sha256:9f74200e57414ae3f6f7acea525864acb2f2148131014dc27d4c0547778b8909"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/Piglin;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:1247f67e2cab6f458c62bf715e2aad128233d5d849b9557552571b2f60a92889"
+            "26.3": "sha256:1247f67e2cab6f458c62bf715e2aad128233d5d849b9557552571b2f60a92889",
+            "26.4-pre-1": "sha256:1247f67e2cab6f458c62bf715e2aad128233d5d849b9557552571b2f60a92889"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleLookBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
-            "26.3": "sha256:37d19f4e74603fd8b6ee006d7c3265c629030fed0c073f9394d2455889bec9a2"
+            "26.3": "sha256:37d19f4e74603fd8b6ee006d7c3265c629030fed0c073f9394d2455889bec9a2",
+            "26.4-pre-1": "sha256:37d19f4e74603fd8b6ee006d7c3265c629030fed0c073f9394d2455889bec9a2"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.createIdleMovementBehaviors()Lnet/minecraft/world/entity/ai/behavior/RunOne;": {
-            "26.3": "sha256:d594606b48580e4cbb118ff99aa48568d93c84c4d8bf020a052f076ddca755d1"
+            "26.3": "sha256:d594606b48580e4cbb118ff99aa48568d93c84c4d8bf020a052f076ddca755d1",
+            "26.4-pre-1": "sha256:d594606b48580e4cbb118ff99aa48568d93c84c4d8bf020a052f076ddca755d1"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/AbstractPiglin;)Ljava/util/Optional;": {
-            "26.3": "sha256:4345fde8eafdf2e0ffacfd7b6fdee7a4fca3c36c43b71d87132507ece25aba8a"
+            "26.3": "sha256:4345fde8eafdf2e0ffacfd7b6fdee7a4fca3c36c43b71d87132507ece25aba8a",
+            "26.4-pre-1": "sha256:4345fde8eafdf2e0ffacfd7b6fdee7a4fca3c36c43b71d87132507ece25aba8a"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.initMemories(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;)V": {
-            "26.3": "sha256:34d35cdd50bcdad1f1c34f2b81fb9d7c9c155b283f1e4e83d9bceb12c706b673"
+            "26.3": "sha256:34d35cdd50bcdad1f1c34f2b81fb9d7c9c155b283f1e4e83d9bceb12c706b673",
+            "26.4-pre-1": "sha256:34d35cdd50bcdad1f1c34f2b81fb9d7c9c155b283f1e4e83d9bceb12c706b673"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.setAngerTarget(Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:59d0e395ad94c3008a280ff3802cb881e4210b2e485af90283fd961d443efe59"
+            "26.3": "sha256:59d0e395ad94c3008a280ff3802cb881e4210b2e485af90283fd961d443efe59",
+            "26.4-pre-1": "sha256:59d0e395ad94c3008a280ff3802cb881e4210b2e485af90283fd961d443efe59"
         },
         "net/minecraft/world/entity/monster/piglin/PiglinBruteAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/piglin/PiglinBrute;Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:89ee224a6237be03b7e3b9a21c57c1bf38bddb04f0a3b11945e8f780c236791d"
+            "26.3": "sha256:89ee224a6237be03b7e3b9a21c57c1bf38bddb04f0a3b11945e8f780c236791d",
+            "26.4-pre-1": "sha256:89ee224a6237be03b7e3b9a21c57c1bf38bddb04f0a3b11945e8f780c236791d"
         },
         "net/minecraft/world/entity/monster/Ravager.roar()V": {
-            "26.3": "sha256:c6a06494d504ae143804287fcb606bf56530b43c13fe02dc9193f83592043493"
+            "26.3": "sha256:c6a06494d504ae143804287fcb606bf56530b43c13fe02dc9193f83592043493",
+            "26.4-pre-1": "sha256:c6a06494d504ae143804287fcb606bf56530b43c13fe02dc9193f83592043493"
         },
         "net/minecraft/world/entity/monster/Strider.floatStrider()V": {
-            "26.3": "sha256:da13be50bdd383a070e595ade21b9278d93605ecf63e49050d75067050729cb9"
+            "26.3": "sha256:da13be50bdd383a070e595ade21b9278d93605ecf63e49050d75067050729cb9",
+            "26.4-pre-1": "sha256:da13be50bdd383a070e595ade21b9278d93605ecf63e49050d75067050729cb9"
         },
         "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.canContinueToUse()Z": {
-            "26.3": "sha256:fd0e1a3b0f78b37e214021ce501585873a56739fa51bead3c86e7960d99e80f0"
+            "26.3": "sha256:fd0e1a3b0f78b37e214021ce501585873a56739fa51bead3c86e7960d99e80f0",
+            "26.4-pre-1": "sha256:fd0e1a3b0f78b37e214021ce501585873a56739fa51bead3c86e7960d99e80f0"
         },
         "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.canUse()Z": {
-            "26.3": "sha256:0512c36f708eddaea08349a7b923eb63f84f87dc5c7ccf30ea9fad2c9a43bbd4"
+            "26.3": "sha256:0512c36f708eddaea08349a7b923eb63f84f87dc5c7ccf30ea9fad2c9a43bbd4",
+            "26.4-pre-1": "sha256:0512c36f708eddaea08349a7b923eb63f84f87dc5c7ccf30ea9fad2c9a43bbd4"
         },
         "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.getMoveToTarget()Lnet/minecraft/core/BlockPos;": {
-            "26.3": "sha256:40abae34c8b8ca331e672c3089e5e96c18a56014c47a66022c21a28f2530e191"
+            "26.3": "sha256:40abae34c8b8ca331e672c3089e5e96c18a56014c47a66022c21a28f2530e191",
+            "26.4-pre-1": "sha256:40abae34c8b8ca331e672c3089e5e96c18a56014c47a66022c21a28f2530e191"
         },
         "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.isValidTarget(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:d15f57ad7b915a875e2f3b7fe7cc1d777855a7792b27e381d59cb7b8f203514d"
+            "26.3": "sha256:d15f57ad7b915a875e2f3b7fe7cc1d777855a7792b27e381d59cb7b8f203514d",
+            "26.4-pre-1": "sha256:d15f57ad7b915a875e2f3b7fe7cc1d777855a7792b27e381d59cb7b8f203514d"
         },
         "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.shouldRecalculatePath()Z": {
-            "26.3": "sha256:8a2f7d16b6c2bf6d925783a076d1ea936584da89bb7c7bd3bd567bf66d353420"
+            "26.3": "sha256:8a2f7d16b6c2bf6d925783a076d1ea936584da89bb7c7bd3bd567bf66d353420",
+            "26.4-pre-1": "sha256:8a2f7d16b6c2bf6d925783a076d1ea936584da89bb7c7bd3bd567bf66d353420"
         },
         "net/minecraft/world/entity/monster/warden/AngerLevel.ANGRY": {
-            "26.3": "sha256:bd80fbc60ddb0f7247d06b5635c13032f60c84fe2203fbd5613822dad8a04bf0"
+            "26.3": "sha256:bd80fbc60ddb0f7247d06b5635c13032f60c84fe2203fbd5613822dad8a04bf0",
+            "26.4-pre-1": "sha256:bd80fbc60ddb0f7247d06b5635c13032f60c84fe2203fbd5613822dad8a04bf0"
         },
         "net/minecraft/world/entity/monster/warden/AngerLevel.byAnger(I)Lnet/minecraft/world/entity/monster/warden/AngerLevel;": {
-            "26.3": "sha256:cc7adcba27c080ee74722518520b17c7c145c9f45408959e657c6a17f842ba2a"
+            "26.3": "sha256:cc7adcba27c080ee74722518520b17c7c145c9f45408959e657c6a17f842ba2a",
+            "26.4-pre-1": "sha256:cc7adcba27c080ee74722518520b17c7c145c9f45408959e657c6a17f842ba2a"
         },
         "net/minecraft/world/entity/monster/warden/AngerManagement.MAX_ANGER": {
-            "26.3": "sha256:ea4ebcbee17d73d44d5b82e26337d9f70f2c12bbf3180a4b105156562a961f01"
+            "26.3": "sha256:ea4ebcbee17d73d44d5b82e26337d9f70f2c12bbf3180a4b105156562a961f01",
+            "26.4-pre-1": "sha256:ea4ebcbee17d73d44d5b82e26337d9f70f2c12bbf3180a4b105156562a961f01"
         },
         "net/minecraft/world/entity/monster/warden/Warden.canTargetEntity(Lnet/minecraft/world/entity/Entity;)Z": {
-            "26.3": "sha256:254d6d04318f6a4c165524b4290f87f89b4feec323b3ce2df364db8cfb25581e"
+            "26.3": "sha256:254d6d04318f6a4c165524b4290f87f89b4feec323b3ce2df364db8cfb25581e",
+            "26.4-pre-1": "sha256:254d6d04318f6a4c165524b4290f87f89b4feec323b3ce2df364db8cfb25581e"
         },
         "net/minecraft/world/entity/monster/warden/Warden.finalizeSpawn(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;": {
-            "26.3": "sha256:582938f9bccacd118aa2504e172dd6b2e54bb9d72e7b12211bd0f188c3d1e404"
+            "26.3": "sha256:582938f9bccacd118aa2504e172dd6b2e54bb9d72e7b12211bd0f188c3d1e404",
+            "26.4-pre-1": "sha256:582938f9bccacd118aa2504e172dd6b2e54bb9d72e7b12211bd0f188c3d1e404"
         },
         "net/minecraft/world/entity/monster/warden/Warden.FOLLOW_RANGE": {
-            "26.3": "sha256:c3943d7cab147ba358022e414f7186f64d8cdcbc597cf7b48e74f96f3d1da775"
+            "26.3": "sha256:c3943d7cab147ba358022e414f7186f64d8cdcbc597cf7b48e74f96f3d1da775",
+            "26.4-pre-1": "sha256:c3943d7cab147ba358022e414f7186f64d8cdcbc597cf7b48e74f96f3d1da775"
         },
         "net/minecraft/world/entity/monster/warden/Warden.getActiveAnger()I": {
-            "26.3": "sha256:0609f9403e89295135861734e366de9d50cba49b73acfab75efae97298d35870"
+            "26.3": "sha256:0609f9403e89295135861734e366de9d50cba49b73acfab75efae97298d35870",
+            "26.4-pre-1": "sha256:0609f9403e89295135861734e366de9d50cba49b73acfab75efae97298d35870"
         },
         "net/minecraft/world/entity/monster/warden/Warden.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
-            "26.3": "sha256:8ff40186bb26838b2f9ad0f3a0bb8c68d72e9b18abd7a9a1556eeedadfb17c9b"
+            "26.3": "sha256:8ff40186bb26838b2f9ad0f3a0bb8c68d72e9b18abd7a9a1556eeedadfb17c9b",
+            "26.4-pre-1": "sha256:8ff40186bb26838b2f9ad0f3a0bb8c68d72e9b18abd7a9a1556eeedadfb17c9b"
         },
         "net/minecraft/world/entity/monster/warden/Warden.increaseAngerAt(Lnet/minecraft/world/entity/Entity;IZ)V": {
-            "26.3": "sha256:68efb8f37525d6905b9a487cac6d2782e0f2c9231a9d18fc4c3c426236e5e6f2"
+            "26.3": "sha256:68efb8f37525d6905b9a487cac6d2782e0f2c9231a9d18fc4c3c426236e5e6f2",
+            "26.4-pre-1": "sha256:68efb8f37525d6905b9a487cac6d2782e0f2c9231a9d18fc4c3c426236e5e6f2"
         },
         "net/minecraft/world/entity/monster/warden/Warden.isDiggingOrEmerging()Z": {
-            "26.3": "sha256:b8893df59bcbcd2af12f1f16e6f7886d02b1ddaf3e8b65a44852460743c41e68"
+            "26.3": "sha256:b8893df59bcbcd2af12f1f16e6f7886d02b1ddaf3e8b65a44852460743c41e68",
+            "26.4-pre-1": "sha256:b8893df59bcbcd2af12f1f16e6f7886d02b1ddaf3e8b65a44852460743c41e68"
         },
         "net/minecraft/world/entity/monster/warden/Warden.setAttackTarget(Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:d699b44a8d7eb22ebf607db127a609d2c1a09c7dcadf5f3a7af8e07b1233f1af"
+            "26.3": "sha256:d699b44a8d7eb22ebf607db127a609d2c1a09c7dcadf5f3a7af8e07b1233f1af",
+            "26.4-pre-1": "sha256:d699b44a8d7eb22ebf607db127a609d2c1a09c7dcadf5f3a7af8e07b1233f1af"
         },
         "net/minecraft/world/entity/monster/warden/Warden$VibrationUser.canReceiveVibration(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/gameevent/GameEvent$Context;)Z": {
-            "26.3": "sha256:581253230d8ccb8e13d45ee9cc994b4e093f961a917dcf56649948341be87f00"
+            "26.3": "sha256:581253230d8ccb8e13d45ee9cc994b4e093f961a917dcf56649948341be87f00",
+            "26.4-pre-1": "sha256:581253230d8ccb8e13d45ee9cc994b4e093f961a917dcf56649948341be87f00"
         },
         "net/minecraft/world/entity/monster/warden/WardenAi.setDigCooldown(Lnet/minecraft/world/entity/LivingEntity;)V": {
-            "26.3": "sha256:b915f61c6b2fbd425978f25b20417ffbb10b66c101112d242615d521f582c502"
+            "26.3": "sha256:b915f61c6b2fbd425978f25b20417ffbb10b66c101112d242615d521f582c502",
+            "26.4-pre-1": "sha256:b915f61c6b2fbd425978f25b20417ffbb10b66c101112d242615d521f582c502"
         },
         "net/minecraft/world/entity/monster/warden/WardenAi.setDisturbanceLocation(Lnet/minecraft/world/entity/monster/warden/Warden;Lnet/minecraft/core/BlockPos;)V": {
-            "26.3": "sha256:434eeadeb8fbbd065fe56e148747097038676c52c4bab64d3c6428339b3a4b58"
+            "26.3": "sha256:434eeadeb8fbbd065fe56e148747097038676c52c4bab64d3c6428339b3a4b58",
+            "26.4-pre-1": "sha256:434eeadeb8fbbd065fe56e148747097038676c52c4bab64d3c6428339b3a4b58"
         },
         "net/minecraft/world/entity/monster/Witch.aiStep()V": {
-            "26.3": "sha256:a4526bc6367bcdc98d8fdd43e1b19a260d08e017cc113f11635e27f991e390b3"
+            "26.3": "sha256:a4526bc6367bcdc98d8fdd43e1b19a260d08e017cc113f11635e27f991e390b3",
+            "26.4-pre-1": "sha256:a4526bc6367bcdc98d8fdd43e1b19a260d08e017cc113f11635e27f991e390b3"
         },
         "net/minecraft/world/entity/monster/Zoglin.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;)Ljava/util/Optional;": {
-            "26.3": "sha256:2b59033de3bc4f6992d3bc2cc56d5125cde5f48f12536c45e0d47d6e7b40fca9"
+            "26.3": "sha256:2b59033de3bc4f6992d3bc2cc56d5125cde5f48f12536c45e0d47d6e7b40fca9",
+            "26.4-pre-1": "sha256:2b59033de3bc4f6992d3bc2cc56d5125cde5f48f12536c45e0d47d6e7b40fca9"
         },
         "net/minecraft/world/entity/monster/Zoglin.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
-            "26.3": "sha256:2190eee4ee93f1f2a079dc92a4b7589e2a51df8584e98d46838266375b9902b4"
+            "26.3": "sha256:2190eee4ee93f1f2a079dc92a4b7589e2a51df8584e98d46838266375b9902b4",
+            "26.4-pre-1": "sha256:2190eee4ee93f1f2a079dc92a4b7589e2a51df8584e98d46838266375b9902b4"
         },
         "net/minecraft/world/entity/monster/zombie/Zombie.canBreakDoors()Z": {
-            "26.3": "sha256:86db9571d0dc26a14c24192c780f5945ec1b2ef934a793a9e29f4f6591a642ae"
+            "26.3": "sha256:86db9571d0dc26a14c24192c780f5945ec1b2ef934a793a9e29f4f6591a642ae",
+            "26.4-pre-1": "sha256:86db9571d0dc26a14c24192c780f5945ec1b2ef934a793a9e29f4f6591a642ae"
         },
         "net/minecraft/world/entity/monster/zombie/Zombie.DOOR_BREAKING_PREDICATE": {
             "26.3": "sha256:71658143c591ca738733421bd65a8fcaa0a990510725335f6ee1f5e0c0dc246f"
@@ -1248,70 +1517,88 @@
             "26.3": "sha256:1935503f28868ecf69dddb0b839ad5c7ecf260439d08b540fe559fdae97ec1c6"
         },
         "net/minecraft/world/entity/npc/villager/VillagerProfession.NONE": {
-            "26.3": "sha256:47617cc5c36ff54b9a993ef87719f480a8d6c4dbedf13873b37b2166ac1462df"
+            "26.3": "sha256:47617cc5c36ff54b9a993ef87719f480a8d6c4dbedf13873b37b2166ac1462df",
+            "26.4-pre-1": "sha256:47617cc5c36ff54b9a993ef87719f480a8d6c4dbedf13873b37b2166ac1462df"
         },
         "net/minecraft/world/entity/player/Player.aiStep()V": {
             "26.3": "sha256:fa19c95007cbc7f9487094ca0aafb10e3b63cafda595bd22171940a92230759f"
         },
         "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937"
+            "26.3": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937",
+            "26.4-pre-1": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937"
         },
         "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:fe7f0dd7b1084536630575c2f21e223f8ef34b49d9f55aae41867279f7dc872a"
+            "26.3": "sha256:fe7f0dd7b1084536630575c2f21e223f8ef34b49d9f55aae41867279f7dc872a",
+            "26.4-pre-1": "sha256:fe7f0dd7b1084536630575c2f21e223f8ef34b49d9f55aae41867279f7dc872a"
         },
         "net/minecraft/world/item/CrossbowItem.getDefaultProjectileRange()I": {
-            "26.3": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c"
+            "26.3": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c",
+            "26.4-pre-1": "sha256:292945e624342c005855dd08cdda682da6ba187deaa7ca8dd32afec8d51fa46c"
         },
         "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ac32715efe707271607b432252bf1e6e56176c43f9e53ee9a9726074d5c2351b"
         },
         "net/minecraft/world/item/EnderEyeItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
-            "26.3": "sha256:25dd61efbd89f5f80bc910d2688d50fb1dbbdecd0e14a8dda9e77e3e71655505"
+            "26.3": "sha256:25dd61efbd89f5f80bc910d2688d50fb1dbbdecd0e14a8dda9e77e3e71655505",
+            "26.4-pre-1": "sha256:25dd61efbd89f5f80bc910d2688d50fb1dbbdecd0e14a8dda9e77e3e71655505"
         },
         "net/minecraft/world/item/equipment/Equippable.swapWithEquipmentSlot(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/InteractionResult;": {
-            "26.3": "sha256:ed311512b572d8aa5a7b9f0121016d9c0bf02cc2f0524a6efbc6596eb8ba6783"
+            "26.3": "sha256:ed311512b572d8aa5a7b9f0121016d9c0bf02cc2f0524a6efbc6596eb8ba6783",
+            "26.4-pre-1": "sha256:ed311512b572d8aa5a7b9f0121016d9c0bf02cc2f0524a6efbc6596eb8ba6783"
         },
         "net/minecraft/world/item/MapItem.create(Lnet/minecraft/server/level/ServerLevel;IIBZZ)Lnet/minecraft/world/item/ItemStack;": {
-            "26.3": "sha256:763b7754e1c10f58f8e6423da12b9c2560b396cd624539ccc52dce4516a11629"
+            "26.3": "sha256:763b7754e1c10f58f8e6423da12b9c2560b396cd624539ccc52dce4516a11629",
+            "26.4-pre-1": "sha256:763b7754e1c10f58f8e6423da12b9c2560b396cd624539ccc52dce4516a11629"
         },
         "net/minecraft/world/item/MapItem.createNewSavedData(Lnet/minecraft/server/level/ServerLevel;IIIZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapId;": {
-            "26.3": "sha256:c06aa1c0eabadde0f18a84976863a3814eaac53adf88e517f5071702203c7b2d"
+            "26.3": "sha256:c06aa1c0eabadde0f18a84976863a3814eaac53adf88e517f5071702203c7b2d",
+            "26.4-pre-1": "sha256:c06aa1c0eabadde0f18a84976863a3814eaac53adf88e517f5071702203c7b2d"
         },
         "net/minecraft/world/item/MapItem.renderBiomePreviewMap(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;)V": {
-            "26.3": "sha256:81ceb17e3867c967f835532ee65eb2c947b40fc5425c95b3548a6fa407d493f1"
+            "26.3": "sha256:81ceb17e3867c967f835532ee65eb2c947b40fc5425c95b3548a6fa407d493f1",
+            "26.4-pre-1": "sha256:81ceb17e3867c967f835532ee65eb2c947b40fc5425c95b3548a6fa407d493f1"
         },
         "net/minecraft/world/item/StandingAndWallBlockItem.getPlacementState(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:88020f0c9b788b5133ef2cc8ac3619168d2aa46e55077c3cc378fcff561229bb"
+            "26.3": "sha256:88020f0c9b788b5133ef2cc8ac3619168d2aa46e55077c3cc378fcff561229bb",
+            "26.4-pre-1": "sha256:88020f0c9b788b5133ef2cc8ac3619168d2aa46e55077c3cc378fcff561229bb"
         },
         "net/minecraft/world/level/BaseCommandBlock.performCommand(Lnet/minecraft/server/level/ServerLevel;)Z": {
-            "26.3": "sha256:808789c5a87f179dc8eff79a63dec09bc3676a8ad87aecf88316608a266cf093"
+            "26.3": "sha256:808789c5a87f179dc8eff79a63dec09bc3676a8ad87aecf88316608a266cf093",
+            "26.4-pre-1": "sha256:808789c5a87f179dc8eff79a63dec09bc3676a8ad87aecf88316608a266cf093"
         },
         "net/minecraft/world/level/block/AbstractBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2"
+            "26.3": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2",
+            "26.4-pre-1": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2"
         },
         "net/minecraft/world/level/block/AmethystClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:385549b78818752025e0da36a5f43b2aabb9ef2b6f1ecf3694ca5376a8c5d8ee"
         },
         "net/minecraft/world/level/block/AnvilBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:f33058f1c8af3ce52cecd4b2ed0c1ee1d40e5335d4a84b7b761eec2345f65d2c"
+            "26.3": "sha256:f33058f1c8af3ce52cecd4b2ed0c1ee1d40e5335d4a84b7b761eec2345f65d2c",
+            "26.4-pre-1": "sha256:f33058f1c8af3ce52cecd4b2ed0c1ee1d40e5335d4a84b7b761eec2345f65d2c"
         },
         "net/minecraft/world/level/block/BannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:8d65653c19eb4f0e9609f4fa06d3c04734dffc1f76f2d5ab5c1bfc37e29364bc"
+            "26.3": "sha256:8d65653c19eb4f0e9609f4fa06d3c04734dffc1f76f2d5ab5c1bfc37e29364bc",
+            "26.4-pre-1": "sha256:8d65653c19eb4f0e9609f4fa06d3c04734dffc1f76f2d5ab5c1bfc37e29364bc"
         },
         "net/minecraft/world/level/block/BarrelBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:633373bb20069dbf23566abe8a6253d0ec1d49548027f87111d9edf155cbe3ec"
+            "26.3": "sha256:633373bb20069dbf23566abe8a6253d0ec1d49548027f87111d9edf155cbe3ec",
+            "26.4-pre-1": "sha256:633373bb20069dbf23566abe8a6253d0ec1d49548027f87111d9edf155cbe3ec"
         },
         "net/minecraft/world/level/block/BaseCoralPlantTypeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:98dd068fc8951ec82449b0b393bbde965583977ea88c0f2dc7e999335663c71b"
         },
         "net/minecraft/world/level/block/BaseCoralWallFanBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:569d20a9b0ae8732b411f06493ca935d4dbbf178f73a3763544335dd1a0c77e2"
+            "26.3": "sha256:569d20a9b0ae8732b411f06493ca935d4dbbf178f73a3763544335dd1a0c77e2",
+            "26.4-pre-1": "sha256:569d20a9b0ae8732b411f06493ca935d4dbbf178f73a3763544335dd1a0c77e2"
         },
         "net/minecraft/world/level/block/BeehiveBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:3b1148e90b0894ce90ff97685d6e079245e3bf4f86380b43391b7dbbc5bc6d8b"
+            "26.3": "sha256:3b1148e90b0894ce90ff97685d6e079245e3bf4f86380b43391b7dbbc5bc6d8b",
+            "26.4-pre-1": "sha256:3b1148e90b0894ce90ff97685d6e079245e3bf4f86380b43391b7dbbc5bc6d8b"
         },
         "net/minecraft/world/level/block/BellBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:7edfce3798e7769a3c3b0be08ad3e2c524939d6247d3d8d449e7fb98bfe5051a"
+            "26.3": "sha256:7edfce3798e7769a3c3b0be08ad3e2c524939d6247d3d8d449e7fb98bfe5051a",
+            "26.4-pre-1": "sha256:7edfce3798e7769a3c3b0be08ad3e2c524939d6247d3d8d449e7fb98bfe5051a"
         },
         "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:22fe0de256ee22cc864ff8e4eb381968955db7bce6373d540bee125b1e75feb7"
@@ -1320,13 +1607,16 @@
             "26.3": "sha256:c024a11c85ca993c4bb6279a08bfdb534e4eafed79e6839c50edd7831d852c71"
         },
         "net/minecraft/world/level/block/CalibratedSculkSensorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:38f1a3046aef888082d60a37edd42c091c2e3d2a5b30147dba9ef6dc07ebf5c9"
+            "26.3": "sha256:38f1a3046aef888082d60a37edd42c091c2e3d2a5b30147dba9ef6dc07ebf5c9",
+            "26.4-pre-1": "sha256:38f1a3046aef888082d60a37edd42c091c2e3d2a5b30147dba9ef6dc07ebf5c9"
         },
         "net/minecraft/world/level/block/CarvedPumpkinBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:ee77fc4b97bd692c8da943d56eb2fc82f9b2bdb59279d1351b5d798304192e70"
+            "26.3": "sha256:ee77fc4b97bd692c8da943d56eb2fc82f9b2bdb59279d1351b5d798304192e70",
+            "26.4-pre-1": "sha256:ee77fc4b97bd692c8da943d56eb2fc82f9b2bdb59279d1351b5d798304192e70"
         },
         "net/minecraft/world/level/block/CaveVines.use(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/InteractionResult;": {
-            "26.3": "sha256:df6ae3d3f56009077d8eccba87627ed9dd1b6f1c7b1ed2b56423c9aaeea13726"
+            "26.3": "sha256:df6ae3d3f56009077d8eccba87627ed9dd1b6f1c7b1ed2b56423c9aaeea13726",
+            "26.4-pre-1": "sha256:df6ae3d3f56009077d8eccba87627ed9dd1b6f1c7b1ed2b56423c9aaeea13726"
         },
         "net/minecraft/world/level/block/CeilingHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:a77a301e5ce80ed20c28b2a752bb61241fb8d8dc5851ce14b78b3e7de141276a"
@@ -1335,34 +1625,43 @@
             "26.3": "sha256:8c68cec34f224d6f304d3e9c9dddb49488cf7f8ea1da6c7f02820beb53092f20"
         },
         "net/minecraft/world/level/block/ChiseledBookShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:09bc6eec1ec0efb48be768e617bdaf7bcd0d2cb2ae9d6818750dae54d5f53b91"
+            "26.3": "sha256:09bc6eec1ec0efb48be768e617bdaf7bcd0d2cb2ae9d6818750dae54d5f53b91",
+            "26.4-pre-1": "sha256:09bc6eec1ec0efb48be768e617bdaf7bcd0d2cb2ae9d6818750dae54d5f53b91"
         },
         "net/minecraft/world/level/block/CocoaBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:c546cd5dd3a0012cc3b64075aa1d645913c150c48eb0521f1a932099d0f6f637"
+            "26.3": "sha256:c546cd5dd3a0012cc3b64075aa1d645913c150c48eb0521f1a932099d0f6f637",
+            "26.4-pre-1": "sha256:c546cd5dd3a0012cc3b64075aa1d645913c150c48eb0521f1a932099d0f6f637"
         },
         "net/minecraft/world/level/block/CommandBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:da1d1719311cc5f6b8bb29695ae314b85376e9b0f530b36a9ec857feb6ebf2fe"
+            "26.3": "sha256:da1d1719311cc5f6b8bb29695ae314b85376e9b0f530b36a9ec857feb6ebf2fe",
+            "26.4-pre-1": "sha256:da1d1719311cc5f6b8bb29695ae314b85376e9b0f530b36a9ec857feb6ebf2fe"
         },
         "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:c778484264ff35dd69789bb83942b708949966178839f745b72fa93cdf2958dd"
+            "26.3": "sha256:c778484264ff35dd69789bb83942b708949966178839f745b72fa93cdf2958dd",
+            "26.4-pre-1": "sha256:c778484264ff35dd69789bb83942b708949966178839f745b72fa93cdf2958dd"
         },
         "net/minecraft/world/level/block/CopperGolemStatueBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:12b8854e09ce5a0001aea0ce981e4f46999e2736c1e0d9c9dfb2f5b6a030f891"
         },
         "net/minecraft/world/level/block/CrafterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:9e50c16db53aeac2d395aabac566944c2ba84d0131f217b6d4a085cfa772c96c"
+            "26.3": "sha256:9e50c16db53aeac2d395aabac566944c2ba84d0131f217b6d4a085cfa772c96c",
+            "26.4-pre-1": "sha256:9e50c16db53aeac2d395aabac566944c2ba84d0131f217b6d4a085cfa772c96c"
         },
         "net/minecraft/world/level/block/CropBlock.getMaxAge()I": {
-            "26.3": "sha256:782e09f5af9b2e93a79727919b358f1dcfebe04d9dd1fdfae1f5258aecab1988"
+            "26.3": "sha256:782e09f5af9b2e93a79727919b358f1dcfebe04d9dd1fdfae1f5258aecab1988",
+            "26.4-pre-1": "sha256:782e09f5af9b2e93a79727919b358f1dcfebe04d9dd1fdfae1f5258aecab1988"
         },
         "net/minecraft/world/level/block/DetectorRailBlock.checkPressed(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V": {
-            "26.3": "sha256:b678b0bfb2b5963e56c8a141d701b6d10b44cc55ad9ca76849bae962d0e4d747"
+            "26.3": "sha256:b678b0bfb2b5963e56c8a141d701b6d10b44cc55ad9ca76849bae962d0e4d747",
+            "26.4-pre-1": "sha256:b678b0bfb2b5963e56c8a141d701b6d10b44cc55ad9ca76849bae962d0e4d747"
         },
         "net/minecraft/world/level/block/DiodeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:d5ff414d337e191cc83b27e552e91a38c061fc9a908767897596cb91cdb11fdd"
+            "26.3": "sha256:d5ff414d337e191cc83b27e552e91a38c061fc9a908767897596cb91cdb11fdd",
+            "26.4-pre-1": "sha256:d5ff414d337e191cc83b27e552e91a38c061fc9a908767897596cb91cdb11fdd"
         },
         "net/minecraft/world/level/block/DispenserBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:b641e713a23fb6dc073cbebfe4651259ecdf1d7243f9c420a85e9ab081ff7558"
+            "26.3": "sha256:b641e713a23fb6dc073cbebfe4651259ecdf1d7243f9c420a85e9ab081ff7558",
+            "26.4-pre-1": "sha256:b641e713a23fb6dc073cbebfe4651259ecdf1d7243f9c420a85e9ab081ff7558"
         },
         "net/minecraft/world/level/block/DriedGhastBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:773a39576ce648bdac9f73540db80c35af972bc2540e237200bca283386fabb5"
@@ -1371,37 +1670,48 @@
             "26.3": "sha256:cb4ebe908b657341b9cd4d7061d081ec6f104520841d08545c1bb62a66d0cd10"
         },
         "net/minecraft/world/level/block/EndPortalFrameBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:dba2c2001f7c3885de6a2244ae5dd5f9aa556705ec1d7d99efb22f902965db27"
+            "26.3": "sha256:dba2c2001f7c3885de6a2244ae5dd5f9aa556705ec1d7d99efb22f902965db27",
+            "26.4-pre-1": "sha256:dba2c2001f7c3885de6a2244ae5dd5f9aa556705ec1d7d99efb22f902965db27"
         },
         "net/minecraft/world/level/block/EndRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:4d431bd195829b2a8356afde62fc10c2d51e448d2827572288682265705db058"
+            "26.3": "sha256:4d431bd195829b2a8356afde62fc10c2d51e448d2827572288682265705db058",
+            "26.4-pre-1": "sha256:4d431bd195829b2a8356afde62fc10c2d51e448d2827572288682265705db058"
         },
         "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V": {
-            "26.3": "sha256:50d4e305f1cc51b1c242bd376e33af7db205925e970a5edf3f80408a3fa74d04"
+            "26.3": "sha256:50d4e305f1cc51b1c242bd376e33af7db205925e970a5edf3f80408a3fa74d04",
+            "26.4-pre-1": "sha256:50d4e305f1cc51b1c242bd376e33af7db205925e970a5edf3f80408a3fa74d04"
         },
         "net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:d17e8de7e96efef70db2c073831fefb0c63ef0249d4a4047577e5eda5d8fc3d0"
+            "26.3": "sha256:d17e8de7e96efef70db2c073831fefb0c63ef0249d4a4047577e5eda5d8fc3d0",
+            "26.4-pre-1": "sha256:d17e8de7e96efef70db2c073831fefb0c63ef0249d4a4047577e5eda5d8fc3d0"
         },
         "net/minecraft/world/level/block/FallingBlock.isFree(Lnet/minecraft/world/level/block/state/BlockState;)Z": {
-            "26.3": "sha256:1d72d5e8c6346effe1dcf21c3522a87fa290d01388c5c985bb70e7265febd4aa"
+            "26.3": "sha256:1d72d5e8c6346effe1dcf21c3522a87fa290d01388c5c985bb70e7265febd4aa",
+            "26.4-pre-1": "sha256:1d72d5e8c6346effe1dcf21c3522a87fa290d01388c5c985bb70e7265febd4aa"
         },
         "net/minecraft/world/level/block/FarmlandBlock.shouldMaintainFarmland(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:97bb0e2ba737df045b58e9623a3291770be825435d9db4bc3c7ebe069ccde764"
+            "26.3": "sha256:97bb0e2ba737df045b58e9623a3291770be825435d9db4bc3c7ebe069ccde764",
+            "26.4-pre-1": "sha256:97bb0e2ba737df045b58e9623a3291770be825435d9db4bc3c7ebe069ccde764"
         },
         "net/minecraft/world/level/block/FlowerBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:e2fc46a8396352fa38c5f8ea8c7e2ab8d329c761726c18c52f829412cee9b4ce"
+            "26.3": "sha256:e2fc46a8396352fa38c5f8ea8c7e2ab8d329c761726c18c52f829412cee9b4ce",
+            "26.4-pre-1": "sha256:e2fc46a8396352fa38c5f8ea8c7e2ab8d329c761726c18c52f829412cee9b4ce"
         },
         "net/minecraft/world/level/block/GlazedTerracottaBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:e808acf83236c66efb444609a9b54c471ec51f2cba0c97827674df8965489f07"
+            "26.3": "sha256:e808acf83236c66efb444609a9b54c471ec51f2cba0c97827674df8965489f07",
+            "26.4-pre-1": "sha256:e808acf83236c66efb444609a9b54c471ec51f2cba0c97827674df8965489f07"
         },
         "net/minecraft/world/level/block/GrowingPlantHeadBlock.MAX_AGE": {
-            "26.3": "sha256:80e282145370e6ba97114679e01a69a80e818051400a10675ac5dfffda9eb506"
+            "26.3": "sha256:80e282145370e6ba97114679e01a69a80e818051400a10675ac5dfffda9eb506",
+            "26.4-pre-1": "sha256:80e282145370e6ba97114679e01a69a80e818051400a10675ac5dfffda9eb506"
         },
         "net/minecraft/world/level/block/GrowingPlantHeadBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:f4dc6d6fa831a500a67f7b415db2e162844c1ca3ecb4fdbf885596e3bac7e865"
+            "26.3": "sha256:f4dc6d6fa831a500a67f7b415db2e162844c1ca3ecb4fdbf885596e3bac7e865",
+            "26.4-pre-1": "sha256:f4dc6d6fa831a500a67f7b415db2e162844c1ca3ecb4fdbf885596e3bac7e865"
         },
         "net/minecraft/world/level/block/HopperBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:fe0efadc5a6ec33c9e819560922f84eea61963a72a8c1968794d6f852418283c"
+            "26.3": "sha256:fe0efadc5a6ec33c9e819560922f84eea61963a72a8c1968794d6f852418283c",
+            "26.4-pre-1": "sha256:fe0efadc5a6ec33c9e819560922f84eea61963a72a8c1968794d6f852418283c"
         },
         "net/minecraft/world/level/block/LadderBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:24ad51fd79fc62fd52112c153c634c857926bfe635ba151128cb754d22509946"
@@ -1410,22 +1720,26 @@
             "26.3": "sha256:93e5888810249951eb0e4738f26776a8515c4aa5cd4147d03a1f32eb077ae9a9"
         },
         "net/minecraft/world/level/block/LeafLitterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:5a5b90004504a0ff20cd99f12261d556de532038e5fbd283a770cb0ca82ab455"
+            "26.3": "sha256:5a5b90004504a0ff20cd99f12261d556de532038e5fbd283a770cb0ca82ab455",
+            "26.4-pre-1": "sha256:5a5b90004504a0ff20cd99f12261d556de532038e5fbd283a770cb0ca82ab455"
         },
         "net/minecraft/world/level/block/LeavesBlock.DECAY_DISTANCE": {
-            "26.3": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a"
+            "26.3": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a",
+            "26.4-pre-1": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a"
         },
         "net/minecraft/world/level/block/LeavesBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:69e6e3d23c49c74f32c9c5ce83e4b838af33d2441be1e35276fbaeb7c658d6d4"
         },
         "net/minecraft/world/level/block/LecternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:ada93f3f974947c4a5c5848842f00eaae202eac0a7b28cf67feae29538892029"
+            "26.3": "sha256:ada93f3f974947c4a5c5848842f00eaae202eac0a7b28cf67feae29538892029",
+            "26.4-pre-1": "sha256:ada93f3f974947c4a5c5848842f00eaae202eac0a7b28cf67feae29538892029"
         },
         "net/minecraft/world/level/block/LightningRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:b52b2e13518074a56131e71c0a7474672a80f806777626f20a4becefbb3c22e5"
         },
         "net/minecraft/world/level/block/LoomBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:0420fe498c35b0127c282051b61539a50b065c88a3e4be5afd4d20ed275da524"
+            "26.3": "sha256:0420fe498c35b0127c282051b61539a50b065c88a3e4be5afd4d20ed275da524",
+            "26.4-pre-1": "sha256:0420fe498c35b0127c282051b61539a50b065c88a3e4be5afd4d20ed275da524"
         },
         "net/minecraft/world/level/block/MangrovePropaguleBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:e313ff9958bb90ff4657a6998b02c0387ad4a3456b4c07cdcd9071ce630e84dc"
@@ -1434,82 +1748,103 @@
             "26.3": "sha256:9c12fee920f6e3a46d17d4d129ce0573b07420d16a988a1e5e495d57860047c4"
         },
         "net/minecraft/world/level/block/NetherPortalBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V": {
-            "26.3": "sha256:ead2cd54293f7dee1c84c7bd9e9ae58fc35e897609b2b5e83f8c76a72f259842"
+            "26.3": "sha256:ead2cd54293f7dee1c84c7bd9e9ae58fc35e897609b2b5e83f8c76a72f259842",
+            "26.4-pre-1": "sha256:ead2cd54293f7dee1c84c7bd9e9ae58fc35e897609b2b5e83f8c76a72f259842"
         },
         "net/minecraft/world/level/block/NetherPortalBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:e6f16b12475d987b22494af30a61169d32ef1fa3f27461867e5b29ba8f152cea"
+            "26.3": "sha256:e6f16b12475d987b22494af30a61169d32ef1fa3f27461867e5b29ba8f152cea",
+            "26.4-pre-1": "sha256:e6f16b12475d987b22494af30a61169d32ef1fa3f27461867e5b29ba8f152cea"
         },
         "net/minecraft/world/level/block/ObserverBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:93c0dd48c8204b62971d889e40973986032e2fcb9401d4a7883e76c6d2e923b5"
+            "26.3": "sha256:93c0dd48c8204b62971d889e40973986032e2fcb9401d4a7883e76c6d2e923b5",
+            "26.4-pre-1": "sha256:93c0dd48c8204b62971d889e40973986032e2fcb9401d4a7883e76c6d2e923b5"
         },
         "net/minecraft/world/level/block/piston/PistonMovingBlockEntity.moveCollidedEntities(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;FLnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;)V": {
-            "26.3": "sha256:9b5e5fd9a81cb919a432f2732e77f05a962e69dba824954ac51c1958698890db"
+            "26.3": "sha256:9b5e5fd9a81cb919a432f2732e77f05a962e69dba824954ac51c1958698890db",
+            "26.4-pre-1": "sha256:9b5e5fd9a81cb919a432f2732e77f05a962e69dba824954ac51c1958698890db"
         },
         "net/minecraft/world/level/block/RepeaterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:15b732bc25e6f95afad731138b6b4afdad40575663b528f39dec8a200ea61b3d"
+            "26.3": "sha256:15b732bc25e6f95afad731138b6b4afdad40575663b528f39dec8a200ea61b3d",
+            "26.4-pre-1": "sha256:15b732bc25e6f95afad731138b6b4afdad40575663b528f39dec8a200ea61b3d"
         },
         "net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:ba188b2f3705ad581876934891c37af4ecda6a4b4f513cf36603d7c2e2de7d33"
         },
         "net/minecraft/world/level/block/ShelfMushroomBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:fc3468885cc3afda16d9e2e5f93319a4da5776eb4c85cca625c070af10ad38a2"
+            "26.3": "sha256:fc3468885cc3afda16d9e2e5f93319a4da5776eb4c85cca625c070af10ad38a2",
+            "26.4-pre-1": "sha256:fc3468885cc3afda16d9e2e5f93319a4da5776eb4c85cca625c070af10ad38a2"
         },
         "net/minecraft/world/level/block/SkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:4817dfd735d02bfdb7c04f985369b5c76f20e57486b2b40f1bb7ccc98917b8a2"
+            "26.3": "sha256:4817dfd735d02bfdb7c04f985369b5c76f20e57486b2b40f1bb7ccc98917b8a2",
+            "26.4-pre-1": "sha256:4817dfd735d02bfdb7c04f985369b5c76f20e57486b2b40f1bb7ccc98917b8a2"
         },
         "net/minecraft/world/level/block/SmallDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:02aac27dbc3cd794359e88c8395b90b950f105cb9ec7587731df8b363b63557e"
+            "26.3": "sha256:02aac27dbc3cd794359e88c8395b90b950f105cb9ec7587731df8b363b63557e",
+            "26.4-pre-1": "sha256:02aac27dbc3cd794359e88c8395b90b950f105cb9ec7587731df8b363b63557e"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.calculateSpeleothemThickness(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/SpeleothemThickness;": {
-            "26.3": "sha256:5a30960280a860e9a77f784a7c0a7fb01780c5d7f469daa179d604bc5d7bafd1"
+            "26.3": "sha256:5a30960280a860e9a77f784a7c0a7fb01780c5d7f469daa179d604bc5d7bafd1",
+            "26.4-pre-1": "sha256:5a30960280a860e9a77f784a7c0a7fb01780c5d7f469daa179d604bc5d7bafd1"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.calculateTipDirection(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;": {
-            "26.3": "sha256:025d8fe68083af62016f75af9724e0be131e03b54feae6f93338d580710d1b7d"
+            "26.3": "sha256:025d8fe68083af62016f75af9724e0be131e03b54feae6f93338d580710d1b7d",
+            "26.4-pre-1": "sha256:025d8fe68083af62016f75af9724e0be131e03b54feae6f93338d580710d1b7d"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:37b1661c23d419cd215b1a407119c36a8b447c4bdc1339cdcaf26e7d6802881a"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.isSpeleothemWithDirection(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;)Z": {
-            "26.3": "sha256:5d11816386a0536bd9bc25c011cf9c11d247e11793aa07f55322c7733b238b14"
+            "26.3": "sha256:5d11816386a0536bd9bc25c011cf9c11d247e11793aa07f55322c7733b238b14",
+            "26.4-pre-1": "sha256:5d11816386a0536bd9bc25c011cf9c11d247e11793aa07f55322c7733b238b14"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.isValidSpeleothemPlacement(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
-            "26.3": "sha256:36083ea5d48584f1a134d01b2f331094780780637f862126963af4100e1c04b8"
+            "26.3": "sha256:36083ea5d48584f1a134d01b2f331094780780637f862126963af4100e1c04b8",
+            "26.4-pre-1": "sha256:36083ea5d48584f1a134d01b2f331094780780637f862126963af4100e1c04b8"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.spawnFallingStalactite(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)V": {
             "26.3": "sha256:3def02fb8db462b543f23747ac2e7185b0342b615026d94b0170423724cb9913"
         },
         "net/minecraft/world/level/block/SpeleothemBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:79cbe9fd1c7ce33098844bd896f239e065bf921ebf0f13b62094d9888816141e"
+            "26.3": "sha256:79cbe9fd1c7ce33098844bd896f239e065bf921ebf0f13b62094d9888816141e",
+            "26.4-pre-1": "sha256:79cbe9fd1c7ce33098844bd896f239e065bf921ebf0f13b62094d9888816141e"
         },
         "net/minecraft/world/level/block/SpongeBlock.removeWaterBreadthFirstSearch(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:9ff839bd50bce944b223e54ae19dbb587da81b05bfc0e84def5343b5d190ff38"
+            "26.3": "sha256:9ff839bd50bce944b223e54ae19dbb587da81b05bfc0e84def5343b5d190ff38",
+            "26.4-pre-1": "sha256:9ff839bd50bce944b223e54ae19dbb587da81b05bfc0e84def5343b5d190ff38"
         },
         "net/minecraft/world/level/block/SpreadingSnowyBlock.canPropagate(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:20d9323a8f9d40af138b3e0d73d4e5364e026cd05a8b84cf56b4dd08dceeceb2"
+            "26.3": "sha256:20d9323a8f9d40af138b3e0d73d4e5364e026cd05a8b84cf56b4dd08dceeceb2",
+            "26.4-pre-1": "sha256:20d9323a8f9d40af138b3e0d73d4e5364e026cd05a8b84cf56b4dd08dceeceb2"
         },
         "net/minecraft/world/level/block/SpreadingSnowyBlock.canStayAlive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:07295fd5778fee4075c074c93ad895034dbf7276f2c0d429a17401a126a85ad9"
+            "26.3": "sha256:07295fd5778fee4075c074c93ad895034dbf7276f2c0d429a17401a126a85ad9",
+            "26.4-pre-1": "sha256:07295fd5778fee4075c074c93ad895034dbf7276f2c0d429a17401a126a85ad9"
         },
         "net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:f3a3843b224f7ac9b1871ad1b17c332647db4f8a6f30e2696e68fa0af55f2c35"
         },
         "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(F)I": {
-            "26.3": "sha256:166b7ffc2c398994800e72a7e1380a7af357002fe1454e8bae54fce623453201"
+            "26.3": "sha256:166b7ffc2c398994800e72a7e1380a7af357002fe1454e8bae54fce623453201",
+            "26.4-pre-1": "sha256:166b7ffc2c398994800e72a7e1380a7af357002fe1454e8bae54fce623453201"
         },
         "net/minecraft/world/level/block/StonecutterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:f4df971587de3ca86f7b4682a3dec0e99152c5050c7a6a61c6557f2844f5e8a2"
+            "26.3": "sha256:f4df971587de3ca86f7b4682a3dec0e99152c5050c7a6a61c6557f2844f5e8a2",
+            "26.4-pre-1": "sha256:f4df971587de3ca86f7b4682a3dec0e99152c5050c7a6a61c6557f2844f5e8a2"
         },
         "net/minecraft/world/level/block/TrapDoorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:55d17f5bb814eaef377afc33b6142b844b23acc9d254a3530e4b558256fd94ac"
         },
         "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:f15d7fb8691e5f568eb83b7a721cffb675f9c93ab83520884c5341e64774e041"
+            "26.3": "sha256:f15d7fb8691e5f568eb83b7a721cffb675f9c93ab83520884c5341e64774e041",
+            "26.4-pre-1": "sha256:f15d7fb8691e5f568eb83b7a721cffb675f9c93ab83520884c5341e64774e041"
         },
         "net/minecraft/world/level/block/VaultBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:d819532d0fb4beea63b21bdb7d15116449454bbc13fe1d0f6f123ed327361350"
+            "26.3": "sha256:d819532d0fb4beea63b21bdb7d15116449454bbc13fe1d0f6f123ed327361350",
+            "26.4-pre-1": "sha256:d819532d0fb4beea63b21bdb7d15116449454bbc13fe1d0f6f123ed327361350"
         },
         "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630"
+            "26.3": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630",
+            "26.4-pre-1": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630"
         },
         "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:42db295e91ed93cbdff8daf04ded224dee941d38edb531092840a861d4c5cc93"
@@ -1518,109 +1853,140 @@
             "26.3": "sha256:c2ce0175ddd12bd4a9c52702ec9810bc065705a0d72e7a632e7ace8b48a10c59"
         },
         "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
-            "26.3": "sha256:4b8ab116950d903368f4ec0e44752710e9959f6f778b3a71df5467086f9ab9f7"
+            "26.3": "sha256:4b8ab116950d903368f4ec0e44752710e9959f6f778b3a71df5467086f9ab9f7",
+            "26.4-pre-1": "sha256:4b8ab116950d903368f4ec0e44752710e9959f6f778b3a71df5467086f9ab9f7"
         },
         "net/minecraft/world/level/levelgen/Column.scan(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;ILjava/util/function/Predicate;Ljava/util/function/Predicate;)Ljava/util/Optional;": {
-            "26.3": "sha256:66bb001dd1a0b7dcab2c5963ddc26e975bc0245ba6316444f4a3f0085cf6a17d"
+            "26.3": "sha256:66bb001dd1a0b7dcab2c5963ddc26e975bc0245ba6316444f4a3f0085cf6a17d",
+            "26.4-pre-1": "sha256:66bb001dd1a0b7dcab2c5963ddc26e975bc0245ba6316444f4a3f0085cf6a17d"
         },
         "net/minecraft/world/level/levelgen/feature/EndPlatformFeature.createEndPlatform(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Z)V": {
-            "26.3": "sha256:ec7f4f154990d1d410e31a97a75941a840a6af22b3af1c4fb60e1dcb86ea26f1"
+            "26.3": "sha256:ec7f4f154990d1d410e31a97a75941a840a6af22b3af1c4fb60e1dcb86ea26f1",
+            "26.4-pre-1": "sha256:ec7f4f154990d1d410e31a97a75941a840a6af22b3af1c4fb60e1dcb86ea26f1"
         },
         "net/minecraft/world/level/levelgen/feature/EndSpikeFeature.getSpikesForLevel(Lnet/minecraft/world/level/WorldGenLevel;)Ljava/util/List;": {
-            "26.3": "sha256:8a8f210f80f24ea259bacb05f5c4bd07c590686c8eb50e0f604ad57c856f2530"
+            "26.3": "sha256:8a8f210f80f24ea259bacb05f5c4bd07c590686c8eb50e0f604ad57c856f2530",
+            "26.4-pre-1": "sha256:8a8f210f80f24ea259bacb05f5c4bd07c590686c8eb50e0f604ad57c856f2530"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.doubleTrunk()Z": {
-            "26.3": "sha256:bec3f5d03f74f45d59f5819932aef4f8bd0217e3e6a64678a9a9239c2bab63a4"
+            "26.3": "sha256:bec3f5d03f74f45d59f5819932aef4f8bd0217e3e6a64678a9a9239c2bab63a4",
+            "26.4-pre-1": "sha256:bec3f5d03f74f45d59f5819932aef4f8bd0217e3e6a64678a9a9239c2bab63a4"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.equals(Ljava/lang/Object;)Z": {
-            "26.3": "sha256:0e83c8177967c94e50aaef6d62d0851f90622512b5589ae196141b0576a58fb9"
+            "26.3": "sha256:0e83c8177967c94e50aaef6d62d0851f90622512b5589ae196141b0576a58fb9",
+            "26.4-pre-1": "sha256:0e83c8177967c94e50aaef6d62d0851f90622512b5589ae196141b0576a58fb9"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.foliageHeightOffset()I": {
-            "26.3": "sha256:70b1e134c26e4117c84e8263c3173c30394c5635b0bc0b82fa4c0177c2ae7f12"
+            "26.3": "sha256:70b1e134c26e4117c84e8263c3173c30394c5635b0bc0b82fa4c0177c2ae7f12",
+            "26.4-pre-1": "sha256:70b1e134c26e4117c84e8263c3173c30394c5635b0bc0b82fa4c0177c2ae7f12"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.hashCode()I": {
-            "26.3": "sha256:f399ab9d8795d828d9fc241078adaef76aaf6a9da5d40bbebc2d0ce459864c7d"
+            "26.3": "sha256:f399ab9d8795d828d9fc241078adaef76aaf6a9da5d40bbebc2d0ce459864c7d",
+            "26.4-pre-1": "sha256:f399ab9d8795d828d9fc241078adaef76aaf6a9da5d40bbebc2d0ce459864c7d"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.pos()Lnet/minecraft/core/BlockPos;": {
-            "26.3": "sha256:d1e89599c6add50c3780af627ce9c5e9d84d875f14b326db1e5f1ea63c879cfc"
+            "26.3": "sha256:d1e89599c6add50c3780af627ce9c5e9d84d875f14b326db1e5f1ea63c879cfc",
+            "26.4-pre-1": "sha256:d1e89599c6add50c3780af627ce9c5e9d84d875f14b326db1e5f1ea63c879cfc"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.radiusOffsetXZ()I": {
-            "26.3": "sha256:dc940eccfa5a3fdac3fa05a25763326f53103fa5cc3ec53c30c812f5a1f0be57"
+            "26.3": "sha256:dc940eccfa5a3fdac3fa05a25763326f53103fa5cc3ec53c30c812f5a1f0be57",
+            "26.4-pre-1": "sha256:dc940eccfa5a3fdac3fa05a25763326f53103fa5cc3ec53c30c812f5a1f0be57"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeX()I": {
-            "26.3": "sha256:e5437c4bc60ff95c41a76b8bdc739b3b546105884327c9b7bb48cb836d5a2d01"
+            "26.3": "sha256:e5437c4bc60ff95c41a76b8bdc739b3b546105884327c9b7bb48cb836d5a2d01",
+            "26.4-pre-1": "sha256:e5437c4bc60ff95c41a76b8bdc739b3b546105884327c9b7bb48cb836d5a2d01"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeZ()I": {
-            "26.3": "sha256:28fbcb56c1b2da475a9aa9f92c0e21070093453677c85430366577d74cefe2e2"
+            "26.3": "sha256:28fbcb56c1b2da475a9aa9f92c0e21070093453677c85430366577d74cefe2e2",
+            "26.4-pre-1": "sha256:28fbcb56c1b2da475a9aa9f92c0e21070093453677c85430366577d74cefe2e2"
         },
         "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.toString()Ljava/lang/String;": {
-            "26.3": "sha256:d9cc4f607d206400ffce001cc9da065ca07706cc9b8ab8e901419133fe040b13"
+            "26.3": "sha256:d9cc4f607d206400ffce001cc9da065ca07706cc9b8ab8e901419133fe040b13",
+            "26.4-pre-1": "sha256:d9cc4f607d206400ffce001cc9da065ca07706cc9b8ab8e901419133fe040b13"
         },
         "net/minecraft/world/level/levelgen/feature/TreeFeature.isAirOrLeaves(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:dc1d344fcf2fbe8e16a0b04f9a311601648d085b2c6b981c8c3c4b625258a822"
+            "26.3": "sha256:dc1d344fcf2fbe8e16a0b04f9a311601648d085b2c6b981c8c3c4b625258a822",
+            "26.4-pre-1": "sha256:dc1d344fcf2fbe8e16a0b04f9a311601648d085b2c6b981c8c3c4b625258a822"
         },
         "net/minecraft/world/level/levelgen/feature/TreeFeature.validTreePos(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:0df168ffcc9a87be314dff2f84ab9b6112b8c0b198b6b2ed405f2eab2385104e"
+            "26.3": "sha256:0df168ffcc9a87be314dff2f84ab9b6112b8c0b198b6b2ed405f2eab2385104e",
+            "26.4-pre-1": "sha256:0df168ffcc9a87be314dff2f84ab9b6112b8c0b198b6b2ed405f2eab2385104e"
         },
         "net/minecraft/world/level/LevelReader.isEmptyBlock(Lnet/minecraft/core/BlockPos;)Z": {
-            "26.3": "sha256:8fe1924c9822157eacf36055bd87fc1a327d2771f66846590ddecadf86e86c52"
+            "26.3": "sha256:8fe1924c9822157eacf36055bd87fc1a327d2771f66846590ddecadf86e86c52",
+            "26.4-pre-1": "sha256:8fe1924c9822157eacf36055bd87fc1a327d2771f66846590ddecadf86e86c52"
         },
         "net/minecraft/world/level/lighting/LightEngine.MAX_LEVEL": {
-            "26.3": "sha256:80b217090f15ca1e5b63c8ca5dae67c8bc0cc25149fc1ad6c145bbaad95b3f83"
+            "26.3": "sha256:80b217090f15ca1e5b63c8ca5dae67c8bc0cc25149fc1ad6c145bbaad95b3f83",
+            "26.4-pre-1": "sha256:80b217090f15ca1e5b63c8ca5dae67c8bc0cc25149fc1ad6c145bbaad95b3f83"
         },
         "net/minecraft/world/level/material/FlowingFluid.canPassThroughWall(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z": {
-            "26.3": "sha256:b294462277994550d93ca14647f02ace2d3e3fe1211351a83b156195df5996dd"
+            "26.3": "sha256:b294462277994550d93ca14647f02ace2d3e3fe1211351a83b156195df5996dd",
+            "26.4-pre-1": "sha256:b294462277994550d93ca14647f02ace2d3e3fe1211351a83b156195df5996dd"
         },
         "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;": {
             "26.3": "sha256:89f67a682df41522a9ce813d1c58d7484eed0a0ad8666d9fa8a49b0796d68f11"
         },
         "net/minecraft/world/level/pathfinder/Path.getEntityPosAtNode(Lnet/minecraft/world/entity/Entity;I)Lnet/minecraft/world/phys/Vec3;": {
-            "26.3": "sha256:2d7c503f122ceef0f585b62f70164d66ee632af3996d6ff0a95e2fe6a3cf7033"
+            "26.3": "sha256:2d7c503f122ceef0f585b62f70164d66ee632af3996d6ff0a95e2fe6a3cf7033",
+            "26.4-pre-1": "sha256:2d7c503f122ceef0f585b62f70164d66ee632af3996d6ff0a95e2fe6a3cf7033"
         },
         "net/minecraft/world/level/pathfinder/Path.getNode(I)Lnet/minecraft/world/level/pathfinder/Node;": {
-            "26.3": "sha256:36e92ac76ecdd31c483db01097e2cf94bd9b36a7802335bdbb2ef0599238ebf2"
+            "26.3": "sha256:36e92ac76ecdd31c483db01097e2cf94bd9b36a7802335bdbb2ef0599238ebf2",
+            "26.4-pre-1": "sha256:36e92ac76ecdd31c483db01097e2cf94bd9b36a7802335bdbb2ef0599238ebf2"
         },
         "net/minecraft/world/level/portal/PortalForcer.createPortal(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction$Axis;)Ljava/util/Optional;": {
             "26.3": "sha256:8a630e85b7aa78317ad546f0ad87bcdcbf75820bc8a84f39266dd4c2286bfa58"
         },
         "net/minecraft/world/level/portal/PortalShape.findEmptyPortalShape(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction$Axis;)Ljava/util/Optional;": {
-            "26.3": "sha256:9db12a2eb9c8caa40dfdabeeace20044943ef67fd21918981e3535bae548a2f7"
+            "26.3": "sha256:9db12a2eb9c8caa40dfdabeeace20044943ef67fd21918981e3535bae548a2f7",
+            "26.4-pre-1": "sha256:9db12a2eb9c8caa40dfdabeeace20044943ef67fd21918981e3535bae548a2f7"
         },
         "net/minecraft/world/level/portal/PortalShape.isEmpty(Lnet/minecraft/world/level/block/state/BlockState;)Z": {
-            "26.3": "sha256:538331769ed8801489fa877ad0ffaf5d4029828bd4eec6bff0711f354370d179"
+            "26.3": "sha256:538331769ed8801489fa877ad0ffaf5d4029828bd4eec6bff0711f354370d179",
+            "26.4-pre-1": "sha256:538331769ed8801489fa877ad0ffaf5d4029828bd4eec6bff0711f354370d179"
         },
         "net/minecraft/world/level/portal/PortalShape.MAX_HEIGHT": {
-            "26.3": "sha256:bba35efa624822b9ae1e9efc09fb843260065fe7a42ffdb9d6972886772dfa3f"
+            "26.3": "sha256:bba35efa624822b9ae1e9efc09fb843260065fe7a42ffdb9d6972886772dfa3f",
+            "26.4-pre-1": "sha256:bba35efa624822b9ae1e9efc09fb843260065fe7a42ffdb9d6972886772dfa3f"
         },
         "net/minecraft/world/level/portal/PortalShape.MAX_WIDTH": {
-            "26.3": "sha256:6f09d618ee51b5caa804118e762f3274bf42bcde92b1e12a8cde5909884dc9a3"
+            "26.3": "sha256:6f09d618ee51b5caa804118e762f3274bf42bcde92b1e12a8cde5909884dc9a3",
+            "26.4-pre-1": "sha256:6f09d618ee51b5caa804118e762f3274bf42bcde92b1e12a8cde5909884dc9a3"
         },
         "net/minecraft/world/level/portal/PortalShape.MIN_HEIGHT": {
-            "26.3": "sha256:15b9bc4891877ac776452b6a501511c5e7a3dac8fd9b446ae79aa53fc66828c8"
+            "26.3": "sha256:15b9bc4891877ac776452b6a501511c5e7a3dac8fd9b446ae79aa53fc66828c8",
+            "26.4-pre-1": "sha256:15b9bc4891877ac776452b6a501511c5e7a3dac8fd9b446ae79aa53fc66828c8"
         },
         "net/minecraft/world/level/portal/PortalShape.MIN_WIDTH": {
-            "26.3": "sha256:34604373a19ee5e1d985d6824d3076ddc425e54fe5c1c14649a22c9be46fed33"
+            "26.3": "sha256:34604373a19ee5e1d985d6824d3076ddc425e54fe5c1c14649a22c9be46fed33",
+            "26.4-pre-1": "sha256:34604373a19ee5e1d985d6824d3076ddc425e54fe5c1c14649a22c9be46fed33"
         },
         "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.calculateTargetStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I": {
-            "26.3": "sha256:e195a806e000091f620420e2cacf310a0e4eca45935a7a5ea69ad4d8ed0d2f71"
+            "26.3": "sha256:e195a806e000091f620420e2cacf310a0e4eca45935a7a5ea69ad4d8ed0d2f71",
+            "26.4-pre-1": "sha256:e195a806e000091f620420e2cacf310a0e4eca45935a7a5ea69ad4d8ed0d2f71"
         },
         "net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.updatePowerStrength(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/redstone/Orientation;Z)V": {
             "26.3": "sha256:8a895dbba2b154f43087a846aa2dd0a6b2a11fa9b1dde3a8663c5f8ec08a3d9f"
         },
         "net/minecraft/world/level/redstone/RedstoneWireEvaluator.getIncomingWireSignal(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I": {
-            "26.3": "sha256:6ba87403fca2bd878c35ca402b3f460af30a10427a507403c5972389c856a57c"
+            "26.3": "sha256:6ba87403fca2bd878c35ca402b3f460af30a10427a507403c5972389c856a57c",
+            "26.4-pre-1": "sha256:6ba87403fca2bd878c35ca402b3f460af30a10427a507403c5972389c856a57c"
         },
         "net/minecraft/world/level/saveddata/maps/MapItemSavedData.createFresh(DDBZZLnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/saveddata/maps/MapItemSavedData;": {
             "26.3": "sha256:02b9ad785bd183a016e47ba01419ac4c8977d09fced09fa009b9740e92c7683b"
         },
         "net/minecraft/world/level/saveddata/maps/MapItemSavedData.MAX_SCALE": {
-            "26.3": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed"
+            "26.3": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed",
+            "26.4-pre-1": "sha256:67dd921fb59bd4419e72840fbd3409a8e5c82865a68210a90309c1cfdcf14eed"
         },
         "net/minecraft/world/phys/AABB.intersects(Lnet/minecraft/world/phys/AABB;)Z": {
-            "26.3": "sha256:6f8a3a85cb528b00b18870badc7570a43852eae44c2e2d40b36833208d3f0906"
+            "26.3": "sha256:6f8a3a85cb528b00b18870badc7570a43852eae44c2e2d40b36833208d3f0906",
+            "26.4-pre-1": "sha256:6f8a3a85cb528b00b18870badc7570a43852eae44c2e2d40b36833208d3f0906"
         },
         "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;": {
-            "26.3": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6"
+            "26.3": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6",
+            "26.4-pre-1": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6"
         }
     }
 }

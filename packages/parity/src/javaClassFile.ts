@@ -8,6 +8,7 @@ import type { JavaInstruction } from '@jsprismarine/java-classfile/instructions'
 import { OPCODES, decodeInstructions } from '@jsprismarine/java-classfile/instructions';
 
 import { readServerJar } from './javaDatapack.ts';
+import type { ReferenceSource } from './references.ts';
 import { FETCH_CACHE, REFERENCES } from './references.ts';
 
 /**
@@ -90,30 +91,58 @@ const writeCacheFile = (target: string, contents: Uint8Array | string): void => 
     renameSync(partial, target);
 };
 
-/** The inner server jar's entries, inflated once per process when a class is not cached yet. */
-let inflatedJar: Map<string, Uint8Array> | undefined;
+/** One jar's inner server jar entries, inflated when a class is not cached yet, and its parsed class files. */
+interface JarState {
+    inflated: Map<string, Uint8Array> | undefined;
+    /** Parsed class files by binary name, so a hierarchy walk reads each class file once. */
+    readonly parsed: Map<string, ClassFile | undefined>;
+}
 
-/** Parsed class files by binary name, so a hierarchy walk reads each class file once. */
-const parsedClassFiles = new Map<string, ClassFile | undefined>();
+/** Each jar read so far, by path, so the default release's jar and the preview's are read side by side. */
+const jars = new Map<string, JarState>();
+
+/** The state of one jar, created on first use. */
+const jarState = (jarPath: string): JarState => {
+    let state = jars.get(jarPath);
+    if (state === undefined) {
+        state = { inflated: undefined, parsed: new Map() };
+        jars.set(jarPath, state);
+    }
+    return state;
+};
+
+/** The inner server jar's entries, inflated once per process. */
+const inflatedEntries = (jarPath: string): Map<string, Uint8Array> => {
+    const state = jarState(jarPath);
+    state.inflated ??= readServerJar(jarPath);
+    return state.inflated;
+};
+
+/** A jar reference's path, failing when the fetch cache does not hold it. */
+const locateJar = (reference: ReferenceSource): string => {
+    const jarPath = reference.locate();
+    if (jarPath === undefined) throw new Error(`the ${reference.id} is not in the fetch cache`);
+    return jarPath;
+};
 
 /** The parity view of each parsed class, by binary name. */
 const parsedClasses = new Map<string, JavaClass | undefined>();
 
 /**
- * One class file of the pinned Java server jar, parsed, or undefined when the jar holds no such
- * class, which is the case for the JDK classes at the top of every hierarchy.
+ * One class file of a Java server jar, parsed, or undefined when the jar holds no such class,
+ * which is the case for the JDK classes at the top of every hierarchy.
  *
  * Reading the jar inflates every entry, so each class file is kept in the fetch cache beside the
- * jar and later runs read that copy.
+ * jar, under the release the jar's directory names, and later runs read that copy.
  *
+ * @param reference - The jar, such as `REFERENCES.javaPreviewServerJar`.
  * @param className - The class's binary name, such as `net/minecraft/world/entity/Mob`.
  * @throws {Error} When the jar is not in the fetch cache.
  */
-export const pinnedClassFile = (className: string): ClassFile | undefined => {
+export const jarClassFile = (reference: ReferenceSource, className: string): ClassFile | undefined => {
+    const jarPath = locateJar(reference);
+    const { parsed: parsedClassFiles } = jarState(jarPath);
     if (parsedClassFiles.has(className)) return parsedClassFiles.get(className);
-
-    const jarPath = REFERENCES.javaServerJar.locate();
-    if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
 
     const version = basename(dirname(jarPath)) || 'unknown';
     const entry = `${className}.class`;
@@ -121,8 +150,7 @@ export const pinnedClassFile = (className: string): ClassFile | undefined => {
     let parsed: ClassFile | undefined;
     if (existsSync(cached)) parsed = parseJavaClass(readFileSync(cached));
     else if (className.startsWith('net/minecraft/') || className.startsWith('com/mojang/')) {
-        inflatedJar ??= readServerJar(jarPath);
-        const bytes = inflatedJar.get(entry);
+        const bytes = inflatedEntries(jarPath).get(entry);
         if (bytes !== undefined) {
             writeCacheFile(cached, bytes);
             parsed = parseJavaClass(bytes);
@@ -131,6 +159,16 @@ export const pinnedClassFile = (className: string): ClassFile | undefined => {
     parsedClassFiles.set(className, parsed);
     return parsed;
 };
+
+/**
+ * One class file of the pinned Java server jar, parsed, or undefined when the jar holds no such
+ * class. {@link jarClassFile} for the default release's jar.
+ *
+ * @param className - The class's binary name, such as `net/minecraft/world/entity/Mob`.
+ * @throws {Error} When the jar is not in the fetch cache.
+ */
+export const pinnedClassFile = (className: string): ClassFile | undefined =>
+    jarClassFile(REFERENCES.javaServerJar, className);
 
 /**
  * One class of the pinned Java server jar with its methods decoded, or undefined when the jar
@@ -156,15 +194,12 @@ export const pinnedJavaClassFile = (className: string): JavaClass | undefined =>
  * @throws {Error} When the jar is not in the fetch cache.
  */
 export const pinnedJavaClassesNaming = (text: string): readonly JavaClass[] => {
-    const jarPath = REFERENCES.javaServerJar.locate();
-    if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
+    const jarPath = locateJar(REFERENCES.javaServerJar);
     const version = basename(dirname(jarPath)) || 'unknown';
     const needle = Buffer.from(text, 'utf-8');
     return pinnedJavaClassNames('net/minecraft/').flatMap((name) => {
         const cached = join(FETCH_CACHE, 'java-classes', version, ...`${name}.class`.split('/'));
-        const bytes = existsSync(cached)
-            ? readFileSync(cached)
-            : (inflatedJar ??= readServerJar(jarPath)).get(`${name}.class`);
+        const bytes = existsSync(cached) ? readFileSync(cached) : inflatedEntries(jarPath).get(`${name}.class`);
         if (bytes === undefined || Buffer.from(bytes).indexOf(needle) < 0) return [];
         const parsed = pinnedJavaClassFile(name);
         return parsed === undefined ? [] : [parsed];
@@ -257,7 +292,7 @@ export const javaOperations = (method: Pick<JavaMethod, 'instructions'>): readon
     });
 
 /**
- * The binary name of every class in the pinned jar under a package prefix, such as
+ * The binary name of every class in a Java server jar under a package prefix, such as
  * `net/minecraft/world/entity/`.
  *
  * The first listing inflates the jar and keeps the names in the fetch cache beside the class
@@ -265,9 +300,8 @@ export const javaOperations = (method: Pick<JavaMethod, 'instructions'>): readon
  *
  * @throws {Error} When the jar is not in the fetch cache.
  */
-export const pinnedJavaClassNames = (prefix: string): readonly string[] => {
-    const jarPath = REFERENCES.javaServerJar.locate();
-    if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
+export const jarClassNames = (reference: ReferenceSource, prefix: string): readonly string[] => {
+    const jarPath = locateJar(reference);
     const index = join(FETCH_CACHE, 'java-classes', basename(dirname(jarPath)) || 'unknown', 'classes.json');
     let names: readonly string[] | undefined;
     if (existsSync(index)) {
@@ -276,14 +310,22 @@ export const pinnedJavaClassNames = (prefix: string): readonly string[] => {
         if (Array.isArray(parsed)) names = parsed.filter((name): name is string => typeof name === 'string');
     }
     if (names === undefined) {
-        inflatedJar ??= readServerJar(jarPath);
-        names = [...inflatedJar.keys()]
+        names = [...inflatedEntries(jarPath).keys()]
             .filter((entry) => entry.endsWith('.class'))
             .map((entry) => entry.slice(0, -'.class'.length));
         writeCacheFile(index, JSON.stringify(names));
     }
     return names.filter((name) => name.startsWith(prefix));
 };
+
+/**
+ * The binary name of every class in the pinned jar under a package prefix. {@link jarClassNames}
+ * for the default release's jar.
+ *
+ * @throws {Error} When the jar is not in the fetch cache.
+ */
+export const pinnedJavaClassNames = (prefix: string): readonly string[] =>
+    jarClassNames(REFERENCES.javaServerJar, prefix);
 
 /**
  * The numeric `static final` constants of one class in the pinned Java server jar, by field name.

@@ -101,18 +101,39 @@ const committed = (id: string, path: string, holds: string): ReferenceSource => 
 
 /** The pins in `sources.json` the reference locators read, or `undefined` without the file. */
 const pinnedSources = ():
-    { javaServer?: { defaultVersion?: string }; bedrockSamples?: { tag?: string } } | undefined => {
+    | {
+          javaServer?: { defaultVersion?: string; versions?: Record<string, { preview?: boolean }> };
+          bedrockSamples?: { tag?: string };
+      }
+    | undefined => {
     const manifest = join(repoRoot, 'packages/bedrock-data/sources.json');
     if (!existsSync(manifest)) return undefined;
-    // sources.json is parsed JSON; only the default Java release and the bedrock-samples tag are read.
+    // sources.json is parsed JSON; only the Java releases and the bedrock-samples tag are read.
     return JSON.parse(readFileSync(manifest, 'utf-8')) as {
-        javaServer?: { defaultVersion?: string };
+        javaServer?: { defaultVersion?: string; versions?: Record<string, { preview?: boolean }> };
         bedrockSamples?: { tag?: string };
     };
 };
 
 /** The default Java Edition release, read from the one manifest that declares it. */
 const pinnedJavaVersion = (): string | undefined => pinnedSources()?.javaServer?.defaultVersion;
+
+/**
+ * The Java Edition preview `sources.json` pins beside the default release, such as a pre-release
+ * of the next one, or undefined when it pins none.
+ */
+export const previewJavaVersion = (): string | undefined =>
+    Object.entries(pinnedSources()?.javaServer?.versions ?? {}).find(([, entry]) => entry.preview === true)?.[0];
+
+/** A release's server jar in the fetch cache, or undefined when the cache does not hold it. */
+const cachedJavaServerJar = (version: string | undefined): string | undefined => {
+    if (version === undefined) return undefined;
+    for (const source of ['java', 'java-server']) {
+        const jar = join(FETCH_CACHE, source, version, 'server.jar');
+        if (existsSync(jar)) return jar;
+    }
+    return undefined;
+};
 
 /**
  * The pinned `bedrock-samples` checkout's directories, two levels under its tag. The fetch cache
@@ -322,15 +343,18 @@ export const REFERENCES = {
         kind: 'fetched',
         holds: "Java's loot tables and recipe files",
         howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
-        locate: () => {
-            const version = pinnedJavaVersion();
-            if (version === undefined) return undefined;
-            for (const source of ['java', 'java-server']) {
-                const jar = join(FETCH_CACHE, source, version, 'server.jar');
-                if (existsSync(jar)) return jar;
-            }
-            return undefined;
-        }
+        locate: () => cachedJavaServerJar(pinnedJavaVersion())
+    },
+
+    /** The server jar of the Java preview `sources.json` pins, which a Java bring-up fetches. */
+    javaPreviewServerJar: {
+        id: 'java-preview-server-jar',
+        kind: 'fetched',
+        holds: 'the code of the Java preview the next release is brought up against',
+        howToGet:
+            'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java <preview>` with the preview ' +
+            '`sources.json` pins',
+        locate: () => cachedJavaServerJar(previewJavaVersion())
     },
 
     /** The vanilla Bedrock behavior pack, which carries the 129 entity definitions and the biome files. */
