@@ -10,11 +10,13 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
+import type { JavaEntityDataEntry, JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
     AddEntity,
     BossEvent,
+    SetExperience,
+    TakeItemEntity,
     ChangeDifficulty,
     ClearTitles,
     ForgetLevelChunk,
@@ -78,6 +80,7 @@ import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
+import { totalExperiencePoints } from '../../entity/Experience';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { isRecord } from '../../utils/isRecord';
 import type {
@@ -92,6 +95,7 @@ import type {
     ShownEntityMove,
     ShownEntityState,
     ShownEquipment,
+    ShownExperience,
     ShownInventory,
     ShownMessage,
     ShownDimension,
@@ -198,6 +202,9 @@ export const javaBossEventOf = (change: BossBarChange, bar: ShownBossBar): JavaP
     }
 };
 
+/** The largest number a signed VarInt holds. */
+const MAX_VAR_INT = 2_147_483_647;
+
 /** The player's own inventory window, which the client always has. */
 const INVENTORY_WINDOW = 0;
 
@@ -232,7 +239,7 @@ const JAVA_EQUIPMENT_SLOTS: readonly (readonly [keyof ShownEquipment, JavaEquipm
  * @param state - The state.
  * @returns The two entity data entries.
  */
-export const javaEntityDataOf = (state: ShownEntityState) => {
+export const javaEntityDataOf = (state: ShownEntityState): JavaEntityDataEntry[] => {
     const flags =
         (state.onFire ? JavaEntityFlag.OnFire : 0) |
         (state.sneaking ? JavaEntityFlag.Crouching : 0) |
@@ -421,6 +428,8 @@ export class JavaPresenter implements SessionPresenter {
     private readonly entities = javaEntityTranslation();
     /** The shared flags and pose each shown entity was last sent, as `flags,pose`. */
     private readonly entityData = new Map<bigint, string>();
+    /** The stack each item entity was shown with, which a merge changes the count of. */
+    private readonly itemStacks = new Map<bigint, ShownStack>();
     /** The client's own player's UUID, once its tab list entry was sent. */
     private ownUuid: string | undefined;
     /** The objectives the client was told of, with the display name it was last sent. */
@@ -625,6 +634,24 @@ export class JavaPresenter implements SessionPresenter {
         if (equipment.length > 0) this.send(SetEquipment, { entityId: Number(runtimeId), equipment });
         this.entityData.delete(runtimeId);
         if (facts.state !== undefined) await this.showEntityState(runtimeId, facts.state);
+        // What an item and an orb are drawn as: without it, an item is a stack of nothing and an
+        // orb the smallest there is.
+        if (facts.item !== undefined) {
+            this.itemStacks.set(runtimeId, facts.item);
+            this.sendItemStack(runtimeId, facts.item);
+        }
+        if (facts.experience !== undefined) {
+            this.send(SetEntityData, {
+                entityId: Number(runtimeId),
+                entries: [
+                    {
+                        index: JavaEntityDataIndex.ExperienceOrbValue,
+                        serializer: JavaEntityDataSerializer.Int,
+                        value: facts.experience
+                    }
+                ]
+            });
+        }
     }
 
     /**
@@ -650,9 +677,33 @@ export class JavaPresenter implements SessionPresenter {
         this.send(SetEquipment, { entityId: Number(runtimeId), equipment: this.javaEquipmentOf(equipment) });
     }
 
+    /** Sends `Set Entity Metadata` with the item entity's stack and its new count. */
+    public async showItemCount(item: bigint, count: number): Promise<void> {
+        const shown = this.itemStacks.get(item);
+        if (shown === undefined) return;
+        const stack = { ...shown, count };
+        this.itemStacks.set(item, stack);
+        this.sendItemStack(item, stack);
+    }
+
+    /** Sends the stack an item entity holds, which Java has no count-only update for. */
+    private sendItemStack(runtimeId: bigint, stack: ShownStack): void {
+        this.send(SetEntityData, {
+            entityId: Number(runtimeId),
+            entries: [
+                {
+                    index: JavaEntityDataIndex.ItemEntityStack,
+                    serializer: JavaEntityDataSerializer.ItemStack,
+                    value: this.javaStackOf(stack)
+                }
+            ]
+        });
+    }
+
     /** Sends `Remove Entities`, and takes a player off the tab list too. */
     public async hideEntity(runtimeId: bigint): Promise<void> {
         this.entityData.delete(runtimeId);
+        this.itemStacks.delete(runtimeId);
         this.send(RemoveEntities, { entityIds: [Number(runtimeId)] });
         const uuid = this.shownPlayers.get(runtimeId);
         if (uuid === undefined) return;
@@ -734,6 +785,23 @@ export class JavaPresenter implements SessionPresenter {
     /** Sends `Set Health`: Java's food level is a whole number, as the hunger bar's halves are. */
     public async showVitals({ health, food, saturation }: ShownVitals): Promise<void> {
         this.send(SetHealth, { health, food: Math.round(food), saturation });
+    }
+
+    /**
+     * Sends `Set Experience`, with the total points the level and the bar hold. Java's total is a
+     * signed VarInt, which a level in the tens of thousands overflows, so it stops at the largest.
+     */
+    public async showExperience(experience: ShownExperience): Promise<void> {
+        this.send(SetExperience, {
+            progress: experience.progress,
+            level: experience.level,
+            total: Math.min(totalExperiencePoints(experience), MAX_VAR_INT)
+        });
+    }
+
+    /** Sends `Pickup Item`. */
+    public async showPickUp(item: bigint, collector: bigint, count: number): Promise<void> {
+        this.send(TakeItemEntity, { itemId: Number(item), collectorId: Number(collector), amount: count });
     }
 
     /** Sends `Combat Death` for the client's own player, which opens its death screen with the message. */

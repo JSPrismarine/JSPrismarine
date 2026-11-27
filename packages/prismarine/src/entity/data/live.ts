@@ -99,7 +99,6 @@ import { advancementDamage, advancementKill, advancementPickedUpItem } from '../
 import { raiseAdvancement } from '../../advancement/raise';
 import type { AdvancementRaiser } from '../../advancement/raise';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
-import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import type { DroppedItems, ItemStart } from './droppedItems';
 import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
 import { filterDomainCapacity, filterDomainFill, filterDomainStack, filterItemOf } from './filterView';
@@ -274,15 +273,12 @@ const givePlayerItem = (
     // item" advancement is earned this way: Java has no block-break trigger.
     advancementPickedUpItem(taker, item);
 
-    const take = new TakeItemActorPacket();
-    take.itemRuntimeEntityId = BigInt(itemId);
-    take.takerRuntimeEntityId = session.runtimeId;
     // Both actors have to be known to the recipient: the packet animates the item flying into
     // the taker, and a client missing either one has nothing to draw.
     const watchers = world
         .getViewers()
         .filter((viewer) => viewer.tracks(BigInt(itemId)) && viewer.tracks(session.runtimeId))
-        .map(async (viewer) => viewer.send(take));
+        .map(async (viewer) => viewer.presenter.showPickUp(BigInt(itemId), session.runtimeId, drop.count - left));
     // The take packet animates the stack; it does not say what the inventory now holds.
     void Promise.all([...watchers, session.sendInventory()]).catch((error: unknown) => options.report(String(error)));
     return left;
@@ -445,6 +441,13 @@ const liveHost = (
         // There is no packet that updates a dropped stack: `AddItemActor` carries the item and is
         // only sent when the entity appears, so this event is the one way to say the number changed.
         world.sendActorEvent(body, ActorEvent.UPDATE_STACK_SIZE, count);
+        // A Java client has no such event, so its presenter resends the whole stack; a Bedrock
+        // presenter sends nothing more.
+        const sends = world
+            .getViewers()
+            .filter((viewer) => viewer.tracks(BigInt(itemId)))
+            .map(async (viewer) => viewer.presenter.showItemCount(BigInt(itemId), count));
+        void Promise.all(sends).catch((error: unknown) => options.report(String(error)));
     },
     playSoundAt: (at, sound) => options.liveWorld()?.playNamedSoundAt(new Vector3(at.x, at.y, at.z), sound),
     levelEvent: (at, event, data) => options.liveWorld()?.sendWorldEvent(new Vector3(at.x, at.y, at.z), event, data),

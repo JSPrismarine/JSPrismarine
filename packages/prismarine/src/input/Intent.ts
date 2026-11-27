@@ -163,6 +163,11 @@ export interface IntentPayloads {
         readonly face: number;
         readonly faceLocation: { readonly x: number; readonly y: number; readonly z: number };
     };
+    /**
+     * The player pressed the drop key: one item of the stack in its hand, or with `all` the whole
+     * stack, which it throws ahead of itself.
+     */
+    readonly dropHeldItem: { readonly all: boolean };
     readonly setCreativeSlot: {
         readonly container: 'inventory' | 'armor' | 'offhand';
         readonly slot: number;
@@ -246,6 +251,8 @@ export const Intents = {
     mineBlock: { lane: 'input' },
     // Writes the inventory, which replication shows the players that see the sender.
     setCreativeSlot: { lane: 'input' },
+    // Writes the inventory and drops an item into the world.
+    dropHeldItem: { lane: 'input' },
     // Places blocks and runs the block's and the item's behaviors in the world.
     useItemOnBlock: { lane: 'input' },
     // Moves the player, which replication shows the players that see it.

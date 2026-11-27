@@ -162,6 +162,12 @@ export interface ShownVitals {
     readonly saturation: number;
 }
 
+/** A player's own experience: whole levels, and how far along the next one the bar is, from 0 to 1. */
+export interface ShownExperience {
+    readonly level: number;
+    readonly progress: number;
+}
+
 /** Why a player died, as a translation: the key without Bedrock's `%`, and what fills it. */
 export interface ShownDeath {
     readonly key: string;
@@ -387,6 +393,33 @@ export interface SessionPresenter {
      * @param vitals - The values now.
      */
     showVitals(vitals: ShownVitals): Promise<void>;
+
+    /**
+     * Shows the player its own experience bar and level, for a client the session's Bedrock
+     * attribute sends do not reach.
+     *
+     * @param experience - The values now.
+     */
+    showExperience(experience: ShownExperience): Promise<void>;
+
+    /**
+     * Shows an item, an arrow or an orb flying into the entity that picked it up, which the client
+     * draws before the item leaves its view.
+     *
+     * @param item - The runtime id of what was picked up.
+     * @param collector - The runtime id of the entity that took it.
+     * @param count - How many of the stack it took.
+     */
+    showPickUp(item: bigint, collector: bigint, count: number): Promise<void>;
+
+    /**
+     * Shows a dropped item's new count, after a merge with a stack beside it grew it, for a client
+     * the world's stack size event does not reach.
+     *
+     * @param item - The item entity's runtime id.
+     * @param count - How many items its stack holds now.
+     */
+    showItemCount(item: bigint, count: number): Promise<void>;
 
     /**
      * Opens the client's death screen, for a client the session's Bedrock respawn exchange does

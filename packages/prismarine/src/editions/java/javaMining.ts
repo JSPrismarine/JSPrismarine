@@ -1,6 +1,6 @@
 /**
- * A Java client's `Player Action` as the `mineBlock` intent a Bedrock client's block actions
- * decode into ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
+ * A Java client's `Player Action` as the intents a Bedrock client's actions decode into: the
+ * `mineBlock` its block actions do, and the `dropHeldItem` of the drop key ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
@@ -54,4 +54,15 @@ export const javaMiningIntentOf = (
     const step = stepOf(status, gamemode);
     if (step === undefined) return undefined;
     return { kind: 'mineBlock', step, position, face, serverTimed: true, breaksIfInstant: true };
+};
+
+/**
+ * The intent a `Player Action`'s drop key decodes into: one item, or the whole stack with Ctrl.
+ * @param status - The packet's status.
+ * @returns The intent, or undefined for a status that is not a drop.
+ */
+export const javaDropIntentOf = (status: number): Intent<'dropHeldItem'> | undefined => {
+    if (status === PlayerActionStatus.DropItem) return { kind: 'dropHeldItem', all: false };
+    if (status === PlayerActionStatus.DropAllItems) return { kind: 'dropHeldItem', all: true };
+    return undefined;
 };

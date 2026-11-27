@@ -28,6 +28,7 @@ import type { ActorMetadataProjection } from '../../entity/data/actorMetadata';
 import { healthAttributesOf } from '../../entity/data/actorView';
 import type { EntityView, ShownHealth, ShownPose } from '../../entity/data/actorView';
 import { ITEM_STATE_FIELD, itemStackOfState } from '../../entity/data/droppedItems';
+import { EXPERIENCE_ORB } from '../../entity/data/experienceOrbs';
 import { HANGING_STATE_FIELD, paintingSightOf } from '../../entity/data/hangingEntities';
 import { PAINTING, PAINTING_STATE_FIELD } from '../../entity/data/paintings';
 import { boxOf } from '../../entity/data/facts';
@@ -561,8 +562,12 @@ export class EntityReplication {
                         ? {}
                         : (known?.equipment ??
                           this.equipmentOf(held, kind === 'player' ? this.replica.player(held) : undefined));
+                const stack =
+                    kind === 'item' ? itemStackOfState(this.replica.field(held, ITEM_STATE_FIELD)) : undefined;
                 return {
                     type: held.shownIdentifier,
+                    ...(stack === undefined ? {} : { item: { name: stack.name, count: stack.count } }),
+                    ...(held.shownIdentifier === EXPERIENCE_ORB ? { experience: held.orbValue } : {}),
                     feet: { x: view.pose.x, y: view.pose.y, z: view.pose.z },
                     equipment: shownEquipmentOf(equipment),
                     ...(known === undefined ? {} : { state: shownEntityStateOf(known.metadata) }),

@@ -15,7 +15,7 @@ import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/struc
 
 import type { TrackableEntity } from '../player/EntityTracker';
 import type PlayerSession from '../player/PlayerSession';
-import type { ShownEntityState, ShownEquipment } from '../player/presenter/SessionPresenter';
+import type { ShownEntityState, ShownEquipment, ShownStack } from '../player/presenter/SessionPresenter';
 import type { ViewableEquipment } from '../entity/predicateView';
 import type { StatusEffect } from '../entity/StatusEffect';
 
@@ -77,6 +77,10 @@ export interface ShownEntityFacts {
     readonly equipment?: ShownEquipment;
     /** How it carries itself: crouched, burning and the like. */
     readonly state?: ShownEntityState;
+    /** The stack a dropped item holds. */
+    readonly item?: ShownStack;
+    /** The points an experience orb is worth, which its size shows. */
+    readonly experience?: number;
 }
 
 /** One entity as tracking reads it: where it is, how far it is followed, and how a client is shown it. */

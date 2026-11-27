@@ -1,7 +1,7 @@
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
-import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
+import { PositionMode, SetTimePacket, TakeItemActorPacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, {
@@ -162,6 +162,20 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Sends nothing: a Bedrock client's vitals are attributes, which the session sends. */
     public async showVitals(): Promise<void> {}
+
+    /** Sends nothing: a Bedrock client's experience is two attributes, which the session sends. */
+    public async showExperience(): Promise<void> {}
+
+    /** Sends nothing: the world's `UPDATE_STACK_SIZE` actor event tells a Bedrock client. */
+    public async showItemCount(): Promise<void> {}
+
+    /** Sends `TakeItemActor`, which carries no count: the client animates the whole stack. */
+    public async showPickUp(item: bigint, collector: bigint): Promise<void> {
+        const take = new TakeItemActorPacket();
+        take.itemRuntimeEntityId = item;
+        take.takerRuntimeEntityId = collector;
+        await this.connection.sendDataPacket(take);
+    }
 
     /** Sends nothing: the session runs Bedrock's respawn exchange, whose first half opens the screen. */
     public async showDeath(): Promise<void> {}

@@ -1,6 +1,7 @@
 import { Difficulty, Gametype, LevelEvent, TitleType } from '@jsprismarine/minecraft';
 import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
+import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, {
     SpawnPositionType
@@ -346,5 +347,17 @@ describe('BedrockPresenter', () => {
             port: 19_132,
             reloadWorld: false
         });
+    });
+
+    it('sends a pickup as TakeItemActor, and leaves experience to the attributes', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showPickUp(20n, 7n);
+        await bedrock.showExperience();
+
+        const [take] = sent;
+        if (!(take instanceof TakeItemActorPacket)) throw new Error('expected TakeItemActorPacket');
+        expect([take.itemRuntimeEntityId, take.takerRuntimeEntityId]).toEqual([20n, 7n]);
+        expect(sent).toHaveLength(1);
     });
 });

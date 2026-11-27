@@ -854,3 +854,75 @@ describe('the world state', () => {
         expect(sent).toEqual([{ name: 'Transfer (play)', value: { host: 'play.example.org', port: 25_565 } }]);
     });
 });
+
+describe('items and experience', () => {
+    const presenter = () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const java = new JavaPresenter((definition, value) => void sent.push({ name: definition.name, value }), 7n);
+        return { sent, java };
+    };
+    const lying = (
+        runtimeId: bigint,
+        facts: Partial<ShownEntityFacts> & Pick<ShownEntityFacts, 'type'>
+    ): ShownEntity => ({
+        getRuntimeId: () => runtimeId,
+        getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }),
+        getTrackingRange: () => 6,
+        spawnTo: async () => {},
+        describe: () => ({ feet: { x: 0, y: 64, z: 0 }, yaw: 0, pitch: 0, headYaw: 0, ...facts })
+    });
+
+    it('shows the stack an item entity holds and the value of an orb, with their spawns', async () => {
+        const { sent, java } = presenter();
+
+        await java.showEntity(lying(20n, { type: 'minecraft:item', item: { name: 'minecraft:stone', count: 3 } }));
+        await java.showEntity(lying(21n, { type: 'minecraft:xp_orb', experience: 17 }));
+
+        expect(sent.filter(({ name }) => name === 'Set Entity Metadata').map(({ value }) => value)).toEqual([
+            {
+                entityId: 20,
+                entries: [{ index: 8, serializer: 7, value: { item: ITEMS.idOf('minecraft:stone'), count: 3 } }]
+            },
+            { entityId: 21, entries: [{ index: 8, serializer: 1, value: 17 }] }
+        ]);
+    });
+
+    it("resends an item entity's stack with the count a merge gave it, and nothing for an item it never showed", async () => {
+        const { sent, java } = presenter();
+
+        await java.showEntity(lying(20n, { type: 'minecraft:item', item: { name: 'minecraft:stone', count: 3 } }));
+        await java.showItemCount(20n, 10);
+        await java.showItemCount(21n, 4);
+        await java.hideEntity(20n);
+        await java.showItemCount(20n, 12);
+
+        expect(sent.filter(({ name }) => name === 'Set Entity Metadata').map(({ value }) => value)).toEqual(
+            [3, 10].map((count) => ({
+                entityId: 20,
+                entries: [{ index: 8, serializer: 7, value: { item: ITEMS.idOf('minecraft:stone'), count } }]
+            }))
+        );
+    });
+
+    it('sends a pickup with how many it took, and the experience bar with its total points', async () => {
+        const { sent, java } = presenter();
+
+        await java.showPickUp(20n, 7n, 2);
+        // Level 3 holds 7 + 9 + 11 points, and half of level 3's 13 rounds to 7.
+        await java.showExperience({ level: 3, progress: 0.5 });
+
+        expect(sent).toEqual([
+            { name: 'Pickup Item', value: { itemId: 20, collectorId: 7, amount: 2 } },
+            { name: 'Set Experience', value: { progress: 0.5, level: 3, total: 34 } }
+        ]);
+    });
+
+    it("stops the experience total at the largest VarInt, which the highest levels' points pass", async () => {
+        const { sent, java } = presenter();
+
+        // The level attribute's maximum, whose points come to 2761645247.
+        await java.showExperience({ level: 24_791, progress: 0 });
+
+        expect(sent).toEqual([{ name: 'Set Experience', value: { progress: 0, level: 24_791, total: 2_147_483_647 } }]);
+    });
+});
