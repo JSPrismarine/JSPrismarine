@@ -111,7 +111,16 @@ pnpm --filter @jsprismarine/mapping run generate:tables --java <R>
 pnpm --filter @jsprismarine/mapping run generate:block-properties --java <R>
 pnpm --filter @jsprismarine/mapping run generate:block-states --java <R>
 pnpm --filter @jsprismarine/items run generate:item-types --java <R>
+pnpm --filter @jsprismarine/bedrock-data run dump:java-protocol --java <R>
 ```
+
+`dump:java-protocol` writes everything a Java client connecting with R needs under
+`packages/protocol/src/java/versions/<R>/`: the protocol number, packet ids, block states, static
+registries, English and, by running R's server, its configuration phase. It then regenerates
+`javaReleases.ts` and `newest.ts` from every release directory, leaving snapshots out, so a
+release becomes the one the server speaks without hand edits. It needs a JDK the jar runs on.
+Code that serves Java clients imports `@jsprismarine/protocol/java/versions/newest`, never a
+release's own directory.
 
 Regenerate the worldgen vectors for R as well. A new Java identifier with no Bedrock counterpart
 goes into the reviewed loss list before the generator will emit.
@@ -165,7 +174,27 @@ R's vanilla datapack through the public loader and asserts registry counts and c
 against R's own reports. The default release keeps its existing families; the preview gets its
 own row, so the dashboard shows both. CI fails a declared family with no test.
 
-Done when: the family's test passes against R's real data and the dashboard shows its row.
+Each Java packet definition names its vanilla codec with `@javaSource`, so with R's jar cached
+the `java.transcriptions` family lists each packet whose layout R changed. Read each against its
+definition and change the layout before R becomes the newest release.
+
+`dump:java-protocol` makes R the newest release when R is not a snapshot: it rewrites
+`NEWEST_JAVA_RELEASE` in `javaReleases.ts` and the imports of `newest.ts` to R's directory. Only
+after that, run `pnpm --filter @jsprismarine/parity exec vitest run src/protocol.java-client.test.ts`,
+which measures whatever release `NEWEST_JAVA_RELEASE` names. Its first test lists each packet R
+added that no behavior claims, and each claimed packet R dropped:
+
+- For a new packet, add it to the `needs` of the behavior it serves in that file's `BEHAVIORS`,
+  or to a new behavior.
+- For a dropped packet, remove it from the `needs` or `equivalents` that name it, and add the
+  packet R replaced it with, if any, to the same behavior. A recorded gap cannot stand in for a
+  stale claim.
+
+Then record the rows the server now lacks with `PARITY_UPDATE_BEHAVIOR_GAPS=1` and point each new
+gap at its area's issue.
+
+Done when: the family's test passes against R's real data and the dashboard shows its row, and
+`protocol.java-client` passes.
 
 ## 9. Flip the default
 
