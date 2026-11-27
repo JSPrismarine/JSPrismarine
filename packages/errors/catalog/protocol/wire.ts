@@ -451,5 +451,12 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * A Java Edition entity data entry uses a serializer this server's reader does not read: it
      * sends the shared flags and the pose only. Seen when reading another server's entity data.
      */
-    JavaEntityDataSerializerUnread: 'An entity data entry uses serializer {serializer}, which this server does not read'
+    JavaEntityDataSerializerUnread:
+        'An entity data entry uses serializer {serializer}, which this server does not read',
+    /**
+     * A Java Edition `Boss Event` names an operation past the six that 26.3 defines (add, remove,
+     * and updates to progress, name, style and flags). The packet is corrupt, or comes from a
+     * release whose operations this server does not know.
+     */
+    JavaBossEventOperationUnknown: 'A boss event names operation {operation}, which Java 26.3 does not define'
 });

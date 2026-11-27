@@ -8,6 +8,11 @@ import {
     ClientCommand,
     ClientCommandAction,
     BlockUpdate,
+    BossEvent,
+    JavaBossBarColor,
+    JavaBossBarFlag,
+    JavaBossBarOverlay,
+    JavaBossEventOperation,
     ChunkBatchFinished,
     ContainerSetContent,
     ContainerSetSlot,
@@ -349,5 +354,74 @@ describe('Player Command and Player Input', () => {
             ...encodeJavaPacket(NEWEST_JAVA_RELEASE, PlayerInput, { flags }).subarray(idOf(PlayerInput).length)
         ]).toEqual([0x30]);
         expect(roundTrip(PlayerInput, { flags })).toEqual({ flags });
+    });
+});
+
+describe('Boss Event', () => {
+    const uuid = '00000000-0000-0000-0000-00000000002a';
+    const bodyOf = (value: JavaPayload<typeof BossEvent>) =>
+        encodeJavaPacket(NEWEST_JAVA_RELEASE, BossEvent, value).subarray(idOf(BossEvent).length);
+    const roundTrip = (value: JavaPayload<typeof BossEvent>) =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            BossEvent,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, BossEvent, value)).body
+        );
+
+    it('writes an add as the UUID, the operation, the title, the progress, the color, the overlay and the flags', () => {
+        const add = {
+            uuid,
+            operation: {
+                type: JavaBossEventOperation.Add,
+                title: 'TPS',
+                progress: 0.5,
+                color: JavaBossBarColor.Green,
+                overlay: JavaBossBarOverlay.Notched10,
+                flags: JavaBossBarFlag.DarkenScreen | JavaBossBarFlag.CreateWorldFog
+            }
+        } as const;
+
+        expect([...bodyOf(add)]).toEqual([
+            ...Buffer.from(uuid.replaceAll('-', ''), 'hex'),
+            0,
+            // The title as an NBT string tag: its id, its length, then its bytes.
+            8,
+            0,
+            3,
+            ...Buffer.from('TPS'),
+            0x3f,
+            0,
+            0,
+            0,
+            3,
+            2,
+            0x05
+        ]);
+        expect(roundTrip(add)).toEqual(add);
+    });
+
+    it('reads back every other operation as it wrote it', () => {
+        const operations = [
+            { type: JavaBossEventOperation.Remove },
+            { type: JavaBossEventOperation.UpdateProgress, progress: 0.25 },
+            { type: JavaBossEventOperation.UpdateName, title: { translate: 'entity.minecraft.ender_dragon' } },
+            {
+                type: JavaBossEventOperation.UpdateStyle,
+                color: JavaBossBarColor.White,
+                overlay: JavaBossBarOverlay.Notched20
+            },
+            { type: JavaBossEventOperation.UpdateProperties, flags: JavaBossBarFlag.PlayMusic }
+        ] as const;
+
+        for (const operation of operations) expect(roundTrip({ uuid, operation })).toEqual({ uuid, operation });
+        expect([...bodyOf({ uuid, operation: { type: JavaBossEventOperation.Remove } })]).toHaveLength(17);
+    });
+
+    it('refuses an operation 26.3 does not define', () => {
+        const frame = Buffer.concat([idOf(BossEvent), Buffer.from(uuid.replaceAll('-', ''), 'hex'), Buffer.from([6])]);
+
+        expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, BossEvent, readJavaPacketId(frame).body)).toThrow(
+            /operation 6/
+        );
     });
 });
