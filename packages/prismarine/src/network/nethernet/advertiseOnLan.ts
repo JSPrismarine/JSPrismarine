@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
 
-import type { ServerName } from '@jsprismarine/raknet';
 import { encodeLanAdvertisement, lanAdvertisementOf } from '@jsprismarine/nethernet';
+
+import type { ServerStatus } from '../ServerStatus';
 import { netherNetStatusOf } from './netherNetStatusOf';
 
 /** Where the advertisement goes: the NetherNet server, which answers discovery requests with it. */
@@ -13,24 +14,24 @@ export interface LanAdvertisementTarget {
 export const lanNonce = (): string => randomBytes(8).readBigUInt64BE().toString(16);
 
 /**
- * Keeps the LAN advertisement in step with the server name: sets it now and again whenever the
- * MOTD, version or player counts change.
+ * Keeps the LAN advertisement in step with the server status: sets it now and again whenever the
+ * MOTD, names or player counts change.
  * @param target - The NetherNet server answering discovery.
- * @param serverName - The status every transport advertises.
+ * @param status - The status every transport advertises.
  * @param onlineMode - Whether the server requires Xbox Live sign-in.
  * @param nonce - This server start's token.
- * @returns A function that stops following the server name.
+ * @returns A function that stops following the status.
  */
 export const advertiseOnLan = (
     target: LanAdvertisementTarget,
-    serverName: ServerName,
+    status: Pick<ServerStatus, 'current' | 'onChange'>,
     onlineMode: boolean,
     nonce: string = lanNonce()
 ): (() => void) => {
     const advertise = () =>
         target.setAdvertisement(
-            encodeLanAdvertisement(lanAdvertisementOf(netherNetStatusOf(serverName.getSnapshot()), onlineMode, nonce))
+            encodeLanAdvertisement(lanAdvertisementOf(netherNetStatusOf(status.current()), onlineMode, nonce))
         );
     advertise();
-    return serverName.onChange(advertise);
+    return status.onChange(advertise);
 };

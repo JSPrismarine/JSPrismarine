@@ -661,6 +661,39 @@ describe('modules/network', () => {
         }
     });
 
+    it('shows a change of the server status in the pong and the query alike, and takes it back', async () => {
+        const networking = new ServerNetworking(queryServer(19_132, 19_132));
+        const owner = {};
+
+        try {
+            // Made before the start, as a pack's script does while the server loads.
+            networking.getServerStatus().override(owner, { motd: '§bLobby', onlinePlayers: 42, maxPlayers: 100 });
+            await networking.start('127.0.0.1', 0);
+            const port = networking.getServerName()!.getPort();
+
+            expect(pongFields(await pingOnce('127.0.0.1', port)).slice(1, 6)).toStrictEqual([
+                '§bLobby',
+                String(about().protocolVersion),
+                about().minecraftVersion,
+                '42',
+                '100'
+            ]);
+            const [motd, , , online, max] = await queryStat(port);
+            expect([motd, online, max]).toStrictEqual(['§bLobby', '42', '100']);
+
+            networking.getServerStatus().clear(owner);
+            expect(pongFields(await pingOnce('127.0.0.1', port)).slice(1, 6)).toStrictEqual([
+                'query server',
+                String(about().protocolVersion),
+                about().minecraftVersion,
+                '0',
+                '5'
+            ]);
+        } finally {
+            networking.kill();
+        }
+    });
+
     it('answers a full stat with the version, software, addons and players every other surface reports', async () => {
         const networking = new ServerNetworking(
             queryServer(19_132, 19_132, { addons: [{ name: 'warps', version: '1.2.0' }] })

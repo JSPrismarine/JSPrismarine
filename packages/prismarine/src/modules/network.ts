@@ -34,6 +34,8 @@ import NetworkDispatcher from '../network/NetworkDispatcher';
 import { QueryResponder } from '../network/query/QueryResponder';
 import type { QueryStatus } from '../network/query/QueryResponder';
 import { QuerySocket } from '../network/query/QuerySocket';
+import { ServerStatus } from '../network/ServerStatus';
+import type { ServerStatusSnapshot } from '../network/ServerStatus';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
 import { NETHERNET_IDENTITY_FILE } from '../network/nethernet/NetherNetDefaults';
 import { netherNetStatusOf } from '../network/nethernet/netherNetStatusOf';
@@ -98,10 +100,18 @@ export interface Networking {
     getListener(): RakNetListenerLike | undefined;
 
     /**
-     * What every transport advertises about the server: MOTD, version and player counts.
+     * RakNet's server name, which encodes the unconnected pong from the {@link getServerStatus}
+     * and the ports RakNet bound.
      * @returns The server name, or undefined before {@link Networking.start}.
      */
     getServerName(): ServerName | undefined;
+
+    /**
+     * What every transport advertises about the server: MOTD, version and player counts. It
+     * exists before {@link Networking.start}, so a change made earlier shows once the
+     * transports listen.
+     */
+    getServerStatus(): ServerStatus;
 
     /**
      * The TCP port Java Edition clients connect to, which is the system's pick when `java-port`
@@ -139,6 +149,10 @@ export class ServerNetworking implements Networking {
     /** The IPv6 RakNet listener beside {@link raknet}; set while a wildcard-bound server listens on IPv6. */
     private raknetV6: RakNetListenerLike | undefined;
     private serverName: ServerName | undefined;
+    /** What every transport advertises, which RakNet's {@link serverName} mirrors. */
+    private readonly status = new ServerStatus(initialStatus());
+    /** Stops the server name following {@link status}; set while the server listens. */
+    private stopStatusMirror: (() => void) | undefined;
     private transport: Transport | undefined;
     private dispatcher: NetworkDispatcher<TransportConnection> | undefined;
     /** Stops keeping the LAN advertisement current; set while the server advertises on the LAN. */
@@ -181,15 +195,27 @@ export class ServerNetworking implements Networking {
     public async start(address: string, port: number): Promise<void> {
         const server = this.server;
         const config = server.getConfig();
-        const { software, protocolVersion, minecraftVersion } = about();
+        const { protocolVersion, minecraftVersion } = about();
+        this.status.setBase({
+            motd: config.getMotd(),
+            maxPlayers: config.getMaxPlayers(),
+            gamemode: config.getGamemode()
+        });
         this.serverName = new ServerName(server, { protocolVersion, minecraftVersions: [minecraftVersion] });
-        // The pong's second name and NetherNet's `level` name the software, as other
-        // third-party servers fill them, rather than the level players join.
-        this.serverName.setName(software);
         // Players arrive over every transport, so RakNet's sessions are not the count; see countConnection.
         this.serverName.ownPlayerCount();
 
         const serverName = this.serverName;
+        // The pong shows what every other transport shows, in one update per change.
+        const mirror = (status: ServerStatusSnapshot): void =>
+            serverName.update({
+                motd: status.motd,
+                name: status.levelName,
+                onlinePlayers: status.onlinePlayers,
+                maxPlayers: status.maxPlayers
+            });
+        mirror(this.status.current());
+        this.stopStatusMirror = this.status.onChange(mirror);
         // Loaded before anything binds: with no WebRTC stack, NetherNet cannot start, and nothing
         // else should have started either.
         // A given transport is the only one, so nothing below binds.
@@ -241,7 +267,7 @@ export class ServerNetworking implements Networking {
                     transports.push(...rakNet);
                 }
                 if (driver !== undefined && udpPorts !== undefined) {
-                    transports.push(this.startNetherNet(driver, udpPorts, address, port, serverName, ids, listening));
+                    transports.push(this.startNetherNet(driver, udpPorts, address, port, ids, listening));
                 }
                 if (transports.length === 0) {
                     throw new PrismarineServerErrors.NoTransportEnabled();
@@ -249,7 +275,7 @@ export class ServerNetworking implements Networking {
                 // Not among the transports returned: Java frames are not Bedrock batches, so the
                 // Bedrock dispatcher never sees them. It shares the connection IDs all the same.
                 if (config.getJavaEnabled()) {
-                    this.java = this.startJava(address, config.getJavaPort(), serverName, ids, listening, inputs);
+                    this.java = this.startJava(address, config.getJavaPort(), ids, listening, inputs);
                 }
                 this.startedTransports = [
                     ...(rakNet.length > 0 ? [TransportNames.raknet] : []),
@@ -261,7 +287,7 @@ export class ServerNetworking implements Networking {
 
         const givenIds = this.givenTransport?.connectionIds;
         if (givenIds !== undefined && config.getJavaEnabled()) {
-            this.java = this.startJava(address, config.getJavaPort(), serverName, givenIds, listening, inputs);
+            this.java = this.startJava(address, config.getJavaPort(), givenIds, listening, inputs);
         }
 
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
@@ -296,8 +322,8 @@ export class ServerNetworking implements Networking {
 
         // After the dispatcher, so the count changes once a connection is registered or released.
         // Counted here rather than per transport: every transport advertises the same total.
-        this.transport.onConnect((connection) => this.countConnection(serverName, connection.id, true));
-        this.transport.onDisconnect((id) => this.countConnection(serverName, id, false));
+        this.transport.onConnect((connection) => this.countConnection(connection.id, true));
+        this.transport.onDisconnect((id) => this.countConnection(id, false));
 
         // Every listener is waited for, not only the first to fail, so none is still binding
         // when the kill below closes them.
@@ -330,6 +356,8 @@ export class ServerNetworking implements Networking {
         this.sharedPorts = [];
         this.stopLanAdvertisement?.();
         this.stopLanAdvertisement = undefined;
+        this.stopStatusMirror?.();
+        this.stopStatusMirror = undefined;
         this.publicIpLookup?.abort();
         this.publicIpLookup = undefined;
         this.signaling?.close();
@@ -365,9 +393,14 @@ export class ServerNetworking implements Networking {
         return this.java?.transport.port();
     }
 
-    /** The advertised server name, or undefined before {@link ServerNetworking.start}. */
+    /** RakNet's server name, or undefined before {@link ServerNetworking.start}. */
     public getServerName(): ServerName | undefined {
         return this.serverName;
+    }
+
+    /** What every transport advertises about the server. */
+    public getServerStatus(): ServerStatus {
+        return this.status;
     }
 
     /** Applies the held inputs through the dispatcher, which holds them; nothing before it starts. */
@@ -396,7 +429,6 @@ export class ServerNetworking implements Networking {
     private startJava(
         address: string,
         port: number,
-        serverName: ServerName,
         ids: ConnectionIds,
         listening: Promise<void>[],
         inputs: InputQueue
@@ -406,8 +438,8 @@ export class ServerNetworking implements Networking {
         const server = this.server;
         const config = server.getConfig();
         const connections = new JavaConnections(transport, {
-            status: serverName,
-            brand: serverName.getName(),
+            status: this.status,
+            brand: about().software,
             onlineMode: () => config.getOnlineMode(),
             compressionThreshold: () => config.getPacketCompressionThreshold(),
             keepAliveIntervalMs: () => config.getKeepAliveIntervalMs(),
@@ -515,26 +547,33 @@ export class ServerNetworking implements Networking {
                 return address;
             }
         };
-        const status = (edition: 'bedrock' | 'java'): QueryStatus => ({
-            motd: serverName.getMotd(),
-            ...(edition === 'java'
-                ? { gameId: 'MINECRAFT', version: NEWEST_JAVA_RELEASE.minecraftVersion, hostPort: config.getJavaPort() }
-                : { gameId: 'MINECRAFTPE', version: serverName.getVersion(), hostPort: serverName.getPort() }),
-            software: softwareLabel(),
-            plugins: server
-                .getPlugins()
-                .plugins()
-                .map(({ name, version }) => `${name} ${version}`),
-            map: config.getLevelName(),
-            onlinePlayers: serverName.getOnlinePlayerCount(),
-            maxPlayers: serverName.getMaxPlayerCount(),
-            hostIp: hostIp(),
-            allowList: server.getAllowList().isEnabled(),
-            players: server
-                .getSessionManager()
-                .getSessions()
-                .map((session) => session.identity.name)
-        });
+        const status = (edition: 'bedrock' | 'java'): QueryStatus => {
+            const shown = this.status.current();
+            return {
+                motd: shown.motd,
+                ...(edition === 'java'
+                    ? {
+                          gameId: 'MINECRAFT',
+                          version: NEWEST_JAVA_RELEASE.minecraftVersion,
+                          hostPort: config.getJavaPort()
+                      }
+                    : { gameId: 'MINECRAFTPE', version: shown.version, hostPort: serverName.getPort() }),
+                software: softwareLabel(),
+                plugins: server
+                    .getPlugins()
+                    .plugins()
+                    .map(({ name, version }) => `${name} ${version}`),
+                map: config.getLevelName(),
+                onlinePlayers: shown.onlinePlayers,
+                maxPlayers: shown.maxPlayers,
+                hostIp: hostIp(),
+                allowList: server.getAllowList().isEnabled(),
+                players: server
+                    .getSessionManager()
+                    .getSessions()
+                    .map((session) => session.identity.name)
+            };
+        };
         const answerer = (edition: 'bedrock' | 'java') => {
             const responder = new QueryResponder(() => status(edition));
             return (datagram: Buffer, from: string, fromPort: number): Buffer | undefined =>
@@ -670,7 +709,6 @@ export class ServerNetworking implements Networking {
         udpPorts: UdpPorts,
         address: string,
         port: number,
-        serverName: ServerName,
         ids: ConnectionIds,
         listening: Promise<void>[]
     ): NetherNetTransport {
@@ -702,7 +740,7 @@ export class ServerNetworking implements Networking {
         const identity = NetherNetIdentity.loadOrCreate(withCwd(NETHERNET_IDENTITY_FILE));
         this.signaling = new HttpSignaling({
             answerer: nethernet,
-            status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot())),
+            status: () => joinStatusJson(netherNetStatusOf(this.status.current())),
             // After the configured addresses, the one this client dialed: behind NAT or in a
             // container it reaches the server where the interface addresses do not. The looked-up
             // address goes beside them only for a client the last answer did not reach.
@@ -734,7 +772,7 @@ export class ServerNetworking implements Networking {
         );
 
         if (config.getEnableLanVisibility()) {
-            this.stopLanAdvertisement = advertiseOnLan(nethernet, serverName, config.getOnlineMode());
+            this.stopLanAdvertisement = advertiseOnLan(nethernet, this.status, config.getOnlineMode());
             nethernet.listen().then(
                 () =>
                     logger.verbose(
@@ -782,12 +820,30 @@ export class ServerNetworking implements Networking {
     }
 
     /** Keeps the advertised player count at the number of live connections, whatever carries them. */
-    private countConnection(serverName: ServerName, id: ConnectionId, live: boolean): void {
+    private countConnection(id: ConnectionId, live: boolean): void {
         if (live) this.liveConnections.add(id);
         else this.liveConnections.delete(id);
-        serverName.setOnlinePlayerCount(this.liveConnections.size);
+        this.status.setBase({ onlinePlayers: this.liveConnections.size });
     }
 }
+
+/**
+ * The status before the server reads its config: the advertised protocol and release, and the
+ * software name as the second name, as other third-party servers fill it, rather than the level
+ * players join.
+ */
+const initialStatus = (): ServerStatusSnapshot => {
+    const { software, protocolVersion, minecraftVersion } = about();
+    return {
+        motd: '',
+        levelName: software,
+        onlinePlayers: 0,
+        maxPlayers: 0,
+        protocol: protocolVersion,
+        version: minecraftVersion,
+        gamemode: ''
+    };
+};
 
 /** The addresses only this machine reaches, with IPv4's spelled as IPv4-mapped IPv6 too. */
 const LOOPBACK = new BlockList();

@@ -1,19 +1,19 @@
 import { getGametypeId } from '@jsprismarine/minecraft';
 import type { NetherNetStatus } from '@jsprismarine/nethernet';
-import type { ServerNameSnapshot } from '@jsprismarine/raknet';
+
+import type { ServerStatusSnapshot } from '../ServerStatus';
 
 /**
- * The status, from the server name every transport advertises. The `level` field carries the
- * server name's software name, as RakNet's pong does in the same position, the way other
- * third-party servers fill it, rather than the level players join.
- * @param snapshot - The server name's snapshot: MOTD, name, version and player counts.
+ * NetherNet's status, from the status every transport advertises. The `level` field carries the
+ * status's second name, which RakNet's pong carries in the same position.
+ * @param status - What a server list shows now: MOTD, names, version and player counts.
  */
-export const netherNetStatusOf = (snapshot: ServerNameSnapshot): NetherNetStatus => ({
-    motd: snapshot.motd,
-    levelName: snapshot.name,
-    protocol: snapshot.protocol,
-    version: snapshot.version,
-    playerCount: snapshot.onlinePlayers,
-    maxPlayers: snapshot.maxPlayers,
-    gameType: getGametypeId(snapshot.gamemode)
+export const netherNetStatusOf = (status: ServerStatusSnapshot): NetherNetStatus => ({
+    motd: status.motd,
+    levelName: status.levelName,
+    protocol: status.protocol,
+    version: status.version,
+    playerCount: status.onlinePlayers,
+    maxPlayers: status.maxPlayers,
+    gameType: getGametypeId(status.gamemode)
 });

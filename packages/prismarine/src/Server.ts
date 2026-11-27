@@ -49,6 +49,7 @@ import { commandsModule, loadFunctionsModule } from './modules/commands';
 import { contentModule } from './modules/content';
 import { packetHandlersModule } from './modules/packetHandlers';
 import { networkModule, ServerNetworking } from './modules/network';
+import type { ServerStatus } from './network/ServerStatus';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
 import type { ScriptHttpTransport } from './scripting/ScriptHttpInputs';
 import { ScriptHttpInputs } from './scripting/ScriptHttpInputs';
@@ -684,6 +685,16 @@ export default class Server {
         await this.kernel.stop();
         await this.config.disable();
         await this.logger.disable();
+    }
+
+    /**
+     * What every transport advertises in a server list: the MOTD, the second name and the player
+     * counts, which RakNet's pong, NetherNet, the LAN, the query protocol and Java Edition's
+     * status all read. It exists before the server listens.
+     * @returns The status, which an owner changes with `override` and takes back with `clear`.
+     */
+    public getServerStatus(): ServerStatus {
+        return this.networking.getServerStatus();
     }
 
     public getMetadata() {
