@@ -184,6 +184,8 @@ export interface ConfigFile {
     'proximity-broadcast'?: boolean;
     /** Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client. */
     'server-authoritative-block-breaking'?: boolean;
+    /** Whether Bedrock clients join with Education Edition features on, as the Education toggle in world settings does. */
+    'education-features'?: boolean;
     /** Which edition decides what flowing water and lava wash away. */
     'fluid-replacement'?: 'java' | 'bedrock';
     /** Chunks past view distance before an entity leaves a player's screen. @minimum 0 */
@@ -323,6 +325,7 @@ export const CONFIG_KEY_ORDER = [
     'chunk-send-budget-ms',
     'proximity-broadcast',
     'server-authoritative-block-breaking',
+    'education-features',
     'fluid-replacement',
     'entity-tracking-hysteresis',
     'entity-tracking-interval',

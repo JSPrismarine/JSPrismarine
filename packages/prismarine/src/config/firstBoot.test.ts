@@ -56,6 +56,7 @@ describe('the config file a boot generates', () => {
         'chunk-send-budget-ms',
         'proximity-broadcast',
         'server-authoritative-block-breaking',
+        'education-features',
         'fluid-replacement',
         'entity-tracking-hysteresis',
         'entity-tracking-interval',

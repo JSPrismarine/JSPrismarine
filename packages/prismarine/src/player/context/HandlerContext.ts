@@ -36,6 +36,7 @@ export type HandlerConfig = Pick<
     | 'getDifficulty'
     | 'getGamemode'
     | 'getServerAuthoritativeBlockBreaking'
+    | 'getEducationFeatures'
     | 'getCraftingRecipeLimit'
     | 'getPacketCompressionLevel'
     | 'getKeepAliveIntervalMs'

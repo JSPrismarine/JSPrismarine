@@ -34,7 +34,11 @@ export interface StartGameDataOptions {
     /** The server's game settings that `StartGame` reports. */
     readonly config: Pick<
         Config,
-        'getGamemode' | 'getDifficulty' | 'getServerAuthoritativeBlockBreaking' | 'getXboxAchievements'
+        | 'getGamemode'
+        | 'getDifficulty'
+        | 'getServerAuthoritativeBlockBreaking'
+        | 'getXboxAchievements'
+        | 'getEducationFeatures'
     >;
     /** The server tick the join runs in. */
     readonly tick: number;
@@ -104,7 +108,7 @@ export const createStartGameData = ({
         editorLevelMigrationVersion: EditorLevelMigrationVersion.Legacy,
         dayCycleStopTime: world.getDayTime(),
         educationEditionOffer: 0,
-        educationFeaturesEnabled: false,
+        educationFeaturesEnabled: config.getEducationFeatures(),
         educationProductId: '',
         rainLevel: 0,
         lightningLevel: 0,
