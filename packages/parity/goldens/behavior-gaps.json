@@ -2764,6 +2764,46 @@
             "reason": "ChestBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/containers.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:ClientboundBlockUpdatePacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundBlockUpdatePacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/play.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/configuration.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundHelloPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundHelloPacket.STREAM_CODEC does not resolve: ClientboundHelloPacket.STREAM_CODEC: the jar holds no class ClientboundHelloPacket in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/login.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundLoginCompressionPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundLoginCompressionPacket.STREAM_CODEC does not resolve: ClientboundLoginCompressionPacket.STREAM_CODEC: the jar holds no class ClientboundLoginCompressionPacket in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/login.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundLoginFinishedPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundLoginFinishedPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/login.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundLoginPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundLoginPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/play.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientboundSetEquipmentPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundSetEquipmentPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/play.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ClientIntentionPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientIntentionPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/handshake.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:CopperGolemStatueBlock.getStateForPlacement": {
             "kind": "deferred",
             "reason": "CopperGolemStatueBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
@@ -2872,6 +2912,11 @@
         "preview:PortalForcer.createPortal": {
             "kind": "deferred",
             "reason": "PortalForcer.createPortal changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/portal.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ServerboundKeyPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ServerboundKeyPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/login.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:ShelfBlock.getStateForPlacement": {

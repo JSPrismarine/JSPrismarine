@@ -14,7 +14,10 @@ import { defineJavaPacket } from './JavaPacket';
 /** `Identifier`: a namespaced id, such as `minecraft:overworld`. */
 export const identifier = javaString(32_767);
 
-/** `Disconnect (configuration)` (clientbound): ends the connection, with the reason as a text component. */
+/**
+ * `Disconnect (configuration)` (clientbound): ends the connection, with the reason as a text component.
+ * @javaSource ClientboundDisconnectPacket.STREAM_CODEC
+ */
 export const ConfigurationDisconnect = defineJavaPacket(
     'Disconnect (configuration)',
     'configuration/clientbound/disconnect',
@@ -24,14 +27,20 @@ export const ConfigurationDisconnect = defineJavaPacket(
 /** One data pack, as the known packs exchange names it. */
 const knownPack = record({ namespace: javaString(32_767), id: javaString(32_767), version: javaString(32_767) });
 
-/** `Clientbound Known Packs`: the packs the server's registries come from. */
+/**
+ * `Clientbound Known Packs`: the packs the server's registries come from.
+ * @javaSource ClientboundSelectKnownPacks.STREAM_CODEC
+ */
 export const ClientboundKnownPacks = defineJavaPacket(
     'Clientbound Known Packs',
     'configuration/clientbound/select_known_packs',
     { packs: list(knownPack) }
 );
 
-/** `Serverbound Known Packs`: the ones of those the client has, so their contents need not be sent. */
+/**
+ * `Serverbound Known Packs`: the ones of those the client has, so their contents need not be sent.
+ * @javaSource ServerboundSelectKnownPacks.STREAM_CODEC
+ */
 export const ServerboundKnownPacks = defineJavaPacket(
     'Serverbound Known Packs',
     'configuration/serverbound/select_known_packs',
@@ -51,23 +60,35 @@ const noEntryData: WireType<null> = custom<null>(
     }
 );
 
-/** `Registry Data`: one registry's entries, in the order their network ids follow. */
+/**
+ * `Registry Data`: one registry's entries, in the order their network ids follow.
+ * @javaSource ClientboundRegistryDataPacket.STREAM_CODEC
+ */
 export const RegistryData = defineJavaPacket('Registry Data', 'configuration/clientbound/registry_data', {
     registry: identifier,
     entries: list(record({ id: identifier, data: noEntryData }))
 });
 
-/** `Update Tags (configuration)`: each registry's tags, as lists of network ids. */
+/**
+ * `Update Tags (configuration)`: each registry's tags, as lists of network ids.
+ * @javaSource ClientboundUpdateTagsPacket.STREAM_CODEC
+ */
 export const UpdateTags = defineJavaPacket('Update Tags (configuration)', 'configuration/clientbound/update_tags', {
     registries: list(record({ registry: identifier, tags: list(record({ name: identifier, entries: list(varInt) })) }))
 });
 
-/** `Feature Flags`: the features the server turned on, such as `minecraft:vanilla`. */
+/**
+ * `Feature Flags`: the features the server turned on, such as `minecraft:vanilla`.
+ * @javaSource ClientboundUpdateEnabledFeaturesPacket.STREAM_CODEC
+ */
 export const FeatureFlags = defineJavaPacket('Feature Flags', 'configuration/clientbound/update_enabled_features', {
     features: list(identifier)
 });
 
-/** `Clientbound Plugin Message (configuration)`: a channel and its bytes, such as `minecraft:brand`. */
+/**
+ * `Clientbound Plugin Message (configuration)`: a channel and its bytes, such as `minecraft:brand`.
+ * @javaSource ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC
+ */
 export const ClientboundPluginMessage = defineJavaPacket(
     'Clientbound Plugin Message (configuration)',
     'configuration/clientbound/custom_payload',
@@ -81,14 +102,20 @@ export const ClientboundPluginMessage = defineJavaPacket(
     }
 );
 
-/** `Finish Configuration` (clientbound): the server has sent everything; the client acknowledges and enters play. */
+/**
+ * `Finish Configuration` (clientbound): the server has sent everything; the client acknowledges and enters play.
+ * @javaSource ClientboundFinishConfigurationPacket.STREAM_CODEC
+ */
 export const FinishConfiguration = defineJavaPacket(
     'Finish Configuration',
     'configuration/clientbound/finish_configuration',
     {}
 );
 
-/** `Acknowledge Finish Configuration` (serverbound): the client has switched to play. */
+/**
+ * `Acknowledge Finish Configuration` (serverbound): the client has switched to play.
+ * @javaSource ServerboundFinishConfigurationPacket.STREAM_CODEC
+ */
 export const AcknowledgeFinishConfiguration = defineJavaPacket(
     'Acknowledge Finish Configuration',
     'configuration/serverbound/finish_configuration',
