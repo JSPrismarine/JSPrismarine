@@ -5,8 +5,10 @@
  * The server loads one behavior pack that adds two blocks, one of them hidden from the creative
  * menu as a light block addon's are. A vanilla client closes on the loading screen when
  * `StartGame` declares a block the item registry has no item for, which is how an addon's blocks
- * kept players out.
+ * kept players out. The pack also files a heading of its own in the creative menu through its
+ * `item_catalog/crafting_item_catalog.json`.
  */
+import CreativeContentPacket from '@jsprismarine/protocol/bedrock/packet/CreativeContentPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import { nbtToPlain, readNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
 import path from 'node:path';
@@ -50,6 +52,24 @@ const STONE = {
     }
 };
 
+/** The catalog of issue #3823: a heading of the pack's own on the construction tab. */
+const CATALOG = {
+    format_version: '1.21.60',
+    'minecraft:crafting_items_catalog': {
+        categories: [
+            {
+                category_name: 'construction',
+                groups: [
+                    {
+                        group_identifier: { icon: 'loopback:stone', name: 'loopback:itemGroup.name.example' },
+                        items: ['loopback:stone', 'minecraft:dirt']
+                    }
+                ]
+            }
+        ]
+    }
+};
+
 let jsp: LoopbackServer;
 
 // Booting the server builds its content, the slow part, so it happens once for the file.
@@ -59,7 +79,8 @@ beforeAll(async () => {
         files: {
             'pack/manifest.json': JSON.stringify(MANIFEST),
             'pack/blocks/light.json': JSON.stringify(LIGHT),
-            'pack/blocks/stone.json': JSON.stringify(STONE)
+            'pack/blocks/stone.json': JSON.stringify(STONE),
+            'pack/item_catalog/crafting_item_catalog.json': JSON.stringify(CATALOG)
         },
         config: (stateRoot) => ({ 'content-world-packs': [path.join(stateRoot, 'pack')] })
     });
@@ -107,6 +128,37 @@ describe('pack blocks', () => {
                 version: 2
             });
         }
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('pack item catalog', () => {
+    it("files the pack's heading and its items in the creative menu", async () => {
+        const { player, joined } = jsp.connect('Cataloger');
+        const registry = player.client.getRegistry();
+        if (!registry.has(new CreativeContentPacket().getId())) registry.register(CreativeContentPacket);
+        const items: ItemRegistryEntry[] = [];
+        const menus: CreativeContentPacket[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof ItemRegistryPacket) items.push(...(packet.getPacketData()?.items ?? []));
+            if (packet instanceof CreativeContentPacket) menus.push(packet);
+        });
+        let settled = false;
+        const done = (): void => {
+            settled = true;
+        };
+        void joined.then(done, done);
+        await jsp.until(() => settled, 'Cataloger never joined', 400);
+        await joined;
+
+        const menu = menus.at(-1)?.getPacketData();
+        const heading = menu?.groups.findIndex((group) => group.name === 'loopback:itemGroup.name.example') ?? -1;
+        expect(heading).toBeGreaterThanOrEqual(0);
+        const nameOf = (runtimeId: number) => items.find((item) => item.runtimeId === runtimeId)?.name;
+        expect(
+            menu?.entries.filter((entry) => entry.group === heading).map((entry) => nameOf(entry.item.runtimeId))
+        ).toEqual(['loopback:stone', 'minecraft:dirt']);
         player.leave();
         await jsp.tick();
     });
