@@ -112,6 +112,14 @@ from a new one. The existing JavaScript Molang evaluators get the 1.18.20 preced
 and model no versions at all, which silently changes results for older packs; that defect is why
 this package exists and why the option is worth passing. When you omit it, the latest rules apply.
 
+The engine reduces a `min_engine_version` to a Molang version, a number of its `MolangVersion`
+enum, and the rules follow from that number. `MOLANG_VERSIONS` lists every version with the engine
+version that introduced it, and `molangVersionFor` does the same reduction. A field that carries
+its own version, such as a legacy expression object, can pass the number as `version` instead.
+A Bedrock client is told the same number: each pack block's definition carries the Molang
+version of its pack, which is what `@jsprismarine/blocks` records on the block and
+`@jsprismarine/protocol` sends.
+
 ## Diagnostics and the 0.0 rule
 
 The compiler reports problems instead of throwing, in `CompiledMolang.diagnostics`, and the
@@ -129,11 +137,11 @@ let an expression quietly return 0.
 
 ## Caching
 
-A `Molang` engine caches compilations by the pair of source text and engine version. Compiling the
+A `Molang` engine caches compilations by the pair of source text and Molang version. Compiling the
 same string twice for the same version returns the same `CompiledMolang` object, so compile freely
-at evaluation sites; the parse cost is paid once per distinct expression. Two different
-`minEngineVersion` values for the same text compile separately, since the version can change the
-parse. There is no cache eviction; the cache lives as long as the engine.
+at evaluation sites; the parse cost is paid once per distinct expression. Two `minEngineVersion`
+values that reduce to the same Molang version share one compilation, and two that do not compile
+separately, since the version can change the parse. There is no cache eviction; the cache lives as long as the engine.
 
 ## Out of scope today
 

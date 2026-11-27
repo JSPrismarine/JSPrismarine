@@ -1,17 +1,21 @@
 import { parseBlockDefinition } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
-import { FIRST_CUSTOM_BLOCK_ID, MOLANG_VERSION, buildBlockProperties } from './blockProperties';
+import { FIRST_CUSTOM_BLOCK_ID, buildBlockProperties } from './blockProperties';
 import { nbtToPlain, readNetworkNbt } from './nbt';
 
 import type { BlockDefinitionDocument } from '@jsprismarine/blocks';
 import type { PlainNbt } from './nbt';
 
 /** Parses one block file the way a pack load would, and fails loudly on a bad fixture. */
-const document = (block: Record<string, unknown>): BlockDefinitionDocument => {
+const document = (
+    block: Record<string, unknown>,
+    formatVersion = '1.26.20',
+    minEngineVersion?: readonly [number, number, number]
+): BlockDefinitionDocument => {
     const { document: parsed, diagnostics } = parseBlockDefinition(
-        { format_version: '1.26.20', 'minecraft:block': block },
-        { pack: 'test' }
+        { format_version: formatVersion, 'minecraft:block': block },
+        { pack: 'test', ...(minEngineVersion === undefined ? {} : { minEngineVersion }) }
     );
 
     expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
@@ -41,15 +45,119 @@ describe('buildBlockProperties', () => {
         expect(properties[0]!.definition.subarray(0, 2)).toEqual(Buffer.from([0x0a, 0x00]));
     });
 
-    it('writes the five keys the client needs on every block', () => {
+    it('writes the keys the client needs on every block, and components only when it has some', () => {
         const definition = definitionOf(minimal);
 
-        expect(Object.keys(definition)).toEqual(['components', 'menu_category', 'molangVersion', 'vanilla_block_data']);
-        expect(definition.molangVersion).toBe(`int:${MOLANG_VERSION}`);
+        expect(Object.keys(definition)).toEqual(['menu_category', 'molangVersion', 'vanilla_block_data']);
+        expect(Object.keys(definitionOf({ ...minimal, components: { 'minecraft:light_emission': 15 } }))).toContain(
+            'components'
+        );
+        // A pack with no min_engine_version gets the latest Molang version.
+        expect(definition.molangVersion).toBe('int:13');
         expect(definition.menu_category).toEqual({
             category: 'string:construction',
             group: 'string:',
             is_hidden_in_commands: 'byte:0'
+        });
+    });
+
+    it("declares the Molang version of the block's pack, as BDS does", () => {
+        const plainOf = (minEngineVersion: readonly [number, number, number]) =>
+            nbtToPlain(
+                readNetworkNbt(
+                    buildBlockProperties([document(minimal, '1.26.20', minEngineVersion)]).properties[0]!.definition
+                )
+            );
+
+        expect(plainOf([1, 21, 0])).toMatchObject({ molangVersion: 'int:12' });
+        expect(plainOf([1, 21, 100])).toMatchObject({ molangVersion: 'int:13' });
+        expect(plainOf([1, 17, 0])).toMatchObject({ molangVersion: 'int:1' });
+    });
+
+    describe('the wire flags that follow format_version, as BDS 1.26.60.6 writes them', () => {
+        const cross = {
+            description: { identifier: 'test:cross', menu_category: { category: 'construction' } },
+            components: {
+                'minecraft:geometry': 'minecraft:geometry.cross',
+                'minecraft:material_instances': { '*': { texture: 'stone', render_method: 'alpha_test' } }
+            }
+        };
+        const full = {
+            ...cross,
+            components: { ...cross.components, 'minecraft:geometry': 'minecraft:geometry.full_block' }
+        };
+        const componentsAt = (block: Record<string, unknown>, formatVersion: string) => {
+            const plain = nbtToPlain(
+                readNetworkNbt(buildBlockProperties([document(block, formatVersion)]).properties[0]!.definition)
+            );
+            return (plain as Record<string, Record<string, Record<string, PlainNbt>>>).components!;
+        };
+        const packedBools = (block: Record<string, unknown>, formatVersion: string) =>
+            (
+                componentsAt(block, formatVersion)['minecraft:material_instances'] as Record<
+                    string,
+                    Record<string, Record<string, PlainNbt>>
+                >
+            ).materials!['*']!.packed_bools;
+
+        it('sets ignoreGeometryForIsSolid below 1.21.90', () => {
+            expect(componentsAt(cross, '1.21.80')['minecraft:geometry']).toMatchObject({
+                ignoreGeometryForIsSolid: 'byte:1'
+            });
+            expect(componentsAt(cross, '1.21.90')['minecraft:geometry']).toMatchObject({
+                ignoreGeometryForIsSolid: 'byte:0'
+            });
+        });
+
+        it('sets the third packed_bools bit from 1.21.110', () => {
+            expect(packedBools(cross, '1.21.100')).toBe('byte:1');
+            expect(packedBools(cross, '1.21.110')).toBe('byte:5');
+        });
+
+        it('sends the full block as full_block_v1 below 1.26.0', () => {
+            expect(componentsAt(full, '1.21.130')['minecraft:geometry']).toMatchObject({
+                identifier: 'string:minecraft:geometry.full_block_v1',
+                isV1Fullblock: 'byte:1'
+            });
+            expect(componentsAt(full, '1.26.0')['minecraft:geometry']).toMatchObject({
+                identifier: 'string:minecraft:geometry.full_block',
+                isV1Fullblock: 'byte:0'
+            });
+            expect(componentsAt(cross, '1.21.80')['minecraft:geometry']).toMatchObject({
+                identifier: 'string:minecraft:geometry.cross',
+                isV1Fullblock: 'byte:0'
+            });
+        });
+    });
+
+    it('writes bone visibility as strings, a boolean as the float the engine reads', () => {
+        const definition = definitionOf({
+            ...minimal,
+            components: {
+                'minecraft:geometry': {
+                    identifier: 'geometry.probe',
+                    bone_visibility: { a: false, b: true, c: "q.block_state('x') == 1" }
+                },
+                'minecraft:material_instances': { '*': { texture: 'stone' } }
+            }
+        });
+
+        expect(
+            (definition.components as Record<string, Record<string, PlainNbt>>)['minecraft:geometry']!.bone_visibility
+        ).toEqual({
+            a: 'string:0.000000',
+            b: 'string:1.000000',
+            c: "string:q.block_state('x') == 1"
+        });
+    });
+
+    it('keeps the full block box on a disabled selection box, as BDS does', () => {
+        const definition = definitionOf({ ...minimal, components: { 'minecraft:selection_box': false } });
+
+        expect((definition.components as Record<string, PlainNbt>)['minecraft:selection_box']).toEqual({
+            enabled: 'byte:0',
+            origin: ['float:-8', 'float:0', 'float:-8'],
+            size: ['float:16', 'float:16', 'float:16']
         });
     });
 
@@ -278,7 +386,8 @@ describe('buildBlockProperties', () => {
             });
 
             expect(definition.blockTags).toEqual(['string:minecraft:is_shears_item_destructible']);
-            expect(definition.components).toEqual({});
+            // Nothing is left for the client, so there is no compound, as BDS sends a tags-only block.
+            expect(definition.components).toBeUndefined();
         });
 
         it('also writes one empty tag:<name> compound per tag when asked', () => {
