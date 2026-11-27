@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isFaceSturdy, isFullCube, isRedstoneConductor, isSolid } from './blockRules';
+import { hasSturdyTopFace, isFaceSturdy, isFullCube, isRedstoneConductor, isSolid } from './blockRules';
 import { block } from './world';
 
 const nonConducting = (name: string) => ({ ...block(name), redstoneConductor: false });
@@ -104,6 +104,15 @@ describe("Java's solid flag and sturdy faces", () => {
         const fence = block('minecraft:oak_fence');
         expect(isFaceSturdy(fence, 'up', 'center')).toBe(true);
         expect(isFaceSturdy(fence, 'up')).toBe(false);
+    });
+
+    it("answers a sturdy top from Java's facts, not the full cube estimate (#3794)", () => {
+        expect(hasSturdyTopFace(block('minecraft:red_stained_glass'))).toBe(true);
+        expect(hasSturdyTopFace(block('minecraft:undyed_shulker_box'))).toBe(true);
+        expect(hasSturdyTopFace(block('minecraft:honey_block'))).toBe(false);
+        const openUpsideDownTrapdoor = block('minecraft:trapdoor', { direction: 3, open_bit: 1, upside_down_bit: 1 });
+        expect(hasSturdyTopFace(openUpsideDownTrapdoor)).toBe(false);
+        expect(hasSturdyTopFace(block('minecraft:stone'))).toBe(true);
     });
 
     it('falls back to the full cube test for a block with no Java source', () => {
