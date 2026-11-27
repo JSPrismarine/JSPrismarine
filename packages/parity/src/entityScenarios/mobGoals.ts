@@ -465,8 +465,7 @@ const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'dragon-blow-knockback',
         java: 'An arrow that hurts a dragon in flight knocks it back along the arrow, as every blow with knockback does; Java skips the knockback only while the dragon is perched.',
-        reference:
-            'Java EnderDragon.knockback (LivingEntity.knockback unless a sitting phase runs) and LivingEntity.hurtServer (dealDefaultKnockback at 0.4 for a blow that lands whole); issue #3792',
+        reference: `Java EnderDragon.knockback (LivingEntity.knockback unless a sitting phase runs) and LivingEntity.hurtServer (dealDefaultKnockback at 0.4 for a blow that lands whole); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
         subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:behavior.dragonchargeplayer'],

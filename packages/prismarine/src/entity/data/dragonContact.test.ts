@@ -63,6 +63,33 @@ describe('an arrow against an ender dragon', () => {
     });
 });
 
+describe('knockback against an ender dragon', () => {
+    /** A blow from a mob west of a target in one dragon phase, and the velocity it left. */
+    const blowIn = (phase: DragonPhaseName) => {
+        const { runtime } = entityFixture(new TestEntityWorld(), {}, ENTITIES);
+        const perch = runtime.spawn('jsprismarine:perch', { x: 0.5, y: GROUND + 4, z: 0.5 });
+        const attacker = runtime.spawn('jsprismarine:perch', { x: -4.5, y: GROUND + 4, z: 0.5 });
+        if (perch === undefined || attacker === undefined) throw new Error('the fixture spawned nothing');
+        perch.instance.componentState.set(dragonPhaseState, { phase, flameCount: 0, chargeTarget: null });
+        perch.body.velocity = { x: 0.2, y: -0.1, z: 0 };
+        const target = runtime.mobById(perch.id);
+        if (target === undefined) throw new Error('the runtime does not see the target');
+        runtime.attack(attacker.body, target, 4);
+        return perch.body.velocity;
+    };
+
+    it("halves a flying dragon's motion and shoves it away from the blow, as Java's knockback does", () => {
+        const velocity = blowIn('charging_player');
+
+        expect(velocity.x).toBeGreaterThan(0.1);
+        expect(velocity.y).toBe(-0.1);
+    });
+
+    it('leaves a perched dragon as it was, as Java skips the knockback while it sits', () => {
+        expect(blowIn('sitting_flaming')).toEqual({ x: 0.2, y: -0.1, z: 0 });
+    });
+});
+
 describe("a dragon fireball's breath", () => {
     it('forms on the first living thing within 4 blocks of where the fireball landed', () => {
         const at = { x: 0, y: 64, z: 0 };

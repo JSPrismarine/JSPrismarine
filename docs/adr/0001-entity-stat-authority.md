@@ -84,9 +84,11 @@ Every exception is a case where the Java number is published but not played.
   phantom. The counts under Consequences predate this row.
 - The iron golem keeps Bedrock's damage. Bedrock writes the rolled range 7 to 21; Java rolls the
   same range from a base of 15. The editions agree and only the published number differs.
-- The ender dragon and the armor stand keep Bedrock's knockback resistance. Java makes both immune
-  in code and leaves the attribute at 0, so taking that 0 would make them knockbackable, which is
-  neither edition's behavior.
+- The armor stand keeps Bedrock's knockback resistance. Java's `ArmorStand.hurtServer` never
+  knocks it back and leaves the attribute at 0, so taking that 0 would make it knockbackable,
+  which is neither edition's behavior. The ender dragon kept Bedrock's too until #3792 showed
+  Java's dragon is knocked back in flight: it now takes Java's 0, and the server skips the
+  knockback while a sitting phase runs, as Java's `EnderDragon.knockback` does.
 
 ## Stats a state sets
 

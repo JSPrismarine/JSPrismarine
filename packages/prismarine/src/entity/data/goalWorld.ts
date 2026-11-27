@@ -417,11 +417,13 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         discard: (mob) => {
             if (typeof mob.id === 'number') scene.remove(mob.id, 'discarded');
         },
-        moveSelf: (position, yaw, pitch) => {
+        moveSelf: (position, yaw, pitch, velocity) => {
             entity.position = position;
             entity.yaw = yaw;
             entity.pitch = pitch;
+            if (velocity !== undefined) entity.velocity = velocity;
         },
+        velocity: () => entity.velocity,
         surfaceY: (x, z) => {
             const { level } = scene.world;
             const view = scene.navigation();
