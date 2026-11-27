@@ -8,6 +8,7 @@
  * by. A player's inventory is their session's, and any other entity's is the container its
  * `minecraft:inventory` declares, such as a chest minecart's.
  */
+import { scriptHostVerbs } from './scriptHostVerbs';
 import type { ScriptLevelAccess } from './LevelScriptWorld';
 import type {
     ScriptBlockPermutation,
@@ -255,7 +256,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
      * is not ready yet, the store player, which carries the tags into the store.
      */
     const tagHolderOf = (id: string): ActorTagHolder | undefined => actorOf(id) ?? sessionOf(id)?.getPlayer();
-    const host = () => server.getCommandManager().getHost(level);
+    const verb = scriptHostVerbs(server, level);
     const refOf = (actor: StoreActor) => ({
         id: String(actor.getRuntimeId()),
         type: actor.getType(),
@@ -295,28 +296,27 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const world = worldOf(dimension);
             const loaded = world?.getLoadedChunk(Math.floor(location.x) >> 4, Math.floor(location.z) >> 4) ?? null;
             if (loaded === null) return 'unloaded';
-            const spawned = host().entities.summon(
-                typeId,
-                location,
-                { yaw: 0, pitch: 0 },
-                { dimension: javaDimension(dimension) }
+            const spawned = verb((host) =>
+                host.entities.summon(typeId, location, { yaw: 0, pitch: 0 }, { dimension: javaDimension(dimension) })
             );
             return spawned?.id ?? 'unknown-type';
         },
         teleport: (id, dimension, location) => {
             const actor = actorOf(id);
             if (actor !== undefined) {
-                host().entities.teleport(
-                    refOf(actor),
-                    location,
-                    { yaw: actor.yaw, pitch: actor.pitch },
-                    javaDimension(dimension)
+                verb((host) =>
+                    host.entities.teleport(
+                        refOf(actor),
+                        location,
+                        { yaw: actor.yaw, pitch: actor.pitch },
+                        javaDimension(dimension)
+                    )
                 );
             }
         },
         kill: (id) => {
             const actor = actorOf(id);
-            return actor !== undefined && host().entities.kill(refOf(actor));
+            return actor !== undefined && verb((host) => host.entities.kill(refOf(actor)));
         },
         remove: (id) => {
             const actor = actorOf(id);
@@ -492,7 +492,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         },
         showTitle: (id, title) => {
             const actor = actorOf(id);
-            if (actor !== undefined) host().server.sendTitle([refOf(actor)], title);
+            if (actor !== undefined) verb((host) => host.server.sendTitle([refOf(actor)], title));
         },
         playSound: ({ sound, dimension, location, volume, pitch, player }) => {
             const listener = player === undefined ? undefined : actorOf(player);
@@ -502,11 +502,11 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                     : listener === undefined
                       ? []
                       : [listener];
-            host().world.playSound(sound, listeners.map(refOf), location, volume, pitch);
+            verb((host) => host.world.playSound(sound, listeners.map(refOf), location, volume, pitch));
         },
         spawnParticle: (dimension, effect, location, molangVariables, player) => {
             if (player === undefined) {
-                host().world.particle(effect, location, javaDimension(dimension), molangVariables);
+                verb((host) => host.world.particle(effect, location, javaDimension(dimension), molangVariables));
                 return;
             }
             const session = sessionOf(player);

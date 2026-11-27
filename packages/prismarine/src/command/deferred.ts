@@ -49,21 +49,23 @@ export const requireCommandDispatch = (): void => {
 };
 
 /**
- * Runs one synchronous dispatch and returns the work its bodies parked.
+ * Runs `execute` as one dispatch and returns what it returned, beside the work it parked.
  *
  * A dispatch can run inside another (a function line inside a command body), so the work parked
  * before this call is set aside and restored afterwards, and each caller gets only its own.
  *
- * @param execute - The dispatch.
- * @returns The promises the dispatch parked, in the order the bodies parked them.
+ * @param execute - The dispatch, or a host verb a caller that is no command runs.
+ * @returns What `execute` returned, and the promises it parked, in the order they were parked.
  * @throws Whatever `execute` throws, after detaching the work it had parked so far.
  */
-export const collectAsyncCommands = (execute: () => void): Promise<CommandFeedback>[] => {
+export const collectCommandWork = <T>(
+    execute: () => T
+): { readonly value: T; readonly started: Promise<CommandFeedback>[] } => {
     const outer = running.splice(0);
     collecting++;
     try {
-        execute();
-        return running.splice(0);
+        const value = execute();
+        return { value, started: running.splice(0) };
     } catch (error: unknown) {
         for (const pending of running.splice(0)) void pending.catch(() => {});
         throw error;
@@ -72,3 +74,14 @@ export const collectAsyncCommands = (execute: () => void): Promise<CommandFeedba
         running.push(...outer);
     }
 };
+
+/**
+ * Runs one synchronous dispatch and returns the work its bodies parked; see
+ * {@link collectCommandWork}.
+ *
+ * @param execute - The dispatch.
+ * @returns The promises the dispatch parked, in the order the bodies parked them.
+ * @throws Whatever `execute` throws, after detaching the work it had parked so far.
+ */
+export const collectAsyncCommands = (execute: () => void): Promise<CommandFeedback>[] =>
+    collectCommandWork(execute).started;

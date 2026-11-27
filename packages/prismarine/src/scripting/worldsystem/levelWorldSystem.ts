@@ -4,6 +4,7 @@
  * them. A write goes through the verb its command uses, so a script's `setAbsoluteTime` is a
  * `/time set` and its `setDifficulty` a `/difficulty`.
  */
+import { scriptHostVerbs } from '../scriptHostVerbs';
 import type { ScriptGameRuleName, ScriptGameRuleValue } from '@jsprismarine/script-host/host/worldsystem/gameRules';
 import { SCRIPT_GAME_RULES } from '@jsprismarine/script-host/host/worldsystem/gameRules';
 import type {
@@ -155,7 +156,7 @@ const scriptItems = (drops: readonly ContentItemDrop[]): ScriptItem[] =>
  * @param level - The level the scripts run in.
  */
 export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSystem => {
-    const commands = () => server.getCommandManager().getHost(level).world;
+    const verb = scriptHostVerbs(server, level);
     const sessions = (): PlayerSession[] =>
         server
             .getSessionManager()
@@ -198,16 +199,17 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
 
     return {
         absoluteTime: () => level.getDayTime(),
-        setAbsoluteTime: (time) => commands().setTime(time),
+        setAbsoluteTime: (time) => verb((host) => host.world.setTime(time)),
         difficulty: () => SCRIPT_DIFFICULTY[difficultyName(server.getConfig().getDifficulty())] ?? 'Normal',
-        setDifficulty: (difficulty) => void commands().setDifficulty(difficulty),
+        setDifficulty: (difficulty) => void verb((host) => host.world.setDifficulty(difficulty)),
         defaultSpawn: () => {
             const spawn = overworld()?.getKnownSpawnPosition() ?? level.getSpawn();
             return spawn === null || spawn === undefined
                 ? { x: 0, y: 64, z: 0 }
                 : { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
         },
-        setDefaultSpawn: (location) => void commands().setWorldSpawn('minecraft:overworld', location, 0),
+        setDefaultSpawn: (location) =>
+            void verb((host) => host.world.setWorldSpawn('minecraft:overworld', location, 0)),
         gameRule,
         setGameRule: (name, value) => {
             if (name === 'playerWaypoints') {
