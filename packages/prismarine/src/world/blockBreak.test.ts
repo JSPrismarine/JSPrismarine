@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import type { ItemDrop } from '@jsprismarine/block-behaviors';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -39,7 +40,8 @@ const BLOCKS = [
     'minecraft:farmland',
     'minecraft:wheat',
     'minecraft:diamond_ore',
-    'minecraft:chest'
+    'minecraft:chest',
+    'minecraft:blue_shulker_box'
 ] as const;
 
 /** The items the breaks below yield, plus the tools that do the breaking. */
@@ -55,6 +57,7 @@ const ITEMS = [
     'minecraft:wooden_pickaxe',
     'minecraft:wooden_sword',
     'minecraft:chest',
+    'minecraft:blue_shulker_box',
     'minecraft:stick'
 ];
 
@@ -479,17 +482,56 @@ describe('breakBlockWithContent', () => {
         expect(drops()).toEqual([{ identifier: 'minecraft:wheat_seeds', count: 1 }]);
     });
 
-    it('takes a block away in creative and leaves nothing behind', async () => {
-        const at = { x: 7, y: 64, z: 7 };
-        const blocks = content.world.blockWorld.at(DIMENSION);
+    /**
+     * Creative, against Java 26.3: the block yields none of itself, but a container's
+     * `BaseContainerBlockEntity` spills what it held on any removal, and a shulker box that held
+     * anything leaves as itself through `ShulkerBoxBlock.playerWillDestroy`.
+     */
+    describe('in creative', () => {
+        /** Places a container at a position, holding the given stacks. */
+        const container = (at: { x: number; y: number; z: number }, name: string, items: ItemDrop[]): void => {
+            const blocks = content.world.blockWorld.at(DIMENSION);
+            content.world.engineWorld.setBlock(at, { name, states: {} }, false);
+            blocks.setBlockData(at, { ...blocks.getBlockData(at), items });
+        };
 
-        content.world.engineWorld.setBlock(at, { name: 'minecraft:chest', states: {} }, false);
-        blocks.setBlockData(at, { ...blocks.getBlockData(at), items: [{ identifier: 'minecraft:stick', count: 3 }] });
+        it('spills what a chest held and drops no chest', async () => {
+            container({ x: 7, y: 64, z: 7 }, 'minecraft:chest', [{ identifier: 'minecraft:stick', count: 3 }]);
 
-        await world.breakBlock(new Vector3(7, 64, 7), player(null, Gametype.CREATIVE));
+            await world.breakBlock(new Vector3(7, 64, 7), player(null, Gametype.CREATIVE));
 
-        expect(drops()).toEqual([]);
-        expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:air');
+            expect(drops()).toEqual([{ identifier: 'minecraft:stick', count: 3 }]);
+            expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:air');
+        });
+
+        it('leaves nothing behind for an empty chest', async () => {
+            container({ x: 7, y: 64, z: 8 }, 'minecraft:chest', []);
+
+            await world.breakBlock(new Vector3(7, 64, 8), player(null, Gametype.CREATIVE));
+
+            expect(drops()).toEqual([]);
+        });
+
+        it('drops a shulker box that held anything as itself, still holding it', async () => {
+            container({ x: 8, y: 64, z: 7 }, 'minecraft:blue_shulker_box', [
+                { identifier: 'minecraft:stick', count: 3 }
+            ]);
+
+            await world.breakBlock(new Vector3(8, 64, 7), player(null, Gametype.CREATIVE));
+
+            expect(drops()).toEqual([{ identifier: 'minecraft:blue_shulker_box', count: 1 }]);
+            const box = spawned.find((entity): entity is ItemEntity => entity instanceof ItemEntity)!.getItem()!;
+            const held = box.getContents().filter((slot) => slot !== null);
+            expect(held.map((slot) => [slot.getName(), slot.getAmount()])).toEqual([['minecraft:stick', 3]]);
+        });
+
+        it('drops no empty shulker box', async () => {
+            container({ x: 8, y: 64, z: 8 }, 'minecraft:blue_shulker_box', []);
+
+            await world.breakBlock(new Vector3(8, 64, 8), player(null, Gametype.CREATIVE));
+
+            expect(drops()).toEqual([]);
+        });
     });
 
     /**

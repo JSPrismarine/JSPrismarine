@@ -77,7 +77,7 @@ export interface BreakWorld {
  * the class that holds them; a player satisfies it.
  */
 export interface Breaker {
-    /** The mode they are in, because creative takes a block away and leaves nothing behind. */
+    /** The mode they are in, because creative takes a block away without its own yield. */
     readonly gamemode: number;
     getInventory(): Pick<EntityInventory, 'equipment'>;
     getPosition(): { getX(): number; getY(): number; getZ(): number };
@@ -253,6 +253,9 @@ const spilledContents = (
 /**
  * Runs the content hooks for one block break and answers what it yields.
  *
+ * A player in creative gets none of the block's own yield, but a container's contents still
+ * spill and a shulker box that held anything still leaves as itself, as in Java.
+ *
  * The hook runs before the caller writes air, because a family reads the block entity it is
  * about to lose: a chest spills what it holds and a double chest unpairs its other half. A
  * behavior that throws is logged and costs the player nothing, because the break then falls back
@@ -261,6 +264,8 @@ const spilledContents = (
  * @returns What to put on the ground, empty for a break that yields nothing, or undefined when
  *   the content declined the break and {@link import('./World').World.breakBlock} should drop
  *   what the block itself says it does.
+ * @javaSee ShulkerBoxBlock.playerWillDestroy
+ * @javaSee ShulkerBoxBlockEntity.preRemoveSideEffects
  */
 export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item> | undefined => {
     const { world, position, player, sourceId } = breaking;
@@ -307,10 +312,16 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
             });
         });
 
-        // Creative takes a block away and leaves nothing behind, so the hook has run and its
-        // drops go no further. The side effects it had - the unpaired chest, the block entity
-        // it rewrote - stand either way.
-        if (player?.gamemode === Gametype.CREATIVE) return [];
+        // Creative takes the block itself away and leaves none of its own yield behind, but a
+        // container still spills what it held, as Java's `BaseContainerBlockEntity` does on any
+        // removal. A shulker box spills nothing and instead leaves as itself, still holding its
+        // contents, when it held any: the family's drop that carries contents is that box.
+        if (player?.gamemode === Gametype.CREATIVE) {
+            return [
+                ...spilledContents(captured, contents),
+                ...captured.filter((drop) => drop instanceof Item && drop.getContents().some((slot) => slot !== null))
+            ];
+        }
 
         // A block that yields nothing of itself still spills what it was holding, which is
         // the chest a fire burns through or a stream of water washes away.

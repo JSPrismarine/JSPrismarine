@@ -3128,11 +3128,14 @@ export class World implements Service {
             brokenRuntimeId
         );
 
-        // Creative takes a block away and leaves nothing behind. Everywhere else the block
-        // decides what it yields for the tool that broke it - which for a block needing a
-        // tool the player did not have is nothing at all, and that is a drop of none rather
-        // than a mistake.
-        if (player?.gamemode !== Gametype.CREATIVE) {
+        // Creative takes a block away without its own yield and wears no tool. What the content
+        // path still answers for it is a container's contents, which spill in every mode.
+        // Everywhere else the block decides what it yields for the tool that broke it - which
+        // for a block needing a tool the player did not have is nothing at all, and that is a
+        // drop of none rather than a mistake.
+        if (player?.gamemode === Gametype.CREATIVE) {
+            if (contentDrops !== undefined && contentDrops.length > 0) this.spillFromBlock({ x, y, z }, contentDrops);
+        } else {
             // TODO: no item declares a tool type yet - `Item.getToolType` is hardcoded to
             // `None` - so a block that needs one drops nothing however good the pickaxe is.
             // The item is passed all the same, so that fixing the item side fixes this too.
