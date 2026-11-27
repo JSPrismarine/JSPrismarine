@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 
 import Client from '../Client';
 import ClientWorld from '../ClientWorld';
+import type { JavaClientOptions } from '../java/JavaClient';
 import { JavaClient } from '../java/JavaClient';
 import { playerAuthInput } from '../playerAuthInput';
 import { LoopbackNetwork } from './loopback.test.helper';
@@ -122,7 +123,7 @@ export interface LoopbackServer {
      * the server put its player in it. The server needs `java-enabled`, and `java-port` 0 lets the
      * system pick a free port.
      */
-    joinJava(username: string): Promise<JavaClient>;
+    joinJava(username: string, options?: Pick<JavaClientOptions, 'language' | 'viewDistance'>): Promise<JavaClient>;
     /**
      * Ticks until `condition` holds, giving the Java clients' sockets a turn before each check.
      * @param condition - What to wait for.
@@ -339,10 +340,13 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         }
     };
 
-    const joinJava = async (username: string): Promise<JavaClient> => {
+    const joinJava = async (
+        username: string,
+        options: Pick<JavaClientOptions, 'language' | 'viewDistance'> = {}
+    ): Promise<JavaClient> => {
         const port = server.getKernel().get(networkToken).getJavaPort();
         if (port === undefined) throw new Error('joinJava needs a server started with java-enabled');
-        const client = new JavaClient({ host: '127.0.0.1', port, username });
+        const client = new JavaClient({ host: '127.0.0.1', port, username, ...options });
         javaClients.push(client);
         let done = false;
         const joined = client.connect().finally(() => {

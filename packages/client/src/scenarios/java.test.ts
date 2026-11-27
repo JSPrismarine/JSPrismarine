@@ -26,7 +26,7 @@ describe('a Java Edition client', () => {
             name: 'java-client',
             config: { 'java-enabled': true, 'java-port': 0 }
         });
-        java = await loopback.joinJava('Alex');
+        java = await loopback.joinJava('Alex', { language: 'sv_se' });
         java.on('chat', (content) => chat.push(wordsOf(content)));
     }, 120_000);
 
@@ -41,6 +41,15 @@ describe('a Java Edition client', () => {
         expect(pose).toBeDefined();
         expect(java.getLogin()?.dimension).toBe('minecraft:overworld');
         expect(java.hasChunk(Math.floor(pose!.x / 16), Math.floor(pose!.z / 16))).toBe(true);
+    });
+
+    it("plays in the language its settings name, which scripts read as the player's locale", () => {
+        const alex = loopback.server
+            .getSessionManager()
+            .getSessions()
+            .find((entry) => entry.getName() === 'Alex');
+
+        expect(alex?.getPlayer().locale).toBe('sv_SE');
     });
 
     it('moves its player on the server', async () => {

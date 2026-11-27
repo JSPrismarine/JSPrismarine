@@ -9,8 +9,14 @@ import {
     brandOf,
     ClientboundKnownPacks,
     ClientboundPluginMessage,
+    ConfigurationClientboundKeepAlive,
+    ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationServerboundKeepAlive,
     FinishConfiguration,
+    JavaChatVisibility,
+    JavaMainHand,
+    JavaParticleStatus,
     ServerboundKnownPacks
 } from '@jsprismarine/protocol/java/packet/configuration';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
@@ -82,6 +88,10 @@ export interface JavaClientOptions {
     readonly joinSession?: (serverHash: string) => Promise<void>;
     /** The chunks per tick the client says it can take after each batch. Defaults to vanilla's ceiling, 64. */
     readonly chunksPerTick?: number;
+    /** The language the client's settings name, such as `sv_se`. Defaults to `en_us`. */
+    readonly language?: string;
+    /** The view distance in the client's settings, in chunks. Defaults to vanilla's, 12. */
+    readonly viewDistance?: number;
 }
 
 /** Where the player is and where it looks. */
@@ -483,6 +493,20 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
         } else if (isJavaPacket(received, LoginSuccess)) {
             socket.send(LoginAcknowledged, {});
             this.phase = 'configuration';
+            // A vanilla client's settings, which it sends as soon as it configures.
+            socket.send(ConfigurationClientInformation, {
+                language: this.options.language ?? 'en_us',
+                viewDistance: this.options.viewDistance ?? 12,
+                chatVisibility: JavaChatVisibility.Full,
+                chatColors: true,
+                modelCustomisation: 0x7f,
+                mainHand: JavaMainHand.Right,
+                textFilteringEnabled: false,
+                allowsListing: true,
+                particleStatus: JavaParticleStatus.All
+            });
+        } else if (isJavaPacket(received, ConfigurationClientboundKeepAlive)) {
+            socket.send(ConfigurationServerboundKeepAlive, { id: received.payload.id });
         } else if (isJavaPacket(received, ClientboundPluginMessage)) {
             if (received.payload.channel === 'minecraft:brand') this.brand = brandOf(received.payload.data);
         } else if (isJavaPacket(received, ClientboundKnownPacks)) {
