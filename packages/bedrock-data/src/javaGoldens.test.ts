@@ -38,6 +38,17 @@ const blocks = readGolden('block_properties.json') as Record<string, BlockEntry>
 const entities = readGolden('entity_attributes.json') as Record<string, EntityEntry>;
 const navigation = readGolden('entity_navigation.json') as Record<string, unknown>;
 
+/** One block's packed support values, run-length encoded: a bare value or `[value, count]` runs. */
+type SupportRuns = number | (number | [number, number])[];
+
+interface SupportGolden {
+    faces: string[];
+    supportTypes: string[];
+    blocks: Record<string, SupportRuns>;
+}
+
+const support = readGolden('block_support.json') as SupportGolden;
+
 const blockEntries = Object.entries(blocks);
 const entityEntries = Object.entries(entities);
 
@@ -142,6 +153,29 @@ describe('block_properties.json', () => {
         expect(blocks['minecraft:soul_sand']?.base.speedFactor).toBe(0.4);
         expect(blocks['minecraft:honey_block']?.base.jumpFactor).toBe(0.5);
         expect(blocks['minecraft:slime_block']?.base.bounceRestitution).toBe(1);
+    });
+});
+
+describe('block_support.json', () => {
+    /** One block's runs as its states' values, one per state of a block with `stateCount` states. */
+    const expand = (runs: SupportRuns, stateCount: number): number[] => {
+        if (typeof runs === 'number') return Array.from({ length: stateCount }, () => runs);
+        return runs.flatMap((run) => (typeof run === 'number' ? [run] : Array.from({ length: run[1] }, () => run[0])));
+    };
+
+    it('names the six faces and three support types its bits are laid out by', () => {
+        expect(support.faces).toEqual(['down', 'up', 'north', 'south', 'west', 'east']);
+        expect(support.supportTypes).toEqual(['full', 'center', 'rigid']);
+    });
+
+    it('covers every block of the property golden with one value per state', () => {
+        expect(Object.keys(support.blocks).sort()).toEqual(Object.keys(blocks).sort());
+        const width = 1 + support.faces.length * support.supportTypes.length;
+        for (const [id, entry] of blockEntries) {
+            const values = expand(support.blocks[id]!, entry.stateCount);
+            expect(values, id).toHaveLength(entry.stateCount);
+            for (const value of values) expect(value >>> width, `${id} ${value}`).toBe(0);
+        }
     });
 });
 
