@@ -93,6 +93,16 @@ Thrown as `ProtocolWireErrors.JavaBlockStateRowMalformed`, which extends `Error`
 A release's generated `blockStates.json` has a row that is not a block name, a first state id
 and a list of properties. Regenerate it with `pnpm --filter
 
+## `PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN`
+
+`A boss event names operation {operation}, which Java 26.3 does not define`
+
+Thrown as `ProtocolWireErrors.JavaBossEventOperationUnknown`, which extends `Error`.
+
+A Java Edition `Boss Event` names an operation past the six that 26.3 defines (add, remove,
+and updates to progress, name, style and flags). The packet is corrupt, or comes from a
+release whose operations this server does not know.
+
 ## `PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES`
 
 `A chunk carries {count} block entities, which this server does not read`

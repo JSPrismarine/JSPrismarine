@@ -21,6 +21,7 @@ import {
     varInt,
     varLong
 } from '../wire/javaTypes';
+import type { JavaText } from '../wire/javaTypes';
 import { profileProperty } from './login';
 import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
@@ -660,3 +661,134 @@ export enum JavaEntityDataIndex {
     SharedFlags = 0,
     Pose = 6
 }
+
+/**
+ * `Boss Event` operations, by vanilla's `ClientboundBossEventPacket.OperationType` order, which
+ * numbers them on the wire.
+ */
+export enum JavaBossEventOperation {
+    Add = 0,
+    Remove = 1,
+    UpdateProgress = 2,
+    UpdateName = 3,
+    UpdateStyle = 4,
+    UpdateProperties = 5
+}
+
+/** Boss bar colors, by vanilla's `BossEvent.BossBarColor` order. */
+export enum JavaBossBarColor {
+    Pink = 0,
+    Blue = 1,
+    Red = 2,
+    Green = 3,
+    Yellow = 4,
+    Purple = 5,
+    White = 6
+}
+
+/** How a boss bar is divided, by vanilla's `BossEvent.BossBarOverlay` order. */
+export enum JavaBossBarOverlay {
+    Progress = 0,
+    Notched6 = 1,
+    Notched10 = 2,
+    Notched12 = 3,
+    Notched20 = 4
+}
+
+/** The bits of a boss bar's flags byte. */
+export enum JavaBossBarFlag {
+    DarkenScreen = 0x01,
+    PlayMusic = 0x02,
+    CreateWorldFog = 0x04
+}
+
+/** One `Boss Event` operation and what it carries. */
+export type JavaBossEvent =
+    | {
+          readonly type: JavaBossEventOperation.Add;
+          readonly title: JavaText;
+          readonly progress: number;
+          readonly color: JavaBossBarColor;
+          readonly overlay: JavaBossBarOverlay;
+          readonly flags: number;
+      }
+    | { readonly type: JavaBossEventOperation.Remove }
+    | { readonly type: JavaBossEventOperation.UpdateProgress; readonly progress: number }
+    | { readonly type: JavaBossEventOperation.UpdateName; readonly title: JavaText }
+    | {
+          readonly type: JavaBossEventOperation.UpdateStyle;
+          readonly color: JavaBossBarColor;
+          readonly overlay: JavaBossBarOverlay;
+      }
+    | { readonly type: JavaBossEventOperation.UpdateProperties; readonly flags: number };
+
+/**
+ * The operation: its VarInt type, then its fields, as each of vanilla's `Operation.write` lays
+ * them out. The title is a text component, the progress a float, the color and the overlay
+ * VarInts, and the flags one byte of {@link JavaBossBarFlag}.
+ */
+const bossEventOperation = custom<JavaBossEvent>(
+    'Boss Event Operation',
+    (s, event) => {
+        varInt.write(s, event.type);
+        switch (event.type) {
+            case JavaBossEventOperation.Add:
+                textComponent.write(s, event.title);
+                float.write(s, event.progress);
+                varInt.write(s, event.color);
+                varInt.write(s, event.overlay);
+                uint8.write(s, event.flags);
+                break;
+            case JavaBossEventOperation.Remove:
+                break;
+            case JavaBossEventOperation.UpdateProgress:
+                float.write(s, event.progress);
+                break;
+            case JavaBossEventOperation.UpdateName:
+                textComponent.write(s, event.title);
+                break;
+            case JavaBossEventOperation.UpdateStyle:
+                varInt.write(s, event.color);
+                varInt.write(s, event.overlay);
+                break;
+            case JavaBossEventOperation.UpdateProperties:
+                uint8.write(s, event.flags);
+                break;
+        }
+    },
+    (s): JavaBossEvent => {
+        const operation = varInt.read(s);
+        switch (operation) {
+            case JavaBossEventOperation.Add:
+                return {
+                    type: operation,
+                    title: textComponent.read(s),
+                    progress: float.read(s),
+                    color: varInt.read(s),
+                    overlay: varInt.read(s),
+                    flags: uint8.read(s)
+                };
+            case JavaBossEventOperation.Remove:
+                return { type: operation };
+            case JavaBossEventOperation.UpdateProgress:
+                return { type: operation, progress: float.read(s) };
+            case JavaBossEventOperation.UpdateName:
+                return { type: operation, title: textComponent.read(s) };
+            case JavaBossEventOperation.UpdateStyle:
+                return { type: operation, color: varInt.read(s), overlay: varInt.read(s) };
+            case JavaBossEventOperation.UpdateProperties:
+                return { type: operation, flags: uint8.read(s) };
+            default:
+                throw new ProtocolWireErrors.JavaBossEventOperationUnknown({ operation });
+        }
+    }
+);
+
+/**
+ * `Boss Event` (clientbound): adds, removes or updates one boss bar at the top of the screen. The
+ * client keys its bars by the UUID, which the server picks.
+ */
+export const BossEvent = defineJavaPacket('Boss Event', 'play/clientbound/boss_event', {
+    uuid,
+    operation: bossEventOperation
+});

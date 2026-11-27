@@ -2109,6 +2109,35 @@ class JavaEntityDataSerializerUnread extends JSPrismarineError {
     }
 }
 
+/**
+ * A Java Edition `Boss Event` names an operation past the six that 26.3 defines (add, remove,
+ * and updates to progress, name, style and flags). The packet is corrupt, or comes from a
+ * release whose operations this server does not know.
+ */
+class JavaBossEventOperationUnknown extends JSPrismarineError {
+    public static readonly code = 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN';
+    public static readonly domain = 'protocol';
+    public static readonly module = 'wire';
+    public static readonly template = 'A boss event names operation {operation}, which Java 26.3 does not define';
+    public static readonly docs =
+        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-boss-event-operation-unknown';
+
+    public override readonly code = 'PROTOCOL_JAVA_BOSS_EVENT_OPERATION_UNKNOWN';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-boss-event-operation-unknown';
+    readonly #params: { readonly operation: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly operation: unknown }, options?: ErrorOptions) {
+        super(`A boss event names operation ${String(params?.operation)}, which Java 26.3 does not define`, options);
+        this.#params = params ?? { operation: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The errors the wire code of `@jsprismarine/protocol` throws. */
 export const ProtocolWireErrors = Object.freeze({
     ActorFlagsTooLong,
@@ -2182,5 +2211,6 @@ export const ProtocolWireErrors = Object.freeze({
     JavaChunkHasBlockEntities,
     JavaVelocityNotAtRest,
     JavaItemComponentsUnread,
-    JavaEntityDataSerializerUnread
+    JavaEntityDataSerializerUnread,
+    JavaBossEventOperationUnknown
 });
