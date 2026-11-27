@@ -2911,6 +2911,10 @@
             "jsprismarine:dist": "./dist/crafting/CraftingInput.js",
             "default": "./src/crafting/CraftingInput.ts"
         },
+        "./crafting/bedrockRecipes": {
+            "jsprismarine:dist": "./dist/crafting/bedrockRecipes.js",
+            "default": "./src/crafting/bedrockRecipes.ts"
+        },
         "./crafting/recipeBook": {
             "jsprismarine:dist": "./dist/crafting/recipeBook.js",
             "default": "./src/crafting/recipeBook.ts"

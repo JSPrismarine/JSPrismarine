@@ -58,6 +58,7 @@ import type {
     CreativeContent,
     ItemRegistryEntry,
     ItemStackData,
+    MaterialReducer,
     PotionMix
 } from '@jsprismarine/protocol';
 import type {
@@ -490,7 +491,7 @@ export const buildNetworkContentPayloads = (
                 outputMeta: mix.outputMeta
             })),
             containerMixes: [],
-            materialReducers: [],
+            materialReducers: materialReducersOf(content.materialReductions, itemIds),
             cleanRecipes: true
         },
         recipesByNetId: crafting.recipesByNetId,
@@ -591,6 +592,34 @@ export const limitCraftingData = (crafting: CraftingData, limit: number): Crafti
         cleanRecipes: crafting.cleanRecipes
     };
 };
+
+/**
+ * The material reducer entries of a behavior pack's material reduction recipes.
+ *
+ * `From Item Key` packs the input's item id into the high 16 bits and its data value into the
+ * low ones. An entry naming an item the registry has no id for is left out; the content build
+ * already reported it against its file.
+ */
+const materialReducersOf = (
+    reductions: ServerContent['materialReductions'],
+    itemIds: ItemIdLookup
+): MaterialReducer[] =>
+    reductions.flatMap((reduction) => {
+        const inputId = itemIds(reduction.input.identifier);
+        const outputs = reduction.outputs.map((output) => ({
+            itemId: itemIds(output.identifier),
+            itemCount: output.count
+        }));
+        if (inputId === undefined || outputs.some((output) => output.itemId === undefined)) return [];
+        return [
+            {
+                fromItemKey: (inputId << 16) | (reduction.input.data & 0xffff),
+                outputs: outputs.flatMap(({ itemId, itemCount }) =>
+                    itemId === undefined ? [] : [{ itemId, itemCount }]
+                )
+            }
+        ];
+    });
 
 /** The recipes of every kind the crafting payload carries. */
 export const craftingRecipeCount = (crafting: CraftingData): number =>

@@ -77,7 +77,7 @@ describe('resolvePackStack', () => {
 
         const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
 
-        expect(stack).toEqual([{ kind: 'directory', path: overlayPackPath() }]);
+        expect(stack).toEqual([{ kind: 'directory', path: overlayPackPath(), skipRegistries: ['recipes'] }]);
     });
 
     it('reads the pinned versions out of a cache that holds older ones too', () => {
@@ -100,11 +100,12 @@ describe('resolvePackStack', () => {
         const { stack } = resolvePackStack({ overlay: false, javaVanilla: false, cacheRoot: cache });
 
         expect(stack).toEqual([
-            { kind: 'directory', path: samplesPack(bedrockSamplesCacheFolder) },
+            { kind: 'directory', path: samplesPack(bedrockSamplesCacheFolder), skipRegistries: ['recipes'] },
             {
                 kind: 'brarchiveLayers',
                 path: behaviorPacks(defaultBdsCacheFolder),
-                uuids: [VANILLA_BEHAVIOR_PACK_UUID]
+                uuids: [VANILLA_BEHAVIOR_PACK_UUID],
+                skipRegistries: ['recipes']
             }
         ]);
     });
@@ -141,7 +142,14 @@ describe('resolvePackStack', () => {
 
             const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
 
-            expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID] }]);
+            expect(stack).toEqual([
+                {
+                    kind: 'brarchiveLayers',
+                    path: folder,
+                    uuids: [VANILLA_BEHAVIOR_PACK_UUID],
+                    skipRegistries: ['recipes']
+                }
+            ]);
         });
 
         it('composes the packs a caller names instead', () => {
@@ -157,7 +165,12 @@ describe('resolvePackStack', () => {
             });
 
             expect(stack).toEqual([
-                { kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID, chemistry] }
+                {
+                    kind: 'brarchiveLayers',
+                    path: folder,
+                    uuids: [VANILLA_BEHAVIOR_PACK_UUID, chemistry],
+                    skipRegistries: ['recipes']
+                }
             ]);
         });
 
@@ -168,7 +181,9 @@ describe('resolvePackStack', () => {
 
             const { stack } = resolvePackStack({ overlay: false, javaVanilla: false, bedrockPacks: 'all' });
 
-            expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: undefined }]);
+            expect(stack).toEqual([
+                { kind: 'brarchiveLayers', path: folder, uuids: undefined, skipRegistries: ['recipes'] }
+            ]);
         });
 
         it('lays bedrock-samples under layers the override names', () => {
@@ -184,8 +199,13 @@ describe('resolvePackStack', () => {
             const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
 
             expect(stack).toEqual([
-                { kind: 'directory', path: pack },
-                { kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID] }
+                { kind: 'directory', path: pack, skipRegistries: ['recipes'] },
+                {
+                    kind: 'brarchiveLayers',
+                    path: folder,
+                    uuids: [VANILLA_BEHAVIOR_PACK_UUID],
+                    skipRegistries: ['recipes']
+                }
             ]);
         });
     });
