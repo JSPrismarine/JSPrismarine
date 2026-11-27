@@ -9,6 +9,7 @@ import {
 } from '@jsprismarine/java-classfile/fingerprint';
 import type { JavaClassIndex, JavaReference, JavaSourceTag } from '@jsprismarine/java-classfile/sources';
 import {
+    javaSourceKindCounts,
     needsReview,
     readJavaSourceGolden,
     resolveJavaSource,
@@ -21,6 +22,7 @@ import { measureScenarios, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { jarClassFile, jarClassNames, pinnedClassFile, pinnedJavaClassNames } from './javaClassFile.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES, pinnedJavaDataVersion, previewJavaVersion } from './references.ts';
 import type { ParityTrackerRecord } from './trackerCases.ts';
 import { reportParityCases } from './trackerCases.ts';
@@ -41,7 +43,9 @@ import { reportParityCases } from './trackerCases.ts';
  * the preview replaces it. Its row passes once the golden records the preview's fingerprint for
  * the member, which `java:sources --update --java <preview> --reviewed <spelling>` stamps after
  * someone has read the change against the copy.
-
+ *
+ * The family also reports how many tags each `@javaVerified` kind has, overall and per package, as
+ * dashboard measurements, so the share of plain transcriptions, which only a re-read checks, shows.
  */
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
@@ -181,5 +185,22 @@ describeFamily(FAMILIES.javaTranscriptions, [REFERENCES.javaPreviewServerJar], (
         const rows = measureScenarios(FAMILIES.javaTranscriptions, import.meta.filename, scenarioGroup([scenario]));
 
         expect(rows.length).toBe(tags.size);
+    });
+});
+
+describeFamily(FAMILIES.javaTranscriptions, [], () => {
+    it('reports the tags by verification kind and by package', () => {
+        const tags = scans.flatMap((scan) => scan.tags);
+        const counts = javaSourceKindCounts(tags);
+        reportParityProgress(FAMILIES.javaTranscriptions, counts);
+
+        // Each tag is counted once overall and once under its package.
+        const overall = ['plain', 'vectors', 'read', 'extracted'].reduce((sum, kind) => sum + (counts[kind] ?? 0), 0);
+        expect(overall).toBe(tags.length);
+        expect(
+            Object.entries(counts)
+                .filter(([name]) => name.includes(': '))
+                .reduce((sum, [, n]) => sum + n, 0)
+        ).toBe(tags.length);
     });
 });
