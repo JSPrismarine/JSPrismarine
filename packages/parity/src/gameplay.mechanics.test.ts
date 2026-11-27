@@ -8,6 +8,7 @@ import { effectHealthChange } from '@jsprismarine/prismarine/entity/StatusEffect
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
+import { isLearnableRecipe } from '@jsprismarine/prismarine/crafting/recipeBook';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/editions/bedrock/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
@@ -528,6 +529,35 @@ const inputFor = (recipe: Recipe): RecipeInput | undefined => {
     }
 };
 
+/**
+ * Java fills the recipe book from the `recipes/` advancements: each one rewards the recipe it is
+ * named for, and `ServerRecipeBook.addRecipes` skips a recipe whose `isSpecial` is true. So the
+ * recipes the server lets into the book are exactly the ones an advancement rewards.
+ */
+const recipeBookScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'recipe-book-unlocks',
+    java: 'Every recipe the book can hold is rewarded by an advancement, and no advancement rewards one it cannot.',
+    reference: 'Java ServerRecipeBook.addRecipes and Recipe.isSpecial; data/minecraft/advancement/recipes',
+    subjects: () => [subject('mechanic', 'recipe-book')],
+    idOf: (entry) => entry.id,
+    aspects: () => ['behavior'],
+    run: () => {
+        const content = serverContent();
+        const rewarded = new Set(
+            javaDatapackEntries('advancement').flatMap((id) => content.advancements.get(id)?.rewards.recipes ?? [])
+        );
+        const learnable = content.recipes.recipes.filter(isLearnableRecipe).map((recipe) => recipe.id);
+        const unrewarded = learnable.filter((id) => !rewarded.has(id));
+        const unlearnable = [...rewarded].filter((id) => {
+            const recipe = content.recipes.get(id);
+            return recipe === undefined || !isLearnableRecipe(recipe);
+        });
+        if (unrewarded.length > 0) return `no advancement rewards ${unrewarded.slice(0, 5).join(', ')}`;
+        if (unlearnable.length > 0) return `the book refuses the rewarded ${unlearnable.slice(0, 5).join(', ')}`;
+        return undefined;
+    }
+};
+
 /** The stations whose recipes a Bedrock client makes from the recipe list the server advertises. */
 const ADVERTISED_STATIONS: ReadonlySet<string> = new Set(['crafting', 'stonecutting', 'smithing']);
 
@@ -583,6 +613,7 @@ describeFamily(
                 scenarioGroup([professionScenario]),
                 scenarioGroup(playerScenarios),
                 scenarioGroup([recipeScenario]),
+                scenarioGroup([recipeBookScenario]),
                 scenarioGroup([explorationMapScenario]),
                 scenarioGroup([mapScenario]),
                 scenarioGroup([hurtExhaustionScenario]),
