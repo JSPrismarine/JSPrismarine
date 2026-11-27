@@ -61,6 +61,33 @@ describe('resolving block definitions', () => {
         expect(type.state({ growth: 1 }).permutations).toEqual([0]);
     });
 
+    it("evaluates a permutation condition under its pack's Molang version", () => {
+        // `A || B && C` is `(A || B) && C` before Molang version 6 and `A || (B && C)` from it.
+        const lamp = (minEngineVersion: readonly [number, number, number]): Definition => ({
+            ...definition('test:lamp', {
+                description: { identifier: 'test:lamp', states: { a: [0, 1], b: [0, 1], c: [0, 1] } },
+                components: { 'minecraft:loot': 'off.json' },
+                permutations: [
+                    {
+                        condition:
+                            "query.block_state('a') == 1 || query.block_state('b') == 1 && query.block_state('c') == 1",
+                        components: { 'minecraft:loot': 'on.json' }
+                    }
+                ]
+            }),
+            minEngineVersion
+        });
+        const lootOf = (minEngineVersion: readonly [number, number, number]) => {
+            const type = resolveBlocks([lamp(minEngineVersion)], { statePalette: emptyPalette }).types.get(
+                'test:lamp'
+            )!;
+            return [type.definition.molangVersion, type.state({ a: 1, b: 0, c: 0 }).content.params(loot)];
+        };
+
+        expect(lootOf([1, 26, 0])).toEqual([13, 'on.json']);
+        expect(lootOf([1, 18, 10])).toEqual([5, 'off.json']);
+    });
+
     it('exposes Bedrock tags after the state permutations resolve', () => {
         const resolved = resolveBlocks(
             [

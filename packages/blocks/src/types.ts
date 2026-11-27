@@ -285,7 +285,11 @@ export const resolveBlocks = (
     const parsed: { definition: Definition; document: BlockDefinitionDocument; model: BlockStateModel }[] = [];
 
     for (const definition of definitions) {
-        const result = parseBlockDefinition(definition.data, { pack: definition.pack, path: definition.path });
+        const result = parseBlockDefinition(definition.data, {
+            pack: definition.pack,
+            path: definition.path,
+            ...(definition.minEngineVersion === undefined ? {} : { minEngineVersion: definition.minEngineVersion })
+        });
         for (const diagnostic of result.diagnostics) add(diagnostic);
         if (!result.document) continue;
 
@@ -314,7 +318,9 @@ export const resolveBlocks = (
         const masksByKey = new Map<string, PermutationMask>();
         const ownStates: BlockState[] = new Array(model.size);
         // A condition is independent of state; compile once per block instead of rebuilding its cache key per state.
-        const compiledPermutations = document.permutations.map((permutation) => molang.compile(permutation.condition));
+        const compiledPermutations = document.permutations.map((permutation) =>
+            molang.compile(permutation.condition, { version: document.molangVersion })
+        );
         const valuesByState = Array.from({ length: model.size }, (_, index) => model.decode(index));
         const javaTagsByState = valuesByState.map((values) =>
             internStringArray(sharedTags, [...new Set(options.javaTags?.(identifier, values) ?? [])])

@@ -54,7 +54,7 @@ export const permutationsFor = (
     values: Readonly<Record<string, BlockStateValue>>,
     molang: Molang,
     compiledConditions: readonly CompiledMolang[] = document.permutations.map((permutation) =>
-        molang.compile(permutation.condition)
+        molang.compile(permutation.condition, { version: document.molangVersion })
     )
 ): PermutationMask =>
     compiledConditions.flatMap((condition, index) => (compiledConditionMatches(condition, values) ? [index] : []));
