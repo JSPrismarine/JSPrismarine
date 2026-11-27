@@ -229,6 +229,9 @@ default matters, and its own regression test either way.
    ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)), static-initializer constants
    ([#3764](https://github.com/JSPrismarine/JSPrismarine/issues/3764)) and block placement states
    ([#3765](https://github.com/JSPrismarine/JSPrismarine/issues/3765)).
+   Fluid spread is the first with vectors: `FlowingFluid.getSpread` is tagged
+   `@javaVerified vectors`, and six of its layouts showed the copy flowing differently
+   from Java.
 
 ## Decisions
 
