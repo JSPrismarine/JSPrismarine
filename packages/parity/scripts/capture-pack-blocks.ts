@@ -3,7 +3,9 @@
  *
  * Every pack under `scenarios/pack-blocks/` goes into one flat world of a staged server, a client
  * joins, and the `StartGamePacket.blockProperties` entry the server sends for each of their
- * blocks becomes `goldens/pack-blocks.json`, as the plain NBT `nbtToPlain` reads.
+ * blocks becomes `goldens/pack-blocks.json`, as the plain NBT `nbtToPlain` reads. Where
+ * `CreativeContentPacket` files their blocks and items, and the creative keys of the items'
+ * `ItemRegistryPacket` entries, become `goldens/pack-creative.json`.
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
@@ -35,6 +37,13 @@ import {
     renderPackBlocksGolden
 } from '../src/packBlocks.ts';
 import type { PackBlocksGolden } from '../src/packBlocks.ts';
+import { PACK_CREATIVE_GOLDEN, creativeItemPropertiesOf, renderPackCreativeGolden } from '../src/packCreative.ts';
+import type {
+    CompoundReader,
+    PackCreativeEntry,
+    PackCreativeGolden,
+    PackCreativeItemProperties
+} from '../src/packCreative.ts';
 
 /** How long each stage may take on a native run. The launcher stretches them for emulation. */
 const NATIVE_TIMEOUTS = { boot: 180_000, join: 120_000, stop: 120_000 };
@@ -87,6 +96,7 @@ const server = startServer({
 });
 
 let blocks: PackBlocksGolden['blocks'] = {};
+let creative: Omit<PackCreativeGolden, '$comment' | 'server'> | undefined;
 try {
     await server.waitForLine(
         (line) => line.includes(READY_LINE),
@@ -106,8 +116,74 @@ try {
         network: staged.transport,
         protocolVersion
     });
+    // The client decodes only the packets its login needs, so the creative menu is registered here.
+    const { default: CreativeContentPacket } = await tsImport(
+        join(packages, 'protocol', 'src', 'bedrock', 'packet', 'CreativeContentPacket.ts'),
+        import.meta.url
+    );
+    client.getRegistry().register(CreativeContentPacket);
+
+    interface Stack {
+        runtimeId: number;
+        blockRuntimeId: number;
+    }
+    interface Menu {
+        groups: { category: number; name: string; icon: Stack }[];
+        entries: { item: Stack; group: number }[];
+    }
+    const received: { menu?: Menu } = {};
+    const names = new Map<number, string>();
+    const items: Record<string, PackCreativeItemProperties> = {};
+    client.on('packet', ({ name, data }: { name: string; data: any }) => {
+        if (name === 'CreativeContentPacket') received.menu = data;
+        if (name !== 'ItemRegistryPacket') return;
+        for (const item of data.items as { name: string; runtimeId: number; componentData: CompoundReader }[]) {
+            names.set(item.runtimeId, item.name);
+            if (!item.name.startsWith(`${PACK_BLOCK_NAMESPACE}:`)) continue;
+            const properties = creativeItemPropertiesOf(item.componentData);
+            if (properties !== undefined) items[item.name] = properties;
+        }
+    });
+
     const startGame = await client.connect();
+    // The menu follows the spawn, so the client stays until it has arrived.
+    const deadline = Date.now() + NATIVE_TIMEOUTS.join * launcher.timeoutScale;
+    while (received.menu === undefined && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     client.disconnect();
+    const { menu } = received;
+    if (menu === undefined) throw new Error('The server sent no CreativeContentPacket.');
+
+    // The vanilla headings are the catalog `@jsprismarine/bedrock-data` captured from this server.
+    const { creative_groups } = await tsImport(
+        join(packages, 'bedrock-data', 'src', 'generated', 'creativeitems.ts'),
+        import.meta.url
+    );
+    const vanillaGroups: number = creative_groups.length;
+
+    const isPack = (stack: Stack): boolean =>
+        names.get(stack.runtimeId)?.startsWith(`${PACK_BLOCK_NAMESPACE}:`) ?? false;
+    const firstPackEntry = menu.entries.findIndex((entry) => isPack(entry.item));
+    const vanillaEntries = firstPackEntry === -1 ? menu.entries.length : firstPackEntry;
+    const entries: Record<string, PackCreativeEntry> = {};
+    for (const entry of menu.entries.slice(vanillaEntries)) {
+        const name = names.get(entry.item.runtimeId);
+        if (name === undefined || !isPack(entry.item))
+            throw new Error(`A vanilla entry, ${name}, follows the packs' entries.`);
+        entries[name] = { group: entry.group, blockRuntimeId: entry.item.blockRuntimeId };
+    }
+    creative = {
+        vanillaGroups,
+        vanillaEntries,
+        groups: menu.groups.slice(vanillaGroups).map((group) => ({
+            category: group.category,
+            name: group.name,
+            iconRuntimeId: group.icon.runtimeId
+        })),
+        entries,
+        items
+    };
 
     const captured: Record<string, unknown> = {};
     for (const property of startGame.blockProperties ?? []) {
@@ -136,3 +212,19 @@ await writeFile(
     })
 );
 console.log(`Wrote ${PACK_BLOCKS_GOLDEN}: ${Object.keys(blocks).length} blocks.`);
+
+if (creative === undefined) throw new Error('No creative menu was captured.');
+await writeFile(
+    PACK_CREATIVE_GOLDEN,
+    renderPackCreativeGolden({
+        $comment: [
+            'Where the pinned Bedrock Dedicated Server files the blocks and items of scenarios/pack-blocks/ in',
+            'CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. A group below',
+            'vanillaGroups is a vanilla heading; the rest are listed in groups, in packet order.',
+            'Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand.'
+        ],
+        server: { protocolVersion, serverVersion: pinnedServer.serverVersion },
+        ...creative
+    })
+);
+console.log(`Wrote ${PACK_CREATIVE_GOLDEN}: ${Object.keys(creative.entries).length} entries.`);

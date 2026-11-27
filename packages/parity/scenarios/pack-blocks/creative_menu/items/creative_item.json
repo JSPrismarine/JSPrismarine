@@ -1,0 +1,14 @@
+{
+    "format_version": "1.21.80",
+    "minecraft:item": {
+        "description": {
+            "identifier": "parity:creative_item",
+            "menu_category": {
+                "category": "items"
+            }
+        },
+        "components": {
+            "minecraft:icon": "creative_item"
+        }
+    }
+}

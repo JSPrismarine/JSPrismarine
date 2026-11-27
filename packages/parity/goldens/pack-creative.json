@@ -1,0 +1,263 @@
+{
+    "$comment": [
+        "Where the pinned Bedrock Dedicated Server files the blocks and items of scenarios/pack-blocks/ in",
+        "CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. A group below",
+        "vanillaGroups is a vanilla heading; the rest are listed in groups, in packet order.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand."
+    ],
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "vanillaGroups": 124,
+    "vanillaEntries": 1980,
+    "groups": [
+        {
+            "category": 2,
+            "name": "parity:itemGroup.name.parity_stones",
+            "iconRuntimeId": 0
+        },
+        {
+            "category": 4,
+            "name": "parity:itemGroup.name.parity_gems",
+            "iconRuntimeId": 0
+        },
+        {
+            "category": 4,
+            "name": "",
+            "iconRuntimeId": 0
+        }
+    ],
+    "entries": {
+        "parity:bones_1_20_80": {
+            "group": 24,
+            "blockRuntimeId": -575364938
+        },
+        "parity:bones_1_21_100": {
+            "group": 24,
+            "blockRuntimeId": 193347863
+        },
+        "parity:bones_1_21_110": {
+            "group": 24,
+            "blockRuntimeId": -486059768
+        },
+        "parity:bones_1_21_130": {
+            "group": 24,
+            "blockRuntimeId": 67087794
+        },
+        "parity:bones_1_21_80": {
+            "group": 24,
+            "blockRuntimeId": 783289917
+        },
+        "parity:bones_1_21_90": {
+            "group": 24,
+            "blockRuntimeId": -1366496338
+        },
+        "parity:bones_1_26_0": {
+            "group": 24,
+            "blockRuntimeId": 1180768507
+        },
+        "parity:bones_1_26_60": {
+            "group": 24,
+            "blockRuntimeId": -319934294
+        },
+        "parity:collision_false": {
+            "group": 24,
+            "blockRuntimeId": 18877097
+        },
+        "parity:collision_true": {
+            "group": 24,
+            "blockRuntimeId": -1948749857
+        },
+        "parity:creative_block": {
+            "group": 24,
+            "blockRuntimeId": -2140731643
+        },
+        "parity:creative_block_grouped": {
+            "group": 124,
+            "blockRuntimeId": 43930258
+        },
+        "parity:creative_block_grouped_b": {
+            "group": 124,
+            "blockRuntimeId": -1372202585
+        },
+        "parity:creative_block_stairs": {
+            "group": 4,
+            "blockRuntimeId": 2081609809
+        },
+        "parity:creative_item": {
+            "group": 126,
+            "blockRuntimeId": 0
+        },
+        "parity:creative_item_gem_a": {
+            "group": 125,
+            "blockRuntimeId": 0
+        },
+        "parity:creative_item_gem_b": {
+            "group": 125,
+            "blockRuntimeId": 0
+        },
+        "parity:creative_item_sword": {
+            "group": 56,
+            "blockRuntimeId": 0
+        },
+        "parity:cross_1_20_80": {
+            "group": 24,
+            "blockRuntimeId": 36454535
+        },
+        "parity:cross_1_21_100": {
+            "group": 24,
+            "blockRuntimeId": 489812136
+        },
+        "parity:cross_1_21_110": {
+            "group": 24,
+            "blockRuntimeId": -594753481
+        },
+        "parity:cross_1_21_130": {
+            "group": 24,
+            "blockRuntimeId": 998411121
+        },
+        "parity:cross_1_21_80": {
+            "group": 24,
+            "blockRuntimeId": -1919930112
+        },
+        "parity:cross_1_21_90": {
+            "group": 24,
+            "blockRuntimeId": 1776484079
+        },
+        "parity:cross_1_26_0": {
+            "group": 24,
+            "blockRuntimeId": -1266391284
+        },
+        "parity:cross_1_26_60": {
+            "group": 24,
+            "blockRuntimeId": 388089163
+        },
+        "parity:declared_block_id": {
+            "group": 24,
+            "blockRuntimeId": 1463332143
+        },
+        "parity:engine_1_13_0": {
+            "group": 24,
+            "blockRuntimeId": -927234921
+        },
+        "parity:engine_1_17_0": {
+            "group": 24,
+            "blockRuntimeId": -146612517
+        },
+        "parity:engine_1_18_20": {
+            "group": 24,
+            "blockRuntimeId": 728828595
+        },
+        "parity:engine_1_20_60": {
+            "group": 24,
+            "blockRuntimeId": 1307305632
+        },
+        "parity:engine_1_20_70": {
+            "group": 24,
+            "blockRuntimeId": -500414321
+        },
+        "parity:engine_1_21_100": {
+            "group": 24,
+            "blockRuntimeId": 1676128531
+        },
+        "parity:engine_1_21_90": {
+            "group": 24,
+            "blockRuntimeId": -105713018
+        },
+        "parity:engine_1_26_60": {
+            "group": 24,
+            "blockRuntimeId": 1872872434
+        },
+        "parity:full_1_20_80": {
+            "group": 24,
+            "blockRuntimeId": -1544497819
+        },
+        "parity:full_1_21_100": {
+            "group": 24,
+            "blockRuntimeId": -1740535162
+        },
+        "parity:full_1_21_110": {
+            "group": 24,
+            "blockRuntimeId": 1022556245
+        },
+        "parity:full_1_21_130": {
+            "group": 24,
+            "blockRuntimeId": 1805744107
+        },
+        "parity:full_1_21_80": {
+            "group": 24,
+            "blockRuntimeId": 519927966
+        },
+        "parity:full_1_21_90": {
+            "group": 24,
+            "blockRuntimeId": 1275854509
+        },
+        "parity:full_1_26_0": {
+            "group": 24,
+            "blockRuntimeId": 641251266
+        },
+        "parity:full_1_26_60": {
+            "group": 24,
+            "blockRuntimeId": 685881033
+        },
+        "parity:material_isotropic": {
+            "group": 24,
+            "blockRuntimeId": -624753558
+        },
+        "parity:material_no_dimming": {
+            "group": 24,
+            "blockRuntimeId": 452082394
+        },
+        "parity:material_no_occlusion": {
+            "group": 24,
+            "blockRuntimeId": -147965490
+        },
+        "parity:plain": {
+            "group": 24,
+            "blockRuntimeId": 402266615
+        },
+        "parity:selection_custom": {
+            "group": 24,
+            "blockRuntimeId": -1474087678
+        },
+        "parity:selection_false": {
+            "group": 24,
+            "blockRuntimeId": 545280227
+        },
+        "parity:selection_true": {
+            "group": 24,
+            "blockRuntimeId": -749080967
+        },
+        "parity:tags_only": {
+            "group": 24,
+            "blockRuntimeId": -1045402845
+        }
+    },
+    "items": {
+        "parity:creative_item": {
+            "creative_category": 4,
+            "creative_group": ""
+        },
+        "parity:creative_item_gem_a": {
+            "creative_category": 4,
+            "creative_group": "parity:itemGroup.name.parity_gems"
+        },
+        "parity:creative_item_gem_b": {
+            "creative_category": 4,
+            "creative_group": "parity:itemGroup.name.parity_gems"
+        },
+        "parity:creative_item_hidden": {
+            "creative_category": 6,
+            "creative_group": ""
+        },
+        "parity:creative_item_sword": {
+            "creative_category": 3,
+            "creative_group": "minecraft:itemGroup.name.sword"
+        },
+        "parity:creative_item_unlisted": {
+            "creative_category": 6,
+            "creative_group": ""
+        }
+    }
+}
