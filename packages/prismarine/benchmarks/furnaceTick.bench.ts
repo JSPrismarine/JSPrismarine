@@ -110,7 +110,7 @@ for (const scenario of scenarios) {
         let writes = 0;
         const started = performance.now();
         for (let index = 0; index < OPERATIONS; index++) {
-            if (tickFurnace(content, scenario.entity, scenario.block)?.inventoryChanged) writes++;
+            if (tickFurnace(content, scenario.entity, scenario.block)?.changedSlots.length) writes++;
         }
         return {
             ms: performance.now() - started,

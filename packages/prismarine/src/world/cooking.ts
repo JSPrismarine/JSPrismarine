@@ -96,6 +96,7 @@ export const furnaceScreenData = (source: Furnace | NBTTagCompound): ReadonlyMap
 /** Java's `AbstractFurnaceBlockEntity` input and fuel slots. */
 const INPUT_SLOT = 0;
 const FUEL_SLOT = 1;
+const OUTPUT_SLOT = 2;
 
 /** Whether a loaded furnace has the input and fuel stacks required to leave the idle state. */
 const hasInputAndFuel = (furnace: Furnace): boolean => {
@@ -124,8 +125,8 @@ export interface FurnaceTick {
     readonly tags: NBTTagCompound;
     /** The block variant to use after the fuel timer advances. */
     readonly blockIdentifier: string;
-    /** Whether an input, fuel, or output stack changed. */
-    readonly inventoryChanged: boolean;
+    /** The input, fuel, and output slots whose stacks changed, in slot order; empty for none. */
+    readonly changedSlots: readonly number[];
 }
 
 /** Resolves a Bedrock item identifier and metadata to the Java item a recipe names. */
@@ -215,7 +216,7 @@ export const tickFurnace = (
     const context = cooker.station === 'smelting' ? DEFAULT_PROVIDER_CONTEXT : FAST_COOKING_CONTEXT;
     let cookTicks = tags.getShort('CookTime', 0);
     let burnDuration = tags.getShort('BurnDuration', 0);
-    let inventoryChanged = false;
+    const changedSlots: number[] = [];
     if (burnTime > 0) burnTime--;
 
     if (burnTime === 0 && canCook && fuel !== undefined) {
@@ -229,7 +230,7 @@ export const tickFurnace = (
             if (fuel.count > 1) items[1] = { ...fuel, count: fuel.count - 1 };
             else if (fuelId === 'minecraft:lava_bucket') items[1] = { identifier: 'minecraft:bucket', count: 1 };
             else items[1] = undefined;
-            inventoryChanged = true;
+            changedSlots.push(FUEL_SLOT);
         }
     }
 
@@ -251,7 +252,7 @@ export const tickFurnace = (
             items[0] = input !== undefined && input.count > 1 ? { ...input, count: input.count - 1 } : undefined;
             items[2] = output === undefined ? result : { ...output, count: output.count + result.count };
             cookTicks = 0;
-            inventoryChanged = true;
+            changedSlots.push(INPUT_SLOT, OUTPUT_SLOT);
         }
     } else {
         cookTicks = Math.max(0, cookTicks - 2);
@@ -265,6 +266,6 @@ export const tickFurnace = (
     return {
         tags,
         blockIdentifier: burnTime > 0 ? cooker.litIdentifier : cooker.unlitIdentifier,
-        inventoryChanged
+        changedSlots: changedSlots.sort((a, b) => a - b)
     };
 };

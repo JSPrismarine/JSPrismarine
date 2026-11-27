@@ -43,6 +43,7 @@ import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../player/createConnectedPlayer';
 import { sessionsWith } from '../testing/playerSession.test.helper';
 import type ContainerSetDataPacket from '@jsprismarine/protocol/bedrock/packet/ContainerSetDataPacket';
+import type InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { FURNACE_DATA_BURN_DURATION, FURNACE_DATA_BURN_REMAINING, FURNACE_DATA_COOK_TICKS } from '../world/cooking';
 import ItemStackRequestHandler from '../editions/bedrock/handler/ItemStackRequestHandler';
@@ -626,6 +627,75 @@ describe('a block container a player can put things in', () => {
 
         await level.disable();
     }, 120_000);
+
+    /**
+     * The tick takes the ore and puts the ingot in the output itself, so no `ItemStackResponse`
+     * tells the screen. The output slot stayed empty until the player closed the furnace and
+     * opened it again (#3748).
+     */
+    it('shows a player watching the furnace the item it finishes, without a reopen', async () => {
+        const scene = await buildScene('smelting-watched');
+        const { server, world, level, blocks } = scene;
+        const player = buildPlayer(world, server, 'Smelter');
+        await world.addPlayer(player);
+        await player.join();
+
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [
+                { identifier: 'minecraft:iron_ore', count: 2 },
+                { identifier: 'minecraft:coal', count: 2 },
+                undefined
+            ],
+            capacity: 3
+        });
+
+        await player.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(player, FURNACE, 'minecraft:furnace')
+        );
+        const windowId = player.getOpenBlockContainer()?.windowId;
+
+        const slotsSent = (): InventorySlotPacket[] =>
+            sentPackets
+                .filter(({ name }) => name === 'InventorySlotPacket')
+                .map(({ packet }) => packet as InventorySlotPacket)
+                .filter((packet) => packet.windowId === windowId);
+        const shown = (packet: InventorySlotPacket | undefined) =>
+            packet?.item === null || packet === undefined
+                ? undefined
+                : Item.fromStackDescriptor({ protocolVersion: 2193 }, packet.item);
+
+        // The first tick burns a coal, which the fuel slot has to show.
+        sentPackets.length = 0;
+        level.setTicks(1);
+        await world.update(1);
+        // The furnace screen's own container names, as the client numbers its three slots.
+        expect(slotsSent().map(({ containerId, inventorySlot }) => [containerId, inventorySlot])).toEqual([
+            [ContainerUiId.FURNACE_FUEL_CONTAINER, 1]
+        ]);
+        expect(slotsSent()[0]?.item?.stackSize).toBe(1);
+
+        sentPackets.length = 0;
+        for (let tick = 2; tick <= 200; tick++) {
+            level.setTicks(tick);
+            await world.update(tick);
+        }
+
+        const finished = slotsSent();
+        expect(finished.map(({ containerId, inventorySlot }) => [containerId, inventorySlot])).toEqual([
+            [ContainerUiId.FURNACE_INGREDIENT_CONTAINER, 0],
+            [ContainerUiId.FURNACE_RESULT_CONTAINER, 2]
+        ]);
+        expect(finished[0]?.item?.stackSize).toBe(1);
+        const ingot = shown(finished[1]);
+        expect(ingot?.getName()).toBe('minecraft:iron_ingot');
+        // Under an id, so the client can take the ingot out without reopening the screen.
+        expect(finished[1]?.item?.stackNetId).toBeGreaterThan(0);
+
+        await level.disable();
+    });
 
     it('addresses both halves of a double chest as one run of 54 slots', async () => {
         const scene = await buildScene('double');
