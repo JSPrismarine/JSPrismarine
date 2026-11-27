@@ -15,6 +15,7 @@ import type { LiveOffer, TradeStack } from '@jsprismarine/trading';
 
 import { itemStackToNbt } from '../../inventory/itemNbt';
 import type { StoredItemStack } from '../../inventory/persistence';
+import { hasStackComponents, stackComponentsOf } from '../../item/stackComponents';
 
 /** The first network id an offer is given; an offer's id is this plus its position in the list. */
 export const TRADE_NET_ID_BASE = 1;
@@ -33,6 +34,7 @@ export const storedTradeStack = (stack: TradeStack): StoredItemStack => {
     const aux = stack.components.get('minecraft:aux_value');
     const enchantments = stack.components.get('minecraft:enchantments');
     const mapId = stack.components.get('minecraft:map_id');
+    const others = stackComponentsOf(stack.components);
     return {
         name: stack.item,
         count: stack.count,
@@ -40,7 +42,8 @@ export const storedTradeStack = (stack: TradeStack): StoredItemStack => {
         ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(typeof enchantments === 'object' && enchantments !== null && !Array.isArray(enchantments)
             ? { enchantments: enchantments as Record<string, number> } // keys are Java enchantment ids by the function's contract
-            : {})
+            : {}),
+        ...(hasStackComponents(others) ? { components: others } : {})
     };
 };
 

@@ -15,6 +15,7 @@ import type { ServerContent } from '../../../content/ServerContent';
 import { addExperiencePoints } from '../../../entity/Experience';
 import type { StorePlayer } from '../../../entity/storePlayer';
 import { Item } from '../../../item/Item';
+import { stackComponentsOf } from '../../../item/stackComponents';
 import { tradeIndexOf } from '../tradeOffers';
 import type { OpenBlockContainer } from '../../../player/PlayerSession';
 
@@ -86,7 +87,8 @@ export const selectTrade = (
         ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {}),
         ...(typeof enchantments === 'object' && enchantments !== null
             ? { enchantments: enchantments as Record<string, number> } // keys are Java enchantment ids by the function's contract
-            : {})
+            : {}),
+        components: stackComponentsOf(give.components)
     });
 
     return {

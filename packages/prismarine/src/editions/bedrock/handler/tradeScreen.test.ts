@@ -29,7 +29,8 @@ import type { World } from '../../../world/World';
 import type { StoreActor } from '../../../entity/data/storeActors';
 import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer, OpenTrade, TradeSource } from '../../../player/PlayerSession';
-import { tradeNetIdOf } from '../tradeOffers';
+import { storedTradeStack, tradeNetIdOf } from '../tradeOffers';
+import { itemStackToNbt } from '../../../inventory/itemNbt';
 import { selectTrade } from './tradeScreen';
 import type { Trader } from './tradeScreen';
 import type PlayerSession from '../../../player/PlayerSession';
@@ -344,5 +345,57 @@ describe('an explorer map trade', () => {
         expect(selected?.stack.getName()).toBe('minecraft:filled_map');
         expect(selected?.stack.meta).toBe(3);
         expect(selected?.stack.getMapId()).toBe(6);
+    });
+});
+
+describe('a dyed armor trade', () => {
+    // A leatherworker's `set_random_dyes` writes `minecraft:dyed_color`, which the traded stack
+    // and the trade screen used to drop (#3531).
+    it('hands over the armor in the color its modifier drew, and shows it in that color', () => {
+        const tunic: TradeStack = {
+            item: 'minecraft:leather_chestplate',
+            count: 1,
+            components: new Map<string, unknown>([['minecraft:dyed_color', 0x3c44aa]])
+        };
+        const emeralds: TradeStack = { item: 'minecraft:emerald', count: 7, components: new Map() };
+        const live: LiveOffer = {
+            offer: {
+                tier: 3,
+                wants: [emeralds],
+                gives: [tunic],
+                priceMultipliers: [0.2],
+                traderExp: 10,
+                maxUses: 12,
+                rewardExp: true
+            },
+            uses: 0,
+            demand: 0,
+            available: true,
+            wants: [emeralds]
+        };
+        const open = stub<OpenBlockContainer>({
+            inputs: [new Item({ name: 'minecraft:emerald', count: 7 })],
+            trade: stub<OpenTrade>({
+                context: () => stub<TradeContext>(),
+                source: stub<TradeSource>({ offers: () => [live] })
+            })
+        });
+
+        const selected = selectTrade(
+            stub<Trader>(),
+            open,
+            tradeNetIdOf(0),
+            buildServerContent({
+                load: () => ({ definitions: definitionsOf({}), diagnostics: [] }),
+                blockPalette: fixtureBlockPalette(),
+                itemDefinitions: fixtureItemDefinitions()
+            })
+        );
+
+        expect(selected?.stack.getComponents()).toEqual({ 'minecraft:dyed_color': 0x3c44aa });
+        expect(storedTradeStack(tunic).components).toEqual({ 'minecraft:dyed_color': 0x3c44aa });
+        expect(itemStackToNbt(storedTradeStack(tunic)).getCompound('tag', false)?.getNumber('customColor', 0)).toBe(
+            0xff3c44aa | 0
+        );
     });
 });
