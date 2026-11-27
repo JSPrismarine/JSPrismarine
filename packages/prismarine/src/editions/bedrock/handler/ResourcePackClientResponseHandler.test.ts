@@ -186,6 +186,7 @@ const harness = ({
             getCraftingRecipeLimit: () => -1,
             getPacketCompressionLevel: () => 1,
             getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking,
+            getEducationFeatures: () => false,
             getKeepAliveIntervalMs: () => 15_000,
             getTexturepackRequired: () => true,
             getXboxAchievements: () => true

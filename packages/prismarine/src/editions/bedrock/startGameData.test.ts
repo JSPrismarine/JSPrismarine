@@ -66,13 +66,14 @@ const worldOf = (
     return world;
 };
 
-const startGameFor = (world: World, xboxAchievements = true) =>
+const startGameFor = (world: World, xboxAchievements = true, educationFeatures = false) =>
     createStartGameData({
         config: {
             getGamemode: () => 'survival',
             getDifficulty: () => 1,
             getServerAuthoritativeBlockBreaking: () => true,
-            getXboxAchievements: () => xboxAchievements
+            getXboxAchievements: () => xboxAchievements,
+            getEducationFeatures: () => educationFeatures
         },
         tick: 0,
         player: stub<PlayerSession>({
@@ -154,6 +155,17 @@ describe('startGameData', () => {
             const world = worldOf(Dimensions.Nether, NETHER, new Map([[NETHER_STEM_ID, NETHER]]));
 
             expect(startGameGenerator(world)).toBe(Generator.NETHER);
+        });
+    });
+
+    describe('education features', () => {
+        const stems = new Map([[OVERWORLD_STEM_ID, FLAT]]);
+
+        it('follows the education-features setting', () => {
+            const world = worldOf(Dimensions.Overworld, FLAT, stems);
+
+            expect(startGameFor(world).educationFeaturesEnabled).toBe(false);
+            expect(startGameFor(world, true, true).educationFeaturesEnabled).toBe(true);
         });
     });
 

@@ -108,6 +108,8 @@ const COMMENTS = {
     'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
     'server-authoritative-block-breaking':
         'Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.',
+    'education-features':
+        'Whether Bedrock clients join with Education Edition features on, as the Education toggle in world settings does.',
     'fluid-replacement':
         "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag, keeps flowing fluids out of waterloggable blocks and lets a water source waterlog one, bedrock follows each block's Bedrock liquid reaction.",
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
@@ -288,6 +290,7 @@ const DEFAULTS = {
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
     'server-authoritative-block-breaking': true,
+    'education-features': false,
     'fluid-replacement': DEFAULT_FLUID_REPLACEMENT,
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
@@ -481,6 +484,7 @@ export class Config {
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
     private serverAuthoritativeBlockBreaking: boolean = DEFAULTS['server-authoritative-block-breaking'];
+    private educationFeatures: boolean = DEFAULTS['education-features'];
     private fluidReplacement: string = DEFAULTS['fluid-replacement'];
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
@@ -647,6 +651,7 @@ export class Config {
             'server-authoritative-block-breaking',
             DEFAULTS['server-authoritative-block-breaking']
         );
+        this.educationFeatures = read('education-features', DEFAULTS['education-features']);
         this.fluidReplacement = read('fluid-replacement', DEFAULTS['fluid-replacement']);
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
@@ -1118,6 +1123,21 @@ export class Config {
      */
     public getServerAuthoritativeBlockBreaking(): boolean {
         return this.serverAuthoritativeBlockBreaking;
+    }
+
+    /**
+     * Whether Bedrock clients join with Education Edition features on.
+     *
+     * The setting fills `StartGame`'s `educationFeaturesEnabled`, the flag the Education toggle
+     * in a world's settings writes. The client then accepts Education content such as the
+     * chemistry blocks and items. Off, the default, matches a Bedrock Dedicated Server world.
+     * The server implements no Education behavior of its own: chemistry workbenches still open
+     * no screens.
+     *
+     * @returns Whether Education Edition features are on
+     */
+    public getEducationFeatures(): boolean {
+        return this.educationFeatures;
     }
 
     /**

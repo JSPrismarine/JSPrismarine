@@ -211,6 +211,16 @@ describe('config', () => {
             }
         });
 
+        it('leaves Education Edition features off unless config.json turns them on', async () => {
+            expect(config.getEducationFeatures()).toBe(false);
+
+            writeFileSync(path.join(configDirectory, 'config.json'), '{"education-features":true}');
+            const reconfigured = new Config();
+            await reconfigured.enable();
+
+            expect(reconfigured.getEducationFeatures()).toBe(true);
+        });
+
         it('should have online mode enabled by default', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
