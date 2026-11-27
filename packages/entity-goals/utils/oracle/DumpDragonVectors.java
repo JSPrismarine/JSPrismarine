@@ -1,4 +1,5 @@
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
@@ -15,6 +16,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -51,6 +53,9 @@ import net.minecraft.world.entity.boss.enderdragon.phases.DragonPhaseInstance;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
@@ -94,7 +99,8 @@ import sun.misc.Unsafe;
  * end node after the last one.
  *
  * The fight file records seeded fights. Each tick first lands the blows a fight's {@link Blows}
- * deal the dragon, through `EnderDragonPart.hurtServer` as a player's attack does. It then runs
+ * deal the dragon, through `EnderDragonPart.hurtServer` as a player's attack or an arrow does,
+ * and records the velocity a blow that knocked the dragon back left it with. It then runs
  * `Entity.commonTick` and `Entity.tick` on the dragon, as a `ServerLevel` ticks an entity, and
  * `commonTick` and `baseTick` on each standing entity, which keeps the clocks the dragon reads
  * (age, hurt time, damage cooldown, who last hurt it) without moving it. Each tick records the
@@ -124,6 +130,7 @@ public final class DumpDragonVectors {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         loadVanillaData();
+        bindArrowComponents();
         java.nio.file.Path out = java.nio.file.Path.of(args[0]);
         Files.writeString(out.resolve("dragon-nodes.json"), nodes(), StandardCharsets.UTF_8);
         Files.writeString(out.resolve("dragon-fights.json"), fights(), StandardCharsets.UTF_8);
@@ -145,6 +152,17 @@ public final class DumpDragonVectors {
             registries = RegistryDataLoader.load(resources, lookups, RegistryDataLoader.WORLD_REGISTRIES, Runnable::run).join();
             tags.forEach(Registry.PendingTags::apply);
         }
+    }
+
+    /**
+     * An item stack reads its item's components, which only a loaded server binds. The oracle's
+     * arrows carry an arrow stack as their pickup item, and nothing a blow does reads its
+     * components, so the arrow item gets empty ones.
+     */
+    private static void bindArrowComponents() throws ReflectiveOperationException {
+        Method bind = Holder.Reference.class.getDeclaredMethod("bindComponents", DataComponentMap.class);
+        bind.setAccessible(true);
+        bind.invoke(Items.ARROW.builtInRegistryHolder(), DataComponentMap.EMPTY);
     }
 
     // The level.
@@ -691,10 +709,12 @@ public final class DumpDragonVectors {
 
     /**
      * Blows at the dragon: {@link #SITTING_BLOWS} while it sits, a player's with an explosion and the
-     * first zombie's bite among them, and an explosion on the body and one on the head 25 ticks
-     * apart while it flies over the first 300 ticks. A player's blow knocks a flying dragon back,
-     * which the port leaves to the server, and an explosion knocks back nothing. The blows stop
-     * while the dragon has less than 40 health, so the fight never kills it.
+     * first zombie's bite among them, and while it flies over the first 300 ticks an explosion on
+     * the body, a player's blow to the head and an arrow in the body, each 50 ticks apart. The
+     * player's blow and the arrow knock the flying dragon back, which the server does and the
+     * fight records as the velocity each blow left, and an explosion with no position knocks back
+     * nothing. The blows stop while the dragon has less than 40 health, so the fight never kills
+     * it.
      */
     private static final Blows BLOWS_AT_THE_DRAGON = (tick, dragon) -> {
         if (dragon.getHealth() < 40) return List.of();
@@ -703,9 +723,13 @@ public final class DumpDragonVectors {
         }
         if (tick >= 300) return List.of();
         if (tick % 50 == 0) return List.of(new Blow("body", "explosion", 8));
-        if (tick % 50 == 25) return List.of(new Blow("head", "explosion", 4));
+        if (tick % 50 == 20) return List.of(new Blow("head", "player", 4));
+        if (tick % 50 == 35) return List.of(new Blow("body", "arrow", 6));
         return List.of();
     };
+
+    /** How fast the oracle's arrows fly, in blocks a tick. */
+    private static final double ARROW_SPEED = 3;
 
     private static EnderDragonPart part(final EnderDragon dragon, final String name) {
         String[] names = { "head", "neck", "body", "tail1", "tail2", "tail3", "wing1", "wing2" };
@@ -713,11 +737,23 @@ public final class DumpDragonVectors {
         throw new IllegalArgumentException(name);
     }
 
-    private static DamageSource source(final OracleLevel level, final String source) {
+    /**
+     * The damage source of a blow. An arrow is the first player's, standing where the player
+     * stands and flying at the dragon at {@link #ARROW_SPEED}, so its knockback, which follows the
+     * arrow's flight, pushes the dragon away from the player.
+     */
+    private static DamageSource source(final OracleLevel level, final String source, final EnderDragon dragon) {
+        Player player = level.oraclePlayers.getFirst();
         return switch (source) {
-            case "player" -> level.damageSources().playerAttack(level.oraclePlayers.getFirst());
+            case "player" -> level.damageSources().playerAttack(player);
             case "zombie" -> level.damageSources().mobAttack(level.standing.get(level.oraclePlayers.size()));
             case "explosion" -> level.damageSources().explosion(null, null);
+            case "arrow" -> {
+                Arrow arrow = new Arrow(level, player.getX(), player.getEyeY(), player.getZ(), new ItemStack(Items.ARROW), null);
+                arrow.setOwner(player);
+                arrow.setDeltaMovement(dragon.position().subtract(arrow.position()).normalize().scale(ARROW_SPEED));
+                yield level.damageSources().arrow(arrow, player);
+            }
             default -> throw new IllegalArgumentException(source);
         };
     }
@@ -887,16 +923,23 @@ public final class DumpDragonVectors {
         List<String> targets = new ArrayList<>();
         List<String> spawns = new ArrayList<>();
         List<String> hits = new ArrayList<>();
+        List<String> knocks = new ArrayList<>();
         List<String> forgets = new ArrayList<>();
         List<Integer> walls = new ArrayList<>();
         Vec3 lastTarget = null;
         for (int tick = 0; tick < fight.ticks; tick++) {
             level.tick = tick;
             draws.tick = tick;
+            Vec3 unknocked = dragon.getDeltaMovement();
             for (Blow blow : fight.blows.at(tick, dragon)) {
-                boolean took = part(dragon, blow.part).hurtServer(level, source(level, blow.source), blow.damage);
+                boolean took = part(dragon, blow.part).hurtServer(level, source(level, blow.source, dragon), blow.damage);
                 hits.add("[" + tick + ", \"" + blow.part + "\", \"" + blow.source + "\", " + num(blow.damage) + ", " + took + ", "
                     + num(dragon.getHealth()) + "]");
+            }
+            Vec3 knocked = dragon.getDeltaMovement();
+            if (!knocked.equals(unknocked)) {
+                knocks.add("[" + tick + ", " + num(unknocked.x) + ", " + num(unknocked.y) + ", " + num(unknocked.z) + ", "
+                    + num(knocked.x) + ", " + num(knocked.y) + ", " + num(knocked.z) + "]");
             }
             int spawnedBefore = level.spawned.size();
             dragon.commonTick();
@@ -951,6 +994,7 @@ public final class DumpDragonVectors {
         json.append("\"blows\": [").append(String.join(", ", level.blows)).append("],\n");
         json.append("\"forgets\": [").append(String.join(", ", forgets)).append("],\n");
         json.append("\"hits\": [").append(String.join(", ", hits)).append("],\n");
+        json.append("\"knocks\": [").append(String.join(", ", knocks)).append("],\n");
         json.append("\"sights\": [").append(String.join(", ", dragon.sights)).append("],\n");
         json.append("\"draws\": [").append(String.join(", ", draws.rows)).append("],\n");
         json.append("\"uncopiedDraws\": {");

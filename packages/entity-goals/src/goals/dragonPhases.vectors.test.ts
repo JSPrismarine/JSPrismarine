@@ -124,7 +124,8 @@ interface Divergence {
  * the port makes that Java did not, since every tick after that one would differ too.
  *
  * The world answers as Java's did: the blocks of the fight's layout with their tags, the players
- * and the zombies with their hitboxes, the blows Java dealt the dragon as the health it left, each
+ * and the zombies with their hitboxes, the blows Java dealt the dragon as the health it left and,
+ * for one that knocked it back, as the velocity it left, which the server works out, each
  * line of sight as Java's `hasLineOfSight` answered it, and for each standing entity the blow its
  * `getLastHurtByMob` remembers, as Java's own `hurtServer` and `baseTick` left it after each blow
  * the port deals and each tick.
@@ -189,6 +190,9 @@ const fly = (fight: Fight): Divergence | undefined => {
     };
     const [originX = 0, originY = 0, originZ = 0] = fight.origin;
     let yaw: number | undefined;
+    // The dragon's velocity as the last move left it, which Java's dragon starts at zero.
+    let velocity: EntityPosition = { x: 0, y: 0, z: 0 };
+    const knocks = new Map(fight.knocks.map(([at = 0, ...row]) => [at, row]));
     let attackTarget: GoalMob | undefined;
     const world: GoalWorld = {
         gameTime: () => tick,
@@ -212,10 +216,12 @@ const fly = (fight: Fight): Divergence | undefined => {
         setTarget: (mob) => {
             attackTarget = mob;
         },
-        moveSelf: (position, facing) => {
+        moveSelf: (position, facing, _pitch, moved) => {
             if (harness !== undefined) harness.actuator.at = position;
             yaw = facing;
+            if (moved !== undefined) velocity = moved;
         },
+        velocity: () => velocity,
         shoot: (_target, projectile) => {
             spawned.push([tick, projectile ?? 'nothing']);
         },
@@ -293,6 +299,13 @@ const fly = (fight: Fight): Divergence | undefined => {
         }
         const health = healthAfter.get(tick);
         if (typeof health === 'number') harness.entity.attributes.set('health', health);
+        // A blow that knocked Java's dragon back found it flying as the port's last move left it.
+        const knock = knocks.get(tick);
+        if (knock !== undefined) {
+            const [beforeX, beforeY, beforeZ, x = 0, y = 0, z = 0] = knock;
+            differ('velocity before the blow', [beforeX, beforeY, beforeZ], [velocity.x, velocity.y, velocity.z]);
+            velocity = { x, y, z };
+        }
         harness.tick();
         const phase: DragonPhaseName = harness.entity.componentState.get(dragonPhaseState)?.phase ?? 'holding_pattern';
         const at = here();
@@ -376,6 +389,18 @@ describe("the ender dragon's flight against Java's", () => {
                     fight.phase[tick] === phaseId('takeoff')
             )
         ).toBe(true);
+        // A player's blow and an arrow knock the flying dragon back, and nothing knocks back a
+        // sitting one.
+        for (const source of ['player', 'arrow'])
+            expect(
+                hits.some(
+                    ({ fight, hit: [tick, , hitSource] }) =>
+                        hitSource === source && fight.knocks.some(([at]) => at === tick)
+                )
+            ).toBe(true);
+        expect(
+            fights.some((fight) => fight.knocks.some(([tick = 0]) => sitting.includes(fight.phase[tick - 1] ?? -1)))
+        ).toBe(false);
         // A dragon takes off after its fourth flame.
         expect(
             fights.some((fight) =>

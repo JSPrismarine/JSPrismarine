@@ -16,7 +16,9 @@
  *
  * The dragon flies by its own rules, as Java's `noPhysics` dragon does: the manager moves it
  * through {@link GoalWorld.moveSelf}, and its yaw is reported in the convention every other mob
- * uses, which is Java's dragon `yRot` turned half a circle.
+ * uses, which is Java's dragon `yRot` turned half a circle. Its velocity is the entity's, which
+ * the move hands back to the world and the next tick reads from {@link GoalWorld.velocity}, so a
+ * blow that knocks the dragon back between two ticks changes its flight as Java's knockback does.
  *
  * The arithmetic follows Java's to the bit: `float` where Java computes in `float`, Java's table
  * sine and `atan2`, and its binary heap's order among equal costs. `dragonPhases.vectors.test.ts`
@@ -402,6 +404,7 @@ class DragonPhases {
         this.takeSittingDamage();
 
         const from = this.support.position();
+        this.velocity = this.support.world.velocity?.() ?? this.velocity;
         this.yRot = wrapDegreesFloat(this.yRot);
         this.record(from.y);
         // Java flies by the phase instance whose server tick ran last, even when that tick moved
@@ -1216,9 +1219,9 @@ class DragonPhases {
         this.blocked = inWall;
     }
 
-    /** Puts the dragon where the flight took it, facing the way it flies. */
+    /** Puts the dragon where the flight took it, facing the way it flies, with the velocity it flies on. */
     private place(at: EntityPosition): void {
-        this.support.world.moveSelf?.(at, wrapDegrees(this.yRot + 180), 0);
+        this.support.world.moveSelf?.(at, wrapDegrees(this.yRot + 180), 0, this.velocity);
     }
 
     // The fight's geometry.
