@@ -14,7 +14,7 @@ import { isWater } from '../identifiers';
 import { isHoneycomb, isIgniter } from '../rules/heldItem';
 import { placedRotationSegment } from '../rules/javaPlacement';
 import { placementFacing, placementLookingVertical } from '../rules/placement';
-import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
+import { breakBlock, isAttachedToward, popWithoutAttachment, popWithoutSupport } from '../rules/support';
 import { hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
 import type { HorizontalFace } from '../geometry';
 import type { WorldActions } from '../world';
@@ -44,10 +44,35 @@ export const torchSupport = (facing: string): BlockFace => TORCH_SUPPORT[facing]
 /** How many candles fit in one block. */
 export const MAX_CANDLES = 4;
 
+/**
+ * Pops a sign or banner its Java survival rule no longer holds: a standing one needs a block
+ * below it and a wall one a block behind it that Java calls solid, and a ceiling hanging sign the
+ * center of the underside above it. A wall hanging sign hangs on whatever it was placed against,
+ * since Java's never checks again.
+ *
+ * @javaSource StandingSignBlock.canSurvive
+ * @javaSource WallSignBlock.canSurvive
+ * @javaSource CeilingHangingSignBlock.canSurvive
+ * @javaSource BannerBlock.canSurvive
+ * @javaSource WallBannerBlock.canSurvive
+ */
+const popSignWithoutSupport = (world: WorldActions, block: HookBlock): void => {
+    if (block.identifier.endsWith('_hanging_sign')) {
+        if (stateBoolean(block, 'hanging')) popWithoutAttachment(world, block, 'up', 'center');
+        return;
+    }
+    if (hasState(block, 'facing_direction')) {
+        const face = faceOfFacingDirection(stateNumber(block, 'facing_direction'));
+        if (face !== undefined) popWithoutAttachment(world, block, opposite(face), 'solid');
+        return;
+    }
+    popWithoutAttachment(world, block, 'down', 'solid');
+};
+
 /** Signs: a block entity of text, editable until honeycomb waxes it. */
 export const signFamily = defineFamily(
     'jsprismarine:sign',
-    'Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a wall sign whose backing block goes.',
+    'Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a sign whose solid ground or wall goes, or a hanging sign whose ceiling stops holding its center.',
     {
         onPlace: (event, world) => {
             world.setBlockData(event.block.position, { text: ['', '', '', ''], sealed: false });
@@ -64,16 +89,7 @@ export const signFamily = defineFamily(
             return true;
         },
         onNeighborChanged: (event, world) => {
-            if (hasState(event.block, 'facing_direction')) {
-                const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
-                if (face !== undefined) popWithoutSupport(world, event.block, opposite(face));
-                return;
-            }
-            if (stateBoolean(event.block, 'hanging')) {
-                popWithoutSupport(world, event.block, 'up');
-                return;
-            }
-            popWithoutSupport(world, event.block);
+            popSignWithoutSupport(world, event.block);
         },
         onBreak: (event, world) => {
             dropSelf(world, event.brokenBlock);
@@ -84,18 +100,13 @@ export const signFamily = defineFamily(
 /** Banners, which are a sign's shape with a pattern list instead of text. */
 export const bannerFamily = defineFamily(
     'jsprismarine:banner',
-    'Keeps the base color and patterns in a block entity and pops when its support goes.',
+    'Keeps the base color and patterns in a block entity and pops when the solid block it stands on or hangs against goes.',
     {
         onPlace: (event, world) => {
             world.setBlockData(event.block.position, { patterns: [] });
         },
         onNeighborChanged: (event, world) => {
-            if (hasState(event.block, 'facing_direction')) {
-                const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
-                if (face !== undefined) popWithoutSupport(world, event.block, opposite(face));
-                return;
-            }
-            popWithoutSupport(world, event.block);
+            popSignWithoutSupport(world, event.block);
         },
         onBreak: (event, world) => {
             dropSelf(world, event.brokenBlock);
@@ -271,11 +282,20 @@ export const torchFamily = defineFamily(
 );
 
 /**
+ * Whether a lantern survives hanging from the block above or standing on the one below: the face
+ * of that block toward the lantern holds it at its center.
+ *
+ * @javaSource LanternBlock.canSurvive
+ * @javaVerified vectors
+ */
+const lanternHeldToward = (world: WorldActions, block: HookBlock, toward: 'up' | 'down'): boolean =>
+    isAttachedToward(world, block.position, toward, 'center');
+
+/**
  * Whether a lantern hangs, Java's `LanternBlock.getStateForPlacement`: it tries the block it was
  * placed against first when that is above or below, then the vertical direction the placer looks
- * nearest to, hanging when the one tried is up, and takes the first of the two with a block to
- * hold it. A placement that replaced the clicked block, such as short grass, goes by the look
- * alone.
+ * nearest to, hanging when the one tried is up, and takes the first of the two that holds it. A
+ * placement that replaced the clicked block, such as short grass, goes by the look alone.
  *
  * @returns Undefined when neither the block above nor the one below can hold it.
  * @javaSource LanternBlock.getStateForPlacement
@@ -283,7 +303,7 @@ export const torchFamily = defineFamily(
  */
 const placedLanternHanging = (world: WorldActions, block: HookBlock, looking: 'up' | 'down'): boolean | undefined => {
     const order: readonly ('up' | 'down')[] = looking === 'up' ? ['up', 'down'] : ['down', 'up'];
-    const support = order.find((face) => isSolidSupport(world, offset(block.position, face)));
+    const support = order.find((face) => lanternHeldToward(world, block, face));
     return support === undefined ? undefined : support === 'up';
 };
 
@@ -305,7 +325,7 @@ export const lanternFamily = defineFamily(
             if (hanging !== undefined) setStates(world, event.block, { hanging });
         },
         onNeighborChanged: (event, world) => {
-            popWithoutSupport(world, event.block, stateBoolean(event.block, 'hanging') ? 'up' : 'down');
+            popWithoutAttachment(world, event.block, stateBoolean(event.block, 'hanging') ? 'up' : 'down', 'center');
         },
         onPlayerInteract: waxOrScrapeHandler,
         onRandomTick: (event, world) => {

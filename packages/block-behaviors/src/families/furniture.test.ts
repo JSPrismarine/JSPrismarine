@@ -47,6 +47,24 @@ describe('signFamily', () => {
         expect(harness.interact(block)).toBeUndefined();
     });
 
+    it('keeps a ceiling hanging sign under the block it hangs from when a side changes', () => {
+        const harness = bindFamily(signFamily, 'minecraft:oak_hanging_sign');
+        harness.dimension.set({ ...block, y: block.y + 1 }, 'minecraft:stone');
+        harness.dimension.set(block, 'minecraft:oak_hanging_sign', {
+            hanging: 1,
+            attached_bit: 0,
+            facing_direction: facingDirectionOf('south'),
+            ground_sign_direction: 0
+        });
+
+        harness.neighborChanged(block, 'north');
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:oak_hanging_sign');
+
+        harness.dimension.set({ ...block, y: block.y + 1 }, AIR);
+        harness.neighborChanged(block, 'up');
+        expect(harness.dimension.identifierAt(block)).toBe(AIR);
+    });
+
     it('pops a wall sign whose backing block goes', () => {
         const harness = bindFamily(signFamily, 'minecraft:wall_sign');
         harness.dimension.set(block, 'minecraft:wall_sign', { facing_direction: facingDirectionOf('south') });

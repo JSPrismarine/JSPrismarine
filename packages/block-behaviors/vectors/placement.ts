@@ -8,7 +8,8 @@
  * look, the neighbors, whether the position holds water, and whether the placer sneaks. The
  * neighbors go into a voxel world as the Bedrock blocks they map to, answering what the port asks
  * of them, how a piston treats them, whether they are full cubes and whether their tops are
- * sturdy, from Java's own answers. The placement runs and the Bedrock block it puts down is
+ * sturdy, from Java's own answers, and whether they are solid and which of their faces are sturdy
+ * from the support table the server's block world reads. The placement runs and the Bedrock block it puts down is
  * compared with the one Java's answer maps to. Comparing in Bedrock's palette is what the server
  * writes, and it leaves out `waterlogged`, which Bedrock keeps in the position's second layer
  * rather than in the block's state.
@@ -20,7 +21,8 @@
  * their placement guard; for those the port may answer with the state Java's rule returned.
  */
 import type { BlockFace, BlockPosition, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
-import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import type { SupportType } from '@jsprismarine/mapping';
+import { bedrockBlockSupportOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
 import type { BlockFamily } from '../src/family';
 import { containerFamily, pairedPosition } from '../src/families/containers';
@@ -157,7 +159,8 @@ const keyOf = (position: BlockPosition): string => `${position.x},${position.y},
 /**
  * Fills a dimension with a placement's neighbors and what stands at the position, as the dumper
  * does, and teaches it Java's facts about each: its push reaction through the block properties,
- * and its full cube and sturdy top through the two questions a voxel world cannot answer itself.
+ * its full cube and sturdy top through the two questions a voxel world cannot answer itself, and
+ * its solid flag and sturdy faces from the mapping's support table, as the server answers them.
  */
 const fillLayout = (
     dimension: VoxelDimension,
@@ -191,9 +194,13 @@ const fillLayout = (
     }
     if (here !== undefined) put(at, here);
     const factOf = (block: HookBlock): Facts | undefined => known.get(keyOf(block.position));
+    const supportOf = (block: HookBlock) => bedrockBlockSupportOf(block.identifier, block.states);
     Object.assign(dimension, {
         isFullCube: (block: HookBlock) => factOf(block)?.fullCube ?? false,
-        hasSturdyTopFace: (block: HookBlock) => factOf(block)?.sturdyTop ?? false
+        hasSturdyTopFace: (block: HookBlock) => factOf(block)?.sturdyTop ?? false,
+        isSolid: (block: HookBlock) => supportOf(block)?.solid ?? false,
+        isFaceSturdy: (block: HookBlock, side: BlockFace, type: SupportType) =>
+            supportOf(block)?.isFaceSturdy(side, type) ?? false
     });
     // A redstone block powers the blocks beside it, which the server's world reports and a voxel
     // world only reports when told.
@@ -397,28 +404,8 @@ export interface PlacementGap {
     readonly covers: (placement: Placement) => boolean;
 }
 
-/** Whether a placement's support is a block of the kind being placed. */
-const supportedByItsOwnKind = ({ layout }: Placement): boolean =>
-    [layout.clicked, layout.around].some((name) => name === 'self' || name === 'self-facing');
-
 /** The differences from Java the vectors show that stay open, each with the issue tracking it. */
-export const PLACEMENT_GAPS: readonly PlacementGap[] = [
-    {
-        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3786',
-        reason: "The port's support test reads push reaction and full cubes, where Java asks each block's survival rule, so a sign, ladder, bell, lantern, grindstone or coral fan against one of its own kind is placed where Java refuses it or refused where Java places it.",
-        classes: [
-            'BannerBlock',
-            'BaseCoralPlantTypeBlock',
-            'BaseCoralWallFanBlock',
-            'BellBlock',
-            'FaceAttachedHorizontalDirectionalBlock',
-            'LadderBlock',
-            'LanternBlock',
-            'StandingSignBlock'
-        ],
-        covers: supportedByItsOwnKind
-    }
-];
+export const PLACEMENT_GAPS: readonly PlacementGap[] = [];
 
 /** The open gap a mismatch falls under, or undefined for one no gap explains. */
 export const placementGapOf = (group: PlacementGroup, mismatch: PlacementMismatch): PlacementGap | undefined =>

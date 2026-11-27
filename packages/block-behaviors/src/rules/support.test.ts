@@ -1,9 +1,17 @@
-import type { BlockPosition } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
 import { AIR } from '../identifiers';
 import { createVoxelWorld } from '../voxelWorld';
-import { breakBlock, isSolidSupport, popBlock, popWithoutGround, popWithoutSupport } from './support';
+import {
+    breakBlock,
+    isAttachedToward,
+    isSolidSupport,
+    popBlock,
+    popWithoutAttachment,
+    popWithoutGround,
+    popWithoutSupport
+} from './support';
 
 const origin = { x: 0, y: 1, z: 0 };
 const below = { x: 0, y: 0, z: 0 };
@@ -104,5 +112,45 @@ describe('popWithoutGround', () => {
         world.set(below, 'minecraft:stone');
 
         expect(popWithoutGround(world, world.block(origin), new Set(['farmland']))).toBe(true);
+    });
+});
+
+/** A world whose fences are solid with a sturdy center on top and no full face anywhere. */
+const fenceWorld = () =>
+    Object.assign(createVoxelWorld().overworld, {
+        isSolid: (block: HookBlock) => block.identifier !== AIR,
+        isFaceSturdy: (block: HookBlock, face: BlockFace, type: string) =>
+            block.identifier === 'minecraft:stone' || (face === 'up' && type === 'center')
+    });
+
+describe('isAttachedToward', () => {
+    it("asks the host for the face toward the position, by the block's need", () => {
+        const world = fenceWorld();
+        world.set(below, 'minecraft:oak_fence');
+
+        expect(isAttachedToward(world, origin, 'down', 'center')).toBe(true);
+        expect(isAttachedToward(world, origin, 'down', 'full')).toBe(false);
+        expect(isAttachedToward(world, origin, 'down', 'solid')).toBe(true);
+        expect(isAttachedToward(world, origin, 'up', 'solid')).toBe(false);
+    });
+
+    it('falls back to the push reaction test for a host without the hooks', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(below, 'minecraft:stone');
+
+        expect(isAttachedToward(world, origin, 'down', 'center')).toBe(true);
+        expect(isAttachedToward(world, origin, 'north', 'full')).toBe(false);
+    });
+});
+
+describe('popWithoutAttachment', () => {
+    it('keeps a block its holder gives what it needs and pops one it does not', () => {
+        const world = fenceWorld();
+        world.set(below, 'minecraft:oak_fence');
+        world.set(origin, 'minecraft:lantern');
+
+        expect(popWithoutAttachment(world, world.block(origin), 'down', 'center')).toBe(false);
+        expect(popWithoutAttachment(world, world.block(origin), 'down', 'full')).toBe(true);
+        expect(world.identifierAt(origin)).toBe(AIR);
     });
 });

@@ -35,7 +35,7 @@ import {
     wireSignal
 } from '../rules/redstone';
 import { placementFacing } from '../rules/placement';
-import { attachmentFaceOf, isSolidSupport, popWithoutSupport } from '../rules/support';
+import { attachmentFaceOf, isSolidSupport, popWithoutAttachment, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
 import type { BlockWorld, WorldActions } from '../world';
 import { cardinalFacing } from './openable';
@@ -568,7 +568,7 @@ export const redstoneFamily = defineFamily(
             }
             if (name === 'lever') {
                 const support = leverSupportFace(block);
-                if (popWithoutSupport(world, block, support)) return;
+                if (popWithoutAttachment(world, block, support, 'full')) return;
                 world.notifyNeighbors(offset(block.position, support));
                 return;
             }
@@ -620,14 +620,15 @@ export const redstoneFamily = defineFamily(
                 return;
             }
 
-            // Java's tripwire hook needs the wall behind the way it faces, and a bell the floor,
-            // ceiling or wall it stands, hangs or is mounted on.
+            // Java's tripwire hook needs a sturdy face on the wall behind the way it faces, and a
+            // bell a sturdy face on the floor or wall it stands or is mounted on, or a sturdy
+            // center on the ceiling it hangs from.
             if (name === 'tripwire_hook') {
                 const facing = CARDINAL_DIRECTIONS[stateNumber(block, 'direction')];
                 if (
                     facing !== undefined &&
                     event.face === opposite(facing) &&
-                    popWithoutSupport(world, block, opposite(facing))
+                    popWithoutAttachment(world, block, opposite(facing), 'full')
                 )
                     return;
             }
@@ -639,7 +640,12 @@ export const redstoneFamily = defineFamily(
                     attachment === 'side' || attachment === 'multiple'
                         ? COMPASS_DIRECTIONS[stateNumber(block, 'direction')]
                         : attachmentFaceOf(block, false);
-                if (attached !== undefined && event.face === attached && popWithoutSupport(world, block, attached))
+                const needs = attached === 'up' ? 'center' : 'full';
+                if (
+                    attached !== undefined &&
+                    event.face === attached &&
+                    popWithoutAttachment(world, block, attached, needs)
+                )
                     return;
             }
 
@@ -652,7 +658,7 @@ export const redstoneFamily = defineFamily(
             }
 
             if (name === 'lever') {
-                popWithoutSupport(world, block, leverSupportFace(block));
+                popWithoutAttachment(world, block, leverSupportFace(block), 'full');
                 return;
             }
 
@@ -854,7 +860,7 @@ export const buttonFamily = defineFamily(
             const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
             if (face === undefined) return;
             const support = opposite(face);
-            if (popWithoutSupport(world, event.block, support)) return;
+            if (popWithoutAttachment(world, event.block, support, 'full')) return;
             world.notifyNeighbors(offset(event.block.position, support));
         },
         onTick: (event, world) => {
@@ -865,7 +871,7 @@ export const buttonFamily = defineFamily(
         },
         onNeighborChanged: (event, world) => {
             const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
-            if (face !== undefined) popWithoutSupport(world, event.block, opposite(face));
+            if (face !== undefined) popWithoutAttachment(world, event.block, opposite(face), 'full');
         }
     }
 );

@@ -33,7 +33,7 @@ one. It is a `BlockWorld`, described below.
 
 | Group | Methods |
 | --- | --- |
-| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasBlockTag`, `hasSturdyTopFace`, `isSolid` |
+| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasBlockTag`, `hasSturdyTopFace`, `isSolid`, `isFaceSturdy` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick(position, delay, kind?, priority?)`, `willTickThisTick` |
@@ -50,7 +50,12 @@ fire odds in a permutation. Fire uses the loaded `minecraft:infiniburn_*` block 
 fuel keeps it burning forever. `hasSturdyTopFace` lets the host answer from the block's collision
 shape. `isSolid` answers Java's legacy solid flag, which a new fluid source asks of the block below
 it and a portal of its floor; a host without it gets the full cube test for fluids and the push
-reaction test for portals. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
+reaction test for portals. `isFaceSturdy(block, face, type)` answers Java's face sturdiness for a
+full, center or rigid support. With the two, a placed or neighboring sign, banner, ladder, bell,
+lantern, lever, button, tripwire hook or coral fan follows its own Java survival rule: a sign wants a
+solid block, a ladder a sturdy face toward it, a lantern a sturdy center. A host without
+`isFaceSturdy` gets `hasSturdyTopFace` for a top face, `isFullCube` for a bottom one and the push
+reaction test for the rest. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
 `onBreak` and rolls Java's loot table for it, where this package would otherwise have to guess that
 the block drops one of itself. It is optional, and a host that leaves it out gets that guess, which
 is what the test voxel world does. Fire passes `drops: false` so a burned block leaves no loot while
@@ -189,8 +194,10 @@ whose look and sneak flag the program sets, with the vanilla block tags bound fr
 
 The dump also records what the port's world is asked about each neighbor: its push reaction,
 whether it is a full cube and whether its top is sturdy. `vectors/placement.ts` builds each layout
-in a voxel world that gives those answers, places the block through the port, and compares the
-Bedrock block it puts down with the one Java's answer maps to. A rule's own Java state is compared
+in a voxel world that gives those answers, and answers whether a neighbor is solid and which of its
+faces are sturdy from the support table in `@jsprismarine/mapping`, as the server does. It places
+the block through the port and compares the Bedrock block it puts down with the one Java's answer
+maps to. A rule's own Java state is compared
 too, for what Bedrock keeps elsewhere, such as a head's rotation. Blocks that answer every placement
 alike share one entry, and the test places each of them. `PLACEMENT_GAPS` lists the differences that
 stay open, each with its issue, and the parity suite's `placement-vectors` row shows them.

@@ -9,6 +9,7 @@
  * a family asks about.
  */
 import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
+import type { SupportType } from '@jsprismarine/mapping';
 
 import { CARDINAL_DIRECTIONS, offset, opposite } from '../geometry';
 import { stateNumber, stateString } from '../state';
@@ -36,6 +37,74 @@ export const isSolidAt = (world: WorldActions, position: BlockPosition): boolean
     const block = world.getBlock(position);
     if (block === undefined) return false;
     return world.isSolid?.(block) ?? isSolidSupport(world, position);
+};
+
+/**
+ * What a block asks of the block it hangs on, sits on or leans on, by its Java survival rule:
+ * the legacy solid flag (`solid`, a sign or a banner), or a sturdy face of one support type.
+ */
+export type AttachmentNeed = 'solid' | SupportType;
+
+/**
+ * Whether one face of the block at a position is sturdy for a support type, Java's
+ * `BlockStateBase.isFaceSturdy`. A host without {@link WorldActions.isFaceSturdy} answers a top face
+ * by {@link WorldActions.hasSturdyTopFace} and a bottom face by {@link WorldActions.isFullCube},
+ * each on top of {@link isSolidSupport}, and any face it cannot answer by {@link isSolidSupport}.
+ *
+ * @param face - The face of the block at `position`, such as `up` for what stands on it.
+ * @javaSee BlockBehaviour$BlockStateBase.isFaceSturdy(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/block/SupportType;)Z
+ */
+export const isFaceSturdyAt = (
+    world: WorldActions,
+    position: BlockPosition,
+    face: BlockFace,
+    type: SupportType = 'full'
+): boolean => {
+    const block = world.getBlock(position);
+    if (block === undefined) return false;
+    const sturdy = world.isFaceSturdy?.(block, face, type);
+    if (sturdy !== undefined) return sturdy;
+    const shaped =
+        face === 'up' ? world.hasSturdyTopFace?.(block) : face === 'down' ? world.isFullCube?.(block) : undefined;
+    return (shaped ?? true) && isSolidSupport(world, position);
+};
+
+/**
+ * Whether the block across one face of a position holds a block there that needs `needs`: Java's
+ * solid flag for `solid`, otherwise the face of that block turned toward the position being
+ * sturdy for the support type, as `FaceAttachedHorizontalDirectionalBlock.canAttach` and
+ * `Block.canSupportCenter` ask.
+ *
+ * @param toward - The side of `position` the holding block is on, `down` for the ground.
+ * @javaSource FaceAttachedHorizontalDirectionalBlock.canAttach
+ * @javaSource Block.canSupportCenter
+ * @javaVerified vectors
+ */
+export const isAttachedToward = (
+    world: WorldActions,
+    position: BlockPosition,
+    toward: BlockFace,
+    needs: AttachmentNeed
+): boolean => {
+    const holder = offset(position, toward);
+    return needs === 'solid' ? isSolidAt(world, holder) : isFaceSturdyAt(world, holder, opposite(toward), needs);
+};
+
+/**
+ * Breaks a block whose Java survival rule no longer holds: the block it attaches to across
+ * `toward` stopped giving it what {@link AttachmentNeed} it has.
+ *
+ * @returns True when the block popped.
+ */
+export const popWithoutAttachment = (
+    world: WorldActions,
+    block: HookBlock,
+    toward: BlockFace,
+    needs: AttachmentNeed
+): boolean => {
+    if (isAttachedToward(world, block.position, toward, needs)) return false;
+    popBlock(world, block);
+    return true;
 };
 
 /** Removes a block, drops what it leaves behind and tells its neighbors. */

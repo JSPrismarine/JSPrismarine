@@ -20,6 +20,7 @@ import type {
 } from '@jsprismarine/blocks';
 import { blockProperties } from '@jsprismarine/blocks';
 import { BlockBehaviorsErrors } from '@jsprismarine/errors/block-behaviors';
+import type { SupportType } from '@jsprismarine/mapping';
 
 import type { HorizontalFace } from './geometry';
 
@@ -286,6 +287,17 @@ export interface WorldActions {
      * @javaSee BlockBehaviour$BlockStateBase.isSolid
      */
     isSolid?(block: HookBlock): boolean;
+    /**
+     * Whether a face of this block holds what a support type needs, Java's
+     * `BlockStateBase.isFaceSturdy`: the whole face (`full`), a post in its middle (`center`) or
+     * its rim (`rigid`). `face` is the side of `block` the supported block is on. A ladder, a lever
+     * or a coral wall fan asks for a full face, a lantern or a hanging bell for a center. A host
+     * without it answers by {@link hasSturdyTopFace} for a top face and {@link isFullCube} for a
+     * bottom one, and otherwise by whether the block is something a piston would not pop.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isFaceSturdy(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/block/SupportType;)Z
+     */
+    isFaceSturdy?(block: HookBlock, face: BlockFace, type: SupportType): boolean;
     /**
      * Whether two neighboring blocks' collision shapes together close the face between them, Java's
      * `Shapes.mergedFaceOccludes`, which decides where a fluid may pass. `face` is the side of
