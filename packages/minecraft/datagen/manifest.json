@@ -324,7 +324,9 @@
         "DisconnectReason": "DisconnectFailReason",
         "EnchantType": "Enchant::Type",
         "ArmorSlot": "SharedTypes::Legacy::ArmorSlot",
-        "PlayerRespawnState": "PlayerRespawnState"
+        "PlayerRespawnState": "PlayerRespawnState",
+        "ActorType": "ActorType",
+        "ActorDamageCause": "SharedTypes::Legacy::ActorDamageCause"
     },
     "unmapped": {
         "$comment": [
