@@ -25,6 +25,7 @@ import { join } from './java-scenarios/join.mts';
 import { mining } from './java-scenarios/mining.mts';
 import { placing } from './java-scenarios/placing.mts';
 import { respawn } from './java-scenarios/respawn.mts';
+import { tpsBar } from './java-scenarios/tpsBar.mts';
 
 /** What a Java scenario is given: the server, its Java port and the client, connected to nothing yet. */
 export interface JavaScenarioContext {
@@ -36,6 +37,8 @@ export interface JavaScenarioContext {
 /** One Java Edition scenario. */
 export interface JavaScenario {
     readonly name: string;
+    /** What the scenario's server needs beyond a Java port, such as the addons it loads. */
+    readonly serverOptions?: { readonly addons?: readonly string[] };
     run(context: JavaScenarioContext): Promise<void>;
 }
 
@@ -49,7 +52,8 @@ const SCENARIOS: readonly JavaScenario[] = [
     inventory,
     placing,
     respawn,
-    dimensions
+    dimensions,
+    tpsBar
 ];
 
 /** A TCP port nothing listens on. */
@@ -75,7 +79,7 @@ for (const scenario of chosen) {
     const javaPort = await freeTcpPort();
     let server: JspServer;
     try {
-        server = await startServer({ javaPort });
+        server = await startServer({ ...scenario.serverOptions, javaPort });
     } catch (error) {
         failed += 1;
         console.log(`FAIL ${scenario.name}: ${error instanceof Error ? error.message : String(error)}`);
