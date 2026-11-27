@@ -1,0 +1,1688 @@
+{
+    "$comment": [
+        "What the pinned Bedrock Dedicated Server sends as StartGamePacket.blockProperties for the blocks of",
+        "scenarios/pack-blocks/, as nbtToPlain reads each definition.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand."
+    ],
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "blocks": {
+        "parity:bones_1_20_80": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10020",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_21_100": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10017",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_21_110": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10031",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_21_130": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10010",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_21_80": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10024",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_21_90": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10040",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_26_0": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10008",
+                "material": "string:dirt"
+            }
+        },
+        "parity:bones_1_26_60": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "hidden": "string:0.000000",
+                        "shown": "string:1.000000",
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10038",
+                "material": "string:dirt"
+            }
+        },
+        "parity:collision_false": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10034",
+                "material": "string:dirt"
+            }
+        },
+        "parity:collision_true": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:1"
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10035",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_20_80": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10028",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_21_100": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10016",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_21_110": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10029",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_21_130": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10025",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_21_80": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10021",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_21_90": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10032",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_26_0": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10042",
+                "material": "string:dirt"
+            }
+        },
+        "parity:cross_1_26_60": {
+            "components": {
+                "minecraft:collision_box": {
+                    "boxes": [],
+                    "enabled": "byte:0"
+                },
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.cross",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:alpha_test",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                },
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10014",
+                "material": "string:dirt"
+            }
+        },
+        "parity:declared_block_id": {
+            "components": {
+                "minecraft:destructible_by_mining": {
+                    "value": "float:1"
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10023",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_13_0": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:0",
+            "vanilla_block_data": {
+                "block_id": "int:10000",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_17_0": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:1",
+            "vanilla_block_data": {
+                "block_id": "int:10001",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_18_20": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:6",
+            "vanilla_block_data": {
+                "block_id": "int:10002",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_20_60": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:11",
+            "vanilla_block_data": {
+                "block_id": "int:10003",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_20_70": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10004",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_21_100": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:13",
+            "vanilla_block_data": {
+                "block_id": "int:10005",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_21_90": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10006",
+                "material": "string:dirt"
+            }
+        },
+        "parity:engine_1_26_60": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {
+                        "state": "string:q.block_state('x') == 1"
+                    },
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:geometry.parity",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:13",
+            "vanilla_block_data": {
+                "block_id": "int:10007",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_20_80": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10015",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_21_100": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10011",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_21_110": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10019",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_21_130": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10013",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_21_80": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10030",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_21_90": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10037",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_26_0": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10041",
+                "material": "string:dirt"
+            }
+        },
+        "parity:full_1_26_60": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block",
+                    "ignoreGeometryForIsSolid": "byte:0",
+                    "isV1Fullblock": "byte:0",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:5",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10012",
+                "material": "string:dirt"
+            }
+        },
+        "parity:material_isotropic": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:3",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10022",
+                "material": "string:dirt"
+            }
+        },
+        "parity:material_no_dimming": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:1",
+                            "packed_bools": "byte:0",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10036",
+                "material": "string:dirt"
+            }
+        },
+        "parity:material_no_occlusion": {
+            "components": {
+                "minecraft:geometry": {
+                    "bone_visibility": {},
+                    "culling": "string:",
+                    "culling_layer": "string:minecraft:culling_layer.undefined",
+                    "culling_shape": "string:",
+                    "identifier": "string:minecraft:geometry.full_block_v1",
+                    "ignoreGeometryForIsSolid": "byte:1",
+                    "isV1Fullblock": "byte:1",
+                    "needsLegacyTopRotation": "byte:0",
+                    "useBlockTypeLightAbsorption": "byte:0",
+                    "uv_lock": "byte:0"
+                },
+                "minecraft:material_instances": {
+                    "mappings": {},
+                    "materials": {
+                        "*": {
+                            "ambient_occlusion": "float:0",
+                            "packed_bools": "byte:1",
+                            "render_method": "string:opaque",
+                            "texture": "string:stone",
+                            "tint_method": "string:none"
+                        }
+                    }
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10018",
+                "material": "string:dirt"
+            }
+        },
+        "parity:plain": {
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10033",
+                "material": "string:dirt"
+            }
+        },
+        "parity:selection_custom": {
+            "components": {
+                "minecraft:selection_box": {
+                    "enabled": "byte:1",
+                    "origin": [
+                        "float:-4",
+                        "float:0",
+                        "float:-4"
+                    ],
+                    "size": [
+                        "float:8",
+                        "float:8",
+                        "float:8"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10027",
+                "material": "string:dirt"
+            }
+        },
+        "parity:selection_false": {
+            "components": {
+                "minecraft:selection_box": {
+                    "enabled": "byte:0",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10026",
+                "material": "string:dirt"
+            }
+        },
+        "parity:selection_true": {
+            "components": {
+                "minecraft:selection_box": {
+                    "enabled": "byte:1",
+                    "origin": [
+                        "float:-8",
+                        "float:0",
+                        "float:-8"
+                    ],
+                    "size": [
+                        "float:16",
+                        "float:16",
+                        "float:16"
+                    ]
+                }
+            },
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10009",
+                "material": "string:dirt"
+            }
+        },
+        "parity:tags_only": {
+            "blockTags": [
+                "string:parity:marked"
+            ],
+            "menu_category": {
+                "category": "string:construction",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10039",
+                "material": "string:dirt"
+            }
+        }
+    }
+}

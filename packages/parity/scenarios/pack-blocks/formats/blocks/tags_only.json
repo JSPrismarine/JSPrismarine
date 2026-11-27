@@ -1,0 +1,14 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "parity:tags_only",
+            "menu_category": {
+                "category": "construction"
+            }
+        },
+        "components": {
+            "minecraft:tags": ["parity:marked"]
+        }
+    }
+}
