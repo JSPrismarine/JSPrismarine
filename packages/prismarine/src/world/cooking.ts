@@ -5,7 +5,6 @@ import {
     DEFAULT_PROVIDER_CONTEXT,
     evaluateNumberProvider,
     FAST_COOKING_CONTEXT,
-    itemTypesTable,
     speedMultiplierOf
 } from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
@@ -15,6 +14,7 @@ import { Furnace } from '../blockentity/BlockEntities';
 import type { BlockEntity } from '../blockentity/BlockEntity';
 import { applyBlockEntityRecord, blockEntityRecord } from '../blockentity/contentRecord';
 import type { ServerContent } from '../content/ServerContent';
+import { javaItemIdOf } from '../crafting/javaItemId';
 import { isRecord } from '../utils/isRecord';
 import type { Random } from '../utils/Random';
 
@@ -219,19 +219,6 @@ export interface FurnaceTick {
     /** The input, fuel, and output slots whose stacks changed, in slot order; empty for none. */
     readonly changedSlots: readonly number[];
 }
-
-/** Resolves a Bedrock item identifier and metadata to the Java item a recipe names. */
-const javaItemIdOf = (identifier: string, meta = 0): string | undefined => {
-    const row = itemTypesTable.items[identifier];
-    if (row === undefined) return identifier.startsWith('minecraft:') ? undefined : identifier;
-
-    const merged = row.merged?.find((variant) => variant.data === meta);
-    if (merged !== undefined) return merged.java;
-    if (row.merged !== undefined && row.data !== undefined && row.data !== meta) return undefined;
-    if (row.merged !== undefined && row.data === undefined && meta !== 0) return undefined;
-
-    return row.java;
-};
 
 /** The Bedrock stack a Java cooking recipe produces, if its result maps. */
 const outputOf = (content: ServerContent, javaId: string, count: number): ItemDrop | undefined => {
