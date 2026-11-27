@@ -46,7 +46,16 @@ export interface FetchOptions {
     env?: Record<string, string | undefined>;
     /** Download function. Defaults to the global `fetch`. */
     fetchImpl?: typeof fetch;
+    /** How long to wait before each retry of a failed download. Defaults to {@link RETRY_DELAYS_MS}. */
+    retryDelaysMs?: readonly number[];
 }
+
+/**
+ * The waits before each retry of a download that failed on the network or with a server error.
+ * A CI runner once timed out connecting to Mojang's CDN, and the executable build, which fetches
+ * the Java server jar first, failed on that one attempt.
+ */
+export const RETRY_DELAYS_MS: readonly number[] = [2_000, 5_000, 15_000];
 
 /** Where a source's verified content ended up. */
 export interface FetchedSource {
@@ -98,12 +107,54 @@ const readMarker = async (markerPath: string): Promise<FetchMarker | undefined> 
 export const isSourceCached = async (descriptor: SourceDescriptor, cacheRoot: string): Promise<boolean> =>
     markerMatches(await readMarker(join(cacheRoot, descriptor.name, descriptor.version, MARKER_FILE)), descriptor);
 
-const download = async (url: string, destination: string, fetchImpl: typeof fetch): Promise<void> => {
-    const response = await fetchImpl(url, { headers: { 'user-agent': DOWNLOAD_USER_AGENT }, redirect: 'follow' });
-    if (!response.ok || response.body === null) {
-        throw new Error(`Download failed for ${url}: HTTP ${response.status}`);
+/** A server error or a rate limit, which a later attempt may not meet. */
+const retryableStatus = (status: number): boolean => status === 429 || status >= 500;
+
+/** A download that failed in a way another attempt can fix. */
+class RetryableDownloadError extends Error {}
+
+const downloadOnce = async (url: string, destination: string, fetchImpl: typeof fetch): Promise<void> => {
+    let response: Response;
+    try {
+        response = await fetchImpl(url, { headers: { 'user-agent': DOWNLOAD_USER_AGENT }, redirect: 'follow' });
+    } catch (error: unknown) {
+        // Undici reports a connection that failed or timed out as a TypeError, "fetch failed".
+        if (error instanceof TypeError)
+            throw new RetryableDownloadError(`Download failed for ${url}`, { cause: error });
+        throw error;
     }
-    await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
+    if (!response.ok || response.body === null) {
+        const message = `Download failed for ${url}: HTTP ${response.status}`;
+        throw retryableStatus(response.status) ? new RetryableDownloadError(message) : new Error(message);
+    }
+    try {
+        await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
+    } catch (error: unknown) {
+        // The connection dropped partway; the next attempt writes the file from the start.
+        if (error instanceof TypeError)
+            throw new RetryableDownloadError(`Download of ${url} was cut off`, { cause: error });
+        throw error;
+    }
+};
+
+const download = async (
+    url: string,
+    destination: string,
+    fetchImpl: typeof fetch,
+    retryDelaysMs: readonly number[]
+): Promise<void> => {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await downloadOnce(url, destination, fetchImpl);
+        } catch (error: unknown) {
+            const delay = retryDelaysMs[attempt];
+            if (!(error instanceof RetryableDownloadError) || delay === undefined) throw error;
+            console.warn(
+                `${error.message}; trying again in ${delay / 1000} s (${attempt + 1}/${retryDelaysMs.length})`
+            );
+            await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+    }
 };
 
 /**
@@ -153,7 +204,7 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
     // writes its own part file and unpacks into its own directory, and only finished results are
     // renamed into place.
     const partPath = `${archivePath}.${process.pid}.part`;
-    await download(descriptor.url, partPath, fetchImpl);
+    await download(descriptor.url, partPath, fetchImpl, options.retryDelaysMs ?? RETRY_DELAYS_MS);
 
     const actual = await hashFile(partPath, descriptor.hash.algorithm);
     if (actual !== descriptor.hash.value) {

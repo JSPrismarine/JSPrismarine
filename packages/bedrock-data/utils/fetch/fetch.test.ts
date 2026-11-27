@@ -3,8 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32 } from 'node:zlib';
 import { createHash } from 'node:crypto';
+import { createServer } from 'node:http';
+import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { bedrockServerPath } from './bds.ts';
 import { fetchSource, hashSourceContent, isSourceCached, resolveContentRoot, sourceCachePath } from './fetch.ts';
@@ -77,6 +79,44 @@ const stubFetch = (body: Buffer) => {
 const failingFetch: typeof fetch = async () => {
     throw new Error('network access not expected in this test');
 };
+
+/** How the local server answers one request. */
+type Answer = (request: IncomingMessage, response: ServerResponse) => void;
+
+/** Closes the connection without a response, which `fetch` reports as a network failure. */
+const drop: Answer = (request) => request.socket.destroy();
+const status =
+    (code: number): Answer =>
+    (_request, response) =>
+        response.writeHead(code).end();
+const body =
+    (bytes: Buffer): Answer =>
+    (_request, response) =>
+        response.writeHead(200).end(bytes);
+
+const servers: Server[] = [];
+
+/**
+ * Starts an HTTP server on a free local port that answers each request with the next answer.
+ * @param answers - One answer per request, in order.
+ * @returns The URL to fetch and how many requests reached the server.
+ */
+const serveInTurn = async (answers: readonly Answer[]) => {
+    let count = 0;
+    const server = createServer((request, response) => {
+        const answer = answers[count++] ?? status(500);
+        answer(request, response);
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address !== null ? address.port : 0;
+    return { url: `http://127.0.0.1:${port}/sample.zip`, requests: () => count };
+};
+
+afterEach(async () => {
+    await Promise.all(servers.splice(0).map((server) => new Promise((resolve) => server.close(resolve))));
+});
 
 let dir: string;
 
@@ -153,6 +193,43 @@ describe('fetchSource', () => {
         await expect(
             fetchSource(archiveDescriptor('0'.repeat(64)), { cacheRoot, env: {}, fetchImpl: failingFetch })
         ).rejects.toThrow(/network access not expected/);
+    });
+
+    it('tries a download again after the network or the server fails it', async () => {
+        const zip = buildZip({ 'pack/a.txt': 'alpha' });
+        // The first connection is dropped, as a timed-out one fails, the second gets a 503.
+        const { url, requests } = await serveInTurn([drop, status(503), body(zip)]);
+        const warn = vi.spyOn(console, 'warn');
+        const fetched = await fetchSource(
+            { ...archiveDescriptor(sha256(zip)), url },
+            { cacheRoot: join(dir, 'cache'), env: {}, retryDelaysMs: [0, 0, 0] }
+        );
+        expect(requests()).toBe(3);
+        expect(warn).toHaveBeenCalledTimes(2);
+        warn.mockRestore();
+        await expect(readFile(join(fetched.contentPath, 'pack/a.txt'), 'utf8')).resolves.toBe('alpha');
+    });
+
+    it('gives up once every retry has failed', async () => {
+        const { url, requests } = await serveInTurn([drop, drop, drop]);
+        await expect(
+            fetchSource(
+                { ...archiveDescriptor('0'.repeat(64)), url },
+                { cacheRoot: join(dir, 'cache'), env: {}, retryDelaysMs: [0, 0] }
+            )
+        ).rejects.toThrow(/Download failed/);
+        expect(requests()).toBe(3);
+    });
+
+    it('never retries a refusal', async () => {
+        const { url, requests } = await serveInTurn([status(404), body(Buffer.from('unused'))]);
+        await expect(
+            fetchSource(
+                { ...archiveDescriptor('0'.repeat(64)), url },
+                { cacheRoot: join(dir, 'cache'), env: {}, retryDelaysMs: [0, 0] }
+            )
+        ).rejects.toThrow(/HTTP 404/);
+        expect(requests()).toBe(1);
     });
 
     it('uses the environment override without touching the network', async () => {
