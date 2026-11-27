@@ -1,4 +1,6 @@
 import type { ComponentEntry, Diagnostic } from '@jsprismarine/content';
+import type { MolangVersion } from '@jsprismarine/molang';
+import { LATEST_MOLANG_VERSION, molangVersionFor } from '@jsprismarine/molang';
 import type { FormatVersion } from '@jsprismarine/packs';
 import { parseVersion, selectSchemaVersion } from '@jsprismarine/packs';
 
@@ -180,6 +182,11 @@ export interface BlockPermutation {
 export interface BlockDefinitionDocument {
     /** The file's own `format_version`. */
     readonly formatVersion: FormatVersion;
+    /**
+     * The Molang version its permutation conditions and bone visibility are written in, from its
+     * pack's `min_engine_version`; the latest when the pack declares none.
+     */
+    readonly molangVersion: MolangVersion;
     /** The schema `format_version` dispatch chose for it. */
     readonly schema: BlockSchema;
     readonly description: BlockDescription;
@@ -203,6 +210,8 @@ export interface BlockParseSource {
     readonly pack: string;
     /** The pack-relative path of the file. */
     readonly path?: string;
+    /** The pack's `min_engine_version`, which versions the file's Molang. */
+    readonly minEngineVersion?: FormatVersion;
 }
 
 const isStateValue = (value: unknown): value is BlockStateValue =>
@@ -390,6 +399,10 @@ export const parseBlockDefinition = (data: unknown, source: BlockParseSource): B
     return {
         document: {
             formatVersion,
+            molangVersion:
+                source.minEngineVersion === undefined
+                    ? LATEST_MOLANG_VERSION
+                    : molangVersionFor(source.minEngineVersion),
             schema,
             description: {
                 identifier,

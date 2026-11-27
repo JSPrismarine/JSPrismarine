@@ -144,8 +144,9 @@ by this package: `minecraft:sixteen_way_rotation` is `0` through `15`, and
 `minecraft:corner_and_cardinal_direction` adds both `minecraft:cardinal_direction` and
 `minecraft:corner`.
 
-Permutations are evaluated per state. Each condition compiles once through `@jsprismarine/molang`
-and runs against a scope whose only member is `block.blockState`, which is the whole of what the
+Permutations are evaluated per state. Each condition compiles once through `@jsprismarine/molang`,
+under the Molang version of the block's pack, which the parsed document records as
+`molangVersion`, and runs against a scope whose only member is `block.blockState`, which is the whole of what the
 docs allow in a condition. The components of every matching permutation apply over the base list in
 declaration order with the later entry winning, which is Mojang's rule, and each one carries
 `override` so `HookTable` replaces rather than appends. States that match the same permutations
