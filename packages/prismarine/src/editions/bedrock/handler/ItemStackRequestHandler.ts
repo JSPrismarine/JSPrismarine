@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import { itemTypesTable } from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { CraftingData, ItemStackData } from '@jsprismarine/protocol';
 import type { RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
@@ -10,6 +9,7 @@ import { WindowTypes } from '@jsprismarine/minecraft';
 import type PlayerSession from '../../../player/PlayerSession';
 import { advancementItemCrafted } from '../../../advancement/triggers';
 import CraftingInput from '../../../crafting/CraftingInput';
+import { javaItemIdOf } from '../../../crafting/javaItemId';
 import { ARMOR_SLOTS } from '../../../inventory/EntityInventory';
 import type HumanInventory from '../../../inventory/HumanInventory';
 import type { ItemContainer } from '../../../inventory/ItemContainer';
@@ -287,23 +287,8 @@ const splitOff = (item: Item, count: number): Item => {
 
 /** Resolves a Bedrock stack's name and legacy data back to its Java recipe identity. */
 const javaStackOf = (item: Item): RecipeItemStack | undefined => {
-    let id = item.getName();
-    if (id.startsWith('minecraft:')) {
-        const row = itemTypesTable.items[id];
-        if (row === undefined) return undefined;
-
-        const merged = row.merged?.find((variant) => variant.data === item.meta);
-        if (merged !== undefined) id = merged.java;
-        else {
-            // `data` on a uniquely named Bedrock item is its legacy wire value, not a
-            // selector: birch planks remain birch planks even when the content stack's
-            // metadata is zero. Only a shared identifier needs metadata to identify a
-            // different Java item.
-            if (row.merged !== undefined && row.data !== undefined && row.data !== item.meta) return undefined;
-            if (row.merged !== undefined && row.data === undefined && item.meta !== 0) return undefined;
-            id = row.java;
-        }
-    }
+    const id = javaItemIdOf(item.getName(), item.meta);
+    if (id === undefined) return undefined;
 
     const components = Object.fromEntries(item.asPredicateStack().components);
     return {
