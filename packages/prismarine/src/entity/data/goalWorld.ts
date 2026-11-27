@@ -13,6 +13,7 @@
  * sleep.
  */
 import { canEntityAttack, canEntityAttackView, isShareablesParams } from '@jsprismarine/entities';
+import { removedBlockOf } from '@jsprismarine/block-behaviors/rules/fluid';
 import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
@@ -368,6 +369,17 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
                 { identifier: mapped.bedrock.name, states: mapped.bedrock.states },
                 true
             );
+        },
+        removeBlock: (position) => {
+            const at = blockPositionOf(position);
+            const { blocks } = scene.world;
+            const block = blocks.get(at);
+            const liquid = blocks.liquid?.(at);
+            const left = block === undefined ? undefined : removedBlockOf(block, liquid);
+            if (left === undefined) return false;
+            if (liquid !== undefined) blocks.setLiquid?.(at, undefined);
+            blocks.set(at, left, true);
+            return true;
         },
         setDoorOpen: (position, open) => setDoorOpen(scene.world.blocks, blockPositionOf(position), open),
         horizontalCollision: () => entity.horizontalCollision,

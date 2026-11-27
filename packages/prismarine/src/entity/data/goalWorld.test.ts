@@ -225,6 +225,49 @@ describe('the goal world over the entity runtime', () => {
         });
     });
 
+    describe('removing a block', () => {
+        it("leaves the fluid a block held, as Java's Level.removeBlock does", () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const mob = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const goals = goalWorldOf(mob.body, fixture.runtime);
+            const slab = { x: 1, y: FLOOR_Y + 3, z: 0 };
+            const water = { x: 2, y: FLOOR_Y + 3, z: 0 };
+            const falling = { x: 3, y: FLOOR_Y + 3, z: 0 };
+            const kelp = { x: 4, y: FLOOR_Y + 3, z: 0 };
+            const stone = { x: 5, y: FLOOR_Y + 3, z: 0 };
+            world.setBlock(slab, 'minecraft:oak_slab', { 'minecraft:vertical_half': 'bottom', top_slot_bit: false });
+            world.setLiquid(slab, { identifier: 'minecraft:water', states: { liquid_depth: 0 } });
+            world.setBlock(water, 'minecraft:water', { liquid_depth: 0 });
+            world.setBlock(falling, 'minecraft:flowing_water', { liquid_depth: 12 });
+            world.setBlock(kelp, 'minecraft:kelp', { kelp_age: 0 });
+            world.setBlock(stone, 'minecraft:stone');
+
+            expect([slab, water, falling, kelp, stone].map((at) => goals.removeBlock(at))).toEqual([
+                true,
+                false,
+                true,
+                true,
+                true
+            ]);
+            expect(world.world.blocks.get(slab)).toEqual({
+                identifier: 'minecraft:water',
+                states: { liquid_depth: 0 }
+            });
+            expect(world.liquidAt(slab)).toBeUndefined();
+            expect(world.world.blocks.get(water)).toEqual({
+                identifier: 'minecraft:water',
+                states: { liquid_depth: 0 }
+            });
+            expect(world.world.blocks.get(falling)?.states).toEqual({ liquid_depth: 8 });
+            expect(world.world.blocks.get(kelp)).toEqual({
+                identifier: 'minecraft:water',
+                states: { liquid_depth: 0 }
+            });
+            expect(world.world.blocks.get(stone)?.identifier).toBe('minecraft:air');
+        });
+    });
+
     describe('Java block states', () => {
         it('reads and writes a block as Java names it, telling a cave vine under another from the tip', () => {
             const world = new TestEntityWorld();

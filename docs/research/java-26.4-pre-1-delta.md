@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 770 | 97 | 10 | 663 |
+| 772 | 97 | 10 | 665 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -569,7 +569,7 @@ Tagged at `packages/block-behaviors/src/geometry.ts:101`.
 
 #### `Blocks.SNOW`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:9026`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:9034`.
 
 ```diff
     ldc float 0.6000000238418579
@@ -707,7 +707,7 @@ Tagged at `packages/prismarine/src/entity/data/poi.ts:85`.
 
 #### `BodyRotationControl.clientTick`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:425`.
+Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:428`.
 
 ```diff
     fconst_0
@@ -720,7 +720,7 @@ Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:425`.
 
 #### `BubbleColumnBlock.getFluidState`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8936`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8944`.
 
 ```diff
   method net/minecraft/world/level/block/BubbleColumnBlock.getFluidState(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/material/FluidState;
@@ -1131,7 +1131,7 @@ Tagged at `packages/block-behaviors/src/families/redstone.ts:525`.
 
 #### `DragonSittingScanningPhase.doServerTick`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:865`.
+Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:868`.
 
 ```diff
     ldc2_w double -100
@@ -1355,7 +1355,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:609`.
 
 #### `EnderDragon.aiStep`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:1005`, `packages/entity-goals/src/goals/dragonPhases.ts:1064`, `packages/entity-goals/src/goals/dragonPhases.ts:1103`.
+Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:1008`, `packages/entity-goals/src/goals/dragonPhases.ts:1067`, `packages/entity-goals/src/goals/dragonPhases.ts:1106`.
 
 ```diff
     invokevirtual net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.getCurrentPhase ()Lnet/minecraft/world/entity/boss/enderdragon/phases/DragonPhaseInstance;
@@ -1453,7 +1453,7 @@ Tagged at `packages/entity-goals/src/goals/dragonNodes.ts:232`.
 
 #### `Enderman.teleport(DDD)Z`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8472`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8480`.
 
 ```diff
     istore 8
@@ -1702,7 +1702,7 @@ Tagged at `packages/prismarine/src/entity/data/eyeOfEnderSignals.ts:267`.
 
 #### `FallingBlockEntity.tick`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8039`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8047`.
 
 ```diff
     invokevirtual net/minecraft/world/level/Level.getFluidState (Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;
@@ -1750,7 +1750,7 @@ Tagged at `packages/prismarine/src/item/componentTags.ts:31`.
 
 #### `FlowingFluid.getSpread`
 
-Tagged at `packages/block-behaviors/src/rules/fluid.ts:477`.
+Tagged at `packages/block-behaviors/src/rules/fluid.ts:510`.
 
 ```diff
     sipush 1000
@@ -2081,7 +2081,7 @@ Tagged at `packages/block-behaviors/src/families/furniture.ts:301`.
 
 #### `Leashable.tickLeash`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:2390`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:2391`.
 
 ```diff
     astore_3
@@ -2207,7 +2207,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:613`.
 
 #### `LivingEntity.aiStep`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7246`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7254`.
 
 ```diff
     aload_0
@@ -2357,7 +2357,7 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:539`.
 
 #### `LivingEntity.handleOnClimbable`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8760`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8768`.
 
 ```diff
     ldc2_w double -0.15000000596046448
@@ -2377,7 +2377,7 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8760`.
 
 #### `LivingEntity.hurtServer`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4258`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4265`.
 
 ```diff
     aload_2
@@ -2446,7 +2446,7 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4258`.
 
 #### `LivingEntity.tick`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:380`, `packages/prismarine/src/entity/data/EntityRuntime.ts:4150`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:380`, `packages/prismarine/src/entity/data/EntityRuntime.ts:4157`.
 
 ```diff
     return
@@ -3468,7 +3468,7 @@ Tagged at `packages/prismarine/src/world/Generator.ts:274`.
 
 #### `SulfurCube.knockback`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4300`, `packages/prismarine/src/entity/data/sulfurCubeKnockback.ts:117`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4308`, `packages/prismarine/src/entity/data/sulfurCubeKnockback.ts:117`.
 
 ```diff
     fload 14
@@ -3782,7 +3782,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:628`.
 
 #### `Warden$VibrationUser.onReceiveVibration`
 
-Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:3246`.
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:3249`.
 
 ```diff
     aload_2
@@ -3891,9 +3891,9 @@ Tagged at `packages/entity-goals/src/goals/movement.ts:2274`.
 - `BlocksAttacks.resolveBlockedDamage`, tagged at `packages/prismarine/src/entity/data/itemBlocking.ts:65`: resolves to net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;, not net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F. The closest 26.4-pre-1 member is `net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;`.
 - `ClientboundHelloPacket.STREAM_CODEC`, tagged at `packages/protocol/src/java/packet/login.ts:30`: the jar holds no class ClientboundHelloPacket.
 - `ClientboundLoginCompressionPacket.STREAM_CODEC`, tagged at `packages/protocol/src/java/packet/login.ts:50`: the jar holds no class ClientboundLoginCompressionPacket.
-- `Entity.checkFallDamage`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7279`: resolves to net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V, not net/minecraft/world/entity/Entity.checkFallDamage(DZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V`.
+- `Entity.checkFallDamage`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7287`: resolves to net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V, not net/minecraft/world/entity/Entity.checkFallDamage(DZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V`.
 - `ItemCommands.applyModifier`, tagged at `packages/prismarine/src/command/host/inventory.ts:291`: resolves to net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;, not net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator;. The closest 26.4-pre-1 member is `net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;`.
-- `LivingEntity.applyItemBlocking`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4399`: resolves to net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;, not net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)F. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;`.
+- `LivingEntity.applyItemBlocking`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4407`: resolves to net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;, not net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)F. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;`.
 - `LivingEntity.jumpInLiquid`, tagged at `packages/prismarine/src/entity/data/DataEntity.ts:133`: resolves to net/minecraft/world/entity/LivingEntity.jumpInLiquid(Ljava/util/List;)V, not net/minecraft/world/entity/LivingEntity.jumpInLiquid(Lnet/minecraft/tags/TagKey;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.jumpInLiquid(Ljava/util/List;)V`.
 - `net/minecraft/server/commands/ExecuteCommand.countItems`, tagged at `packages/prismarine/src/command/host/slotSource.ts:159`: resolves to net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$SlotResult;Ljava/util/function/Predicate;)I, not net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$Result;Ljava/util/function/Predicate;)I. The closest 26.4-pre-1 member is `net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$SlotResult;Ljava/util/function/Predicate;)I`.
 

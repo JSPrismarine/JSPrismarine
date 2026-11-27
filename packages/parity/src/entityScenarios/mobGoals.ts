@@ -574,6 +574,45 @@ const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     probe.world.drops.length > drops && 'the blocks it broke dropped items'
                 ]);
             })
+    },
+    {
+        name: 'dragon-walls-fluids',
+        java: 'A dragon that flies through a waterlogged block leaves its water where the block stood, and leaves a water block as it is.',
+        reference: `Java EnderDragon.checkWalls (level.removeBlock(pos, false)) and Level.removeBlock (setBlock(pos, getFluidState(pos).createLegacyBlock(), 3)); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:physics'],
+        run: (subject) =>
+            withDragon(subject, 'dragonholdingpattern', 'holding_pattern', (probe) => {
+                probe.entity.position = probe.at(0, 4, 0);
+                const cell = (x: number, y: number, z: number) => {
+                    const at = probe.at(x, y, z);
+                    return { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
+                };
+                const water = { identifier: 'minecraft:water', states: { liquid_depth: 0 } };
+                const slab = cell(1, 5, 1);
+                const pool = cell(-1, 5, 1);
+                probe.block(1, 5, 1, 'minecraft:oak_slab', {
+                    'minecraft:vertical_half': 'bottom',
+                    top_slot_bit: false
+                });
+                probe.world.setLiquid(slab, water);
+                probe.block(-1, 5, 1, water.identifier, water.states);
+                probe.tick();
+                const left = { slab: probe.blockAt(1, 5, 1), pool: probe.blockAt(-1, 5, 1) };
+                const stillWet = probe.world.liquidAt(slab) !== undefined;
+                for (const at of [slab, pool]) probe.world.setLiquid(at, undefined);
+                probe.block(1, 5, 1, 'minecraft:air');
+                probe.block(-1, 5, 1, 'minecraft:air');
+                return differences([
+                    left.slab === 'minecraft:oak_slab' && 'it flew through a waterlogged slab without breaking it',
+                    left.slab !== 'minecraft:oak_slab' &&
+                        left.slab !== 'minecraft:water' &&
+                        `it left ${String(left.slab)} where a waterlogged slab stood, where Java leaves its water`,
+                    left.slab === 'minecraft:water' && stillWet && 'the water it left kept a second water layer',
+                    left.pool !== 'minecraft:water' && `it turned a water block into ${String(left.pool)}`
+                ]);
+            })
     }
 ];
 
