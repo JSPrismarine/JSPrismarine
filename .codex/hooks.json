@@ -6,7 +6,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "command": "sh \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.sh\"",
                         "timeout": 300,
                         "statusMessage": "Linting before git commit"
                     }
@@ -18,7 +18,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.mts\"",
+                        "command": "sh \"$(git rev-parse --show-toplevel)/scripts/agent-lint-gate.sh\"",
                         "timeout": 300,
                         "statusMessage": "Linting before finishing"
                     }
