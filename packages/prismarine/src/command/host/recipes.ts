@@ -1,129 +1,45 @@
 /**
- * `/recipe give` and `/recipe take`, and the per-player set they write.
- *
- * Java keeps a recipe book per player and sends the whole of it on join plus
- * a delta for every change. Bedrock's `UnlockedRecipesPacket` is the same
- * shape, so the server's part is the set and the delta; the client draws the
- * book from it.
- *
- * The set lives for as long as the session does. Java saves it in the player
- * file and this server's player data has no field for it, so a player who
- * reconnects starts from whatever the server grants them. When the content
- * build has no Java recipes, the server's built-in recipe manager supplies
- * the vanilla book the client was sent.
+ * `/recipe give` and `/recipe take`, over each player's recipe book in `crafting/recipeBook.ts`.
  */
-import type { EntityRef } from '@jsprismarine/commands';
+import type { EntityRef, RecipeChange } from '@jsprismarine/commands';
 import type { RecipeBook } from '@jsprismarine/recipes';
 
 import type Server from '../../Server';
-import UnlockedRecipesPacket, {
-    UnlockedRecipesType
-} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
-import { carryOut, playerSessionOf, refuse } from './support';
+import { isLearnableRecipe, lockRecipes, unlockRecipes } from '../../crafting/recipeBook';
+import { playerSessionOf, refuse } from './support';
 
 /** The recipe name `/recipe` means "every one of them" by. */
 const ALL_RECIPES = '*';
 
-/** Which recipes each player has unlocked, by player name. */
-export class UnlockedRecipes {
-    private readonly byPlayer = new Map<string, Set<string>>();
-
-    /** What one player has unlocked, in the order it was granted. */
-    public of(player: string): readonly string[] {
-        return [...(this.byPlayer.get(player) ?? [])];
-    }
-
-    /** @returns The ids that were not already unlocked. */
-    public grant(player: string, ids: readonly string[]): readonly string[] {
-        const held = this.byPlayer.get(player) ?? new Set<string>();
-        this.byPlayer.set(player, held);
-
-        const added = ids.filter((id) => !held.has(id));
-        for (const id of added) held.add(id);
-        return added;
-    }
-
-    /** @returns The ids that were unlocked and now are not. */
-    public revoke(player: string, ids: readonly string[]): readonly string[] {
-        const held = this.byPlayer.get(player);
-        if (held === undefined) return [];
-
-        const removed = ids.filter((id) => held.delete(id));
-        if (held.size === 0) this.byPlayer.delete(player);
-        return removed;
-    }
-
-    /** Locks everything one player had. @returns How many were locked. */
-    public revokeAll(player: string): number {
-        const held = this.byPlayer.get(player)?.size ?? 0;
-        this.byPlayer.delete(player);
-        return held;
-    }
-}
-
 /**
  * Unlocks or locks recipes for players.
+ *
+ * A recipe the book cannot hold, such as a firework recipe, is never unlocked, so naming one
+ * changes nothing, as in Java.
  *
  * @param book - The compiled recipe book the stack loaded.
  * @param recipe - A recipe id, or `*` for every recipe in the book.
  * @param give - True to unlock, false to lock.
- * @returns How many players had their book changed.
+ * @returns How many recipes each player gained or lost, for each player still connected.
  * @throws {CommandSyntaxException} When the name is not one the book holds.
+ * @javaSee RecipeCommand.giveRecipes
+ * @javaSee RecipeCommand.takeRecipes
  */
 export const changeRecipes = (
     server: Server,
-    unlocked: UnlockedRecipes,
     book: RecipeBook,
     players: readonly EntityRef[],
     recipe: string,
     give: boolean
-): number => {
-    const all = recipe === ALL_RECIPES;
-    const ids = book.recipes.map((entry) => entry.id);
-    if (!all && !ids.includes(recipe)) refuse(`There is no recipe called ${recipe}`);
+): readonly RecipeChange[] => {
+    const named = recipe === ALL_RECIPES ? book.recipes : [book.get(recipe) ?? refuse(`Unknown recipe: ${recipe}`)];
+    const ids = named.filter(isLearnableRecipe).map((entry) => entry.id);
 
-    const changedIds = all ? ids : [recipe];
-    let changed = 0;
-
-    for (const ref of players) {
+    return players.flatMap((ref) => {
         const session = playerSessionOf(server, ref);
-        if (session === undefined) continue;
+        if (session === undefined) return [];
 
-        const { name } = session.identity;
-        // Locking everything is its own packet type, and it is the one case
-        // where the client does not need the list to apply the change.
-        if (!give && all) {
-            const held = unlocked.revokeAll(name);
-            if (held === 0) continue;
-
-            changed += 1;
-            carryOut(send(session, UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES, []), undefined);
-            continue;
-        }
-
-        const applied = give ? unlocked.grant(name, changedIds) : unlocked.revoke(name, changedIds);
-        if (applied.length === 0) continue;
-
-        changed += 1;
-        carryOut(
-            send(
-                session,
-                give ? UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES : UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES,
-                applied
-            ),
-            undefined
-        );
-    }
-
-    return changed;
-};
-
-/** One delta on the wire. */
-const send = (
-    session: { send(packet: UnlockedRecipesPacket): Promise<void> },
-    type: UnlockedRecipesType,
-    recipes: readonly string[]
-): Promise<void> => {
-    const packet = new UnlockedRecipesPacket({ type, recipes: [...recipes] });
-    return session.send(packet);
+        const changed = give ? unlockRecipes(session, ids) : lockRecipes(session.keyed(), ids);
+        return [{ player: session.identity.name, recipes: changed.length }];
+    });
 };

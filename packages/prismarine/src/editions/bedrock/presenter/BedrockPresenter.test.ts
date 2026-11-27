@@ -2,6 +2,9 @@ import { Difficulty, Gametype, LevelEvent, TitleType } from '@jsprismarine/minec
 import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
+import UnlockedRecipesPacket, {
+    UnlockedRecipesType
+} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, {
     SpawnPositionType
@@ -359,5 +362,48 @@ describe('BedrockPresenter', () => {
         if (!(take instanceof TakeItemActorPacket)) throw new Error('expected TakeItemActorPacket');
         expect([take.itemRuntimeEntityId, take.takerRuntimeEntityId]).toEqual([20n, 7n]);
         expect(sent).toHaveLength(1);
+    });
+
+    it('names a recipe book change by the entries each recipe went out as', async () => {
+        const sent: NetworkPacket[] = [];
+        const entries: Readonly<Record<string, readonly string[]>> = {
+            'minecraft:torch': ['minecraft:torch'],
+            'minecraft:shulker_box_coloring': [
+                'minecraft:shulker_box_coloring',
+                'minecraft:shulker_box_coloring_from_x'
+            ]
+        };
+        const bedrock = new BedrockPresenter(
+            { sendDataPacket: async (packet) => void sent.push(packet) },
+            (recipe) => entries[recipe] ?? []
+        );
+
+        await bedrock.showRecipeBook({
+            kind: 'initial',
+            recipes: ['minecraft:torch', 'minecraft:shulker_box_coloring']
+        });
+        // A recipe outside the book, such as a stonecutter one, names no entry, so this sends nothing.
+        await bedrock.showRecipeBook({ kind: 'unlocked', recipes: ['minecraft:stone_slab_from_stonecutting'] });
+        await bedrock.showRecipeBook({ kind: 'locked', recipes: ['minecraft:torch'] });
+
+        expect(
+            sent.map((packet) => (packet instanceof UnlockedRecipesPacket ? packet.getPacketData() : packet))
+        ).toEqual([
+            {
+                type: UnlockedRecipesType.INITIALLY_UNLOCKED_RECIPES,
+                recipes: ['minecraft:torch', 'minecraft:shulker_box_coloring', 'minecraft:shulker_box_coloring_from_x']
+            },
+            { type: UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES, recipes: ['minecraft:torch'] }
+        ]);
+    });
+
+    it('sends an empty book at join, so a new player starts from none', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showRecipeBook({ kind: 'initial', recipes: [] });
+
+        const [book] = sent;
+        if (!(book instanceof UnlockedRecipesPacket)) throw new Error('expected UnlockedRecipesPacket');
+        expect(book.getPacketData()).toEqual({ type: UnlockedRecipesType.INITIALLY_UNLOCKED_RECIPES, recipes: [] });
     });
 });

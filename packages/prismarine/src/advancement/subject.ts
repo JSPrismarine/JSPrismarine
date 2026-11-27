@@ -21,11 +21,13 @@ import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Att
 import type { ExperienceHolder } from '../entity/Experience';
 import { entityPredicateView } from '../entity/predicateView';
 import type { ViewableEntity, ViewableEquipment } from '../entity/predicateView';
+import type { RaisingPlayer } from './raise';
 
 /**
  * What a trigger condition reads of the player an event is about, and what a reward pays into.
+ * A recipe reward raises `recipe_unlocked` for the same player, so the player can be raised for.
  */
-export interface AdvancementSubjectPlayer extends ViewableEntity {
+export interface AdvancementSubjectPlayer extends ViewableEntity, RaisingPlayer {
     getEquipment(): ViewableEquipment;
     getServer(): Server;
     readonly attributes: { getValue(id: string): number };

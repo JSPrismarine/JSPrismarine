@@ -3,6 +3,7 @@ import { BlockPalette, BlockStateModel, vanillaBlockPalette } from '@jsprismarin
 import { Logger } from '@jsprismarine/logger';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { blockRuntimeId } from '@jsprismarine/protocol';
+import { RecipeUnlockingContext } from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
 import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -176,6 +177,51 @@ describe('network', () => {
             expect(crafting.shapeless[0]?.outputs[0]?.blockRuntimeId).toBe(
                 blockRuntimeId('minecraft:redstone_lamp', { lit: false })
             );
+        });
+
+        it('keeps crafting table recipes out of the book until the server unlocks them', () => {
+            const content = contentWith({
+                recipesJava: new Map([
+                    ...recipesJava('minecraft:lamp_from_stone', {
+                        type: 'minecraft:crafting_shapeless',
+                        ingredients: ['minecraft:stone'],
+                        result: { id: 'minecraft:redstone_lamp' }
+                    }),
+                    ...recipesJava('minecraft:lamp_from_stonecutting', {
+                        type: 'minecraft:stonecutting',
+                        ingredient: 'minecraft:stone',
+                        result: { id: 'minecraft:redstone_lamp' }
+                    }),
+                    ...recipesJava('minecraft:pickaxe_transmute', {
+                        type: 'minecraft:crafting_transmute',
+                        input: ['minecraft:stone', 'minecraft:redstone_lamp'],
+                        material: 'minecraft:stone',
+                        result: { id: 'minecraft:diamond_pickaxe' }
+                    })
+                ])
+            });
+
+            const { crafting, bookEntriesByRecipe } = buildNetworkContentPayloads(content, { clientPalette: client() });
+            const unlockingOf = (id: string) =>
+                [...crafting.shapeless, ...crafting.userDataShapeless].find((recipe) => recipe.id === id)?.unlocking;
+
+            expect(unlockingOf('minecraft:lamp_from_stone')).toEqual({
+                context: RecipeUnlockingContext.NONE,
+                ingredients: []
+            });
+            // Java's stonecutter lists every recipe, so the client is not made to wait for one.
+            expect(unlockingOf('minecraft:lamp_from_stonecutting')).toBeUndefined();
+            expect(crafting.userDataShapeless.map((recipe) => recipe.unlocking)).toEqual([
+                { context: RecipeUnlockingContext.NONE, ingredients: [] },
+                { context: RecipeUnlockingContext.NONE, ingredients: [] }
+            ]);
+            expect(Object.fromEntries(bookEntriesByRecipe)).toEqual({
+                'minecraft:lamp_from_stone': ['minecraft:lamp_from_stone'],
+                'minecraft:pickaxe_transmute': [
+                    'minecraft:pickaxe_transmute',
+                    'minecraft:pickaxe_transmute_from_redstone_lamp'
+                ]
+            });
         });
 
         it('fills potionMixes from the brewing recipes, as numbers', () => {

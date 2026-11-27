@@ -16,7 +16,8 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { formatSnbt } from '@jsprismarine/nbt/snbt';
 import { floatTag } from '@jsprismarine/nbt/tag';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AdvancementEngine } from '@jsprismarine/advancements';
 
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
@@ -38,6 +39,7 @@ import CameraShakePacket, {
     CameraShakeType
 } from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
+import { forgetRecipeBook, loadRecipeBook, recipeBookOf } from '../../crafting/recipeBook';
 import UnlockedRecipesPacket, {
     UnlockedRecipesType
 } from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
@@ -422,6 +424,8 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3,
             setPlayerPosition: vi.fn().mockResolvedValue(undefined),
             getInventory: () => inventory,
             getWorld: () => fixture.world,
+            // What `keyed()` and the advancement triggers read the server through.
+            getServer: () => fixture.server,
             // One session per player, so a test can read back what the player's session was told.
             send: async (packet: unknown) => {
                 fixture.sent.push(packet);
@@ -2045,58 +2049,77 @@ describe('the server command host', () => {
                     }
                 ]
             ]);
-            return stub<ServerContent>({ recipes: loaded.book });
+            return stub<ServerContent>({ recipes: loaded.book, advancements: new AdvancementEngine() });
         };
 
-        it('names a recipe the book does not hold', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
-            fixture.useContent(recipeContent());
+        /** A player whose book was loaded at join, as `PlayerSession.join` does. */
+        let steve: PlayerSession | undefined;
+        const joined = (fixture: Fixture): PlayerSession => {
+            steve = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            loadRecipeBook(steve.keyed(), [], steve.presenter);
+            return steve;
+        };
+        const lastBookPacket = (fixture: Fixture) =>
+            fixture.sent
+                .filter((entry) => entry instanceof UnlockedRecipesPacket)
+                .at(-1)
+                ?.getPacketData();
 
-            await expect(fixture.run('recipe give @a mypack:nothing')).rejects.toThrow(/no recipe called/);
+        afterEach(() => {
+            if (steve !== undefined) forgetRecipeBook(steve.keyed());
         });
 
-        it('tells the client which recipe it just unlocked', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+        it('names a recipe the book does not hold', async () => {
+            joined(fixture);
+            fixture.useContent(recipeContent());
+
+            await expect(fixture.run('recipe give @a mypack:nothing')).rejects.toThrow(
+                /Unknown recipe: mypack:nothing/
+            );
+        });
+
+        it('tells the client which recipe it just unlocked, and counts recipes', async () => {
+            const session = joined(fixture);
             fixture.useContent(recipeContent());
 
             await expect(fixture.run('recipe give @a mypack:cake')).resolves.toBe(1);
 
-            const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(packet?.getPacketData()?.type).toBe(UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES);
-            expect(packet?.getPacketData()?.recipes).toEqual(['mypack:cake']);
+            expect(lastBookPacket(fixture)?.type).toBe(UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES);
+            expect(lastBookPacket(fixture)?.recipes).toEqual(['mypack:cake']);
+            expect(recipeBookOf(session.keyed())).toEqual(['mypack:cake']);
         });
 
         it('changes nothing when the player already had it', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            joined(fixture);
             fixture.useContent(recipeContent());
 
             await fixture.run('recipe give @a mypack:cake');
             await expect(fixture.run('recipe give @a mypack:cake')).resolves.toBe(0);
         });
 
-        it('unlocks the whole book for a star, and locks it again', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+        it('unlocks every recipe the player lacks for a star, and locks them again', async () => {
+            joined(fixture);
             fixture.useContent(recipeContent());
 
+            await fixture.run('recipe give @a mypack:cake');
             await expect(fixture.run('recipe give @a *')).resolves.toBe(1);
-            const unlocked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(unlocked?.getPacketData()?.recipes).toEqual(['mypack:cake', 'mypack:torch']);
+            expect(lastBookPacket(fixture)?.recipes).toEqual(['mypack:torch']);
 
-            await expect(fixture.run('recipe take @a *')).resolves.toBe(1);
-            const locked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(locked?.getPacketData()?.type).toBe(UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES);
+            await expect(fixture.run('recipe take @a *')).resolves.toBe(2);
+            expect(lastBookPacket(fixture)?.type).toBe(UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES);
+            expect(lastBookPacket(fixture)?.recipes).toEqual(['mypack:cake', 'mypack:torch']);
         });
 
         it('locks one recipe without touching the rest', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            const session = joined(fixture);
             fixture.useContent(recipeContent());
 
             await fixture.run('recipe give @a *');
             await expect(fixture.run('recipe take @a mypack:cake')).resolves.toBe(1);
 
-            const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(packet?.getPacketData()?.type).toBe(UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES);
-            expect(packet?.getPacketData()?.recipes).toEqual(['mypack:cake']);
+            expect(lastBookPacket(fixture)?.type).toBe(UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES);
+            expect(lastBookPacket(fixture)?.recipes).toEqual(['mypack:cake']);
+            expect(recipeBookOf(session.keyed())).toEqual(['mypack:torch']);
         });
     });
 });

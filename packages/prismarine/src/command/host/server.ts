@@ -16,7 +16,7 @@ import CameraShakePacket, {
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
 import { messageOf } from '../../addons/addonPack';
 import type { MessageKind } from '../../player/presenter/SessionPresenter';
-import { UnlockedRecipes, changeRecipes } from './recipes';
+import { changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
@@ -71,9 +71,6 @@ export const serverSideCommandHost = (
      * player.
      */
     const fogStacks = new Map<bigint, readonly FogLayer[]>();
-
-    /** Which recipes each player has unlocked; see {@link UnlockedRecipes}. */
-    const unlocked = new UnlockedRecipes();
 
     /** Shows every client the tick rate and whether the game is frozen, as vanilla does on a change. */
     const showTicking = (): void => {
@@ -193,8 +190,7 @@ export const serverSideCommandHost = (
             return carryOut(session.presenter.transfer(host, port), true);
         },
 
-        recipes: (players, recipe, give) =>
-            changeRecipes(server, unlocked, server.getContent().recipes, players, recipe, give),
+        recipes: (players, recipe, give) => changeRecipes(server, server.getContent().recipes, players, recipe, give),
 
         sendMessage: (targets, kind, text) => {
             // The protocol only sends these messages to connected clients. Mirror public

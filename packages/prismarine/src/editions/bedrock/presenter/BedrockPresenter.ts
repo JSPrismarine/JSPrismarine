@@ -15,6 +15,9 @@ import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
+import UnlockedRecipesPacket, {
+    UnlockedRecipesType
+} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 
 import type ClientConnection from '../../../network/ClientConnection';
 import type PlayerSession from '../../../player/PlayerSession';
@@ -31,6 +34,7 @@ import type {
     BossBarChange,
     MessageKind,
     MoveMode,
+    RecipeBookChange,
     SessionPresenter,
     ShownBossBar,
     ShownMessage,
@@ -67,16 +71,32 @@ const POSITION_MODE: Readonly<Record<MoveMode, PositionMode>> = {
 /** The part of a connection a presenter sends through. */
 export type PresenterConnection = Pick<ClientConnection, 'sendDataPacket'>;
 
+/**
+ * The `CraftingDataPacket` entries a Java recipe unlocks in the client's book. A recipe with none
+ * is not in the book. Without one, a recipe is named by its own id, which is the id its entry
+ * goes out under unless it is a transmute.
+ */
+export type RecipeBookEntries = (recipe: string) => readonly string[];
+
+const UNLOCKED_RECIPES_TYPE = {
+    initial: UnlockedRecipesType.INITIALLY_UNLOCKED_RECIPES,
+    unlocked: UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES,
+    locked: UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES
+} as const;
+
 /** The outbound contract in Bedrock packets, over one client's connection. */
 export class BedrockPresenter implements SessionPresenter {
     public readonly edition = 'bedrock';
     private readonly connection: PresenterConnection;
+    private readonly bookEntries: RecipeBookEntries;
 
     /**
      * @param connection - The connection the session's client is on.
+     * @param bookEntries - The book entries of each recipe; see {@link RecipeBookEntries}.
      */
-    public constructor(connection: PresenterConnection) {
+    public constructor(connection: PresenterConnection, bookEntries: RecipeBookEntries = (recipe) => [recipe]) {
         this.connection = connection;
+        this.bookEntries = bookEntries;
     }
 
     /** Sends `SetTime`. */
@@ -318,6 +338,19 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Not shown: a Bedrock client follows the server's ticks and has no tick rate of its own. */
     public async showTickStep(): Promise<void> {}
+
+    /**
+     * Sends `UnlockedRecipes` with the book entries of the recipes. A delta that names no entry
+     * is not sent; the whole book is, so a player with none still gets an empty book.
+     */
+    public async showRecipeBook(change: RecipeBookChange): Promise<void> {
+        const recipes = change.recipes.flatMap(this.bookEntries);
+        if (recipes.length === 0 && change.kind !== 'initial') return;
+
+        await this.connection.sendDataPacket(
+            new UnlockedRecipesPacket({ type: UNLOCKED_RECIPES_TYPE[change.kind], recipes })
+        );
+    }
 
     /** Sends `Transfer`, which keeps the world the client has loaded until the other server's arrives. */
     public async transfer(host: string, port: number): Promise<void> {

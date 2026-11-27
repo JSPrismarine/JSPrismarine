@@ -217,6 +217,30 @@ stands for and makes the one the inputs match.
 The `crafting-recipe-limit` config key caps how many recipes go out; `0` sends nothing and `-1`
 sends everything.
 
+### The recipe book
+
+Each player has a recipe book, as in Java, and the client's book shows only the recipes in it. A
+recipe gets in two ways: `/recipe give`, and the `rewards.recipes` of a completed advancement.
+Vanilla's `recipes/` advancements complete when the player holds one of a recipe's ingredients, so
+picking up a log unlocks the planks. Picking up, crafting and `/give` reach those advancements;
+taking an item from a container does not yet
+([#3829](https://github.com/JSPrismarine/JSPrismarine/issues/3829)). Each unlock raises `recipe_unlocked`, which completes the
+recipe's own advancement when a command unlocked it first. Java's code-driven recipes, the
+`crafting_special_` serializers, the decorated pot and brewing, never go in the book.
+
+Every crafting table recipe goes out in `CraftingDataPacket` with an unlocking requirement the
+client does not check on its own, so the recipe stays out of the book until an
+`UnlockedRecipesPacket` names it. The server sends the whole book after the recipes at join, and a
+delta for each change after that. Stonecutter recipes are unlocked from the start, because Java's
+stonecutter lists every recipe whatever the book holds.
+
+The book is saved in the player record as `recipeBook`, a list of Java recipe ids. A record saved
+before the book existed has no such field, and its book is filled from the rewards of the
+advancements the player had completed.
+
+A Java Edition client is sent no recipes at all yet, so its book stays empty
+([#3769](https://github.com/JSPrismarine/JSPrismarine/issues/3769)).
+
 ## Advancements
 
 `@jsprismarine/advancements` parses the <!-- fact:java.datapack.advancements -->1866<!-- /fact --> vanilla files into a tree with their rewards and
@@ -226,7 +250,7 @@ completed criterion, and a file with no `requirements` completes when every crit
 
 ### How many triggers actually fire
 
-Seventeen. The rest are parsed, indexed and ready, and nothing in this server ever raises them,
+Eighteen. The rest are parsed, indexed and ready, and nothing in this server ever raises them,
 because the subsystem that would know the event does not exist.
 
 `packages/prismarine/src/advancement/triggers.ts` holds one function per thing that happens in the
@@ -234,11 +258,13 @@ world, and a function is there only when something calls it. The seventeen it ra
 `inventory_changed`, `thrown_item_picked_up_by_player`, `recipe_crafted`, `player_killed_entity`,
 `entity_killed_player`, `player_hurt_entity`, `entity_hurt_player`, `placed_block`,
 `enchanted_item`, `location`, `tick`, `changed_dimension`, `consume_item`,
-`item_durability_changed`, `default_block_use`, `any_block_use` and `item_used_on_block`.
+`item_durability_changed`, `default_block_use`, `any_block_use` and `item_used_on_block`. The
+eighteenth, `recipe_unlocked`, is raised by the recipe book in
+`packages/prismarine/src/crafting/recipeBook.ts` for each recipe a player unlocks.
 
-Those seventeen cover 2176 of vanilla's <!-- fact:java.datapack.advancements.criteria -->4045<!-- /fact --> criteria, and because a recipe advancement completes
-on either of its two criteria, 1797 of the <!-- fact:java.datapack.advancements -->1866<!-- /fact --> files have at least one path to completion that a
-wired trigger can take. The remaining 69 have a requirement group with no wired criterion in it,
+Those eighteen cover 3915 of vanilla's <!-- fact:java.datapack.advancements.criteria -->4045<!-- /fact --> criteria, and because a recipe advancement completes
+on either of its two criteria, 1808 of the <!-- fact:java.datapack.advancements -->1866<!-- /fact --> files have at least one path to completion that a
+wired trigger can take. The remaining 58 have a requirement group with no wired criterion in it,
 so nothing can finish them. `adventure/sleep_in_bed`, `adventure/hero_of_the_village`,
 `adventure/bullseye`, `husbandry/breed_an_animal`, `husbandry/tame_an_animal`,
 `husbandry/fishy_business`, `nether/brew_potion`, `nether/create_beacon` and
@@ -248,9 +274,8 @@ The remaining missing subsystems are the whole explanation. The server now track
 effects, supports `/effect`, applies item actions and configured `minecraft:healable` effects, and
 reads them in entity filters. Periodic effect behavior and advancement hooks are still missing, so
 `effects_changed`, `levitation` and `used_totem` cannot fire. There is no brewing, beacon, fishing,
-breeding, taming, riding, trading, shearing or sleeping. There is no recipe book, so
-`recipe_unlocked` has nothing to unlock, and no container loot generation, so
-`player_generates_container_loot` has nothing to report.
+breeding, taming, riding, trading, shearing or sleeping. There is no container loot generation,
+so `player_generates_container_loot` has nothing to report.
 
 The single most important trigger is wired. `inventory_changed` carries 1914 of the 4045 criteria,
 and it is how nearly every "get this item" advancement is earned, including the ones a player gets

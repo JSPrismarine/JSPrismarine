@@ -556,6 +556,14 @@ export interface WorldPlayerData {
      */
     advancements?: PlayerProgressJson;
     /**
+     * The Java ids of the recipes the player has unlocked, in the order they were unlocked.
+     *
+     * Written on every save, empty or not, so that a record without it is one written before the
+     * book was saved, and the book of such a record is filled from the rewards of the
+     * advancements it completed.
+     */
+    recipeBook?: readonly string[];
+    /**
      * The player's enchantment seed.
      *
      * Java drives all three rows of an enchanting table from one generator

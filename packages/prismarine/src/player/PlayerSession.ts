@@ -93,11 +93,17 @@ import { translateChunkPayload } from '../world/chunk/translateNetworkPalettes';
 import { blockTranslationFor } from '../network/codec/blockTranslation';
 import type ClientConnection from '../network/ClientConnection';
 import { forgetAdvancements } from '../advancement/progress';
+import { forgetRecipeBook, loadRecipeBook, rewardedRecipesOf, showRecipeBook } from '../crafting/recipeBook';
 import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
 import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from './sessionPlayers';
-import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from '../editions/bedrock/contentPayloads';
+import {
+    craftingRecipeCount,
+    joinContentPayloads,
+    limitCraftingData,
+    recipeBookEntriesOf
+} from '../editions/bedrock/contentPayloads';
 import { sendCachedJoinPacket } from '../editions/bedrock/joinPacketCache';
 import { creativeContentFrom } from '../editions/bedrock/payloadAdapters';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../editions/bedrock/spawnPosition';
@@ -620,7 +626,10 @@ export default class PlayerSession {
         player: SessionPlayerRef,
         players: SessionPlayers<SessionPlayer>,
         world: World,
-        presenter: SessionPresenter = new BedrockPresenter(connection)
+        presenter: SessionPresenter = new BedrockPresenter(
+            connection,
+            recipeBookEntriesOf(server, () => connection.codec.itemData)
+        )
     ) {
         this.server = server;
         this.connection = connection;
@@ -677,6 +686,7 @@ export default class PlayerSession {
         BossBar.releasePlayer(this.runtimeId);
         const key = playerKeyOf(this.identity);
         forgetAdvancements(key);
+        forgetRecipeBook(key);
         forgetEnchantmentSeed(key);
     }
 
@@ -737,6 +747,8 @@ export default class PlayerSession {
         // had rather than earning their first advancement twice.
         const keyed = this.keyed();
         loadAdvancements(keyed, playerData.advancements);
+        // After the progress, which a record from before the book was saved fills the book from.
+        loadRecipeBook(keyed, playerData.recipeBook, this.presenter, () => rewardedRecipesOf(keyed));
         enchantmentSeedOf(keyed, playerData.enchantmentSeed);
 
         // Onto the store player while it is in no store, so the load logs nothing.
@@ -2209,6 +2221,9 @@ export default class PlayerSession {
 
         const sent = craftingRecipeCount(crafting);
         this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.identity.name}`);
+
+        // After the recipes, so every entry the book names is one the client has.
+        await showRecipeBook(this.keyed());
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {
