@@ -1,6 +1,7 @@
 /**
  * What a joined player sees of JSPrismarine's own addons: the client e2e scenarios `multiverse`,
- * `tab-list` and `tps-bar`, played over a loopback pipe against a server stepped by hand.
+ * `tab-list` and `tps-bar`, played over a loopback pipe against a server stepped by hand, and what
+ * a Java Edition server list ping shows of `motd`, on a server of its own with Java Edition on.
  *
  * The server loads each addon from `addons/` as a world pack, as an installed addon is, with its
  * scripts compiled from the addon's TypeScript sources into a folder of the test's own. Where
@@ -92,8 +93,8 @@ afterAll(async () => {
 }, 60_000);
 
 /** Skips the test on a machine whose server runs no scripts, unless CI asks for a failure. */
-const requireScripts = (context: TestContext): void => {
-    const scripted = jsp.server.getScripts() !== undefined;
+const requireScripts = (context: TestContext, server: LoopbackServer = jsp): void => {
+    const scripted = server.server.getScripts() !== undefined;
     if (!scripted && process.env.JSP_SCRIPT_HOST_REQUIRE !== '1') context.skip();
     expect(scripted, 'the server runs no scripts').toBe(true);
 };
@@ -260,5 +261,43 @@ describe('tps-bar', () => {
         );
         player.leave();
         await jsp.tick();
+    });
+});
+
+describe('motd', () => {
+    let listed: LoopbackServer;
+    let folder: string;
+
+    // A server of its own: the server list ping is Java Edition's, which the other scenarios'
+    // server leaves off.
+    beforeAll(async () => {
+        folder = mkdtempSync(path.join(tmpdir(), 'jsprismarine-loopback-motd-'));
+        const folders = await Promise.all(
+            (['standard-placeholders', 'motd'] as const).map((name) => compiledAddon(name, folder))
+        );
+        listed = await startLoopbackServer({
+            name: 'motd-scenario',
+            config: { 'content-world-packs': folders, 'java-enabled': true, 'java-port': 0 }
+        });
+    }, 1_200_000);
+
+    afterAll(async () => {
+        await listed?.close();
+        if (folder !== undefined) rmSync(folder, { recursive: true, force: true });
+    }, 60_000);
+
+    it("shows the MOTD the console sets in the server list, rendered, and the server's own again on reset", async (context) => {
+        requireScripts(context, listed);
+        const status = listed.server.getServerStatus();
+        const own = status.getMotd();
+        const slots = listed.server.getConfig().getMaxPlayers();
+
+        await listed.command('motd set "&aWelcome &7{server:max} slots"');
+        await listed.until(() => status.getMotd() !== own, 'the addon never changed the server list');
+        expect(await listed.javaStatus()).toMatchObject({ description: { text: `§aWelcome §7${slots} slots` } });
+
+        await listed.command('motd reset');
+        await listed.until(() => status.getMotd() === own, 'the reset never gave the MOTD back');
+        expect(await listed.javaStatus()).toMatchObject({ description: { text: own } });
     });
 });

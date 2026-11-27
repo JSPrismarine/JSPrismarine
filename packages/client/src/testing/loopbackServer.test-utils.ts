@@ -125,6 +125,12 @@ export interface LoopbackServer {
      */
     joinJava(username: string, options?: Pick<JavaClientOptions, 'language' | 'viewDistance'>): Promise<JavaClient>;
     /**
+     * Asks the Java Edition listener for its server list entry, as the multiplayer screen does,
+     * ticking until it answers. The server needs `java-enabled`.
+     * @returns The status JSON, parsed.
+     */
+    javaStatus(): Promise<unknown>;
+    /**
      * Ticks until `condition` holds, giving the Java clients' sockets a turn before each check.
      * @param condition - What to wait for.
      * @param what - What the wait is for, named in the error when it never holds.
@@ -366,6 +372,18 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         return client;
     };
 
+    const javaStatus = async (): Promise<unknown> => {
+        const port = server.getKernel().get(networkToken).getJavaPort();
+        if (port === undefined) throw new Error('javaStatus needs a server started with java-enabled');
+        let done = false;
+        const answered = JavaClient.status('127.0.0.1', port).finally(() => {
+            done = true;
+        });
+        answered.catch(() => {});
+        await untilJava(() => done, 'the server list ping never answered');
+        return (await answered).status;
+    };
+
     const close = async (): Promise<void> => {
         for (const client of javaClients) client.disconnect();
         for (const client of clients) client.disconnect();
@@ -376,5 +394,5 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
 
     await server.bootstrap('127.0.0.1', 0);
     server.getChunkCompletionQueue().activate();
-    return { server, stateRoot, settle, tick, until, command, join, joinJava, untilJava, connect, close };
+    return { server, stateRoot, settle, tick, until, command, join, joinJava, javaStatus, untilJava, connect, close };
 };
