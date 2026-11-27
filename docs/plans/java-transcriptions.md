@@ -245,7 +245,6 @@ default matters, and its own regression test either way.
    `vectors` script regenerates its files. The copies those vectors exercise carry
    `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
    are fixed. The differences left open have issues:
-   [#3783](https://github.com/JSPrismarine/JSPrismarine/issues/3783),
    [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784),
    [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786),
    [#3792](https://github.com/JSPrismarine/JSPrismarine/issues/3792) and

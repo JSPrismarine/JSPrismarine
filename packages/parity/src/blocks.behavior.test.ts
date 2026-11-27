@@ -4,7 +4,7 @@ import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { performPull, performPush, planPush } from '@jsprismarine/block-behaviors/rules/piston';
 import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
 import { PLACEMENT_RULE_NAMES, placementRuleOf } from '@jsprismarine/block-behaviors/rules/javaPlacement';
-import { isFullCube } from '@jsprismarine/engine-systems';
+import { isFullCube, isSolid } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
 import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
 import { behaviorFor } from '@jsprismarine/blocks';
@@ -97,8 +97,8 @@ const BELOW = { x: 0, y: 4, z: 0 } as const;
 const FLOOR_REACH = 6;
 
 /**
- * A world whose full cubes are the ones the server's engine answers for, so a slab is not walled
- * in by the test double's own fallback, and whose floor is stone.
+ * A world whose full cubes and solid blocks are the ones the server's engine answers for, so a
+ * slab is not walled in by the test double's own fallback, and whose floor is stone.
  */
 const fluidWorld = () => {
     const world = createVoxelWorld().overworld;
@@ -108,6 +108,8 @@ const fluidWorld = () => {
     type Block = { identifier: string; states: Readonly<Record<string, string | number | boolean>> };
     return Object.assign(world, {
         isFullCube: (block: Block) => isFullCube({ name: block.identifier, states: block.states }),
+        // The server's answer, from the solid flag Java computed for each block state.
+        isSolid: (block: Block) => isSolid({ name: block.identifier, states: block.states }),
         // The server's own answer, from the captured collision shapes.
         faceOccludes: (block: Block, neighbor: Block, face: BlockFace) =>
             faceOccludesIn(serverContent().blocks.types, block, neighbor, face),
@@ -523,12 +525,7 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
             spreadLiquid(world, world.block(west));
             if (world.identifierAt(ORIGIN) !== 'minecraft:water') return 'the water between the sources stayed flowing';
             return undefined;
-        },
-        classify: () => ({
-            kind: 'deferred',
-            reason: "The server's world view cannot say whether a block is solid, so source conversion falls back to the full cube test, which a slab or a cactus fails.",
-            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3783'
-        })
+        }
     },
     {
         name: 'bottom-slab-holds-water',

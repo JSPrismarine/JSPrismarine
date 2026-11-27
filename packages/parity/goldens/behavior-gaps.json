@@ -1080,16 +1080,6 @@
             "reason": "The port's support test reads push reaction and full cubes, where Java asks each block's survival rule, so a sign, ladder, bell, lantern, grindstone or coral fan against one of its own kind is placed where Java refuses it or refused where Java places it.",
             "reference": "issue #3786"
         },
-        "source-forms-on-solid-ground:minecraft:cactus": {
-            "kind": "deferred",
-            "reason": "The server's world view cannot say whether a block is solid, so source conversion falls back to the full cube test, which a slab or a cactus fails.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3783"
-        },
-        "source-forms-on-solid-ground:minecraft:stone_slab": {
-            "kind": "deferred",
-            "reason": "The server's world view cannot say whether a block is solid, so source conversion falls back to the full cube test, which a slab or a cactus fails.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3783"
-        },
         "waterlogged-light-dampening:minecraft:lantern[hanging=true,waterlogged=true]": {
             "kind": "deferred",
             "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
