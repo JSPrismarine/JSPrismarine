@@ -28,6 +28,7 @@ The dimension notes, written 2026-10-30, ask what it takes to run the Overworld,
 - [hybrid-format-prior-art.md](hybrid-format-prior-art.md): who has fused two content formats (nobody), Chunker and the other bidirectional mapping projects, the four candidate architectures compared, and the reusable mapping data sets with their licenses.
 - [edition-behavior-differences.md](edition-behavior-differences.md): 278 classified differences between the editions, each marked for who decides it and what happens if the server implements Java's version, plus a testable wording for the parity claim and the categories it must exclude.
 - [storage-and-chunk-translation.md](storage-and-chunk-translation.md): what this repository persists today, the Bedrock LevelDB format against Java's Anvil format, the cost of translating at the chunk boundary measured on this repository's code, and a storage recommendation.
+- [bedrock-resource-packs-for-java.md](bedrock-resource-packs-for-java.md): delivering a resource pack to a Java 26.3 client, the 26.3 pack format, each Bedrock resource pack asset kind mapped to its Java form with its losses, the converters that exist and their licenses, what the server must send for custom blocks, items and entities to show, and what a cached conversion depends on.
 - [cross-edition-worldgen-parity.md](cross-edition-worldgen-parity.md): whether Java's published world generator produces Bedrock-identical worlds, the random number generator ceiling, structures, a verification method against a real server, and deepslate.
 
 ## Dimensions and portals
