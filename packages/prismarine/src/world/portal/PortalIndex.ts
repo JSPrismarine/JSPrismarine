@@ -57,6 +57,7 @@ export class PortalIndex {
      * @param radius - In blocks, inclusive. Zero finds a portal block in the column of `to`
      *   and nothing else.
      * @returns The nearest portal block, or undefined when none is within the radius.
+     * @javaSource PortalForcer.findClosestPortalPosition
      */
     public closest(to: Vector3, radius: number): Vector3 | undefined {
         let best: Vector3 | undefined;

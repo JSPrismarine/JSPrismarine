@@ -203,10 +203,16 @@ const DEFAULT_SEA_LEVEL = 63;
  * Java's `LocateCommand.MAX_STRUCTURE_SEARCH_RADIUS`, which `EyeOfEnder` shares. A region is a
  * structure set's `spacing`, so this reaches 3400 chunks for a village and every ring of the
  * strongholds' concentric placement; see {@link StructureSearchRequest.radius}.
+ *
+ * @javaSource LocateCommand.MAX_STRUCTURE_SEARCH_RADIUS
  */
 const LOCATE_RADIUS = 100;
 
-/** The biome tag a map's biome preview outlines as water, Java's `BiomeTags.WATER_ON_MAP_OUTLINES`. */
+/**
+ * The biome tag a map's biome preview outlines as water, Java's `BiomeTags.WATER_ON_MAP_OUTLINES`.
+ *
+ * @javaSource BiomeTags.WATER_ON_MAP_OUTLINES
+ */
 const WATER_ON_MAP_OUTLINES = 'minecraft:water_on_map_outlines';
 
 /**
@@ -217,7 +223,9 @@ const WATER_ON_MAP_OUTLINES = 'minecraft:water_on_map_outlines';
 const BIOME_SEARCH = { radius: 6400, horizontalStep: 32, verticalStep: 64 } as const;
 
 /**
- * A registry name as Java's `ResourceLocation.read` completes it: `plains` is `minecraft:plains`.
+ * A registry name as Java's `Identifier.read` completes it: `plains` is `minecraft:plains`.
+ *
+ * @javaSource Identifier.read(Ljava/lang/String;)Lcom/mojang/serialization/DataResult;
  */
 const namespaced = (name: string): string => (name.includes(':') ? name : `minecraft:${name}`);
 
@@ -1988,6 +1996,8 @@ export class World implements Service {
      * alone. A block on the chunk's edge waits for the chunk beside it, because what it settles
      * to depends on that neighbor and a block that read an unloaded chunk as empty would let go
      * of a wall it is fixed to. So a chunk entering also retries what waits in the four beside it.
+     *
+     * @javaSource LevelChunk.postProcessGeneration
      */
     private settlePendingShapes(chunk: Chunk): void {
         this.settleShapesIn(chunk);
@@ -2553,6 +2563,7 @@ export class World implements Service {
      * and `FEED` with the item's id spawns those particles at the mouth without the eating sound.
      * @param {ShownActor} entity - Whose item broke.
      * @param {string} item - The identifier of the item that broke.
+     * @javaSource LivingEntity.breakItem
      */
     public showItemBreak(entity: ShownActor, item: string): void {
         this.sendActorSound(entity, LevelSoundEvent.BREAK);
@@ -3620,6 +3631,8 @@ export class World implements Service {
      *
      * @returns False in an unloaded chunk or a dimension without a sky. A loaded chunk outside
      * the simulation light ring is initialized and settled on demand before this test reads it.
+     *
+     * @javaSource Level.isRainingAt
      */
     public isRainingAt(x: number, y: number, z: number): boolean {
         if (!this.dimension.java.hasSkylight || !this.level.getWeather().raining()) return false;
@@ -3640,7 +3653,7 @@ export class World implements Service {
     }
 
     /**
-     * Where this tick's random draws land: Java's `ServerLevel.tickChunks`, in two halves.
+     * Where this tick's random draws land: Java's `ServerChunkCache.tickChunks`, in two halves.
      *
      * Only a chunk a player ticket holds is simulated, so an empty server draws nothing at all
      * however much of the world is in memory - which is also why nobody's furnaces burn while
@@ -3656,6 +3669,9 @@ export class World implements Service {
      * the world's reads rather than the world itself.
      * @returns {RandomTickChunk[]} One entry per simulated chunk, with its randomly ticking
      * sections.
+     *
+     * @javaSource ServerChunkCache.tickChunks()V
+     * @javaSource LevelChunkSection.isRandomlyTicking
      */
     public randomTickChunks(): RandomTickChunk[] {
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
@@ -4479,6 +4495,7 @@ export class World implements Service {
      * @param savedTicks - The chunk's scheduled ticks as the save wrote them.
      * @param savedEntities - The runtime ids of the non-player entities the save wrote with it.
      * @returns Whether it left.
+     * @javaSource LevelTicks.removeContainer
      */
     private leaveChunk(chunk: Chunk, savedTicks: readonly TickToSave[], savedEntities: ReadonlySet<number>): boolean {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
@@ -4597,6 +4614,8 @@ export class World implements Service {
      * Java's `Entity.checkInsideBlocks` walks the blocks of the bounding box shrunk by
      * `1.0E-6`, so a body resting on a block boundary does not count the block beyond it, and a
      * portal at head height alone still counts.
+     *
+     * @javaSource Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I
      */
     private portalOverlapping(entity: StoreActor): PortalBlockRef | undefined {
         const at = entity.getPosition();
@@ -5091,6 +5110,8 @@ export class World implements Service {
     /**
      * Makes a map of this world and answers its `minecraft:map_id`, Java's `MapItem.create`.
      * The id comes from the level's counter, which its dimensions share.
+     *
+     * @javaSource MapItem.create
      */
     public createMap(map: NewMap): number {
         return this.level.createMap({ dimension: this.dimension.id, ...map });

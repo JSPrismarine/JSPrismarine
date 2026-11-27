@@ -47,11 +47,13 @@ function beardAt(x: number, y: number, z: number): number {
 const bitsView = new DataView(new ArrayBuffer(8));
 
 /**
- * Java's `Mth.fastInverseSqrt`: the Quake trick with one Newton step.
+ * Java's `Mth.fastInvSqrt`: the Quake trick with one Newton step.
  *
  * Reproduced rather than replaced by `1 / Math.sqrt(x)` because its answer is about four
  * decimal digits accurate, and the kernel it builds decides where the terrain under a village
  * ends up.
+ *
+ * @javaSource Mth.fastInvSqrt
  */
 const fastInverseSqrt = (value: number): number => {
     bitsView.setFloat64(0, value);

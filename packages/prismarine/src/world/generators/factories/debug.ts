@@ -15,10 +15,18 @@ import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/gene
 /** The kind id of Java's debug world, the grid of every block state. */
 export const DEBUG_GENERATOR_KIND = 'minecraft:debug';
 
-/** The y every grid block sits at, Java's `DebugLevelSource.HEIGHT`. */
+/**
+ * The y every grid block sits at, Java's `DebugLevelSource.HEIGHT`.
+ *
+ * @javaSource DebugLevelSource.HEIGHT
+ */
 export const DEBUG_GRID_Y = 70;
 
-/** The y of the barrier floor under the grid, Java's `DebugLevelSource.BARRIER_HEIGHT`. */
+/**
+ * The y of the barrier floor under the grid, Java's `DebugLevelSource.BARRIER_HEIGHT`.
+ *
+ * @javaSource DebugLevelSource.BARRIER_HEIGHT
+ */
 export const DEBUG_FLOOR_Y = 60;
 
 /** The distance between grid cells, Java's `BLOCK_MARGIN`: a block, then a gap. */

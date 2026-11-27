@@ -11,6 +11,8 @@
  * It also writes Bedrock's modern name for the items the pack still files under a name from before
  * the flattening, such as `appleEnchanted`, because the held item a player feeds with carries the
  * modern name and would never match the old one.
+ *
+ * @javaSee Animal.isFood
  */
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import { javaEntityTypeToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';

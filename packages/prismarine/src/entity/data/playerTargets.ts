@@ -11,6 +11,7 @@ import type { ContentEntity, ContentLevelFacts } from '../../content/world/adapt
  *
  * @param player - The player, or undefined when the host no longer knows them.
  * @param level - The world the mob is in, which says what the difficulty is.
+ * @javaSource LivingEntity.canAttack
  */
 export const canTargetPlayer = (
     player: ContentEntity | undefined,

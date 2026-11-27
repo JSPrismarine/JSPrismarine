@@ -12,6 +12,8 @@ import { Difficulty } from '@jsprismarine/minecraft';
  * ```typescript
  * scaleForDifficulty(3, Difficulty.HARD); // => 4.5
  * ```
+ *
+ * @javaSource Player.hurtServer
  */
 export const scaleForDifficulty = (damage: number, difficulty: Difficulty): number => {
     switch (difficulty) {

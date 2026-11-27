@@ -68,6 +68,7 @@ export interface PaintingSight {
  * @param picture - The logged painting state.
  * @param hanging - The logged hanging state.
  * @returns The sight, or undefined for a painting whose picture or facing is not logged.
+ * @javaSource Painting.calculateBoundingBox
  */
 export const paintingSightOf = (at: EntityPosition, picture: unknown, hanging: unknown): PaintingSight | undefined => {
     if (!paintingState.is(picture) || !hangingState.is(hanging)) return undefined;
@@ -128,7 +129,11 @@ export const isHangingEntity = (entity: DataEntity): boolean => entity.instance.
 
 /** What a hanging entity needs of the runtime. */
 export interface HangingHost {
-    /** Whether a block is solid, Java's `BlockState.isSolid`. */
+    /**
+     * Whether a block is solid, Java's `BlockState.isSolid`.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isSolid
+     */
     isSolid(at: EntityPosition): boolean;
     /** Whether a block is one of Java's `minecraft:fences`. */
     isFence(at: EntityPosition): boolean;
@@ -183,6 +188,8 @@ export class HangingEntities {
      * one of those at random. The painting moves to where Java's hangs, against its wall.
      * @returns False when nothing hangs here, so the painting must not be placed; true for an
      *   entity that is no painting or already shows a picture.
+     *
+     * @javaSource Painting.create
      */
     public place(entity: DataEntity, variants: readonly PaintingVariant[]): boolean {
         if (hangingTuningOf(entity).support !== 'wall') return true;

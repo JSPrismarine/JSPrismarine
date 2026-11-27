@@ -65,7 +65,7 @@ const TORCH_SOUTH = block('minecraft:wall_torch', { facing: 'south' });
 /** The loot a mineshaft chest rolls. */
 const MINESHAFT_LOOT = 'minecraft:chests/abandoned_mineshaft';
 
-/** The wood a variant builds with: Java's `MineshaftStructure.Type` carries these three blocks. */
+/** The wood a variant builds with: Java's `MineshaftStructure$Type` carries these three blocks. */
 interface MineshaftWood {
     readonly log: BlockState;
     readonly planks: BlockState;
@@ -104,7 +104,11 @@ const isLiquid = (state: BlockState): boolean => LIQUID_NAMES.has(state.name);
 const isSolidFloor = (writer: StructureWriter, state: BlockState): boolean =>
     !isAir(state) && !isLiquid(state) && !writer.hasTag(state.name, 'minecraft:replaceable');
 
-/** Whether two inclusive boxes share a block, which is Java's `BoundingBox.intersects`. */
+/**
+ * Whether two inclusive boxes share a block, which is Java's `BoundingBox.intersects`.
+ *
+ * @javaSource BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z
+ */
 const intersects = (a: BoundingBox, b: BoundingBox): boolean =>
     a.minX <= b.maxX &&
     a.maxX >= b.minX &&
@@ -494,6 +498,8 @@ const corridorBox = (direction: Horizontal, length: number): BoundingBox => {
 /**
  * Java's `MineShaftCorridor.findCorridorSize`: the drawn length, or the longest shorter one that
  * does not run into a piece already laid out.
+ *
+ * @javaSource MineshaftPieces$MineShaftCorridor.findCorridorSize
  */
 const findCorridor = (
     graph: MineshaftGraph,
@@ -748,7 +754,11 @@ const crossingBox = (direction: Horizontal, height: number): BoundingBox => {
     }
 };
 
-/** Java's `MineShaftCrossing.findCrossing`, where one crossing in four is two floors tall. */
+/**
+ * Java's `MineShaftCrossing.findCrossing`, where one crossing in four is two floors tall.
+ *
+ * @javaSource MineshaftPieces$MineShaftCrossing.findCrossing
+ */
 const findCrossing = (
     graph: MineshaftGraph,
     random: RandomSource,
@@ -863,7 +873,11 @@ const stairsBox = (direction: Horizontal): BoundingBox => {
     }
 };
 
-/** Java's `MineShaftStairs.findStairs`, which has one candidate and takes it or nothing. */
+/**
+ * Java's `MineShaftStairs.findStairs`, which has one candidate and takes it or nothing.
+ *
+ * @javaSource MineshaftPieces$MineShaftStairs.findStairs
+ */
 const findStairs = (
     graph: MineshaftGraph,
     x: number,

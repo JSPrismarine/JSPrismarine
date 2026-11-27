@@ -8,6 +8,8 @@
  * the vex, also `noPhysics` while it ticks, never reaches it. Bedrock writes which types flap as
  * `minecraft:game_event_movement_tracking`'s `emit_flap`; when they flap is each Java class's own
  * `isFlapping`, kept in {@link JAVA_FLAPPING}.
+ *
+ * @javaSee Entity.move
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';

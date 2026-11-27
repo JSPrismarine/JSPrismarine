@@ -12,6 +12,8 @@
  * level events, two to start each kind and two to stop it, and a client that was not listening
  * when one went out never learns. So the current state goes out again on the time sync's
  * cadence, which is what makes a player who just joined see the rain they are standing in.
+ *
+ * @javaSee ServerLevel.advanceWeatherCycle
  */
 import { CLEAR_WEATHER, advanceWeatherCycle, weatherCommandState, weatherOf } from '@jsprismarine/engine-systems';
 import type { Weather, WeatherState } from '@jsprismarine/engine-systems';

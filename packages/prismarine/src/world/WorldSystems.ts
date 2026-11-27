@@ -609,7 +609,7 @@ export class WorldSystems {
     /**
      * Hands the sections a random tick may land in to the engine's driver.
      *
-     * Java's `ServerLevel.tickChunks` decides the same thing twice over, and both halves
+     * Java's `ServerChunkCache.tickChunks` decides the same thing twice over, and both halves
      * matter more than they look. It visits only the chunks a player ticket holds, so an
      * empty server simulates nothing however much of the world is in memory; and inside
      * those it draws only for sections whose palette holds something that takes random ticks,
@@ -622,6 +622,8 @@ export class WorldSystems {
      * what that section holds. One chunk at a time rather than all of them at once, because
      * the draw state is shared across the world and the order it is stepped in is part of the
      * result.
+     *
+     * @javaSource ServerChunkCache.tickChunks()V
      */
     private runRandomTicks(): number {
         const speed = this.view.randomTickSpeed?.() ?? DEFAULT_RANDOM_TICK_SPEED;

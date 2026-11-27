@@ -20,5 +20,9 @@ export interface ChunkGeneration {
 /** The stamp of a chunk this server's generator just made. */
 export const CURRENT_GENERATION: ChunkGeneration = { dataVersion: GENERATION_DATA_VERSION };
 
-/** Whether a stamp marks old generation, Java's `ChunkAccess.isOldNoiseGeneration`. */
+/**
+ * Whether a stamp marks old generation, Java's `ChunkAccess.isOldNoiseGeneration`.
+ *
+ * @javaSource ChunkAccess.isOldNoiseGeneration
+ */
 export const isOldGeneration = (generation: ChunkGeneration): boolean => generation.blending !== undefined;

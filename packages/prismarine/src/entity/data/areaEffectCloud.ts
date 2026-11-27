@@ -29,7 +29,11 @@ const DEFAULT_WAIT_TIME = 20;
 const DEFAULT_REAPPLICATION_DELAY = 20;
 /** How often a cloud reaches for the entities in it, Java's `tickCount % 5`. */
 const REACH_INTERVAL = 5;
-/** The cloud's height, Java's `EntityDimensions.scalable(radius * 2, 0.5F)`. */
+/**
+ * The cloud's height, Java's `EntityDimensions.scalable(radius * 2, 0.5F)`.
+ *
+ * @javaSource EntityDimensions.scalable
+ */
 const CLOUD_HEIGHT = 0.5;
 /** The smallest radius a cloud keeps; one that shrinks under it is gone. */
 const MIN_RADIUS = 0.5;
@@ -104,9 +108,11 @@ const tuningOf = (entity: DataEntity): CloudTuning => {
 };
 
 /**
- * Java's `HealOrHarmMobEffect.applyInstantenousEffect` at a strength: instant health heals
+ * Java's `HealOrHarmMobEffect.applyInstantaneousEffect` at a strength: instant health heals
  * `4 << amplifier` and instant damage hurts `6 << amplifier`, each times the strength and rounded,
  * and an undead target takes the one for the other. Undefined for any other effect.
+ *
+ * @javaSource HealOrHarmMobEffect.applyInstantaneousEffect
  */
 export const instantEffect = (
     effect: string,
@@ -140,7 +146,11 @@ export interface AreaEffectCloudHost {
 export class AreaEffectClouds {
     public constructor(private readonly host: AreaEffectCloudHost) {}
 
-    /** One tick of one cloud, Java's `AreaEffectCloud.serverTick`. */
+    /**
+     * One tick of one cloud, Java's `AreaEffectCloud.serverTick`.
+     *
+     * @javaSource AreaEffectCloud.serverTick
+     */
     public update(cloud: DataEntity): void {
         const tuning = tuningOf(cloud);
         const state = cloud.instance.componentState.get(cloudState);

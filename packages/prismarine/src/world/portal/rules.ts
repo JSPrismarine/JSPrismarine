@@ -27,6 +27,8 @@ import type { DimensionType } from '../DimensionType';
  * `bipush 16` in the Overworld. Bedrock searches a 128 block radius in both (wiki, "the point
  * of interest can be within a 256x256 square block area (128-block radius) in both the
  * Overworld and Nether"), and that is the number this server uses.
+ *
+ * @javaSource PortalForcer.findClosestPortalPosition
  */
 export const PORTAL_SEARCH_RADIUS = 128;
 
@@ -38,6 +40,8 @@ export interface DimensionTravelRule {
      * Whether a nether portal can exist here: Java's `BaseFireBlock.inPortalDimension`, which
      * is true for the Overworld and the Nether only. Nothing creates a portal where this is
      * false.
+     *
+     * @javaSee BaseFireBlock.inPortalDimension
      */
     readonly allowsNetherPortal: boolean;
 }
@@ -95,6 +99,8 @@ export interface PortalRule {
  * and `EndPortalBlock.getPortalDestination` (into the End from anywhere else, out of it to the
  * Overworld). A nether portal in the End cannot be lit, but one a command placed leads to the
  * Overworld, which is the Bedrock behavior and the only sensible one.
+ *
+ * @javaSource NetherPortalBlock.getPortalDestination
  */
 export const PORTALS: Readonly<Record<string, PortalRule>> = {
     [NETHER_PORTAL]: {

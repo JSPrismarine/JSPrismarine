@@ -143,6 +143,8 @@ export interface PlayerParts {
     /**
      * The player's ticks since rest, Java's `Stats.TIME_SINCE_REST`: a statistic the player keeps
      * beside its components, which the systems count without logging. Absent, the systems keep it.
+     *
+     * @javaSee Stats.TIME_SINCE_REST
      */
     readonly rest?: RestClock;
 }
@@ -186,7 +188,11 @@ export class PlayerSystems {
         return this.playerOf(entity).survival.components;
     }
 
-    /** A store player's ticks since it last slept or died, Java's `Stats.TIME_SINCE_REST`. */
+    /**
+     * A store player's ticks since it last slept or died, Java's `Stats.TIME_SINCE_REST`.
+     *
+     * @javaSource Stats.TIME_SINCE_REST
+     */
     public timeSinceRestOf(entity: DataEntity): number {
         return this.playerOf(entity).rest.get();
     }
@@ -442,11 +448,15 @@ export class PlayerSystems {
      * Java's `LivingEntity.baseTick` hurts a body whose eyes are inside a block that suffocates
      * with `in_wall` damage every tick, and the grace period holds that to one blow in
      * {@link SUFFOCATION_INTERVAL} ticks.
+     *
+     * @javaSee LivingEntity.baseTick
      */
     /**
      * Java's `ServerPlayer.doTick` counts `Stats.TIME_SINCE_REST` up every tick the player is not
      * asleep, whatever its game mode, and `startSleeping` sets it back to 0, so it stays there
      * through the night.
+     *
+     * @javaSource ServerPlayer.doTick
      */
     private tickRest(entity: DataEntity): void {
         const { rest } = this.playerOf(entity);

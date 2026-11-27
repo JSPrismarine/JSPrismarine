@@ -117,6 +117,8 @@ export const mobEquipmentSlotOf = (name: string): MobEquipmentSlot | undefined =
  * Java's `Drowned.finalizeSpawn` sets `EquipmentSlot.OFFHAND` to `Items.NAUTILUS_SHELL`, and
  * Bedrock's drowned holds the shell there too, beside the trident or fishing rod its main hand
  * holds. Neither edition's item data names a slot for the shell, so it is listed here.
+ *
+ * @javaSource Drowned.finalizeSpawn
  */
 const OFF_HAND_SPAWN_ITEMS: ReadonlySet<string> = new Set(['minecraft:nautilus_shell']);
 

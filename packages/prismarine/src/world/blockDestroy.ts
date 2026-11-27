@@ -56,6 +56,8 @@ export interface BlockDestruction {
      *
      * Java's `LootContextParams.EXPLOSION_RADIUS`, which `minecraft:explosion_decay` reads:
      * each item of a rolled stack survives with a chance of `1 / radius`.
+     *
+     * @javaSee LootContextParams.EXPLOSION_RADIUS
      */
     readonly explosionRadius?: number;
     /**
@@ -64,6 +66,8 @@ export interface BlockDestruction {
      * False is Java's `Level.removeBlock(pos, false)`. Fire takes it, because a burned plank
      * leaves nothing, and so does a block a stream of lava turns to stone. The hook still
      * runs either way, so a burning chest still spills what it held.
+     *
+     * @javaSee Level.removeBlock
      */
     readonly dropsBlock?: boolean;
 }

@@ -85,6 +85,8 @@ export const respawnPoint = (spawn: Vector3, eyeHeight: number) => {
 /**
  * How far in from a body's edge a block still counts as overlapped, so a body resting exactly on a
  * block boundary does not take the block beyond it, as Java's `Entity.checkInsideBlocks` shrinks.
+ *
+ * @javaSource Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I
  */
 const BODY_SHRINK = 1e-6;
 

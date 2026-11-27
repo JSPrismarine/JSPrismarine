@@ -7,6 +7,8 @@
  * which `AbstractBoat.getDropItem` names after the boat's own wood. `AbstractBoat.tick` takes a
  * point off the damage every tick, so a boat breaks under blows that come fast enough: five
  * punches in a row, or one sword swing.
+ *
+ * @javaSee VehicleEntity.hurtServer
  */
 
 /** `VehicleEntity.hurtServer` adds the blow times this to the damage. */

@@ -10,6 +10,8 @@
  * The upgraded chunk keeps the post-processing marks generation left under y = 0, and
  * {@link markBorderTicks} adds the ones Java's `Blender.generateBorderTicks` makes along the edges
  * of its old generation.
+ *
+ * @javaSee Blender.generateBorderTicks
  */
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 import { forEachBorderTick } from '@jsprismarine/worldgen/blending/Blender';

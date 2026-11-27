@@ -89,13 +89,25 @@ export const RAIDER_TABLE: readonly (readonly [string, readonly number[]])[] = [
     ['minecraft:ravager', [0, 0, 0, 1, 0, 1, 0, 2]]
 ];
 
-/** Java's `Raid.MAX_OMEN_LEVEL`. */
+/**
+ * Java's `Raid.DEFAULT_MAX_RAID_OMEN_LEVEL`.
+ *
+ * @javaSource Raid.DEFAULT_MAX_RAID_OMEN_LEVEL
+ */
 const MAX_OMEN_LEVEL = 5;
 /** Ticks between a raid starting and its first wave, and between a cleared wave and the next. */
 const WAVE_COUNTDOWN_TICKS = 300;
-/** Java's `Raid.MAX_TICKS_ACTIVE`: a raid this old is given up on. */
+/**
+ * Java's `Raid.RAID_TIMEOUT_TICKS`: a raid this old is given up on.
+ *
+ * @javaSource Raid.RAID_TIMEOUT_TICKS
+ */
 const MAX_TICKS_ACTIVE = 48_000;
-/** How long raiders stay on after a win, Java's `Raid.MAX_CELEBRATION_TICKS`. */
+/**
+ * How long raiders stay on after a win, Java's `Raid.MAX_CELEBRATION_TICKS`.
+ *
+ * @javaSource Raid.MAX_CELEBRATION_TICKS
+ */
 const CELEBRATION_TICKS = 600;
 /** How far from a raid's center a player counts as taking part. */
 const PARTICIPANT_RADIUS = 96;
@@ -103,7 +115,11 @@ const PARTICIPANT_RADIUS = 96;
 const SPAWN_DISTANCE = 40;
 /** How long Hero of the Village lasts, Java's 48000 ticks. */
 const HERO_TICKS = 48_000;
-/** How long the Raid Omen a Bad Omen turns into lasts, from Java's `BadOmenMobEffect.applyEffectTick`. */
+/**
+ * How long the Raid Omen a Bad Omen turns into lasts, from Java's `BadOmenMobEffect.applyEffectTick`.
+ *
+ * @javaSource BadOmenMobEffect.applyEffectTick
+ */
 export const RAID_OMEN_TICKS = 600;
 
 /** A Raid Omen counting down to a raid: Java keeps it as the effect and the player's `raidOmenPosition`. */
@@ -113,13 +129,21 @@ interface RaidOmen {
     ticksLeft: number;
 }
 
-/** Java's `Raid.getNumGroups`: three waves on easy, five on normal, seven on hard. */
+/**
+ * Java's `Raid.getNumGroups`: three waves on easy, five on normal, seven on hard.
+ *
+ * @javaSource Raid.getNumGroups
+ */
 export const wavesFor = (difficulty: number): number => (difficulty <= 1 ? 3 : difficulty === 2 ? 5 : 7);
 
 const distanceSquared = (a: RaidPosition, b: RaidPosition): number =>
     (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 
-/** Java's `Raid.getPotentialBonusSpawns`: the extra raiders a harder difficulty draws for a wave. */
+/**
+ * Java's `Raid.getPotentialBonusSpawns`: the extra raiders a harder difficulty draws for a wave.
+ *
+ * @javaSource Raid.getPotentialBonusSpawns
+ */
 const bonusSpawns = (
     type: string,
     wave: number,
@@ -212,6 +236,8 @@ export class RaidManager {
      * Java's `BadOmenMobEffect.applyEffectTick`: a player with Bad Omen in a village, where no raid
      * has taken all the omen it can, spends it for a Raid Omen of the same level that remembers
      * where they stood.
+     *
+     * @javaSource BadOmenMobEffect.applyEffectTick
      */
     private turnBadOmens(): void {
         const omened = this.host.players().filter((player) => player.badOmenLevel > 0);
@@ -233,6 +259,8 @@ export class RaidManager {
     /**
      * Java's `RaidOmenMobEffect.applyEffectTick`: on the Raid Omen's last tick the raid starts where
      * the player took it. An omen whose player has left, died or turned spectator lapses.
+     *
+     * @javaSource RaidOmenMobEffect.applyEffectTick
      */
     private countDownOmens(): void {
         if (this.omens.size === 0) return;
@@ -250,8 +278,10 @@ export class RaidManager {
     }
 
     /**
-     * Java's `RaidManager.createOrExtendRaid`: a Raid Omen run out in a village starts a raid there,
+     * Java's `Raids.createOrExtendRaid`: a Raid Omen run out in a village starts a raid there,
      * or makes the one already running there harder.
+     *
+     * @javaSource Raids.createOrExtendRaid
      */
     private createOrExtendRaid(at: RaidPosition, omenLevel: number): void {
         if (this.host.difficulty() <= 0) return;
@@ -331,7 +361,11 @@ export class RaidManager {
         }
     }
 
-    /** Java's `Raid.spawnGroup`: every kind of raider the wave's row of the table asks for. */
+    /**
+     * Java's `Raid.spawnGroup`: every kind of raider the wave's row of the table asks for.
+     *
+     * @javaSource Raid.spawnGroup
+     */
     private spawnWave(raid: RaidRecord): void {
         const wave = raid.groupsSpawned + 1;
         const difficulty = this.host.difficulty();

@@ -3,10 +3,16 @@
  *
  * One home for vanilla's knockback rule, which the entity store's damage pipeline and the
  * projectile hits shove with.
+ *
+ * @javaSee LivingEntity.knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
-/** The shove a blow with an attacker gives, Java's `LivingEntity.dealDefaultKnockback` `knockback(0.4F, ...)`. */
+/**
+ * The shove a blow with an attacker gives, Java's `LivingEntity.dealDefaultKnockback` `knockback(0.4F, ...)`.
+ *
+ * @javaSource LivingEntity.dealDefaultKnockback
+ */
 export const BASE_KNOCKBACK = 0.4;
 
 /** What each level of sprint-or-Knockback adds, as a second shove after the blow's own. */
@@ -62,6 +68,7 @@ export interface LivingKnockbackInput {
  * air or in water keeps its vertical motion.
  *
  * @returns The new velocity, or the old one when the body resists the shove.
+ * @javaSource LivingEntity.knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V
  */
 export const livingKnockback = (input: LivingKnockbackInput): EntityPosition => {
     const resistance = Math.min(MAX_RESISTANCE, Math.max(MIN_RESISTANCE, input.resistance));

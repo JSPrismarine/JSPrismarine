@@ -15,7 +15,11 @@ import type { ServerContent } from '../../content/ServerContent';
 /** The painting entity, the one hanging entity that shows a variant. */
 export const PAINTING = 'minecraft:painting';
 
-/** The tag of the variants a placed painting may draw, Java's `PaintingVariantTags.PLACEABLE`. */
+/**
+ * The tag of the variants a placed painting may draw, Java's `PaintingVariantTags.PLACEABLE`.
+ *
+ * @javaSource PaintingVariantTags.PLACEABLE
+ */
 const PLACEABLE_TAG = 'minecraft:placeable';
 
 /** One picture a painting can show. */
@@ -54,13 +58,19 @@ const variantOf = (id: string, data: unknown): PaintingVariant | undefined => {
 /**
  * The variants a placed painting may draw from, in the order the `minecraft:placeable` tag lists
  * them, which is the order Java's `Painting.create` collects them in.
+ *
+ * @javaSource Painting.create
  */
 export const placeablePaintingVariants = (content: ServerContent): readonly PaintingVariant[] =>
     content.tags
         .members('painting_variant', PLACEABLE_TAG)
         .flatMap((id) => variantOf(id, content.definitions.paintingVariants.get(id)?.data) ?? []);
 
-/** Java's `Painting.variantArea`. */
+/**
+ * Java's `Painting.variantArea`.
+ *
+ * @javaSource Painting.variantArea
+ */
 export const variantArea = (variant: { readonly width: number; readonly height: number }): number =>
     variant.width * variant.height;
 

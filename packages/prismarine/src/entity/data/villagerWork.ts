@@ -18,7 +18,10 @@ export interface VillagerWorld {
     readonly random: RandomSource;
 }
 
-/** Java's `Villager.FOOD_POINTS`: what each food counts for towards having a child. */
+/**
+ * What each food counts for towards having a child: the `villager_food` component Java's
+ * `Villager.countFoodPointsInInventory` reads.
+ */
 export const FOOD_POINTS: ReadonlyMap<string, number> = new Map([
     ['minecraft:bread', 4],
     ['minecraft:potato', 1],
@@ -26,10 +29,18 @@ export const FOOD_POINTS: ReadonlyMap<string, number> = new Map([
     ['minecraft:beetroot', 1]
 ]);
 
-/** Java's `Villager.breedingFoodThreshold`: a villager is willing with this many food points. */
+/**
+ * Java's `Villager.BREEDING_FOOD_THRESHOLD`: a villager is willing with this many food points.
+ *
+ * @javaSource Villager.BREEDING_FOOD_THRESHOLD
+ */
 export const WILLING_FOOD_POINTS = 12;
 
-/** Java's `Items.WHEAT.getDefaultMaxStackSize()`, which the farmers' sharing thresholds halve. */
+/**
+ * Java's `Item.DEFAULT_MAX_STACK_SIZE`, wheat's stack size, which the farmers' sharing thresholds halve.
+ *
+ * @javaSource Item.DEFAULT_MAX_STACK_SIZE
+ */
 const STACK_SIZE = 64;
 
 /** What a composter takes from a villager, and the chance each item adds a layer. */
@@ -151,6 +162,7 @@ const bake = (inventory: string[]): void => {
  * the bone meal when the composter is full.
  *
  * @returns Whether the block at `at` was a composter.
+ * @javaSource WorkAtComposter.useWorkstation
  */
 export const workAtComposter = (world: VillagerWorld, inventory: string[], at: ContentPosition): boolean => {
     const block = world.blocks.get(at);

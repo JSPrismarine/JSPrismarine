@@ -14,7 +14,7 @@ const DECIMAL_LONG = /^[+-]?\d+$/;
 const DEFAULT_SEED = 0n;
 
 /**
- * Java's `String.hashCode`, which is how Java turns a seed that is not a number into one.
+ * The JDK's `String.hashCode`, which is how Java turns a seed that is not a number into one.
  *
  * `s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]`, over UTF-16 code units and in 32-bit signed
  * arithmetic. `Math.imul` is what keeps the multiply 32-bit; the `| 0` keeps the sum there.

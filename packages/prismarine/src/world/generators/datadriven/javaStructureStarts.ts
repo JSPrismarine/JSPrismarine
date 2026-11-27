@@ -11,6 +11,8 @@
  * Laying a structure out touches no chunk and writes nothing, so a start is a pure function of
  * the world seed and the chunk it starts in. That is what makes the cache safe and what makes
  * two neighboring chunks agree about the same village.
+ *
+ * @javaSee ChunkGenerator.createStructures
  */
 import { performance } from 'node:perf_hooks';
 
@@ -70,7 +72,7 @@ export interface StructureBuildContext {
 /**
  * What a builder produced: the point the biome check is made at, and the pieces, deferred.
  *
- * This is Java's `Structure.GenerationStub`, which pairs a position with a
+ * This is Java's `Structure$GenerationStub`, which pairs a position with a
  * `Consumer<StructurePiecesBuilder>` that `Structure.generate` runs only once
  * `findValidGenerationPoint` has accepted the biome at that position. A structure drawn into a
  * biome that refuses it is therefore never assembled, and {@link StructureLayout.pieces} being a
@@ -85,6 +87,8 @@ export interface StructureLayout {
      * Called at most once per layout, and never before the biome at {@link StructureLayout.origin}
      * has been accepted. A builder may keep drawing from {@link StructureBuildContext.random}
      * inside it: nothing touches that stream between the two, so the draws land in Java's order.
+     *
+     * @javaSource Structure$GenerationStub.getPiecesBuilder
      */
     readonly pieces: () => readonly StructurePiece[];
 }
@@ -119,6 +123,8 @@ export interface StructureStart {
      * `locate_offset`, which is the position `/locate` reports and an eye of ender flies to.
      *
      * The y is the offset's own, 0 for every vanilla set; Java prints it as `~`.
+     *
+     * @javaSource StructurePlacement.getLocatePos
      */
     readonly locatePosition: { readonly x: number; readonly y: number; readonly z: number };
 }
@@ -351,6 +357,7 @@ export class StructureStartSource {
      *
      * @param options - Where to search from, how far, and which structures count.
      * @returns The start, or undefined when nothing matched inside the radius.
+     * @javaSource ChunkGenerator.findNearestMapStructure
      */
     public locate(options: StructureSearchOptions): StructureStart | undefined {
         const { originChunkX, originChunkZ, radius } = options;

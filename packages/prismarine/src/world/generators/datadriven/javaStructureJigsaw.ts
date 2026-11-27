@@ -129,7 +129,17 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
 const membersOf = (element: PoolElement): readonly PoolElement[] =>
     element.type === 'minecraft:list_pool_element' ? (element.elements ?? []) : [element];
 
-/** Java's `Heightmap.Types` names, which the assembler passes through as plain strings. */
+/**
+ * Java's `Heightmap.Types` names, which the assembler passes through as plain strings.
+ *
+ * @javaSource Heightmap$Types.values
+ * @javaSource Heightmap$Types.valueOf
+ * @javaSource Heightmap$Types.getSerializationKey
+ * @javaSource Heightmap$Types.sendToClient
+ * @javaSource Heightmap$Types.keepAfterWorldgen
+ * @javaSource Heightmap$Types.isOpaque()Ljava/util/function/Predicate;
+ * @javaSource Heightmap$Types.getSerializedName
+ */
 const asHeightmap = (name: string) =>
     name === 'WORLD_SURFACE' ||
     name === 'WORLD_SURFACE_WG' ||

@@ -235,6 +235,7 @@ export const isSupported = (
  * suffocate.
  * @param eyes - The eye position.
  * @param width - The body's width.
+ * @javaSource Entity.isInWall
  */
 export const eyesInWall = (eyes: EntityPosition, width: number, blocks: Pick<BodyBlocks, 'collisionAt'>): boolean => {
     const half = (width * 0.8) / 2;
@@ -328,6 +329,7 @@ export const moveOnAxis = (
  * @param blocked - Where the move stopped without a step.
  * @param maxStep - The highest the feet rise, in blocks.
  * @returns The stepped position, or `blocked` when stepping gets no further.
+ * @javaSource Entity.collide
  */
 export const stepUp = (
     from: EntityPosition,
@@ -422,6 +424,8 @@ const overlaps = (bounds: BoxBounds, cell: EntityPosition, box: BedrockCollision
  * @param delta - How far to move, in blocks; the sign is the direction.
  * @returns The box's new lowest coordinate on that axis, or undefined when a cell the move would
  *   reach is not loaded.
+ *
+ * @javaSource Entity.move
  */
 export const sweepAxis = (
     bounds: BoxBounds,
@@ -460,7 +464,11 @@ export interface CellFace {
 /** The top face of a cell, which a body stuck with every side closed is pushed through. */
 const UP: CellFace = { axis: 'y', step: 1 };
 
-/** The faces Java's `Entity.moveTowardsClosestSpace` tries, in its order; down is never one. */
+/**
+ * The faces Java's `Entity.moveTowardsClosestSpace` tries, in its order; down is never one.
+ *
+ * @javaSource Entity.moveTowardsClosestSpace
+ */
 const CLOSEST_SPACE_FACES: readonly CellFace[] = [
     { axis: 'z', step: -1 },
     { axis: 'z', step: 1 },
@@ -474,6 +482,7 @@ const CLOSEST_SPACE_FACES: readonly CellFace[] = [
  * a full cube, which is the way Java's `Entity.moveTowardsClosestSpace` pushes a body stuck in a block.
  * Up when every face it tries is closed.
  * @returns The face, or undefined when a neighboring cell is not loaded.
+ * @javaSource Entity.moveTowardsClosestSpace
  */
 export const closestOpenFace = (point: EntityPosition, shape: CellShape): CellFace | undefined => {
     const cell = { x: Math.floor(point.x), y: Math.floor(point.y), z: Math.floor(point.z) };

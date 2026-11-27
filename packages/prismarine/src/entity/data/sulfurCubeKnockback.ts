@@ -7,6 +7,8 @@
  * (`applyVerticalHitAnglePowerTransfer`), and how far above or below the cube it stands
  * (`applyVerticalPositionAnglePowerRotation`). The push adds to what the cube was doing rather than
  * halving it.
+ *
+ * @javaSee SulfurCube.knockback
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
@@ -112,6 +114,7 @@ const clampPower = (power: number): number => Math.min(POWER_CAP, Math.max(-POWE
  * The velocity one push leaves a cube carrying a block with, Java's `SulfurCube.knockback`.
  *
  * @returns The new velocity.
+ * @javaSource SulfurCube.knockback
  */
 export const sulfurCubeKnockback = (shove: SulfurCubeShove): EntityPosition => {
     const { attacker, modifiers } = shove;

@@ -83,6 +83,8 @@ export interface ContentEntity {
     /**
      * Ticks since this player last slept or died, Java's `Stats.TIME_SINCE_REST`, which the
      * phantom spawner reads; absent for non-players and read as 0.
+     *
+     * @javaSee Stats.TIME_SINCE_REST
      */
     readonly timeSinceRest?: number;
     /** Where this player's head faces, in degrees; absent when the host does not say. */

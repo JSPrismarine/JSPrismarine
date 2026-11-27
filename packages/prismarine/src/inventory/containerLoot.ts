@@ -17,6 +17,8 @@
  * The tag goes once the items are written, which is what makes the roll happen once. A chest
  * already holding something is left alone for the same reason the game leaves one alone: the
  * tag being gone is how a filled chest is told from an unfilled one.
+ *
+ * @javaSee LootTable.fill
  */
 import { pairedPosition } from '@jsprismarine/block-behaviors';
 import { LegacyRandomSource } from '@jsprismarine/worldgen';
@@ -54,11 +56,19 @@ const seededRandom = (source: LegacyRandomSource): RandomSource => ({
     nextInt: (bound) => (bound <= 0 ? 0 : source.nextIntBounded(bound))
 });
 
-/** Java's `Mth.nextInt(random, min, max)`, which is inclusive at both ends. */
+/**
+ * Java's `Mth.nextInt(random, min, max)`, which is inclusive at both ends.
+ *
+ * @javaSource Mth.nextInt
+ */
 const between = (source: LegacyRandomSource, min: number, max: number): number =>
     max <= min ? min : source.nextIntBounded(max - min + 1) + min;
 
-/** Java's `Util.shuffle`: Fisher-Yates from the back, one `nextInt` per position. */
+/**
+ * Java's `Util.shuffle`: Fisher-Yates from the back, one `nextInt` per position.
+ *
+ * @javaSource Util.shuffle
+ */
 const shuffle = <T>(list: T[], source: LegacyRandomSource): void => {
     for (let index = list.length; index > 1; index -= 1) {
         const target = source.nextIntBounded(index);
@@ -74,6 +84,8 @@ const shuffle = <T>(list: T[], source: LegacyRandomSource): void => {
  *
  * Without it a chest with three rolled stacks would show them in three slots however empty it
  * is, where the game spreads twelve gold ingots over several slots of a dungeon chest.
+ *
+ * @javaSource LootTable.shuffleAndSplitItems
  */
 const shuffleAndSplit = (
     rolled: readonly ContentItemDrop[],

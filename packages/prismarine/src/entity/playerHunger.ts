@@ -10,10 +10,16 @@ import type { SurvivalPlayer } from './survivalPlayer';
 /**
  * How much exhaustion buys one point of saturation, and then of food: Java's `FoodData.tick` spends
  * this much once the counter is above it.
+ *
+ * @javaSource FoodData.tick
  */
 const EXHAUSTION_PER_FOOD_POINT = 4;
 
-/** The most exhaustion the counter holds, Java's `FoodData.addExhaustion` cap. */
+/**
+ * The most exhaustion the counter holds, Java's `FoodData.addExhaustion` cap.
+ *
+ * @javaSource FoodData.addExhaustion
+ */
 export const EXHAUSTION_CAP = 40;
 
 /**
@@ -50,22 +56,40 @@ const STARVATION_DAMAGE = 1;
 /** Half-hearts a well-fed player heals per {@link VITALS_INTERVAL}. */
 const REGENERATION_HEALTH = 1;
 
-/** How often a full, saturated food bar heals, Java's `FoodData.tick`. */
+/**
+ * How often a full, saturated food bar heals, Java's `FoodData.tick`.
+ *
+ * @javaSource FoodData.tick
+ */
 const SATURATED_REGENERATION_INTERVAL = 10;
 
 /**
  * The most saturation one fast heal spends; it heals a sixth of it, so a heal is at most one
- * half-heart, Java's `Math.min(saturationLevel, 6.0F)`.
+ * half-heart, `Math.min(saturationLevel, 6.0F)` in Java's `FoodData.tick`.
+ *
+ * @javaSource FoodData.tick
  */
 const SATURATED_REGENERATION_CAP = 6;
 
-/** The most food a player holds, Java's `FoodData.needsFood` bound. */
+/**
+ * The most food a player holds, Java's `FoodData.needsFood` bound.
+ *
+ * @javaSource FoodData.needsFood
+ */
 const MAX_FOOD = 20;
 
-/** How often Peaceful heals a player half a heart, Java's `Player.aiStep`. */
+/**
+ * How often Peaceful heals a player half a heart, Java's `Player.aiStep`.
+ *
+ * @javaSource Player.aiStep
+ */
 const PEACEFUL_HEAL_INTERVAL = 20;
 
-/** How often Peaceful gives a hungry player a point of food, Java's `Player.aiStep`. */
+/**
+ * How often Peaceful gives a hungry player a point of food, Java's `Player.aiStep`.
+ *
+ * @javaSource Player.aiStep
+ */
 const PEACEFUL_FEED_INTERVAL = 10;
 
 /**
@@ -110,6 +134,7 @@ export const addFood = (components: PlayerComponents, food: number, saturation =
  * here. A player hunger does not reach, in creative or spectator, or a dead one, is charged nothing.
  * @param {SurvivalPlayer} player - The player.
  * @param {number} amount - Exhaustion to add.
+ * @javaSource FoodData.addExhaustion
  */
 export const addExhaustion = (player: SurvivalPlayer, amount: number): void => {
     if (!player.vulnerable() || !player.alive() || amount <= 0) return;
@@ -124,6 +149,7 @@ export const addExhaustion = (player: SurvivalPlayer, amount: number): void => {
  * Peaceful spends the saturation and never the food.
  * @param {PlayerComponents} components - The player's components.
  * @param {Difficulty} difficulty - The world's difficulty.
+ * @javaSource FoodData.tick
  */
 export const spendExhaustion = (components: PlayerComponents, difficulty: Difficulty): void => {
     const exhaustion = components.get('vitals.exhaustion');
@@ -192,6 +218,8 @@ export type HungerOutcome =
 /**
  * Whether an empty food bar still hurts a player at this health, Java's `FoodData.tick`: always on
  * Hard, down to half a heart on Normal, and down to five hearts on Easy and Peaceful.
+ *
+ * @javaSource FoodData.tick
  */
 const starves = (health: number, difficulty: Difficulty): boolean =>
     health > 10 || difficulty === 'hard' || (health > 1 && difficulty === 'normal');
@@ -256,6 +284,7 @@ export interface PeacefulRecovery {
  * @param {boolean} regenerates - Whether the `naturalRegeneration` game rule is on.
  * @param {Difficulty} difficulty - The world's difficulty; only Peaceful recovers.
  * @returns {PeacefulRecovery | undefined} What to give, or undefined for nothing.
+ * @javaSource Player.aiStep
  */
 export const peacefulRecovery = (
     player: SurvivalPlayer,

@@ -156,6 +156,7 @@ export const countSlots = (
  *
  * @param slots - The `minecraft:slot_source` argument.
  * @param predicate - Java's `item_predicate` argument.
+ * @javaSource net/minecraft/server/commands/ExecuteCommand.countItems
  */
 export const countSlotItems = (
     server: Server,

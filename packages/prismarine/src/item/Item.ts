@@ -705,6 +705,9 @@ export class Item {
      * @param block - The block identifier being mined.
      * @returns A multiplier on the base rate; 1 for a bare hand or an item
      *   with no rule for the block, which is Java's `Item.getDestroySpeed`.
+     *
+     * @javaSource Player.getDestroySpeed
+     * @javaSource Item.getDestroySpeed
      */
     public getMiningSpeed(block: string): number {
         const parameters = this.type()?.params(tool);

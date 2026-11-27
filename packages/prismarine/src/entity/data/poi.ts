@@ -81,6 +81,8 @@ const JOB_SITES = [
  *
  * Bedrock writes one identifier per wood, and `minecraft:wooden_door` is the
  * oak one; Java's village door scan treats them all alike.
+ *
+ * @javaSource BlockTags.DOORS
  */
 const DOORS = [
     'minecraft:acacia_door',
@@ -134,6 +136,8 @@ export const JAVA_POI_TYPES: readonly string[] = JAVA_POI_BLOCKS.map(([type]) =>
  * the bed in it. `village` and `meeting` are the bell, which is what Java
  * centers a village on, with the beds as the fallback for a village that has
  * no bell yet.
+ *
+ * @javaSource PoiTypes.HOME
  */
 const POI_BLOCKS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
     ['bed', new Set(['minecraft:bed'])],

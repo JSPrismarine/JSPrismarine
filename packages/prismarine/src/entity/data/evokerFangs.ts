@@ -24,7 +24,11 @@ export const EVOKER_FANGS = 'minecraft:evocation_fang';
 /** The host component that makes a data entity a set of evoker fangs, and holds its numbers. */
 export const EVOKER_FANGS_COMPONENT = 'jsprismarine:evoker_fangs';
 
-/** The family an evoker counts as allies: Java's `Evoker.isAlliedTo` spares the `illager` tag. */
+/**
+ * The family an evoker counts as allies: Java's `Evoker.considersEntityAsAlly` spares the `illager` tag.
+ *
+ * @javaSource Evoker.considersEntityAsAlly
+ */
 const ALLIED_FAMILY = 'illager';
 
 /** One set of fangs' state: how many ticks it has lived. */

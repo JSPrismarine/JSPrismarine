@@ -5,6 +5,8 @@
  * enough to for spawning (`ChunkMap.anyPlayerCloseEnoughForSpawning`) counts one tick more
  * (`ServerChunkCache.tickSpawningChunk` calls `LevelChunk.incrementInhabitedTime`). Regional
  * difficulty reads the count where a mob spawns, so a chunk players live in grows harder.
+ *
+ * @javaSee ServerChunkCache.tickChunks()V
  */
 
 /**

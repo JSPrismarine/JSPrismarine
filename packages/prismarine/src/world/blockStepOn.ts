@@ -5,6 +5,8 @@
  * how a pressure plate, a detector rail or a tripwire learns something is on it. The entity
  * runtime reports each block a body's box has moved into, and this runs the hook of the block
  * there, when its state declares one.
+ *
+ * @javaSee Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I
  */
 import type { HookActor } from '@jsprismarine/blocks';
 import type { BlockPosition } from '@jsprismarine/engine-systems';

@@ -99,6 +99,8 @@ export interface BlockBreak {
      * `minecraft:explosion_decay`, which keeps each item of a rolled stack with a chance of
      * `1 / radius`, so stone caught by a radius-4 TNT blast yields cobblestone one time in
      * four. Absent for a break nothing exploded, which keeps every item.
+     *
+     * @javaSee LootContextParams.EXPLOSION_RADIUS
      */
     readonly explosionRadius?: number;
     /**
@@ -108,6 +110,8 @@ export interface BlockBreak {
      * the hook still runs, so a burning chest spills what it held, and the block itself
      * leaves nothing. The two are separable because the loot table owns the block's yield and
      * the block entity owns the rest.
+     *
+     * @javaSee Level.removeBlock
      */
     readonly dropsBlock?: boolean;
 }
@@ -367,6 +371,8 @@ export interface ToolWear {
  * Nothing is sent. The client wears its own copy as it predicts the break, and BDS sent no
  * inventory while a pickaxe mined. With no content loaded, this hook is skipped. A behavior that
  * throws is logged and costs the player nothing.
+ *
+ * @javaSource Item.mineBlock
  */
 export const wearBreakingTool = ({ world, source, tool, block }: ToolWear): void => {
     const server = world.getServer();

@@ -26,9 +26,15 @@ export interface StructureLevel {
     /**
      * Java's `ChunkGenerator.getBaseHeight`: the first y above the topmost block of the bare
      * noise terrain that matches the heightmap, with nothing decorated and no surface rule run.
+     *
+     * @javaSee ChunkGenerator.getBaseHeight
      */
     baseHeight(x: number, z: number, heightmap: HeightmapType): number;
-    /** Java's `ChunkGenerator.getBaseColumn`, read one block at a time. */
+    /**
+     * Java's `ChunkGenerator.getBaseColumn`, read one block at a time.
+     *
+     * @javaSee ChunkGenerator.getBaseColumn
+     */
     baseBlock(x: number, y: number, z: number): BlockState;
     /**
      * The biome source's own answer at a quart position, which is the 4-block cell Java stores
@@ -39,6 +45,8 @@ export interface StructureLevel {
      * Java's `Biome.coldEnoughToSnow(pos)`, which the ruined portal reads to decide whether its
      * lava is lava. Optional, because it needs the biome registry rather than the noise; a level
      * that cannot answer is treated as warm, which is the common case.
+     *
+     * @javaSee Biome.coldEnoughToSnow
      */
     coldEnoughToSnow?(x: number, y: number, z: number): boolean;
 }

@@ -109,7 +109,11 @@ export interface EntityScene {
     shoot(shooter: MobBody, target: GoalMob, projectile: string | undefined): void;
     /** Knocks a mob away from the entity. */
     knockback(source: MobBody, target: GoalMob, horizontal: number, vertical: number): void;
-    /** Adds to another mob's velocity, Java's `Entity.push`. */
+    /**
+     * Adds to another mob's velocity, Java's `Entity.push`.
+     *
+     * @javaSee Entity.push(Lnet/minecraft/world/phys/Vec3;)V
+     */
     pushMob(source: MobBody, target: GoalMob, velocity: EntityPosition): void;
     /** Detonates an entity, which is what its `minecraft:explode` component declares. */
     explode(source: MobBody): void;

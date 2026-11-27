@@ -108,6 +108,8 @@ const FORTRESS_LOOT = 'minecraft:chests/nether_bridge';
  *
  * Air, any liquid, and the three plants Java names. The pillars under a fortress stop at the
  * first netherrack and go straight through the lava sea.
+ *
+ * @javaSource StructurePiece.isReplaceableByStructures
  */
 const REPLACEABLE = new Set([
     'minecraft:air',
@@ -253,6 +255,8 @@ abstract class FortressPiece implements StructurePiece {
      *
      * Java's `SpawnerBlockEntity.setEntityId` draws nothing: a fresh spawner has no spawn
      * potentials to pick between, so the stream is untouched.
+     *
+     * @javaSource SpawnerBlockEntity.setEntityId
      */
     protected spawner(writer: StructureWriter, x: number, y: number, z: number, entity: string): void {
         const worldX = this.worldX(x, z);
@@ -1006,7 +1010,11 @@ const castleWeights = (): PieceWeight[] =>
         ['castle_stalk_room', 5, 2]
     ]);
 
-/** Java's `PieceWeight.doPlace`, which ignores the depth it is handed. */
+/**
+ * Java's `NetherFortressPieces.PieceWeight.doPlace`, which ignores the depth it is handed.
+ *
+ * @javaSource NetherFortressPieces$PieceWeight.doPlace
+ */
 const hasRoom = (entry: PieceWeight): boolean => entry.limit === 0 || entry.placed < entry.limit;
 
 /**
@@ -1193,6 +1201,8 @@ class FortressLayout {
  *
  * The fortress is moved so its floor lands at a drawn y between 48 and 70 less its own height.
  * A fortress taller than the band has no room to draw in and lands at 48.
+ *
+ * @javaSource StructurePiecesBuilder.moveInsideHeights
  */
 const settleInsideHeights = (pieces: readonly FortressPiece[], random: RandomSource): void => {
     const box = unionOf(pieces);
@@ -1227,7 +1237,11 @@ export const buildNetherFortress: StructureBuilder = (context): StructureLayout 
     };
 };
 
-/** The pieces one fortress grew, which is Java's `NetherFortressStructure.generatePieces`. */
+/**
+ * The pieces one fortress grew, which is Java's `NetherFortressStructure.generatePieces`.
+ *
+ * @javaSource NetherFortressStructure.generatePieces
+ */
 const fortressPieces = (context: StructureBuildContext, x: number, z: number): readonly StructurePiece[] => {
     const random = context.random;
     const layout = new FortressLayout();

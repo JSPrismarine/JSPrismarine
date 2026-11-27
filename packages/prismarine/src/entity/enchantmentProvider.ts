@@ -6,6 +6,8 @@
  * `minecraft:single`. The first two draw an enchanting cost and run the enchanting table's draw,
  * `EnchantmentHelper.selectEnchantment`, over the provider's enchantments; the second widens the
  * cost by the place's regional difficulty. The last adds one enchantment at a drawn level.
+ *
+ * @javaSee EnchantmentHelper.enchantItemFromProvider
  */
 import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 import { selectEnchantments } from '@jsprismarine/enchantments';
@@ -32,7 +34,11 @@ export const enchantmentProviderSourceOf = (content: ServerContent): Enchantment
     enchantability: (identifier) => content.items.types.get(identifier)?.params(enchantable)?.value ?? 0
 });
 
-/** Java's `Mth.randomBetweenInclusive`. */
+/**
+ * Java's `Mth.randomBetweenInclusive`.
+ *
+ * @javaSource Mth.randomBetweenInclusive
+ */
 const between = (random: RandomSource, min: number, max: number): number =>
     max <= min ? min : min + random.nextInt(max - min + 1);
 

@@ -210,6 +210,8 @@ const after = (first: Record<Facing, Facing>, second: Record<Facing, Facing>): R
  *
  * Java's `StructurePiece.setOrientation` pairs south with a left-right mirror, east with a
  * quarter turn and west with both, and leaves north alone.
+ *
+ * @javaSource StructurePiece.setOrientation
  */
 const TURNED_FACING: Record<Facing, Record<Facing, Facing>> = {
     north: UNTURNED,
@@ -263,7 +265,11 @@ export const orientedState = (state: BlockState, orientation: Facing): BlockStat
 // Boxes
 // ---------------------------------------------------------------------------
 
-/** Java's `BoundingBox.orientBox`: a box of a given extent laid out from a door, facing a way. */
+/**
+ * Java's `BoundingBox.orientBox`: a box of a given extent laid out from a door, facing a way.
+ *
+ * @javaSource BoundingBox.orientBox
+ */
 export const orientBox = (
     footX: number,
     footY: number,
@@ -316,7 +322,11 @@ export const orientBox = (
     }
 };
 
-/** Java's `StructurePiece.makeBoundingBox`, which only a structure's start piece uses. */
+/**
+ * Java's `StructurePiece.makeBoundingBox`, which only a structure's start piece uses.
+ *
+ * @javaSource StructurePiece.makeBoundingBox
+ */
 export const makeBoundingBox = (
     x: number,
     y: number,
@@ -646,6 +656,8 @@ abstract class StrongholdPiece implements StructurePiece {
  *
  * With no solid neighbor, or with more than one, it keeps its default north and then turns away
  * from whatever it would be facing into.
+ *
+ * @javaSource StructurePiece.reorient
  */
 export const chestFacing = (writer: StructureWriter, x: number, y: number, z: number): Facing => {
     const solidAt = (facing: Facing): boolean => {
@@ -1409,6 +1421,8 @@ const createPiece = (
  *
  * There is only a gap worth filling when the room it hit starts at the same height, and only
  * when that room is one or two blocks away.
+ *
+ * @javaSource StrongholdPieces$FillerCorridor.findPieceBox
  */
 const fillerCorridorBox = (
     layout: StrongholdLayout,
@@ -1552,6 +1566,8 @@ class StrongholdLayout {
  * The top of the stronghold is pulled to a drawn height below sea level, with its own span and
  * the dimension floor setting how low it may go. No terrain is read, which is what lets every
  * chunk the stronghold covers agree on its height without sampling a column.
+ *
+ * @javaSource StructurePiecesBuilder.moveBelowSeaLevel
  */
 const settleBelowSeaLevel = (
     pieces: readonly StrongholdPiece[],

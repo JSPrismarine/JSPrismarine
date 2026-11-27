@@ -11,6 +11,8 @@
  * Bedrock lets only a player trigger creation (wiki, "the incoming entity can be ... only a
  * player in Bedrock Edition"); `DimensionTravel` makes that call, so an item or a mob with
  * no portal to arrive in never reaches here.
+ *
+ * @javaSee PortalForcer.createPortal
  */
 import { portalCreationSite, writeNetherPortal } from '@jsprismarine/block-behaviors';
 import type { PortalAxis, PortalCreationBounds, WorldActions } from '@jsprismarine/block-behaviors';
@@ -20,7 +22,11 @@ import { Vector3 } from '@jsprismarine/math';
 import type { DimensionType } from '../DimensionType';
 import type { PortalRectangle } from './search';
 
-/** Java's `PortalForcer.createPortal` result: a 2 wide, 3 tall interior. */
+/**
+ * Java's `PortalForcer.createPortal` result: a 2 wide, 3 tall interior.
+ *
+ * @javaSource PortalForcer.createPortal
+ */
 const CREATED_WIDTH = 2;
 const CREATED_HEIGHT = 3;
 

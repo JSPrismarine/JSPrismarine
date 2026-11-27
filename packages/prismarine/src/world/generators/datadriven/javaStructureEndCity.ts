@@ -48,11 +48,19 @@ const ROTATIONS = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90
 
 const quarterTurnsOf = (rotation: Rotation): number => ROTATIONS.indexOf(rotation);
 
-/** Java's `Rotation.getRotated`: one turn followed by another. */
+/**
+ * Java's `Rotation.getRotated`: one turn followed by another.
+ *
+ * @javaSource Rotation.getRotated
+ */
 const rotated = (rotation: Rotation, by: Rotation): Rotation =>
     rotationOf(quarterTurnsOf(rotation) + quarterTurnsOf(by));
 
-/** Java's `BlockPos.rotate`: an offset turned about the origin. */
+/**
+ * Java's `BlockPos.rotate`: an offset turned about the origin.
+ *
+ * @javaSource BlockPos.rotate
+ */
 const rotatedOffset = ([x, y, z]: TemplatePosition, rotation: Rotation): TemplatePosition => {
     switch (rotation) {
         case 'clockwise_90':
@@ -69,6 +77,8 @@ const rotatedOffset = ([x, y, z]: TemplatePosition, rotation: Rotation): Templat
 /**
  * Bedrock's `facing_direction` for the way an item frame faces, Java's `Rotation.rotate(SOUTH)`
  * for each rotation. Java hangs the elytra frame facing south in the template's own frame.
+ *
+ * @javaSource Rotation.rotate(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;
  */
 const FRAME_FACING: Readonly<Record<Rotation, number>> = {
     none: 3,
@@ -133,7 +143,11 @@ interface Section {
     readonly batch: CityPiece[];
 }
 
-/** Java's `SectionGenerator.generate`: fills the batch and says whether it may be kept at all. */
+/**
+ * Java's `SectionGenerator.generate`: fills the batch and says whether it may be kept at all.
+ *
+ * @javaSee EndCityPieces$SectionGenerator.generate
+ */
 type SectionGenerator = (section: Section) => boolean;
 
 /**
@@ -177,7 +191,11 @@ const lowestCornerHeight = (level: StructureLevel, x: number, z: number, rotatio
     );
 };
 
-/** Java's `EndCityPieces.startHouseTower`: the house, then the tower generator off its roof. */
+/**
+ * Java's `EndCityPieces.startHouseTower`: the house, then the tower generator off its roof.
+ *
+ * @javaSource EndCityPieces.startHouseTower
+ */
 const startHouseTower = (
     context: StructureBuildContext,
     position: TemplatePosition,
@@ -328,6 +346,8 @@ const startHouseTower = (
  *
  * Every piece of the batch is marked with one fresh draw before the check, and the check reads
  * the first colliding piece only, as Java's `findCollisionPiece` does.
+ *
+ * @javaSource EndCityPieces.recursiveChildren
  */
 const recursiveChildren = (
     section: Section,
@@ -352,7 +372,11 @@ const recursiveChildren = (
     return true;
 };
 
-/** Java's `BoundingBox.intersects`, over the pieces this server carries a template for. */
+/**
+ * Java's `BoundingBox.intersects`, over the pieces this server carries a template for.
+ *
+ * @javaSource BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z
+ */
 const intersects = (left: CityPiece, right: CityPiece): boolean => {
     if (!right.piece.isPresent) return false;
 
@@ -390,6 +414,8 @@ const pushPiece = (into: CityPiece[], piece: CityPiece): CityPiece => {
  * That is what `StructureTemplate.calculateConnectedPosition` comes to when both pivots are the
  * zero block: the offset is transformed by the parent's placement and the child's transformed
  * zero, which is zero, is taken away.
+ *
+ * @javaSource EndCityPieces.addPiece
  */
 const connected = (
     context: StructureBuildContext,
@@ -436,6 +462,8 @@ const cityPiece = (
  *
  * Bedrock has no item frame entity; its frame is a block with a block entity holding the item,
  * so the frame is written as that block, facing the way Java's entity would.
+ *
+ * @javaSource EndCityPieces$EndCityPiece.handleDataMarker
  */
 const fillMarker = (marker: DataMarker, writer: StructureWriter, rotation: Rotation): void => {
     if (marker.value.startsWith('Chest')) {

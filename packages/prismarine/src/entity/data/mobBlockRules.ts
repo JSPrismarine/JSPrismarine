@@ -33,7 +33,11 @@ export interface MobBlockHost {
     /** Whether `mobGriefing` is on. */
     mobGriefing(): boolean;
     isAir(at: EntityPosition): boolean;
-    /** Whether a block placed at a position survives there, as Java's `BlockState.canSurvive`. */
+    /**
+     * Whether a block placed at a position survives there, as Java's `BlockState.canSurvive`.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.canSurvive
+     */
     canSurvive(identifier: string, at: EntityPosition): boolean;
     place(entity: DataEntity, identifier: string, at: EntityPosition): void;
     /** Whether a block is one of Java's `LeavesBlock`s. */

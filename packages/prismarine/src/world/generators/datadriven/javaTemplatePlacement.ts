@@ -245,7 +245,17 @@ const processorsOf = (reference: TemplateProcessors | undefined, source: Templat
     }
 };
 
-/** Java's `Heightmap.Types` names, which the processor context passes as plain strings. */
+/**
+ * Java's `Heightmap.Types` names, which the processor context passes as plain strings.
+ *
+ * @javaSource Heightmap$Types.values
+ * @javaSource Heightmap$Types.valueOf
+ * @javaSource Heightmap$Types.getSerializationKey
+ * @javaSource Heightmap$Types.sendToClient
+ * @javaSource Heightmap$Types.keepAfterWorldgen
+ * @javaSource Heightmap$Types.isOpaque()Ljava/util/function/Predicate;
+ * @javaSource Heightmap$Types.getSerializedName
+ */
 const heightmapOf = (name: string): HeightmapType =>
     name === 'WORLD_SURFACE' ||
     name === 'WORLD_SURFACE_WG' ||

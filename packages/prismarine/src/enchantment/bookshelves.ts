@@ -11,6 +11,8 @@
  *
  * Fifteen is the most that can be reached and the most that matters; the draw
  * clamps there.
+ *
+ * @javaSee EnchantmentMenu.slotsChanged
  */
 
 /** The most power a table can draw on, which is also the most the formula uses. */

@@ -52,6 +52,8 @@ const firstFreeYAbove = (world: World, x: number, z: number): number => {
  * loads the chunks a feature spans before placing it. Every heightmap kind answers the plain
  * top-of-column, which is exact for the fight's features: nothing in the End arena
  * distinguishes `MOTION_BLOCKING` from `WORLD_SURFACE`.
+ *
+ * @javaSee LevelWriter.setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z
  */
 export const fightFeatureWorld = (world: World): FeatureWorld => {
     const translator = new JavaStateTranslator();

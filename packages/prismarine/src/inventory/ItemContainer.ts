@@ -14,6 +14,8 @@ const isNothing = (item: Item): boolean => item.getName() === AIR || item.getAmo
  * Whether two stacks would sit in one slot: the same item with the same data, whatever their
  * counts and stack network ids, which is Java's `ItemStack.isSameItemSameComponents`. A named or
  * enchanted stack does not take in a plain one.
+ *
+ * @javaSource ItemStack.isSameItemSameComponents
  */
 const stacksWith = (held: Item, incoming: Item): boolean => {
     if (held.getName() !== incoming.getName() || held.meta !== incoming.meta) return false;

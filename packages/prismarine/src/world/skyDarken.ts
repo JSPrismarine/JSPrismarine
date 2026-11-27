@@ -6,6 +6,8 @@
  * `minecraft:day` timeline's track, then blended toward 4 by rain and again by thunder in
  * `WeatherAttributes`. The phantom spawner waits for a darkness of 5, which the evening reaches at
  * day time 12687 and a thunderstorm reaches at noon.
+ *
+ * @javaSee Level.getSkyDarken
  */
 import type { Weather } from '@jsprismarine/engine-systems';
 

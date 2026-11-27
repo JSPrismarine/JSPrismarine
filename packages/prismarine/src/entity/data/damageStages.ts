@@ -26,6 +26,9 @@
  * shield blocks, the grace period's
  * difference, armor, protection enchantments, resistance, absorption, the dragon's scaling and the
  * damage sensor's multiplier.
+ *
+ * @javaSee LivingEntity.hurtServer
+ * @javaSee EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z
  */
 import type { DamageSensing, FilterEntityView } from '@jsprismarine/entities';
 
@@ -91,13 +94,21 @@ export interface DamageStageReads {
  */
 export const ITEM_BLOCKING = 'item_blocking';
 
-/** The entity type Java's `Witch.getDamageAfterMagicAbsorb` shields. */
+/**
+ * The entity type Java's `Witch.getDamageAfterMagicAbsorb` shields.
+ *
+ * @javaSource Witch.getDamageAfterMagicAbsorb
+ */
 const WITCH = 'minecraft:witch';
 
 /** The share of a `witch_resistant_to` blow `Witch.getDamageAfterMagicAbsorb` lets through. */
 const WITCH_RESISTED_SHARE = 0.15;
 
-/** The entity type Java's `EndCrystal.hurtServer` breaks on any blow it takes. */
+/**
+ * The entity type Java's `EndCrystal.hurtServer` breaks on any blow it takes.
+ *
+ * @javaSource EndCrystal.hurtServer
+ */
 const END_CRYSTAL = 'minecraft:ender_crystal';
 
 /** Causes whose `cannot_be_attacked` and type rules are asked, which is every blow an entity deals. */

@@ -15,17 +15,35 @@ const float = Math.fround;
 
 /** The ways a projectile's tick orders its gravity, its drag and its move. */
 type FlightOrder =
-    /** Java's `AbstractArrow.tick`: water drag, the move, then air drag and gravity. */
+    /**
+     * Java's `AbstractArrow.tick`: water drag, the move, then air drag and gravity.
+     *
+     * @javaSource AbstractArrow.tick
+     */
     | 'arrow'
-    /** Java's `ThrowableProjectile.tick`: gravity, then drag, then the move. */
+    /**
+     * Java's `ThrowableProjectile.tick`: gravity, then drag, then the move.
+     *
+     * @javaSource ThrowableProjectile.tick
+     */
     | 'throwable'
-    /** Java's `ShulkerBullet.tick` with no target: gravity, then the move, with no drag. */
+    /**
+     * Java's `ShulkerBullet.tick` with no target: gravity, then the move, with no drag.
+     *
+     * @javaSource ShulkerBullet.tick
+     */
     | 'bullet'
-    /** Java's `LlamaSpit.tick`: the move, then air drag and gravity. */
+    /**
+     * Java's `LlamaSpit.tick`: the move, then air drag and gravity.
+     *
+     * @javaSource LlamaSpit.tick
+     */
     | 'spit'
     /**
      * Java's `AbstractHurtingProjectile.tick`: `applyInertia` speeds the projectile up along its
      * heading and then keeps its inertia's share, before the move, with no gravity.
+     *
+     * @javaSource AbstractHurtingProjectile.tick
      */
     | 'hurting'
     /** The Bedrock component: the move, then gravity, then the component's inertia. */

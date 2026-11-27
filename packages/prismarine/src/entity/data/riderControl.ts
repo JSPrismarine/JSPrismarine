@@ -27,6 +27,8 @@ const isMob = (entity: DataEntity): boolean =>
 /**
  * The mob steering a vehicle: its first rider, when the vehicle is a mob and that rider is a mob
  * whose type may control a vehicle. Java's `Mob.getControllingPassenger`.
+ *
+ * @javaSource Mob.getControllingPassenger
  */
 export const controllingRiderOf = (vehicle: DataEntity, scene: EntityScene): DataEntity | undefined => {
     if (!isMob(vehicle)) return undefined;
@@ -39,7 +41,11 @@ export const controllingRiderOf = (vehicle: DataEntity, scene: EntityScene): Dat
     return rider;
 };
 
-/** The mob a rider steers, when it steers the one it rides. Java's `Entity.getControlledVehicle`. */
+/**
+ * The mob a rider steers, when it steers the one it rides. Java's `Entity.getControlledVehicle`.
+ *
+ * @javaSource Entity.getControlledVehicle
+ */
 export const controlledVehicleOf = (rider: MobBody, scene: EntityScene): DataEntity | undefined => {
     const ridden = scene.vehicleOf(rider);
     const vehicle = typeof ridden?.id === 'number' ? scene.byId(ridden.id) : undefined;
@@ -49,6 +55,8 @@ export const controlledVehicleOf = (rider: MobBody, scene: EntityScene): DataEnt
 /**
  * Turns a mob's own movement goals off while a rider steers it and back on once none does, as
  * Java's `Mob.updateControlFlags` does before each AI step.
+ *
+ * @javaSource Mob.updateControlFlags
  */
 export const updateControlFlags = (entity: DataEntity, scene: EntityScene): void => {
     const free = controllingRiderOf(entity, scene) === undefined;

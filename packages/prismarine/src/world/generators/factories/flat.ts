@@ -30,7 +30,11 @@ export const DEFAULT_FLAT_SETTINGS: FlatGeneratorSettings = {
     features: false
 };
 
-/** What Java's `FlatLevelSource.getSeaLevel` answers: one above the Overworld's floor, so nothing is under water. */
+/**
+ * What Java's `FlatLevelSource.getSeaLevel` answers: one above the Overworld's floor, so nothing is under water.
+ *
+ * @javaSource FlatLevelSource.getSeaLevel
+ */
 export const FLAT_SEA_LEVEL = -63;
 
 /** How a {@link FlatGenerator} is built. */

@@ -20,6 +20,8 @@ export const isSet = (value: unknown): boolean => value === true || value === 1;
  * lower half, and this writes it on both, so the upper half's collision box swings with the door,
  * as Java's `DoorBlock.setOpen` sets `OPEN` on both halves. Anything that is not a door is left
  * alone.
+ *
+ * @javaSource DoorBlock.setOpen
  */
 export const setDoorOpen = (blocks: ContentBlockAccess, at: ContentPosition, open: boolean): void => {
     const block = blocks.get(at);

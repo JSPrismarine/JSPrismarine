@@ -24,6 +24,7 @@ export const diedVitals = (player: SurvivalPlayer): void => {
  * a death without `minecraft:keep_inventory` already took them (see `PlayerSession.die`), and one
  * with it keeps them, as Java's `ServerPlayer.restoreFrom` does.
  * @param {SurvivalPlayer} player - The player coming back.
+ * @javaSource ServerPlayer.restoreFrom
  */
 export const respawnVitals = (player: SurvivalPlayer): void => {
     const { components } = player;

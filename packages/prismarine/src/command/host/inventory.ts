@@ -287,6 +287,8 @@ const modifierContext = (content: ServerContent, server: Server, target: SlotTar
  *
  * @returns The modified stack, cut down to the item's stack size as Java cuts it, or null when
  *   the modifier emptied it.
+ *
+ * @javaSource ItemCommands.applyModifier
  */
 const modifiedItem = (server: Server, modifier: ItemModifier, item: Item, target: SlotTarget): Item | null => {
     const drop = dropOfItem(item);
@@ -383,6 +385,7 @@ export const copyItemSlots = (
  * @param count - How many slots to write; the number of stacks when the command named none.
  * @returns How many items went in.
  * @throws {CommandSyntaxException} When the name is not one slot, or no target has it.
+ * @javaSource LootCommand.entityReplace
  */
 export const replaceWithLoot = (
     server: Server,

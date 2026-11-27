@@ -2,6 +2,8 @@
  * Java's `LivingEntity.isLookingAtMe`, which decides an enderman's stare and a creaking's freeze:
  * whether a player's look points at one of a few heights on an entity, closely enough and with
  * nothing in the way.
+ *
+ * @javaSee LivingEntity.isLookingAtMe
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
@@ -14,6 +16,8 @@ export interface Look {
 /**
  * Java's `Entity.calculateViewVector`: the unit vector a yaw and pitch point along. Bedrock's yaw
  * and pitch are Java's, so the same formula reads either.
+ *
+ * @javaSource Entity.calculateViewVector
  */
 export const viewVector = ({ yaw, pitch }: Look): EntityPosition => {
     const pitchRadians = (pitch * Math.PI) / 180;
@@ -46,6 +50,8 @@ export interface LookingAtQuery {
  * Java's `LivingEntity.isLookingAtMe`: true when, for one of the heights, the cosine between the
  * look and the line from the eyes to that point is above `1 - tolerance` (the tolerance over the
  * distance when it scales) and nothing blocks the line.
+ *
+ * @javaSource LivingEntity.isLookingAtMe
  */
 export const isLookingAt = (query: LookingAtQuery): boolean => {
     const view = viewVector(query.look);

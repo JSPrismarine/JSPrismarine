@@ -18,6 +18,8 @@
  * Both resolve to a {@link HeldSlot}: a container and a slot of an {@link EntityInventory}, or a
  * slot of a block's container. Nothing here reads or writes an item; the caller does that, so
  * `/replaceitem`, `/item`, `/loot replace` and the parity suite read the same slot for one name.
+ *
+ * @javaSee Entity.getSlot
  */
 import { BLOCK_EQUIPMENT_SLOTS } from '@jsprismarine/commands';
 
@@ -115,7 +117,11 @@ const JAVA_EQUIPMENT_IDS: Readonly<Record<MobEquipmentSlot, number>> = {
     body: 105
 };
 
-/** `saddle`, Java's `EquipmentSlot.SADDLE`. */
+/**
+ * `saddle`, Java's `EquipmentSlot.SADDLE`.
+ *
+ * @javaSource EquipmentSlot.SADDLE
+ */
 const JAVA_SADDLE = 106;
 
 /** The equipment slot each of Java's equipment numbers names. */

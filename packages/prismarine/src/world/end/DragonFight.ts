@@ -35,6 +35,8 @@ const ARENA_RADIUS = 192;
 /**
  * Whether a player standing here sees the dragon's bar, Java's `EnderDragonFight.validPlayer`:
  * within 192 blocks of (0, 128, 0), the distance measured in three dimensions.
+ *
+ * @javaSee EnderDragonFight.validPlayer
  */
 export const isInDragonArena = (position: { readonly x: number; readonly y: number; readonly z: number }): boolean => {
     const dx = position.x - DRAGON_SPAWN.x;
@@ -61,7 +63,11 @@ const GATEWAY_Y = 75;
 /** A twentieth of the circle, the angle step in Java's `spawnNewGateway`. */
 const GATEWAY_ANGLE_STEP = 0.15707963267948966;
 
-/** Experience for a world's first dragon kill, Java's `EnderDragon.tickDeath`. */
+/**
+ * Experience for a world's first dragon kill, Java's `EnderDragon.tickDeath`.
+ *
+ * @javaSource EnderDragon.tickDeath
+ */
 const FIRST_KILL_EXPERIENCE = 12000;
 
 /** Experience for every kill after the first. */
@@ -368,6 +374,8 @@ export class DragonFight {
      * the player who broke the crystal, or the player nearest it within 64 blocks, becomes the
      * target of a strafe, if the dragon is circling. The dragon's phase is its saved component
      * state, which its phase goals read.
+     *
+     * @javaSource EnderDragon.onCrystalDestroyed
      */
     private turnDragonOnCrystalBreaker(crystal: DataEntity): void {
         const dragon = this.dragon;

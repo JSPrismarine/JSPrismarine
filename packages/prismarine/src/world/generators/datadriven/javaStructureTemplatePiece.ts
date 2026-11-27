@@ -104,6 +104,8 @@ const GROUND_NAMES: ReadonlySet<string> = new Set(
  * What Java's `StructureTemplatePool.Projection.TERRAIN_MATCHING` adds to an element's processors:
  * a gravity processor that drops each block to the world surface, one below, so a village street
  * follows the ground instead of keeping the height its template was drawn at.
+ *
+ * @javaSource StructureTemplatePool$Projection.TERRAIN_MATCHING
  */
 const TERRAIN_MATCHING = createProcessor({
     processor_type: 'minecraft:gravity',
@@ -355,6 +357,8 @@ export interface TemplatePieceOptions {
     /**
      * Handles one data marker, which is how a legacy structure fills in a chest, a spawner or a
      * decoration from code. Java's `TemplateStructurePiece.handleDataMarker`.
+     *
+     * @javaSee TemplateStructurePiece.handleDataMarker
      */
     readonly onDataMarker?: (marker: DataMarker, writer: StructureWriter, random: RandomSource) => void;
     /**
@@ -373,6 +377,8 @@ export interface TemplatePieceOptions {
  * negative coordinates. `transformTemplate` keeps a turned template inside its own extent
  * instead. The two differ by a translation and nothing else, so the corner is the one the
  * translation puts the template's own zero block on.
+ *
+ * @javaSource StructureTemplate.transform(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Mirror;Lnet/minecraft/world/level/block/Rotation;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;
  */
 export const pivotedCorner = (
     position: TemplatePosition,
@@ -593,6 +599,8 @@ const savedYaw = (nbt: NBTTagCompound): number => {
 /**
  * The yaw an entity ends up facing under a placement, Java's `Entity.mirror` then
  * `Entity.rotate`: the mirror reflects the angle and the rotation adds its quarter turns.
+ *
+ * @javaSource Entity.mirror
  */
 const turnedYaw = (yaw: number, placement: Placement): number => {
     const mirrored = placement.mirror === 'left_right' ? -yaw : placement.mirror === 'front_back' ? 180 - yaw : yaw;
@@ -613,7 +621,17 @@ const bedrockViewOf = (state: { name: string; properties: Readonly<Record<string
     return mapped.kind === 'unknown' ? undefined : mapped.bedrock;
 };
 
-/** Java's `Heightmap.Types` names, which the processor context passes as plain strings. */
+/**
+ * Java's `Heightmap.Types` names, which the processor context passes as plain strings.
+ *
+ * @javaSource Heightmap$Types.values
+ * @javaSource Heightmap$Types.valueOf
+ * @javaSource Heightmap$Types.getSerializationKey
+ * @javaSource Heightmap$Types.sendToClient
+ * @javaSource Heightmap$Types.keepAfterWorldgen
+ * @javaSource Heightmap$Types.isOpaque()Ljava/util/function/Predicate;
+ * @javaSource Heightmap$Types.getSerializedName
+ */
 const asHeightmap = (name: string) =>
     name === 'WORLD_SURFACE' ||
     name === 'WORLD_SURFACE_WG' ||

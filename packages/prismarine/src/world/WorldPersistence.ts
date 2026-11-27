@@ -125,7 +125,11 @@ export interface WorldPersistenceData {
     lastMapId?: number;
 }
 
-/** One structure start an explorer map points at: Java's `StructureStart.references`. */
+/**
+ * One structure start an explorer map points at: Java's `StructureStart.references`.
+ *
+ * @javaSee StructureStart.references
+ */
 export interface StructureReference {
     /** The level's id for the dimension the start is in, such as `minecraft:overworld`. */
     readonly dimension: string;
