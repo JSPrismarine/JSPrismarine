@@ -2590,11 +2590,6 @@
         }
     },
     "gameplay.mechanics": {
-        "furnace-shift-click-bds-inputs:mechanic/furnace-shift-click": {
-            "kind": "defect",
-            "reason": "The item mapping keeps the aux value of the old merged log, wood and leaves items, so the server's furnace entries name an aux no client stack has where BDS names any aux.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3832"
-        },
         "game-rule:minecraft:allow_entering_nether_using_portals": {
             "kind": "intentional",
             "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",

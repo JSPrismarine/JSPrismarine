@@ -120,11 +120,6 @@ export const furnaceShiftClickScenarios: readonly BehaviorScenario<ShiftClickSub
         subjects: () => [MECHANIC],
         idOf: (entry) => entry.id,
         aspects: () => ['behavior'],
-        classify: () => ({
-            kind: 'defect',
-            reason: "The item mapping keeps the aux value of the old merged log, wood and leaves items, so the server's furnace entries name an aux no client stack has where BDS names any aux.",
-            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3832'
-        }),
         run: () => {
             const captured = loadCraftingDataCapture();
             const inputs = servedInputs();
