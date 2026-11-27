@@ -1,5 +1,4 @@
 import { createPublicKey, generateKeyPairSync, sign } from 'node:crypto';
-import type { KeyObject } from 'node:crypto';
 import { decodeJwt, decodeProtectedHeader } from 'jose';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -34,13 +33,16 @@ const link = (claims: Record<string, unknown>): string => `${b64({ alg: 'ES384' 
 /** Xbox Live, as far as a provider sees it: a chain naming the account, and a token for the key. */
 const fakeXbox = (
     options: { expiresIn?: number; token?: string; extraData?: Record<string, unknown> } = {}
-): XboxTokenSource & { calls: KeyObject[] } => {
-    const calls: KeyObject[] = [];
+): XboxTokenSource & { calls: unknown[] } => {
+    const calls: unknown[] = [];
     return {
         calls,
         getMinecraftBedrockToken: async (publicKey) => {
-            calls.push(publicKey);
-            const cpk = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+            // Read the key back the way prismarine-auth sends it: inside a JSON request body.
+            const sent: unknown = JSON.parse(JSON.stringify({ identityPublicKey: publicKey })).identityPublicKey;
+            calls.push(sent);
+            if (typeof sent !== 'string' || sent === '') throw new Error('400 INVALID_JSON');
+            const cpk = sent;
             return {
                 chain: [
                     link({ identityPublicKey: 'intermediate' }),
@@ -70,10 +72,7 @@ describe('XboxAuthProvider', () => {
         const auth = new XboxAuthProvider({ tokens, now: () => NOW });
         await auth.getIdentity();
 
-        expect(tokens.calls).toHaveLength(1);
-        expect(tokens.calls[0]!.export({ type: 'spki', format: 'der' }).toString('base64')).toBe(
-            await auth.getIdentityPublicKey()
-        );
+        expect(tokens.calls).toStrictEqual([await auth.getIdentityPublicKey()]);
         expect(decode(await auth.getMultiplayerToken()).cpk).toBe(await auth.getIdentityPublicKey());
     });
 
@@ -197,7 +196,7 @@ describe('XboxAuthProvider signing in through prismarine-auth', () => {
                     }
                 }
 
-                public getMinecraftBedrockToken(publicKey: KeyObject) {
+                public getMinecraftBedrockToken(publicKey: string) {
                     return fakeXbox().getMinecraftBedrockToken(publicKey);
                 }
             }
@@ -228,6 +227,37 @@ describe('XboxAuthProvider signing in through prismarine-auth', () => {
                     message: 'Go'
                 }
             ]);
+        } finally {
+            vi.doUnmock('prismarine-auth');
+        }
+    });
+
+    it('reads the exports under default, as tsx loads the CommonJS module', async () => {
+        vi.doMock('prismarine-auth', () => ({
+            default: {
+                Titles: { MinecraftNintendoSwitch: 'switch-title' },
+                Authflow: class {
+                    public getMinecraftBedrockToken(publicKey: string) {
+                        return fakeXbox().getMinecraftBedrockToken(publicKey);
+                    }
+                }
+            }
+        }));
+        try {
+            const auth = new XboxAuthProvider({ now: () => NOW });
+
+            expect((await auth.getIdentity()).xuid).toBe(ACCOUNT.XUID);
+        } finally {
+            vi.doUnmock('prismarine-auth');
+        }
+    });
+
+    it('refuses a module without Authflow and Titles', async () => {
+        vi.doMock('prismarine-auth', () => ({ default: {} }));
+        try {
+            await expect(new XboxAuthProvider({ now: () => NOW }).getIdentity()).rejects.toThrow(
+                'exports no Authflow and Titles'
+            );
         } finally {
             vi.doUnmock('prismarine-auth');
         }

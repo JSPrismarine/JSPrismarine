@@ -114,6 +114,42 @@ class PrismarineAuthNotInstalled extends JSPrismarineError {
     }
 }
 
+/**
+ * The installed `prismarine-auth` exports no `Authflow` class and `Titles` table, either
+ * directly or under `default`. Install a version that does, such as the one
+ * `@jsprismarine/auth` lists as its peer dependency.
+ */
+class PrismarineAuthUnrecognized extends JSPrismarineError {
+    public static get code(): 'AUTH_PRISMARINE_AUTH_UNRECOGNIZED' {
+        return 'AUTH_PRISMARINE_AUTH_UNRECOGNIZED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'The installed prismarine-auth exports no Authflow and Titles; install the version @jsprismarine/auth supports' {
+        return 'The installed prismarine-auth exports no Authflow and Titles; install the version @jsprismarine/auth supports';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-unrecognized' {
+        return 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-unrecognized';
+    }
+
+    public override readonly code = 'AUTH_PRISMARINE_AUTH_UNRECOGNIZED';
+    public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-unrecognized';
+    readonly #params: Readonly<Record<string, unknown>> = {};
+
+    public constructor(options?: ErrorOptions) {
+        super(
+            'The installed prismarine-auth exports no Authflow and Titles; install the version @jsprismarine/auth supports',
+            options
+        );
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The player's login token has expired. The cause says which token. */
 class LoginExpired extends LoginRefused {
     public static get code(): 'AUTH_LOGIN_EXPIRED' {
@@ -819,6 +855,7 @@ export const AuthErrors = Object.freeze({
     ChainNamesNoAccount,
     NoMultiplayerToken,
     PrismarineAuthNotInstalled,
+    PrismarineAuthUnrecognized,
     LoginExpired,
     InvalidLogin,
     XboxSignInRequired,

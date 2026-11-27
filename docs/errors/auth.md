@@ -116,6 +116,16 @@ Thrown as `AuthErrors.PrismarineAuthNotInstalled`, which extends `Error`.
 `XboxAuthProvider` signs in through the optional `prismarine-auth` package, which is not
 installed. Add it to the project that uses `@jsprismarine/auth`.
 
+## `AUTH_PRISMARINE_AUTH_UNRECOGNIZED`
+
+`The installed prismarine-auth exports no Authflow and Titles; install the version @jsprismarine/auth supports`
+
+Thrown as `AuthErrors.PrismarineAuthUnrecognized`, which extends `Error`.
+
+The installed `prismarine-auth` exports no `Authflow` class and `Titles` table, either
+directly or under `default`. Install a version that does, such as the one
+`@jsprismarine/auth` lists as its peer dependency.
+
 ## `AUTH_TOKEN_EXPIRED`
 
 `{what} has expired`
