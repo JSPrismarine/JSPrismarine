@@ -12,11 +12,13 @@
  * broken shulker box arrived empty. They all come through here now.
  *
  * The component values are whatever the table's JSON said, so every read checks rather than
- * asserts. A component this does not recognize is left where it is rather than guessed at.
+ * asserts. A component none of the drop's fields holds, such as a dye color or a potion, goes
+ * onto the drop's `components` as Java wrote it rather than being guessed at.
  */
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
 import type { ContentItemDrop } from '../content/world/adapter';
+import { hasStackComponents, stackComponentsOf } from './stackComponents';
 
 /**
  * A drop as a stack the loot and predicate grammars read, which is {@link dropOfRolledStack}
@@ -26,7 +28,7 @@ import type { ContentItemDrop } from '../content/world/adapter';
  * them onto the item the block drops, which is how a shulker box leaves with what it held.
  */
 export const rolledStackOfDrop = (drop: ContentItemDrop): PredicateItemStack => {
-    const components = new Map<string, unknown>();
+    const components = new Map<string, unknown>(Object.entries(drop.components ?? {}));
     if (drop.enchantments !== undefined)
         components.set(
             drop.identifier === 'minecraft:enchanted_book' ? 'minecraft:stored_enchantments' : 'minecraft:enchantments',
@@ -70,7 +72,7 @@ const fieldsOf = (value: unknown): Record<string, unknown> | undefined =>
  * language file, so its key goes through instead, which is what the client would show anyway
  * for a key it does not have.
  */
-const plainText = (value: unknown): string | undefined => {
+export const plainText = (value: unknown): string | undefined => {
     if (typeof value === 'string') return value;
 
     const fields = fieldsOf(value);
@@ -160,6 +162,8 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
     const lines = Array.isArray(lore) ? lore.map(plainText).filter((line) => line !== undefined) : [];
     const contents = contentsOf(components.get('minecraft:container'));
     const mapId = components.get('minecraft:map_id');
+    // What is left once the fields above have taken theirs: a trim, a dye color, a potion.
+    const others = stackComponentsOf(components);
 
     return {
         identifier: stack.id,
@@ -170,7 +174,8 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
         ...(customName === undefined ? {} : { customName }),
         ...(lines.length === 0 ? {} : { lore: lines }),
         ...(contents === undefined ? {} : { contents }),
-        ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {})
+        ...(typeof mapId === 'number' && Number.isSafeInteger(mapId) ? { mapId } : {}),
+        ...(hasStackComponents(others) ? { components: others } : {})
     };
 };
 

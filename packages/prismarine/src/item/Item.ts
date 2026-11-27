@@ -2,7 +2,9 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import {
     attributeModifiers,
     damageResistant,
+    dye,
     enchantable,
+    providesTrimMaterial,
     repairable,
     equippable,
     maxDamage,
@@ -41,6 +43,8 @@ import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
 import { itemUserDataTag } from './userData';
+import { stackComponentsOf } from './stackComponents';
+import type { StackComponents } from './stackComponents';
 import { vanillaItemTypes } from './vanillaItemTypes';
 
 export interface ItemProps {
@@ -81,6 +85,12 @@ export interface ItemProps {
     contents?: readonly (Item | null)[];
     /** Which saved map a filled map shows, Java's `minecraft:map_id`; see {@link Item.getMapId}. */
     mapId?: number;
+    /**
+     * The stack's other Java data components, such as `minecraft:trim` or
+     * `minecraft:firework_explosion`; see {@link Item.getComponents}. A component the other
+     * props hold is left out.
+     */
+    components?: StackComponents;
 }
 
 /** A player's own base attack damage, which an item modifies rather than replaces. */
@@ -244,6 +254,13 @@ export class Item {
      */
     private readonly mapId: number | undefined;
 
+    /**
+     * The Java components the stack sets that none of the fields above hold, in Java's JSON
+     * form: a trim, a dye color, a firework's explosions, a banner's patterns, a book's pages.
+     * The server reads none of them itself, so they live together rather than as a field each.
+     */
+    private readonly extraComponents: StackComponents;
+
     public constructor({
         runtimeId,
         name,
@@ -257,7 +274,8 @@ export class Item {
         canPlaceOnBlocks,
         canDestroyBlocks,
         contents,
-        mapId
+        mapId,
+        components
     }: ItemProps) {
         this.name = name;
         this.runtimeId = runtimeId ?? 0;
@@ -270,6 +288,7 @@ export class Item {
         this.canDestroyBlocks = canDestroyBlocks === undefined ? [] : [...canDestroyBlocks];
         this.heldContents = contents === undefined ? [] : [...contents];
         this.mapId = mapId;
+        this.extraComponents = stackComponentsOf(components);
         if (meta) this.meta = meta;
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
         if (count !== undefined) this.count = count;
@@ -482,12 +501,45 @@ export class Item {
     }
 
     /**
+     * The Java components the stack sets beyond its enchantments, name, lore, durability,
+     * contents and map, by namespaced id: what a smithing trim, a dye, a firework recipe or a
+     * trade wrote onto it. Empty for most stacks.
+     */
+    public getComponents(): StackComponents {
+        return this.extraComponents;
+    }
+
+    /**
+     * A copy of this stack with some of its other components set.
+     *
+     * @param changes - Component ids and values. An undefined value removes the component, and a
+     *   component the stack holds in a field of its own is left out.
+     */
+    public withComponents(changes: Readonly<Record<string, unknown>>): Item {
+        const merged: Record<string, unknown> = { ...this.extraComponents };
+        for (const [id, value] of Object.entries(changes)) {
+            if (value === undefined) delete merged[id];
+            else merged[id] = value;
+        }
+        return this.copyWith({ components: merged });
+    }
+
+    /**
      * A copy of this stack holding different contents.
      *
      * @param contents - One entry per slot, null for an empty one.
      */
     public withContents(contents: readonly (Item | null)[]): Item {
         return this.copyWith({ contents });
+    }
+
+    /**
+     * A copy of this stack showing a different saved map.
+     *
+     * @param mapId - The map's id in its level, Java's `minecraft:map_id`.
+     */
+    public withMapId(mapId: number): Item {
+        return this.copyWith({ mapId });
     }
 
     /**
@@ -570,6 +622,7 @@ export class Item {
             canDestroyBlocks: this.canDestroyBlocks,
             contents: this.heldContents,
             mapId: this.mapId,
+            components: this.extraComponents,
             ...changes
         });
         copy.durability = this.durability;
@@ -685,10 +738,17 @@ export class Item {
      * unenchanted tool and every enchanting table refuse every item.
      */
     public asPredicateStack(): PredicateItemStack {
-        const components = new Map<string, unknown>();
+        const components = new Map<string, unknown>(Object.entries(this.extraComponents));
         if (this.enchantmentLevels.size > 0) {
             components.set('minecraft:enchantments', { levels: Object.fromEntries(this.enchantmentLevels) });
         }
+
+        // The color a dye item is, which the dye, firework star and banner recipes read off it.
+        const dyeColor = this.type()?.params(dye);
+        if (dyeColor !== undefined) components.set('minecraft:dye', dyeColor);
+        // The material a smithing trim takes from this as its addition.
+        const trimMaterial = this.type()?.params(providesTrimMaterial);
+        if (trimMaterial !== undefined) components.set('minecraft:provides_trim_material', trimMaterial);
 
         const enchantability = this.type()?.params(enchantable)?.value;
         if (enchantability !== undefined) components.set('minecraft:enchantable', { value: enchantability });
@@ -845,6 +905,7 @@ export class Item {
             // from is the same list the world record keeps.
             contents: this.heldContents.map((held) => (held === null ? null : storedItem(held))),
             mapId: this.mapId,
+            components: this.extraComponents,
             enchantmentRegistry: this.content?.enchantments
         });
     }
