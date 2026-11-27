@@ -10,6 +10,9 @@
  */
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { PlayerActionPacket, PlayerActionType, RespawnPacket, SetActorMotionPacket } from '@jsprismarine/protocol';
+import LegacyTelemetryEventPacket, {
+    LegacyTelemetryEventDataOrdinal
+} from '@jsprismarine/protocol/bedrock/packet/LegacyTelemetryEventPacket';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { WorldPosition } from '../ClientWorld';
@@ -290,6 +293,62 @@ describe('player-knockback', { tags: ['real-data'] }, () => {
         ).toBeGreaterThan(0.25);
 
         await jsp.command('kill @e[type=minecraft:pig]');
+        await leaveAndWait(jsp, player);
+    });
+});
+
+describe('kill-telemetry', { tags: ['real-data'] }, () => {
+    /**
+     * A Bedrock client counts toward some Xbox achievements what only the server knows: that its
+     * player's blow killed a mob, what killed its player, and that a command it sent succeeded.
+     * BDS tells it each with a `LegacyTelemetryEvent`.
+     */
+    it('tells the player of a command it ran, a mob it killed and the zombie that killed it', async () => {
+        const player = await joinWithChunks('Hunter');
+        const { client } = player;
+        if (!client.getRegistry().has(new LegacyTelemetryEventPacket().getId()))
+            client.getRegistry().register(LegacyTelemetryEventPacket);
+        const events: LegacyTelemetryEventPacket[] = [];
+        client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof LegacyTelemetryEventPacket) events.push(packet);
+        });
+        const ownId = client.getStartGame()?.runtimeEntityId;
+        const sent = (ordinal: number) => events.filter((event) => event.eventData.ordinal === ordinal);
+
+        await jsp.command('fill -4 63 -4 4 63 4 minecraft:stone');
+        await jsp.command(`gamemode survival ${player.name}`);
+        await standAt(player, { x: 0.5, y: 64, z: 0.5 });
+
+        await player.runCommand('/me waves');
+        await jsp.until(() => sent(LegacyTelemetryEventDataOrdinal.SlashCommand).length > 0, 'no command was reported');
+        expect(sent(LegacyTelemetryEventDataOrdinal.SlashCommand)[0]).toMatchObject({
+            targetActorId: ownId,
+            usePlayerId: true,
+            eventData: { commandName: 'me', successCount: 1, errorCount: 0 }
+        });
+
+        await jsp.command('kill @e[type=minecraft:pig]');
+        await jsp.command('summon minecraft:pig 2.5 64 0.5');
+        await jsp.tick(5);
+        await jsp.command(`damage @e[type=minecraft:pig] 100 minecraft:player_attack by ${player.name}`);
+        await jsp.until(() => sent(LegacyTelemetryEventDataOrdinal.MobKilled).length > 0, 'no kill was reported');
+        expect(sent(LegacyTelemetryEventDataOrdinal.MobKilled)[0]).toMatchObject({
+            targetActorId: ownId,
+            eventData: { instigatorActorId: ownId, instigatorChildActorType: 1, damageSource: 2, tradeTier: -1 }
+        });
+
+        await jsp.command('summon minecraft:zombie 2.5 64 0.5');
+        await jsp.tick(5);
+        await jsp.command(`damage ${player.name} 100 minecraft:mob_attack by @e[type=minecraft:zombie,limit=1]`);
+        await jsp.until(() => sent(LegacyTelemetryEventDataOrdinal.PlayerDied).length > 0, 'no death was reported');
+        // 199456 is ActorType Zombie, as BDS reports it.
+        expect(sent(LegacyTelemetryEventDataOrdinal.PlayerDied)[0]).toMatchObject({
+            targetActorId: ownId,
+            eventData: { instigatorActorId: 199456, damageSource: 2, diedInRaid: false }
+        });
+
+        await respawnFromDeathScreen(player);
+        await jsp.command('kill @e[type=minecraft:zombie]');
         await leaveAndWait(jsp, player);
     });
 });
