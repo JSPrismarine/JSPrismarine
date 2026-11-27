@@ -332,6 +332,7 @@ const placeBlock = (
     // Java's `getStateForPlacement`: which way the block faces, whether it goes on a wall, and
     // whether it can go here at all. A block no rule there decides keeps the states the trait
     // and the special cases above give it.
+    const replacingClicked = target === interaction.position;
     const decided = placedStateOf(held, placementStatesOf(content, held, rotation, face), {
         world: blocks,
         position: target,
@@ -339,7 +340,7 @@ const placeBlock = (
         yaw: rotation.yaw,
         pitch: rotation.pitch,
         sneaking: player.isSneaking(),
-        replacingClicked: target === interaction.position
+        replacingClicked
     });
     if (decided === null) return undefined;
     const identifier = decided?.identifier ?? held;
@@ -382,7 +383,8 @@ const placeBlock = (
         itemStack: contentStackOf(content, placed),
         face,
         faceLocation: interaction.faceLocation,
-        sneaking: player.isSneaking()
+        sneaking: player.isSneaking(),
+        replacingClicked
     });
     // After the hook, which gave a container an empty record: a shulker box put back down
     // holds what it was carrying rather than what a fresh one holds.
