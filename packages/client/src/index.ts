@@ -1,6 +1,7 @@
 import Client, { MINECRAFT_VERSION, PROTOCOL_VERSION } from './Client';
 import ClientWorld from './ClientWorld';
 import Credits from './Credits';
+import DataDrivenScreens from './DataDrivenScreens';
 import { JAVA_DEFAULT_PORT, JavaClient, isJavaPacket } from './java/JavaClient';
 import DimensionChange from './DimensionChange';
 import Bot, { TICK_INTERVAL_MS } from './bot/Bot';
@@ -29,6 +30,7 @@ export {
     ClientWorld,
     ClientSession,
     Credits,
+    DataDrivenScreens,
     DimensionChange,
     Fleet,
     JAVA_DEFAULT_PORT,
@@ -60,6 +62,7 @@ export type {
     JavaServerStatus,
     PlayLoginPayload
 } from './java/JavaClient';
+export type { ClientScreen, ScreenWriteValue } from './DataDrivenScreens';
 export type { WorldActor, WorldCommandOutput, WorldContainer, WorldPosition, WorldTitles } from './ClientWorld';
 export type { PendingDimensionChange } from './DimensionChange';
 export type { LoginResult, LoginSequenceOptions } from './login/LoginSequence';

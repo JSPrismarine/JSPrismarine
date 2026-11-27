@@ -23,6 +23,7 @@ import {
 import * as v2259 from '@jsprismarine/protocol/bedrock/wire/versions/v2259';
 import { EventEmitter } from 'node:events';
 import Credits, { ShowCreditsPacket } from './Credits';
+import DataDrivenScreens from './DataDrivenScreens';
 import DimensionChange from './DimensionChange';
 import LatencyPing, { NetworkStackLatencyPacket } from './LatencyPing';
 import LoginSequence from './login/LoginSequence';
@@ -115,6 +116,7 @@ export default class Client extends EventEmitter {
     private readonly session: ClientSession;
     private readonly dimensionChange: DimensionChange;
     private readonly credits: Credits;
+    private readonly screens: DataDrivenScreens;
 
     /** The protocol this client speaks, resolved from the options. */
     private readonly protocolVersion: number;
@@ -171,7 +173,9 @@ export default class Client extends EventEmitter {
             // The end credits a first exit through the End's portal starts.
             ShowCreditsPacket,
             // The server's keep-alive ping.
-            NetworkStackLatencyPacket
+            NetworkStackLatencyPacket,
+            // A behavior pack's data-driven `@minecraft/server-ui` screens.
+            ...DataDrivenScreens.PACKETS
         ]);
 
         const dial = { host: options.host, port: options.port ?? 19132, timeoutMs: options.loginTimeoutMs };
@@ -202,6 +206,9 @@ export default class Client extends EventEmitter {
         // responder above.
         this.credits = new Credits(this.session, () => this.startGame?.runtimeEntityId ?? 0n);
         this.credits.on('finished', (credits: ShowCreditsPayload) => this.emit('credits', credits));
+
+        // Follows the data-driven screens a behavior pack shows, and answers the server closing one.
+        this.screens = new DataDrivenScreens(this.session, this.protocolVersion);
 
         // Answers the server's keep-alive pings, so a server that drops a silent client keeps
         // this one.
@@ -281,6 +288,11 @@ export default class Client extends EventEmitter {
     /** The end credits responder, which answers the server's `ShowCredits Start`. */
     public getCredits(): Credits {
         return this.credits;
+    }
+
+    /** The data-driven `@minecraft/server-ui` screens the server has open, and the player's answers to them. */
+    public getScreens(): DataDrivenScreens {
+        return this.screens;
     }
 
     public getStats(): TransportStats {
