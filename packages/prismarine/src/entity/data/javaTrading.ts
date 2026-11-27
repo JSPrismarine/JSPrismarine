@@ -102,8 +102,8 @@ const predicateStackOf = (stack: JavaTradeStack): PredicateItemStack => ({
 
 /**
  * The stack a trade screen offers for a Java stack: its Bedrock item and aux value, its
- * enchantments and the map it shows, which are what a trade stack carries to the client, read
- * the way a chest's roll reads them. The Bedrock item is what makes a cartographer's
+ * enchantments, the map it shows and the other components its modifier wrote, such as a dyed
+ * color, read the way a chest's roll reads them. The Bedrock item is what makes a cartographer's
  * `minecraft:ocean_monument_map` an Ocean Monument filled map rather than an item the client
  * does not have.
  */
@@ -114,6 +114,7 @@ const tradeStackOf = (stack: JavaTradeStack): TradeStack => {
     if (drop.meta !== undefined) components.set('minecraft:aux_value', drop.meta);
     if (drop.enchantments !== undefined) components.set('minecraft:enchantments', drop.enchantments);
     if (drop.mapId !== undefined) components.set('minecraft:map_id', drop.mapId);
+    for (const [id, value] of Object.entries(drop.components ?? {})) components.set(id, value);
     return { item: drop.identifier, count: drop.count, components };
 };
 
