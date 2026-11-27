@@ -863,7 +863,11 @@ export function hidePackage(speedModifier: number): readonly PrioritizedBehavior
  * sending an unemployed villager to a workplace it does not have; both fall back to `idle` through
  * `setActiveActivityIfPossible`.
  *
- * @javaSource Villager.BRAIN_PROVIDER
+ * The supplier is a lambda in `Villager`'s static initializer, whose fingerprint every other
+ * constant of the class changes, so the `java.transcriptions` parity family reads the activities
+ * and their conditions out of the jar and compares them with this list instead.
+ *
+ * @javaSee Villager.BRAIN_PROVIDER
  */
 export function villagerActivities(profession: VillagerProfession, baby: boolean): readonly ActivityData[] {
     const speed = VILLAGER.baseSpeedModifier;

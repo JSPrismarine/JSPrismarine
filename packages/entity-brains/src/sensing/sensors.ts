@@ -12,16 +12,16 @@ import { blockContaining, distanceSquared, EntityCondition } from '../world.js';
 import { DEFAULT_SCAN_RATE, Sensor } from './sensor.js';
 
 /**
- * Java's `Attributes.FOLLOW_RANGE`, the range every untargeted sensor scans.
+ * The name of Java's `Attributes.FOLLOW_RANGE`, the range every untargeted sensor scans.
  *
- * @javaSource Attributes.FOLLOW_RANGE
+ * @javaSee Attributes.FOLLOW_RANGE
  */
 export const FOLLOW_RANGE_ATTRIBUTE = 'minecraft:follow_range';
 
 /**
- * Java's `Attributes.TEMPT_RANGE`, which `TemptingSensor` scans instead.
+ * The name of Java's `Attributes.TEMPT_RANGE`, which `TemptingSensor` scans instead.
  *
- * @javaSource Attributes.TEMPT_RANGE
+ * @javaSee Attributes.TEMPT_RANGE
  */
 export const TEMPT_RANGE_ATTRIBUTE = 'minecraft:tempt_range';
 
@@ -786,7 +786,14 @@ export class HoglinSpecificSensor extends Sensor {
     }
 }
 
-/** Java's `Armadillo` scare rules, the only {@link MobSensor} registration. */
+/**
+ * The scan rate and memory lifetime Java's `SensorType.ARMADILLO_SCARE_DETECTED` gives its
+ * `MobSensor`, the only {@link MobSensor} registration. They sit in `SensorType`'s static
+ * initializer, whose fingerprint every new sensor changes, so the `java.transcriptions` parity
+ * family reads both numbers out of the jar and compares them instead.
+ *
+ * @javaSee SensorType.ARMADILLO_SCARE_DETECTED
+ */
 export const ARMADILLO_SCARE_SENSOR = { scanRate: 5, memoryTimeToLive: 80 };
 
 /** The 24 registered sensor type names, in registration order. */
