@@ -59,13 +59,10 @@ through a stall. `--no-raknet-worker` runs it on the game thread instead.
 The scratch server's `keep-alive-interval` is 0, which sends no pings, unless a scenario sets
 `serverOptions.keepAliveInterval`, as the `keep-alive` scenario does.
 
-The gameplay and dimension scenarios run in four suites of about 14, each on a server and client of
-its own and a fresh world, so CI can play them on four runners at once. Natural spawning uses a
-separate server because it needs a cow spawn fixture that could affect gameplay checks. The
-`level-isolation` scenario gets a server of its own with a second `worlds` entry, whose mobs and
-world every other scenario would also have to tick. `resource-pack-download` gets one too, since
-the resource pack it installs is required and every client joining that server downloads it. The
-runner resets
+The gameplay scenarios run in four suites, each on a server and client of its own and a fresh
+world, so CI can play them on four runners at once. `resource-pack-download` gets a server of its
+own, since the resource pack it installs is required and every client joining that server
+downloads it, and so do `kick`, `keep-alive` and the noise-world `explorer-map`. The runner resets
 the player, inventory, drops, and controls between scenarios, then stops each server and removes
 its temporary data. Two suites run at once by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
