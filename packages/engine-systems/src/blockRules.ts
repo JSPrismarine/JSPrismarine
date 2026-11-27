@@ -67,19 +67,27 @@ export const isFullCube = (block: BlockRef): boolean =>
 export const isRedstoneConductor = (block: BlockRef): boolean => block.redstoneConductor ?? isFullCube(block);
 
 /**
- * Java's `isFaceSturdy(…, Direction.UP)`: whether something can be placed on
- * top of the block. Wire, repeaters and comparators all break without it.
- *
- * Slabs and stairs have sturdy top faces in Java depending on their half, which
- * this does not model: it answers from the full-cube test plus the top slab and
- * upside-down stair states.
+ * An estimate of Java's sturdy top face for a block with no Java source: the full-cube test plus the
+ * top slab and upside-down stair states.
  */
-export const hasSturdyTopFace = (block: BlockRef): boolean => {
+const estimatedSturdyTopFace = (block: BlockRef): boolean => {
     if (isFullCube(block)) return true;
     const half = block.states['minecraft:vertical_half'] ?? block.states['top_slot_bit'];
     if (half === 'top' || half === true || half === 1) return true;
     return block.states['upside_down_bit'] === true || block.states['upside_down_bit'] === 1;
 };
+
+/**
+ * Java's `isFaceSturdy(…, Direction.UP)`: whether something can be placed on top of the block. Wire,
+ * repeaters and comparators all break without it. Read from the mapping table's support facts,
+ * which Java's own code computed, so stained glass and a shulker box hold what stands on them and
+ * an open upside-down trapdoor does not. A block with no Java source answers by an estimate from
+ * the full-cube test and the top slab and upside-down stair states.
+ *
+ * @javaSee BlockBehaviour$BlockStateBase.isFaceSturdy(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z
+ */
+export const hasSturdyTopFace = (block: BlockRef): boolean =>
+    bedrockBlockSupportOf(block.name, block.states)?.isFaceSturdy('up', 'full') ?? estimatedSturdyTopFace(block);
 
 /**
  * Java's legacy `BlockStateBase.isSolid`: on for a block that forces it, otherwise whether the
@@ -96,8 +104,8 @@ export const isSolid = (block: BlockRef): boolean =>
 /**
  * Java's `BlockStateBase.isFaceSturdy`: whether a face of the block holds what a support type
  * needs, a whole face (`full`), a post in its middle (`center`) or its rim (`rigid`). Read from the
- * mapping table's support facts; a block with no Java source answers by {@link hasSturdyTopFace}
- * for its top and by {@link isFullCube} for any other face.
+ * mapping table's support facts; a block with no Java source answers by the same estimate as
+ * {@link hasSturdyTopFace} for its top and by {@link isFullCube} for any other face.
  *
  * @param face - The face of this block, such as `up` for what stands on it.
  * @param type - What the face has to hold, `full` when left out.
@@ -105,4 +113,4 @@ export const isSolid = (block: BlockRef): boolean =>
  */
 export const isFaceSturdy = (block: BlockRef, face: BlockSupportFace, type: SupportType = 'full'): boolean =>
     bedrockBlockSupportOf(block.name, block.states)?.isFaceSturdy(face, type) ??
-    (face === 'up' ? hasSturdyTopFace(block) : isFullCube(block));
+    (face === 'up' ? estimatedSturdyTopFace(block) : isFullCube(block));
