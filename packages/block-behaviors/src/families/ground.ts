@@ -358,6 +358,7 @@ const updateDripstone = (world: WorldActions, block: HookBlock, face: BlockFace)
  * segment with support neither way.
  *
  * @javaSource SpeleothemBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const placeDripstone = (world: WorldActions, event: BlockPlaceEvent): void => {
     // A placement the world made, such as `/setblock`, keeps the state it was given, as Java's

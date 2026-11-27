@@ -1,0 +1,5 @@
+---
+'@jsprismarine/block-behaviors': patch
+---
+
+Place blocks in the state Java's `getStateForPlacement` gives them where the port differed. A player looking exactly between two directions now gets the one Java picks, from Java's sine table. A ceiling hanging sign hangs from one chain under a block without a full underside or for a sneaking placer, and hangs under another hanging sign. A wall hanging sign hangs only from a sturdy face or another wall hanging sign on its axis. A flower bed or leaf litter placed into one of its own kind adds a segment. A big dripleaf continues the facing of the stem it grows on, a small dripleaf needs room for its top, a lantern tries the block it was placed against first, and a crafter, shelf, head or trapdoor placed where redstone power reaches it starts triggered, powered or open. Placed leaves take their distance from the logs beside them, and a standing head's Java rotation follows the placer's yaw. `placedJavaStateOf` returns the Java state a placement picks before it is mapped to Bedrock.
