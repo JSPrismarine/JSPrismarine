@@ -75,6 +75,12 @@ export interface ItemDrop {
     readonly dynamicProperties?: ItemDynamicProperties;
     /** Which saved map a filled map shows: Java's `minecraft:map_id` and Bedrock's `map_uuid`. */
     readonly mapId?: number;
+    /**
+     * The stack's other Java data components in Java's JSON form, by namespaced id, such as the
+     * `minecraft:trim` a smithing table wrote or the `minecraft:dyed_color` of leather armor. A
+     * component one of the fields above holds is not repeated here.
+     */
+    readonly components?: Readonly<Record<string, unknown>>;
 }
 
 /** A script dynamic property's value: a number, a boolean, a string or a vector. */
