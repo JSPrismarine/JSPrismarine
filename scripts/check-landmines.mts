@@ -14,11 +14,12 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { directoriesOf, gateScope } from './gate-scope.mts';
 import { isRecord } from './isRecord.mts';
 import type { Counts } from './rule-baseline.mts';
 import { runBaselineCheck } from './rule-baseline.mts';
@@ -51,14 +52,52 @@ const owningManifest = (cwd: string, file: string): string => {
     }
 };
 
+/** A file Oxlint lints. */
+const CODE = /\.[cm]?[jt]sx?$/;
+
+/**
+ * Changes that can move a finding in a file that did not change: a manifest's `exports` decides
+ * `package-exports` for every file of its package, and the configuration, the plugin's version, the
+ * baseline and this script decide what every file is checked against.
+ */
+const isFullInput = (file: string): boolean =>
+    /(?:^|\/)package\.json$/.test(file) ||
+    ['.oxlintrc.json', 'pnpm-lock.yaml', 'scripts/landmines-baseline.json', 'scripts/check-landmines.mts'].includes(
+        file
+    );
+
+/**
+ * The files a scoped run lints: the changed code files and the code files beside them, since
+ * `colocated-tests` and `test-file-names` judge a file by its neighbors.
+ *
+ * @param cwd - The repository root.
+ * @param changed - Changed files from {@link gateScope}.
+ */
+export const scopedFiles = (cwd: string, changed: readonly string[]): string[] => {
+    const files = new Set<string>();
+    for (const directory of directoriesOf(changed.filter((file) => CODE.test(file)))) {
+        let names: string[];
+        try {
+            names = readdirSync(path.join(cwd, directory));
+        } catch {
+            continue;
+        }
+        for (const name of names) if (CODE.test(name)) files.add(path.posix.join(directory, name));
+    }
+    return [...files].sort();
+};
+
 /**
  * Runs Oxlint over `cwd` with the `.oxlintrc.json` found there and counts the diagnostics per file
  * and rule, with `package-exports` counted against each package's `package.json`.
+ *
+ * @param paths - What to lint, relative to `cwd`; the whole directory by default.
  */
-export const findLandmines = (cwd: string): Counts<string> => {
+export const findLandmines = (cwd: string, paths: readonly string[] = ['.']): Counts<string> => {
+    if (paths.length === 0) return {};
     const require = createRequire(import.meta.url);
     const oxlint = path.join(path.dirname(require.resolve('oxlint/package.json')), 'bin', 'oxlint');
-    const result = spawnSync(process.execPath, [oxlint, '--format=json', '.'], {
+    const result = spawnSync(process.execPath, [oxlint, '--format=json', ...paths], {
         cwd,
         encoding: 'utf8',
         maxBuffer: 64 * 1024 * 1024
@@ -95,11 +134,17 @@ export const findLandmines = (cwd: string): Counts<string> => {
 };
 
 if (import.meta.main) {
+    const update = process.argv.includes('--update');
+    // `--update` lowers entries the scan no longer finds, so it needs every file.
+    const changed = update ? undefined : gateScope(repoRoot, isFullInput);
+    const scanned = changed === undefined ? undefined : scopedFiles(repoRoot, changed);
+    if (scanned !== undefined) console.log(`Landmines: ${scanned.length} files beside the changes`);
     runBaselineCheck({
         rules: enabledRules(repoRoot),
-        found: findLandmines(repoRoot),
+        found: findLandmines(repoRoot, scanned),
+        scope: scanned === undefined ? undefined : new Set([...scanned, ...(changed ?? [])]),
         baselinePath,
-        update: process.argv.includes('--update'),
+        update,
         name: 'Landmines',
         updateCommand: 'node scripts/check-landmines.mts --update',
         added: (files) =>

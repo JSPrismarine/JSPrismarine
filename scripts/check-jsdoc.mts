@@ -13,6 +13,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { glob } from 'glob';
+
+import { gateScope } from './gate-scope.mts';
 import type { ClassDeclaration, Node, SourceFile, VariableStatement } from 'tsc-ts/api';
 import {
     getCombinedModifierFlags,
@@ -101,7 +103,15 @@ const findingsIn = (file: string, source: SourceFile): Finding[] => {
     return findings;
 };
 
-const files = (await glob(SOURCES, { cwd: repoRoot, ignore: EXCLUDED })).sort();
+/** Changes that can move a finding in a file that did not change: the baseline, this script and the parser's version. */
+const isFullInput = (file: string): boolean =>
+    ['pnpm-lock.yaml', 'scripts/jsdoc-baseline.json', 'scripts/check-jsdoc.mts'].includes(file);
+
+const update = process.argv.includes('--update');
+// The agent lint gate checks only the changed files; `--update` rewrites the baseline, so it reads every file.
+const changed = update ? undefined : gateScope(repoRoot, isFullInput);
+const sources = (await glob(SOURCES, { cwd: repoRoot, ignore: EXCLUDED })).sort();
+const files = changed === undefined ? sources : sources.filter((file) => changed.includes(file));
 const findings: Finding[] = [];
 for (const file of files) {
     const source = parseSourceFile(file, readFileSync(path.join(repoRoot, file), 'utf8'), {});
@@ -114,7 +124,7 @@ for (const file of files) {
 const baselinePath = path.join(repoRoot, 'scripts', 'jsdoc-baseline.json');
 const keyOf = (finding: Finding): string => `${finding.file} ${finding.what}`;
 
-if (process.argv.includes('--update')) {
+if (update) {
     writeFileSync(baselinePath, `${JSON.stringify(findings.map(keyOf).sort(), null, 4)}\n`);
     console.log(`Baseline updated with ${findings.length} known findings.`);
     process.exit(0);
@@ -137,7 +147,11 @@ if (fresh.length > 0) {
     process.exit(1);
 }
 
-const gone = baseline.size - findings.filter((finding) => baseline.has(keyOf(finding))).length;
+// A scoped run can only tell that the entries of the files it read are gone.
+const read = new Set(files);
+const inScope =
+    changed === undefined ? baseline : new Set([...baseline].filter((key) => read.has(key.split(' ', 1)[0] ?? '')));
+const gone = inScope.size - findings.filter((finding) => baseline.has(keyOf(finding))).length;
 if (gone > 0) {
     console.log(
         `${gone} baselined findings are documented now; run \`node scripts/check-jsdoc.mts --update\` to shrink the baseline.`

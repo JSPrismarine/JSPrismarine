@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { enabledRules, findLandmines } from './check-landmines.mts';
+import { enabledRules, findLandmines, scopedFiles } from './check-landmines.mts';
 import { compareCounts } from './rule-baseline.mts';
 
 let root: string;
@@ -72,6 +72,23 @@ describe('check-landmines', () => {
 
         expect(compareCounts(enabledRules(root), findLandmines(root), baseline).added).toEqual([
             { file: 'pkg/src/a.test.ts', rule: 'landmines/no-flake-masking', allowed: 0, found: 1 }
+        ]);
+    });
+
+    it('lints only the paths it is given', () => {
+        write('other/src/a.test.ts', "import { it } from 'vitest';\nit('waits', { retry: 2 }, () => {});\n");
+
+        expect(Object.keys(findLandmines(root, ['pkg/src/a.ts']))).toEqual(['pkg/package.json']);
+        expect(findLandmines(root, [])).toEqual({});
+    });
+
+    it('scopes a run to the changed code files and the code files beside them', () => {
+        write('pkg/src/nested/c.ts', 'export const c = 3;\n');
+        write('pkg/README.md', '# pkg\n');
+
+        expect(scopedFiles(root, ['pkg/src/a.ts', 'pkg/README.md', 'gone/src/x.ts'])).toEqual([
+            'pkg/src/a.ts',
+            'pkg/src/b.ts'
         ]);
     });
 });

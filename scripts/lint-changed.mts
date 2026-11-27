@@ -73,7 +73,7 @@ const git = (root: string, args: readonly string[]): string | undefined => {
     }
 };
 
-const nul = (output: string | undefined): string[] => (output ?? '').split('\0').filter((entry) => entry !== '');
+const nul = (output: string): string[] => output.split('\0').filter((entry) => entry !== '');
 
 /** The commit this branch left the default branch at, or `undefined` when none is found. */
 const mergeBase = (root: string): string | undefined => {
@@ -86,14 +86,17 @@ const mergeBase = (root: string): string | undefined => {
     return undefined;
 };
 
-/** The changed files, or `undefined` when Git cannot say, which runs the command on everything. */
-const changedFiles = (root: string): string[] | undefined => {
+/**
+ * The files that differ from `JSP_LINT_BASE`, or from the merge base when it is unset, relative to
+ * `root`. `undefined` when Git cannot say, which runs the command on everything.
+ */
+export const changedFiles = (root: string): string[] | undefined => {
     const base = process.env.JSP_LINT_BASE || mergeBase(root);
     if (base === undefined) return undefined;
-    return [
-        ...nul(git(root, ['diff', '-z', '--name-only', '--no-renames', base])),
-        ...nul(git(root, ['ls-files', '-z', '--others', '--exclude-standard']))
-    ];
+    const tracked = git(root, ['diff', '-z', '--name-only', '--no-renames', base]);
+    const untracked = git(root, ['ls-files', '-z', '--others', '--exclude-standard']);
+    if (tracked === undefined || untracked === undefined) return undefined;
+    return [...nul(tracked), ...nul(untracked)];
 };
 
 /** Paths per invocation, which keeps a long list under the operating system's argument limit. */

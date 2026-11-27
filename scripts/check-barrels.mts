@@ -12,10 +12,12 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { gateScope } from './gate-scope.mts';
 import { isRecord } from './isRecord.mts';
 import type { Counts as RuleCounts, Difference } from './rule-baseline.mts';
 import { compareCounts, runBaselineCheck, shrinkCounts } from './rule-baseline.mts';
@@ -32,11 +34,18 @@ export type Counts = RuleCounts<Rule>;
 
 const isRule = (value: unknown): value is Rule => RULES.some((rule) => rule === value);
 
+/** Changes that can move a finding in a file that did not change: Biome's configuration or version, the baseline and this script. */
+const isFullInput = (file: string): boolean =>
+    ['biome.json', 'pnpm-lock.yaml', 'scripts/barrel-baseline.json', 'scripts/check-barrels.mts'].includes(file);
+
 /**
  * Runs Biome's barrel rules over `cwd` with the Biome configuration found there and counts the
  * diagnostics per file and rule.
+ *
+ * @param paths - What to lint, relative to `cwd`; the whole directory by default.
  */
-export const findBarrels = (cwd: string): Counts => {
+export const findBarrels = (cwd: string, paths: readonly string[] = ['.']): Counts => {
+    if (paths.length === 0) return {};
     const biome = createRequire(import.meta.url).resolve('@biomejs/biome/bin/biome');
     const result = spawnSync(
         process.execPath,
@@ -46,7 +55,9 @@ export const findBarrels = (cwd: string): Counts => {
             ...RULES.map((rule) => `--only=performance/${rule}`),
             '--reporter=json',
             '--max-diagnostics=none',
-            '.'
+            '--no-errors-on-unmatched',
+            '--files-ignore-unknown=true',
+            ...paths
         ],
         { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
     );
@@ -85,11 +96,16 @@ export const compare = (found: Counts, baseline: Counts): { added: Difference<Ru
 export const shrink = (found: Counts, baseline: Counts): Counts => shrinkCounts(RULES, found, baseline);
 
 if (import.meta.main) {
+    const update = process.argv.includes('--update');
+    // `--update` lowers entries the scan no longer finds, so it needs every file.
+    const changed = update ? undefined : gateScope(repoRoot, isFullInput);
+    const scanned = changed?.filter((file) => existsSync(path.join(repoRoot, file)));
     runBaselineCheck({
         rules: RULES,
-        found: findBarrels(repoRoot),
+        found: findBarrels(repoRoot, scanned),
+        scope: changed === undefined ? undefined : new Set(changed),
         baselinePath,
-        update: process.argv.includes('--update'),
+        update,
         name: 'Barrel',
         updateCommand: 'node scripts/check-barrels.mts --update',
         added: (files) =>

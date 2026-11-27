@@ -10,6 +10,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
+import { scopeBaseline } from './gate-scope.mts';
 import { isRecord } from './isRecord.mts';
 
 /** How often each rule fires in each file, keyed by the file's path relative to the checked directory. */
@@ -93,6 +94,11 @@ export interface BaselineCheck<Rule extends string> {
     rules: readonly Rule[];
     /** The current findings. */
     found: Counts<Rule>;
+    /**
+     * The files a scoped scan covered, by baseline key, or `undefined` when `found` covers every
+     * file. A scoped check compares only those entries; see `scopeBaseline`.
+     */
+    scope?: ReadonlySet<string>;
     /** The baseline file. */
     baselinePath: string;
     /** Whether to lower the baseline instead of failing on entries above the findings. */
@@ -130,7 +136,11 @@ export const runBaselineCheck = <Rule extends string>(check: BaselineCheck<Rule>
     if (!isCounts(rules, parsed)) {
         throw new Error(`${baselinePath} must map file paths to positive counts for ${rules.join(', ')}.`);
     }
-    const { added, removed } = compareCounts(rules, found, parsed);
+    const { scope } = check;
+    if (scope !== undefined && update)
+        throw new Error('A scoped scan cannot update the baseline; run it without JSP_LINT_BASE.');
+    const compared = scope === undefined ? parsed : scopeBaseline(parsed, (file) => scope.has(file), found);
+    const { added, removed } = compareCounts(rules, found, compared);
 
     if (added.length > 0) {
         for (const difference of added) console.error(explain(difference));
