@@ -16,9 +16,11 @@ const compiled = molang.compile('query.is_baby ? 0.02 : 0.001', { minEngineVersi
 const value = compiled.evaluate({ entity: myEntityContext });
 ```
 
-Operator precedence is versioned by the containing pack's `min_engine_version`, matching the
-engine's rule changes at 1.18.10 (ternary associativity) and 1.18.20 (`&&` over `||`, comparison
-over equality). Unknown `query.*` and `math.*` identifiers are reported through the compile
+Each expression is compiled under a Molang version, one of the numbers of the engine's
+`MolangVersion` enum that `MOLANG_VERSIONS` lists. `molangVersionFor` picks it from the containing
+pack's `min_engine_version`, or a caller passes it as `version`. Two of the version changes affect
+parsing: ternary associativity and `&&` binding tighter than `||`. One affects evaluation:
+division by a negative variable. Unknown `query.*` and `math.*` identifiers are reported through the compile
 diagnostics and evaluate to 0.0 at run time, as the engine does.
 
 ## Examples

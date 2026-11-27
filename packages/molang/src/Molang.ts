@@ -2,17 +2,24 @@ import type { CompiledMolang } from './compiler';
 import { compileProgram } from './compiler';
 import { parse } from './parser';
 import { QueryRegistry } from './queries';
-import type { EngineVersion } from './version';
-import { LATEST_RULES, rulesForEngineVersion } from './version';
+import type { EngineVersion, MolangVersion } from './version';
+import { LATEST_MOLANG_VERSION, molangVersionFor, rulesForMolangVersion } from './version';
 import { MolangSyntaxError } from '@jsprismarine/errors/molang';
 
 /** Options for one compilation. */
 export interface CompileOptions {
     /**
      * The `min_engine_version` of the pack that contains the expression. Selects the versioned
-     * precedence and evaluation rules; the latest rules apply when omitted.
+     * precedence and evaluation rules; the latest rules apply when neither this nor
+     * {@link CompileOptions.version} is given.
      */
     minEngineVersion?: EngineVersion;
+    /**
+     * The Molang version itself, as a field that carries its own version states it, or as
+     * `molangVersionFor` resolved it from a manifest. Wins over
+     * {@link CompileOptions.minEngineVersion}.
+     */
+    version?: MolangVersion;
 }
 
 /** Options for a `Molang` engine. */
@@ -36,13 +43,20 @@ export class Molang {
         this.queries = options.queries ?? new QueryRegistry();
     }
 
-    /** Compiles an expression, reusing the cached result for the same (source, version) pair. */
+    /**
+     * Compiles an expression, reusing the cached result for the same (source, version) pair. Two
+     * engine versions with the same Molang version share one compilation.
+     */
     public compile(source: string, options: CompileOptions = {}): CompiledMolang {
-        const version = options.minEngineVersion;
-        const key = `${version ? version.join('.') : 'latest'}\u0000${source}`;
+        const version =
+            options.version ??
+            (options.minEngineVersion === undefined
+                ? LATEST_MOLANG_VERSION
+                : molangVersionFor(options.minEngineVersion));
+        const key = `${version}\u0000${source}`;
         const cached = this.cache.get(key);
         if (cached) return cached;
-        const rules = version ? rulesForEngineVersion(version) : LATEST_RULES;
+        const rules = rulesForMolangVersion(version);
         let compiled: CompiledMolang;
         try {
             compiled = compileProgram(source, parse(source, rules), rules, this.queries);
