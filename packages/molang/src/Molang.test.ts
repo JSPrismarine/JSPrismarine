@@ -109,6 +109,19 @@ describe('Molang', () => {
             expect(molang.compile('1 && 2 || 0', { minEngineVersion: [1, 17, 0] })).not.toBe(first);
             expect(molang.compile('1 && 2 || 0')).not.toBe(first);
         });
+
+        it('shares one compilation between engine versions with the same Molang version', () => {
+            const molang = new Molang();
+            const first = molang.compile('1 && 2 || 0', { minEngineVersion: [1, 20, 70] });
+            expect(molang.compile('1 && 2 || 0', { minEngineVersion: [1, 21, 90] })).toBe(first);
+            expect(molang.compile('1 && 2 || 0', { version: 12 })).toBe(first);
+        });
+
+        it('takes an explicit version over the engine version', () => {
+            const molang = new Molang();
+            const scope: MolangScope = { variables: new Map([['d', -2]]) };
+            expect(molang.compile('8 / v.d', { minEngineVersion: [1, 26, 0], version: 6 }).evaluate(scope)).toBe(4);
+        });
     });
 
     describe('query registry', () => {
