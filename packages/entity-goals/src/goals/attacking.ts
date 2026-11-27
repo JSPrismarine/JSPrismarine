@@ -44,7 +44,11 @@ const REPATH_INTERVAL = 10;
 /** How far a melee swing reaches before `reach_multiplier`, in blocks. */
 const MELEE_REACH = 2;
 
-/** How many game ticks Java's `MeleeAttackGoal.canUse` waits between two path searches. */
+/**
+ * How many game ticks Java's `MeleeAttackGoal.canUse` waits between two path searches.
+ *
+ * @javaSource MeleeAttackGoal.canUse
+ */
 const CAN_USE_INTERVAL = 20;
 
 /** The shared chase-and-swing loop the melee goals are built from. */
@@ -556,6 +560,8 @@ const SCARE_SEARCH_TICKS = 20;
  * Java's `PhantomSweepAttackGoal.canContinueToUse` looks for cats in its box inflated by 16 at
  * most once every 20 ticks, and while one is there it breaks the swoop off, and `stop` drops the
  * target. `scared_of` and `scare_range` carry that rule.
+ *
+ * @javaSource Phantom$PhantomSweepAttackGoal.canContinueToUse
  */
 export const swoopAttack = goal<SwoopAttackParams>({
     name: 'minecraft:behavior.swoop_attack',
@@ -1022,6 +1028,8 @@ export interface KnockbackRoarParams {
  * every mob in range the damage filters accept and throws back every one the knockback filters
  * accept, which is Java's `Ravager.roar`: 6 damage to every living thing but an illager within 4
  * blocks, then a strong knockback to all of them.
+ *
+ * @javaSource Ravager.roar
  */
 export const knockbackRoar = goal<KnockbackRoarParams>({
     name: 'minecraft:behavior.knockback_roar',
@@ -1440,6 +1448,8 @@ export interface StalkAndPounceParams {
  * Like Java's `Fox$StalkPreyGoal` it only starts on a target farther than `pounce_max_dist`,
  * which it creeps up to; a target already that close is left to the melee goal. `filters`, a
  * server key, names the prey it stalks, as Java's `STALKABLE_PREY` does.
+ *
+ * @javaSource Fox$FoxPounceGoal.tick
  */
 export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
     name: 'minecraft:behavior.stalk_and_pounce_on_target',
@@ -1746,6 +1756,8 @@ const DRINK_TICKS = 32;
  * `minecraft:behavior.drink_potion`, which the witch and the wandering trader carry. The entity
  * picks the first potion whose filters pass and whose chance comes up, drinks it for Java's 32
  * ticks and then takes its effects, as Java's `Witch.aiStep` and the trader's `UseItemGoal` do.
+ *
+ * @javaSource Witch.aiStep
  */
 export const drinkPotion = goal<DrinkPotionParams>({
     name: 'minecraft:behavior.drink_potion',
@@ -1910,13 +1922,19 @@ export interface SummonStep {
     readonly sound: string | undefined;
 }
 
-/** The angle a ring of evoker fangs or a line of them is laid out from, Java's `Mth.atan2`. */
+/**
+ * The angle a ring of evoker fangs or a line of them is laid out from, Java's `Mth.atan2`.
+ *
+ * @javaSource Mth.atan2
+ */
 const headingTo = (from: EntityPosition, to: EntityPosition): number => Math.atan2(to.z - from.z, to.x - from.x);
 
 /**
  * Where an attack spell's summon stands: Java's `EvokerAttackSpellGoal.createSpellEntity`, which
  * walks down from a block above the higher of caster and target to a block below the lower, and
  * takes the first cell standing on a solid block. A column with no floor in that span gets none.
+ *
+ * @javaSource Evoker$EvokerAttackSpellGoal.createSpellEntity
  */
 const spellFloor = (support: GoalSupport, x: number, z: number, minY: number, maxY: number): number | undefined => {
     const view = support.navigation();
@@ -1979,7 +1997,11 @@ export const summonEntity = goal<SummonEntityParams>({
         let choice: SummonChoice | undefined;
         let elapsed = 0;
 
-        /** Java's `EvokerSummonSpellGoal.canUse` draw: fewer of the type near than a roll below the cap. */
+        /**
+         * Java's `EvokerSummonSpellGoal.canUse` draw: fewer of the type near than a roll below the cap.
+         *
+         * @javaSource Evoker$EvokerSummonSpellGoal.canUse
+         */
         const underCap = (spell: SummonChoice): boolean =>
             spell.sequence.every((step) => {
                 if (step.summonCap === undefined || step.entityType === undefined) return true;

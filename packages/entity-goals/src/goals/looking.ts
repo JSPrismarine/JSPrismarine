@@ -18,13 +18,25 @@ import type { GoalMob } from '../world';
  * `RandomLookAroundGoal` starts on the same 0.02 chance and looks for 20 to 40.
  */
 
-/** The chance per tick a look starts, from Java's `LookAtPlayerGoal.DEFAULT_PROBABILITY`. */
+/**
+ * The chance per tick a look starts, from Java's `LookAtPlayerGoal.DEFAULT_PROBABILITY`.
+ *
+ * @javaSource LookAtPlayerGoal.DEFAULT_PROBABILITY
+ */
 const LOOK_PROBABILITY = 0.02;
 
-/** How long one look lasts, in ticks, from Java's `LookAtPlayerGoal.start`. */
+/**
+ * How long one look lasts, in ticks, from Java's `LookAtPlayerGoal.start`.
+ *
+ * @javaSource LookAtPlayerGoal.start
+ */
 const LOOK_TICKS: Range = [40, 80];
 
-/** How long a random look lasts, in ticks, from Java's `RandomLookAroundGoal.start`. */
+/**
+ * How long a random look lasts, in ticks, from Java's `RandomLookAroundGoal.start`.
+ *
+ * @javaSource RandomLookAroundGoal.start
+ */
 const GLANCE_TICKS: Range = [20, 40];
 
 /**
@@ -34,6 +46,9 @@ const GLANCE_TICKS: Range = [20, 40];
  * in Java's `Goal.adjustedTickDelay` form, half the ticks rounded up, and a look lasts the drawn
  * number of game ticks. Java's `LookAtPlayerGoal.canContinueToUse` also ends a look once the
  * subject is further away than the look distance.
+ *
+ * @javaSource Goal.adjustedTickDelay
+ * @javaSource LookAtPlayerGoal.canContinueToUse
  */
 const lookLoop = (
     support: GoalSupport,

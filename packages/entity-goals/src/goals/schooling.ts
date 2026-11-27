@@ -33,7 +33,11 @@ interface SchoolParams {
     readonly maxSchoolSize: number;
 }
 
-/** Java's `FollowFlockLeaderGoal.nextStartTick`: `reducedTickDelay(200 + nextInt(200) % 20)`. */
+/**
+ * Java's `FollowFlockLeaderGoal.nextStartTick`: `reducedTickDelay(200 + nextInt(200) % 20)`.
+ *
+ * @javaSource FollowFlockLeaderGoal.nextStartTick(Lnet/minecraft/world/entity/animal/fish/AbstractSchoolingFish;)I
+ */
 const nextStartTick = (support: GoalSupport): number => Math.ceil((200 + (support.randomInt(200) % 20)) / 2);
 
 /** Whether a fish follows a leader, Java's `isFollower`. */
@@ -72,6 +76,8 @@ const insideBox = (support: GoalSupport, mob: GoalMob, range: number): boolean =
  * `minecraft:flocking`, run as Java's `FollowFlockLeaderGoal`. It holds no control flags, as Java's
  * holds none, so it runs beside the swimming goals; the random swim goals stand down for a fish
  * that follows a leader, which is Java's `AbstractSchoolingFish.canRandomSwim`.
+ *
+ * @javaSource AbstractSchoolingFish.canRandomSwim
  */
 export const flocking = goal<SchoolParams>({
     name: 'minecraft:flocking',
@@ -93,6 +99,8 @@ export const flocking = goal<SchoolParams>({
          * Java's `AbstractSchoolingFish.tick` for a leader: one tick in 200 it counts the fish of
          * its type in its box, and with none left it leads a school of one again. The selector
          * asks every other tick, so each ask stands for two of Java's ticks.
+         *
+         * @javaSource AbstractSchoolingFish.tick
          */
         const dissolveIfAlone = (school: SchoolMembership): void => {
             if (!hasFollowers(school) || support.randomInt(100) !== 1) return;

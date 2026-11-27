@@ -31,7 +31,11 @@ import {
  * ten (`NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL`).
  */
 
-/** How long an unseen target is remembered, from Java's `TargetGoal.unseenMemoryTicks`. */
+/**
+ * How long an unseen target is remembered, from Java's `TargetGoal.unseenMemoryTicks`.
+ *
+ * @javaSource TargetGoal.<init>(Lnet/minecraft/world/entity/Mob;ZZ)V
+ */
 const FORGET_TICKS = 60;
 
 /** How long a revenge target is remembered, from Java's `HurtByTargetGoal`. */
@@ -40,6 +44,8 @@ const REVENGE_FORGET_TICKS = 300;
 /**
  * The random interval of a scan, from Java's `NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL`:
  * one selector tick in `reducedTickDelay(10)`, so one in five, runs a scan.
+ *
+ * @javaSource NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL
  */
 const SCAN_INTERVAL = 10;
 
@@ -243,7 +249,11 @@ export interface HurtByTargetParams {
  */
 const ALERT_HEIGHT = 10;
 
-/** The follow range a mob without the attribute searches, Java's `Attributes.FOLLOW_RANGE` default. */
+/**
+ * The follow range a mob without the attribute searches, Java's `Attributes.FOLLOW_RANGE` default.
+ *
+ * @javaSource Attributes.FOLLOW_RANGE
+ */
 const DEFAULT_FOLLOW_RANGE = 16;
 
 /**
@@ -430,6 +440,9 @@ export interface DefendTrustedTargetParams {
  * It attacks whatever last hurt an entity this one trusts, which is the `trusts` fact on the
  * filter view. Java's `Fox.DefendTrustedTargetGoal` reads each trusted player's
  * `getLastHurtByMob` and starts once per blow its timestamp names.
+ *
+ * @javaSource Fox$DefendTrustedTargetGoal.canUse
+ * @javaSource Fox$DefendTrustedTargetGoal.start
  */
 export const defendTrustedTarget = goal<DefendTrustedTargetParams>({
     name: 'minecraft:behavior.defend_trusted_target',

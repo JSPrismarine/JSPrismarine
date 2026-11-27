@@ -241,7 +241,11 @@ const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => 
     );
 };
 
-/** The component Bedrock gives a mob while Java's `Zombie.canBreakDoors` or a raid lets it break doors. */
+/**
+ * The component Bedrock gives a mob while Java's `Zombie.canBreakDoors` or a raid lets it break doors.
+ *
+ * @javaSource Zombie.canBreakDoors()Z
+ */
 const BREAK_DOOR = 'minecraft:annotation.break_door';
 
 /** Lets the pinned Java navigator decide which media its path can enter and hold, and which doors it passes. */

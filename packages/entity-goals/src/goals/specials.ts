@@ -181,7 +181,12 @@ export const squidDive = squidState('squid_dive', [20, 40], 1);
 /** How close the squid's attacker has to be for it to flee, Java's `distanceToSqr < 100`, in blocks. */
 const SQUID_FLEE_RANGE = 10;
 
-/** How long one flight lasts at most, from Java's `SquidFleeGoal.fleeTicks`, in ticks. */
+/**
+ * How long one flight lasts at most, from Java's `SquidFleeGoal.fleeTicks`, in ticks.
+ *
+ * @javaSource Squid$SquidFleeGoal.canUse
+ * @javaSource Squid$SquidFleeGoal.tick
+ */
 const SQUID_FLEE_TICKS = 100;
 
 /** How much faster than its drift a fleeing squid swims, Java's `SquidFleeGoal` scale of 3. */
@@ -563,7 +568,11 @@ const trapState = defineComponentState('minecraft:behavior.skeleton_horse_trap',
     sprung: stateField.boolean
 });
 
-/** How many skeleton horsemen ride in beside the trap horse, Java's `SkeletonTrapGoal.tick` loop. */
+/**
+ * How many skeleton horsemen ride in beside the trap horse, Java's `SkeletonTrapGoal.tick` loop.
+ *
+ * @javaSource SkeletonTrapGoal.tick
+ */
 const TRAP_HORSEMEN = 3;
 
 /** The provider `SkeletonTrapGoal.enchant` draws each skeleton's bow and helmet enchantments from. */
@@ -593,6 +602,8 @@ const SPRING_TRAP_EVENT = 'minecraft:spring_trap';
  *
  * The riders come the tick after the strike, once the horse's `spring_trap` event has made it
  * rideable.
+ *
+ * @javaSource SkeletonHorse.aiStep
  */
 export const skeletonHorseTrap = goal<SkeletonHorseTrapParams>({
     name: 'minecraft:behavior.skeleton_horse_trap',

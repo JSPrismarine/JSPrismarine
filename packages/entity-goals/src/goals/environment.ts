@@ -31,10 +31,18 @@ import type { GoalItem } from '../world';
  * fire the event the body names at the end.
  */
 
-/** How long the sheep's eat animation lasts, from Java's `EatBlockGoal.EAT_ANIMATION_TICKS`. */
+/**
+ * How long the sheep's eat animation lasts, from Java's `EatBlockGoal.EAT_ANIMATION_TICKS`.
+ *
+ * @javaSource EatBlockGoal.EAT_ANIMATION_TICKS
+ */
 const EAT_ANIMATION_TICKS = 40;
 
-/** How often an adult sheep looks for grass, from Java's `EatBlockGoal.canUse`. */
+/**
+ * How often an adult sheep looks for grass, from Java's `EatBlockGoal.canUse`.
+ *
+ * @javaSource EatBlockGoal.canUse
+ */
 const ADULT_EAT_INTERVAL = 1000;
 
 /** How often a lamb does, from the same method. */
@@ -565,6 +573,12 @@ const SNACK_REACH = 1.5;
  * `minecraft:behavior.snacking`, which the panda carries. Java's `Panda.PandaSitGoal`: a panda
  * holding one of its foods sits down and chews it until it loses interest; one holding nothing
  * walks to a food lying within 6 blocks and takes it first.
+ *
+ * @javaSource Panda$PandaSitGoal.canUse
+ * @javaSource Panda$PandaSitGoal.canContinueToUse
+ * @javaSource Panda$PandaSitGoal.tick
+ * @javaSource Panda$PandaSitGoal.start
+ * @javaSource Panda$PandaSitGoal.stop
  */
 export const snacking = goal<SnackingParams>({
     name: 'minecraft:behavior.snacking',
@@ -748,7 +762,11 @@ export interface RollParams {
     readonly probability: number;
 }
 
-/** How long one roll lasts, Java's `Panda.handleRoll` stopping past a counter of 32, in ticks. */
+/**
+ * How long one roll lasts, Java's `Panda.handleRoll` stopping past a counter of 32, in ticks.
+ *
+ * @javaSource Panda.handleRoll
+ */
 const ROLL_TICKS = 32;
 
 /** The ticks of a roll on which Java's panda bounces up again. */
@@ -758,6 +776,11 @@ const ROLL_BOUNCES: ReadonlySet<number> = new Set([7, 15, 23]);
  * `minecraft:behavior.roll`, which a playful or baby panda carries. Java's `Panda.PandaRollGoal`
  * starts the roll and `Panda.handleRoll` runs it: a hop forward at 0.2 blocks a tick, 0.1 for a
  * baby, with a bounce of 0.27 up at the start and on ticks 7, 15 and 23, for 32 ticks.
+ *
+ * @javaSource Panda$PandaRollGoal.canUse
+ * @javaSource Panda$PandaRollGoal.canContinueToUse
+ * @javaSource Panda$PandaRollGoal.start
+ * @javaSource Panda$PandaRollGoal.isInterruptable
  */
 export const roll = goal<{ readonly probability: number }>({
     name: 'minecraft:behavior.roll',

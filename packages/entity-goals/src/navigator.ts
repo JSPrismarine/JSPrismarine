@@ -26,7 +26,11 @@ const WAYPOINT_RADIUS = 0.7;
 /** How many ticks a walk may make no progress before the navigator gives up. */
 const STUCK_TICKS = 100;
 
-/** Java's `PathNavigation.MAX_TIME_RECOMPUTE` cadence, in goal ticks. */
+/**
+ * Java's `PathNavigation.MAX_TIME_RECOMPUTE` cadence, in goal ticks.
+ *
+ * @javaSource PathNavigation.MAX_TIME_RECOMPUTE
+ */
 const PATH_RECOMPUTE_TICKS = 20;
 
 /** Compares a path request profile, including the values held in its records. */
@@ -105,6 +109,8 @@ const walkedPaths = new WeakMap<object, { readonly nodes: readonly EntityPositio
  * `getNextNodeIndex() + ahead`, as `DoorInteractGoal` reads the mob's one `PathNavigation`. A goal
  * that stops its walk leaves the path here, as Java's path stays on the navigation while another
  * goal looks at it.
+ *
+ * @javaSource Path.getNode
  */
 export const walkedPathOf = (owner: object, ahead: number): readonly EntityPosition[] => {
     const walked = walkedPaths.get(owner);
@@ -112,7 +118,11 @@ export const walkedPathOf = (owner: object, ahead: number): readonly EntityPosit
     return walked.nodes.slice(0, Math.min(walked.waypoint + ahead, walked.nodes.length));
 };
 
-/** A home position and the radius around it, Java's `Mob.getHomePosition` and `getHomeRadius`. */
+/**
+ * A home position and the radius around it, Java's `Mob.getHomePosition` and `getHomeRadius`.
+ *
+ * @javaSee Mob.getHomePosition
+ */
 export interface HomeRestriction {
     readonly center: EntityPosition;
     readonly radius: number;
@@ -276,6 +286,8 @@ export class Navigator {
     /**
      * Changes the speed of the walk under way, as Java's `PathNavigation.setSpeedModifier` does,
      * from the next step on.
+     *
+     * @javaSource PathNavigation.setSpeedModifier
      */
     public setSpeed(speedMultiplier: number): void {
         this.speed = speedMultiplier;
