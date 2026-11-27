@@ -95,8 +95,8 @@ export interface EntityScene {
      * does not care which index answered.
      */
     mobById(id: number): GoalMob | undefined;
-    /** The blows a player remembers dealing and taking, which its goal mob answers. */
-    playerCombat(player: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>;
+    /** The blows an entity or a player remembers dealing and taking, which its goal mob answers. */
+    combatOf(id: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>;
     /** Item stacks lying within a radius, nearest first. */
     items(center: EntityPosition, radius: number): readonly GoalItem[];
     /** Blocks matching a query around a position, nearest first and up to its optional limit. */
