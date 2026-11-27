@@ -145,8 +145,15 @@ describe('pack blocks', () => {
             if (packet instanceof ItemRegistryPacket) items.push(...(packet.getPacketData()?.items ?? []));
             if (packet instanceof CreativeContentPacket) menu = packet.getPacketData() ?? undefined;
         });
-        await jsp.until(() => menu !== undefined, 'Creative was sent no creative menu', 400);
+        let settled = false;
+        const done = (): void => {
+            settled = true;
+        };
+        void joined.then(done, done);
+        // The menu goes out before the join completes, and the join completes only on a tick.
+        await jsp.until(() => settled, 'Creative never joined', 400);
         await joined;
+        expect(menu).toBeDefined();
 
         const names = new Map(items.map((item) => [item.runtimeId, item.name]));
         const listed = (menu?.entries ?? []).map((entry) => names.get(entry.item.runtimeId));
