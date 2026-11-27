@@ -229,15 +229,23 @@ Java's `EnderDragon.aiStep`. `vectors/26.3/` holds what Java's own code computes
 
 - `dragon-nodes.json`: the path nodes over a fixed heightmap, the closest node to a grid of
   points, and the path between every pair of nodes, with crystals standing and with none.
-- `dragon-fights.json`: seeded fights with the phase, position and yaw
-  on every tick, each target the dragon flew toward, each fireball and breath cloud, and every
-  draw from the dragon's random source. The test hands the copy Java's draws and fails on the
-  first tick where anything differs.
+- `dragon-fights.json`: seeded fights with the phase, position, yaw and wall contact on every
+  tick, each target the dragon flew toward, each fireball and breath cloud, each block it broke,
+  each push and blow its wings and head dealt, each blow it took, each line of sight it checked,
+  and every draw from the dragon's random source. The test hands the copy Java's draws and fails
+  on the first tick where anything differs.
 
 `utils/oracle/DumpDragonVectors.java` records them. It runs Java's `EnderDragon` on a
-`ServerLevel` it allocates without a server: open air over the heightmap, players that stand
-still, and no other entities. Wall breaking and the wings' and head's hits are not in the
-recordings. Regenerate them after a Java bump with
+`ServerLevel` it allocates without a server, with the vanilla data pack's tags and damage types:
+open air over the heightmap, players and zombies that keep their clocks but never move, and in
+two fights pillars of stone, obsidian, end stone, fire, light and other blocks across the
+dragon's path, one with `mobGriefing` off. One fight lands explosions and a player's blows on the
+dragon's head and body until it takes off, and one is centered away from the world's origin.
+Two things the copy does not follow yet stay out of the recordings: the knockback a player's blow
+gives a flying dragon ([#3792](https://github.com/JSPrismarine/JSPrismarine/issues/3792)), and
+water and waterlogged blocks in its path
+([#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793)).
+Regenerate them after a Java bump with
 `pnpm --filter @jsprismarine/entity-goals run vectors`, which fetches the pinned server jar if the
 cache lacks it and needs a JDK the jar can run on.
 
