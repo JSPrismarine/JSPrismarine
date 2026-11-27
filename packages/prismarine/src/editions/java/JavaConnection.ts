@@ -13,6 +13,7 @@ import type { TranslationKey } from '../../chat/ConsoleText';
 import { errorMessage } from '../../utils/errorMessage';
 import type { KeepAlive } from '../../player/KeepAlive';
 import type PlayerSession from '../../player/PlayerSession';
+import { JoinDiagnostics } from '../../network/JoinFailure';
 import type { TcpTransportConnection } from '../../network/transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
 
@@ -59,6 +60,12 @@ export class JavaConnection {
     public closed = false;
     /** The pings that check the client is still there, once the player is in play. */
     public keepAlive?: KeepAlive;
+    /** Whether the client said it loaded the world around its player, which ends its join. */
+    public loaded = false;
+    /** Whether the server hung up, rather than the client. */
+    public hungUp = false;
+    /** The packets last sent to the client, and whether a failed join was reported. */
+    public readonly joinDiagnostics = new JoinDiagnostics();
 
     /**
      * @param transport - The TCP connection the packets travel over.
@@ -66,18 +73,41 @@ export class JavaConnection {
      */
     public constructor(
         public readonly transport: TcpTransportConnection,
-        private readonly log: Pick<Logger, 'debug'>
+        private readonly log: Pick<Logger, 'debug' | 'warn'>
     ) {}
 
     /** Sends one packet, compressed once `Set Compression` has gone. */
     public send<D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>): void {
         const packet = encodeJavaPacket(this.protocol, definition, value);
         this.transport.sendFrame(this.compression === undefined ? packet : compressFrame(packet, this.compression));
+        this.joinDiagnostics.sent.add(definition.name);
     }
 
     /** Hangs up. */
     public close(): Promise<void> {
+        this.hungUp = true;
         return this.transport.close();
+    }
+
+    /**
+     * Logs a join that failed through the server's fault, with a link to report it, once per
+     * connection. Nothing is reported for a server list ping, nor once the client loaded the world.
+     * @param cause - What went wrong, as one sentence.
+     * @param error - The error the server threw, when it threw one.
+     * @returns Whether it was logged.
+     */
+    public reportJoinFailure(cause: string, error?: unknown): boolean {
+        if (this.loaded || this.phase === 'handshake' || this.phase === 'status') return false;
+        const address = this.transport.address.toToken();
+        const name = this.profile?.name ?? this.pending?.name;
+        return this.joinDiagnostics.report(this.log, name === undefined ? address : `${name} (${address})`, {
+            edition: 'Java',
+            minecraftVersions: [this.protocol.minecraftVersion],
+            protocolVersion: this.protocol.protocolVersion,
+            phase: this.phase,
+            cause,
+            ...(error === undefined ? {} : { error })
+        });
     }
 
     /**
@@ -91,6 +121,7 @@ export class JavaConnection {
     /** Closes a connection whose queued work failed. */
     public async failed(error: unknown): Promise<void> {
         this.log.debug(`Java connection ${this.transport.id} failed in play: ${errorMessage(error)}`);
+        this.reportJoinFailure('The server failed to apply what the client sent while it joined.', error);
         await this.close();
     }
 }

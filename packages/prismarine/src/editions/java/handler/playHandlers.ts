@@ -159,7 +159,11 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
         connection.teleportHandled = true;
         if (connection.pose !== undefined) Object.assign(connection.pose, { x, y, z, yaw, pitch });
     }),
-    intentHandler(PlayerLoaded, () => ({ kind: 'playerInitialized' })),
+    // The client loaded the world around its player, which ends its join.
+    intentHandler(PlayerLoaded, (_, { connection }) => {
+        connection.loaded = true;
+        return { kind: 'playerInitialized' };
+    }),
     intentHandler(ChatMessage, ({ message }) => ({ kind: 'chat', message })),
     intentHandler(ChatCommand, ({ command }) => ({ kind: 'runCommand', command })),
     moveHandler(MovePlayerPos, ({ x, y, z, flags }) => ({ position: { x, y, z }, flags })),
