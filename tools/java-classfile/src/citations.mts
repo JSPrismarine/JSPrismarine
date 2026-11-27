@@ -226,8 +226,27 @@ const onlyDescribes = (after: string): boolean => {
         next === '' ||
         /^(?:\/\/|\/\*|import\s)/.test(next) ||
         /^(?:export\s+)?(?:declare\s+)?(?:interface|type)\s/.test(next) ||
-        /^(?:readonly\s+)?[\w$]+\??\s*(?:\(.*\)\s*)?:[^={]*;\s*$/.test(next.split('\n', 1)[0] ?? '')
+        isMemberSignature(next.split('\n', 1)[0] ?? '')
     );
+};
+
+/**
+ * Whether a line is an interface member's signature, such as `name?: Type;` or
+ * `name(arg: A): B;`: a name, an optional parameter list, then a type with no `=` or `{` up to a
+ * closing semicolon. Read by index rather than one regular expression, which would backtrack
+ * polynomially between the parameter list and the type.
+ */
+const isMemberSignature = (line: string): boolean => {
+    const head = /^(?:readonly\s+)?[\w$]+\??\s*/.exec(line);
+    if (head === null) return false;
+    let rest = line.slice(head[0].length);
+    if (rest.startsWith('(')) {
+        const close = rest.lastIndexOf(')');
+        if (close < 0) return false;
+        rest = rest.slice(close + 1).trimStart();
+    }
+    const type = rest.trimEnd();
+    return type.startsWith(':') && type.endsWith(';') && !/[={]/.test(type.slice(1, -1));
 };
 
 /**
