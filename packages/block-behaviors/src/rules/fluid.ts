@@ -143,6 +143,39 @@ const fluidBlockOf = (state: LiquidState): { readonly identifier: string; readon
     };
 };
 
+/** The `liquid_depth` a falling fluid's own block has, Java's `LiquidBlock` level 8. */
+const FALLING_DEPTH = 8;
+
+/**
+ * The block Java's `Level.removeBlock(pos, false)` leaves where it takes a block out: the block of
+ * the fluid the position holds, which is `FluidState.createLegacyBlock`, or air where it holds
+ * none. A waterlogged block leaves its water source, as do the blocks that always hold water, such
+ * as kelp and bubble columns.
+ *
+ * @param block - The block at the position.
+ * @param liquid - What the position's liquid layer holds, where Bedrock keeps a waterlogged
+ *   block's water.
+ * @returns The block to write, or undefined where the block already is its fluid's own block, as
+ *   a water or lava block is, so removing it changes nothing.
+ * @javaSource Level.removeBlock
+ */
+export const removedBlockOf = (
+    block: Pick<HookBlock, 'identifier' | 'states'>,
+    liquid: Pick<HookBlock, 'identifier' | 'states'> | undefined
+): { readonly identifier: string; readonly states: Readonly<Record<string, number>> } | undefined => {
+    if (isLiquid(block.identifier)) {
+        // Java's `LiquidBlock.getFluidState` answers every falling depth with the one falling
+        // fluid, whose own block has depth 8, so only a deeper falling block changes.
+        const depth = stateNumber(block, 'liquid_depth');
+        const own = Math.min(depth, FALLING_DEPTH);
+        return own === depth ? undefined : { identifier: block.identifier, states: { liquid_depth: own } };
+    }
+    const fluid = liquidStateOf(block) ?? liquidStateOf(liquid);
+    if (fluid === undefined) return isAir(block.identifier) ? undefined : { identifier: AIR, states: {} };
+    const left = fluidBlockOf(fluid);
+    return { identifier: left.identifier, states: { liquid_depth: left.depth } };
+};
+
 /** Whether two fluid states would write the same block state. */
 const sameState = (a: LiquidState | undefined, b: LiquidState | undefined): boolean =>
     a?.kind === b?.kind && a?.amount === b?.amount && a?.falling === b?.falling && a?.source === b?.source;

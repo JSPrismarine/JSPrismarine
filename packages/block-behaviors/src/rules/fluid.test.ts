@@ -11,6 +11,7 @@ import {
     MAX_LIQUID_DEPTH,
     NETHER,
     NETHER_LAVA_SPREAD_TICKS,
+    removedBlockOf,
     spreadLiquid,
     spreadTicks,
     WATER_SPREAD_TICKS
@@ -322,5 +323,35 @@ describe('water held by a waterlogged block', () => {
 
         expect(applyLavaWaterReaction(world, world.block(source))).toBe('east');
         expect(world.identifierAt(source)).toBe('minecraft:obsidian');
+    });
+});
+
+describe("Level.removeBlock's leftovers", () => {
+    const water = { identifier: 'minecraft:water', states: { liquid_depth: 0 } };
+
+    it("leaves a waterlogged block's water, and the water a block always holds", () => {
+        expect(removedBlockOf({ identifier: 'minecraft:oak_slab', states: {} }, water)).toEqual(water);
+        expect(removedBlockOf({ identifier: 'minecraft:kelp', states: { kelp_age: 0 } }, undefined)).toEqual(water);
+    });
+
+    it('changes nothing for a water or lava block, but settles a deeper falling one at depth 8', () => {
+        expect(removedBlockOf(water, undefined)).toBeUndefined();
+        expect(
+            removedBlockOf({ identifier: 'minecraft:flowing_lava', states: { liquid_depth: 2 } }, undefined)
+        ).toBeUndefined();
+        expect(
+            removedBlockOf({ identifier: 'minecraft:flowing_water', states: { liquid_depth: 12 } }, undefined)
+        ).toEqual({
+            identifier: 'minecraft:flowing_water',
+            states: { liquid_depth: 8 }
+        });
+    });
+
+    it('leaves air where no fluid stood, and nothing to do for air', () => {
+        expect(removedBlockOf({ identifier: 'minecraft:stone', states: {} }, undefined)).toEqual({
+            identifier: 'minecraft:air',
+            states: {}
+        });
+        expect(removedBlockOf({ identifier: 'minecraft:air', states: {} }, undefined)).toBeUndefined();
     });
 });
