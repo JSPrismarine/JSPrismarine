@@ -38,10 +38,8 @@ export interface FormHost {
     player(value: ScriptValue): FormPlayer | undefined;
     /** Sends a form and returns the promise `show()` returns. */
     show(player: string, form: BuiltForm): ScriptValue;
-    /** Closes every form a player has open. */
+    /** Closes every form a player has open. BDS leaves the data-driven screens open. */
     closeAll(player: string): void;
-    /** Closes every data-driven screen a player has open, which `closeAllForms` does too. */
-    closeAllDataDriven?(player: string): void;
 }
 
 /** The builder members of each form kind, after its constructor and `show`. */
@@ -104,7 +102,6 @@ export const serverUiImplementations = (
             // BDS's own words for a player who left, from a plain Error rather than one of the API's.
             if (player?.present !== true) throw new ScriptHostErrors.InvalidPlayerHandle();
             host.closeAll(player.id);
-            host.closeAllDataDriven?.(player.id);
             return undefined;
         });
 };

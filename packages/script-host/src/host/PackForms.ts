@@ -80,7 +80,7 @@ export class PackForms {
             }
         });
         const functions: Record<string, ScriptHandle> = {};
-        for (const name of ['plain', 'set', 'add', 'read', 'deferred', 'attach', 'field']) {
+        for (const name of ['plain', 'set', 'add', 'read', 'deferred', 'attach', 'field', 'parse']) {
             functions[name] = handleOf(engine.get(this.kit, name), name);
         }
         this.functions = functions;
@@ -149,6 +149,11 @@ export class PackForms {
                   : { canceled: false, formValues: outcome.formValues, nullIsUndefined: outcome.nullIsUndefined };
         this.call('attach', response, JSON.stringify(data));
         return response;
+    }
+
+    /** Makes a plain object or list in the pack's realm from JSON text. The caller frees a handle it returns. */
+    public parsed(json: string): ScriptValue {
+        return this.call('parse', json);
     }
 
     /** Makes the `FormRejectError` a promise rejects with. The caller frees it. */

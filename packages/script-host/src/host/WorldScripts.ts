@@ -920,9 +920,7 @@ export class WorldScripts {
                 forms,
                 player: (value) => this.formPlayer(entry, value),
                 show: (player, form) => this.forms.show(this.options.world.forms, entry, forms, player, form),
-                closeAll: (player) => this.options.world.forms?.closeAll(player),
-                closeAllDataDriven: (player) =>
-                    this.dataDriven.closeAll(player, (loaded, run) => this.settleInPack(loaded, run))
+                closeAll: (player) => this.options.world.forms?.closeAll(player)
             });
             this.dataDriven.register(implementations);
         }

@@ -470,13 +470,9 @@ record it:
 A pack that declares `@minecraft/server-ui` gets `ActionFormData`, `ModalFormData`,
 `MessageFormData`, their responses and `uiManager.closeAllForms`, in the version 1 and version 2
 shapes and the beta. It also gets the data-driven `CustomForm`, `MessageBox` and four `Observable*`
-classes: builders keep their controls, bound observables update their subscribers, button clicks
-run their callbacks, `close()` and `uiManager.closeAllForms` close screens, and `show()` settles
-with the close reason the world reports. A data-driven `show()` rejects with `PlayerLeftError` when
-its player leaves the world. Forms reach the world through `ScriptWorld.forms`, a `ScriptFormChannel`
-that sends a player a form, closes a player's forms, and hands back the answers the input step
-admitted. A world without one sends no form; a world that cannot show data-driven screens settles a
-data-driven `show()` with `UserBusy`.
+classes, described under [Data-driven screens](#data-driven-screens). Forms reach the world through
+`ScriptWorld.forms`, a `ScriptFormChannel` that sends a player a form, closes a player's forms, and
+hands back the answers the input step admitted. A world without one sends no form.
 
 The `scripting.ui` family of the parity suite records each rule below on the pinned BDS, and its
 scenarios compare the form JSON a client receives byte for byte.
@@ -502,6 +498,39 @@ scenarios compare the form JSON a client receives byte for byte.
   newest first. `show()` for that player then throws `InvalidEntityError`, and `closeAllForms`
   throws `Error: Invalid Player handle.`. `closeAllForms` closes a player's forms and settles
   none of them.
+
+#### Data-driven screens
+
+A `CustomForm` or `MessageBox` is one property of the client's `minecraft` data store, laid out
+as the pinned BDS lays it out, and the screen that reads it. The `data-driven-forms` scenario of
+the parity suite records both ends on the pinned BDS: the property and every update the client
+receives, and what the scripts see of the client's clicks, writes and closes.
+
+- **The property.** `show()` hands the world a `DataDrivenScreen`: the screen id
+  (`minecraft:custom_form` or `minecraft:message_box`), the property's name
+  (`custom_form_data_<n>` or `message_box_data_<n>`) and its value. A custom form lists its
+  controls under `layout` by index, each with its own fields and a marker such as
+  `slider_visible`, and carries `title`, `style_id` and `closeButton`. A message box carries
+  `body` and `button1` to `button3`. A `UIRawMessage` is a map, and one without `rawtext` is put
+  into a `rawtext` list.
+- **Updates.** `setData()` on an observable a shown form binds sends the new value to each path
+  it fills, such as `layout[7].value`, through `updateDataDriven`; a `UIRawMessage` travels as its
+  JSON text and a newline. A dropdown item's text is copied when the dropdown is built.
+- **The client's writes.** A write to a path arrives as a `DataDrivenResponse`. A write to a
+  button's or image's `onClick` runs its callback without closing the form, disabled or not; one to
+  `button1.onClick` or `button2.onClick` picks a message box button; one to a client-writable
+  observable's path sets it when the type fits, tells its subscribers and updates the observable's
+  other paths. Any other write is dropped.
+- **Closing.** `close()` asks the client to close the screen, and the screen shows until the
+  client reports it closed, as `show()` settles only then. A client's `programmaticclose` or
+  `programmaticcloseall` settles `ServerClosed`, `clientcanceled` `ClientClosed` and `userbusy`
+  `UserBusy`; a message box settles with a `MessageBoxResult` that holds the button the client
+  clicked last. `invalidform` rejects with `InvalidFormError`. `uiManager.closeAllForms` leaves
+  data-driven screens open.
+- **Leaving.** A player who leaves rejects their screens with `PlayerLeftError`, newest first,
+  and a form for a player who left throws `InvalidEntityError` from its constructor.
+- **A world that cannot show one.** When `showDataDriven` is missing or returns false, `show()`
+  settles with `UserBusy`.
 
 ### GameTests
 

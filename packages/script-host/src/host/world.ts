@@ -635,56 +635,68 @@ export interface ScriptFormResponse {
     readonly cancelReason: number | null;
 }
 
-/** One control of a data-driven screen, as plain data for the world to send or record. */
-export interface DataDrivenControl {
-    /** The builder method that added it, such as `button` or `slider`. */
-    readonly type: string;
-    /** A literal string or the JSON text of a `UIRawMessage`, when the control has literal text. */
-    readonly text?: string;
-    /** The id of an observable bound to the control's text, when it has one. */
-    readonly textObservable?: number;
-    /** The id of the observable bound to the control, when it has one. */
-    readonly observable?: number;
-    /** The JSON text of the options object the script passed, when it has one. */
-    readonly options?: string;
-    /** The JSON text of a dropdown's items, or a message box's second button, when it has one. */
-    readonly items?: string;
-    /** A slider bound, as a number or the id of an observable bound to it. */
-    readonly min?: number | { readonly observable: number };
-    /** A slider's upper bound, in the same form as {@link DataDrivenControl.min}. */
-    readonly max?: number | { readonly observable: number };
-    /** The resource pack an image comes from, when the control is an image. */
-    readonly imagePack?: string;
+/**
+ * A value in a data-driven screen's data store property. A record is a map and an array a list;
+ * a bigint is a count BDS sends as an int64, such as a layout's `length`, and every other number
+ * travels as a double. Null is a property with no value.
+ */
+export type DataDrivenValue = null | boolean | number | bigint | string | readonly DataDrivenValue[] | DataDrivenRecord;
+
+/** A map in a data-driven screen's data store property, by key. */
+export interface DataDrivenRecord {
+    readonly [key: string]: DataDrivenValue;
 }
 
-/** A `CustomForm` or `MessageBox` as its script built it, in plain data. */
-export interface DataDrivenScreen {
-    /** Which builder made it. */
-    readonly kind: 'custom' | 'message';
-    /** A literal string or the JSON text of a `UIRawMessage`. */
-    readonly title: string;
-    /** The id of the observable bound to the title, when it has one. */
-    readonly titleObservable?: number;
-    /** The controls, in the order the script added them. */
-    readonly controls: readonly DataDrivenControl[];
+/** A value one path of a data store property can take, which a client's write carries too. */
+export type DataDrivenLeaf = boolean | number | string;
+
+/** One path of a data store property and its new value, such as `layout[7].value`. */
+export interface DataDrivenPathValue {
+    readonly path: string;
+    readonly value: DataDrivenLeaf;
 }
 
 /**
- * What a client reports about a data-driven screen. A `button` click leaves the screen open and
- * runs the control's callback; a `reason` closes it and settles `show()` with that reason.
+ * A `CustomForm` or `MessageBox` as BDS sends it: one property of the client's `minecraft` data
+ * store, and the screen that reads it.
  */
-export interface DataDrivenResponse {
-    /** The id of the player who answered, as {@link ScriptWorld.players} lists it. */
-    readonly player: string;
-    /** The id the screen was shown with. */
-    readonly formId: number;
-    /** The close reason, as `DataDrivenScreenClosedReason` names it. */
-    readonly reason?: 'ClientClosed' | 'ServerClosed' | 'UserBusy';
-    /** The index of the button clicked, counting only button controls. */
-    readonly button?: number;
-    /** New values of client-writable observables, by their ids. */
-    readonly values?: Readonly<Record<string, string | number | boolean>>;
+export interface DataDrivenScreen {
+    /** The screen to open: `minecraft:custom_form` or `minecraft:message_box`. */
+    readonly screenId: string;
+    /** The property's name, such as `custom_form_data_3`, which the client's writes name too. */
+    readonly property: string;
+    /** The number the property name ends in, which the client is told as the data instance id. */
+    readonly instance: number;
+    /** The property's value. */
+    readonly value: DataDrivenRecord;
+    /** Paths to update after the property is set and before the screen opens, as BDS sends them. */
+    readonly updates: readonly DataDrivenPathValue[];
 }
+
+/** Why a client says a data-driven screen closed, as `ServerboundDataDrivenScreenClosedPacket` spells it. */
+export type DataDrivenCloseReason =
+    'programmaticclose' | 'programmaticcloseall' | 'clientcanceled' | 'userbusy' | 'invalidform';
+
+/**
+ * What a client sends about a data-driven screen: a write to one path of its property, which is a
+ * click when the path is a button's `onClick`, or the screen closing with a reason.
+ */
+export type DataDrivenResponse =
+    | {
+          /** The id of the player who wrote, as {@link ScriptWorld.players} lists it. */
+          readonly player: string;
+          /** The data store property written to. */
+          readonly property: string;
+          readonly path: string;
+          readonly value: DataDrivenLeaf;
+      }
+    | {
+          /** The id of the player whose screen closed, as {@link ScriptWorld.players} lists it. */
+          readonly player: string;
+          /** The id the screen was shown with. */
+          readonly formId: number;
+          readonly reason: DataDrivenCloseReason;
+      };
 
 /** How the scripts' forms reach the world's players, and their answers come back. */
 export interface ScriptFormChannel {
@@ -694,13 +706,16 @@ export interface ScriptFormChannel {
     closeAll(player: string): void;
     /** The answers the input step admitted since the last call, in the order they arrived. */
     takeResponses(): readonly ScriptFormResponse[];
-    /** Shows a data-driven screen. A world that cannot show one leaves this out. */
-    showDataDriven?(player: string, formId: number, screen: DataDrivenScreen): void;
-    /** Closes one data-driven screen. */
-    closeDataDriven?(formId: number): void;
-    /** Closes every data-driven screen of a player. */
-    closeAllDataDriven?(player: string): void;
-    /** The data-driven screen answers the input step admitted since the last call. */
+    /**
+     * Shows a player a data-driven screen: sets its data store property and opens it.
+     * @returns Whether the player's client can show one. A world that cannot show any leaves this out.
+     */
+    showDataDriven?(player: string, formId: number, screen: DataDrivenScreen): boolean;
+    /** Changes one path of a data-driven screen's property the player has open. */
+    updateDataDriven?(player: string, property: string, change: DataDrivenPathValue): void;
+    /** Asks the player's client to close one data-driven screen, which it reports closed in reply. */
+    closeDataDriven?(player: string, formId: number): void;
+    /** The data-driven screen writes and closes the input step admitted since the last call, in order. */
     takeDataDrivenResponses?(): readonly DataDrivenResponse[];
 }
 
