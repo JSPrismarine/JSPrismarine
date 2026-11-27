@@ -36,11 +36,12 @@ import {
     buildCraftingData,
     buildCreativeContent,
     buildItemRegistry,
-    creativeItemProperties,
-    itemIdsOf
+    itemIdsOf,
+    withPackMenuPlacements
 } from '@jsprismarine/protocol/bedrock/payload';
 
 import { canonicalItemData } from '../../network/codec/itemData';
+import { isRecord } from '../../utils/isRecord';
 import { blockTranslationFor } from '../../network/codec/blockTranslation';
 import { assertContentPaletteAgrees } from './contentPalette';
 import { mergeItemCatalogs } from './itemCatalog';
@@ -48,7 +49,8 @@ import { mergeItemCatalogs } from './itemCatalog';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ServerContent } from '../../content/ServerContent';
 import type { RecipeBookEntries } from './presenter/BedrockPresenter';
-import type { BlockPalette } from '@jsprismarine/blocks';
+import type { BlockPalette, BlockType } from '@jsprismarine/blocks';
+import type { ItemType } from '@jsprismarine/items';
 import type { Logger } from '@jsprismarine/logger';
 import type {
     BlockProperty,
@@ -61,6 +63,7 @@ import type {
 import type {
     CreativeCatalog,
     ItemIdLookup,
+    PackMenuPlacement,
     WireItemInstance,
     WireResult
 } from '@jsprismarine/protocol/bedrock/payload';
@@ -269,6 +272,50 @@ const resultStack =
 const inventedBlocksOf = (content: ServerContent, client: BlockPalette) =>
     [...content.blocks.types.values()].filter((type) => client.entry(type.identifier) === undefined);
 
+/** A pack block's `menu_category`, with the state its creative entry places. */
+const blockPlacement = (type: BlockType): PackMenuPlacement => {
+    const menu = type.definition.description.menuCategory;
+    return {
+        name: type.identifier,
+        category: menu?.category,
+        ...(menu?.group === undefined ? {} : { group: menu.group }),
+        blockRuntimeId: blockRuntimeId(type.identifier, type.state().values)
+    };
+};
+
+/**
+ * A pack item's `description.menu_category`, read from the file the pack loaded.
+ *
+ * `@jsprismarine/items` keeps the Bedrock file beside the type and reads only its components,
+ * so the description is read here, the one place that needs it.
+ */
+const itemPlacement = (type: ItemType): PackMenuPlacement => {
+    const root = type.bedrockDefinition?.data;
+    const item = isRecord(root) ? root['minecraft:item'] : undefined;
+    const description = isRecord(item) ? item.description : undefined;
+    const menu = isRecord(description) ? description.menu_category : undefined;
+    const category = isRecord(menu) && typeof menu.category === 'string' ? menu.category : undefined;
+    const group = isRecord(menu) && typeof menu.group === 'string' && menu.group !== '' ? menu.group : undefined;
+    return { name: type.identifier, category, ...(group === undefined ? {} : { group }) };
+};
+
+/**
+ * Where each block and item the client does not know asks to sit in the creative menu.
+ *
+ * Only content the client has no number for counts: a pack file that overrides a vanilla block
+ * or item keeps that item's vanilla entry, and the captured catalog already files it.
+ */
+const packMenuPlacements = (
+    content: ServerContent,
+    invented: readonly BlockType[],
+    table: ProtocolItemData['table']
+): PackMenuPlacement[] => [
+    ...invented.map(blockPlacement),
+    ...[...content.items.types.values()]
+        .filter((type) => type.bedrockDefinition !== undefined && !(type.identifier in table))
+        .map(itemPlacement)
+];
+
 /** How to build; everything has a default that matches a real client. */
 export interface ContentPayloadOptions {
     /**
@@ -304,15 +351,21 @@ export const buildNetworkContentPayloads = (
 
     // Every invented block comes from a pack: Mojang's own data-driven blocks are in the client
     // palette and travel as captured.
-    const declared = buildBlockProperties(inventedBlocksOf(content, client), { fromPacks: true });
+    const invented = inventedBlocksOf(content, client);
+    const declared = buildBlockProperties(invented, { fromPacks: true });
     assertBlockPaletteAgrees(declared.properties, client);
 
-    // The vanilla menu with each pack's `item_catalog` merged in, which both the item registry's
-    // tab and heading and the creative packet are read from.
-    const menu = mergeItemCatalogs(catalog, content.definitions.itemCatalog.values(), content);
+    const { table } = options.itemData ?? canonicalItemData;
+    // The vanilla menu with each pack's `item_catalog` merged in, then the packs' blocks and items
+    // their own files place, which both the item registry's tab and heading and the creative
+    // packet are read from.
+    const menu = withPackMenuPlacements(
+        mergeItemCatalogs(catalog, content.definitions.itemCatalog.values(), content),
+        packMenuPlacements(content, invented, table)
+    );
 
     const items = buildItemRegistry(content.items.types.values(), {
-        table: (options.itemData ?? canonicalItemData).table,
+        table,
         capturedComponents: capturedItemComponents,
         projection: {
             mapIdentifier: (javaId) => {
@@ -328,14 +381,14 @@ export const buildNetworkContentPayloads = (
         },
         // The two `item_properties` keys no Java component decides and the
         // creative catalog does: which tab an item sits in and under which
-        // heading.
-        bedrockOnly: creativeItemProperties(menu),
+        // heading. A pack item's own file decides them for it.
+        bedrockOnly: menu.itemProperties,
         // Each declared block needs an item, or the client closes before it spawns.
         blocks: declared.blockIds
     });
 
     const itemIds = itemIdsOf(items.entries);
-    const creative = buildCreativeContent(itemIds, menu);
+    const creative = buildCreativeContent(itemIds, menu.catalog);
     const compiled = compileRecipeBook(content.recipes, javaItemToBedrock);
     const crafting = buildCraftingData(compiled.recipes, {
         items: itemIds,

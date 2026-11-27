@@ -17,7 +17,10 @@ The loader accepts two families of packs, and they play different roles:
 - **Bedrock behavior packs define content.** A loose pack folder, a `.mcpack` or `.mcaddon`
   archive, or the layered folder layout BDS ships its vanilla behavior pack in. These are the only
   format that can define a block, item, or entity a Bedrock client renders, so custom content
-  always arrives this way.
+  always arrives this way. A block or item appears in the creative menu when its
+  `description.menu_category` names a category other than `none`. A `group` in the `minecraft`
+  namespace, such as `minecraft:itemGroup.name.stairs`, files it under that vanilla heading, and
+  any other group gets a heading of its own, as BDS does.
 - **Java datapacks configure content.** A folder or zip with `pack.mcmeta` and `data/` at its
   root. A datapack almost never defines a block or item; it references existing ones to configure
   loot tables, recipes, advancements, tags, enchantments, damage types, predicates, and item
