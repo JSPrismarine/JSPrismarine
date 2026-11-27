@@ -1,5 +1,5 @@
 /** Server-side cooking for the furnace, blast furnace, and smoker block entities. */
-import type { ItemDrop } from '@jsprismarine/block-behaviors';
+import type { BlockEntityData, ItemDrop } from '@jsprismarine/block-behaviors';
 import {
     burnTimeOf,
     DEFAULT_PROVIDER_CONTEXT,
@@ -15,6 +15,8 @@ import { Furnace } from '../blockentity/BlockEntities';
 import type { BlockEntity } from '../blockentity/BlockEntity';
 import { applyBlockEntityRecord, blockEntityRecord } from '../blockentity/contentRecord';
 import type { ServerContent } from '../content/ServerContent';
+import { isRecord } from '../utils/isRecord';
+import type { Random } from '../utils/Random';
 
 /** The cooking rule and lit block name for one furnace block. */
 interface Cooker {
@@ -58,6 +60,95 @@ const COOKERS: Readonly<Record<string, Cooker>> = {
 };
 
 /**
+ * Whether a block is a furnace, blast furnace or smoker, lit or not.
+ *
+ * @param identifier - The block's identifier.
+ */
+export const isCookingStation = (identifier: string): boolean => COOKERS[identifier] !== undefined;
+
+/** The furnace's result slot, which Java's `FurnaceResultSlot` pays experience out of. */
+export const FURNACE_RESULT_SLOT = 2;
+
+/**
+ * The content record field holding how many times each recipe finished since experience was
+ * last paid out, by recipe id: Java's `AbstractFurnaceBlockEntity.recipesUsed`. Bedrock keeps a
+ * single `StoredXPInt` instead, which cannot round each recipe's fraction the way Java does.
+ *
+ * @javaSee AbstractFurnaceBlockEntity.recipesUsed
+ */
+const RECIPES_USED_FIELD = 'recipesUsed';
+
+/** The recipe tally a furnace's record holds, with anything that is not a count left out. */
+const recipesUsedOf = (data: BlockEntityData): Record<string, number> => {
+    const stored = data[RECIPES_USED_FIELD];
+    if (!isRecord(stored)) return {};
+
+    const used: Record<string, number> = {};
+    for (const [id, count] of Object.entries(stored)) {
+        if (typeof count === 'number' && Number.isInteger(count) && count > 0) used[id] = count;
+    }
+    return used;
+};
+
+/**
+ * The experience a number of finished cooks of one recipe pays: the whole points, and one more
+ * with the chance of the fraction left over, in Java's float arithmetic.
+ *
+ * @javaSource AbstractFurnaceBlockEntity.createExperience
+ * @param count - How many times the recipe finished.
+ * @param experience - The recipe's `experience`.
+ * @param random - The chance of the extra point.
+ * @returns The points, for one `ExperienceOrb.award`.
+ */
+export const cookingExperience = (count: number, experience: number, random: Random): number => {
+    const total = Math.fround(Math.fround(count) * Math.fround(experience));
+    let points = Math.floor(total);
+    const fraction = Math.fround(total - points);
+    if (fraction !== 0 && random() < fraction) points++;
+    return points;
+};
+
+/** What a player taking from a furnace's result slot is paid, and the record left behind. */
+export interface FurnaceExperience {
+    /** One payout per recipe the furnace finished, each for its own `ExperienceOrb.award`. */
+    readonly payouts: readonly number[];
+    /** The block entity's record with its tally cleared. */
+    readonly data: BlockEntityData;
+}
+
+/**
+ * Pays out everything a furnace has cooked since it last paid, as Java does when a player takes
+ * any part of the result stack.
+ *
+ * A recipe the server no longer knows pays nothing, as Java's `RecipeManager.byKey` lookup
+ * skips it, and the tally is cleared either way.
+ *
+ * @javaSource AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience
+ * @javaSee RecipeManager.byKey
+ * @param content - The recipes the tally names.
+ * @param data - The furnace's block entity record.
+ * @param random - The chance of each recipe's extra point.
+ * @returns The payouts and the cleared record, or undefined when the furnace owes nothing.
+ */
+export const takeFurnaceExperience = (
+    content: ServerContent,
+    data: BlockEntityData,
+    random: Random
+): FurnaceExperience | undefined => {
+    if (data[RECIPES_USED_FIELD] === undefined) return undefined;
+
+    const payouts: number[] = [];
+    for (const [id, count] of Object.entries(recipesUsedOf(data))) {
+        const recipe = content.recipes.get(id);
+        if (recipe === undefined || !('experience' in recipe)) continue;
+        payouts.push(cookingExperience(count, recipe.experience, random));
+    }
+
+    const { [RECIPES_USED_FIELD]: _cleared, ...rest } = data;
+    return { payouts, data: rest };
+};
+
+/**
  * The `ContainerSetDataPacket` property a cooking screen draws its progress arrow from: how
  * many ticks the current item has cooked.
  *
@@ -96,7 +187,7 @@ export const furnaceScreenData = (source: Furnace | NBTTagCompound): ReadonlyMap
 /** Java's `AbstractFurnaceBlockEntity` input and fuel slots. */
 const INPUT_SLOT = 0;
 const FUEL_SLOT = 1;
-const OUTPUT_SLOT = 2;
+const OUTPUT_SLOT = FURNACE_RESULT_SLOT;
 
 /** Whether a loaded furnace has the input and fuel stacks required to leave the idle state. */
 const hasInputAndFuel = (furnace: Furnace): boolean => {
@@ -217,6 +308,7 @@ export const tickFurnace = (
     let cookTicks = tags.getShort('CookTime', 0);
     let burnDuration = tags.getShort('BurnDuration', 0);
     const changedSlots: number[] = [];
+    let recipesUsed: Record<string, number> | undefined;
     if (burnTime > 0) burnTime--;
 
     if (burnTime === 0 && canCook && fuel !== undefined) {
@@ -253,12 +345,20 @@ export const tickFurnace = (
             items[2] = output === undefined ? result : { ...output, count: output.count + result.count };
             cookTicks = 0;
             changedSlots.push(INPUT_SLOT, OUTPUT_SLOT);
+            // Java's `setRecipeUsed`: the experience is paid when a player takes the result.
+            const used = recipesUsedOf(record);
+            used[matched.recipe.id] = (used[matched.recipe.id] ?? 0) + 1;
+            recipesUsed = used;
         }
     } else {
         cookTicks = Math.max(0, cookTicks - 2);
     }
 
-    applyBlockEntityRecord(tags, { ...record, items });
+    applyBlockEntityRecord(tags, {
+        ...record,
+        items,
+        ...(recipesUsed === undefined ? {} : { [RECIPES_USED_FIELD]: recipesUsed })
+    });
     tags.addValue('BurnTime', new Types.ShortVal(burnTime));
     tags.addValue('CookTime', new Types.ShortVal(cookTicks));
     if (burnDuration > 0) tags.addValue('BurnDuration', new Types.ShortVal(burnDuration));

@@ -99,7 +99,7 @@ import { outsideTick } from './TickContext';
 import { currentTickWaitTracker } from './TickWaits';
 import { ChunkTickets } from './ChunkTickets';
 import { isPortalBlock } from './portal/rules';
-import { furnaceScreenData, tickFurnace } from './cooking';
+import { furnaceScreenData, takeFurnaceExperience, tickFurnace } from './cooking';
 import { tickInhabitedTime } from './inhabitedTime';
 import type { InhabitingPlayer } from './inhabitedTime';
 import { tickSpawner } from './spawners';
@@ -1085,6 +1085,28 @@ export class World implements Service {
                 this.server.getLogger().error(error);
             });
         }
+    }
+
+    /**
+     * Pays a player who took from a furnace's result everything it cooked since it last paid,
+     * as orbs at their feet, and clears what it stored.
+     *
+     * @javaSource AbstractFurnaceBlockEntity.awardUsedRecipesAndPopExperience
+     * @param furnace - The furnace block.
+     * @param at - Where the orbs go, which is the player's position.
+     */
+    public payCookingExperience(furnace: ContentPosition, at: ContentPosition): void {
+        const content = this.server.getContent?.();
+        if (content === undefined) return;
+
+        const blocks = content.world.blockWorld.at(this.getDimension().name, this.getLevel().name);
+        const data = blocks.getBlockData(furnace);
+        const paid = data === undefined ? undefined : takeFurnaceExperience(content, data, randomOf(this.server));
+        if (paid === undefined) return;
+
+        blocks.setBlockData(furnace, paid.data);
+        const orbs = this.dataEntities().runtime.experienceOrbs;
+        for (const points of paid.payouts) orbs.award(at, points);
     }
 
     /**

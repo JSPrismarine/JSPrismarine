@@ -1425,6 +1425,11 @@
                 "import": "./dist/world/providers/ChunkSaveContext.js",
                 "module": "./dist/world/providers/ChunkSaveContext.js"
             },
+            "./world/cooking": {
+                "types": "./dist/world/cooking.d.ts",
+                "import": "./dist/world/cooking.js",
+                "module": "./dist/world/cooking.js"
+            },
             "./world/lootLevel": {
                 "types": "./dist/world/lootLevel.d.ts",
                 "import": "./dist/world/lootLevel.js",
@@ -3008,6 +3013,10 @@
         "./world/providers/ChunkSaveContext": {
             "jsprismarine:dist": "./dist/world/providers/ChunkSaveContext.js",
             "default": "./src/world/providers/ChunkSaveContext.ts"
+        },
+        "./world/cooking": {
+            "jsprismarine:dist": "./dist/world/cooking.js",
+            "default": "./src/world/cooking.ts"
         },
         "./world/lootLevel": {
             "jsprismarine:dist": "./dist/world/lootLevel.js",

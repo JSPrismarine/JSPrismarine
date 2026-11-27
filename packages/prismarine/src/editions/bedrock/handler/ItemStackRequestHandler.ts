@@ -36,6 +36,7 @@ import ItemStackResponsePacket, {
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../../../player/PlayerSession';
+import { FURNACE_RESULT_SLOT, isCookingStation } from '../../../world/cooking';
 import type { HandlerLog, HandlerServices, InputContext } from '../../../player/context/HandlerContext';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
 import { selectTrade } from './tradeScreen';
@@ -1236,6 +1237,22 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         for (const [kept, index] of touched.values()) {
             if (kept === WORKSTATION) context.changed.add(index);
             else if (kept === BLOCK_CONTAINER) context.containerChanged.add(index);
+        }
+
+        // Java's `FurnaceResultSlot.checkTakeAchievements`: taking any part of a furnace's
+        // result pays out everything it cooked since it last paid. The slot takes nothing put
+        // into it, so a request that touched it took from it.
+        if (
+            open !== undefined &&
+            isCookingStation(open.identifier) &&
+            [...touched.values()].some(([kept, index]) => kept === BLOCK_CONTAINER && index === FURNACE_RESULT_SLOT)
+        ) {
+            const eyes = context.session.getPosition();
+            context.session.getWorld().payCookingExperience(blockPositionOf(open.position), {
+                x: eyes.getX(),
+                y: context.session.getFeetY(),
+                z: eyes.getZ()
+            });
         }
 
         // Grouped by container in the order each was first touched, and each container's slots

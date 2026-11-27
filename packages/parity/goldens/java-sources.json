@@ -6,6 +6,9 @@
         "AbstractArrow.tick": "net/minecraft/world/entity/projectile/arrow/AbstractArrow.tick()V",
         "AbstractBedBlock.getStateForPlacement": "net/minecraft/world/level/block/AbstractBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "AbstractBoat.getDefaultGravity": "net/minecraft/world/entity/vehicle/boat/AbstractBoat.getDefaultGravity()D",
+        "AbstractFurnaceBlockEntity.awardUsedRecipesAndPopExperience": "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.awardUsedRecipesAndPopExperience(Lnet/minecraft/server/level/ServerPlayer;)V",
+        "AbstractFurnaceBlockEntity.createExperience": "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.createExperience(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;IF)V",
+        "AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience": "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;",
         "AbstractHorse.handleEating": "net/minecraft/world/entity/animal/equine/AbstractHorse.handleEating(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;)Z",
         "AbstractHorse.tameWithName": "net/minecraft/world/entity/animal/equine/AbstractHorse.tameWithName(Lnet/minecraft/world/entity/player/Player;)Z",
         "AbstractHurtingProjectile.tick": "net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.tick()V",
@@ -3154,6 +3157,15 @@
         "net/minecraft/world/level/block/EndRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:4d431bd195829b2a8356afde62fc10c2d51e448d2827572288682265705db058",
             "26.4-pre-1": "sha256:4d431bd195829b2a8356afde62fc10c2d51e448d2827572288682265705db058"
+        },
+        "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.awardUsedRecipesAndPopExperience(Lnet/minecraft/server/level/ServerPlayer;)V": {
+            "26.3": "sha256:3762e96e755e96874210cff6232b0270b875126c0e67f53ac9d636c828bbde86"
+        },
+        "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.createExperience(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;IF)V": {
+            "26.3": "sha256:4c66550019a1f4caaed76d350ce6b8d3e9002b7d56807fd8314b901bbcab7c2e"
+        },
+        "net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;": {
+            "26.3": "sha256:b0fd89ac30b6a8e4745cd345d90bed61c9f2493eed47ea7a1f94c943391f4f27"
         },
         "net/minecraft/world/level/block/entity/BellBlockEntity.updateEntities()V": {
             "26.3": "sha256:2b4abfabd4e864b9c2e1ca1875c9e89b0a5eda3ef30f9bf3f9c0dbe9adcdbae5",
