@@ -170,10 +170,11 @@ const FAMILY_BY_TAG: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * The Java block classes whose `canSurvive` asks only that nothing solid sits on top, so they
- * stay with nothing around them: farmland and a dirt path.
+ * The Java block classes that stay with nothing around them: farmland and a dirt path, whose
+ * `canSurvive` asks only that nothing solid sits on top, and a grindstone, whose `canSurvive`
+ * answers yes everywhere.
  */
-const SURVIVES_IN_AIR: readonly string[] = ['FarmlandBlock', 'PathBlock'];
+const SURVIVES_IN_AIR: readonly string[] = ['FarmlandBlock', 'PathBlock', 'GrindstoneBlock'];
 
 /** A state value as the palette holds it, where a boolean is 0 or 1. */
 const paletteValue = (value: string | number | boolean | undefined): string | number | undefined =>

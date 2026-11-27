@@ -244,11 +244,9 @@ default matters, and its own regression test either way.
    code on a `ServerLevel` or `Level` allocated without its constructor, and each package's
    `vectors` script regenerates its files. The copies those vectors exercise carry
    `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
-   are fixed. The differences left open have issues:
-   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784),
-   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786),
-   [#3792](https://github.com/JSPrismarine/JSPrismarine/issues/3792) and
-   [#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793).
+   [#3792](https://github.com/JSPrismarine/JSPrismarine/issues/3792),
+   [#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793) and
+   [#3794](https://github.com/JSPrismarine/JSPrismarine/issues/3794).
 
 ## Decisions
 
