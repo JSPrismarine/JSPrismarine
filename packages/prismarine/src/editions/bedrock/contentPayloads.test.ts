@@ -70,7 +70,8 @@ describe('network', () => {
             const lamp = {
                 format_version: '1.26.20',
                 'minecraft:block': {
-                    description: { identifier: 'mypack:lamp' },
+                    // A pack's own block id is ignored, as a Bedrock Dedicated Server ignores it.
+                    description: { identifier: 'mypack:lamp', internal_vanilla_data: { block_id: 40_000 } },
                     components: { 'minecraft:light_emission': 15 }
                 }
             };
@@ -109,7 +110,8 @@ describe('network', () => {
             const plain = nbtToPlain(readNetworkNbt(definition ?? Buffer.alloc(0)));
             expect(plain).toMatchObject({
                 components: { 'minecraft:light_emission': { emission: 'byte:15' } },
-                molangVersion: 'int:13'
+                molangVersion: 'int:13',
+                vanilla_block_data: { block_id: 'int:10000', material: 'string:dirt' }
             });
         });
 
@@ -331,6 +333,7 @@ describe('network', () => {
         const nothingInvented = {
             inventedBlocks: 0,
             allocatedItemIds: [],
+            unnumberedBlocks: [],
             untranslatedComponents: [],
             unknownCreativeItems: [],
             omittedRecipes: 0,
@@ -352,6 +355,12 @@ describe('network', () => {
             expect(warning).toContain('invented §e2§r blocks');
             expect(warning).toContain('gave §e1§r items an id of its own');
             expect(warning).not.toContain('cooking');
+        });
+
+        it('says how many blocks went without an item', () => {
+            const warning = contentPayloadWarning({ ...nothingInvented, unnumberedBlocks: ['mypack:clash'] });
+
+            expect(warning).toContain('sent no item for §e1§r blocks, since another item has its number');
         });
     });
 });

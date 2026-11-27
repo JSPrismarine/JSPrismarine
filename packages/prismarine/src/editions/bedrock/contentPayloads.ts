@@ -82,6 +82,11 @@ export interface ContentPayloadReport {
     readonly inventedBlocks: number;
     /** Items with no row in the captured table, which were given ids of this server's own. */
     readonly allocatedItemIds: readonly string[];
+    /**
+     * Declared blocks whose item form's number another item already has, so they have no item.
+     * A client closes on the loading screen when it finds one of them.
+     */
+    readonly unnumberedBlocks: readonly string[];
     /** Block components no translation covers, as `block/component`. */
     readonly untranslatedComponents: readonly string[];
     /** Creative entries whose item the registry does not name, so they were dropped. */
@@ -246,7 +251,9 @@ export const buildNetworkContentPayloads = (
     const client = options.clientPalette ?? vanillaBlockPalette();
     assertContentPaletteAgrees(content.blocks.palette, client, content.withheld.blocks);
 
-    const declared = buildBlockProperties(inventedBlocksOf(content, client));
+    // Every invented block comes from a pack: Mojang's own data-driven blocks are in the client
+    // palette and travel as captured.
+    const declared = buildBlockProperties(inventedBlocksOf(content, client), { fromPacks: true });
     assertBlockPaletteAgrees(declared.properties, client);
 
     const items = buildItemRegistry(content.items.types.values(), {
@@ -379,6 +386,7 @@ export const buildNetworkContentPayloads = (
         report: {
             inventedBlocks: declared.properties.length,
             allocatedItemIds: items.allocated.map((entry) => entry.identifier),
+            unnumberedBlocks: items.unnumberedBlocks.map((entry) => entry.identifier),
             untranslatedComponents: declared.untranslated.map((entry) => `${entry.block}/${entry.component}`),
             unknownCreativeItems: creative.unknown,
             omittedRecipes: crafting.omitted.length,
@@ -503,6 +511,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
     const clauses: readonly (readonly [number, string])[] = [
         [report.inventedBlocks, 'invented §e%§r blocks the client has to be told about'],
         [report.allocatedItemIds.length, 'gave §e%§r items an id of its own'],
+        [report.unnumberedBlocks.length, 'sent no item for §e%§r blocks, since another item has its number'],
         [report.untranslatedComponents.length, 'could not translate §e%§r block components'],
         [report.unknownCreativeItems.length, 'left §e%§r creative entries out, since no item names them'],
         [report.omittedRecipes, 'left §e%§r recipes out, since the wire has no list for them'],
