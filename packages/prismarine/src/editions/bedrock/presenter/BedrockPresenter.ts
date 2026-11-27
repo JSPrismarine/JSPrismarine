@@ -12,6 +12,7 @@ import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActor
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
+import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 
@@ -303,4 +304,17 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Not shown: a Bedrock client follows the server's ticks and has no tick rate of its own. */
     public async showTickStep(): Promise<void> {}
+
+    /** Sends `Transfer`, which keeps the world the client has loaded until the other server's arrives. */
+    public async transfer(host: string, port: number): Promise<void> {
+        await this.connection.sendDataPacket(
+            new TransferPacket({
+                address: host,
+                port,
+                reloadWorld: false,
+                gatheringsConfig: null,
+                transferSettings: null
+            })
+        );
+    }
 }

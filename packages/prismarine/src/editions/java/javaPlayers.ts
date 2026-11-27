@@ -135,6 +135,8 @@ export interface JavaPlayers {
      * spawn the world places a new player at. It replaces any other connection, of either
      * edition, playing as the same account, as a Bedrock login does, and posts `playerSpawn`.
      * @param address - Where the client connected from.
+     * @param locale - The language the client's settings name, as a Bedrock locale, or undefined
+     *   when it sent none, which leaves the default.
      * @param hangUp - Tells the client why it is disconnected and closes its connection.
      * @returns The session, where the player's feet are, and the dimension they are in; undefined
      *   when the join ended before the player was in the world, because a later login of the same
@@ -145,6 +147,7 @@ export interface JavaPlayers {
         verified: boolean,
         connection: ConnectionId,
         address: InetAddress,
+        locale: string | undefined,
         send: JavaSend,
         hangUp: (reason: JavaText) => Promise<void>
     ): Promise<
@@ -238,7 +241,7 @@ export const javaPlayersOf = (
                 server.getConfig().getMaxPlayers()
             ),
 
-        join: async (profile, verified, id, address, send, hangUp) => {
+        join: async (profile, verified, id, address, locale, send, hangUp) => {
             const connection = new JavaClientConnection(id, address, server.getLogger(), hangUp);
             connection.codec = latestCodec;
             connection.phase = 'play';
@@ -261,6 +264,7 @@ export const javaPlayersOf = (
                     // skin from the start; a texture the server cannot read in time leaves the
                     // default one.
                     dress: async (player) => {
+                        if (locale !== undefined) player.locale = locale;
                         player.javaTextures = textures;
                         player.skin =
                             (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();

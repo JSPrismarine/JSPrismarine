@@ -77,6 +77,7 @@ describe('network', () => {
                     true,
                     2,
                     new InetAddress('127.0.0.1', 50_000),
+                    undefined,
                     () => {},
                     async () => {}
                 );

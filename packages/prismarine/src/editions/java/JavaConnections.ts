@@ -16,6 +16,7 @@ import { decodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/
 import { decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
 import { errorMessage } from '../../utils/errorMessage';
+import type { KeepAliveTimer } from '../../player/KeepAlive';
 import type PlayerSession from '../../player/PlayerSession';
 import type { ConnectionId } from '../../network/transport/ConnectionId';
 import type { TcpTransportConnection } from '../../network/transport/TcpTransport';
@@ -53,6 +54,8 @@ export interface JavaLoginOptions {
     compressionThreshold(): number;
     /** The time between the pings that check a client is still there, in milliseconds; 0 for none. */
     keepAliveIntervalMs(): number;
+    /** Runs the keep-alives' pings; the real clock unless a test gives its own. */
+    readonly keepAliveTimer?: KeepAliveTimer;
     /**
      * Whether chat must be signed. The server does not check chat signatures, so it is off until
      * it does, and a client that requires secure chat is told so before it joins.
@@ -99,7 +102,7 @@ export const JAVA_HANDLERS = new JavaPacketHandlers([
 
 /**
  * The phases in which a packet the phase has, but no handler reads, is read past: the client's
- * settings, its brand, its tick end and the like. In the others such a packet, a cookie the server
+ * tick end, a pack status and the like. In the others such a packet, a cookie the server
  * never asked for, has no place.
  */
 const READ_PAST: ReadonlySet<JavaConnection['phase']> = new Set(['configuration', 'play']);

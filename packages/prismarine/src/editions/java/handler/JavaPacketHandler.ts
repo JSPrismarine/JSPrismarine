@@ -60,7 +60,7 @@ export const javaHandler = <D extends JavaPacketDefinition>(
 /** What a frame's id names in a connection's phase. */
 export type JavaLookup =
     | { readonly kind: 'handled'; readonly handler: JavaPacketHandler }
-    /** A packet the phase has, which no handler reads, such as the client's settings. */
+    /** A packet the phase has, which no handler reads, such as the client's tick end. */
     | { readonly kind: 'unread' }
     /** An id the phase has no packet for. */
     | { readonly kind: 'unknown' };

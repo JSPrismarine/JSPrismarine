@@ -1,5 +1,6 @@
 import { Difficulty, Gametype, LevelEvent, TitleType } from '@jsprismarine/minecraft';
 import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
+import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, {
     SpawnPositionType
@@ -331,5 +332,19 @@ describe('BedrockPresenter', () => {
         if (!(spawn instanceof SetSpawnPositionPacket)) throw new Error('expected SetSpawnPositionPacket');
         expect(spawn.getPacketData()).toMatchObject({ type: SpawnPositionType.WorldSpawn, dimension: 1 });
         expect(sent).toHaveLength(2);
+    });
+
+    it('sends a transfer as Transfer, keeping the world loaded until the other server sends its own', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.transfer('play.example.org', 19_132);
+
+        const [transfer] = sent;
+        if (!(transfer instanceof TransferPacket)) throw new Error('expected TransferPacket');
+        expect(transfer.getPacketData()).toMatchObject({
+            address: 'play.example.org',
+            port: 19_132,
+            reloadWorld: false
+        });
     });
 });

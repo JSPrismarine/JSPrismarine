@@ -503,4 +503,13 @@ export interface SessionPresenter {
      * @param ticks - How many ticks it runs, or 0 when a step ends.
      */
     showTickStep(ticks: number): Promise<void>;
+
+    /**
+     * Sends the client to another server, as `/transfer` does. The client leaves this one and
+     * connects to that one as it would from its server list.
+     *
+     * @param host - The other server's host name or address.
+     * @param port - Its port.
+     */
+    transfer(host: string, port: number): Promise<void>;
 }

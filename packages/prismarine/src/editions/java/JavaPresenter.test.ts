@@ -845,4 +845,12 @@ describe('the world state', () => {
             { name: 'Set Simulation Distance', value: { distance: 6 } }
         ]);
     });
+
+    it('sends a transfer as the host and the port', async () => {
+        const { sent, java } = presenter();
+
+        await java.transfer('play.example.org', 25_565);
+
+        expect(sent).toEqual([{ name: 'Transfer (play)', value: { host: 'play.example.org', port: 25_565 } }]);
+    });
 });

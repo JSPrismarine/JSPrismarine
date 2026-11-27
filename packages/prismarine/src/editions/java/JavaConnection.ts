@@ -2,6 +2,7 @@
  * One Java Edition connection: the release it speaks, where it is in the conversation, what its
  * login has agreed so far, and how a packet leaves by it.
  */
+import type { ConfigurationClientInformation } from '@jsprismarine/protocol/java/packet/configuration';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { encodeJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { JavaProtocol } from '@jsprismarine/protocol/java/versions/javaRelease';
@@ -58,8 +59,17 @@ export class JavaConnection {
     public teleportHandled?: boolean;
     /** Whether the transport closed, after which nothing is started for the connection. */
     public closed = false;
-    /** The pings that check the client is still there, once the player is in play. */
+    /** The pings that check the client is still there, from its configuration on. */
     public keepAlive?: KeepAlive;
+    /**
+     * The view distance last asked of the session, which may not have applied yet: a request
+     * waits for the input step, and a second one can arrive before it.
+     */
+    public viewDistance?: number;
+    /** The client's settings, as it last sent them. */
+    public information?: JavaPayload<typeof ConfigurationClientInformation>;
+    /** The name of the client's mod loader or launcher, as its `minecraft:brand` message says, such as `vanilla`. */
+    public brand?: string;
     /** Whether the client said it loaded the world around its player, which ends its join. */
     public loaded = false;
     /** Whether the server hung up, rather than the client. */

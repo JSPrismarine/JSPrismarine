@@ -27,6 +27,7 @@ import {
     STOP_RAINING,
     THUNDER_LEVEL_CHANGE,
     TickingState,
+    PlayTransfer,
     TickingStep,
     ChunkBatchFinished,
     ChunkBatchStart,
@@ -896,5 +897,10 @@ export class JavaPresenter implements SessionPresenter {
     /** Sends `Step Tick`. */
     public async showTickStep(ticks: number): Promise<void> {
         this.send(TickingStep, { steps: ticks });
+    }
+
+    /** Sends `Transfer (play)`. */
+    public async transfer(host: string, port: number): Promise<void> {
+        this.send(PlayTransfer, { host, port });
     }
 }

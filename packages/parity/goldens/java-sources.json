@@ -116,6 +116,7 @@
         "ChunkAccess.isOldNoiseGeneration": "net/minecraft/world/level/chunk/ChunkAccess.isOldNoiseGeneration()Z",
         "ChunkAccess.markPosForPostProcessing": "net/minecraft/world/level/chunk/ChunkAccess.markPosForPostProcessing(Lnet/minecraft/core/BlockPos;)V",
         "ChunkGenerator.findNearestMapStructure": "net/minecraft/world/level/chunk/ChunkGenerator.findNearestMapStructure(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/HolderSet;Lnet/minecraft/core/BlockPos;IZ)Lcom/mojang/datafixers/util/Pair;",
+        "ChunkMap.getPlayerViewDistance": "net/minecraft/server/level/ChunkMap.getPlayerViewDistance(Lnet/minecraft/server/level/ServerPlayer;)I",
         "ClientboundAddEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundAddEntityPacket.STREAM_CODEC",
         "ClientboundBlockChangedAckPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBlockChangedAckPacket.STREAM_CODEC",
         "ClientboundBlockUpdatePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.STREAM_CODEC",
@@ -1277,6 +1278,9 @@
         "net/minecraft/server/commands/LootCommand.entityReplace(Ljava/util/Collection;IILjava/util/List;Lnet/minecraft/server/commands/CommandResponseTracker;)V": {
             "26.3": "sha256:a9a7674b33ddc57b53b79b56c2b9538bd73a51db681be5dd69978193ddaeccb3",
             "26.4-pre-1": "sha256:a9a7674b33ddc57b53b79b56c2b9538bd73a51db681be5dd69978193ddaeccb3"
+        },
+        "net/minecraft/server/level/ChunkMap.getPlayerViewDistance(Lnet/minecraft/server/level/ServerPlayer;)I": {
+            "26.3": "sha256:a8047b495a87f3451d672bd94aa21cf42c6f367293fd7e69844f0f52e52865f9"
         },
         "net/minecraft/server/level/ServerChunkCache.tickChunks()V": {
             "26.3": "sha256:84e883cf2d7378a7d395f6288f26f36c33068a974d35f20246968539b43cafb7"

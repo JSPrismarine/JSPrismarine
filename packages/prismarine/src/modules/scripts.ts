@@ -2,7 +2,6 @@ import type { Module } from '@jsprismarine/kernel';
 import ClientboundCloseFormPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundCloseFormPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/bedrock/packet/ModalFormRequestPacket';
 import PrimitiveShapesPacket from '@jsprismarine/protocol/bedrock/packet/PrimitiveShapesPacket';
-import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 
@@ -162,17 +161,7 @@ export const startLevelScripts = async (
                         transfer: (target) => {
                             // A NetherNet transfer's packet is not captured yet, so only an address moves the player.
                             if (!('hostname' in target)) return;
-                            session.released(
-                                session.send(
-                                    new TransferPacket({
-                                        address: target.hostname,
-                                        port: target.port,
-                                        reloadWorld: false,
-                                        gatheringsConfig: null,
-                                        transferSettings: null
-                                    })
-                                )
-                            );
+                            session.released(session.presenter.transfer(target.hostname, target.port));
                         }
                     })),
             weather: level.getWeather(),

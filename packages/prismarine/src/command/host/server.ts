@@ -14,7 +14,6 @@ import CameraShakePacket, {
     CameraShakeType
 } from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
-import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import { messageOf } from '../../addons/addonPack';
 import type { MessageKind } from '../../player/presenter/SessionPresenter';
 import { UnlockedRecipes, changeRecipes } from './recipes';
@@ -191,14 +190,7 @@ export const serverSideCommandHost = (
             const session = playerSessionOf(server, ref);
             if (session === undefined) return false;
 
-            const packet = new TransferPacket({
-                address: host,
-                port,
-                reloadWorld: false,
-                gatheringsConfig: null,
-                transferSettings: null
-            });
-            return carryOut(session.send(packet), true);
+            return carryOut(session.presenter.transfer(host, port), true);
         },
 
         recipes: (players, recipe, give) =>

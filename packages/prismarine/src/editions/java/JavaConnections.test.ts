@@ -5,14 +5,20 @@ import {
     brandPayload,
     ClientboundKnownPacks,
     ClientboundPluginMessage,
+    ConfigurationClientboundKeepAlive,
+    ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationServerboundKeepAlive,
     FeatureFlags,
     FinishConfiguration,
+    JavaChatVisibility,
+    JavaMainHand,
+    JavaParticleStatus,
     RegistryData,
     ServerboundKnownPacks,
+    ServerboundPluginMessage,
     UpdateTags
 } from '@jsprismarine/protocol/java/packet/configuration';
-import { defineJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import {
     BlockChangedAck,
     ChatMessage,
@@ -29,7 +35,11 @@ import {
     PlayerInputFlag,
     PlayerActionStatus,
     PlayerLoaded,
+    PlayClientInformation,
     PlayLogin,
+    PlayPingRequest,
+    PlayPongResponse,
+    ServerData,
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
 } from '@jsprismarine/protocol/java/packet/play';
@@ -53,6 +63,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
+import type { KeepAliveTimer } from '../../player/KeepAlive';
 import type PlayerSession from '../../player/PlayerSession';
 import type { ShownDimension } from '../../player/presenter/SessionPresenter';
 import type { SessionPlayer } from '../../player/sessionPlayers';
@@ -62,13 +73,6 @@ import type { JavaProfile } from './javaAuth';
 import { offlineUuid, serverHash } from '@jsprismarine/protocol/java/javaIdentity';
 import { JavaConnections } from './JavaConnections';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
-
-/** `Client Information`, by id alone: its fields are the client's settings, which the server reads past. */
-const ClientInformationProbe = defineJavaPacket(
-    'Client Information',
-    'configuration/serverbound/client_information',
-    {}
-);
 
 /** What the test worlds tell a joining client: vanilla's three dimensions and the default rules. */
 const JOIN_SETTINGS = {
@@ -80,6 +84,18 @@ const JOIN_SETTINGS = {
 };
 const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
 const quiet = { debug: () => {}, info: () => {}, warn: () => {} };
+/** The settings a client in Swedish sends, with a view distance of 6. */
+const SETTINGS = {
+    language: 'sv_se',
+    viewDistance: 6,
+    chatVisibility: JavaChatVisibility.Full,
+    chatColors: true,
+    modelCustomisation: 0x7f,
+    mainHand: JavaMainHand.Right,
+    textFilteringEnabled: false,
+    allowsListing: true,
+    particleStatus: JavaParticleStatus.All
+};
 const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63 };
 const NETHER: ShownDimension = { id: 'minecraft:the_nether', seaLevel: 32 };
 /** The dimension types the client is configured with, in network id order. */
@@ -96,7 +112,11 @@ describe('JavaConnections', () => {
     const warned: string[] = [];
     /** Settles with the first warning. */
     let warning = Promise.withResolvers<string>();
-    const listen = async ({ onlineMode = false, mojang }: { onlineMode?: boolean; mojang?: JavaProfile } = {}) => {
+    const listen = async ({
+        onlineMode = false,
+        mojang,
+        keepAliveTimer
+    }: { onlineMode?: boolean; mojang?: JavaProfile; keepAliveTimer?: KeepAliveTimer } = {}) => {
         warned.length = 0;
         warning = Promise.withResolvers<string>();
         asked.length = 0;
@@ -107,6 +127,7 @@ describe('JavaConnections', () => {
             onlineMode: () => onlineMode,
             compressionThreshold: () => 256,
             keepAliveIntervalMs: () => 15_000,
+            ...(keepAliveTimer === undefined ? {} : { keepAliveTimer }),
             enforcesSecureChat: () => false,
             hasJoined: async (name, hash) => {
                 asked.push({ name, hash });
@@ -184,8 +205,8 @@ describe('JavaConnections', () => {
         const brand = await java.receive(ClientboundPluginMessage);
         const { features } = await java.receive(FeatureFlags);
         const { packs } = await java.receive(ClientboundKnownPacks);
-        // What a vanilla client sends first, which the server reads past.
-        java.send(ClientInformationProbe, {});
+        // What a vanilla client sends first.
+        java.send(ConfigurationClientInformation, SETTINGS);
         java.send(ServerboundKnownPacks, { packs });
         const registries: string[] = [];
         for (let i = 0; i < CONFIGURATION.registries.length; i++) {
@@ -205,6 +226,40 @@ describe('JavaConnections', () => {
         expect(await java.receive(PlayDisconnect)).toEqual({
             reason: 'This server does not take Java Edition players yet.'
         });
+        await java.closed;
+    });
+
+    it('pings a configuring client, and drops one that leaves a ping unanswered', async () => {
+        // The test runs each interval itself, so how long the host takes between them does not matter.
+        const intervals: (() => void)[] = [];
+        const port = await listen({
+            keepAliveTimer: (run) => {
+                intervals.push(run);
+                return () => {};
+            }
+        });
+        const java = await configuring(port);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        const { packs } = await java.receive(ClientboundKnownPacks);
+        const [interval] = intervals;
+        if (interval === undefined) throw new Error('the configuration started no keep-alive');
+
+        interval();
+        const { id } = await java.receive(ConfigurationClientboundKeepAlive);
+        java.send(ConfigurationServerboundKeepAlive, { id });
+        // The server reads a client's packets in order, so once the registries answer the known
+        // packs, the keep-alive's answer has been read too.
+        java.send(ServerboundKnownPacks, { packs });
+        for (const _ of CONFIGURATION.registries) await java.receive(RegistryData);
+        await java.receive(UpdateTags);
+        await java.receive(FinishConfiguration);
+
+        // Answered, so the next interval pings again; left unanswered, the one after drops the client.
+        interval();
+        await java.receive(ConfigurationClientboundKeepAlive);
+        interval();
+        expect(await java.receive(ConfigurationDisconnect)).toEqual({ reason: { translate: 'disconnect.timeout' } });
         await java.closed;
     });
 
@@ -236,8 +291,8 @@ describe('JavaConnections', () => {
             world: {
                 players: {
                     refusalOf: async () => undefined,
-                    join: async (profile, verified) => {
-                        did.push(`join ${profile.name} ${verified ? 'java' : 'offline'}`);
+                    join: async (profile, verified, _id, _address, locale) => {
+                        did.push(`join ${profile.name} ${verified ? 'java' : 'offline'} ${locale}`);
                         // A player whose record left them in the Nether.
                         return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: NETHER };
                     },
@@ -254,7 +309,7 @@ describe('JavaConnections', () => {
                         left();
                     }
                 },
-                viewDistance: () => 1,
+                viewDistance: () => 10,
                 maxPlayers: () => 20,
                 joinSettings: () => JOIN_SETTINGS
             }
@@ -263,6 +318,9 @@ describe('JavaConnections', () => {
         const java = await configuring(transport.port()!);
         await java.receive(ClientboundPluginMessage);
         await java.receive(FeatureFlags);
+        // The settings and the brand a vanilla client sends as it starts to configure.
+        java.send(ConfigurationClientInformation, SETTINGS);
+        java.send(ServerboundPluginMessage, { channel: 'minecraft:brand', data: brandPayload('vanilla') });
         java.send(ServerboundKnownPacks, await java.receive(ClientboundKnownPacks));
         for (const _ of CONFIGURATION.registries) await java.receive(RegistryData);
         await java.receive(UpdateTags);
@@ -270,8 +328,10 @@ describe('JavaConnections', () => {
         java.send(AcknowledgeFinishConfiguration, {});
 
         const login = await java.receive(PlayLogin);
+        const data = await java.receive(ServerData);
         const position = await java.receive(SynchronizePlayerPosition);
         const event = await java.receive(GameEvent);
+        expect(data).toEqual({ motd: 'A JSPrismarine server', icon: null });
         expect(login).toMatchObject({
             entityId: 7,
             dimensionType: DIMENSION_TYPES.indexOf('minecraft:the_nether'),
@@ -285,7 +345,12 @@ describe('JavaConnections', () => {
         expect(position.velocityY).toBeCloseTo(-0.0784);
         expect(event).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
 
-        // Loaded, a line of chat, then a confirmed teleport and a step east into the next chunk.
+        // The debug screen's ping, answered with the number it carried.
+        java.send(PlayPingRequest, { timestamp: 9n });
+        expect(await java.receive(PlayPongResponse)).toEqual({ timestamp: 9n });
+
+        // Loaded, a line of chat, a longer view distance, then a confirmed teleport and a step east
+        // into the next chunk.
         java.send(PlayerLoaded, {});
         java.send(ChatMessage, {
             message: 'hello',
@@ -296,6 +361,10 @@ describe('JavaConnections', () => {
             acknowledged: Buffer.alloc(3),
             checksum: 0
         });
+        // Two changes before the input step: the second, back to the join's radius, is asked for
+        // too, or the first would be the one left applied.
+        java.send(PlayClientInformation, { ...SETTINGS, viewDistance: 8 });
+        java.send(PlayClientInformation, { ...SETTINGS, viewDistance: 6 });
         java.send(ConfirmTeleportation, { teleportId: 1, x: 8.5, y: -60, z: 8.5, yaw: 90, pitch: 0 });
         java.send(MovePlayerPos, { x: 16.5, y: -60, z: 8.5, flags: MOVE_ON_GROUND });
         await expect.poll(() => did.at(-1)).toBe('move 16.5 -60 true true');
@@ -316,11 +385,13 @@ describe('JavaConnections', () => {
         await leaving;
 
         expect(did).toEqual([
-            'join Steve offline',
-            'show world 1',
+            'join Steve offline sv_SE',
+            'show world 6',
             'announce',
             'intent {"kind":"playerInitialized"}',
             'intent {"kind":"chat","message":"hello"}',
+            'intent {"kind":"setViewDistance","radius":8,"maxRadius":0}',
+            'intent {"kind":"setViewDistance","radius":6,"maxRadius":0}',
             'move 16.5 -60 true true',
             'move 40.5 70 true true',
             'move 40.5 70.4 false false',
@@ -383,7 +454,7 @@ describe('JavaConnections', () => {
         await java.receive(UpdateTags);
         await java.receive(FinishConfiguration);
         java.send(AcknowledgeFinishConfiguration, {});
-        for (const opening of [PlayLogin, SynchronizePlayerPosition, GameEvent]) {
+        for (const opening of [PlayLogin, ServerData, SynchronizePlayerPosition, GameEvent]) {
             await java.receive(opening);
         }
 
@@ -430,7 +501,7 @@ describe('JavaConnections', () => {
             world: {
                 players: {
                     refusalOf: async () => undefined,
-                    join: async (_profile, _verified, _id, _address, _send, close) => {
+                    join: async (_profile, _verified, _id, _address, _locale, _send, close) => {
                         hangUp = close;
                         return { session, feet: { x: 8.5, y: -60, z: 8.5 }, dimension: OVERWORLD };
                     },
@@ -457,7 +528,7 @@ describe('JavaConnections', () => {
 
         await hangUp({ translate: 'multiplayer.disconnect.duplicate_login' });
 
-        for (const opening of [SynchronizePlayerPosition, GameEvent]) {
+        for (const opening of [ServerData, SynchronizePlayerPosition, GameEvent]) {
             await java.receive(opening);
         }
         expect(await java.receive(PlayDisconnect)).toEqual({

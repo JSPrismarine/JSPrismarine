@@ -26,7 +26,11 @@ import {
     PlayerCommandAction,
     PlayerInput,
     PlayerInputFlag,
+    PlayClientInformation,
     PlayerLoaded,
+    PlayPingRequest,
+    PlayPongResponse,
+    PlayServerboundPluginMessage,
     ServerboundKeepAlive,
     SetCarriedItem,
     SetCreativeModeSlot,
@@ -36,7 +40,9 @@ import {
 import { EYE_HEIGHT } from '../../../entity/playerEyes';
 import type { Intent, IntentKind } from '../../../input/Intent';
 import type PlayerSession from '../../../player/PlayerSession';
+import { javaLocaleOf, javaViewDistanceOf } from '../javaClientInformation';
 import type { JavaWorldHost } from '../JavaConnections';
+import { hearPluginMessage } from '../javaPlay';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from '../javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from '../javaMining';
 import { javaUseItemOnIntentOf } from '../javaUseItemOn';
@@ -152,6 +158,24 @@ const moveHandler = <D extends JavaPacketDefinition>(
 export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     javaHandler(ServerboundKeepAlive, ({ id }, { connection }) => {
         connection.keepAlive?.answered(id);
+    }),
+    // The ping chart on the client's debug screen times this round trip.
+    javaHandler(PlayPingRequest, (ping, { connection }) => connection.send(PlayPongResponse, ping)),
+    javaHandler(PlayServerboundPluginMessage, (message, context) => hearPluginMessage(message, context)),
+    // A changed setting: the language a script reads, and the view distance, which the session
+    // grants as it grants a Bedrock client's radius request. One changed while the player is
+    // still joining is kept for the join, which reads it once the player is in the world.
+    javaHandler(PlayClientInformation, (information, context) => {
+        context.connection.information = information;
+        if (context.connection.session === undefined) return;
+        const { session, world } = inWorld(context, PlayClientInformation);
+        session.getPlayer().locale = javaLocaleOf(information.language);
+        // Against the last radius asked for rather than the session's, which an earlier request
+        // still waiting for the input step has yet to change.
+        const radius = javaViewDistanceOf(information.viewDistance, world.viewDistance());
+        if (radius === context.connection.viewDistance) return;
+        context.connection.viewDistance = radius;
+        context.connection.queue(world.players.intent(session, { kind: 'setViewDistance', radius, maxRadius: 0 }));
     }),
     // The position the client accepted, which a respawn or a teleport moved it to, is where its
     // next move that leaves the position out starts from.
