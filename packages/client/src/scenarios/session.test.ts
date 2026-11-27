@@ -3,8 +3,11 @@
  * client e2e scenarios `chat`, `title`, `teleport`, `damage`, `command-syntax-error` and `kick`,
  * played over a loopback pipe against a server stepped by hand.
  */
+import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
+import { CommandDataFlags } from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type { DecodedPacket } from '../net/ClientPacketRegistry';
 import type { LoopbackServer } from '../testing/loopbackServer.test-utils';
 import { startLoopbackServer } from '../testing/loopbackServer.test-utils';
 
@@ -18,6 +21,33 @@ beforeAll(async () => {
 afterAll(async () => {
     await jsp?.close();
 }, 60_000);
+
+describe('xbox-achievements', () => {
+    it('joins a world with achievements on and cheats off, where every command may still be sent', async () => {
+        const { player, joined } = jsp.connect('Achiever');
+        const registry = player.client.getRegistry();
+        if (!registry.has(new AvailableCommandsPacket().getId())) registry.register(AvailableCommandsPacket);
+        const lists: AvailableCommandsPacket[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof AvailableCommandsPacket) lists.push(packet);
+        });
+        let done = false;
+        void joined.finally(() => {
+            done = true;
+        });
+        await jsp.until(() => done, 'Achiever never joined', 120);
+        await joined;
+        await jsp.until(() => lists.length > 0, 'Achiever was never sent the command list');
+
+        expect(player.client.getStartGame()).toMatchObject({ achievementsDisabled: false, commandsEnabled: false });
+        // A client told cheats are off refuses a command without NOT_CHEAT before sending it.
+        const commands = lists.at(-1)!.commandData;
+        expect(commands.length).toBeGreaterThan(0);
+        expect(commands.filter((command) => (command.flags & CommandDataFlags.NOT_CHEAT) === 0)).toEqual([]);
+        player.leave();
+        await jsp.tick();
+    });
+});
 
 describe('chat', () => {
     it("reaches another player as the sender's line", async () => {
