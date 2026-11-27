@@ -1,25 +1,31 @@
 import { describe, expect, it } from 'vitest';
 
-import { ServerName } from '@jsprismarine/raknet';
-import { advertiseOnLan, lanNonce } from './advertiseOnLan';
 import { decodeLanAdvertisement } from '@jsprismarine/nethernet';
 
-const serverName = () =>
-    new ServerName(
-        { getConfig: () => ({ getMotd: () => 'Hello', getGamemode: () => 'survival', getMaxPlayers: () => 20 }) },
-        { protocolVersion: 2193, minecraftVersions: ['1.26.51'] }
-    );
+import { ServerStatus } from '../ServerStatus';
+import { advertiseOnLan, lanNonce } from './advertiseOnLan';
+
+const serverStatus = () =>
+    new ServerStatus({
+        motd: 'Hello',
+        levelName: 'JSPrismarine',
+        onlinePlayers: 0,
+        maxPlayers: 20,
+        protocol: 2193,
+        version: '1.26.51',
+        gamemode: 'survival'
+    });
 
 describe('network/nethernet/advertiseOnLan', () => {
-    it('advertises at once and again whenever the server name changes, until stopped', () => {
-        const name = serverName();
-        name.setName('JSPrismarine');
+    it('advertises at once and again whenever the status changes, until stopped', () => {
+        const status = serverStatus();
         const sent: Buffer[] = [];
-        const stop = advertiseOnLan({ setAdvertisement: (buffer) => void sent.push(buffer) }, name, true, 'n');
+        const stop = advertiseOnLan({ setAdvertisement: (buffer) => void sent.push(buffer) }, status, true, 'n');
 
-        name.setOnlinePlayerCount(2);
+        status.setBase({ onlinePlayers: 2 });
+        status.override({}, { motd: 'Hello' });
         stop();
-        name.setOnlinePlayerCount(3);
+        status.setBase({ onlinePlayers: 3 });
 
         expect(sent.map((buffer) => decodeLanAdvertisement(buffer).playerCount)).toStrictEqual([0, 2]);
         expect(decodeLanAdvertisement(sent[0]!)).toMatchObject({
