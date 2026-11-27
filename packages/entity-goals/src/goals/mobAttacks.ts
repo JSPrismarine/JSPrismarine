@@ -1,6 +1,7 @@
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
 import { bodySchema, isRecord, stringAt } from '../params';
+import { DEFAULT_FOLLOW_RANGE } from '../support';
 import type { GoalMob } from '../world';
 
 /**
@@ -28,13 +29,6 @@ interface MobAttackParams {
 }
 
 const projectileSchema = bodySchema((body): MobAttackParams => ({ projectile: stringAt(body, 'projectile') }));
-
-/**
- * The follow range a mob whose definition declares none has, Java's `Attributes.FOLLOW_RANGE` default.
- *
- * @javaSource Attributes.FOLLOW_RANGE
- */
-const DEFAULT_FOLLOW_RANGE = 16;
 
 /** `Blaze$BlazeAttackGoal`: a bite inside 2 blocks, otherwise a charge and a burst of fireballs. */
 const BLAZE = {

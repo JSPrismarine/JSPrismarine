@@ -4,6 +4,7 @@ import type { Filter } from '@jsprismarine/packs';
 import { goal } from '../goal';
 import type { RegisterableGoal } from '../goal';
 import type { GoalSupport } from '../support';
+import { DEFAULT_FOLLOW_RANGE } from '../support';
 import type { GoalCombatMark, GoalMob } from '../world';
 import type { GoalEvent, TargetEntityType } from '../params';
 import {
@@ -248,13 +249,6 @@ export interface HurtByTargetParams {
  * the entity's block by its follow range across and by 10 up and down.
  */
 const ALERT_HEIGHT = 10;
-
-/**
- * The follow range a mob without the attribute searches, Java's `Attributes.FOLLOW_RANGE` default.
- *
- * @javaSource Attributes.FOLLOW_RANGE
- */
-const DEFAULT_FOLLOW_RANGE = 16;
 
 /**
  * Calls the mobs of the entity's type near it onto its attacker, as Java's

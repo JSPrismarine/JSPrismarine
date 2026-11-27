@@ -21,6 +21,15 @@ import { isRecord } from './params';
 import type { GoalMob, GoalWorld } from './world';
 import { emptyGoalWorld } from './world';
 
+/**
+ * The follow range a mob whose definition declares none has: the 16 blocks Java's
+ * `Mob.createMobAttributes` gives every mob. `Attributes.FOLLOW_RANGE` itself defaults to 32, which
+ * no mob keeps.
+ *
+ * @javaSource Mob.createMobAttributes
+ */
+export const DEFAULT_FOLLOW_RANGE = 16;
+
 /** Families every entity accepted by a filter must belong to, when bounded. */
 const requiredFamilies = (filter: Filter | undefined): Set<string> | undefined => {
     if (filter === undefined) return undefined;
