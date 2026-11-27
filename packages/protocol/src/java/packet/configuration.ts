@@ -7,8 +7,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 import type { WireType } from '../../wire/fieldTypes';
-import { custom, list, record } from '../../wire/fieldTypes';
-import { javaString, textComponent, varInt } from '../wire/javaTypes';
+import { bool, custom, enumOf, int8, list, record, uint8 } from '../../wire/fieldTypes';
+import { javaString, long, textComponent, varInt } from '../wire/javaTypes';
 import { defineJavaPacket } from './JavaPacket';
 
 /** `Identifier`: a namespaced id, such as `minecraft:overworld`. */
@@ -86,6 +86,15 @@ export const FeatureFlags = defineJavaPacket('Feature Flags', 'configuration/cli
 });
 
 /**
+ * A plugin message's bytes: whatever is left of the packet, which only the channel's owner reads.
+ */
+export const pluginData = custom<Buffer>(
+    'Byte Array',
+    (s, v) => s.write(v),
+    (s) => s.readRemaining()
+);
+
+/**
  * `Clientbound Plugin Message (configuration)`: a channel and its bytes, such as `minecraft:brand`.
  * @javaSource ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC
  */
@@ -94,12 +103,91 @@ export const ClientboundPluginMessage = defineJavaPacket(
     'configuration/clientbound/custom_payload',
     {
         channel: identifier,
-        data: custom<Buffer>(
-            'Byte Array',
-            (s, v) => s.write(v),
-            (s) => s.readRemaining()
-        )
+        data: pluginData
     }
+);
+
+/**
+ * `Serverbound Plugin Message (configuration)`: a channel and its bytes, such as the client's
+ * `minecraft:brand`.
+ * @javaSource ServerboundCustomPayloadPacket.STREAM_CODEC
+ */
+export const ServerboundPluginMessage = defineJavaPacket(
+    'Serverbound Plugin Message (configuration)',
+    'configuration/serverbound/custom_payload',
+    { channel: identifier, data: pluginData }
+);
+
+/** Who the chat shows: every message, only the server's and the commands' own, or none. */
+export enum JavaChatVisibility {
+    Full = 0,
+    System = 1,
+    Hidden = 2
+}
+
+/** The hand a player holds their main item in. */
+export enum JavaMainHand {
+    Left = 0,
+    Right = 1
+}
+
+/** How many particles the client draws. */
+export enum JavaParticleStatus {
+    All = 0,
+    Decreased = 1,
+    Minimal = 2
+}
+
+/**
+ * Vanilla's `ClientInformation`: the client's settings, which it sends as it configures and again
+ * whenever the player changes one.
+ * @javaSee ClientInformation.write
+ */
+export const CLIENT_INFORMATION = {
+    /** The language, such as `en_us`. */
+    language: javaString(16),
+    /** The view distance in the client's options, in chunks. */
+    viewDistance: int8,
+    chatVisibility: enumOf<JavaChatVisibility>(varInt),
+    chatColors: bool,
+    /** The skin parts shown, one bit each: cape, jacket, sleeves, trouser legs and hat. */
+    modelCustomisation: uint8,
+    mainHand: enumOf<JavaMainHand>(varInt),
+    textFilteringEnabled: bool,
+    /** Whether the player may be listed in the server list's sample of online players. */
+    allowsListing: bool,
+    particleStatus: enumOf<JavaParticleStatus>(varInt)
+};
+
+/**
+ * `Client Information (configuration)`: the client's settings, before it joins.
+ * @javaSource ServerboundClientInformationPacket.STREAM_CODEC
+ */
+export const ConfigurationClientInformation = defineJavaPacket(
+    'Client Information (configuration)',
+    'configuration/serverbound/client_information',
+    CLIENT_INFORMATION
+);
+
+/**
+ * `Clientbound Keep Alive (configuration)`: a number the client has to send back, which checks it
+ * is still there while it configures.
+ * @javaSource ClientboundKeepAlivePacket.STREAM_CODEC
+ */
+export const ConfigurationClientboundKeepAlive = defineJavaPacket(
+    'Clientbound Keep Alive (configuration)',
+    'configuration/clientbound/keep_alive',
+    { id: long }
+);
+
+/**
+ * `Serverbound Keep Alive (configuration)`: the number the server sent.
+ * @javaSource ServerboundKeepAlivePacket.STREAM_CODEC
+ */
+export const ConfigurationServerboundKeepAlive = defineJavaPacket(
+    'Serverbound Keep Alive (configuration)',
+    'configuration/serverbound/keep_alive',
+    { id: long }
 );
 
 /**
