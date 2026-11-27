@@ -9,8 +9,8 @@ import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
 import { extractServer } from './extract.ts';
 
 /**
- * Compiles and runs the Java property, attribute, and navigation dumper against the pinned Java
- * Edition server jar, then writes the goldens under `src/jsp/java/<release>/`.
+ * Compiles and runs the Java property, support, attribute, and navigation dumper against the
+ * pinned Java Edition server jar, then writes the goldens under `src/jsp/java/<release>/`.
  *
  * This is a capture-time task, run on a Java version bump rather than on every build. The jar
  * and everything extracted from it are untrusted data and stay under the cache directory; the
@@ -198,6 +198,48 @@ const writeGolden = (outputDir, name) => {
     console.log(`Wrote ${path.relative(packageRoot, target)} (${Object.keys(sorted).length} entries)`);
 };
 
+/**
+ * Run-length encodes one block's per-state values the way the mapping table encodes its targets:
+ * a bare value is a run of one and `[value, count]` a longer run. A block whose states all agree
+ * collapses to the one value.
+ */
+const runLengths = (values) => {
+    if (values.every((value) => value === values[0])) return values[0];
+    const runs = [];
+    for (let start = 0; start < values.length;) {
+        let end = start + 1;
+        while (end < values.length && values[end] === values[start]) end++;
+        runs.push(end - start === 1 ? values[start] : [values[start], end - start]);
+        start = end;
+    }
+    return runs;
+};
+
+/**
+ * Writes the block support dump as its golden: the bit layout, then one line per block with its
+ * states' packed values run-length encoded, sorted by block id.
+ */
+const writeSupportGolden = (outputDir) => {
+    const name = 'block_support.json';
+    const raw = JSON.parse(fs.readFileSync(path.join(outputDir, name), 'utf8'));
+    const blocks = Object.entries(raw.blocks).sort(([a], [b]) => a.localeCompare(b));
+    const lines = blocks.map(([id, states]) => `        ${JSON.stringify(id)}: ${JSON.stringify(runLengths(states))}`);
+    const body = [
+        '{',
+        `    "faces": ${JSON.stringify(raw.faces)},`,
+        `    "supportTypes": ${JSON.stringify(raw.supportTypes)},`,
+        '    "blocks": {',
+        lines.join(',\n'),
+        '    }',
+        '}',
+        ''
+    ].join('\n');
+    fs.mkdirSync(goldenDir, { recursive: true });
+    const target = path.join(goldenDir, name);
+    fs.writeFileSync(target, body);
+    console.log(`Wrote ${path.relative(packageRoot, target)} (${blocks.length} entries)`);
+};
+
 const jarPath = await downloadServerJar();
 const { serverJar, librariesDir } = extractServer(jarPath, cacheDir, JAVA_VERSION);
 // The dumper compiles against the jar's classes, so it needs the JDK the jar declares it was built for.
@@ -205,5 +247,6 @@ const { java_version: requiredJdkMajor } = await readJarVersion(jarPath);
 const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac', 'javap'] });
 const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
+writeSupportGolden(outputDir);
 writeGolden(outputDir, 'entity_attributes.json');
 writeGolden(outputDir, 'entity_navigation.json');

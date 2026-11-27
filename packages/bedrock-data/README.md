@@ -26,7 +26,10 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
   files; `utils/build.js` writes those modules from `javaServer.defaultVersion`. `block_properties.json` holds the per-state block properties no
   Mojang report carries (hardness, blast resistance, friction, light, map color, sound type,
   push reaction, instrument, fire odds and the rest), with state-invariant values once per
-  block and per-state differences under `stateOverrides`. `entity_attributes.json` holds the
+  block and per-state differences under `stateOverrides`. `block_support.json` holds each block
+  state's legacy solid flag and the sturdiness of its six faces for the full, center and rigid
+  support types, packed into one integer per state and run-length encoded per block.
+  `entity_attributes.json` holds the
   default attribute values, dimensions and category for the 93 entity types with an attribute
   supplier. `entity_goals.json` holds the goals each Java mob registers and the arguments it
   passes them, read from the jar's bytecode by `utils/java-goals/run.ts` and exported as

@@ -21,6 +21,7 @@ import com.mojang.serialization.Lifecycle;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
@@ -50,6 +51,8 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SupportType;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.LevelData;
@@ -58,9 +61,9 @@ import net.minecraft.world.level.storage.WorldData;
 import net.minecraft.server.ServerScoreboard;
 
 /**
- * Dumps the block properties, entity attributes and navigation Java Edition keeps in code and
- * publishes in no report. Run against the unobfuscated server jar on the classpath; writes three
- * JSON files into the output directory given as the only argument. The runner script beside this
+ * Dumps the block properties, block support facts, entity attributes and navigation Java Edition
+ * keeps in code and publishes in no report. Run against the unobfuscated server jar on the
+ * classpath; writes four JSON files into the output directory given as the only argument. The runner script beside this
  * file compiles and invokes it; docs/research/java-code-only-behavior.md section 1 describes the
  * approach.
  */
@@ -77,6 +80,7 @@ public final class DumpJavaData {
         Path out = Path.of(args[0]);
         Files.createDirectories(out);
         write(out.resolve("block_properties.json"), dumpBlocks());
+        write(out.resolve("block_support.json"), dumpBlockSupport());
         write(out.resolve("entity_attributes.json"), dumpEntities());
         write(out.resolve("entity_navigation.json"), dumpEntityNavigation());
     }
@@ -209,6 +213,51 @@ public final class DumpJavaData {
             root.raw(id, entry.toString());
         }
         return root.toString() + "\n";
+    }
+
+    /** The support types {@link #supportBits} packs, in bit order. */
+    private static final SupportType[] SUPPORT_TYPES = {SupportType.FULL, SupportType.CENTER, SupportType.RIGID};
+
+    /**
+     * The legacy solid flag and face sturdiness of every block state, one packed integer per state
+     * in {@code getPossibleStates()} order: the solid flag in bit 0, then one bit per face for each
+     * support type, faces in {@code Direction} order within a type. The faces and the support types
+     * are written beside the states, so a reader takes the bit layout from the file.
+     */
+    private static String dumpBlockSupport() {
+        Json blocks = new Json();
+        for (Block block : BuiltInRegistries.BLOCK) {
+            String states = block.getStateDefinition().getPossibleStates().stream()
+                    .map(state -> Integer.toString(supportBits(state)))
+                    .collect(Collectors.joining(",", "[", "]"));
+            blocks.raw(BuiltInRegistries.BLOCK.getKey(block).toString(), states);
+        }
+        Json root = new Json();
+        root.raw("faces", Stream.of(Direction.values())
+                .map(direction -> Json.string(direction.getSerializedName()))
+                .collect(Collectors.joining(",", "[", "]")));
+        root.raw("supportTypes", Stream.of(SUPPORT_TYPES)
+                .map(type -> Json.string(type.name().toLowerCase()))
+                .collect(Collectors.joining(",", "[", "]")));
+        root.raw("blocks", blocks.toString());
+        return root.toString() + "\n";
+    }
+
+    /**
+     * One state's {@code isSolid()} and {@code isFaceSturdy} answers, packed as
+     * {@link #dumpBlockSupport} describes. Sturdiness reads the state's support shape in an empty
+     * world, which is the cached answer every state without a dynamic shape gives anywhere.
+     */
+    private static int supportBits(BlockState state) {
+        int bits = state.isSolid() ? 1 : 0;
+        int bit = 1;
+        for (SupportType type : SUPPORT_TYPES) {
+            for (Direction direction : Direction.values()) {
+                bit <<= 1;
+                if (state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, direction, type)) bits |= bit;
+            }
+        }
+        return bits;
     }
 
     /** The per-state slice of the property table; state-invariant fields are added by the caller. */
