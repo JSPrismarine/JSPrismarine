@@ -204,21 +204,31 @@ default matters, and its own regression test either way.
    that landed in `prismarine` while this slice was open carries 16 more `@javaSource` tags and
    two `@javaSee` tags. A
    hand-edited golden hash fails the row, naming the TypeScript site and both fingerprints.
-3. **Convert the citations** ([#3703](https://github.com/JSPrismarine/JSPrismarine/issues/3703)). A codemod reads each ``Java's `X.y` `` citation in a JSDoc comment,
-   resolves it in the jar, and adds the tag when it resolves to one member. Run it a package
-   at a time, review the ambiguous and unresolved ones by hand, and lower the baseline after each.
-   Constants typed in by hand with a "read from the jar" comment are tagged on the constant. A
-   citation that names a member without copying it, such as an interface member that describes
-   what its host does, gets `@javaSee`. Done when the baseline is empty for `entity-brains`,
-   `entity-goals` and `features`. `prismarine` follows; it is the largest and does not block
-   slice 4.
-4. **Bring-up stage** ([#3704](https://github.com/JSPrismarine/JSPrismarine/issues/3704)). Add the `transcriptions` stage, the delta-note section with listing diffs,
-   and the preview fingerprints, and update the java-bringup skill. Exercise it on the
-   pinned 26.4 preview against 26.3. Done when the 26.4 delta note lists every changed tagged source
-   and the parity rows for the preview show as `deferred`.
-5. **Promote heavy copies** ([#3705](https://github.com/JSPrismarine/JSPrismarine/issues/3705)). With counts by kind on the dashboard, open an issue for each
-   transcription large enough to deserve vectors or extraction instead of a re-read, starting with
-   the ones the 26.4 bring-up flagged.
+3. **Convert the citations** ([#3703](https://github.com/JSPrismarine/JSPrismarine/issues/3703)). Done
+   for `entity-brains`, `entity-goals` and `features`, whose baselines are empty.
+   `java:sources --tag <directory>` runs the codemod: it resolves each ``Java's `X.y` ``
+   citation in the jar, following an inherited member to the type that declares it and a cited
+   nested class to the methods it declares, and adds `@javaSee` instead of `@javaSource` on a
+   type, an interface member or an overview comment. It tagged 301 citations in the three
+   packages; the 35 it printed were tagged by hand. Eight named members 26.3 no longer has, such
+   as `NautilusAi.findNautilusAttackTarget`, which is `findNearestValidAttackTarget`. Resolution
+   skips the bridge methods `javac` writes beside an override, and a tag may name a constructor
+   as `<init>` with its descriptor, for a field the constructor sets. `prismarine` follows in
+   [#3766](https://github.com/JSPrismarine/JSPrismarine/issues/3766).
+4. **Bring-up stage** ([#3704](https://github.com/JSPrismarine/JSPrismarine/issues/3704)). Done.
+   `bringup:java` has a `transcriptions` stage, also runnable as `java:transcriptions --java <R>`,
+   that writes the "Transcriptions to re-read" section of the delta note. On 26.4-pre-1 against
+   26.3 it found 38 changed members, one moved to a superclass, and 48 changed callees. The golden
+   holds 26.4-pre-1 fingerprints for the 366 members it left alone, and the family's preview rows
+   record the other 39 as `deferred` in `behavior-gaps.json`.
+5. **Promote heavy copies** ([#3705](https://github.com/JSPrismarine/JSPrismarine/issues/3705)). Done.
+   The family reports the tags by `@javaVerified` kind and by package as dashboard measurements;
+   all 418 are plain today. The copies large enough to deserve vectors or extraction have issues:
+   the dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)), portal
+   placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762)), fluid spread
+   ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)), static-initializer constants
+   ([#3764](https://github.com/JSPrismarine/JSPrismarine/issues/3764)) and block placement states
+   ([#3765](https://github.com/JSPrismarine/JSPrismarine/issues/3765)).
 
 ## Decisions
 
