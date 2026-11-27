@@ -121,7 +121,7 @@ const COMMENTS = {
     'online-mode':
         "Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to the account Mojang's session server vouches for.",
     'xbox-achievements':
-        'Whether Bedrock players, operators included, can earn Xbox achievements. On, every client is told cheats are off and every command is sent as one that is not a cheat, so operators keep their commands and the server still decides who may run each one. A player earns none while in creative mode, or in a world with experiments on; other players are not affected.',
+        'Whether Bedrock players, operators included, can earn Xbox achievements. On, every client is told cheats are off and every command is sent as one that is not a cheat, so operators keep their commands and the server still decides who may run each one. The server also tells each client when its player kills a mob, is killed by an entity or runs a command, which some achievements count. A player earns none while in creative mode, or in a world with experiments on; other players are not affected.',
     'enable-raknet': 'Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.',
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'enable-nethernet':
@@ -1217,8 +1217,11 @@ export class Config {
      * goes out marked as not a cheat. An operator therefore keeps both their commands and their
      * achievements, which a Bedrock Dedicated Server does not allow. The client awards most
      * achievements itself from what it sees, and only while its own player is in survival or
-     * adventure mode, so one player in creative mode costs nobody else an achievement. Off, the
-     * server announces cheats as on and achievements as disabled, as it did before the key.
+     * adventure mode, so one player in creative mode costs nobody else an achievement. For the
+     * few it cannot see, the server sends the `LegacyTelemetryEvent` packets BDS sends: a mob the
+     * player's blow killed, the entity that killed the player, and a command that succeeded. Off,
+     * the server announces cheats as on and achievements as disabled, as it did before the key,
+     * and sends none of those events.
      *
      * @returns Whether Xbox achievements are on
      */

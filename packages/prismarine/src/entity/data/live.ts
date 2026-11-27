@@ -328,6 +328,49 @@ const takeExperienceOrb = (
     world.sendWorldEvent(player.getPosition(), LevelEvent.SOUND_EXPERIENCE_ORB_PICKUP, 0);
 };
 
+/**
+ * Tells the players a kill names of it, through their presenters: the player who dealt the
+ * blow, and the player who died. A death with no entity behind it, such as a fall, names no one.
+ *
+ * @param world - The world both players are in.
+ * @param victim - What died.
+ * @param source - The blow that killed it.
+ * @param report - Where a failed send is logged.
+ */
+export const reportKill = (
+    world: Pick<World, 'viewerOf'>,
+    victim: StoreActor,
+    source: DamageSource,
+    report: (message: string) => void
+): void => {
+    const killer = source.attacker;
+    if (killer === null) return;
+    const sends: Promise<void>[] = [];
+    if (killer instanceof StorePlayerActor) {
+        const player = killer.getRuntimeId();
+        const presenter = world.viewerOf(player)?.presenter;
+        if (presenter !== undefined)
+            sends.push(
+                presenter.reportKill({
+                    kind: 'killedMob',
+                    player,
+                    victim: victim.getRuntimeId(),
+                    cause: source.cause,
+                    projectile: source.projectile?.getType()
+                })
+            );
+    }
+    if (victim instanceof StorePlayerActor) {
+        const player = victim.getRuntimeId();
+        const presenter = world.viewerOf(player)?.presenter;
+        if (presenter !== undefined)
+            sends.push(
+                presenter.reportKill({ kind: 'killedBy', player, killer: killer.getType(), cause: source.cause })
+            );
+    }
+    void Promise.all(sends).catch((error: unknown) => report(String(error)));
+};
+
 /** The host facts over one live world. */
 const liveHost = (
     options: LiveEntityOptions,
@@ -387,6 +430,9 @@ const liveHost = (
             if (commit.died)
                 world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
             for (const raise of raises) raise();
+            // Told only to a client that can earn achievements, which is what it counts kills for.
+            if (commit.died && world.getServer().getConfig().getXboxAchievements())
+                reportKill(world, victim, source, options.report);
 
             // A player's death is also its session's: the death message, the respawn search and
             // the death screen. None of that is in the log, so it waits with the rest: a client

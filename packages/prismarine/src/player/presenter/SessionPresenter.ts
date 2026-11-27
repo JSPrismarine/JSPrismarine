@@ -16,6 +16,7 @@ import type { TitleInstruction } from '@jsprismarine/commands';
 import type { Vector3 } from '@jsprismarine/math';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import type { DamageCause } from '../../entity/DamageCause';
 
 import type { ListedPlayer } from '../../network/playerListEntry';
 import type { AbilityTarget } from '../../network/replica/firstSight';
@@ -167,6 +168,31 @@ export interface ShownExperience {
     readonly level: number;
     readonly progress: number;
 }
+
+/**
+ * A kill the client's player took part in, which a Bedrock client is told of the way a Bedrock
+ * Dedicated Server tells it: `killedMob` when the player dealt the killing blow, `killedBy` when
+ * an entity dealt it to the player.
+ */
+export type ReportedKill =
+    | {
+          readonly kind: 'killedMob';
+          /** The player's runtime id. */
+          readonly player: bigint;
+          /** The runtime id of the entity that died. */
+          readonly victim: bigint;
+          readonly cause: DamageCause;
+          /** The identifier of the projectile that dealt the blow, when one did. */
+          readonly projectile: string | undefined;
+      }
+    | {
+          readonly kind: 'killedBy';
+          /** The player's runtime id. */
+          readonly player: bigint;
+          /** The identifier of the entity that dealt the blow. */
+          readonly killer: string;
+          readonly cause: DamageCause;
+      };
 
 /** Why a player died, as a translation: the key without Bedrock's `%`, and what fills it. */
 export interface ShownDeath {
@@ -437,6 +463,14 @@ export interface SessionPresenter {
      * @param death - Why the player died.
      */
     showDeath(death: ShownDeath): Promise<void>;
+
+    /**
+     * Tells the client of a kill its player took part in, for an edition whose client counts
+     * kills itself, as Bedrock's does for Xbox achievements.
+     *
+     * @param kill - Who killed what, and how.
+     */
+    reportKill(kill: ReportedKill): Promise<void>;
 
     /**
      * Spawns the player again on its client, for a client the session's Bedrock respawn exchange

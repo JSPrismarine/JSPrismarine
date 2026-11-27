@@ -54,8 +54,13 @@ and the rest, and earn achievements as well, which a Bedrock Dedicated Server do
 The columns above still decide who may run what. Each client checks only its own game mode, so a
 player in creative mode earns nothing while the players around them keep earning.
 
+A client works out most achievements from what it sees, but a few depend on what only the server
+knows. As a Bedrock Dedicated Server does, JSPrismarine tells a player's client when a blow from
+that player killed a mob, when an entity killed that player, and when a command the player sent
+succeeded. The client passes these events on to Mojang.
+
 Set `xbox-achievements` to `false` to tell every client that cheats are on. Nobody earns
-achievements then.
+achievements then, and the server tells clients none of these events.
 
 A command still records whether it is a cheat: Mojang's metadata marks the vanilla ones, an
 addon's script passes `cheatsRequired` to `customCommandRegistry.registerCommand`, and server code

@@ -29,12 +29,14 @@ import { bossEventOf } from './bedrockBossBar';
 import { displaySlotPacketsOf, removeObjectivePacketOf, scorePacketOf } from './bedrockScoreboard';
 import { titlePacketOf } from './bedrockTitle';
 import { weatherPacketsOf } from './bedrockWeather';
+import { killTelemetryOf } from './bedrockTelemetry';
 import { playerListAddOf } from './bedrockPlayerList';
 import type {
     BossBarChange,
     MessageKind,
     MoveMode,
     RecipeBookChange,
+    ReportedKill,
     SessionPresenter,
     ShownBossBar,
     ShownMessage,
@@ -199,6 +201,11 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Sends nothing: the session runs Bedrock's respawn exchange, whose first half opens the screen. */
     public async showDeath(): Promise<void> {}
+
+    /** Sends `LegacyTelemetryEvent` as BDS does; see {@link killTelemetryOf}. */
+    public async reportKill(kill: ReportedKill): Promise<void> {
+        await this.connection.sendDataPacket(killTelemetryOf(kill));
+    }
 
     /** Sends nothing: the session runs Bedrock's respawn exchange and dimension change. */
     public async showRespawn(): Promise<void> {}

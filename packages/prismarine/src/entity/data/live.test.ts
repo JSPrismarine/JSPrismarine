@@ -794,7 +794,12 @@ const liveWorld = (
 
     const runtimes = new EntityRuntimes();
     const server: Server = Object.assign(testEntityServer(), {
-        getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
+        getConfig: () =>
+            stub<Config>({
+                getDifficulty: () => Difficulty.NORMAL,
+                getEntityTrackingInterval: () => 20,
+                getXboxAchievements: () => true
+            }),
         // What `World.dataEntities` reads, and therefore what tells `/summon` that this
         // world runs its mobs through the data path rather than the written classes.
         getEntityRuntime: (dimension: string) => runtimes.at(dimension),

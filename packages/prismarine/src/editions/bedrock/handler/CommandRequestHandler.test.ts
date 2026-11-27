@@ -10,6 +10,9 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import CommandOriginData from '@jsprismarine/protocol/bedrock/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/bedrock/wire/structures/CommandOriginType';
 import { CommandOutputPacket, CommandOutputType, CommandRequestPacket } from '@jsprismarine/protocol';
+import LegacyTelemetryEventPacket, {
+    LegacyTelemetryEventType
+} from '@jsprismarine/protocol/bedrock/packet/LegacyTelemetryEventPacket';
 import type { HandlerServices } from '../../../player/context/HandlerContext';
 import CommandRequestHandler from './CommandRequestHandler';
 
@@ -24,17 +27,22 @@ const request = (commandName: string, commandOriginData: CommandOriginData): Com
         version: 'Latest'
     });
 
-/** Runs the handler against one request, with a command manager whose dispatch answers `ran`. */
-const run = async (packet: CommandRequestPacket, ran: boolean) => {
+/**
+ * Runs the handler against one request, with a command manager whose dispatch answers `ran`, on a
+ * server whose `xbox-achievements` is `achievements`.
+ */
+const run = async (packet: CommandRequestPacket, ran: boolean, achievements = false) => {
     const dispatched: { sender: unknown; target: unknown; input: string }[] = [];
     const sent: NetworkPacket[] = [];
     const logged: string[] = [];
     const session = stub<PlayerSession>({
         identity: identityNamed('Steve'),
+        getRuntimeId: () => 7n,
         send: async (packet) => void sent.push(packet)
     });
     const { context, outputs, settled } = inputContext(session, {
         log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
+        config: { getXboxAchievements: () => achievements },
         services: {
             commands: stub<HandlerServices['commands']>({
                 runCommand: (sender, target, input = '') => {
@@ -90,6 +98,27 @@ describe('CommandRequestHandler', () => {
         expect(reply).toBeInstanceOf(CommandOutputPacket);
         if (!(reply instanceof CommandOutputPacket)) return;
         expect(reply.getPacketData()).toMatchObject({ successCount: 0 });
+    });
+
+    it('tells a client that can earn achievements of a command that ran, as BDS does', async () => {
+        const { sent } = await run(request('/me waves', origin(CommandOriginType.Player)), true, true);
+
+        expect(sent).toHaveLength(2);
+        const telemetry = sent[1];
+        expect(telemetry).toBeInstanceOf(LegacyTelemetryEventPacket);
+        if (!(telemetry instanceof LegacyTelemetryEventPacket)) return;
+        expect(telemetry).toMatchObject({
+            targetActorId: 7n,
+            eventType: LegacyTelemetryEventType.SlashCommand,
+            usePlayerId: true,
+            eventData: { successCount: 1, errorCount: 0, commandName: 'me', errorList: '' }
+        });
+    });
+
+    it('tells no client of a command that did not run', async () => {
+        const { sent } = await run(request('/gamemode creative', origin(CommandOriginType.Player)), false, true);
+
+        expect(sent.map((packet) => packet.constructor)).toEqual([CommandOutputPacket]);
     });
 
     it('drops a request whose origin is not the player', async () => {

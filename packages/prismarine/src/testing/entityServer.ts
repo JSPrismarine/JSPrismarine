@@ -147,7 +147,8 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
         getChunkCompletionQueue: () => chunkCompletionQueue,
         getConfig: () =>
             stub<Config>({
-                getDifficulty: () => options.difficulty ?? Difficulty.NORMAL
+                getDifficulty: () => options.difficulty ?? Difficulty.NORMAL,
+                getXboxAchievements: () => true
             }),
         getLogger: () =>
             stub<Logger>({
