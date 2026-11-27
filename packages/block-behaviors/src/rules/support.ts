@@ -23,6 +23,21 @@ export const isSolidSupport = (world: WorldActions, position: BlockPosition): bo
     return world.propertiesOf(block.identifier).pushReaction !== 'popped';
 };
 
+/**
+ * Whether the block at a position is solid by Java's legacy flag, `BlockStateBase.isSolid`, which
+ * a sign, a banner and a portal's floor ask for: a block that forces it on, or one whose collision
+ * shape fills most of the cell or its full height, so a cobweb or a slab is solid where a nether
+ * portal block is not. A host without {@link WorldActions.isSolid} answers by
+ * {@link isSolidSupport}.
+ *
+ * @javaSee BlockBehaviour$BlockStateBase.isSolid
+ */
+export const isSolidAt = (world: WorldActions, position: BlockPosition): boolean => {
+    const block = world.getBlock(position);
+    if (block === undefined) return false;
+    return world.isSolid?.(block) ?? isSolidSupport(world, position);
+};
+
 /** Removes a block, drops what it leaves behind and tells its neighbors. */
 export const breakBlock = (
     world: WorldActions,

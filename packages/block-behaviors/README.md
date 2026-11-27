@@ -33,7 +33,7 @@ one. It is a `BlockWorld`, described below.
 
 | Group | Methods |
 | --- | --- |
-| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasBlockTag`, `hasSturdyTopFace` |
+| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasBlockTag`, `hasSturdyTopFace`, `isSolid` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick(position, delay, kind?, priority?)`, `willTickThisTick` |
@@ -48,7 +48,9 @@ instead of carrying a list. `random` is on the interface rather than inside the 
 `flammabilityOf` reads the resolved state's `minecraft:flammable` component, so a pack can change
 fire odds in a permutation. Fire uses the loaded `minecraft:infiniburn_*` block tags to decide which
 fuel keeps it burning forever. `hasSturdyTopFace` lets the host answer from the block's collision
-shape. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
+shape. `isSolid` answers Java's legacy solid flag, which a new fluid source asks of the block below
+it and a portal of its floor; a host without it gets the full cube test for fluids and the push
+reaction test for portals. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
 `onBreak` and rolls Java's loot table for it, where this package would otherwise have to guess that
 the block drops one of itself. It is optional, and a host that leaves it out gets that guess, which
 is what the test voxel world does. Fire passes `drops: false` so a burned block leaves no loot while
@@ -249,9 +251,11 @@ layout as cuboid fills, the origin and axis Java chose and every block Java wrot
 block the layouts use the rules the search reads. `src/rules/portal.vectors.test.ts` rebuilds every
 layout through `replayPortalVector` in `src/rules/portalVectors.ts`, and the `blocks.portals`
 parity row does the same. Both fail when the port builds somewhere Java does not or writes other
-blocks. The netherrack beside a forced platform is the one difference they accept. A layout the
-port still gets wrong is listed with its issue: Java stands a portal on cobwebs under a roof, where
-the port does not ([#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784)).
+blocks. The netherrack beside a forced platform is the one difference they accept. The search
+reads a floor through `WorldActions.isSolid`, Java's legacy solid flag, which the replay answers
+from the support table in `@jsprismarine/mapping` as the server does, so a portal stands on cobwebs
+under a roof as Java's does. A layout the port gets wrong goes into the test's `KNOWN_GAPS` with
+its issue.
 
 `utils/oracle/DumpPortalVectors.java` writes the file. It runs Java's own `createPortal` on a
 `ServerLevel` subclass that answers the few methods the search calls from a map of block states,

@@ -13,17 +13,10 @@ import { portalBlockRuleDifferences, replayPortalVector } from './portalVectors'
  * The layouts the port still gets wrong, each with its issue. A fix makes the layout match and
  * fails this test until its entry goes.
  */
-const KNOWN_GAPS: Readonly<Record<string, string>> = {
-    // The port's floor test is `isSolidSupport`, which says no to a cobweb where Java's
-    // `BlockState.isSolid` says yes.
-    'cobweb-cave': '#3784'
-};
+const KNOWN_GAPS: Readonly<Record<string, string>> = {};
 
 /** The block rules the port answers differently from Java, each with its issue. */
-const KNOWN_RULE_GAPS: Readonly<Record<string, string>> = {
-    'minecraft:cobweb#isSolid': '#3784',
-    'minecraft:nether_portal#isSolid': '#3784'
-};
+const KNOWN_RULE_GAPS: Readonly<Record<string, string>> = {};
 
 /** Java clears room above a forced portal's platform, and writes no air anywhere else. */
 const isForced = (vector: (typeof vectors.cases)[number]): boolean =>
