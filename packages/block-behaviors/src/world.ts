@@ -278,6 +278,15 @@ export interface WorldActions {
     /** Whether this block fills its cell with a full cube collision shape. */
     isFullCube?(block: HookBlock): boolean;
     /**
+     * Whether this block is solid ground for a new fluid source, Java's legacy
+     * `BlockStateBase.isSolid`: a block that forces it on, or one whose collision shape's bounds
+     * fill most of the cell or its full height, such as soul sand or a slab. A host without it
+     * answers by {@link isFullCube}.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isSolid
+     */
+    isSolid?(block: HookBlock): boolean;
+    /**
      * Whether two neighboring blocks' collision shapes together close the face between them, Java's
      * `Shapes.mergedFaceOccludes`, which decides where a fluid may pass. `face` is the side of
      * `block` that `neighbor` is on. A host without it lets a fluid pass any pair of blocks
