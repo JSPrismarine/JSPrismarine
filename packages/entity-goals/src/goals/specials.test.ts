@@ -211,11 +211,13 @@ describe('the ender dragon phases', () => {
         const far = testMob('far', { x: 0, y: 80, z: 15 }, { health: 100 });
         const contact = contactWorld({ mobs: [beside, ahead, far] });
 
-        contact.run(1);
+        // Java bites with the head and the neck where the tick before put them, so the second tick does.
+        contact.run(2);
 
         const [shove] = contact.pushes.filter((push) => push.id === 'beside');
         expect(shove?.x).toBeGreaterThan(0);
-        expect(shove?.y).toBe(0.2);
+        // Java pushes by `0.2F`, a `float` widened to a `double`.
+        expect(shove?.y).toBe(Math.fround(0.2));
         expect(contact.blows).toEqual(
             expect.arrayContaining([
                 { id: 'beside', damage: 5 },
