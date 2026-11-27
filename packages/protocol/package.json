@@ -1001,6 +1001,11 @@
                 "import": "./dist/java/packet/play.js",
                 "module": "./dist/java/packet/play.js"
             },
+            "./java/packet/javaPackets": {
+                "types": "./dist/java/packet/javaPackets.d.ts",
+                "import": "./dist/java/packet/javaPackets.js",
+                "module": "./dist/java/packet/javaPackets.js"
+            },
             "./java/versions/javaBlockStates": {
                 "types": "./dist/java/versions/javaBlockStates.d.ts",
                 "import": "./dist/java/versions/javaBlockStates.js",
@@ -1909,6 +1914,10 @@
         "./java/packet/play": {
             "jsprismarine:dist": "./dist/java/packet/play.js",
             "default": "./src/java/packet/play.ts"
+        },
+        "./java/packet/javaPackets": {
+            "jsprismarine:dist": "./dist/java/packet/javaPackets.js",
+            "default": "./src/java/packet/javaPackets.ts"
         },
         "./java/versions/javaBlockStates": {
             "jsprismarine:dist": "./dist/java/versions/javaBlockStates.js",

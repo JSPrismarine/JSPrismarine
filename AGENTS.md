@@ -107,7 +107,11 @@ commit messages and comments.
   typecheck time. A fingerprinted legacy entry permits an existing one-way packet only while its
   source file stays unchanged. When editing one, implement both directions before updating the
   baseline with `node scripts/check-packet-codecs.mts --update`. Add round-trip coverage when
-  adding a packet or changing its wire layout.
+  adding a packet or changing its wire layout. A Java Edition packet's `defineJavaPacket` fields
+  read and write, and each custom field type must read back what it writes:
+  `packages/protocol/src/java/packet/javaPackets.test.ts` fails until every definition has a
+  sample payload that writes, reads back equal and writes the same bytes again, since the server
+  and `@jsprismarine/client`'s Java client each use the other end of every packet.
 - Give a new or changed packet in `packages/protocol` a declarative wire layout
   ([ADR 0003](docs/adr/0003-declarative-wire-layouts.md)). Write its body by hand only for a
   reason the ADR lists, and record it with `node scripts/check-wire-layouts.mts --update --reason
