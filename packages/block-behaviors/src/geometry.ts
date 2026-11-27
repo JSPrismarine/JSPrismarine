@@ -89,6 +89,52 @@ export const offset = (position: BlockPosition, face: BlockFace, distance = 1): 
     };
 };
 
+/**
+ * Java's `BlockPos.spiralAround(ZERO, radius, EAST, SOUTH)`: the origin, then a square spiral
+ * that leaves it eastward and turns south, with legs that grow by one every second turn. It
+ * visits every offset of the square `radius` around the origin once, `(2 * radius + 1) ** 2` in
+ * all, and ends on its north-east corner.
+ *
+ * The order is what callers rely on: a search that keeps the first of two equally good answers,
+ * such as `PortalForcer.createPortal`, gives Java's answer only when it walks Java's spiral.
+ *
+ * @javaSource BlockPos.spiralAround
+ * @param radius - How many legs out to walk, which is how many steps the farthest offset is.
+ */
+export function* spiralAround(radius: number): Generator<{ readonly x: number; readonly z: number }> {
+    // East, south, west, north: +x, +z, -x, -z.
+    const directions = [
+        { x: 1, z: 0 },
+        { x: 0, z: 1 },
+        { x: -1, z: 0 },
+        { x: 0, z: -1 }
+    ] as const;
+    const legs = 4 * radius;
+
+    // The cursor starts one step south of the origin so the first move, north, lands on it.
+    let x = 0;
+    let z = 1;
+    let leg = -1;
+    let legSize = 0;
+    let legIndex = 0;
+
+    while (true) {
+        const direction = directions[(leg + 4) % 4]!;
+        x += direction.x;
+        z += direction.z;
+
+        if (legIndex >= legSize) {
+            if (leg >= legs) return;
+            leg++;
+            legIndex = 0;
+            legSize = Math.floor(leg / 2) + 1;
+        }
+
+        legIndex++;
+        yield { x, z };
+    }
+}
+
 /** Whether two positions name the same block. */
 export const samePosition = (a: BlockPosition, b: BlockPosition): boolean => a.x === b.x && a.y === b.y && a.z === b.z;
 

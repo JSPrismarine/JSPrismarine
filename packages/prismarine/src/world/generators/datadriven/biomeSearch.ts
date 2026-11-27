@@ -13,6 +13,7 @@
  *
  * @javaSee BiomeSource.findClosestBiome3d
  */
+import { spiralAround } from '@jsprismarine/block-behaviors';
 import type { BiomeResolver } from '@jsprismarine/worldgen';
 
 /** What {@link findClosestBiome} is asked. */
@@ -113,46 +114,5 @@ function* outFromOrigin(origin: number, lower: number, upper: number, step: numb
 
         const below = start - distance - (atOrBelow ? step : 0);
         current = below >= lower ? below : above;
-    }
-}
-
-/**
- * Java's `BlockPos.spiralAround(ZERO, radius, EAST, SOUTH)`: the origin, then a square spiral
- * that leaves it eastward and turns south, with legs that grow by one every second turn.
- *
- * @param radius - How many legs out to walk, which is how many steps the farthest offset is.
- * @javaSource BlockPos.spiralAround
- */
-function* spiralAround(radius: number): Generator<{ readonly x: number; readonly z: number }> {
-    // East, south, west, north: +x, +z, -x, -z.
-    const directions = [
-        { x: 1, z: 0 },
-        { x: 0, z: 1 },
-        { x: -1, z: 0 },
-        { x: 0, z: -1 }
-    ] as const;
-    const legs = 4 * radius;
-
-    // The cursor starts one step south of the origin so the first move, north, lands on it.
-    let x = 0;
-    let z = 1;
-    let leg = -1;
-    let legSize = 0;
-    let legIndex = 0;
-
-    while (true) {
-        const direction = directions[(leg + 4) % 4]!;
-        x += direction.x;
-        z += direction.z;
-
-        if (legIndex >= legSize) {
-            if (leg >= legs) return;
-            leg++;
-            legIndex = 0;
-            legSize = Math.floor(leg / 2) + 1;
-        }
-
-        legIndex++;
-        yield { x, z };
     }
 }
