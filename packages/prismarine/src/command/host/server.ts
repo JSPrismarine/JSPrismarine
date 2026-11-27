@@ -2,13 +2,10 @@
  * The `server` group of the server's `CommandHost`: chat, titles, operators
  * and the lifecycle verbs.
  *
- * Three of these send a packet this server had written and never used -
- * `SetTitlePacket`, `TransferPacket` and `StopSoundPacket` - which is why
- * `/title`, `/transfer` and `/stopsound` were unreachable before the command
- * layer landed rather than unimplementable.
+ * Titles go through each player's session presenter, so a client of either
+ * edition is shown them.
  */
-import type { EntityRef, ServerCommandHost, TitleInstruction } from '@jsprismarine/commands';
-import { TitleType } from '@jsprismarine/minecraft';
+import type { EntityRef, ServerCommandHost } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
 import AnimateEntityPacket from '@jsprismarine/protocol/bedrock/packet/AnimateEntityPacket';
@@ -17,7 +14,6 @@ import CameraShakePacket, {
     CameraShakeType
 } from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
-import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import { messageOf } from '../../addons/addonPack';
 import type { MessageKind } from '../../player/presenter/SessionPresenter';
@@ -39,55 +35,10 @@ const MESSAGE_KINDS: Readonly<Record<'chat' | 'whisper' | 'emote' | 'raw', Messa
     raw: 'rawText'
 };
 
-/**
- * The title slot each form writes.
- *
- * Two of them per slot: `/titleraw` sends a `rawtext` object, and the client
- * only parses one in the `*_TEXT_OBJECT` types, so the raw flag picks the
- * second column rather than being written into the text.
- */
-const TITLE_TYPES: Readonly<Record<'title' | 'subtitle' | 'actionbar', readonly [plain: TitleType, raw: TitleType]>> = {
-    title: [TitleType.TITLE, TitleType.TITLE_TEXT_OBJECT],
-    subtitle: [TitleType.SUBTITLE, TitleType.SUBTITLE_TEXT_OBJECT],
-    actionbar: [TitleType.ACTIONBAR, TitleType.ACTIONBAR_TEXT_OBJECT]
-};
-
 /** The shake type and action numbers the packet writes, by the name a command spells. */
 const SHAKE_TYPES: Readonly<Record<'positional' | 'rotational', CameraShakeType>> = {
     positional: CameraShakeType.Positional,
     rotational: CameraShakeType.Rotational
-};
-
-/**
- * One title instruction as the packet carries it.
- *
- * `clear`, `reset` and `times` write no text, which is why the instruction is
- * a union rather than a kind plus a string: a `times` form sent as text is a
- * title reading "20".
- */
-const titlePacketOf = (title: TitleInstruction): SetTitlePacket => {
-    const packet = new SetTitlePacket();
-    switch (title.kind) {
-        case 'clear':
-            packet.titleType = TitleType.CLEAR;
-            return packet;
-
-        case 'reset':
-            packet.titleType = TitleType.RESET;
-            return packet;
-
-        case 'times':
-            packet.titleType = TitleType.TIMES;
-            packet.fadeInTime = title.fadeIn;
-            packet.stayTime = title.stay;
-            packet.fadeOutTime = title.fadeOut;
-            return packet;
-
-        default:
-            packet.titleType = TITLE_TYPES[title.kind][title.raw === true ? 1 : 0];
-            packet.titleText = title.text;
-            return packet;
-    }
 };
 
 /** One layer of a player's fog stack: what to render, and what `/fog pop` calls it. */
@@ -235,7 +186,7 @@ export const serverSideCommandHost = (
 
         sendTitle: (targets, title) => {
             for (const session of sessionsOf(server, targets)) {
-                carryOut(session.send(titlePacketOf(title)), undefined);
+                carryOut(session.presenter.showTitle(title), undefined);
             }
         },
 

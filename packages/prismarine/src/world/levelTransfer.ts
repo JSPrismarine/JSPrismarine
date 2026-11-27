@@ -13,7 +13,7 @@ import { Vector3 } from '@jsprismarine/math';
 import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import { scoreboardPackets } from '../command/host/scoreboard';
+import { showScoreboard } from '../command/host/scoreboard';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { customDimensionData } from '../editions/bedrock/customDimensionData';
@@ -68,7 +68,7 @@ const sendLevelState = (session: PlayerSession, level: Level): void => {
             session.sendTime(level.getDayTime()),
             ...events.map(([eventId, data]) => session.send(new LevelEventPacket({ eventId, position: null, data }))),
             ...(dimensions === undefined ? [] : [session.send(dimensions)]),
-            ...scoreboardPackets(level.getScoreboard()).map((packet) => session.send(packet))
+            showScoreboard(session, level.getScoreboard())
         ]).then(() => {})
     );
 };

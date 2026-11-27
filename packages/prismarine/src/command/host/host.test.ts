@@ -41,6 +41,7 @@ import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPack
 import UnlockedRecipesPacket, {
     UnlockedRecipesType
 } from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
+import { BedrockPresenter } from '../../editions/bedrock/presenter/BedrockPresenter';
 import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../player/PlayerSession';
@@ -421,6 +422,11 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3,
             send: async (packet: unknown) => {
                 fixture.sent.push(packet);
             },
+            presenter: new BedrockPresenter({
+                sendDataPacket: async (packet) => {
+                    fixture.sent.push(packet);
+                }
+            }),
             sendInventory: async () => {},
             sendAttributes: async () => {},
             sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -1757,9 +1763,11 @@ describe('the server command host', () => {
             fixture.players.push(
                 stub<PlayerSession>({
                     getWorld: () => fixture.world,
-                    send: async (packet) => {
-                        fixture.sent.push(packet);
-                    },
+                    presenter: new BedrockPresenter({
+                        sendDataPacket: async (packet) => {
+                            fixture.sent.push(packet);
+                        }
+                    }),
                     released: () => {}
                 })
             );

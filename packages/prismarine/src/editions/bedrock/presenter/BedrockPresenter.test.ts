@@ -1,6 +1,16 @@
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
+import {
+    ObjectiveSortOrder,
+    PositionMode,
+    RemoveObjectivePacket,
+    ScorePacketEntryAction,
+    SetDisplayObjectivePacket,
+    SetScorePacket,
+    SetTimePacket,
+    TextPacketType
+} from '@jsprismarine/protocol';
+import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import BossEventPacket, {
     BossBarColor,
@@ -220,5 +230,64 @@ describe('BedrockPresenter', () => {
                 overlay: BossBarOverlay.Notched10
             });
         }
+    });
+
+    it('sends a title as SetTitle, picking the text object type for a rawtext title', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showTitle({ kind: 'title', text: '{"rawtext":[]}', raw: true });
+        await bedrock.showTitle({ kind: 'actionbar', text: 'hi' });
+        await bedrock.showTitle({ kind: 'times', fadeIn: 1, stay: 2, fadeOut: 3 });
+
+        const titles = sent.filter((packet) => packet instanceof SetTitlePacket);
+        expect(titles.map(({ titleType }) => titleType)).toEqual([
+            TitleType.TITLE_TEXT_OBJECT,
+            TitleType.ACTIONBAR,
+            TitleType.TIMES
+        ]);
+        expect(titles[1]?.titleText).toBe('hi');
+        expect([titles[2]?.fadeInTime, titles[2]?.stayTime, titles[2]?.fadeOutTime]).toEqual([1, 2, 3]);
+    });
+
+    it('draws a slot as its header and every score, and sends score changes and removals', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.showDisplaySlot('sidebar', {
+            name: 'kills',
+            displayName: 'Kills',
+            criterion: 'dummy',
+            sortOrder: 'descending',
+            scores: [{ holder: 'Steve', identity: 1n, value: 3 }]
+        });
+        await bedrock.showDisplaySlot('list', undefined);
+        await bedrock.showScore('kills', { holder: 'Steve', identity: 1n }, undefined);
+        await bedrock.removeObjective('kills');
+
+        const [header, scores, cleared, reset, removed] = sent;
+        expect(header).toBeInstanceOf(SetDisplayObjectivePacket);
+        expect(header).toMatchObject({
+            displaySlotName: 'sidebar',
+            objectiveName: 'kills',
+            objectiveDisplayName: 'Kills',
+            sortOrder: ObjectiveSortOrder.Descending
+        });
+        expect(scores).toBeInstanceOf(SetScorePacket);
+        expect(scores).toMatchObject({
+            entries: [
+                {
+                    action: ScorePacketEntryAction.ChangeFakePlayer,
+                    scoreboardId: 1n,
+                    objectiveName: 'kills',
+                    scoreValue: 3,
+                    fakePlayerName: 'Steve'
+                }
+            ]
+        });
+        expect(cleared).toMatchObject({ displaySlotName: 'list' });
+        expect(reset).toMatchObject({
+            entries: [{ action: ScorePacketEntryAction.Remove, scoreboardId: 1n, objectiveName: 'kills' }]
+        });
+        expect(removed).toBeInstanceOf(RemoveObjectivePacket);
+        expect(sent).toHaveLength(5);
     });
 });

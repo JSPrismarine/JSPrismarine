@@ -554,6 +554,7 @@ export class EntityReplication {
             describe: () => {
                 if (view === undefined) return undefined;
                 const identity = kind === 'player' ? this.ports.identityOf(entity) : undefined;
+                const gamemode = identity === undefined ? undefined : this.replica.player(held)?.gamemode;
                 const known = shown ?? this.shown.get(entity);
                 const equipment =
                     kind === 'item'
@@ -574,7 +575,8 @@ export class EntityReplication {
                               player: {
                                   uuid: identity.uuid.toString(),
                                   name: identity.name,
-                                  ...(identity.textures === undefined ? {} : { textures: identity.textures })
+                                  ...(identity.textures === undefined ? {} : { textures: identity.textures }),
+                                  ...(gamemode === undefined ? {} : { gamemode })
                               }
                           })
                 };

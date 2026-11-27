@@ -253,10 +253,11 @@ export const javaPlayersOf = (
                 }
                 session.released(session.addToPlayerList());
                 // The client draws its own player's skin from its own tab list entry.
-                presenter.listProfile({
+                presenter.listOwnProfile({
                     uuid: profile.id,
                     name: account.name,
-                    ...(textures === undefined ? {} : { textures })
+                    ...(textures === undefined ? {} : { textures }),
+                    gamemode: session.getPlayer().gamemode
                 });
                 // The position a player holds is their eyes.
                 const eyes = session.getPlayer().getPosition();

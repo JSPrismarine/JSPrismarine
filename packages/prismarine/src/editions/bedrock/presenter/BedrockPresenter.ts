@@ -16,6 +16,8 @@ import type { ListedPlayer } from '../../../network/playerListEntry';
 import type { AbilityTarget } from '../../../network/replica/firstSight';
 import { abilitiesPacket } from '../../../network/replica/firstSight';
 import { bossEventOf } from './bedrockBossBar';
+import { displaySlotPacketsOf, removeObjectivePacketOf, scorePacketOf } from './bedrockScoreboard';
+import { titlePacketOf } from './bedrockTitle';
 import { playerListAddOf } from './bedrockPlayerList';
 import type {
     BossBarChange,
@@ -24,7 +26,10 @@ import type {
     SessionPresenter,
     ShownBossBar,
     ShownMessage,
-    ShownMove
+    ShownMove,
+    ShownObjective,
+    ShownScore,
+    ShownTitle
 } from '../../../player/presenter/SessionPresenter';
 
 /**
@@ -232,5 +237,32 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends `BossEvent`; see {@link bossEventOf}. */
     public async showBossBar(change: BossBarChange, bar: ShownBossBar): Promise<void> {
         await this.connection.sendDataPacket(bossEventOf(change, bar));
+    }
+
+    /** Sends `SetTitle`; see {@link titlePacketOf}. */
+    public async showTitle(title: ShownTitle): Promise<void> {
+        await this.connection.sendDataPacket(titlePacketOf(title));
+    }
+
+    /** Sends `SetDisplayObjective`, then `SetScore` with every score the slot shows. */
+    public async showDisplaySlot(slot: string, objective: ShownObjective | undefined): Promise<void> {
+        // Queued together, so no other packet comes between the header and its scores.
+        await Promise.all(
+            displaySlotPacketsOf(slot, objective).map((packet) => this.connection.sendDataPacket(packet))
+        );
+    }
+
+    /** Sends `SetScore` with the holder's new score, or its removal. */
+    public async showScore(
+        objective: string,
+        holder: Omit<ShownScore, 'value'>,
+        value: number | undefined
+    ): Promise<void> {
+        await this.connection.sendDataPacket(scorePacketOf(objective, holder, value));
+    }
+
+    /** Sends `RemoveObjective`. */
+    public async removeObjective(objective: string): Promise<void> {
+        await this.connection.sendDataPacket(removeObjectivePacketOf(objective));
     }
 }
