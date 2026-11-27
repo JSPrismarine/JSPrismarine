@@ -486,6 +486,16 @@ export const allowList: readonly AllowListEntry[] = [
     // feature's writes across a border are merged in a fixed positional order now, and nothing
     // is replayed into a chunk already handed out.
 
+    // A nether portal block a command writes with an axis other than its frame's: the Bedrock
+    // Dedicated Server clears it within a second, Java keeps it, and this server follows Java.
+    ...(['frame-x:axis-z', 'frame-x:axis-unknown', 'frame-z:axis-x', 'frame-z:axis-unknown'] as const).map((id) => ({
+        family: 'blocks.portals' as const,
+        id: `bedrock-clears-command-portal:${id}`,
+        kind: 'intentional' as const,
+        reason: 'The portal stands, as Java keeps a command-written block whose shape update would remove it. The Bedrock Dedicated Server clears it.',
+        reference: 'docs/research/portals-and-dimension-travel.md section 1, "Command-written portal blocks"'
+    })),
+
     ...engineActorEntries(),
     ...experimentalActorEntries(),
     ...experimentalItemNumberingEntries(),

@@ -1,4 +1,5 @@
 import {
+    bindFamily,
     END_PORTAL,
     END_PORTAL_EYE_STATE,
     END_PORTAL_FACING_STATE,
@@ -6,11 +7,18 @@ import {
     HORIZONTAL_FACES,
     NETHER_PORTAL_BLOCKS,
     NETHER_PORTAL_FRAME_BLOCKS,
+    NETHER_PORTAL,
     NETHERRACK,
+    OBSIDIAN,
+    offset,
+    opposite,
     PORTAL_AXIS_STATE,
-    PORTAL_LIGHTING_FIRES
+    PORTAL_LIGHTING_FIRES,
+    portalFamily,
+    portalInterior
 } from '@jsprismarine/block-behaviors';
-import { PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
+import type { BlockPosition } from '@jsprismarine/blocks';
+import { BLOCK_FACES, PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
 import { bedrockDimensionOverlay } from '@jsprismarine/mapping';
 import { PORTAL_COOLDOWN_TICKS } from '@jsprismarine/prismarine/entity/PortalContact';
 import { DIMENSION_TRAVEL, PORTAL_SEARCH_RADIUS, PORTALS } from '@jsprismarine/prismarine/world/portal/rules';
@@ -48,8 +56,14 @@ import { parityCase, reportParityCases } from './trackerCases.ts';
  * when the block carries no such state, `domain:<name>#<state>` when the state's values are
  * not the ones the rules were written against, `unknown-dimension:<id>` when a `links` key or
  * value is not a vanilla dimension type id with a Bedrock overlay, `missing-travel:<id>` when
- * `DIMENSION_TRAVEL` has no entry for a vanilla id, and `constant:<name>` when a table value
- * differs from the number the research note quotes.
+ * `DIMENSION_TRAVEL` has no entry for a vanilla id, `constant:<name>` when a table value
+ * differs from the number the research note quotes, and `command-portal:<case>` when a nether
+ * portal a command writes into a frame does not stand.
+ *
+ * `bedrock-clears-command-portal:<case>` records a decision rather than a fault. The Bedrock
+ * Dedicated Server clears a portal a command writes with an axis other than its frame's, and
+ * Java keeps it; this server follows Java, and the allow list carries the difference as
+ * intentional.
  */
 
 /**
@@ -275,6 +289,64 @@ const comparePortalBlocks = (
     return { gaps, blocks: blocks.length, states: states.length, detail, cases };
 };
 
+/** The two axes a nether portal frame can stand on. */
+const FRAME_AXES = ['x', 'z'] as const;
+
+/**
+ * Writes a 2 by 3 frame and its interior the way `/fill` does, one block at a time with each
+ * write telling its neighbors, and reports whether every interior block is still a portal.
+ *
+ * Java's `FillCommand` places each block through `BlockInput.place`, which runs
+ * `Block.updateFromNeighbourShapes` and keeps the written state when that returns air, so a
+ * portal block whose axis runs across its frame stands. The neighbors it tells are the portal
+ * blocks written before it, which agree with it, and the air beside the frame never changes.
+ * @javaSee BlockInput.place
+ */
+const commandPortalStands = (frameAxis: (typeof FRAME_AXES)[number], portalAxis: string): boolean => {
+    const harness = bindFamily(portalFamily, NETHER_PORTAL);
+    const frame = { bottomLeft: { x: 0, y: 64, z: 0 }, axis: frameAxis, width: 2, height: 3 };
+    const along = (position: BlockPosition, distance: number): BlockPosition =>
+        frameAxis === 'x' ? { ...position, x: position.x + distance } : { ...position, z: position.z + distance };
+    const write = (position: BlockPosition, identifier: string, states: Record<string, string> = {}): void => {
+        harness.dimension.set(position, identifier, states);
+        for (const face of BLOCK_FACES) {
+            const neighbor = offset(position, face);
+            if (harness.dimension.identifierAt(neighbor) === NETHER_PORTAL)
+                harness.neighborChanged(neighbor, opposite(face));
+        }
+    };
+
+    for (let a = -1; a <= frame.width; a += 1) {
+        for (let dy = -1; dy <= frame.height; dy += 1) {
+            const side = a === -1 || a === frame.width;
+            const end = dy === -1 || dy === frame.height;
+            if (side || end) write({ ...along(frame.bottomLeft, a), y: frame.bottomLeft.y + dy }, OBSIDIAN);
+        }
+    }
+    const interior = portalInterior(frame);
+    for (const position of interior) write(position, NETHER_PORTAL, { [PORTAL_AXIS_STATE]: portalAxis });
+    return interior.every((position) => harness.dimension.identifierAt(position) === NETHER_PORTAL);
+};
+
+/**
+ * Whether a portal a command writes into a frame stands, for every frame axis and every axis the
+ * palette declares: the Java result, and the Bedrock Dedicated Server's difference as its own gap.
+ */
+const compareCommandPortals = (): { gaps: string[]; cases: ReturnType<typeof parityCase>[] } => {
+    const gaps: string[] = [];
+    const cases = FRAME_AXES.flatMap((frameAxis) =>
+        PORTAL_AXIS_VALUES.map((portalAxis) => {
+            const id = `frame-${frameAxis}:axis-${portalAxis}`;
+            const stands = commandPortalStands(frameAxis, portalAxis);
+            if (!stands) gaps.push(`command-portal:${id}`);
+            // The Bedrock Dedicated Server keeps only the portal whose axis matches its frame.
+            if (stands && portalAxis !== frameAxis) gaps.push(`bedrock-clears-command-portal:${id}`);
+            return parityCase(`command-portal:${id}`, id, 'Nether portal written by a command', stands);
+        })
+    );
+    return { gaps, cases };
+};
+
 describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
     const capture = loadBlockPaletteCapture();
     const portalBlockComparison = comparePortalBlocks(capture);
@@ -282,15 +354,23 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
     const linkComparison = compareLinks();
     const travelComparison = compareTravelRules();
     const constantComparison = compareConstants();
+    const commandPortalComparison = compareCommandPortals();
     const { gaps: linkGaps, links } = linkComparison;
     const { gaps: travelGaps, travelRules } = travelComparison;
     const { gaps: constantGaps, constants, detail: constantDetail } = constantComparison;
-    const verdict = checkAllowList(FAMILIES.blocksPortals, [...blockGaps, ...linkGaps, ...travelGaps, ...constantGaps]);
+    const verdict = checkAllowList(FAMILIES.blocksPortals, [
+        ...blockGaps,
+        ...linkGaps,
+        ...travelGaps,
+        ...constantGaps,
+        ...commandPortalComparison.gaps
+    ]);
     reportParityCases(FAMILIES.blocksPortals, import.meta.filename, [
         ...portalBlockComparison.cases,
         ...linkComparison.cases,
         ...travelComparison.cases,
-        ...constantComparison.cases
+        ...constantComparison.cases,
+        ...commandPortalComparison.cases
     ]);
     const unexpected = (prefix: string): string[] => verdict.unexpected.filter((gap) => gap.startsWith(prefix));
 
@@ -313,6 +393,14 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
 
     it('matches the Java constants the research note quotes', () => {
         expect(unexpected('constant:'), constantDetail.join('\n')).toEqual([]);
+    });
+
+    it('keeps a portal a command writes into a frame, whatever its axis, as Java does', () => {
+        expect(unexpected('command-portal:')).toEqual([]);
+    });
+
+    it('records each portal the Bedrock Dedicated Server would clear as an intentional difference', () => {
+        expect(unexpected('bedrock-clears-command-portal:')).toEqual([]);
     });
 
     it('carries no stale allow-list entry', () => {
