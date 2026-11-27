@@ -141,6 +141,11 @@ export const FAMILIES = {
     protocolWireRoundtrip: 'protocol.wire-roundtrip',
     /** The packet sequence a world change sends round-trips through every registered codec. */
     protocolDimensionChange: 'protocol.dimension-change',
+    /**
+     * What a Java Edition client can do on the server and is shown of the world, one row per
+     * behavior, through the server's Java packet handlers and presenter.
+     */
+    protocolJavaClient: 'protocol.java-client',
 
     /**
      * When behavior pack scripts run against the pinned Bedrock Dedicated Server: module top
