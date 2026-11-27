@@ -94,6 +94,14 @@ describe('network', () => {
 
             expect(payloads.blockProperties.map((property) => property.name)).toEqual(['mypack:lamp']);
             expect(payloads.report.inventedBlocks).toBe(1);
+            // Its item form: a vanilla client that finds a declared block with no item closes
+            // on the loading screen.
+            expect(payloads.items.find((entry) => entry.name === 'mypack:lamp')).toEqual({
+                name: 'mypack:lamp',
+                runtimeId: -9745,
+                componentBased: false,
+                version: 2
+            });
 
             // The definition is network NBT the client reads, so the test
             // reads it the same way rather than pinning bytes wire owns.

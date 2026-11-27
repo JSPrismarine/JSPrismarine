@@ -208,7 +208,7 @@ const resultStack =
  * replaces a definition whole, so Mojang's geometry, material instances and
  * `internal_vanilla_data` are gone by the time the registry is resolved. The
  * 98 vanilla blocks Mojang defines in data still have to be declared, and
- * those travel as the bytes a Bedrock Dedicated Server 1.26.51.1 sent.
+ * those travel as the bytes a Bedrock Dedicated Server 1.26.60.6 sent.
  */
 const inventedBlocksOf = (content: ServerContent, client: BlockPalette) =>
     [...content.blocks.types.values()].filter((type) => client.entry(type.identifier) === undefined);
@@ -267,7 +267,9 @@ export const buildNetworkContentPayloads = (
         // The two `item_properties` keys no Java component decides and the
         // creative catalog does: which tab an item sits in and under which
         // heading.
-        bedrockOnly: creativeItemProperties(catalog)
+        bedrockOnly: creativeItemProperties(catalog),
+        // Each declared block needs an item, or the client closes before it spawns.
+        blocks: declared.blockIds
     });
 
     const itemIds = itemIdsOf(items.entries);
