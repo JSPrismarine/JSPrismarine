@@ -8,6 +8,8 @@
  * by two and a half first. Bedrock's `minecraft:experience_reward` writes the same idea in Molang,
  * but with a float `Math.Random` that cannot give an animal its full one-to-three spread, so the
  * server runs Java's numbers.
+ *
+ * @javaSee LivingEntity.dropExperience
  */
 /** How one Java mob type computes its death experience. */
 export type ExperienceRule =
@@ -162,12 +164,18 @@ export const deathExperience = (rule: ExperienceRule, facts: ExperienceFacts): n
     }
 };
 
-/** The orb sizes Java's `ExperienceOrb.getExperienceValue` splits an award into, largest first. */
+/**
+ * The orb sizes Java's `ExperienceOrb.getExperienceValue` splits an award into, largest first.
+ *
+ * @javaSource ExperienceOrb.getExperienceValue
+ */
 const ORB_SIZES = [2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1] as const;
 
 /**
  * Splits an award into orbs the way Java's `ExperienceOrb.award` does: the largest size that fits,
  * again and again.
+ *
+ * @javaSource ExperienceOrb.award
  */
 export const experienceOrbs = (points: number): readonly number[] => {
     const orbs: number[] = [];

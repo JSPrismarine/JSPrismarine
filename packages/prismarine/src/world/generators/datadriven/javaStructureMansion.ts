@@ -86,7 +86,11 @@ const STEP: Readonly<Record<Horizontal, { readonly x: number; readonly z: number
     west: { x: -1, z: 0 }
 };
 
-/** Java's `Direction.from2DDataValue`, which is the order a corridor draws its next heading in. */
+/**
+ * Java's `Direction.from2DDataValue`, which is the order a corridor draws its next heading in.
+ *
+ * @javaSource Direction.from2DDataValue
+ */
 const BY_2D_DATA = ['south', 'west', 'north', 'east'] as const;
 
 /** Java's quarter turns, in the order `Rotation.values()` lists them. */
@@ -94,7 +98,11 @@ const ROTATIONS = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90
 
 const quarterTurnsOf = (rotation: Rotation): number => ROTATIONS.indexOf(rotation);
 
-/** Java's `Rotation.getRotated`: one turn followed by another. */
+/**
+ * Java's `Rotation.getRotated`: one turn followed by another.
+ *
+ * @javaSource Rotation.getRotated
+ */
 const rotated = (rotation: Rotation, by: Rotation): Rotation =>
     rotationOf(quarterTurnsOf(rotation) + quarterTurnsOf(by));
 
@@ -104,7 +112,11 @@ const counterClockwiseOf = (facing: Horizontal): Horizontal => HORIZONTAL[(HORIZ
 
 const oppositeOf = (facing: Horizontal): Horizontal => HORIZONTAL[(HORIZONTAL.indexOf(facing) + 2) % 4]!;
 
-/** Java's `Rotation.rotate(Direction)`: where a direction points once the mansion is turned. */
+/**
+ * Java's `Rotation.rotate(Direction)`: where a direction points once the mansion is turned.
+ *
+ * @javaSource Rotation.rotate(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;
+ */
 const turned = (facing: Horizontal, rotation: Rotation): Horizontal =>
     HORIZONTAL[(HORIZONTAL.indexOf(facing) + quarterTurnsOf(rotation)) % 4]!;
 
@@ -174,7 +186,11 @@ const isHouse = (grid: SimpleGrid, x: number, y: number): boolean => {
     return value === CORRIDOR || value === ROOM || value === START_ROOM || value === TEST_ROOM;
 };
 
-/** Java's `Util.shuffle`, which draws one index per entry from the end of the list down. */
+/**
+ * Java's `Util.shuffle`, which draws one index per entry from the end of the list down.
+ *
+ * @javaSource Util.shuffle
+ */
 const shuffle = <T>(values: T[], random: RandomSource): void => {
     for (let size = values.length; size > 1; size--) {
         const index = random.nextInt(size);
@@ -1124,6 +1140,8 @@ const ROOM_2x2_CORNERS: Readonly<Record<string, { east: number; south: number; t
  *
  * A turned template keeps its own extent, so the block that was its zero moves to whichever
  * corner the turn put it in. The mansion only ever asks about the 7 by 7 room cell.
+ *
+ * @javaSource StructureTemplate.getZeroPositionWithTransform(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Mirror;Lnet/minecraft/world/level/block/Rotation;II)Lnet/minecraft/core/BlockPos;
  */
 const zeroPositionWithTransform = (spot: Spot, rotation: Rotation, sizeX: number, sizeZ: number): Spot => {
     const lastX = sizeX - 1;
@@ -1140,7 +1158,11 @@ const zeroPositionWithTransform = (spot: Spot, rotation: Rotation, sizeX: number
     }
 };
 
-/** Java's `BlockPos.rotate`: an offset turned about the origin. */
+/**
+ * Java's `BlockPos.rotate`: an offset turned about the origin.
+ *
+ * @javaSource BlockPos.rotate
+ */
 const turnedOffset = (spot: Spot, rotation: Rotation): Spot => {
     switch (rotation) {
         case 'clockwise_90':

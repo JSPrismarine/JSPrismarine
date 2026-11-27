@@ -10,6 +10,8 @@
  *
  * The three constants the command passes are Java's `LocateCommand` ones: a radius of 6400
  * blocks, 32 blocks between columns and 64 between samples of a column.
+ *
+ * @javaSee BiomeSource.findClosestBiome3d
  */
 import type { BiomeResolver } from '@jsprismarine/worldgen';
 
@@ -88,6 +90,7 @@ export const findClosestBiome = (options: BiomeSearchOptions): BiomeSearchHit | 
  * @param lower - The lowest value allowed, inclusive.
  * @param upper - The highest value allowed, inclusive.
  * @param step - How far apart the values are.
+ * @javaSource Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;
  */
 function* outFromOrigin(origin: number, lower: number, upper: number, step: number): Generator<number> {
     const start = Math.min(Math.max(origin, lower), upper);
@@ -118,6 +121,7 @@ function* outFromOrigin(origin: number, lower: number, upper: number, step: numb
  * that leaves it eastward and turns south, with legs that grow by one every second turn.
  *
  * @param radius - How many legs out to walk, which is how many steps the farthest offset is.
+ * @javaSource BlockPos.spiralAround
  */
 function* spiralAround(radius: number): Generator<{ readonly x: number; readonly z: number }> {
     // East, south, west, north: +x, +z, -x, -z.

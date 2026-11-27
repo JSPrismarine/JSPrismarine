@@ -5,6 +5,8 @@
  * A Bedrock player raises a shield by sneaking, which is input the client decides (exclusion 2
  * of the parity claim). Whether the raised shield turns a blow aside, by how much, and what that
  * does to the shield and the attacker is the server's, and these are Java's rules for it.
+ *
+ * @javaSee LivingEntity.applyItemBlocking
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { HolderSet } from '@jsprismarine/items';
@@ -60,6 +62,7 @@ export const blockingAngle = (at: EntityPosition, yaw: number, from: EntityPosit
  * held within it too.
  *
  * @param inSet - Whether the blow's damage type is in a reduction's `type` set.
+ * @javaSource BlocksAttacks.resolveBlockedDamage
  */
 export const blockedDamage = (
     rules: BlockingRules,

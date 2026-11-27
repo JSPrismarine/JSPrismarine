@@ -245,6 +245,8 @@ export default class Chunk {
     /**
      * Ticks players have spent near this chunk, Java's `ChunkAccess.inhabitedTime`, which ramps
      * the regional difficulty here and is saved with the chunk.
+     *
+     * @javaSee ChunkAccess.inhabitedTime
      */
     private inhabitedTime = 0;
 
@@ -275,6 +277,8 @@ export default class Chunk {
      * positions Java marks for post-processing here as well as in {@link pendingFluidTicks}, and
      * the world runs the shape update on each when the chunk enters. Neither Bedrock's format nor
      * this server keeps the list on disk.
+     *
+     * @javaSource LevelChunk.postProcessGeneration
      */
     private readonly pendingShapeUpdates: PendingShapeUpdate[] = [];
     /** The block ticks the chunk was saved with, in world coordinates, until a world schedules them. */

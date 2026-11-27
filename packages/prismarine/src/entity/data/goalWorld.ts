@@ -35,7 +35,11 @@ import type { EntityScene } from './scene';
 import { canTargetPlayer } from './playerTargets';
 import { clientOwnsMovement } from '../playerOverlay';
 
-/** How far Java's `LivingEntity.hasLineOfSight` looks, in blocks. */
+/**
+ * How far Java's `LivingEntity.hasLineOfSight` looks, in blocks.
+ *
+ * @javaSource LivingEntity.hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z
+ */
 const LINE_OF_SIGHT_REACH = 128;
 
 /** The dimension whose dragon fight counts crystals. */

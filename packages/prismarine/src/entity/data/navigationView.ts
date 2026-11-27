@@ -408,7 +408,11 @@ export const navigationViewOf = (
         return { open: isSet(lower?.['open_bit']), iron: identifier === IRON_DOOR };
     };
 
-    /** Java's `LevelReader.getPathfindingCostFromLightLevels`: the light-dependent brightness less 0.5. */
+    /**
+     * Java's `LevelReader.getPathfindingCostFromLightLevels`: the light-dependent brightness less 0.5.
+     *
+     * @javaSource LevelReader.getPathfindingCostFromLightLevels
+     */
     const lightCost = (position: EntityPosition): number => {
         const rawBrightness = blocks.light(position) / SUNLIT_LIGHT_LEVEL;
         const brightness = rawBrightness / (4 - 3 * rawBrightness);

@@ -245,7 +245,11 @@ const isOpaque = (name: string, heightmap: 'WORLD_SURFACE_WG' | 'OCEAN_FLOOR_WG'
     return heightmap === 'WORLD_SURFACE_WG' || (name !== 'minecraft:water' && name !== 'minecraft:lava');
 };
 
-/** Java's `Mth.randomBetweenInclusive`. */
+/**
+ * Java's `Mth.randomBetweenInclusive`.
+ *
+ * @javaSource Mth.randomBetweenInclusive
+ */
 const inclusive = (random: RandomSource, min: number, max: number): number =>
     max <= min ? min : min + random.nextInt(max - min + 1);
 

@@ -7,6 +7,8 @@
  * a parched climbs onto later keeps them. Who may leash a mob is the server's to decide, so the
  * sensor drops the group that carries them as soon as a mob is in the first seat, and the pack's
  * own `minecraft:all_riders_dismounted` gives it back once the last rider is off.
+ *
+ * @javaSee CamelHusk.canBeLeashed
  */
 import { isRecord } from '../utils/isRecord';
 

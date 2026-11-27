@@ -117,7 +117,9 @@ const readExperience = (holder: ExperienceHolder, unit: 'points' | 'levels'): nu
  *
  * Java clamps it just below full rather than to 1, so setting the points to
  * exactly what the level costs does not promote the player - which is what
- * Java's `Player.setExperiencePoints` does with its `(f - 1) / f` ceiling.
+ * Java's `ServerPlayer.setExperiencePoints` does with its `(f - 1) / f` ceiling.
+ *
+ * @javaSource ServerPlayer.setExperiencePoints
  */
 const barFractionOf = (level: number, points: number): number => {
     const needed = pointsForNextLevel(Math.max(0, Math.trunc(level)));

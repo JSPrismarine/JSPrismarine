@@ -27,7 +27,11 @@ import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructurePiece } from './javaStructureWorld';
 import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
-/** Java's `Util.getRandom`: one entry of an array, by a single draw. */
+/**
+ * Java's `Util.getRandom`: one entry of an array, by a single draw.
+ *
+ * @javaSource Util.getRandom([Ljava/lang/Object;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;
+ */
 const randomOf = <T>(values: readonly T[], random: RandomSource): T => values[random.nextInt(values.length)]!;
 
 /** The middle block of a chunk, which is where Java takes a legacy structure's generation point. */

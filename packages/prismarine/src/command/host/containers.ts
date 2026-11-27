@@ -92,6 +92,8 @@ const DEFAULT_MAX_STACK_SIZE = 64;
  * Java's `ItemStack.isSameItemSameComponents`, as far as a record carries: an
  * enchanted pickaxe does not merge with a plain one, and a shulker box holding
  * something does not merge with an empty one.
+ *
+ * @javaSource ItemStack.isSameItemSameComponents
  */
 const mergeable = (held: ContentItemDrop, drop: ContentItemDrop): boolean =>
     held.identifier === drop.identifier &&
@@ -119,7 +121,7 @@ const mergeable = (held: ContentItemDrop, drop: ContentItemDrop): boolean =>
  * Puts stacks into a container, growing matching stacks before taking an empty
  * slot.
  *
- * Java's `LootCommand.insertIntoContainer`, step for step, because the steps
+ * Java's `LootCommand.distributeToContainer`, step for step, because the steps
  * are what decide the answer: a stack that half fits leaves the rest behind
  * rather than being refused whole, and that remainder is what the reported
  * count leaves out.
@@ -128,6 +130,7 @@ const mergeable = (held: ContentItemDrop, drop: ContentItemDrop): boolean =>
  * that decides to refuse writes nothing.
  *
  * @returns How many items went in, which is zero when the container was full.
+ * @javaSource LootCommand.distributeToContainer
  */
 export const insertIntoContainer = (
     container: BlockContainerSlots,

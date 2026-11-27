@@ -103,7 +103,11 @@ export const closestPointOf = (box: Box, at: EntityPosition): EntityPosition => 
     z: Math.min(Math.max(at.z, box.min.z), box.max.z)
 });
 
-/** Java's `AABB.distanceToSqr(AABB)`: the squared gap between two boxes, 0 where they touch. */
+/**
+ * Java's `AABB.distanceToSqr(AABB)`: the squared gap between two boxes, 0 where they touch.
+ *
+ * @javaSource AABB.distanceToSqr(Lnet/minecraft/world/phys/AABB;)D
+ */
 export const boxDistanceSquared = (a: Box, b: Box): number => {
     const gap = (aMin: number, aMax: number, bMin: number, bMax: number): number =>
         Math.max(aMin - bMax, bMin - aMax, 0);
@@ -117,6 +121,8 @@ export const boxDistanceSquared = (a: Box, b: Box): number => {
  * How strongly a splash potion reaches a living thing, Java's `ThrownSplashPotion.onHitAsPotion`:
  * `1 - distance / 4` for a box within 4 blocks of the potion's own at the point it hit, and nothing
  * further out.
+ *
+ * @javaSource ThrownSplashPotion.onHitAsPotion
  */
 export const splashStrength = (potion: Box, target: Box): number | undefined => {
     const squared = boxDistanceSquared(potion, target);
@@ -126,6 +132,8 @@ export const splashStrength = (potion: Box, target: Box): number | undefined => 
 /**
  * The ticks a splash gives a lasting effect, `(int) (strength * duration * scale + 0.5)`, or
  * undefined when that ends within 20 ticks, which Java's `MobEffectInstance.endsWithin(20)` skips.
+ *
+ * @javaSource MobEffectInstance.endsWithin
  */
 export const splashDuration = (ticks: number, strength: number, scale: number): number | undefined => {
     const duration = Math.trunc(strength * ticks * scale + 0.5);

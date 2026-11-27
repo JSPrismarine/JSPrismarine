@@ -5,6 +5,8 @@
  * The world owns the players, the entities and the blocks, so it answers the four questions a
  * cycle asks through {@link SpawnerSurroundings} and acts on the answer: the mobs to make and
  * the block entity to write back. Nothing here reaches a chunk or a client.
+ *
+ * @javaSee BaseSpawner.serverTick
  */
 import { Types } from '@jsprismarine/nbt';
 import type { NBTTagCompound } from '@jsprismarine/nbt';

@@ -9,6 +9,8 @@ import type { PortalBlockRef } from '../world/portal/DimensionTravel';
  * and, for a player, the `players_nether_portal_default_delay` game rule (80) or
  * `players_nether_portal_creative_delay` (0) when the player is in creative. Bedrock's "one tick
  * in creative" is the same thing seen from the client.
+ *
+ * @javaSource NetherPortalBlock.getPortalTransitionTime
  */
 export const PORTAL_TRANSITION_TICKS = {
     /** A player in survival, adventure or spectator mode: four seconds. */
@@ -25,6 +27,8 @@ export const PORTAL_TRANSITION_TICKS = {
  * Java's `Entity.getDimensionChangingDelay` is 300 ticks, and `Player` and `VehicleEntity`
  * return 10 instead, so a mob waits fifteen seconds and a player half a second. A vehicle
  * carrying a player takes the player's delay; that case arrives with vehicles.
+ *
+ * @javaSource Entity.getDimensionChangingDelay
  */
 export const PORTAL_COOLDOWN_TICKS = {
     /** Fifteen seconds, which is what Bedrock writes to `PortalCooldown` on arrival. */

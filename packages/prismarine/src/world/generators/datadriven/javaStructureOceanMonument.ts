@@ -24,6 +24,8 @@
  * `#minecraft:required_ocean_monument_surrounding`. A builder cannot read a biome tag, so the
  * check is left out and the structure's own biome list is all that holds a monument to deep
  * ocean.
+ *
+ * @javaSee OceanMonumentPieces$MonumentBuilding.postProcess
  */
 import type { BlockState, Direction } from '@jsprismarine/features';
 import { ALL_DIRECTIONS, DIRECTION_STEPS, HORIZONTAL_DIRECTIONS, oppositeDirection } from '@jsprismarine/features';
@@ -65,7 +67,11 @@ const FILL_KEEP: ReadonlySet<string> = new Set([
     'minecraft:water'
 ]);
 
-/** Java's `StructurePiece.isReplaceableByStructures`, which bounds how far a pillar reaches down. */
+/**
+ * Java's `StructurePiece.isReplaceableByStructures`, which bounds how far a pillar reaches down.
+ *
+ * @javaSource StructurePiece.isReplaceableByStructures
+ */
 const REPLACEABLE: ReadonlySet<string> = new Set([
     'minecraft:air',
     'minecraft:cave_air',
@@ -91,7 +97,11 @@ interface WorldPosition {
     readonly z: number;
 }
 
-/** Java's `StructurePiece.makeBoundingBox`: the depth runs along the piece's own facing. */
+/**
+ * Java's `StructurePiece.makeBoundingBox`: the depth runs along the piece's own facing.
+ *
+ * @javaSource StructurePiece.makeBoundingBox
+ */
 const orientedBox = (
     x: number,
     y: number,
@@ -105,22 +115,38 @@ const orientedBox = (
         ? boxFromSize(x, y, z, width, height, depth)
         : boxFromSize(x, y, z, depth, height, width);
 
-/** Java's `StructurePiece.getWorldX`. */
+/**
+ * Java's `StructurePiece.getWorldX`.
+ *
+ * @javaSource StructurePiece.getWorldX
+ */
 const worldX = (box: BoundingBox, orientation: Orientation, x: number, z: number): number =>
     orientation === 'west' ? box.maxX - z : orientation === 'east' ? box.minX + z : box.minX + x;
 
-/** Java's `StructurePiece.getWorldZ`. */
+/**
+ * Java's `StructurePiece.getWorldZ`.
+ *
+ * @javaSource StructurePiece.getWorldZ
+ */
 const worldZ = (box: BoundingBox, orientation: Orientation, x: number, z: number): number =>
     orientation === 'north' ? box.maxZ - z : orientation === 'south' ? box.minZ + z : box.minZ + x;
 
-/** Java's `StructurePiece.getWorldPos`. */
+/**
+ * Java's `StructurePiece.getWorldPos`.
+ *
+ * @javaSource StructurePiece.getWorldPos
+ */
 const worldPos = (box: BoundingBox, orientation: Orientation, x: number, y: number, z: number): WorldPosition => ({
     x: worldX(box, orientation, x, z),
     y: box.minY + y,
     z: worldZ(box, orientation, x, z)
 });
 
-/** Java's `BoundingBox.fromCorners`. */
+/**
+ * Java's `BoundingBox.fromCorners`.
+ *
+ * @javaSource BoundingBox.fromCorners
+ */
 const boxBetween = (one: WorldPosition, other: WorldPosition): BoundingBox => ({
     minX: Math.min(one.x, other.x),
     minY: Math.min(one.y, other.y),
@@ -165,12 +191,20 @@ abstract class MonumentPiece implements StructurePiece {
         return worldZ(this.boundingBox, this.orientation, x, z);
     }
 
-    /** Java's `StructurePiece.placeBlock`. */
+    /**
+     * Java's `StructurePiece.placeBlock`.
+     *
+     * @javaSource StructurePiece.placeBlock
+     */
     protected put(writer: StructureWriter, x: number, y: number, z: number, state: BlockState): void {
         writer.setBlock(this.worldX(x, z), this.worldY(y), this.worldZ(x, z), state);
     }
 
-    /** Java's `StructurePiece.getBlock`. */
+    /**
+     * Java's `StructurePiece.getBlock`.
+     *
+     * @javaSource StructurePiece.getBlock
+     */
     protected read(writer: StructureWriter, x: number, y: number, z: number): BlockState {
         return writer.blockAt(this.worldX(x, z), this.worldY(y), this.worldZ(x, z));
     }
@@ -378,7 +412,11 @@ interface RoomGraph {
     readonly core: RoomDefinition;
 }
 
-/** Java's `Util.shuffle`, which is `Collections.shuffle`: Fisher-Yates walked from the top down. */
+/**
+ * Java's `Util.shuffle`, which is `Collections.shuffle`: Fisher-Yates walked from the top down.
+ *
+ * @javaSource Util.shuffle
+ */
 const shuffle = <T>(values: T[], random: RandomSource): void => {
     for (let index = values.length; index > 1; index--) {
         const swap = random.nextInt(index);
@@ -511,7 +549,11 @@ const claimCoreCells = (core: RoomDefinition): void => {
 /** How far a child room's own frame sits from the monument's corner. */
 type RoomOffset = WorldPosition;
 
-/** Java's `OceanMonumentPiece.makeBoundingBox`, in cells rather than blocks. */
+/**
+ * Java's `OceanMonumentPiece.makeBoundingBox`, in cells rather than blocks.
+ *
+ * @javaSource OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox
+ */
 const roomBox = (
     orientation: Orientation,
     room: RoomDefinition,

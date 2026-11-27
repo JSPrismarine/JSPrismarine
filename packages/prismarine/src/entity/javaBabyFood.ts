@@ -18,7 +18,11 @@ import { isRecord } from '../utils/isRecord';
 import { entityFileIdentifier, withComponentRewritten } from './definitionOverlay';
 import { bedrockTagItems, entryItem, JAVA_BREEDING_FOOD_TAGS, modernEntry } from './javaBreedingFood';
 
-/** Seconds per item from Java's `AbstractHorse.handleEating`, which every horse, donkey and mule runs. */
+/**
+ * Seconds per item from Java's `AbstractHorse.handleEating`, which every horse, donkey and mule runs.
+ *
+ * @javaSource AbstractHorse.handleEating
+ */
 const HORSE_SECONDS: Readonly<Record<string, number>> = {
     'minecraft:wheat': 20,
     'minecraft:sugar': 30,
@@ -30,7 +34,11 @@ const HORSE_SECONDS: Readonly<Record<string, number>> = {
     'minecraft:enchanted_golden_apple': 240
 };
 
-/** Seconds per item from Java's `Llama.handleEating`, which `TraderLlama` inherits. */
+/**
+ * Seconds per item from Java's `Llama.handleEating`, which `TraderLlama` inherits.
+ *
+ * @javaSource Llama.handleEating
+ */
 const LLAMA_SECONDS: Readonly<Record<string, number>> = { 'minecraft:wheat': 10, 'minecraft:hay_block': 90 };
 
 /** How one Java baby grows when fed. */

@@ -8,6 +8,8 @@
  * saddle slot, so a player steers one bareback. Who drives a mount is the server's to decide, so
  * Java's rule decides: the controls move into a saddled group, and the adult takes a saddle the way
  * the pack's zombie horse does.
+ *
+ * @javaSee AbstractHorse.getControllingPassenger
  */
 import { isRecord } from '../utils/isRecord';
 

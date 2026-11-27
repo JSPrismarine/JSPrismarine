@@ -543,6 +543,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
      * Ticks since the player last slept or died, Java's `Stats.TIME_SINCE_REST`, which decides
      * whether phantoms come for them. A statistic, as in Java, kept beside the player's logged
      * components rather than in them, so a tick spent awake writes nothing to the change log.
+     *
+     * @javaSource Stats.TIME_SINCE_REST
      */
     public getTimeSinceRest(): number {
         return this.timeSinceRest;

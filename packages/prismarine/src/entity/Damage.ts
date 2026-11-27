@@ -43,6 +43,8 @@ const MIN_ARMOR_FRACTION = 5;
  * Java's `CombatRules.getDamageAfterMagicAbsorb`, and the cap is why a second
  * full set of Protection IV is worth nothing: four pieces already reach 16 of
  * the 20 the formula will take.
+ *
+ * @javaSource CombatRules.getDamageAfterMagicAbsorb
  */
 const MAX_ENCHANTMENT_PROTECTION = 20;
 const ENCHANTMENT_DIVISOR = 25;

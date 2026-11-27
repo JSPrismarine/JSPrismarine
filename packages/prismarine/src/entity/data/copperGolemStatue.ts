@@ -11,6 +11,8 @@
  * `minecraft:cardinal_direction` is the golem's facing, Java's `Direction.fromYRot`. The goal's
  * `on_place` event then runs, which drops what the golem holds, and the golem is gone, as
  * `turnToStatue` discards it.
+ *
+ * @javaSee Direction.fromYRot
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
@@ -53,7 +55,11 @@ export interface CopperGolemStatueHost {
     remove(id: number, reason: string): void;
 }
 
-/** Java's `Direction.fromYRot`: the facing a yaw rounds to, by quarter turns. */
+/**
+ * Java's `Direction.fromYRot`: the facing a yaw rounds to, by quarter turns.
+ *
+ * @javaSource Direction.fromYRot
+ */
 export const facingOfYaw = (yaw: number): (typeof FACINGS)[number] =>
     FACINGS[Math.floor(yaw / 90 + 0.5) & 3] ?? 'south';
 

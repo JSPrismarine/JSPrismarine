@@ -253,7 +253,11 @@ const ARRIVAL_HOLD_TICKS = 40;
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
-/** Experience points a death drops per level, Java's `Player.getBaseExperienceReward`. */
+/**
+ * Experience points a death drops per level, Java's `Player.getBaseExperienceReward`.
+ *
+ * @javaSource Player.getBaseExperienceReward
+ */
 const DEATH_EXPERIENCE_PER_LEVEL = 7;
 
 /** The most experience points a death drops, whatever the level. */
@@ -2964,6 +2968,7 @@ export default class PlayerSession {
      * The change is a message: it runs at the next input step through `DimensionTravel.move`,
      * so the handler that reports the finish waits for nothing.
      * @returns Whether credits were pending. A finish with none pending changes nothing.
+     * @javaSource PlayerList.respawn
      */
     public completeCredits(): boolean {
         const arrival = this.pendingCredits;

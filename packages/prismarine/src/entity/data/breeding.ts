@@ -23,6 +23,8 @@ import type { DataEntity } from './DataEntity';
  * How long a pair waits before breeding again when the type writes no `breed_cooldown`, in
  * seconds. Java's `Animal.finalizeSpawnChildFromBreeding` sets both parents' age to 6000 ticks,
  * and no vanilla Bedrock file writes the field, so this is every vanilla animal's wait.
+ *
+ * @javaSource Animal.finalizeSpawnChildFromBreeding
  */
 const DEFAULT_BREED_COOLDOWN = 300;
 

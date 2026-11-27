@@ -100,6 +100,8 @@ export interface MobBodyStepOptions {
      * that eases its own body rather than having a move control turn it: Java's `Squid.aiStep`
      * eases a tenth of the way. The mob moves toward the waypoint whatever it faces. Takes
      * precedence over {@link MobBodyStepOptions.maxTurn}.
+     *
+     * @javaSee Squid.aiStep
      */
     readonly turnShare?: number;
 }
@@ -125,7 +127,11 @@ const turnToward = (from: number, to: number, maxTurn: number): number => {
 /** Java's default jump power for an entity without a jump component or attribute. */
 const DEFAULT_JUMP_POWER = 0.42;
 
-/** Java's `LivingEntity.jumpInLiquid` upward impulse, in blocks per tick. */
+/**
+ * Java's `LivingEntity.jumpInLiquid` upward impulse, in blocks per tick.
+ *
+ * @javaSource LivingEntity.jumpInLiquid
+ */
 const FLUID_JUMP_IMPULSE = 0.04;
 
 /**
@@ -360,6 +366,8 @@ export class MobBody {
      *
      * Undefined keeps the client's default, which is to draw it; the end crystal item
      * spawns with false, as Java's `EndCrystalItem.useOn` does.
+     *
+     * @javaSee EndCrystalItem.useOn
      */
     /**
      * Whether a mob whose pickup goal declares `pickup_based_on_chance` picks up items: Java's
@@ -403,6 +411,8 @@ export class MobBody {
     /**
      * Ticks since a living entity died, Java's `LivingEntity.deathTime`. It stays in the world
      * for its death animation, and `EntityRuntime` removes it once this reaches Java's limit.
+     *
+     * @javaSee LivingEntity.deathTime
      */
     public get deathTime(): number {
         return this.logged.deathTime;
@@ -638,7 +648,11 @@ export class MobBody {
         this.write('loveTicks', loveTicks);
     }
 
-    /** How many ticks before the entity may breed again, from Java's `Animal.ageUp`. */
+    /**
+     * How many ticks before the entity may breed again, from Java's `AgeableMob.ageUp`.
+     *
+     * @javaSee AgeableMob.ageUp(I)V
+     */
     public get breedCooldown(): number {
         return this.logged.breedCooldown;
     }

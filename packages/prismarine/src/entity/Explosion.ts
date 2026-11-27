@@ -142,6 +142,8 @@ const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(wor
  *
  * The blast has already written air over the block by the time this runs, so there is nothing
  * to clear first.
+ *
+ * @javaSource TntBlock.wasExploded
  */
 const primeTnt = (world: World, at: BlockPosition, source: StoreActor | null): void => {
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
@@ -183,6 +185,8 @@ const griefingAllowed = (world: World): boolean => {
  * The eyes are at Java's `EntityDimensions.eyeHeight` default. A player's own is 1.62 rather than
  * that, which is 0.09 higher than the default puts it; it moves the knockback direction by a
  * fraction of a degree and nothing else, because the damage reads the whole collision box instead.
+ *
+ * @javaSource EntityDimensions.eyeHeight()F
  */
 const entitiesNear = (world: World, at: Vector3, power: number): readonly CaughtEntity[] => {
     const index = world.getEntityIndex();

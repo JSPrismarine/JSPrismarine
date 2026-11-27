@@ -79,7 +79,11 @@ const macroDecimal = (value: number): string => {
     return `${sign}${whole}.${fraction}`;
 };
 
-/** The text Java's `MacroFunction.stringify` substitutes for a tag. */
+/**
+ * The text Java's `MacroFunction.stringify` substitutes for a tag.
+ *
+ * @javaSource MacroFunction.stringify
+ */
 const macroText = (tag: NbtTag): string => {
     switch (tag.type) {
         case 'byte':

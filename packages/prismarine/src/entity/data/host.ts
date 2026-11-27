@@ -40,6 +40,8 @@ export interface ContentItemEntity {
     /**
      * Ticks before anything may pick the stack up, Java's `ItemEntity.pickupDelay`. Left out by a
      * host that keeps none, which reads as no delay.
+     *
+     * @javaSee ItemEntity.pickupDelay
      */
     readonly pickupDelay?: number;
 }
@@ -213,6 +215,7 @@ export interface EntityHostFacts {
      * Java's `Entity.checkInsideBlocks` calls `entityInside`.
      * @param at - The block's position.
      * @param entity - The body that moved into it.
+     * @javaSee Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I
      */
     stepOn?(at: EntityPosition, entity: DataEntity): void;
     /**
@@ -221,6 +224,7 @@ export interface EntityHostFacts {
      * @param id - The player's runtime id.
      * @param category - The Bedrock cooldown category, such as `shield`.
      * @param ticks - How long the cooldown runs.
+     * @javaSee ItemCooldowns.addCooldown(Lnet/minecraft/resources/Identifier;I)V
      */
     itemCooldown?(id: number, category: string, ticks: number): void;
     /**

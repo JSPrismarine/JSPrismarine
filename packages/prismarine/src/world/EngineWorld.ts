@@ -146,6 +146,8 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
          * behind a chest reads the chest rather than a number somebody had to remember to
          * write. `comparatorOutput` is `ComparatorBlockEntity.outputSignal`, which only the
          * comparator writes.
+         *
+         * @javaSource BlockBehaviour.getAnalogOutputSignal
          */
         getBlockEntityData: (at) => {
             const record = blockEntities.at(at);

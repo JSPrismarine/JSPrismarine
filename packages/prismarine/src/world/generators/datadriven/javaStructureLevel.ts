@@ -16,6 +16,8 @@
  * village asks for the same few hundred of them while it grows, and a chunk's own neighbors ask
  * again. A height query does not memoize the column it walked, because it stops at the first
  * block that matches and has no blocks below it to keep.
+ *
+ * @javaSee ChunkGenerator.getBaseHeight
  */
 import type { BlockState, HeightmapType } from '@jsprismarine/features';
 import type { NoiseGeneratorSettings, RandomState } from '@jsprismarine/worldgen';
@@ -46,7 +48,11 @@ export interface NoiseStructureLevelOptions {
     readonly isSolid: (state: BlockState) => boolean;
     /** Which fluid a state holds, which is what the motion blocking heightmap asks. */
     readonly isFluid: (state: BlockState) => boolean;
-    /** Java's `Biome.coldEnoughToSnow`, which needs the biome registry rather than the noise. */
+    /**
+     * Java's `Biome.coldEnoughToSnow`, which needs the biome registry rather than the noise.
+     *
+     * @javaSource Biome.coldEnoughToSnow
+     */
     readonly coldEnoughToSnow?: (x: number, y: number, z: number) => boolean;
 }
 
@@ -62,6 +68,8 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
      *
      * Java's `NoiseSettings.clampToHeightAccessor` trims the noise column to the dimension, and
      * a dimension shorter than its noise would otherwise report a surface it does not generate.
+     *
+     * @javaSource NoiseSettings.clampToHeightAccessor
      */
     const ceiling = options.minY + options.height - 1;
 
@@ -107,7 +115,11 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
         return name === undefined || name === AIR ? AIR_STATE : { name, properties: {} };
     };
 
-    /** Java's `Heightmap.Types.isOpaque`, over the identifier rather than the state. */
+    /**
+     * Java's `Heightmap.Types.isOpaque`, over the identifier rather than the state.
+     *
+     * @javaSource Heightmap$Types.isOpaque()Ljava/util/function/Predicate;
+     */
     const test = (heightmap: HeightmapType): ((state: BlockState) => boolean) => {
         switch (heightmap) {
             case 'WORLD_SURFACE':

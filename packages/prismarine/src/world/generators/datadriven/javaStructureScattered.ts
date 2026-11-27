@@ -53,11 +53,19 @@ const isDirection = (value: string): value is Direction => DIRECTION_NAMES.has(v
 const isPieceFacing = (value: string): value is PieceFacing =>
     HORIZONTAL_DIRECTIONS.some((candidate) => candidate === value);
 
-/** Java's `Direction.Plane.HORIZONTAL.getRandomDirection`: one draw over four faces. */
+/**
+ * Java's `Direction.Plane.HORIZONTAL.getRandomDirection`: one draw over four faces.
+ *
+ * @javaSource Direction$Plane.getRandomDirection
+ */
 const randomHorizontal = (random: RandomSource): PieceFacing =>
     HORIZONTAL_DIRECTIONS[random.nextInt(HORIZONTAL_DIRECTIONS.length)] ?? 'north';
 
-/** The mirror and turn Java's `StructurePiece.setOrientation` derives from an orientation. */
+/**
+ * The mirror and turn Java's `StructurePiece.setOrientation` derives from an orientation.
+ *
+ * @javaSee StructurePiece.setOrientation
+ */
 interface StateTransform {
     /** Whether `Mirror.LEFT_RIGHT` runs first, which inverts the z axis. */
     readonly mirrored: boolean;
@@ -72,7 +80,11 @@ const STATE_TRANSFORMS: Readonly<Record<PieceFacing, StateTransform>> = {
     west: { mirrored: true, quarterTurns: 1 }
 };
 
-/** Java's `Mirror.LEFT_RIGHT`: north and south swap, the other four faces stay. */
+/**
+ * Java's `Mirror.LEFT_RIGHT`: north and south swap, the other four faces stay.
+ *
+ * @javaSource Mirror.LEFT_RIGHT
+ */
 const mirrorAcrossZ = (direction: Direction): Direction =>
     direction === 'north' ? 'south' : direction === 'south' ? 'north' : direction;
 
@@ -114,7 +126,11 @@ const turnState = (state: BlockState, transform: StateTransform): BlockState => 
     return { name: state.name, properties };
 };
 
-/** Java's `StructurePiece.makeBoundingBox`: the depth runs along the piece's own facing. */
+/**
+ * Java's `StructurePiece.makeBoundingBox`: the depth runs along the piece's own facing.
+ *
+ * @javaSource StructurePiece.makeBoundingBox
+ */
 const scatteredBox = (
     x: number,
     y: number,
@@ -133,6 +149,8 @@ const scatteredBox = (
  *
  * @returns The mean terrain height under the box's footprint, truncated the way Java's integer
  *   division truncates.
+ *
+ * @javaSource ScatteredFeaturePiece.updateAverageGroundHeight
  */
 const averageGroundHeight = (level: StructureLevel, box: BoundingBox): number => {
     let total = 0;
@@ -175,6 +193,8 @@ const chunkCenter = (chunkX: number, chunkZ: number): { x: number; z: number } =
  * and the settling happen behind the biome check. Settling is the expensive half: it averages
  * the terrain over the piece's whole footprint, which for a desert pyramid is 441 columns
  * against the generation point's one.
+ *
+ * @javaSource SinglePieceStructure.findGenerationPoint
  */
 const scatteredLayout = (
     context: StructureBuildContext,
@@ -250,26 +270,42 @@ abstract class ScatteredPiece implements StructurePiece {
     /** Writes the piece's blocks, in Java's own order so the random stream matches. */
     public abstract place(writer: StructureWriter, random: RandomSource): void;
 
-    /** Java's `StructurePiece.getWorldX`. */
+    /**
+     * Java's `StructurePiece.getWorldX`.
+     *
+     * @javaSource StructurePiece.getWorldX
+     */
     protected worldX(x: number, z: number): number {
         if (this.facing === 'west') return this.boundingBox.maxX - z;
         if (this.facing === 'east') return this.boundingBox.minX + z;
         return this.boundingBox.minX + x;
     }
 
-    /** Java's `StructurePiece.getWorldY`. */
+    /**
+     * Java's `StructurePiece.getWorldY`.
+     *
+     * @javaSource StructurePiece.getWorldY
+     */
     protected worldY(y: number): number {
         return this.boundingBox.minY + y;
     }
 
-    /** Java's `StructurePiece.getWorldZ`. */
+    /**
+     * Java's `StructurePiece.getWorldZ`.
+     *
+     * @javaSource StructurePiece.getWorldZ
+     */
     protected worldZ(x: number, z: number): number {
         if (this.facing === 'north') return this.boundingBox.maxZ - z;
         if (this.facing === 'south') return this.boundingBox.minZ + z;
         return this.boundingBox.minZ + x;
     }
 
-    /** Java's `StructurePiece.placeBlock`. */
+    /**
+     * Java's `StructurePiece.placeBlock`.
+     *
+     * @javaSource StructurePiece.placeBlock
+     */
     protected put(writer: StructureWriter, x: number, y: number, z: number, state: BlockState): void {
         writer.setBlock(this.worldX(x, z), this.worldY(y), this.worldZ(x, z), turnState(state, this.transform));
     }
@@ -285,13 +321,21 @@ abstract class ScatteredPiece implements StructurePiece {
         writer.setBlockEntity(this.worldX(x, z), this.worldY(y), this.worldZ(x, z), request);
     }
 
-    /** Java's `StructurePiece.createChest`, without the `reorient` pass over the neighbors. */
+    /**
+     * Java's `StructurePiece.createChest`, without the `reorient` pass over the neighbors.
+     *
+     * @javaSource StructurePiece.createChest(Lnet/minecraft/world/level/WorldGenLevel;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;Lnet/minecraft/util/RandomSource;IIILnet/minecraft/resources/ResourceKey;)Z
+     */
     protected chest(writer: StructureWriter, x: number, y: number, z: number, lootTable: string): void {
         this.put(writer, x, y, z, CHEST);
         this.attach(writer, x, y, z, { id: 'minecraft:chest', lootTable });
     }
 
-    /** Java's `StructurePiece.createDispenser`. */
+    /**
+     * Java's `StructurePiece.createDispenser`.
+     *
+     * @javaSource StructurePiece.createDispenser
+     */
     protected dispenser(
         writer: StructureWriter,
         x: number,
@@ -304,7 +348,11 @@ abstract class ScatteredPiece implements StructurePiece {
         this.attach(writer, x, y, z, { id: 'minecraft:dispenser', lootTable });
     }
 
-    /** Java's `StructurePiece.generateBox` with one state, which walks y, then x, then z. */
+    /**
+     * Java's `StructurePiece.generateBox` with one state, which walks y, then x, then z.
+     *
+     * @javaSource StructurePiece.generateBox(Lnet/minecraft/world/level/WorldGenLevel;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;IIIIIILnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;Z)V
+     */
     protected fill(
         writer: StructureWriter,
         x1: number,
@@ -352,6 +400,8 @@ abstract class ScatteredPiece implements StructurePiece {
      *
      * The walk stops as soon as a write is dropped, because the clip box spans the chunk's whole
      * height and so a first dropped write means the column is not in this chunk at all.
+     *
+     * @javaSource StructurePiece.fillColumnDown
      */
     protected fillColumnDown(writer: StructureWriter, state: BlockState, x: number, y: number, z: number): void {
         const worldX = this.worldX(x, z);
@@ -497,7 +547,11 @@ export const buildDesertPyramid: StructureBuilder = (context): StructureLayout |
 /** The extent of Java's `JungleTemplePiece`. */
 const JUNGLE_TEMPLE = { width: 12, height: 10, depth: 15 } as const;
 
-/** Java's `JungleTemplePiece.MossStoneSelector`: two draws in five come out plain cobblestone. */
+/**
+ * Java's `JungleTemplePiece.MossStoneSelector`: two draws in five come out plain cobblestone.
+ *
+ * @javaSource JungleTemplePiece$MossStoneSelector.next
+ */
 const mossStone = (random: RandomSource): BlockState => (random.nextFloat() < 0.4 ? COBBLESTONE : MOSSY_COBBLESTONE);
 
 /** The four corner spires of the temple roof. */
@@ -757,7 +811,11 @@ const BURIED_TREASURE_BED: ReadonlySet<string> = new Set([
     'minecraft:diorite'
 ]);
 
-/** Java's `BuriedTreasurePiece.isLiquid`, which the sand fill checks the chest's own block for. */
+/**
+ * Java's `BuriedTreasurePiece.isLiquid`, which the sand fill checks the chest's own block for.
+ *
+ * @javaSource BuriedTreasurePieces$BuriedTreasurePiece.isLiquid
+ */
 const isLiquid = (state: BlockState): boolean =>
     state.name === 'minecraft:water' || state.name === 'minecraft:lava' || state.properties.waterlogged === 'true';
 

@@ -7,6 +7,8 @@
  * class's `pickUpItem`. No goal runs it, so a zombie chasing a player still puts on a helmet it
  * walks over. Bedrock's `minecraft:behavior.pickup_items` only walks a mob to items: the runtime
  * runs the touch here for the mobs whose Java class picks up, by the rule each class follows.
+ *
+ * @javaSee Mob.aiStep
  */
 import type { ContentPosition } from '../../content/world/adapter';
 

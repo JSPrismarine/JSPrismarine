@@ -78,6 +78,8 @@ export interface DamageSourceFacts {
          * The attacker's own push on top, Java's `LivingEntity.causeExtraKnockback`: its strength,
          * which is half the attacker's `minecraft:attack_knockback`, and the attacker's yaw in
          * degrees, the way the push goes.
+         *
+         * @javaSource LivingEntity.causeExtraKnockback
          */
         readonly extra?: { readonly power: number; readonly yaw: number };
     };

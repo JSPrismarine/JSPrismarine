@@ -401,6 +401,7 @@ export class CommandManager implements Service {
      * @param entityId - The runtime id of a command block minecart running it, which the command
      *   runs as and from, as Java's `MinecartCommandBase` source has it, so `@s` is the cart.
      * @returns What it reported, or undefined while the `commandblocksenabled` game rule is off.
+     * @javaSource BaseCommandBlock.performCommand
      */
     public runCommandBlock(
         world: World,

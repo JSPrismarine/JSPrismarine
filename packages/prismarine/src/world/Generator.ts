@@ -186,6 +186,8 @@ export interface Generator {
      *
      * Optional, because a generator with no cheaper answer than its own chunks has nothing to
      * add here and a caller falls back to generating one.
+     *
+     * @javaSee ChunkGenerator.getBaseHeight
      */
     surfaceAt?(x: number, z: number, seed?: bigint): SurfaceProbe;
 
@@ -212,6 +214,8 @@ export interface Generator {
      * A noise generator answers its settings' `sea_level`; the flat generator answers Java's
      * -63. Optional, because a generator with no water line of its own has nothing to say and
      * the world then assumes the Overworld's 63, which is what Java's debug generator answers.
+     *
+     * @javaSee ChunkGenerator.getSeaLevel
      */
     readonly seaLevel?: number;
 
@@ -267,6 +271,7 @@ export interface Generator {
      * layout rather than a chunk.
      *
      * @param at - The block.
+     * @javaSource StructureManager.getStructureAt(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/Structure;)Lnet/minecraft/world/level/levelgen/structure/StructureStart;
      */
     structureStartsContaining?(
         at: { readonly x: number; readonly y: number; readonly z: number },
@@ -276,6 +281,8 @@ export interface Generator {
     /**
      * The biome at a block as Java's `ServerLevel.getBiome` answers it, read from the noise rather
      * than a chunk: the dimension's biome cells with `BiomeManager`'s jitter.
+     *
+     * @javaSee LevelReader.getBiome
      */
     biomeAt?(x: number, y: number, z: number, seed?: bigint): string | undefined;
 
@@ -290,6 +297,8 @@ export interface Generator {
      *
      * @returns The first grid cell met that holds a wanted biome, or undefined when the radius
      * held none or no wanted biome can occur in this dimension.
+     *
+     * @javaSee BiomeSource.findClosestBiome3d
      */
     locateBiome?(request: BiomeSearchRequest): BiomeSearchResult | undefined;
 

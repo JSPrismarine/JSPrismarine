@@ -244,6 +244,8 @@ export const itemViewOf = (entity: DataEntity): ItemView | undefined => {
  * Whether two stacks are the same item with the same data, whatever their counts, so one may
  * draw the other in: Java's `ItemStack.isSameItemSameComponents`, as far as a stack carries. A
  * renamed or enchanted stack keeps what makes it so.
+ *
+ * @javaSource ItemStack.isSameItemSameComponents
  */
 const sameItem = (left: StoredItemStack, right: StoredItemStack): boolean =>
     sameDrop(itemDropOf({ ...left, count: 0 }), itemDropOf({ ...right, count: 0 }));
@@ -401,6 +403,7 @@ export class DroppedItems {
      * Hurts a dropped stack through the store's damage pipeline, which takes health off it with
      * no grace period, as Java's `ItemEntity.hurt`, and removes it when it dies.
      * @returns Whether the blow landed.
+     * @javaSource Entity.hurt
      */
     public hurt(entity: DataEntity, amount: number, cause: string): boolean {
         if (itemViewOf(entity) === undefined || amount <= 0) return false;
@@ -455,6 +458,8 @@ export class DroppedItems {
      * An item that would read a block of a chunk that is not loaded waits where it is, with the
      * speed it has, and writes nothing, so the probe never loads a chunk. An item at rest writes
      * nothing either.
+     *
+     * @javaSource Entity.move
      */
     private move(entity: DataEntity, tuning: ItemTuning): void {
         const position = entity.position;

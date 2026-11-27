@@ -8,6 +8,8 @@
  * rods only for a player's kill, a sheep's wool is its own color, a slime drops slime balls only
  * at the smallest size, and a creeper a skeleton shot drops a music disc. A roll without them takes
  * the other branch of every one of those, which is what the runtime's death did before.
+ *
+ * @javaSee LivingEntity.dropFromLootTable(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;Z)V
  */
 import type { DamageSource as PredicateDamageSource, EntityView } from '@jsprismarine/predicates';
 

@@ -33,6 +33,8 @@ const AIR: BlockRef = { name: 'minecraft:air', states: {} };
  *
  * Java's `EntityDimensions.eyeHeight` default. It sets the direction of the shove and nothing
  * else, because the damage reads the whole collision box rather than one point.
+ *
+ * @javaSource EntityDimensions.eyeHeight()F
  */
 const EYE_HEIGHT_FRACTION = 0.85;
 

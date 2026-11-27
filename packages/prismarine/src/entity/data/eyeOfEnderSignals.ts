@@ -178,6 +178,8 @@ const signalTarget = (from: EntityPosition, target: EntityPosition, tuning: EyeT
  * ground, and brakes at the point. Vertically the climb eases toward one block a tick upward while
  * the eye is below the point and downward once it is above, which is what makes it hover there
  * rather than sail past.
+ *
+ * @javaSource EyeOfEnder.updateDeltaMovement
  */
 const nextMotion = (
     motion: EntityPosition,
@@ -261,6 +263,8 @@ export class EyeOfEnderSignals {
      * One tick of flight, Java's `EyeOfEnder.tick` in its order: the move by the velocity the eye
      * had, the next velocity from where it now is, and once `life` passes the lifetime the break
      * sound, the discard, and the drop or the burst.
+     *
+     * @javaSource EyeOfEnder.tick
      */
     public update(entity: DataEntity): void {
         const view = eyeViewOf(entity);

@@ -54,7 +54,11 @@ const refusingInputErrors = <T>(run: () => T): T => {
     }
 };
 
-/** Java's `Mth.floor` into an `int`: down, saturated, and NaN to 0. */
+/**
+ * Java's `Mth.floor` into an `int`: down, saturated, and NaN to 0.
+ *
+ * @javaSource Mth.floor(D)I
+ */
 const javaFloor = (value: number): number =>
     Number.isNaN(value) ? 0 : Math.min(Math.max(Math.floor(value), -(2 ** 31)), 2 ** 31 - 1);
 

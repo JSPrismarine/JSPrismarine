@@ -7,6 +7,8 @@
  * fraction of its width and height (`PortalShape.getRelativePosition`) and applies that
  * fraction to the destination rectangle, turning 90 degrees when the two axes differ
  * (`bipush 90`). This module is those three steps over a block lookup.
+ *
+ * @javaSee NetherPortalBlock.getExitPortal
  */
 import {
     PORTAL_MAX_HEIGHT,
@@ -31,7 +33,7 @@ export interface IndexedBlock {
 export type BlockLookup = (at: BlockPosition) => IndexedBlock | undefined;
 
 /**
- * The interior of one lit portal, Java's `BlockUtil.FoundRectangle`.
+ * The interior of one lit portal, Java's `BlockUtil$FoundRectangle`.
  *
  * `minCorner` is the lowest interior block at the negative end of the axis; the interior
  * runs `width` blocks toward positive `axis` and `height` blocks up from it.
@@ -49,7 +51,11 @@ export interface TravelerSize {
     readonly height: number;
 }
 
-/** Where a traveler stands inside a portal, as fractions. Java's `PortalShape.getRelativePosition`. */
+/**
+ * Where a traveler stands inside a portal, as fractions. Java's `PortalShape.getRelativePosition`.
+ *
+ * @javaSee PortalShape.getRelativePosition
+ */
 export interface RelativePortalPosition {
     /** Fraction of the free width along the axis, 0 at the negative end and 1 at the positive. */
     readonly x: number;
@@ -59,7 +65,27 @@ export interface RelativePortalPosition {
     readonly z: number;
 }
 
-/** Java's `Direction.Axis` rotation on a yaw: a quarter turn when the destination's axis differs. */
+/**
+ * Java's `Direction.Axis` rotation on a yaw: a quarter turn when the destination's axis differs.
+ *
+ * @javaSource Direction$Axis.values
+ * @javaSource Direction$Axis.valueOf
+ * @javaSource Direction$Axis.byName
+ * @javaSource Direction$Axis.getName
+ * @javaSource Direction$Axis.isVertical
+ * @javaSource Direction$Axis.isHorizontal
+ * @javaSource Direction$Axis.getPositive
+ * @javaSource Direction$Axis.getNegative
+ * @javaSource Direction$Axis.getDirections
+ * @javaSource Direction$Axis.toString
+ * @javaSource Direction$Axis.getRandom
+ * @javaSource Direction$Axis.test
+ * @javaSource Direction$Axis.getPlane
+ * @javaSource Direction$Axis.getSerializedName
+ * @javaSource Direction$Axis.choose(III)I
+ * @javaSource Direction$Axis.choose(DDD)D
+ * @javaSource Direction$Axis.choose(ZZZ)Z
+ */
 export const PORTAL_AXIS_TURN_DEGREES = 90;
 
 const isPortalAt = (blockAt: BlockLookup, at: BlockPosition): boolean => {
@@ -132,6 +158,7 @@ const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
  * fraction of the width and height left over once its own size is taken off.
  *
  * @param at - The traveler's feet.
+ * @javaSource PortalShape.getRelativePosition
  */
 export const relativePosition = (
     rectangle: PortalRectangle,
@@ -159,6 +186,7 @@ export const relativePosition = (
  * portal interior is air by construction.
  *
  * @returns The traveler's feet in the destination world.
+ * @javaSource NetherPortalBlock.createDimensionTransition
  */
 export const exitPosition = (
     rectangle: PortalRectangle,

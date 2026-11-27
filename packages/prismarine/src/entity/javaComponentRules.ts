@@ -94,6 +94,8 @@ const DAY_TICKS = 24_000;
 /**
  * The stretch of the day Java's `Level.isBrightOutside` is false in the overworld's clear weather,
  * `getSkyDarken() >= 4`, which a fox sleeps outside of.
+ *
+ * @javaSource Level.isBrightOutside
  */
 const darkOutside = (): DayWindow => {
     const bright = (time: number): boolean => overworldSkyDarken(time % DAY_TICKS, 'clear') < 4;
@@ -185,7 +187,7 @@ const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
     rewrite: withoutWaterWeaponSwap
 };
 
-/** Java's `Float.MAX_VALUE`, the blow `Parrot.mobInteract` deals a parrot that eats a cookie. */
+/** The JDK's `Float.MAX_VALUE`, the blow `Parrot.mobInteract` deals a parrot that eats a cookie. */
 const FLOAT_MAX_VALUE = 3.4028234663852886e38;
 
 /** Ticks of Poison `Parrot.mobInteract` gives a parrot that eats a cookie. */

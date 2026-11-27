@@ -17,6 +17,8 @@ import { boxContains } from './javaStructureWorld';
  * The blocks Java's `StructurePiece.placeBlock` marks for post-processing once it has placed them,
  * its `SHAPE_CHECK_BLOCKS`: fences and bars that join what stands beside them, and torches and
  * ladders that let go of a wall a later piece took away.
+ *
+ * @javaSource StructurePiece.placeBlock
  */
 export const SHAPE_CHECK_BLOCKS: ReadonlySet<string> = new Set([
     'minecraft:nether_brick_fence',

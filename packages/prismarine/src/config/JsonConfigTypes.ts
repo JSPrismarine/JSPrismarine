@@ -622,6 +622,8 @@ export interface WorldPlayerData {
     /**
      * Ticks since this player last slept or died, Java's `Stats.TIME_SINCE_REST` and Bedrock's
      * `TimeSinceRest`. Absent on a record written before this field existed, which reads as 0.
+     *
+     * @javaSee Stats.TIME_SINCE_REST
      */
     timeSinceRest?: number;
     /**

@@ -24,7 +24,11 @@ import { isRecord } from '../utils/isRecord';
 import { entityFileIdentifier, withComponentReplaced } from './definitionOverlay';
 import { under } from './javaComponentTuning';
 
-/** The Bedrock potion ids of Java's `Potions.SWIFTNESS` and `Potions.INVISIBILITY`. */
+/**
+ * The Bedrock potion ids of Java's `Potions.SWIFTNESS` and `Potions.INVISIBILITY`.
+ *
+ * @javaSource Potions.SWIFTNESS
+ */
 const SWIFTNESS_POTION = 14;
 const INVISIBILITY_POTION = 7;
 

@@ -374,12 +374,18 @@ const FALLBACK_PLAYER_BOX = FALLBACK_PLAYER_FILE['minecraft:entity'].components[
 
 /** Java's mob no-despawn distance; a nearby player resets `noActionTime`. */
 const MOB_NO_DESPAWN_DISTANCE = 32;
-/** How long Java's `LivingEntity.tick` keeps `lastHurtByMob` after the blow, in ticks. */
+/**
+ * How long Java's `LivingEntity.tick` keeps `lastHurtByMob` after the blow, in ticks.
+ *
+ * @javaSource LivingEntity.tick
+ */
 const LAST_HURT_BY_MEMORY_TICKS = 100;
 
 /**
  * How long a dead mob stays for its death animation: Java's `LivingEntity.tickDeath` counts
  * `deathTime` up once a tick and removes the mob when it reaches 20.
+ *
+ * @javaSource LivingEntity.tickDeath
  */
 const DEATH_DURATION_TICKS = 20;
 
@@ -412,13 +418,21 @@ interface PlayerBlows {
 }
 
 const PROJECTILE_KNOCKBACK = 0.4;
-/** What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5. */
+/**
+ * What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5.
+ *
+ * @javaSource ThrownEnderpearl.onHit
+ */
 const ENDER_PEARL_DAMAGE = 5;
 
 /** Why an entity heals, as the Script API's `EntityHealCause` names it. */
 export type HealCause = 'Heal' | 'Regeneration' | 'SelfHeal' | 'TotemOfUndying';
 
-/** What a melee blow adds to its target's upward motion beyond the push, Java's `IronGolem.doHurtTarget` 0.4. */
+/**
+ * What a melee blow adds to its target's upward motion beyond the push, Java's `IronGolem.doHurtTarget` 0.4.
+ *
+ * @javaSource IronGolem.doHurtTarget
+ */
 const JAVA_ATTACK_LIFT: ReadonlyMap<string, number> = new Map([['minecraft:iron_golem', 0.4]]);
 
 /**
@@ -450,6 +464,7 @@ const wasBlockedWhole = (outcome: DamageOutcome): boolean =>
  * blocks of each other.
  *
  * @param dx - The second body's horizontal offset from the first.
+ * @javaSource Entity.push(Lnet/minecraft/world/entity/Entity;)V
  */
 const entityPushImpulse = (dx: number, dz: number): EntityPosition | undefined => {
     const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
@@ -462,7 +477,11 @@ const entityPushImpulse = (dx: number, dz: number): EntityPosition | undefined =
 /** The Bedrock name of a Java sound event a component names, such as `item.shield.block`. */
 const bedrockSoundOf = (sound: string): string => sound.replace(/^minecraft:/, '');
 
-/** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
+/**
+ * The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides.
+ *
+ * @javaSource Entity.dampensVibrations
+ */
 const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
 
 const PLAYER_WIDTH = PLAYER_BOX.width;
@@ -514,7 +533,11 @@ const restitutedY = (
     return (share * gravity - attempted) * (1 + share * (airDrag - 1)) * bounciness;
 };
 
-/** Java's `LivingEntity.computeModifiedFriction`: a friction with its loss scaled, kept within 0 and 1. */
+/**
+ * Java's `LivingEntity.computeModifiedFriction`: a friction with its loss scaled, kept within 0 and 1.
+ *
+ * @javaSource LivingEntity.computeModifiedFriction
+ */
 const modifiedFriction = (friction: number, modifier: number): number =>
     Math.min(1, Math.max(0, 1 - (1 - friction) * modifier));
 
@@ -540,6 +563,8 @@ const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): 
 /**
  * The effects Java's `LivingEntity.canBeAffected` refuses a type in each entity type tag: the
  * silverfish infestation, the slime oozing, and an undead mob's poison and regeneration.
+ *
+ * @javaSource LivingEntity.canBeAffected
  */
 const JAVA_TAG_EFFECT_IMMUNITIES: readonly (readonly [string, readonly string[]])[] = [
     ['minecraft:immune_to_infested', ['minecraft:infested']],
@@ -1057,7 +1082,11 @@ export class EntityRuntime implements EntityScene {
         number,
         { readonly position: EntityPosition; readonly cells: Set<string> }
     >();
-    /** The player who put each animal in love, Java's `Animal.loveCause`, until it breeds or the entity goes. */
+    /**
+     * The player who put each animal in love, Java's `Animal.loveCause`, until it breeds or the entity goes.
+     *
+     * @javaSee Animal.loveCause
+     */
     private readonly loveCauses = new Map<number, string>();
     /** When each trader last restocked, and how often that day. */
     private readonly restocks = new Map<
@@ -1439,6 +1468,7 @@ export class EntityRuntime implements EntityScene {
      * within 32 blocks of the bell's center hears it, which writes the game time into a brain's
      * `HEARD_BELL_TIME` and sends a villager to hide.
      * @param at - The bell's block position.
+     * @javaSource BellBlockEntity.updateEntities
      */
     public ringBell(at: EntityPosition): void {
         const center = { x: Math.floor(at.x) + 0.5, y: Math.floor(at.y) + 0.5, z: Math.floor(at.z) + 0.5 };
@@ -1624,6 +1654,8 @@ export class EntityRuntime implements EntityScene {
      * Java's `Zombie.finalizeSpawn` jockey rolls for a baby zombie that has just spawned: it may
      * climb onto a free chicken near it or get a chicken spawned under it. See
      * {@link assembleChickenJockey}.
+     *
+     * @javaSource Zombie.finalizeSpawn
      */
     private seatChickenJockey(rider: DataEntity): void {
         if (!CHICKEN_JOCKEY_RIDERS.has(rider.identifier) || !rider.instance.hasComponent('minecraft:is_baby')) return;
@@ -1664,6 +1696,8 @@ export class EntityRuntime implements EntityScene {
      * riders it names, each spawned with its own event, the way Java's `Spider.finalizeSpawn`
      * seats a skeleton on its spider. A rider that names its own riders, such as a strider's
      * baby strider jockey, brings them in turn.
+     *
+     * @javaSource Spider.finalizeSpawn
      */
     private addRiders(vehicle: DataEntity): void {
         const params = vehicle.instance.componentParams('minecraft:addrider');
@@ -2324,6 +2358,7 @@ export class EntityRuntime implements EntityScene {
      * @param playerId - Runtime id of the player holding the leads.
      * @param holderId - Runtime id of the entity taking them.
      * @returns Whether any lead moved.
+     * @javaSource Leashable.canHaveALeashAttachedTo
      */
     public transferLeashes(playerId: number, holderId: number): boolean {
         const holder = this.store.get(holderId);
@@ -2351,6 +2386,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Snaps every lead whose entity got past its snap distance from the holder, dropping the
      * lead item when entity drops are on, which is Java's `Leashable.tickLeash`.
+     *
+     * @javaSource Leashable.tickLeash
      */
     private tickLeashes(): void {
         for (const [leashedId] of [...this.leashHolders]) {
@@ -2613,6 +2650,7 @@ export class EntityRuntime implements EntityScene {
      * Java's `EndCrystal.hurtServer` skipping sources already in `#is_explosion`.
      *
      * @returns Whether the entity exploded, which also removed it.
+     * @javaSource EndCrystal.hurtServer
      */
     private explodeOnDeath(entity: DataEntity): boolean {
         const params = entity.instance.componentParams('minecraft:explode');
@@ -2745,6 +2783,8 @@ export class EntityRuntime implements EntityScene {
      * ticking mob rather than only the ones a spawn rule made, which is what empties a world when
      * its difficulty changes to peaceful and what clears a monster loaded from a save on its first
      * tick. The type's rule is Java's own, from the pinned server's `EntityType.isAllowedInPeaceful`.
+     *
+     * @javaSource Mob.checkDespawn
      */
     private discardNotAllowedInPeaceful(shouldTick?: (position: EntityPosition) => boolean): void {
         if (this.world.level.difficulty() !== 'peaceful') return;
@@ -2963,6 +3003,8 @@ export class EntityRuntime implements EntityScene {
      * disguise and looking at it (`isLookingAtMe` with tolerance 0.5 over its eyes, half a block
      * up and halfway between) freezes it while it is active, and wakes it while idle when within 12
      * blocks: it then targets that player. An active creaking with no such player near goes idle.
+     *
+     * @javaSource Creaking.checkCanMove
      */
     private creakingCanMove(entity: DataEntity): boolean {
         const { body, brain } = entity;
@@ -3200,6 +3242,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Hands a vibration to a warden's brain, Java's `Warden$VibrationUser.onReceiveVibration`: the
      * entity that made it, and the shooter when that entity is a projectile.
+     *
+     * @javaSource Warden$VibrationUser.onReceiveVibration
      */
     private wardenHears(entity: DataEntity, at: EntityPosition, sourceId: number | undefined): void {
         if (entity.brain === undefined) return;
@@ -3355,6 +3399,8 @@ export class EntityRuntime implements EntityScene {
      * Throws a target an adult hoglin or zoglin hit, Java's `HoglinBase.throwTarget`: by the
      * attacker's attack knockback less the target's resistance, away from the attacker and turned
      * by a whole number of radians from -10 to 10, with a lift of up to half of it.
+     *
+     * @javaSource HoglinBase.throwTarget
      */
     private throwTarget(attacker: MobBody, target: DataEntity): void {
         const strength = this.attackKnockback(attacker) - target.facts.knockbackResistance;
@@ -3625,6 +3671,8 @@ export class EntityRuntime implements EntityScene {
      * One blow to a boat or raft, which has no health: Java's `VehicleEntity.hurtServer` adds it
      * to the vehicle's damage and destroys the vehicle past 40, and a creative player's blow
      * removes it at once without its item.
+     *
+     * @javaSource VehicleEntity.hurtServer
      */
     private hurtVehicle(entity: DataEntity, intent: DamageIntent): DamageOutcome {
         const computation: DamageComputation = { guarded: intent.amount, modifiers: [], amount: intent.amount };
@@ -4098,6 +4146,8 @@ export class EntityRuntime implements EntityScene {
      * A player's remembered blow on one side, as a goal reads it, or undefined when there is none
      * or the other side is gone. The blow it took is forgotten after
      * {@link LAST_HURT_BY_MEMORY_TICKS}, as Java's `LivingEntity.tick` forgets `lastHurtByMob`.
+     *
+     * @javaSource LivingEntity.tick
      */
     private playerBlow(player: number, side: keyof PlayerBlows): GoalCombatMark | undefined {
         const blows = this.playerBlows.get(player);
@@ -4204,6 +4254,9 @@ export class EntityRuntime implements EntityScene {
      *
      * @param dealt - The blow as it arrived, which a sulfur cube's push is sized by even when the
      *   cube is immune to it, as Java's `SulfurCube.hurtServer` passes it to `dealDefaultKnockback`.
+     *
+     * @javaSource LivingEntity.hurtServer
+     * @javaSource SulfurCube.hurtServer
      */
     private shove(
         entity: DataEntity,
@@ -4243,6 +4296,8 @@ export class EntityRuntime implements EntityScene {
      * names, and the attacker's eyes and look. An attacker whose look the server does not know is
      * taken to look at the cube's center, which it hit. Undefined for anything else, and for a
      * blow with no attacker, which takes the plain push.
+     *
+     * @javaSource SulfurCube.knockback
      */
     private carriedCubeKnockback(
         entity: DataEntity,
@@ -4304,6 +4359,8 @@ export class EntityRuntime implements EntityScene {
      * `minecraft:blocks_attacks` in a hand, the main hand first, of a player that has been
      * sneaking for at least the item's block delay, which is how a Bedrock player raises one, and
      * whose shield no axe has disabled.
+     *
+     * @javaSource LivingEntity.getItemBlockingWith
      */
     private raisedShieldOf(entity: DataEntity): RaisedShield | undefined {
         if (!clientOwnsMovement(entity.identifier)) return undefined;
@@ -4338,6 +4395,8 @@ export class EntityRuntime implements EntityScene {
      * nothing for a damage type the shield's `bypassed_by` names or for an arrow with Piercing,
      * and otherwise what its damage reductions take of a blow from in front, measured from where
      * the blow came from.
+     *
+     * @javaSource LivingEntity.applyItemBlocking
      */
     private blockedBy(target: DataEntity, intent: DamageIntent, amount: number): number {
         const rules = this.raisedShieldOf(target)?.type.params(blocksAttacks);
@@ -4363,6 +4422,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Where a blow came from, Java's `DamageSource.getSourcePosition`: what made contact, else the
      * point the blow shoves away from, else the attacker; undefined for a blow from nowhere.
+     *
+     * @javaSource DamageSource.getSourcePosition
      */
     private blowOrigin(intent: DamageIntent): EntityPosition | undefined {
         const contact = intent.projectile === undefined ? undefined : this.store.get(intent.projectile);
@@ -4725,6 +4786,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Adds to another mob's velocity, Java's `Entity.push`. A player the store does not hold is
      * the host's, which can only knock it along the push's horizontal heading.
+     *
+     * @javaSee Entity.push(Lnet/minecraft/world/phys/Vec3;)V
      */
     public pushMob(source: MobBody, target: GoalMob, velocity: EntityPosition): void {
         if (typeof target.id !== 'number') return;
@@ -4844,9 +4907,11 @@ export class EntityRuntime implements EntityScene {
      * and the entity itself goes with it.
      *
      * `mobGriefing` decides whether the hole is carved at all, which is what
-     * Java's `Mob.explode` does with it. With the rule off the blast still
+     * Java's `Creeper.explodeCreeper` does with it. With the rule off the blast still
      * hurts and still shoves, because the rule is about the world rather than
      * about the damage.
+     *
+     * @javaSource Creeper.explodeCreeper
      */
     public explode(source: MobBody): void {
         const self = this.store.get(source.id);
@@ -4940,6 +5005,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Tames a mount for a player, as Java's `AbstractHorse.tameWithName` does when a buck's temper
      * roll wins: the player owns it and its `minecraft:tamemount` tame event runs.
+     *
+     * @javaSource AbstractHorse.tameWithName
      */
     public tameMount(mount: MobBody, player: GoalMob): void {
         const entity = this.store.get(mount.id);
@@ -5063,6 +5130,7 @@ export class EntityRuntime implements EntityScene {
      * @param riderId - The rider using the item.
      * @param item - The item, such as `minecraft:carrot_on_a_stick`.
      * @returns Whether a boost started, which is when the item pays its durability.
+     * @javaSource FoodOnAStickItem.use
      */
     public boostMount(riderId: number, item: string): boolean {
         const vehicleId = this.rides.vehicleOf(riderId);
@@ -5284,6 +5352,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Java's `Mob.aiStep` loot pickup for one mob: each item entity it touches that its class
      * wants, taken by its class's `pickUpItem`. See {@link LootPickupRule}.
+     *
+     * @javaSource Mob.aiStep
      */
     private pickUpLoot(entity: DataEntity): void {
         const rule = this.lootPickupRuleOf(entity);
@@ -5620,6 +5690,8 @@ export class EntityRuntime implements EntityScene {
      *
      * @returns Whether the trader may be traded with: it is alive, awake, grown, not already
      * trading and has offers. A baby only shakes its head, so it does not open a screen.
+     *
+     * @javaSource Villager.startTrading
      */
     public beginTrade(id: number, playerId: number): boolean {
         const entity = this.store.get(id);
@@ -5731,6 +5803,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * Puts an entity in love for a number of ticks, which is what feeding it
      * a breeding item does in Java's `Animal.setInLove`.
+     *
+     * @javaSource Animal.setInLove
      */
     public setInLove(id: number, ticks: number): void {
         const entity = this.store.get(id);
@@ -5909,6 +5983,7 @@ export class EntityRuntime implements EntityScene {
      * the toggle while it flies.
      *
      * @returns Whether the pet's sitting changed.
+     * @javaSource TamableAnimal.setOrderedToSit
      */
     private toggleOrderedToSit(entity: DataEntity, player: number): boolean {
         if (!entity.instance.hasComponent('minecraft:sittable')) return false;
@@ -5932,6 +6007,8 @@ export class EntityRuntime implements EntityScene {
      * the mob can have, and each point below that takes those slots away. Bedrock's llama states
      * 16, its carpet and fifteen chest slots at strength 5, and Java's `Llama.getInventoryColumns`
      * gives three slots per point of strength.
+     *
+     * @javaSource Llama.getInventoryColumns
      */
     private containerCapacityOf(instance: EntityInstance): number {
         const inventory = instance.componentParams('minecraft:inventory');
@@ -6306,6 +6383,8 @@ export class EntityRuntime implements EntityScene {
     /**
      * One tick of a dead mob's death, Java's `LivingEntity.tickDeath`: its `deathTime` counts up,
      * and at {@link DEATH_DURATION_TICKS} it leaves the world. A dying mob does nothing else.
+     *
+     * @javaSource LivingEntity.tickDeath
      */
     private tickDeath(entity: DataEntity): void {
         entity.body.deathTime += 1;
@@ -6320,6 +6399,8 @@ export class EntityRuntime implements EntityScene {
      * its own wool and a slime drops slime balls only at the smallest size. The active
      * `minecraft:loot` still decides whether anything drops, which keeps a calf from dropping a
      * cow's beef. A type Java has no table for rolls the table the component names.
+     *
+     * @javaSource LivingEntity.dropFromLootTable(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;Z)V
      */
     private dropDeathLoot(entity: DataEntity, table: string): void {
         const content = this.content();
@@ -6342,6 +6423,8 @@ export class EntityRuntime implements EntityScene {
      *
      * Java's `LivingEntity.dropExperience` pays only for a mob a player hurt; Java forgets that
      * player after 100 ticks, and this server credits any player in the mob's damage record.
+     *
+     * @javaSource LivingEntity.dropExperience
      */
     private dropDeathExperience(entity: DataEntity): void {
         const rule = JAVA_EXPERIENCE.get(entity.identifier);
@@ -6411,6 +6494,8 @@ export class EntityRuntime implements EntityScene {
      * `minecraft:annotation.break_door` on one draw in ten wherever it spawns, where Java's chance
      * is none in a fresh region and one in ten only in a long-inhabited one. A group a raid adds,
      * as the vindicator's, is no spawn event's, and is left to the raid.
+     *
+     * @javaSource Zombie.finalizeSpawn
      */
     private rollDoorBreaking(entity: DataEntity, event: string): void {
         // Only Java's `Zombie` and its subclasses roll; the drowned's `supportsBreakDoorGoal` is false.
@@ -6542,6 +6627,8 @@ export class EntityRuntime implements EntityScene {
      * Restocks a villager's trades at its job site, by Java's `Villager.shouldRestock` rule: only
      * when something was used, at most `RESTOCKS_PER_DAY` times a day and only once more than
      * `RESTOCK_GAP_TICKS` have passed since the last one. A villager with a player at its screen waits.
+     *
+     * @javaSource Villager.shouldRestock
      */
     public villagerRestock(body: MobBody): void {
         const entity = this.store.get(body.id);
@@ -7035,6 +7122,8 @@ export class EntityRuntime implements EntityScene {
      * piglin or power a creeper. The 5 lands whatever the sensor says of it, as Java's axolotl and
      * creeper take it, but for the types in {@link JAVA_THUNDER_HIT_REPLACED}. The bolt goes once
      * its `life` runs out, after {@link LIGHTNING_LIFE_TICKS}.
+     *
+     * @javaSource LightningBolt.tick
      */
     private tickLightning(bolt: DataEntity): void {
         const age = this.lightningAges.get(bolt.id) ?? 0;
@@ -7153,6 +7242,8 @@ export class EntityRuntime implements EntityScene {
      * Java's `freeze_hurts_extra_types` tag or one that declares `minecraft:freezing_vulnerable`.
      * Whether it can freeze is what its damage sensing makes of a freezing blow, which is where
      * `minecraft:freezing_immune` and Java's `freeze_immune_entity_types` tag turn the cold aside.
+     *
+     * @javaSource LivingEntity.aiStep
      */
     private tickFreezing(entity: DataEntity, tick: number): void {
         if (javaEntityStats(entity.identifier, this.content().entities.javaStats) === undefined) return;
@@ -7184,6 +7275,8 @@ export class EntityRuntime implements EntityScene {
      * times its `fall_damage_multiplier`, floored. Only a type Java's attribute dump lists falls
      * this way, which is exactly the living ones. A landing on what breaks a player's fall is free,
      * as {@link cushions} decides for a player.
+     *
+     * @javaSource Entity.checkFallDamage
      */
     private checkFallDamage(entity: DataEntity, fromY: number): void {
         const stats = javaEntityStats(entity.identifier, this.content().entities.javaStats);
@@ -7415,6 +7508,8 @@ export class EntityRuntime implements EntityScene {
      * Whether a cobweb holds the body: Java's `WebBlock.entityInside` sticks every entity whose
      * box is in one, but a type whose `minecraft:block_movement_slowdown_immunity` lists the web,
      * which is the spider's `Spider.makeStuckInBlock` skipping cobwebs.
+     *
+     * @javaSource WebBlock.entityInside
      */
     private stuckInCobweb(entity: DataEntity): boolean {
         const immunity = entity.instance.componentParams('minecraft:block_movement_slowdown_immunity');
@@ -7723,6 +7818,8 @@ export class EntityRuntime implements EntityScene {
      * bottle hurts the water-sensitive mobs and puts out the burning ones within 4 blocks, a splash
      * potion gives the living things around it its effects scaled by their distance, and a
      * lingering one leaves its cloud.
+     *
+     * @javaSource AbstractThrownPotion.onHit
      */
     private breakPotion(potion: DataEntity, at: EntityPosition): void {
         const contents = thrownPotionContentsOf(potion.spawnData);
@@ -7832,6 +7929,8 @@ export class EntityRuntime implements EntityScene {
      * its owner there (`teleport_owner`, Java's `ThrownEnderpearl.onHit`, which hurts a player
      * owner 5), fires its `definition_event`, bursts (`wind_burst_on_hit`), drops its
      * experience and leaves its area effect cloud.
+     *
+     * @javaSource ThrownEnderpearl.onHit
      */
     private landProjectile(
         projectile: DataEntity,
@@ -7936,6 +8035,8 @@ export class EntityRuntime implements EntityScene {
      * `states` is the state it lands in, `breaks_on_landing` drops it as an item wherever it lands,
      * which is a falling stalactite that has nothing to hang from there, and `hurts` gives its own
      * damage, as Java's `setHurtsEntities` does for a stalactite's tip.
+     *
+     * @javaSource FallingBlockEntity.tick
      */
     private coastFallingBlock(entity: DataEntity, params: Record<string, unknown>): void {
         const blockName = entity.spawnData?.['block'];
@@ -8049,6 +8150,8 @@ export class EntityRuntime implements EntityScene {
      * rail, since `applyNaturalSlowdown` drops the vertical speed.
      * @returns Whether the cart was on a rail. Off one, {@link coast} moves it as a plain body,
      *   which is what `AbstractMinecart.comeOffTrack` does.
+     *
+     * @javaSource OldMinecartBehavior.tick
      */
     private coastOnRails(entity: DataEntity): boolean {
         const { body } = entity;
@@ -8366,6 +8469,7 @@ export class EntityRuntime implements EntityScene {
      * box fits there clear of liquid. A teleport that lands sends the `teleport` game event from
      * where the entity stood.
      * @returns Whether the entity moved.
+     * @javaSource Enderman.teleport(DDD)Z
      */
     private endermanTeleport(id: number, destination: EntityPosition): boolean {
         const entity = this.store.get(id);
@@ -8538,6 +8642,8 @@ export class EntityRuntime implements EntityScene {
      * ticks, as Java's `AbstractNautilus.applyEffects` does for its rider wherever the mount is,
      * in water or out: when the rider has none, and again every 40 game ticks. Any other mount
      * with `minecraft:underwater_mount_breathing` gives it only in water, as Bedrock's does.
+     *
+     * @javaSource AbstractNautilus.applyEffects
      */
     private giveRidersBreath(vehicle: DataEntity): void {
         if (
@@ -8648,10 +8754,18 @@ const GRAVITY = 0.08;
 /** Java's vertical air drag, applied after gravity once a tick. */
 const VERTICAL_AIR_DRAG = 0.98;
 
-/** The fastest a body moves on each axis in a climbable block, from Java's `LivingEntity.handleOnClimbable`. */
+/**
+ * The fastest a body moves on each axis in a climbable block, from Java's `LivingEntity.handleOnClimbable`.
+ *
+ * @javaSource LivingEntity.handleOnClimbable
+ */
 const CLIMB_SPEED = 0.15;
 
-/** The block tag Java's `LivingEntity.onClimbable` reads. */
+/**
+ * The block tag Java's `LivingEntity.onClimbable` reads.
+ *
+ * @javaSource LivingEntity.onClimbable
+ */
 const CLIMBABLE_TAG = 'minecraft:climbable';
 
 /** The entities Java marks `noPhysics`, which move themselves and fall under no gravity. */
@@ -8680,7 +8794,11 @@ const JAVA_DEFAULT_GRAVITY: ReadonlyMap<string, number> = new Map([
 /** The block whose cold freezes a living body inside it. */
 const POWDER_SNOW = 'minecraft:powder_snow';
 
-/** Java's `Entity.getTicksRequiredToFreeze`: how many ticks of cold freeze a body through. */
+/**
+ * Java's `Entity.getTicksRequiredToFreeze`: how many ticks of cold freeze a body through.
+ *
+ * @javaSource Entity.getTicksRequiredToFreeze
+ */
 const TICKS_REQUIRED_TO_FREEZE = 140;
 
 /** How often `LivingEntity.aiStep` hurts a fully frozen body: when `tickCount % 40` is 0. */
@@ -8814,14 +8932,24 @@ const BUBBLE_COLUMN = 'minecraft:bubble_column';
  * Whether a buoyant body floats in a block, given the liquids its `minecraft:buoyant` lists. A
  * bubble column holds a water source, as Java's `BubbleColumnBlock.getFluidState` answers, so a
  * body that floats in water floats in it too.
+ *
+ * @javaSource BubbleColumnBlock.getFluidState
  */
 const buoyantIn = (liquids: ReadonlySet<string>, identifier: string): boolean =>
     liquids.has(identifier) || (identifier === BUBBLE_COLUMN && liquids.has('minecraft:water'));
 
-/** The horizontal share of a move a cobweb lets through, from Java's `WebBlock.entityInside`. */
+/**
+ * The horizontal share of a move a cobweb lets through, from Java's `WebBlock.entityInside`.
+ *
+ * @javaSource WebBlock.entityInside
+ */
 const COBWEB_HORIZONTAL_SPEED = 0.25;
 
-/** The vertical share of a move a cobweb lets through, from Java's `WebBlock.entityInside`. */
+/**
+ * The vertical share of a move a cobweb lets through, from Java's `WebBlock.entityInside`.
+ *
+ * @javaSource WebBlock.entityInside
+ */
 const COBWEB_VERTICAL_SPEED = 0.05;
 
 /** The fire timeout sunlight maintains until an entity reaches shade, in ticks. */
@@ -8833,7 +8961,11 @@ const REPLACEABLE_TAG = 'minecraft:replaceable';
 /** The entity a lightning strike is. */
 const LIGHTNING_BOLT = 'minecraft:lightning_bolt';
 
-/** Java's `Entity.thunderHit`: 5 lightning damage, and 8 seconds of fire. */
+/**
+ * Java's `Entity.thunderHit`: 5 lightning damage, and 8 seconds of fire.
+ *
+ * @javaSource Entity.thunderHit
+ */
 const LIGHTNING_DAMAGE = 5;
 const LIGHTNING_FIRE_TICKS = 160;
 
@@ -8852,10 +8984,18 @@ const JAVA_THUNDER_HIT_REPLACED: ReadonlySet<string> = new Set([
     'minecraft:turtle'
 ]);
 
-/** How far Java's `LightningBolt.tick` inflates the bolt's box to find what it strikes. */
+/**
+ * How far Java's `LightningBolt.tick` inflates the bolt's box to find what it strikes.
+ *
+ * @javaSource LightningBolt.tick
+ */
 const LIGHTNING_REACH = 3;
 
-/** Java's `LightningBolt.life` of 2, run down to below zero, so a bolt with no extra flashes lasts three ticks. */
+/**
+ * Java's `LightningBolt.life` of 2, run down to below zero, so a bolt with no extra flashes lasts three ticks.
+ *
+ * @javaSee LightningBolt.life
+ */
 const LIGHTNING_LIFE_TICKS = 3;
 
 /** The engine event that turns an entity into the block it placed, which the copper golem's statue fires. */
@@ -8880,7 +9020,11 @@ const WALL_CONTACT = 0.01;
 /** Java's tag of the `LeavesBlock`s, which `Ravager.aiStep` breaks. */
 const LEAVES_TAG = 'minecraft:leaves';
 
-/** Bedrock's snow layer, Java's `Blocks.SNOW`. */
+/**
+ * Bedrock's snow layer, Java's `Blocks.SNOW`.
+ *
+ * @javaSource Blocks.SNOW
+ */
 const SNOW_LAYER = 'minecraft:snow_layer';
 
 /** The blocks `SnowLayerBlock.canSurvive` refuses and accepts whatever their top face. */
@@ -8905,7 +9049,11 @@ const RESTOCKS_PER_DAY = 2;
 /** The Java loot table a piglin's barter rolls, from `PiglinAi.getBarterResponseItems`. */
 const JAVA_BARTER_TABLE = 'minecraft:gameplay/piglin_bartering';
 
-/** The component a mob carries while Java's `Zombie.canBreakDoors` or a raid lets it break doors. */
+/**
+ * The component a mob carries while Java's `Zombie.canBreakDoors` or a raid lets it break doors.
+ *
+ * @javaSource Zombie.canBreakDoors()Z
+ */
 const BREAK_DOOR = 'minecraft:annotation.break_door';
 
 /** `Zombie.finalizeSpawn`'s door-breaking chance, which the special multiplier scales. */
@@ -8948,7 +9096,11 @@ const FLUID_DRAG = 0.8;
 /** Java reduces downward acceleration to one sixteenth in a liquid. */
 const FLUID_GRAVITY = GRAVITY / 16;
 
-/** Java's `AbstractBoat.getDefaultGravity`. */
+/**
+ * Java's `AbstractBoat.getDefaultGravity`.
+ *
+ * @javaSource AbstractBoat.getDefaultGravity
+ */
 const BUOYANT_GRAVITY = 0.04;
 
 /** Java's boat horizontal damping outside a water column. */

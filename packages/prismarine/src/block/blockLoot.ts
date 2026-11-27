@@ -183,6 +183,8 @@ export interface BlockDropContext {
      * in a rolled stack survives with a chance of `1 / radius`, so a stone
      * blown up by TNT yields cobblestone three times in four and nothing the
      * fourth. Left out for an ordinary break, which keeps every item.
+     *
+     * @javaSee LootContextParams.EXPLOSION_RADIUS
      */
     readonly explosionRadius?: number;
     /** Replaces the table's own sequenced stream, for a test that wants a scripted draw. */
@@ -194,6 +196,8 @@ export interface BlockDropContext {
      * `copy_components` reads: its `minecraft:container` is what the dropped box carries away.
      * A bed's or banner's color is read from it too, to pick the table of the right color.
      * Left out for a block that holds nothing, which is every block whose table never looks.
+     *
+     * @javaSee LootContextParams.BLOCK_ENTITY
      */
     readonly blockEntity?: BlockEntityData;
 }

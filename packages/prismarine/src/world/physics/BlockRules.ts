@@ -136,6 +136,7 @@ export const isWashedAway = (name: string): boolean => liquidTakesThePlaceOf(nam
  * water falls, lands back on the surface it left and falls again, every other tick, forever.
  * @param {string} name - The block's state name.
  * @returns {boolean} Whether a falling block moves into it.
+ * @javaSource FallingBlock.isFree
  */
 export const fallsThrough = (name: string): boolean =>
     name === 'minecraft:air' || isWashedAway(name) || liquidOf(name) !== null;

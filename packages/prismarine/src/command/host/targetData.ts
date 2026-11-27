@@ -87,7 +87,11 @@ const itemTag = (item: Item | null, slot?: number): NbtCompoundTag | undefined =
     return drop === undefined ? undefined : stackTag(drop, slot);
 };
 
-/** What Java's `Entity.saveWithoutId` shows of an entity, for the fields this server models. */
+/**
+ * What Java's `Entity.saveWithoutId` shows of an entity, for the fields this server models.
+ *
+ * @javaSource Entity.saveWithoutId
+ */
 const entityCompound = (server: Server, target: Extract<SlotTarget, { kind: 'entity' }>, actor: StoreActor) => {
     const { body } = actor.entity;
     const position = actor.getPosition();

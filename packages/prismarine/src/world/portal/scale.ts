@@ -8,12 +8,18 @@
  * infinity: -29.9 in the Overworld is -4 in the Nether, not -3. The y is clamped into the
  * destination's logical height, `Mth.clamp(y, minY, minY + logicalHeight - 1)`, which is what
  * keeps a trip from the Overworld's y 200 above the Nether's bedrock roof.
+ *
+ * @javaSee DimensionType.getTeleportationScale
  */
 import { Vector3 } from '@jsprismarine/math';
 
 import type { DimensionType } from '../DimensionType';
 
-/** Java's `DimensionType.getTeleportationScale`: how many destination blocks one source block is. */
+/**
+ * Java's `DimensionType.getTeleportationScale`: how many destination blocks one source block is.
+ *
+ * @javaSource DimensionType.getTeleportationScale
+ */
 export const teleportationScale = (from: DimensionType, to: DimensionType): number =>
     from.java.coordinateScale / to.java.coordinateScale;
 

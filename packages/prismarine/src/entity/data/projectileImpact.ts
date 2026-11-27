@@ -13,13 +13,25 @@ import { isRecord } from '@jsprismarine/entities';
 import type { RandomSource } from '../../content/world/adapter';
 import { BASE_KNOCKBACK, livingKnockback } from '../knockback';
 
-/** What one level of Punch adds to an arrow's push, Java's `AbstractArrow.doKnockback` scale. */
+/**
+ * What one level of Punch adds to an arrow's push, Java's `AbstractArrow.doKnockback` scale.
+ *
+ * @javaSource AbstractArrow.doKnockback
+ */
 const PUNCH_PER_LEVEL = 0.6;
 
-/** The lift Punch adds, Java's `AbstractArrow.doKnockback` `push(x, 0.1, z)`. */
+/**
+ * The lift Punch adds, Java's `AbstractArrow.doKnockback` `push(x, 0.1, z)`.
+ *
+ * @javaSource AbstractArrow.doKnockback
+ */
 const PUNCH_LIFT = 0.1;
 
-/** How long a small fireball sets what it hits alight, Java's `SmallFireball.onHitEntity` `igniteForSeconds(5.0F)`. */
+/**
+ * How long a small fireball sets what it hits alight, Java's `SmallFireball.onHitEntity` `igniteForSeconds(5.0F)`.
+ *
+ * @javaSource SmallFireball.onHitEntity
+ */
 export const PROJECTILE_IGNITE_TICKS = 100;
 
 /** A vanilla projectile's hit where Java's class differs from its Bedrock file. */
@@ -72,6 +84,7 @@ export interface KnockbackInput {
  * its resistance and lifts a grounded body to at most 0.4, then Punch's extra push from
  * `AbstractArrow.doKnockback`.
  * @returns The new velocity, or the old one when the body resists every push.
+ * @javaSource LivingEntity.knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V
  */
 export const projectileKnockback = (input: KnockbackInput): EntityPosition => {
     const resistance = Math.min(1, Math.max(0, input.resistance));

@@ -172,6 +172,8 @@ const reactingBlocks = new WeakMap<object, Map<string, boolean>>();
 /**
  * The order Java's `Block.updateFromNeighbourShapes` asks a block's six neighbors in, its
  * `BlockBehaviour.UPDATE_SHAPE_ORDER`.
+ *
+ * @javaSource Block.updateFromNeighbourShapes
  */
 const UPDATE_SHAPE_ORDER = ['west', 'east', 'north', 'south', 'down', 'up'] as const satisfies readonly BlockFace[];
 
@@ -308,6 +310,8 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
      *
      * A neighbor the storage cannot read is skipped rather than reported as air, because a
      * block that reads an unloaded chunk as empty would let go of a wall it is fixed to.
+     *
+     * @javaSource Block.updateFromNeighbourShapes
      */
     const updateShape = (at: ContentPosition): void => {
         if (shaping) return;

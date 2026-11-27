@@ -159,7 +159,11 @@ const JAVA_TROPICAL_FISH: readonly (readonly [
     ['yellow_tang', 1, 0, 4, 4] // flopper, yellow, yellow
 ];
 
-/** Java's `DyeColor.BLACK`, which Bedrock's random tropical fish never take. */
+/**
+ * Java's `DyeColor.BLACK`, which Bedrock's random tropical fish never take.
+ *
+ * @javaSource DyeColor.BLACK
+ */
 const BLACK = 15;
 
 /**

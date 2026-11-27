@@ -7,6 +7,8 @@
  * Bedrock writes the bar as `minecraft:boss`. The ender dragon declares it too, but Java's dragon
  * has no bar of its own: `EnderDragonFight` shows its bar to the players in the arena, which
  * `world/end/DragonFight.ts` runs, so this leaves the dragon alone.
+ *
+ * @javaSee WitherBoss.bossEvent
  */
 import type { DataEntity } from './DataEntity';
 
@@ -39,7 +41,11 @@ export const ownBossBarOf = (entity: DataEntity): OwnBossBar | undefined => {
 
 /** A player who may see a bar, which they do while their client tracks its entity. */
 export interface BossBarViewer {
-    /** Whether the player's client has the entity, Java's `ChunkMap.TrackedEntity.seenBy`. */
+    /**
+     * Whether the player's client has the entity, Java's `ChunkMap.TrackedEntity.seenBy`.
+     *
+     * @javaSee ChunkMap$TrackedEntity.seenBy
+     */
     tracks(runtimeId: bigint): boolean;
 }
 

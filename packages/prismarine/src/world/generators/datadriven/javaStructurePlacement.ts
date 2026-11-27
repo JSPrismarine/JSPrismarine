@@ -219,6 +219,7 @@ const regionCandidate = (
  * @param origin - The chunk the search starts from.
  * @param radius - How many rings of regions to walk, Java's `/locate` radius.
  * @returns The candidate chunks, unordered.
+ * @javaSource ChunkGenerator.findNearestMapStructure
  */
 export const searchCandidatesFrom = (
     placement: StructurePlacement,

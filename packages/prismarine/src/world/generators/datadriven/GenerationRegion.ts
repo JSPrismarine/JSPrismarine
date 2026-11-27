@@ -83,7 +83,11 @@ export interface GenerationRegionOptions {
     readonly blocks: BlockOracle;
     /** The biome at a block position, as the surface pass and the features both read it. */
     readonly biomeAt: (x: number, y: number, z: number) => string;
-    /** Java's `Biome.getTemperature(pos) < 0.15`, which is what `freeze_top_layer` acts on. */
+    /**
+     * Java's `Biome.getTemperature(pos) < 0.15`, which is what `freeze_top_layer` acts on.
+     *
+     * @javaSource Biome.getTemperature
+     */
     readonly isColdEnoughToSnow?: (x: number, y: number, z: number) => boolean;
     /**
      * Where the structure templates come from. Absent on a server that carries none, which
@@ -342,6 +346,8 @@ export interface RegionFluidTick extends RegionBlockPosition {
     /**
      * Whether this is Java's `ChunkAccess.markPosForPostProcessing` rather than a scheduled fluid
      * tick, so `LevelChunk.postProcessGeneration` also runs `Block.updateFromNeighbourShapes` here.
+     *
+     * @javaSee ChunkAccess.markPosForPostProcessing
      */
     readonly postProcess?: boolean;
 }
@@ -1359,6 +1365,9 @@ export class GenerationRegion {
      * The noise fill, the carvers and the surface pass mark the fluids they place, a multiface
      * growth marks each face it places, and a structure piece marks its fences, torches, ladders
      * and bars.
+     *
+     * @javaSource LevelChunk.postProcessGeneration
+     * @javaSource ChunkAccess.markPosForPostProcessing
      */
     public markForPostProcessing(x: number, y: number, z: number): void {
         this.recordFluidTick(x, y, z, true);

@@ -16,6 +16,8 @@
  * replaced, so a section that held one sapling keeps answering yes until it is rewritten. The
  * draws it costs land on blocks that take no tick and are discarded, which is exactly what
  * Java does with them.
+ *
+ * @javaSee ServerLevel.tickChunk
  */
 import { isRandomlyTicking } from '@jsprismarine/engine-systems';
 
@@ -83,6 +85,8 @@ let bySection = new WeakMap<ReadonlySubChunk, { revision: number; answer: boolea
  * @param section - The sub chunk to test.
  * @returns Whether any palette entry in the section names a randomly ticking block. An empty
  *   sub chunk answers false, because an all-air palette holds nothing that ticks.
+ *
+ * @javaSource LevelChunkSection.isRandomlyTicking
  */
 export const sectionTakesRandomTicks = (section: ReadonlySubChunk): boolean => {
     forgetStaleAnswers();

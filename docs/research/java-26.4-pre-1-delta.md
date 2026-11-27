@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 405 | 38 | 1 | 366 |
+| 661 | 83 | 8 | 570 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -248,6 +248,190 @@ restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. Th
 default.
 
 ### Changed
+
+#### `AbstractArrow.tick`
+
+Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:21`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/projectile/arrow/AbstractArrow.setDeltaMovement (Lnet/minecraft/world/phys/Vec3;)V
+    return
+- inlined net/minecraft/world/entity/projectile/arrow/AbstractArrow.addBubbleParticles(Lnet/minecraft/world/phys/Vec3;)V
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/projectile/arrow/AbstractArrow.getDeltaMovement ()Lnet/minecraft/world/phys/Vec3;
+-   astore_2
+-   iconst_0
+-   istore_3
+-   iload_3
+-   iconst_4
+-   if_icmpge L43
+-   ldc float 0.25
+-   fstore 4
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/projectile/arrow/AbstractArrow.level ()Lnet/minecraft/world/level/Level;
+-   getstatic net/minecraft/core/particles/ParticleTypes.BUBBLE Lnet/minecraft/core/particles/SimpleParticleType;
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   invokevirtual net/minecraft/world/level/Level.addParticle (Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V
+-   iinc 3 1
+-   goto L5
+-   return
+  inlined net/minecraft/world/entity/projectile/arrow/AbstractArrow.stepMoveAndHit(Lnet/minecraft/world/phys/BlockHitResult;)V
+    aload_0
+```
+
+#### `AbstractHorse.handleEating`
+
+Tagged at `packages/prismarine/src/entity/javaBabyFood.ts:24`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.setInLove (Lnet/minecraft/world/entity/player/Player;)V
+    aload_0
+-   invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.getHealth ()F
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.getMaxHealth ()F
+-   fcmpg
+-   ifge L148
++   invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.canHealNaturally ()Z
++   ifeq L145
+    fload 4
+    fconst_0
+    fcmpl
+-   ifle L148
++   ifle L145
+    aload_0
+    fload 4
+-   invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.heal (F)V
++   invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.healNaturally (F)V
+    iconst_1
+    istore_3
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.isBaby ()Z
+-   ifeq L182
++   ifeq L179
+    iload 5
+-   ifle L182
++   ifle L179
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.isAgeLocked ()Z
+-   ifne L182
++   ifne L179
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.level ()Lnet/minecraft/world/level/Level;
+…
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.level ()Lnet/minecraft/world/level/Level;
+    invokevirtual net/minecraft/world/level/Level.isClientSide ()Z
+-   ifne L182
++   ifne L179
+    aload_0
+    iload 5
+…
+    istore_3
+    iload 6
+-   ifle L204
++   ifle L201
+    iload_3
+-   ifne L189
++   ifne L186
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.isTamed ()Z
+-   ifne L204
++   ifne L201
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.getTemper ()I
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.getMaxTemper ()I
+-   if_icmpge L204
++   if_icmpge L201
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/AbstractHorse.level ()Lnet/minecraft/world/level/Level;
+```
+
+12 more lines. `java:sources --list 'AbstractHorse.handleEating'` prints the listing under each `--java`.
+
+#### `AbstractHurtingProjectile.tick`
+
+Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:46`.
+
+```diff
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.isInWater ()Z
+-   ifeq L53
+-   iconst_0
+-   istore 4
+-   iload 4
+-   iconst_4
+-   if_icmpge L49
+-   ldc float 0.25
+-   fstore 5
++   ifeq L16
+    aload_0
+-   invokevirtual net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.level ()Lnet/minecraft/world/level/Level;
+-   getstatic net/minecraft/core/particles/ParticleTypes.BUBBLE Lnet/minecraft/core/particles/SimpleParticleType;
+    aload_2
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   invokevirtual net/minecraft/world/level/Level.addParticle (Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V
+-   iinc 4 1
+-   goto L11
++   invokevirtual net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.addBubbleParticles (Lnet/minecraft/world/phys/Vec3;)V
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.getLiquidInertia ()F
+    fstore_3
+-   goto L56
++   goto L19
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.getInertia ()F
+```
 
 #### `BaseCoralPlantTypeBlock.getStateForPlacement`
 
@@ -322,6 +506,205 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:352`.
     invokevirtual net/minecraft/world/item/context/BlockPlaceContext.getHorizontalDirection ()Lnet/minecraft/core/Direction;
 ```
 
+#### `BiomeTags.WATER_ON_MAP_OUTLINES`
+
+Tagged at `packages/prismarine/src/world/World.ts:214`.
+
+```diff
+    invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BiomeTags.IS_SAVANNA Lnet/minecraft/tags/TagKey;
++   ldc string "is_cave"
++   invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BiomeTags.IS_CAVE Lnet/minecraft/tags/TagKey;
+    ldc string "is_overworld"
+    invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BiomeTags.PRODUCES_CORALS_FROM_BONEMEAL Lnet/minecraft/tags/TagKey;
++   ldc string "generated_in_below_zero_retrogen"
++   invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BiomeTags.GENERATED_IN_BELOW_ZERO_RETROGEN Lnet/minecraft/tags/TagKey;
+    ldc string "without_zombie_sieges"
+    invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BiomeTags.SPAWNS_CORAL_VARIANT_ZOMBIE_NAUTILUS Lnet/minecraft/tags/TagKey;
++   ldc string "spawns_cold_variants_underground"
++   invokestatic net/minecraft/tags/BiomeTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BiomeTags.SPAWNS_COLD_VARIANTS_UNDERGROUND Lnet/minecraft/tags/TagKey;
+    return
+  inlined net/minecraft/tags/BiomeTags.create(Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+```
+
+#### `BlockPos.rotate`
+
+Tagged at `packages/prismarine/src/world/generators/datadriven/javaStructureEndCity.ts:62`, `packages/prismarine/src/world/generators/datadriven/javaStructureMansion.ts:1164`.
+
+```diff
+  method net/minecraft/core/BlockPos.rotate(Lnet/minecraft/world/level/block/Rotation;)Lnet/minecraft/core/BlockPos;
+-   getstatic net/minecraft/core/BlockPos$8.$SwitchMap$net$minecraft$world$level$block$Rotation [I
++   getstatic net/minecraft/core/BlockPos$9.$SwitchMap$net$minecraft$world$level$block$Rotation [I
+    aload_1
+    invokevirtual net/minecraft/world/level/block/Rotation.ordinal ()I
+```
+
+#### `BlockPos.spiralAround`
+
+Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:124`.
+
+```diff
+    areturn
+  inlined net/minecraft/core/BlockPos.lambda#0(Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)Ljava/util/Iterator;
+-   new net/minecraft/core/BlockPos$6
++   new net/minecraft/core/BlockPos$7
+    dup
+    aload_0
+…
+    aload_2
+    iload_3
+-   invokespecial net/minecraft/core/BlockPos$6.<init> (Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)V
++   invokespecial net/minecraft/core/BlockPos$7.<init> (Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)V
+    areturn
+```
+
+#### `Blocks.SNOW`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:9026`.
+
+```diff
+    ldc float 0.6000000238418579
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (F)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.GRASS Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.GRASS Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Ljava/util/function/Function;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+    putstatic net/minecraft/world/level/block/Blocks.GRASS_BLOCK Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 0.5
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (F)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.GRAVEL Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.GRAVEL Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+    putstatic net/minecraft/world/level/block/Blocks.DIRT Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 0.5
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (F)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.GRAVEL Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.GRAVEL Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+    putstatic net/minecraft/world/level/block/Blocks.COARSE_DIRT Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 0.5
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (F)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.GRAVEL Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.GRAVEL Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Ljava/util/function/Function;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+    putstatic net/minecraft/world/level/block/Blocks.PODZOL Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 3
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (FF)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.WOOD Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.WOOD Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.ignitedByLava ()Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 3
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (FF)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.WOOD Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.WOOD Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.ignitedByLava ()Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+    invokestatic net/minecraft/world/level/block/Blocks.register (Lnet/minecraft/references/BlockItemId;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)Lnet/minecraft/world/level/block/Block;
+…
+    ldc float 3
+    invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.strength (FF)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+-   getstatic net/minecraft/world/level/block/SoundType.WOOD Lnet/minecraft/world/level/block/SoundType;
+-   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
++   getstatic net/minecraft/world/level/block/sounds/BlockSoundSets.WOOD Lnet/minecraft/resources/ResourceKey;
++   invokevirtual net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;
+```
+
+8360 more lines. `java:sources --list 'Blocks.SNOW'` prints the listing under each `--java`.
+
+#### `BlockTags.DOORS`
+
+Tagged at `packages/prismarine/src/entity/data/poi.ts:85`.
+
+```diff
+    invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.COPPER_CHESTS Lnet/minecraft/tags/TagKey;
++   getstatic net/minecraft/tags/BlockItemTags.JUKEBOX_CONTAINERS Lnet/minecraft/tags/BlockItemTagId;
++   invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.JUKEBOX_CONTAINERS Lnet/minecraft/tags/TagKey;
+    getstatic net/minecraft/tags/BlockItemTags.LIGHTNING_RODS Lnet/minecraft/tags/BlockItemTagId;
+    invokevirtual net/minecraft/tags/BlockItemTagId.block ()Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.ICE Lnet/minecraft/tags/TagKey;
++   ldc string "face_occluding_ice_blocks"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.FACE_OCCLUDING_ICE_BLOCKS Lnet/minecraft/tags/TagKey;
+    ldc string "valid_spawn"
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.DEEPSLATE_ORE_REPLACEABLES Lnet/minecraft/tags/TagKey;
++   ldc string "ice_cave_ore_replaceables"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.ICE_CAVE_ORE_REPLACEABLES Lnet/minecraft/tags/TagKey;
++   ldc string "ice_crevasse_replaceables"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.ICE_CREVASSE_REPLACEABLES Lnet/minecraft/tags/TagKey;
+    ldc string "base_stone_nether"
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.ICE_SPIKE_REPLACEABLE Lnet/minecraft/tags/TagKey;
++   ldc string "large_icicle_replaceable"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.LARGE_ICICLE_REPLACEABLE Lnet/minecraft/tags/TagKey;
+    ldc string "forest_rock_can_place_on"
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_DRIED_GHAST_BLOCK_SOUNDS Lnet/minecraft/tags/TagKey;
++   ldc string "triggers_ambient_ice_block_sounds"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_ICE_BLOCK_SOUNDS Lnet/minecraft/tags/TagKey;
++   ldc string "triggers_ambient_ice_crystal_sounds"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.TRIGGERS_AMBIENT_ICE_CRYSTAL_SOUNDS Lnet/minecraft/tags/TagKey;
+    ldc string "required_for_poplar_leaf_ambience"
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.ICE_MELTS_WHEN_DESTROYED_ABOVE Lnet/minecraft/tags/TagKey;
++   ldc string "melts_icicle_above"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.MELTS_ICICLE_ABOVE Lnet/minecraft/tags/TagKey;
+    ldc string "causes_suffocation"
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+…
+    invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
+    putstatic net/minecraft/tags/BlockTags.WASHED_AWAY_BY_FLUIDS Lnet/minecraft/tags/TagKey;
++   ldc string "drop_down"
++   invokestatic net/minecraft/tags/BlockTags.create (Ljava/lang/String;)Lnet/minecraft/tags/TagKey;
++   putstatic net/minecraft/tags/BlockTags.DROP_DOWN Lnet/minecraft/tags/TagKey;
++   ldc string "pathfinding/avoid_in_air"
+```
+
+28 more lines. `java:sources --list 'BlockTags.DOORS'` prints the listing under each `--java`.
+
 #### `BlockTags.MOB_INTERACTABLE_DOORS`
 
 Tagged at `packages/entity-brains/src/behavior/common.ts:1219`.
@@ -390,6 +773,19 @@ Tagged at `packages/entity-brains/src/behavior/common.ts:1219`.
 ```
 
 28 more lines. `java:sources --list 'BlockTags.MOB_INTERACTABLE_DOORS'` prints the listing under each `--java`.
+
+#### `BubbleColumnBlock.getFluidState`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8936`.
+
+```diff
+  method net/minecraft/world/level/block/BubbleColumnBlock.getFluidState(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/material/FluidState;
+    getstatic net/minecraft/world/level/material/Fluids.WATER Lnet/minecraft/world/level/material/FlowingFluid;
+-   iconst_0
+-   invokevirtual net/minecraft/world/level/material/FlowingFluid.getSource (Z)Lnet/minecraft/world/level/material/FluidState;
++   invokevirtual net/minecraft/world/level/material/FlowingFluid.getSource ()Lnet/minecraft/world/level/material/FluidState;
+    areturn
+```
 
 #### `BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V`
 
@@ -504,6 +900,50 @@ Tagged at `packages/block-behaviors/src/families/containers.ts:105`.
     invokevirtual net/minecraft/world/level/block/state/BlockState.setValue (Lnet/minecraft/world/level/block/state/properties/Property;Ljava/lang/Comparable;)Ljava/lang/Object;
 ```
 
+#### `ChunkGenerator.findNearestMapStructure`
+
+Tagged at `packages/prismarine/src/world/generators/datadriven/javaStructurePlacement.ts:222`, `packages/prismarine/src/world/generators/datadriven/javaStructureStarts.ts:360`.
+
+```diff
+    aload 6
+    invokeinterface java/util/Iterator.hasNext ()Z
+-   ifeq L68
++   ifeq L65
+    aload 6
+    invokeinterface java/util/Iterator.next ()Ljava/lang/Object;
+…
+    astore 10
+    aload 10
+-   ifnull L67
+-   aload 10
+-   invokevirtual net/minecraft/world/level/levelgen/structure/StructureStart.isValid ()Z
+-   ifeq L67
++   ifnull L64
+    iload_3
+-   ifeq L60
++   ifeq L57
+    aload_2
+    aload 10
+    invokestatic net/minecraft/world/level/chunk/ChunkGenerator.tryAddReference (Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/levelgen/structure/StructureStart;)Z
+-   ifeq L67
++   ifeq L64
+    aload 4
+    aload 10
+```
+
+#### `CombatRules.getDamageAfterMagicAbsorb`
+
+Tagged at `packages/prismarine/src/entity/Damage.ts:47`.
+
+```diff
+    fconst_0
+    ldc float 20
+-   invokestatic net/minecraft/util/Mth.clamp (FFF)F
++   invokestatic java/lang/Math.clamp (FFF)F
+    fstore_2
+    fload_0
+```
+
 #### `CopperGolemStatueBlock.getStateForPlacement`
 
 Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:358`.
@@ -610,6 +1050,75 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:362`.
     istore_3
     aload_0
 ```
+
+#### `DyeColor.BLACK`
+
+Tagged at `packages/prismarine/src/entity/javaSpawnEvents.ts:165`.
+
+```diff
+    iconst_0
+    ldc string "white"
+-   ldc int 16383998
+-   getstatic net/minecraft/world/level/material/MapColor.SNOW Lnet/minecraft/world/level/material/MapColor;
+-   getstatic net/minecraft/world/level/material/MapColor.TERRACOTTA_WHITE Lnet/minecraft/world/level/material/MapColor;
+-   ldc int 15790320
+-   ldc int 16777215
+-   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;ILnet/minecraft/world/level/material/MapColor;Lnet/minecraft/world/level/material/MapColor;II)V
++   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;)V
+    putstatic net/minecraft/world/item/DyeColor.WHITE Lnet/minecraft/world/item/DyeColor;
+    new net/minecraft/world/item/DyeColor
+…
+    iconst_1
+    ldc string "orange"
+-   ldc int 16351261
+-   getstatic net/minecraft/world/level/material/MapColor.COLOR_ORANGE Lnet/minecraft/world/level/material/MapColor;
+-   getstatic net/minecraft/world/level/material/MapColor.TERRACOTTA_ORANGE Lnet/minecraft/world/level/material/MapColor;
+-   ldc int 15435844
+-   ldc int 16738335
+-   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;ILnet/minecraft/world/level/material/MapColor;Lnet/minecraft/world/level/material/MapColor;II)V
++   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;)V
+    putstatic net/minecraft/world/item/DyeColor.ORANGE Lnet/minecraft/world/item/DyeColor;
+    new net/minecraft/world/item/DyeColor
+…
+    iconst_2
+    ldc string "magenta"
+-   ldc int 13061821
+-   getstatic net/minecraft/world/level/material/MapColor.COLOR_MAGENTA Lnet/minecraft/world/level/material/MapColor;
+-   getstatic net/minecraft/world/level/material/MapColor.TERRACOTTA_MAGENTA Lnet/minecraft/world/level/material/MapColor;
+-   ldc int 12801229
+-   ldc int 16711935
+-   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;ILnet/minecraft/world/level/material/MapColor;Lnet/minecraft/world/level/material/MapColor;II)V
++   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;)V
+    putstatic net/minecraft/world/item/DyeColor.MAGENTA Lnet/minecraft/world/item/DyeColor;
+    new net/minecraft/world/item/DyeColor
+…
+    iconst_3
+    ldc string "light_blue"
+-   ldc int 3847130
+-   getstatic net/minecraft/world/level/material/MapColor.COLOR_LIGHT_BLUE Lnet/minecraft/world/level/material/MapColor;
+-   getstatic net/minecraft/world/level/material/MapColor.TERRACOTTA_LIGHT_BLUE Lnet/minecraft/world/level/material/MapColor;
+-   ldc int 6719955
+-   ldc int 10141901
+-   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;ILnet/minecraft/world/level/material/MapColor;Lnet/minecraft/world/level/material/MapColor;II)V
++   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;)V
+    putstatic net/minecraft/world/item/DyeColor.LIGHT_BLUE Lnet/minecraft/world/item/DyeColor;
+    new net/minecraft/world/item/DyeColor
+…
+    iconst_4
+    ldc string "yellow"
+-   ldc int 16701501
+-   getstatic net/minecraft/world/level/material/MapColor.COLOR_YELLOW Lnet/minecraft/world/level/material/MapColor;
+-   getstatic net/minecraft/world/level/material/MapColor.TERRACOTTA_YELLOW Lnet/minecraft/world/level/material/MapColor;
+-   ldc int 14602026
+-   ldc int 16776960
+-   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;ILnet/minecraft/world/level/material/MapColor;Lnet/minecraft/world/level/material/MapColor;II)V
++   invokespecial net/minecraft/world/item/DyeColor.<init> (Ljava/lang/String;IILjava/lang/String;)V
+    putstatic net/minecraft/world/item/DyeColor.YELLOW Lnet/minecraft/world/item/DyeColor;
+    new net/minecraft/world/item/DyeColor
+…
+```
+
+215 more lines. `java:sources --list 'DyeColor.BLACK'` prints the listing under each `--java`.
 
 #### `EmptyMapItem.use`
 
@@ -761,6 +1270,282 @@ Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:1051`.
     dup
 ```
 
+#### `Enderman.teleport(DDD)Z`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8472`.
+
+```diff
+    istore 8
+    iload 8
+-   ifeq L65
++   ifeq L61
+    aload_0
+    invokevirtual net/minecraft/world/entity/monster/Enderman.level ()Lnet/minecraft/world/level/Level;
+…
+    aload_0
+    invokevirtual net/minecraft/world/entity/monster/Enderman.isSilent ()Z
+-   ifne L65
++   ifne L61
+    aload 7
+    invokestatic net/minecraft/core/BlockPos.containing (Lnet/minecraft/core/Position;)Lnet/minecraft/core/BlockPos;
+…
+    aload_0
+    invokevirtual net/minecraft/world/entity/monster/Enderman.getSoundSource ()Lnet/minecraft/sounds/SoundSource;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/world/level/Level.playSound (Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V
++   invokevirtual net/minecraft/world/level/Level.playSound (Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;)V
+    aload_0
+    getstatic net/minecraft/sounds/SoundEvents.ENDERMAN_TELEPORT Lnet/minecraft/sounds/SoundEvent;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/world/entity/monster/Enderman.playSound (Lnet/minecraft/sounds/SoundEvent;FF)V
++   invokevirtual net/minecraft/world/entity/monster/Enderman.playSound (Lnet/minecraft/sounds/SoundEvent;)V
+    iload 8
+    ireturn
+```
+
+#### `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`
+
+Tagged at `packages/prismarine/src/world/SpawnPlacement.ts:89`, `packages/prismarine/src/world/World.ts:4618`.
+
+```diff
+    iconst_0
+    istore 14
+-   aload_0
+    aload 12
+    invokevirtual net/minecraft/world/level/block/state/BlockState.getFluidState ()Lnet/minecraft/world/level/material/FluidState;
++   astore 15
++   aload_0
++   aload 15
+    aload 10
+    aload 4
+    aload 5
+    invokevirtual net/minecraft/world/entity/Entity.collidedWithFluid (Lnet/minecraft/world/level/material/FluidState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Z
+-   istore 15
++   istore 16
+    iload 14
+-   ifne L72
+-   iload 15
+-   ifeq L77
++   ifne L74
++   iload 16
++   ifeq L79
+    aload 6
+    aload 10
+    invokevirtual net/minecraft/core/BlockPos.asLong ()J
+    invokeinterface it/unimi/dsi/fastutil/longs/LongSet.add (J)Z
+-   ifne L79
++   ifne L81
+    iconst_1
+    ireturn
+    iload 14
+-   ifeq L133
++   ifeq L142
+    iload 7
+-   ifne L87
++   ifne L89
+    aload 8
+    aload 10
+    invokevirtual net/minecraft/world/phys/AABB.intersects (Lnet/minecraft/core/BlockPos;)Z
+-   ifeq L89
++   ifeq L91
+    iconst_1
+-   goto L90
++   goto L92
+    iconst_0
+-   istore 16
++   istore 17
+    aload 9
+    iload 11
+…
+    aload_0
+    aload 9
+-   iload 16
++   iload 17
+    invokevirtual net/minecraft/world/level/block/state/BlockState.entityInside (Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/InsideBlockEffectApplier;Z)V
++   aload 13
++   aload 4
++   aload 5
++   aload 10
++   invokedynamic getAsBoolean (Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/core/BlockPos;)Ljava/util/function/BooleanSupplier; java/lang/invoke/LambdaMetafactory.metafactory [methodType ()Z, handle invokeStatic net/minecraft/world/entity/Entity.lambda#1(Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/core/BlockPos;)Z, methodType ()Z]
++   astore 18
+```
+
+96 more lines. `java:sources --list 'Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I'` prints the listing under each `--java`.
+
+#### `Entity.move`
+
+Tagged at `packages/prismarine/src/entity/data/collision.ts:428`, `packages/prismarine/src/entity/data/droppedItems.ts:462`.
+
+```diff
+  method net/minecraft/world/entity/Entity.move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V
+-   getstatic net/minecraft/SharedConstants.IS_RUNNING_IN_IDE Z
++   getstatic net/minecraft/util/DevUtil.IS_RUNNING_IN_IDE Z
+    ifeq L15
+    aload_1
+…
+    ldc string "Attempted to move entity on a logical side not permitted to simulate movement"
+    invokespecial java/lang/IllegalStateException.<init> (Ljava/lang/String;)V
+-   invokestatic net/minecraft/util/Util.pauseInIde (Ljava/lang/Throwable;)Ljava/lang/Throwable;
++   invokestatic net/minecraft/util/DevUtil.pauseInIde (Ljava/lang/Throwable;)Ljava/lang/Throwable;
+    checkcast java/lang/IllegalStateException
+    athrow
+…
+    ldc2_w double 1e-7
+    dcmpg
+-   ifge L175
+-   aload_0
+-   getfield net/minecraft/world/entity/Entity.fallDistance D
+-   dconst_0
+-   dcmpl
+-   ifeq L153
+-   dload 5
+-   dconst_1
+-   dcmpl
+-   iflt L153
+-   aload 4
+-   invokevirtual net/minecraft/world/phys/Vec3.length ()D
+-   ldc2_w double 8
+-   invokestatic java/lang/Math.min (DD)D
+-   dstore 7
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/Entity.position ()Lnet/minecraft/world/phys/Vec3;
+-   aload 4
+-   invokevirtual net/minecraft/world/phys/Vec3.normalize ()Lnet/minecraft/world/phys/Vec3;
+-   dload 7
+-   invokevirtual net/minecraft/world/phys/Vec3.scale (D)Lnet/minecraft/world/phys/Vec3;
+-   invokevirtual net/minecraft/world/phys/Vec3.add (Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;
+-   astore 9
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/Entity.level ()Lnet/minecraft/world/level/Level;
+-   new net/minecraft/world/level/ClipContext
+-   dup
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/Entity.position ()Lnet/minecraft/world/phys/Vec3;
+-   aload 9
+-   getstatic net/minecraft/world/level/ClipContext$Block.FALLDAMAGE_RESETTING Lnet/minecraft/world/level/ClipContext$Block;
+-   getstatic net/minecraft/world/level/ClipContext$Fluid.WATER Lnet/minecraft/world/level/ClipContext$Fluid;
+-   aload_0
+-   invokespecial net/minecraft/world/level/ClipContext.<init> (Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/level/ClipContext$Block;Lnet/minecraft/world/level/ClipContext$Fluid;Lnet/minecraft/world/entity/Entity;)V
+-   invokevirtual net/minecraft/world/level/Level.clip (Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;
+-   astore 10
+-   aload 10
+-   invokevirtual net/minecraft/world/phys/BlockHitResult.getType ()Lnet/minecraft/world/phys/HitResult$Type;
+-   getstatic net/minecraft/world/phys/HitResult$Type.MISS Lnet/minecraft/world/phys/HitResult$Type;
+-   if_acmpeq L153
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/Entity.resetFallDistance ()V
++   ifge L134
+    aload_0
+    invokevirtual net/minecraft/world/entity/Entity.position ()Lnet/minecraft/world/phys/Vec3;
+```
+
+149 more lines. `java:sources --list 'Entity.move'` prints the listing under each `--java`.
+
+#### `EquipmentSlot.SADDLE`
+
+Tagged at `packages/prismarine/src/inventory/slotAddress.ts:123`.
+
+```diff
+    invokestatic java/util/List.of ([Ljava/lang/Object;)Ljava/util/List;
+    putstatic net/minecraft/world/entity/EquipmentSlot.VALUES Ljava/util/List;
+-   invokedynamic applyAsInt ()Ljava/util/function/ToIntFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)I, handle invokeStatic net/minecraft/world/entity/EquipmentSlot.lambda#0(Lnet/minecraft/world/entity/EquipmentSlot;)I, methodType (Lnet/minecraft/world/entity/EquipmentSlot;)I]
+-   invokestatic net/minecraft/world/entity/EquipmentSlot.values ()[Lnet/minecraft/world/entity/EquipmentSlot;
+-   getstatic net/minecraft/util/ByIdMap$OutOfBoundsStrategy.ZERO Lnet/minecraft/util/ByIdMap$OutOfBoundsStrategy;
+-   invokestatic net/minecraft/util/ByIdMap.continuous (Ljava/util/function/ToIntFunction;[Ljava/lang/Object;Lnet/minecraft/util/ByIdMap$OutOfBoundsStrategy;)Ljava/util/function/IntFunction;
+-   putstatic net/minecraft/world/entity/EquipmentSlot.BY_ID Ljava/util/function/IntFunction;
+    invokedynamic get ()Ljava/util/function/Supplier; java/lang/invoke/LambdaMetafactory.metafactory [methodType ()Ljava/lang/Object;, handle invokeStatic net/minecraft/world/entity/EquipmentSlot.values()[Lnet/minecraft/world/entity/EquipmentSlot;, methodType ()[Lnet/minecraft/world/entity/EquipmentSlot;]
+    invokestatic net/minecraft/util/StringRepresentable.fromEnum (Ljava/util/function/Supplier;)Lnet/minecraft/util/StringRepresentable$EnumCodec;
+    putstatic net/minecraft/world/entity/EquipmentSlot.CODEC Lnet/minecraft/util/StringRepresentable$EnumCodec;
+-   getstatic net/minecraft/world/entity/EquipmentSlot.BY_ID Ljava/util/function/IntFunction;
+-   invokedynamic applyAsInt ()Ljava/util/function/ToIntFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)I, handle invokeStatic net/minecraft/world/entity/EquipmentSlot.lambda#1(Lnet/minecraft/world/entity/EquipmentSlot;)I, methodType (Lnet/minecraft/world/entity/EquipmentSlot;)I]
+-   invokestatic net/minecraft/network/codec/ByteBufCodecs.idMapper (Ljava/util/function/IntFunction;Ljava/util/function/ToIntFunction;)Lnet/minecraft/network/codec/StreamCodec;
++   ldc class net/minecraft/world/entity/EquipmentSlot
++   invokedynamic applyAsInt ()Ljava/util/function/ToIntFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)I, handle invokeStatic net/minecraft/world/entity/EquipmentSlot.lambda#0(Lnet/minecraft/world/entity/EquipmentSlot;)I, methodType (Lnet/minecraft/world/entity/EquipmentSlot;)I]
++   invokestatic net/minecraft/network/codec/ByteBufCodecs.enumCodec (Ljava/lang/Class;Ljava/util/function/ToIntFunction;)Lnet/minecraft/network/codec/EnumStreamCodec;
+    putstatic net/minecraft/world/entity/EquipmentSlot.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    return
+…
+    getfield net/minecraft/world/entity/EquipmentSlot.id I
+    ireturn
+- inlined net/minecraft/world/entity/EquipmentSlot.lambda#1(Lnet/minecraft/world/entity/EquipmentSlot;)I
+-   aload_0
+-   getfield net/minecraft/world/entity/EquipmentSlot.id I
+-   ireturn
+```
+
+#### `EyeOfEnder.tick`
+
+Tagged at `packages/prismarine/src/entity/data/eyeOfEnderSignals.ts:267`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.level ()Lnet/minecraft/world/level/Level;
+    invokevirtual net/minecraft/world/level/Level.isClientSide ()Z
+-   ifne L95
++   ifne L93
+    aload_0
+    dup
+…
+    getfield net/minecraft/world/entity/projectile/EyeOfEnder.life I
+    bipush 80
+-   if_icmple L95
++   if_icmple L93
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.level ()Lnet/minecraft/world/level/Level;
+    invokevirtual net/minecraft/world/level/Level.isClientSide ()Z
+-   ifne L95
++   ifne L93
+    aload_0
+    getstatic net/minecraft/sounds/SoundEvents.ENDER_EYE_DEATH Lnet/minecraft/sounds/SoundEvent;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.playSound (Lnet/minecraft/sounds/SoundEvent;FF)V
++   invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.playSound (Lnet/minecraft/sounds/SoundEvent;)V
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.discard ()V
+    aload_0
+    getfield net/minecraft/world/entity/projectile/EyeOfEnder.surviveAfterDeath Z
+-   ifeq L88
++   ifeq L86
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.level ()Lnet/minecraft/world/level/Level;
+…
+    invokevirtual net/minecraft/world/level/Level.addFreshEntity (Lnet/minecraft/world/entity/Entity;)Z
+    pop
+-   goto L95
++   goto L93
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/EyeOfEnder.level ()Lnet/minecraft/world/level/Level;
+```
+
+#### `FallingBlockEntity.tick`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8039`.
+
+```diff
+    invokevirtual net/minecraft/world/level/Level.getFluidState (Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;
+    getstatic net/minecraft/world/level/material/Fluids.WATER Lnet/minecraft/world/level/material/FlowingFluid;
+-   invokevirtual net/minecraft/world/level/material/FluidState.is (Ljava/lang/Object;)Z
++   invokevirtual net/minecraft/world/level/material/FluidState.isSourceOfType (Lnet/minecraft/world/level/material/Fluid;)Z
+    ifeq L202
+    aload_0
+…
+    aload 13
+    aload 14
+-   invokestatic net/minecraft/world/level/storage/TagValueOutput.createWithContext (Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/world/level/storage/TagValueOutput;
++   invokestatic net/minecraft/world/level/storage/TagValueOutput.createWithContext (Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderGetter$Provider;)Lnet/minecraft/world/level/storage/TagValueOutput;
+    astore 15
+    aload 12
+…
+    aload 14
+    aload 16
+-   invokestatic net/minecraft/world/level/storage/TagValueInput.create (Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderLookup$Provider;Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/world/level/storage/ValueInput;
++   invokestatic net/minecraft/world/level/storage/TagValueInput.create (Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderGetter$Provider;Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/world/level/storage/ValueInput;
+    invokevirtual net/minecraft/world/level/block/entity/BlockEntity.loadWithComponents (Lnet/minecraft/world/level/storage/ValueInput;)V
+    aload 13
+```
+
 #### `FlowingFluid.getSpread`
 
 Tagged at `packages/block-behaviors/src/rules/fluid.ts:373`.
@@ -829,6 +1614,40 @@ Tagged at `packages/block-behaviors/src/rules/fluid.ts:373`.
 ```
 
 39 more lines. `java:sources --list 'FlowingFluid.getSpread'` prints the listing under each `--java`.
+
+#### `FoodData.tick`
+
+Tagged at `packages/prismarine/src/entity/playerHunger.ts:14`, `packages/prismarine/src/entity/playerHunger.ts:62`, `packages/prismarine/src/entity/playerHunger.ts:70`, `packages/prismarine/src/entity/playerHunger.ts:152`, `packages/prismarine/src/entity/playerHunger.ts:222`.
+
+```diff
+    ifle L90
+    aload_1
+-   invokevirtual net/minecraft/server/level/ServerPlayer.isHurt ()Z
++   invokevirtual net/minecraft/server/level/ServerPlayer.canHealNaturally ()Z
+    ifeq L90
+    aload_0
+…
+    ldc float 6
+    fdiv
+-   invokevirtual net/minecraft/server/level/ServerPlayer.heal (F)V
++   invokevirtual net/minecraft/server/level/ServerPlayer.healNaturally (F)V
+    aload_0
+    fload 5
+…
+    if_icmplt L119
+    aload_1
+-   invokevirtual net/minecraft/server/level/ServerPlayer.isHurt ()Z
++   invokevirtual net/minecraft/server/level/ServerPlayer.canHealNaturally ()Z
+    ifeq L119
+    aload_0
+…
+    aload_1
+    fconst_1
+-   invokevirtual net/minecraft/server/level/ServerPlayer.heal (F)V
++   invokevirtual net/minecraft/server/level/ServerPlayer.healNaturally (F)V
+    aload_0
+    ldc float 6
+```
 
 #### `Fox$DefendTrustedTargetGoal.start`
 
@@ -909,6 +1728,43 @@ Tagged at `packages/entity-goals/src/goals/attacking.ts:1452`.
 +   invokeinterface net/minecraft/world/entity/ai/control/LookControl.setLookAt (Lnet/minecraft/world/entity/Entity;FF)V
     aload_0
     getfield net/minecraft/world/entity/animal/fox/Fox$FoxPounceGoal.this$0 Lnet/minecraft/world/entity/animal/fox/Fox;
+```
+
+#### `IronGolem.doHurtTarget`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:434`.
+
+```diff
+    istore 6
+    iload 6
+-   ifeq L71
++   ifeq L68
+    aload_2
+    instanceof net/minecraft/world/entity/LivingEntity
+…
+    dstore 9
+    aload_2
+-   aload_2
+-   invokevirtual net/minecraft/world/entity/Entity.getDeltaMovement ()Lnet/minecraft/world/phys/Vec3;
+    dconst_0
+    ldc2_w double 0.4000000059604645
+…
+    dmul
+    dconst_0
+-   invokevirtual net/minecraft/world/phys/Vec3.add (DDD)Lnet/minecraft/world/phys/Vec3;
+-   invokevirtual net/minecraft/world/entity/Entity.setDeltaMovement (Lnet/minecraft/world/phys/Vec3;)V
++   invokevirtual net/minecraft/world/entity/Entity.addDeltaMovement (DDD)V
+    aload_1
+    aload_2
+…
+    aload_0
+    getstatic net/minecraft/sounds/SoundEvents.IRON_GOLEM_ATTACK Lnet/minecraft/sounds/SoundEvent;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/world/entity/animal/golem/IronGolem.playSound (Lnet/minecraft/sounds/SoundEvent;FF)V
++   invokevirtual net/minecraft/world/entity/animal/golem/IronGolem.playSound (Lnet/minecraft/sounds/SoundEvent;)V
+    iload 6
+    ireturn
 ```
 
 #### `LadderBlock.getStateForPlacement`
@@ -1021,6 +1877,65 @@ Tagged at `packages/block-behaviors/src/families/furniture.ts:279`.
     areturn
 ```
 
+#### `Leashable.tickLeash`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:2390`.
+
+```diff
+    astore_3
+    aload_3
+-   ifnull L127
++   ifnull L125
+    aload_3
+    invokevirtual net/minecraft/world/entity/Entity.level ()Lnet/minecraft/world/level/Level;
+    aload_1
+    invokevirtual net/minecraft/world/entity/Entity.level ()Lnet/minecraft/world/level/Level;
+-   if_acmpne L127
++   if_acmpne L125
+    aload_1
+    checkcast net/minecraft/world/entity/Leashable
+…
+    invokeinterface net/minecraft/world/entity/Leashable.leashSnapDistance ()D
+    dcmpl
+-   ifle L82
++   ifle L80
+    aload_0
+    aconst_null
+…
+    getstatic net/minecraft/sounds/SoundEvents.LEAD_BREAK Lnet/minecraft/sounds/SoundEvent;
+    getstatic net/minecraft/sounds/SoundSource.NEUTRAL Lnet/minecraft/sounds/SoundSource;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/server/level/ServerLevel.playSound (Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V
++   invokevirtual net/minecraft/server/level/ServerLevel.playSound (Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;)V
+    aload_1
+    checkcast net/minecraft/world/entity/Leashable
+    invokeinterface net/minecraft/world/entity/Leashable.leashTooFarBehaviour ()V
+-   goto L110
++   goto L108
+    dload 4
+    aload_1
+…
+    dsub
+    dcmpl
+-   ifle L106
++   ifle L104
+    aload_1
+    checkcast net/minecraft/world/entity/Leashable
+…
+    aload_2
+    invokeinterface net/minecraft/world/entity/Leashable.checkElasticInteractions (Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Leashable$LeashData;)Z
+-   ifeq L106
++   ifeq L104
+    aload_1
+    checkcast net/minecraft/world/entity/Leashable
+    invokeinterface net/minecraft/world/entity/Leashable.onElasticLeashPull ()V
+-   goto L110
++   goto L108
+    aload_1
+    checkcast net/minecraft/world/entity/Leashable
+```
+
 #### `LeavesBlock.getStateForPlacement`
 
 Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:367`.
@@ -1064,6 +1979,450 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:369`.
     istore_3
     aload_0
 ```
+
+#### `LivingEntity.aiStep`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7246`.
+
+```diff
+    aload_0
+    getfield net/minecraft/world/entity/LivingEntity.jumping Z
+-   ifeq L211
++   ifeq L170
+    aload_0
+    invokevirtual net/minecraft/world/entity/LivingEntity.isAffectedByFluids ()Z
+-   ifeq L211
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.isInLava ()Z
+-   ifeq L148
+-   aload_0
+-   getstatic net/minecraft/tags/FluidTags.LAVA Lnet/minecraft/tags/TagKey;
+-   invokevirtual net/minecraft/world/entity/LivingEntity.getFluidHeight (Lnet/minecraft/tags/TagKey;)D
+-   dstore 9
+-   goto L152
+-   aload_0
+-   getstatic net/minecraft/tags/FluidTags.WATER Lnet/minecraft/tags/TagKey;
+-   invokevirtual net/minecraft/world/entity/LivingEntity.getFluidHeight (Lnet/minecraft/tags/TagKey;)D
+-   dstore 9
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.isInWater ()Z
+-   ifeq L161
+-   dload 9
+-   dconst_0
+-   dcmpl
+-   ifle L161
+-   iconst_1
+-   goto L162
+-   iconst_0
+-   istore 11
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.getFluidJumpThreshold ()D
+-   dstore 12
+-   iload 11
+-   ifeq L179
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.onGround ()Z
+-   ifeq L175
+-   dload 9
+-   dload 12
+-   dcmpl
+-   ifle L179
+-   aload_0
+-   getstatic net/minecraft/tags/FluidTags.WATER Lnet/minecraft/tags/TagKey;
+-   invokevirtual net/minecraft/world/entity/LivingEntity.jumpInLiquid (Lnet/minecraft/tags/TagKey;)V
+-   goto L210
++   ifeq L170
+    aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.isInLava ()Z
+-   ifeq L193
++   getfield net/minecraft/world/entity/LivingEntity.fluidInteraction Lnet/minecraft/world/entity/EntityFluidInteraction;
+    aload_0
+    invokevirtual net/minecraft/world/entity/LivingEntity.onGround ()Z
+-   ifeq L189
++   ifeq L148
+    aload_0
+-   getstatic net/minecraft/tags/FluidTags.LAVA Lnet/minecraft/tags/TagKey;
+-   invokevirtual net/minecraft/world/entity/LivingEntity.isInShallowFluid (Lnet/minecraft/tags/TagKey;)Z
+-   ifne L193
++   invokevirtual net/minecraft/world/entity/LivingEntity.getFluidJumpThreshold ()D
+```
+
+223 more lines. `java:sources --list 'LivingEntity.aiStep'` prints the listing under each `--java`.
+
+#### `LivingEntity.canBeAffected`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:567`.
+
+```diff
+  method net/minecraft/world/entity/LivingEntity.canBeAffected(Lnet/minecraft/world/effect/MobEffectInstance;)Z
++   aload_1
++   getstatic net/minecraft/world/effect/MobEffects.INFESTED Lnet/minecraft/core/Holder;
++   invokevirtual net/minecraft/world/effect/MobEffectInstance.is (Lnet/minecraft/core/Holder;)Z
++   ifeq L10
+    aload_0
+    getstatic net/minecraft/tags/EntityTypeTags.IMMUNE_TO_INFESTED Lnet/minecraft/tags/TagKey;
+    invokevirtual net/minecraft/world/entity/LivingEntity.is (Lnet/minecraft/tags/TagKey;)Z
+-   ifeq L12
++   ifeq L10
++   iconst_0
++   ireturn
+    aload_1
+-   getstatic net/minecraft/world/effect/MobEffects.INFESTED Lnet/minecraft/core/Holder;
++   getstatic net/minecraft/world/effect/MobEffects.FREEZING Lnet/minecraft/core/Holder;
+    invokevirtual net/minecraft/world/effect/MobEffectInstance.is (Lnet/minecraft/core/Holder;)Z
+-   ifne L10
+-   iconst_1
+-   goto L11
++   ifeq L20
++   aload_0
++   getstatic net/minecraft/tags/EntityTypeTags.IMMUNE_TO_FREEZING Lnet/minecraft/tags/TagKey;
++   invokevirtual net/minecraft/world/entity/LivingEntity.is (Lnet/minecraft/tags/TagKey;)Z
++   ifeq L20
+    iconst_0
+    ireturn
++   aload_1
++   getstatic net/minecraft/world/effect/MobEffects.OOZING Lnet/minecraft/core/Holder;
++   invokevirtual net/minecraft/world/effect/MobEffectInstance.is (Lnet/minecraft/core/Holder;)Z
++   ifeq L30
+    aload_0
+    getstatic net/minecraft/tags/EntityTypeTags.IMMUNE_TO_OOZING Lnet/minecraft/tags/TagKey;
+    invokevirtual net/minecraft/world/entity/LivingEntity.is (Lnet/minecraft/tags/TagKey;)Z
+-   ifeq L24
++   ifeq L30
++   iconst_0
++   ireturn
+    aload_1
+-   getstatic net/minecraft/world/effect/MobEffects.OOZING Lnet/minecraft/core/Holder;
++   getstatic net/minecraft/world/effect/MobEffects.REGENERATION Lnet/minecraft/core/Holder;
+    invokevirtual net/minecraft/world/effect/MobEffectInstance.is (Lnet/minecraft/core/Holder;)Z
+-   ifne L22
+-   iconst_1
+-   goto L23
++   ifeq L40
++   aload_0
++   getstatic net/minecraft/tags/EntityTypeTags.IMMUNE_TO_REGENERATION Lnet/minecraft/tags/TagKey;
++   invokevirtual net/minecraft/world/entity/LivingEntity.is (Lnet/minecraft/tags/TagKey;)Z
++   ifeq L40
+    iconst_0
+    ireturn
++   aload_1
++   getstatic net/minecraft/world/effect/MobEffects.POISON Lnet/minecraft/core/Holder;
++   invokevirtual net/minecraft/world/effect/MobEffectInstance.is (Lnet/minecraft/core/Holder;)Z
++   ifeq L50
+    aload_0
+-   getstatic net/minecraft/tags/EntityTypeTags.IGNORES_POISON_AND_REGEN Lnet/minecraft/tags/TagKey;
++   getstatic net/minecraft/tags/EntityTypeTags.IMMUNE_TO_POISON Lnet/minecraft/tags/TagKey;
+    invokevirtual net/minecraft/world/entity/LivingEntity.is (Lnet/minecraft/tags/TagKey;)Z
+-   ifeq L40
+```
+
+29 more lines. `java:sources --list 'LivingEntity.canBeAffected'` prints the listing under each `--java`.
+
+#### `LivingEntity.computeModifiedFriction`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:539`.
+
+```diff
+    fconst_0
+    fconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (FFF)F
++   invokestatic java/lang/Math.clamp (FFF)F
+    freturn
+```
+
+#### `LivingEntity.handleOnClimbable`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8760`.
+
+```diff
+    ldc2_w double -0.15000000596046448
+    ldc2_w double 0.15000000596046448
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore_3
+    aload_1
+…
+    ldc2_w double -0.15000000596046448
+    ldc2_w double 0.15000000596046448
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore 5
+    aload_1
+```
+
+#### `LivingEntity.hurtServer`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4258`.
+
+```diff
+    aload_2
+    fload_3
+-   invokevirtual net/minecraft/world/entity/LivingEntity.applyItemBlocking (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)F
+-   fstore 6
++   invokevirtual net/minecraft/world/entity/LivingEntity.applyItemBlocking (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;
++   astore 6
++   aload 6
++   invokevirtual java/util/Optional.isPresent ()Z
++   istore 7
++   iload 7
++   ifeq L59
+    fload_3
+-   fload 6
++   aload 6
++   invokevirtual java/util/Optional.get ()Ljava/lang/Object;
++   checkcast java/lang/Float
++   invokevirtual java/lang/Float.floatValue ()F
+    fsub
+    fstore_3
+-   fload 6
+-   fconst_0
+-   fcmpl
+-   ifle L57
+-   iconst_1
+-   goto L58
+-   iconst_0
+-   istore 7
+    aload_2
+    getstatic net/minecraft/tags/DamageTypeTags.IS_FREEZING Lnet/minecraft/tags/TagKey;
+…
+    istore 9
+    iload 9
+-   ifeq L273
++   ifeq L268
+    aload_0
+    aload_2
+-   putfield net/minecraft/world/entity/LivingEntity.lastDamageSource Lnet/minecraft/world/damagesource/DamageSource;
+-   aload_0
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/LivingEntity.level ()Lnet/minecraft/world/level/Level;
+-   invokevirtual net/minecraft/world/level/Level.getGameTime ()J
+-   putfield net/minecraft/world/entity/LivingEntity.lastDamageStamp J
++   invokevirtual net/minecraft/world/entity/LivingEntity.setLastDamageSource (Lnet/minecraft/world/damagesource/DamageSource;)V
+    aload_0
+    invokevirtual net/minecraft/world/entity/LivingEntity.getActiveEffects ()Ljava/util/Collection;
+…
+    aload 10
+    invokeinterface java/util/Iterator.hasNext ()Z
+-   ifeq L273
++   ifeq L268
+    aload 10
+    invokeinterface java/util/Iterator.next ()Ljava/lang/Object;
+…
+    fload_3
+    invokevirtual net/minecraft/world/effect/MobEffectInstance.onMobHurt (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/damagesource/DamageSource;F)V
+-   goto L259
++   goto L254
+    aload_0
+    astore 11
+…
+```
+
+46 more lines. `java:sources --list 'LivingEntity.hurtServer'` prints the listing under each `--java`.
+
+#### `LivingEntity.tick`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:380`, `packages/prismarine/src/entity/data/EntityRuntime.ts:4150`.
+
+```diff
+    return
+  inlined net/minecraft/world/entity/LivingEntity.handleEquipmentChanges(Ljava/util/Map;)V
++   new java/util/ArrayList
++   dup
+    aload_1
+    invokeinterface java/util/Map.size ()I
+-   invokestatic com/google/common/collect/Lists.newArrayListWithCapacity (I)Ljava/util/ArrayList;
++   invokespecial java/util/ArrayList.<init> (I)V
+    astore_2
+    aload_1
+```
+
+#### `LivingEntity.travel`
+
+Tagged at `packages/prismarine/src/entity/data/travel.ts:49`.
+
+```diff
+    aload_0
+    getfield net/minecraft/world/entity/LivingEntity.horizontalCollision Z
+-   ifeq L32
++   ifeq L30
+    dload_1
+    dload_3
+…
+    fconst_0
+    fcmpl
+-   ifle L32
++   ifle L30
+    aload_0
+    aload_0
+…
+    f2i
+    invokevirtual net/minecraft/world/entity/LivingEntity.getFallDamageSound (I)Lnet/minecraft/sounds/SoundEvent;
+-   fconst_1
+-   fconst_1
+-   invokevirtual net/minecraft/world/entity/LivingEntity.playSound (Lnet/minecraft/sounds/SoundEvent;FF)V
++   invokevirtual net/minecraft/world/entity/LivingEntity.playSound (Lnet/minecraft/sounds/SoundEvent;)V
+    aload_0
+    aload_0
+…
+    fconst_0
+    fconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (FFF)F
++   invokestatic java/lang/Math.clamp (FFF)F
+    freturn
+  inlined net/minecraft/world/entity/LivingEntity.handleRelativeFrictionAndCalculateMovement(Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec3;
+…
+    ldc2_w double -0.15000000596046448
+    ldc2_w double 0.15000000596046448
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore_3
+    aload_1
+…
+    ldc2_w double -0.15000000596046448
+    ldc2_w double 0.15000000596046448
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore 5
+    aload_1
+```
+
+#### `Llama.handleEating`
+
+Tagged at `packages/prismarine/src/entity/javaBabyFood.ts:40`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.setInLove (Lnet/minecraft/world/entity/player/Player;)V
+    aload_0
+-   invokevirtual net/minecraft/world/entity/animal/equine/Llama.getHealth ()F
+-   aload_0
+-   invokevirtual net/minecraft/world/entity/animal/equine/Llama.getMaxHealth ()F
+-   fcmpg
+-   ifge L58
++   invokevirtual net/minecraft/world/entity/animal/equine/Llama.canHealNaturally ()Z
++   ifeq L55
+    fload 5
+    fconst_0
+    fcmpl
+-   ifle L58
++   ifle L55
+    aload_0
+    fload 5
+-   invokevirtual net/minecraft/world/entity/animal/equine/Llama.heal (F)V
++   invokevirtual net/minecraft/world/entity/animal/equine/Llama.healNaturally (F)V
+    iconst_1
+    istore 6
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.isBaby ()Z
+-   ifeq L92
++   ifeq L89
+    iload_3
+-   ifle L92
++   ifle L89
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.isAgeLocked ()Z
+-   ifne L92
++   ifne L89
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.level ()Lnet/minecraft/world/level/Level;
+…
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.level ()Lnet/minecraft/world/level/Level;
+    invokevirtual net/minecraft/world/level/Level.isClientSide ()Z
+-   ifne L92
++   ifne L89
+    aload_0
+    iload_3
+…
+    istore 6
+    iload 4
+-   ifle L114
++   ifle L111
+    iload 6
+-   ifne L99
++   ifne L96
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.isTamed ()Z
+-   ifne L114
++   ifne L111
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.getTemper ()I
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.getMaxTemper ()I
+-   if_icmpge L114
++   if_icmpge L111
+    aload_0
+    invokevirtual net/minecraft/world/entity/animal/equine/Llama.level ()Lnet/minecraft/world/level/Level;
+```
+
+22 more lines. `java:sources --list 'Llama.handleEating'` prints the listing under each `--java`.
+
+#### `LootTable.shuffleAndSplitItems`
+
+Tagged at `packages/prismarine/src/inventory/containerLoot.ts:88`.
+
+```diff
+  method net/minecraft/world/level/storage/loot/LootTable.shuffleAndSplitItems(Lit/unimi/dsi/fastutil/objects/ObjectArrayList;ILnet/minecraft/util/RandomSource;)V
+-   invokestatic com/google/common/collect/Lists.newArrayList ()Ljava/util/ArrayList;
++   new java/util/ArrayList
++   dup
++   invokespecial java/util/ArrayList.<init> ()V
+    astore 4
+    aload_1
+…
+    aload 5
+    invokeinterface java/util/Iterator.hasNext ()Z
+-   ifeq L29
++   ifeq L31
+    aload 5
+    invokeinterface java/util/Iterator.next ()Ljava/lang/Object;
+…
+    aload 6
+    invokevirtual net/minecraft/world/item/ItemStack.isEmpty ()Z
+-   ifeq L18
++   ifeq L20
+    aload 5
+    invokeinterface java/util/Iterator.remove ()V
+-   goto L28
++   goto L30
+    aload 6
+    invokevirtual net/minecraft/world/item/ItemStack.getCount ()I
+    iconst_1
+-   if_icmple L28
++   if_icmple L30
+    aload 4
+    aload 6
+…
+    aload 5
+    invokeinterface java/util/Iterator.remove ()V
+-   goto L5
++   goto L7
+    iload_2
+    aload_1
+…
+    invokeinterface java/util/List.size ()I
+    isub
+-   ifle L96
++   ifle L98
+    aload 4
+    invokeinterface java/util/List.isEmpty ()Z
+-   ifne L96
++   ifne L98
+    aload 4
+    aload_3
+…
+    invokevirtual net/minecraft/world/item/ItemStack.getCount ()I
+    iconst_1
+-   if_icmple L75
++   if_icmple L77
+    aload_3
+    invokeinterface net/minecraft/util/RandomSource.nextBoolean ()Z
+-   ifeq L75
++   ifeq L77
+    aload 4
+    aload 5
+    invokeinterface java/util/List.add (Ljava/lang/Object;)Z
+```
+
+28 more lines. `java:sources --list 'LootTable.shuffleAndSplitItems'` prints the listing under each `--java`.
 
 #### `MangrovePropaguleBlock.getStateForPlacement`
 
@@ -1125,6 +2484,22 @@ Tagged at `packages/prismarine/src/world/savedMap.ts:73`, `packages/prismarine/s
     aload_0
 ```
 
+#### `Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;`
+
+Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:93`.
+
+```diff
+    athrow
+    iload_0
++   i2l
+    iload_1
+    iload_2
+-   invokestatic net/minecraft/util/Mth.clamp (III)I
++   invokestatic java/lang/Math.clamp (JII)I
+    istore 4
+    iload 4
+```
+
 #### `MushroomBlock.canSurvive`
 
 Tagged at `packages/block-behaviors/src/families/plants.ts:169`, `packages/block-behaviors/src/families/plants.ts:183`.
@@ -1163,9 +2538,22 @@ Tagged at `packages/block-behaviors/src/families/plants.ts:169`, `packages/block
     ireturn
 ```
 
+#### `Painting.create`
+
+Tagged at `packages/prismarine/src/entity/data/hangingEntities.ts:192`, `packages/prismarine/src/entity/data/paintings.ts:62`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/decoration/painting/Painting.setVariant (Lnet/minecraft/core/Holder;)V
+    aload_0
+-   invokevirtual net/minecraft/world/entity/decoration/painting/Painting.survives ()Z
++   invokevirtual net/minecraft/world/entity/decoration/painting/Painting.canBePlaced ()Z
+    ifne L8
+    iconst_1
+```
+
 #### `Player.aiStep`
 
-Tagged at `packages/prismarine/src/entity/data/experienceOrbs.ts:423`.
+Tagged at `packages/prismarine/src/entity/data/experienceOrbs.ts:423`, `packages/prismarine/src/entity/playerHunger.ts:84`, `packages/prismarine/src/entity/playerHunger.ts:91`, `packages/prismarine/src/entity/playerHunger.ts:287`.
 
 ```diff
     fconst_0
@@ -1222,9 +2610,113 @@ Tagged at `packages/prismarine/src/entity/data/experienceOrbs.ts:423`.
     aload_3
 ```
 
+#### `Player.hurtServer`
+
+Tagged at `packages/prismarine/src/entity/Difficulty.ts:16`.
+
+```diff
+    fconst_0
+    fcmpl
+-   ifne L64
++   ifne L73
++   aload_2
++   invokevirtual net/minecraft/world/damagesource/DamageSource.getWeaponItem ()Lnet/minecraft/world/item/ItemStack;
++   astore 4
++   aload 4
++   ifnull L71
++   aload 4
++   getstatic net/minecraft/tags/ItemTags.KNOCKS_BACK_PLAYERS_EVEN_WITH_ZERO_DAMAGE Lnet/minecraft/tags/TagKey;
++   invokevirtual net/minecraft/world/item/ItemStack.is (Lnet/minecraft/tags/TagKey;)Z
++   ifne L73
+    iconst_0
+    ireturn
+```
+
+#### `PlayerList.respawn`
+
+Tagged at `packages/prismarine/src/player/PlayerSession.ts:2961`.
+
+```diff
+    new net/minecraft/network/protocol/game/ClientboundSoundPacket
+    dup
+-   getstatic net/minecraft/sounds/SoundEvents.RESPAWN_ANCHOR_DEPLETE Lnet/minecraft/core/Holder$Reference;
++   getstatic net/minecraft/sounds/SoundEvents.RESPAWN_ANCHOR_DEPLETE Lnet/minecraft/core/Holder;
+    getstatic net/minecraft/sounds/SoundSource.BLOCKS Lnet/minecraft/sounds/SoundSource;
+    aload 14
+```
+
+#### `PoiTypes.HOME`
+
+Tagged at `packages/prismarine/src/entity/data/poi.ts:140`.
+
+```diff
+- field net/minecraft/world/entity/ai/village/poi/PoiTypes.HOME Lnet/minecraft/resources/ResourceKey;
++ field net/minecraft/world/entity/ai/village/poi/PoiTypes.HOME Lnet/minecraft/core/Holder;
+  inlined net/minecraft/world/entity/ai/village/poi/PoiTypes.<clinit>()V
+-   ldc string "armorer"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.ARMORER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "butcher"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.BUTCHER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "cartographer"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.CARTOGRAPHER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "cleric"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.CLERIC Lnet/minecraft/resources/ResourceKey;
+-   ldc string "farmer"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.FARMER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "fisherman"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.FISHERMAN Lnet/minecraft/resources/ResourceKey;
+-   ldc string "fletcher"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.FLETCHER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "leatherworker"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.LEATHERWORKER Lnet/minecraft/resources/ResourceKey;
+-   ldc string "librarian"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.LIBRARIAN Lnet/minecraft/resources/ResourceKey;
+-   ldc string "mason"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.MASON Lnet/minecraft/resources/ResourceKey;
+-   ldc string "shepherd"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.SHEPHERD Lnet/minecraft/resources/ResourceKey;
+-   ldc string "toolsmith"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.TOOLSMITH Lnet/minecraft/resources/ResourceKey;
+-   ldc string "weaponsmith"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.WEAPONSMITH Lnet/minecraft/resources/ResourceKey;
+-   ldc string "home"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.HOME Lnet/minecraft/resources/ResourceKey;
+-   ldc string "meeting"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.MEETING Lnet/minecraft/resources/ResourceKey;
+-   ldc string "beehive"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.BEEHIVE Lnet/minecraft/resources/ResourceKey;
+-   ldc string "bee_nest"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.BEE_NEST Lnet/minecraft/resources/ResourceKey;
+-   ldc string "nether_portal"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.NETHER_PORTAL Lnet/minecraft/resources/ResourceKey;
+-   ldc string "lodestone"
+-   invokestatic net/minecraft/world/entity/ai/village/poi/PoiTypes.createKey (Ljava/lang/String;)Lnet/minecraft/resources/ResourceKey;
+-   putstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.LODESTONE Lnet/minecraft/resources/ResourceKey;
+```
+
+228 more lines. `java:sources --list 'PoiTypes.HOME'` prints the listing under each `--java`.
+
 #### `PortalForcer.createPortal`
 
-Tagged at `packages/block-behaviors/src/rules/portal.ts:466`.
+Tagged at `packages/block-behaviors/src/rules/portal.ts:466`, `packages/prismarine/src/world/portal/create.ts:28`.
 
 ```diff
     ldc2_w double -1
@@ -1291,6 +2783,119 @@ Tagged at `packages/block-behaviors/src/rules/portal.ts:466`.
 
 56 more lines. `java:sources --list 'PortalForcer.createPortal'` prints the listing under each `--java`.
 
+#### `PortalForcer.findClosestPortalPosition`
+
+Tagged at `packages/prismarine/src/world/portal/PortalIndex.ts:60`, `packages/prismarine/src/world/portal/rules.ts:31`.
+
+```diff
+  inlined net/minecraft/world/level/portal/PortalForcer.lambda#0(Lnet/minecraft/core/Holder;)Z
+    aload_0
+-   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypes.NETHER_PORTAL Lnet/minecraft/resources/ResourceKey;
++   getstatic net/minecraft/world/entity/ai/village/poi/PoiTypeIds.NETHER_PORTAL Lnet/minecraft/resources/ResourceKey;
+    invokeinterface net/minecraft/core/Holder.is (Lnet/minecraft/resources/ResourceKey;)Z
+    ireturn
+```
+
+#### `PortalShape.getRelativePosition`
+
+Tagged at `packages/prismarine/src/world/portal/search.ts:161`.
+
+```diff
+    dconst_0
+    dconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore 9
+    goto L49
+…
+    dconst_0
+    dconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dstore 11
+    goto L73
+```
+
+#### `Potions.SWIFTNESS`
+
+Tagged at `packages/prismarine/src/entity/javaGoals.ts:30`.
+
+```diff
+    invokestatic net/minecraft/world/item/alchemy/Potions.register (Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/item/alchemy/Potion;)Lnet/minecraft/core/Holder;
+    putstatic net/minecraft/world/item/alchemy/Potions.INFESTED Lnet/minecraft/core/Holder;
++   getstatic net/minecraft/world/item/alchemy/PotionIds.FREEZING Lnet/minecraft/resources/ResourceKey;
++   new net/minecraft/world/item/alchemy/Potion
++   dup
++   ldc string "freezing"
++   iconst_1
++   anewarray net/minecraft/world/effect/MobEffectInstance
++   dup
++   iconst_0
++   new net/minecraft/world/effect/MobEffectInstance
++   dup
++   getstatic net/minecraft/world/effect/MobEffects.FREEZING Lnet/minecraft/core/Holder;
++   sipush 900
++   invokespecial net/minecraft/world/effect/MobEffectInstance.<init> (Lnet/minecraft/core/Holder;I)V
++   aastore
++   invokespecial net/minecraft/world/item/alchemy/Potion.<init> (Ljava/lang/String;[Lnet/minecraft/world/effect/MobEffectInstance;)V
++   invokestatic net/minecraft/world/item/alchemy/Potions.register (Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/item/alchemy/Potion;)Lnet/minecraft/core/Holder;
++   putstatic net/minecraft/world/item/alchemy/Potions.FREEZING Lnet/minecraft/core/Holder;
++   getstatic net/minecraft/world/item/alchemy/PotionIds.LONG_FREEZING Lnet/minecraft/resources/ResourceKey;
++   new net/minecraft/world/item/alchemy/Potion
++   dup
++   ldc string "freezing"
++   iconst_1
++   anewarray net/minecraft/world/effect/MobEffectInstance
++   dup
++   iconst_0
++   new net/minecraft/world/effect/MobEffectInstance
++   dup
++   getstatic net/minecraft/world/effect/MobEffects.FREEZING Lnet/minecraft/core/Holder;
++   sipush 1800
++   invokespecial net/minecraft/world/effect/MobEffectInstance.<init> (Lnet/minecraft/core/Holder;I)V
++   aastore
++   invokespecial net/minecraft/world/item/alchemy/Potion.<init> (Ljava/lang/String;[Lnet/minecraft/world/effect/MobEffectInstance;)V
++   invokestatic net/minecraft/world/item/alchemy/Potions.register (Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/item/alchemy/Potion;)Lnet/minecraft/core/Holder;
++   putstatic net/minecraft/world/item/alchemy/Potions.LONG_FREEZING Lnet/minecraft/core/Holder;
+    return
+  inlined net/minecraft/world/item/alchemy/Potions.register(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/item/alchemy/Potion;)Lnet/minecraft/core/Holder;
+```
+
+#### `ServerChunkCache.tickChunks()V`
+
+Tagged at `packages/prismarine/src/world/World.ts:3673`, `packages/prismarine/src/world/WorldSystems.ts:626`.
+
+```diff
+  method net/minecraft/server/level/ServerChunkCache.tickChunks()V
+-   aload_0
+-   getfield net/minecraft/server/level/ServerChunkCache.level Lnet/minecraft/server/level/ServerLevel;
+-   invokevirtual net/minecraft/server/level/ServerLevel.isDebug ()Z
+-   ifeq L5
+-   return
+    invokestatic net/minecraft/util/profiling/Profiler.get ()Lnet/minecraft/util/profiling/ProfilerFiller;
+    astore_1
+…
+    invokevirtual net/minecraft/server/level/ServerLevel.tickRateManager ()Lnet/minecraft/world/TickRateManager;
+    invokevirtual net/minecraft/world/TickRateManager.runsNormally ()Z
+-   ifeq L23
++   ifeq L18
+    aload_1
+    ldc string "tickingChunks"
+```
+
+#### `ServerPlayer.setExperiencePoints`
+
+Tagged at `packages/prismarine/src/command/host/entities.ts:122`.
+
+```diff
+    fconst_0
+    fload_3
+-   invokestatic net/minecraft/util/Mth.clamp (FFF)F
++   invokestatic java/lang/Math.clamp (FFF)F
+    fstore 4
+    fload 4
+```
+
 #### `ShelfBlock.getStateForPlacement`
 
 Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:376`.
@@ -1313,6 +2918,75 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:376`.
     invokestatic java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     invokevirtual net/minecraft/world/level/block/state/BlockState.setValue (Lnet/minecraft/world/level/block/state/properties/Property;Ljava/lang/Comparable;)Ljava/lang/Object;
 ```
+
+#### `ShulkerBullet.tick`
+
+Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:33`.
+
+```diff
+    invokevirtual net/minecraft/world/entity/projectile/ShulkerBullet.level ()Lnet/minecraft/world/level/Level;
+    invokevirtual net/minecraft/world/level/Level.isClientSide ()Z
+-   ifne L99
++   ifne L97
+    aload_1
+    ifnonnull L25
+…
+    putfield net/minecraft/world/entity/projectile/ShulkerBullet.finalTarget Lnet/minecraft/world/entity/EntityReference;
+    aload_1
+-   ifnull L92
++   ifnull L90
+    aload_1
+    invokevirtual net/minecraft/world/entity/Entity.isAlive ()Z
+-   ifeq L92
++   ifeq L90
+    aload_1
+    instanceof net/minecraft/world/entity/player/Player
+…
+    aload_1
+    invokevirtual net/minecraft/world/entity/Entity.isSpectator ()Z
+-   ifne L92
++   ifne L90
+    aload_0
+    aload_0
+…
+    ldc2_w double -1
+    dconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    putfield net/minecraft/world/entity/projectile/ShulkerBullet.targetDeltaX D
+    aload_0
+…
+    ldc2_w double -1
+    dconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    putfield net/minecraft/world/entity/projectile/ShulkerBullet.targetDeltaY D
+    aload_0
+…
+    ldc2_w double -1
+    dconst_1
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    putfield net/minecraft/world/entity/projectile/ShulkerBullet.targetDeltaZ D
+    aload_0
+…
+    astore_3
+    aload_0
+-   aload_3
+    aload_0
+    getfield net/minecraft/world/entity/projectile/ShulkerBullet.targetDeltaX D
+…
+    ldc2_w double 0.2
+    dmul
+-   invokevirtual net/minecraft/world/phys/Vec3.add (DDD)Lnet/minecraft/world/phys/Vec3;
+-   invokevirtual net/minecraft/world/entity/projectile/ShulkerBullet.setDeltaMovement (Lnet/minecraft/world/phys/Vec3;)V
+-   goto L94
++   invokevirtual net/minecraft/world/entity/projectile/ShulkerBullet.addDeltaMovement (DDD)V
++   goto L92
+    aload_0
+```
+
+285 more lines. `java:sources --list 'ShulkerBullet.tick'` prints the listing under each `--java`.
 
 #### `SkeletonTrapGoal.tick`
 
@@ -1394,6 +3068,145 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:302`.
 +   invokevirtual net/minecraft/world/level/material/FluidState.isSourceOfType (Lnet/minecraft/world/level/material/Fluid;)Z
     invokestatic java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     invokevirtual net/minecraft/world/level/block/state/BlockState.setValue (Lnet/minecraft/world/level/block/state/properties/Property;Ljava/lang/Comparable;)Ljava/lang/Object;
+```
+
+#### `StructureManager.getStructureAt(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/Structure;)Lnet/minecraft/world/level/levelgen/structure/StructureStart;`
+
+Tagged at `packages/prismarine/src/world/Generator.ts:274`.
+
+```diff
+    areturn
+    goto L15
+-   getstatic net/minecraft/world/level/levelgen/structure/StructureStart.INVALID_START Lnet/minecraft/world/level/levelgen/structure/StructureStart;
++   aconst_null
+    areturn
+```
+
+#### `SulfurCube.knockback`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4300`, `packages/prismarine/src/entity/data/sulfurCubeKnockback.ts:117`.
+
+```diff
+    fload 14
+    fstore 16
+-   aload_0
+-   getfield net/minecraft/world/entity/monster/cubemob/SulfurCube.soundSettings Lnet/minecraft/world/entity/SulfurCubeArchetype$SoundSettings;
+-   invokevirtual net/minecraft/world/entity/SulfurCubeArchetype$SoundSettings.hitSound ()Lnet/minecraft/core/Holder;
+-   astore 17
+    new net/minecraft/world/phys/Vec2
+    dup
+…
+    d2f
+    invokespecial net/minecraft/world/phys/Vec2.<init> (FF)V
+-   astore 18
++   astore 17
+    aload_0
+    ldc float 1.600000023841858
+-   aload 18
++   aload 17
+    aload 7
+    invokevirtual net/minecraft/world/damagesource/DamageSource.getEntity ()Lnet/minecraft/world/entity/Entity;
+…
+    invokevirtual net/minecraft/world/phys/AABB.getCenter ()Lnet/minecraft/world/phys/Vec3;
+    invokevirtual net/minecraft/world/entity/monster/cubemob/SulfurCube.applyHorizontalHitAngleScale (FLnet/minecraft/world/phys/Vec2;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec2;
+-   astore 19
++   astore 18
+    aload_0
+    ldc float 0.5
+…
+    invokevirtual net/minecraft/world/entity/monster/cubemob/SulfurCube.getBbHeight ()F
+    invokevirtual net/minecraft/world/entity/monster/cubemob/SulfurCube.applyVerticalHitAnglePowerTransfer (FFFLnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec2;
+-   astore 20
+-   aload 20
++   astore 19
++   aload 19
+    getfield net/minecraft/world/phys/Vec2.x F
+    fstore 13
+-   aload 20
++   aload 19
+    getfield net/minecraft/world/phys/Vec2.y F
+    fstore 14
+…
+    invokevirtual net/minecraft/world/entity/monster/cubemob/SulfurCube.position ()Lnet/minecraft/world/phys/Vec3;
+    invokevirtual net/minecraft/world/entity/monster/cubemob/SulfurCube.applyVerticalPositionAnglePowerRotation (FFFFFLnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec2;
+-   astore 20
+-   aload 20
++   astore 19
++   aload 19
+    getfield net/minecraft/world/phys/Vec2.x F
+    fstore 13
+-   aload 20
++   aload 19
+    getfield net/minecraft/world/phys/Vec2.y F
+    fstore 14
+-   aload 19
++   aload 18
+    getfield net/minecraft/world/phys/Vec2.x F
+    f2d
+    dstore_3
+-   aload 19
++   aload 18
+    getfield net/minecraft/world/phys/Vec2.y F
+```
+
+106 more lines. `java:sources --list 'SulfurCube.knockback'` prints the listing under each `--java`.
+
+#### `ThrowableProjectile.tick`
+
+Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:27`.
+
+```diff
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/ThrowableProjectile.isInWater ()Z
+-   ifeq L52
+-   iconst_0
+-   istore 4
+-   iload 4
+-   iconst_4
+-   if_icmpge L49
+-   ldc float 0.25
+-   fstore 5
++   ifeq L15
+    aload_0
+-   invokevirtual net/minecraft/world/entity/projectile/ThrowableProjectile.level ()Lnet/minecraft/world/level/Level;
+-   getstatic net/minecraft/core/particles/ParticleTypes.BUBBLE Lnet/minecraft/core/particles/SimpleParticleType;
+    aload_2
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_2
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   ldc2_w double 0.25
+-   dmul
+-   dsub
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.x D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.y D
+-   aload_1
+-   getfield net/minecraft/world/phys/Vec3.z D
+-   invokevirtual net/minecraft/world/level/Level.addParticle (Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V
+-   iinc 4 1
+-   goto L11
++   invokevirtual net/minecraft/world/entity/projectile/ThrowableProjectile.addBubbleParticles (Lnet/minecraft/world/phys/Vec3;)V
+    ldc float 0.800000011920929
+    fstore_3
+-   goto L55
++   goto L18
+    aload_0
+    invokevirtual net/minecraft/world/entity/projectile/ThrowableProjectile.getAirDrag ()F
 ```
 
 #### `TrapDoorBlock.getStateForPlacement`
@@ -1603,6 +3416,75 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:386`.
     areturn
 ```
 
+#### `Warden$VibrationUser.onReceiveVibration`
+
+Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:3246`.
+
+```diff
+    aload_2
+    astore 7
++   aload 4
++   astore 8
+    aload 5
+-   ifnull L68
++   ifnull L70
+    aload_0
+    getfield net/minecraft/world/entity/monster/warden/Warden$VibrationUser.this$0 Lnet/minecraft/world/entity/monster/warden/Warden;
+…
+    ldc2_w double 30
+    invokevirtual net/minecraft/world/entity/monster/warden/Warden.closerThan (Lnet/minecraft/world/entity/Entity;D)Z
+-   ifeq L60
++   ifeq L62
+    aload_0
+    getfield net/minecraft/world/entity/monster/warden/Warden$VibrationUser.this$0 Lnet/minecraft/world/entity/monster/warden/Warden;
+…
+    getstatic net/minecraft/world/entity/ai/memory/MemoryModuleType.RECENT_PROJECTILE Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;
+    invokevirtual net/minecraft/world/entity/ai/Brain.hasMemoryValue (Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;)Z
+-   ifeq L54
++   ifeq L56
+    aload_0
+    getfield net/minecraft/world/entity/monster/warden/Warden$VibrationUser.this$0 Lnet/minecraft/world/entity/monster/warden/Warden;
+    aload 5
+    invokevirtual net/minecraft/world/entity/monster/warden/Warden.canTargetEntity (Lnet/minecraft/world/entity/Entity;)Z
+-   ifeq L49
++   ifeq L51
+    aload 5
+    invokevirtual net/minecraft/world/entity/Entity.blockPosition ()Lnet/minecraft/core/BlockPos;
+…
+    aload 5
+    invokevirtual net/minecraft/world/entity/monster/warden/Warden.increaseAngerAt (Lnet/minecraft/world/entity/Entity;)V
+-   goto L60
++   goto L62
+    aload_0
+    getfield net/minecraft/world/entity/monster/warden/Warden$VibrationUser.this$0 Lnet/minecraft/world/entity/monster/warden/Warden;
+…
+    ldc2_w long 100
+    invokevirtual net/minecraft/world/entity/ai/Brain.setMemoryWithExpiry (Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Ljava/lang/Object;J)V
+-   goto L72
++   goto L81
++   aload 4
++   invokestatic net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.getLastDamagingEntity (Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/entity/Entity;
++   astore 9
++   aload 9
++   ifnull L77
++   aload 9
++   astore 8
+    aload_0
+    getfield net/minecraft/world/entity/monster/warden/Warden$VibrationUser.this$0 Lnet/minecraft/world/entity/monster/warden/Warden;
+-   aload 4
++   aload 8
+    invokevirtual net/minecraft/world/entity/monster/warden/Warden.increaseAngerAt (Lnet/minecraft/world/entity/Entity;)V
+    aload_0
+…
+    invokevirtual net/minecraft/world/entity/monster/warden/Warden.getAngerLevel ()Lnet/minecraft/world/entity/monster/warden/AngerLevel;
+    invokevirtual net/minecraft/world/entity/monster/warden/AngerLevel.isAngry ()Z
+-   ifne L95
++   ifne L104
+    aload_0
+```
+
+22 more lines. `java:sources --list 'Warden$VibrationUser.onReceiveVibration'` prints the listing under each `--java`.
+
 #### `Zombie.DOOR_BREAKING_PREDICATE`
 
 Tagged at `packages/entity-goals/src/goals/movement.ts:2274`.
@@ -1621,24 +3503,48 @@ Tagged at `packages/entity-goals/src/goals/movement.ts:2274`.
 ### Removed or renamed
 
 - `AmethystClusterBlock.getStateForPlacement`, tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:370`: net/minecraft/world/level/block/AmethystClusterBlock declares no getStateForPlacement. The closest 26.4-pre-1 member is `net/minecraft/world/level/block/AbstractCrystalClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;`, which a superclass declares now.
+- `BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;`, tagged at `packages/prismarine/src/world/generators/datadriven/DataDrivenGenerator.ts:2041`: net/minecraft/world/level/biome/BiomeManager declares no getBiome.
+- `BlocksAttacks.resolveBlockedDamage`, tagged at `packages/prismarine/src/entity/data/itemBlocking.ts:65`: resolves to net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;, not net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F. The closest 26.4-pre-1 member is `net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;`.
+- `Entity.checkFallDamage`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7279`: resolves to net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V, not net/minecraft/world/entity/Entity.checkFallDamage(DZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V`.
+- `ItemCommands.applyModifier`, tagged at `packages/prismarine/src/command/host/inventory.ts:291`: resolves to net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;, not net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator;. The closest 26.4-pre-1 member is `net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;`.
+- `LivingEntity.applyItemBlocking`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4399`: resolves to net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;, not net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)F. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;`.
+- `LivingEntity.jumpInLiquid`, tagged at `packages/prismarine/src/entity/data/DataEntity.ts:133`: resolves to net/minecraft/world/entity/LivingEntity.jumpInLiquid(Ljava/util/List;)V, not net/minecraft/world/entity/LivingEntity.jumpInLiquid(Lnet/minecraft/tags/TagKey;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.jumpInLiquid(Ljava/util/List;)V`.
+- `net/minecraft/server/commands/ExecuteCommand.countItems`, tagged at `packages/prismarine/src/command/host/slotSource.ts:159`: resolves to net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$SlotResult;Ljava/util/function/Predicate;)I, not net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$Result;Ljava/util/function/Predicate;)I. The closest 26.4-pre-1 member is `net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$SlotResult;Ljava/util/function/Predicate;)I`.
 
 ### Changed callees
 
 Advisory. Methods of other classes that tagged members call, that no tag names, and whose
 bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does not matter to the copy.
 
+- `net/minecraft/commands/arguments/SlotSourceArgument$Result.value()Lnet/minecraft/world/item/slot/SlotSource;`, called by `net/minecraft/server/commands/ExecuteCommand.countItems`
 - `net/minecraft/commands/Commands.performPrefixedCommand(Lnet/minecraft/commands/CommandSourceStack;Ljava/lang/String;)V`, called by `BaseCommandBlock.performCommand`
-- `net/minecraft/core/BlockPos.spiralAround(Lnet/minecraft/core/BlockPos;ILnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;)Ljava/lang/Iterable;`, called by `PortalForcer.createPortal`
+- `net/minecraft/core/BlockPos$6.<init>(Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)V`, called by `BlockPos.spiralAround`
+- `net/minecraft/core/Registry.getTagOrEmpty(Lnet/minecraft/tags/TagKey;)Ljava/lang/Iterable;`, called by `Painting.create`
+- `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Stats.TIME_SINCE_REST`
 - `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/Identifier;Ljava/lang/Object;)Ljava/lang/Object;`, called by `SensorType.ARMADILLO_SCARE_DETECTED`
+- `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Blocks.SNOW`
+- `net/minecraft/CrashReportCategory.populateBlockDetails(Lnet/minecraft/CrashReportCategory;Lnet/minecraft/world/level/LevelHeightAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V`, called by `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`
 - `net/minecraft/network/chat/Component.getString()Ljava/lang/String;`, called by `BaseCommandBlock.performCommand`
-- `net/minecraft/tags/TagKey.create(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/tags/TagKey;`, called by `BlockTags.MOB_INTERACTABLE_DOORS`
-- `net/minecraft/util/Mth.clamp(DDD)D`, called by `DragonSittingScanningPhase.doServerTick`, `EnderDragon.aiStep`
-- `net/minecraft/util/Mth.clamp(FFF)F`, called by `EnderDragon.aiStep`
+- `net/minecraft/network/codec/ByteBufCodecs.idMapper(Ljava/util/function/IntFunction;Ljava/util/function/ToIntFunction;)Lnet/minecraft/network/codec/StreamCodec;`, called by `DyeColor.BLACK`, `EquipmentSlot.SADDLE`
+- `net/minecraft/server/commands/item/ItemAccessor.getSlots(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/item/slot/SlotSource;)Lnet/minecraft/world/item/slot/SlotCollection;`, called by `net/minecraft/server/commands/ExecuteCommand.countItems`
+- `net/minecraft/server/level/ServerPlayer.<init>(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/server/level/ServerLevel;Lcom/mojang/authlib/GameProfile;Lnet/minecraft/server/level/ClientInformation;)V`, called by `PlayerList.respawn`
+- `net/minecraft/server/level/ServerPlayer.createCommonSpawnInfo(Lnet/minecraft/server/level/ServerLevel;)Lnet/minecraft/network/protocol/game/CommonPlayerSpawnInfo;`, called by `PlayerList.respawn`
+- `net/minecraft/server/level/ServerPlayer.sendPostEffects()V`, called by `PlayerList.respawn`
+- `net/minecraft/tags/TagKey.create(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/tags/TagKey;`, called by `BiomeTags.WATER_ON_MAP_OUTLINES`, `BlockTags.DOORS`, `BlockTags.MOB_INTERACTABLE_DOORS`, `PaintingVariantTags.PLACEABLE`
+- `net/minecraft/util/BlockUtil.clampedPackDifferenceInPosition(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;III)I`, called by `Enderman.teleport(DDD)Z`
+- `net/minecraft/util/ByIdMap.continuous(Ljava/util/function/ToIntFunction;[Ljava/lang/Object;Lnet/minecraft/util/ByIdMap$OutOfBoundsStrategy;)Ljava/util/function/IntFunction;`, called by `DyeColor.BLACK`, `EquipmentSlot.SADDLE`
+- `net/minecraft/util/Mth.clamp(DDD)D`, called by `DragonSittingScanningPhase.doServerTick`, `EnderDragon.aiStep`, `LivingEntity.handleOnClimbable`, `LivingEntity.travel`, `PortalShape.getRelativePosition`, `ShulkerBullet.tick`
+- `net/minecraft/util/Mth.clamp(FFF)F`, called by `BlocksAttacks.resolveBlockedDamage`, `CombatRules.getDamageAfterMagicAbsorb`, `EnderDragon.aiStep`, `LivingEntity.computeModifiedFriction`, `LivingEntity.travel`, `ServerPlayer.setExperiencePoints`, `SulfurCube.knockback`
 - `net/minecraft/util/Mth.clamp(III)I`, called by `PortalForcer.createPortal`
-- `net/minecraft/util/Mth.cos(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
+- `net/minecraft/util/Mth.cos(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `Entity.calculateViewVector`, `LivingEntity.causeExtraKnockback`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
 - `net/minecraft/util/Mth.rotateIfNecessary(FFF)F`, called by `BackUpIfTooClose.create`
-- `net/minecraft/util/Mth.sin(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `MapItem.renderBiomePreviewMap`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
-- `net/minecraft/world/damagesource/DamageSources.mobAttack(Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `EnderDragon.aiStep`, `Ravager.roar`
+- `net/minecraft/util/Mth.sin(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `Entity.calculateViewVector`, `LivingEntity.causeExtraKnockback`, `LivingEntity.travel`, `MapItem.renderBiomePreviewMap`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
+- `net/minecraft/util/ProblemReporter$ScopedCollector.close()V`, called by `FallingBlockEntity.tick`
+- `net/minecraft/util/Util.pauseInIde(Ljava/lang/Throwable;)Ljava/lang/Throwable;`, called by `Entity.move`
+- `net/minecraft/world/damagesource/DamageSources.explosion(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `EndCrystal.hurtServer`, `EnderDragon.onCrystalDestroyed`
+- `net/minecraft/world/damagesource/DamageSources.fireball(Lnet/minecraft/world/entity/projectile/hurtingprojectile/Fireball;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `SmallFireball.onHitEntity`
+- `net/minecraft/world/damagesource/DamageSources.indirectMagic(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `AbstractThrownPotion.onHit`, `HealOrHarmMobEffect.applyInstantaneousEffect`
+- `net/minecraft/world/damagesource/DamageSources.mobAttack(Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `EnderDragon.aiStep`, `IronGolem.doHurtTarget`, `Ravager.roar`
 - `net/minecraft/world/entity/ai/ActivityData.create(Lnet/minecraft/world/entity/schedule/Activity;Lcom/google/common/collect/ImmutableList;)Lnet/minecraft/world/entity/ai/ActivityData;`, called by `Villager.BRAIN_PROVIDER`
 - `net/minecraft/world/entity/ai/ActivityData.create(Lnet/minecraft/world/entity/schedule/Activity;Lcom/google/common/collect/ImmutableList;Ljava/util/Set;)Lnet/minecraft/world/entity/ai/ActivityData;`, called by `Villager.BRAIN_PROVIDER`
 - `net/minecraft/world/entity/ai/behavior/ShufflingList.<init>()V`, called by `TriggerGate.triggerGate`
@@ -1649,32 +3555,80 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/world/entity/animal/equine/AbstractHorse.aiStep()V`, called by `SkeletonHorse.aiStep`
 - `net/minecraft/world/entity/animal/feline/Cat.hiss()V`, called by `Phantom$PhantomSweepAttackGoal.canContinueToUse`
 - `net/minecraft/world/entity/animal/sniffer/Sniffer.transitionTo(Lnet/minecraft/world/entity/animal/sniffer/Sniffer$State;)Lnet/minecraft/world/entity/animal/sniffer/Sniffer;`, called by `SnifferAi$Digging.start`, `SnifferAi$FeelingHappy.start`, `SnifferAi$FeelingHappy.stop`, `SnifferAi$FinishedDigging.start`, `SnifferAi$FinishedDigging.stop`, `SnifferAi$Scenting.start`, `SnifferAi$Scenting.stop`, `SnifferAi$Searching.canStillUse`, `SnifferAi$Searching.start`, `SnifferAi$Sniffing.start`, `SnifferAi$Sniffing.stop`, `SnifferAi.resetSniffing`
-- `net/minecraft/world/entity/AreaEffectCloud.setRadius(F)V`, called by `DragonSittingFlamingPhase.doServerTick`
+- `net/minecraft/world/entity/AreaEffectCloud.setRadius(F)V`, called by `Creeper.explodeCreeper`, `DragonSittingFlamingPhase.doServerTick`
+- `net/minecraft/world/entity/decoration/ItemFrame.setItem(Lnet/minecraft/world/item/ItemStack;Z)V`, called by `EndCityPieces$EndCityPiece.handleDataMarker`
 - `net/minecraft/world/entity/Entity.applyEffectsFromBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V`, called by `PistonMovingBlockEntity.moveCollidedEntities`
 - `net/minecraft/world/entity/Entity.isInLava()Z`, called by `Strider$StriderGoToLavaGoal.canContinueToUse`, `Strider$StriderGoToLavaGoal.canUse`
 - `net/minecraft/world/entity/Entity.isInLiquid()Z`, called by `ArmadilloAi$ArmadilloBallUp.checkExtraStartConditions`
 - `net/minecraft/world/entity/Entity.isInWater()Z`, called by `AxolotlAi.canSetWalkTargetFromLookTarget`, `AxolotlAi.getSpeedModifier`, `CamelAi$RandomSitting.checkExtraStartConditions`, `NautilusAi.findNearestValidAttackTarget`, `Panda$PandaSitGoal.canContinueToUse`, `Panda$PandaSitGoal.canUse`, `RandomStroll.stroll(FZ)Lnet/minecraft/world/entity/ai/behavior/OneShot;`, `Squid$SquidFleeGoal.canUse`
-- `net/minecraft/world/entity/Entity.move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V`, called by `PistonMovingBlockEntity.moveCollidedEntities`
-- `net/minecraft/world/entity/Entity.push(DDD)V`, called by `EnderDragon.aiStep`, `Ravager.roar`, `SkeletonTrapGoal.tick`
+- `net/minecraft/world/entity/Entity.push(DDD)V`, called by `AbstractArrow.doKnockback`, `EnderDragon.aiStep`, `HoglinBase.throwTarget`, `Ravager.roar`, `SkeletonTrapGoal.tick`
 - `net/minecraft/world/entity/Entity.setXRot(F)V`, called by `Fox$FoxPounceGoal.tick`
-- `net/minecraft/world/entity/Entity.setYRot(F)V`, called by `BackUpIfTooClose.create`, `DragonSittingScanningPhase.doServerTick`
+- `net/minecraft/world/entity/Entity.setYRot(F)V`, called by `BackUpIfTooClose.create`, `DragonSittingScanningPhase.doServerTick`, `Leashable.tickLeash`
+- `net/minecraft/world/entity/Entity$Movement.<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V`, called by `Entity.move`
+- `net/minecraft/world/entity/Entity$Movement.<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V`, called by `Entity.move`
 - `net/minecraft/world/entity/item/FallingBlockEntity.fall(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/entity/item/FallingBlockEntity;`, called by `SpeleothemBlock.spawnFallingStalactite`
-- `net/minecraft/world/entity/LivingEntity.aiStep()V`, called by `Player.aiStep`
-- `net/minecraft/world/entity/LivingEntity.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z`, called by `Ravager.roar`, `Warden.hurtServer`, `Zoglin.hurtServer`
+- `net/minecraft/world/entity/LivingEntity.setHealth(F)V`, called by `PlayerList.respawn`
 - `net/minecraft/world/entity/Mob.tick()V`, called by `AbstractSchoolingFish.tick`
 - `net/minecraft/world/entity/player/Player.giveExperiencePoints(I)V`, called by `ExperienceOrb.playerTouch`
+- `net/minecraft/world/entity/player/Player.isHurt()Z`, called by `FoodData.tick`
+- `net/minecraft/world/entity/player/Player.tick()V`, called by `ServerPlayer.doTick`
+- `net/minecraft/world/entity/raid/Raid.<init>(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/Difficulty;)V`, called by `Raids.createOrExtendRaid`
+- `net/minecraft/world/entity/raid/Raid.absorbRaidOmen(Lnet/minecraft/server/level/ServerPlayer;)Z`, called by `Raids.createOrExtendRaid`
+- `net/minecraft/world/entity/SulfurCubeArchetype$SoundSettings.hitSound()Lnet/minecraft/core/Holder;`, called by `SulfurCube.knockback`
+- `net/minecraft/world/entity/vehicle/minecart/AbstractMinecart.comeOffTrack(Lnet/minecraft/server/level/ServerLevel;)V`, called by `OldMinecartBehavior.tick`
+- `net/minecraft/world/item/component/BlocksAttacks$DamageReduction.resolve(Lnet/minecraft/world/damagesource/DamageSource;FD)F`, called by `BlocksAttacks.resolveBlockedDamage`
+- `net/minecraft/world/item/DyeColor.getMapColor()Lnet/minecraft/world/level/material/MapColor;`, called by `Blocks.SNOW`
+- `net/minecraft/world/item/DyeColor.getTerracottaColor()Lnet/minecraft/world/level/material/MapColor;`, called by `Blocks.SNOW`
 - `net/minecraft/world/item/enchantment/EnchantmentHelper.enchantItemFromProvider(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/util/RandomSource;)V`, called by `SkeletonTrapGoal.tick`
 - `net/minecraft/world/item/ItemStack.getDamageValue()I`, called by `ExperienceOrb.playerTouch`
 - `net/minecraft/world/item/ItemStack.setDamageValue(I)V`, called by `ExperienceOrb.playerTouch`
+- `net/minecraft/world/level/block/AmethystClusterBlock.<init>(FFLnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/Block.<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/ButtonBlock.<init>(Lnet/minecraft/world/level/block/state/properties/BlockSetType;ILnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
 - `net/minecraft/world/level/block/CaveVines.hasGlowBerries(Lnet/minecraft/world/level/block/state/BlockState;)Z`, called by `Fox$FoxEatBerriesGoal.isValidTarget`, `Fox$FoxEatBerriesGoal.onReachedTarget`
+- `net/minecraft/world/level/block/CeilingHangingSignBlock.<init>(Lnet/minecraft/world/level/block/state/properties/WoodType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/ComposterBlock.extractProduce(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;`, called by `WorkAtComposter.useWorkstation`
+- `net/minecraft/world/level/block/ComposterBlock.insertItem(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;`, called by `WorkAtComposter.useWorkstation`
+- `net/minecraft/world/level/block/DoorBlock.<init>(Lnet/minecraft/world/level/block/state/properties/BlockSetType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/FenceGateBlock.<init>(Lnet/minecraft/world/level/block/state/properties/WoodType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/LeavesBlock.<init>(Lnet/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/LiquidBlock.<init>(Lnet/minecraft/world/level/material/FlowingFluid;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
 - `net/minecraft/world/level/block/LiquidBlockContainer.canPlaceLiquid(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/material/Fluid;)Z`, called by `FlowingFluid.getSpread`
 - `net/minecraft/world/level/block/SculkSensorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;`, called by `CalibratedSculkSensorBlock.getStateForPlacement`
-- `net/minecraft/world/level/Level.getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;`, called by `EnderDragon.aiStep`
-- `net/minecraft/world/level/LevelReader.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;`, called by `MapItem.renderBiomePreviewMap`
+- `net/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer.noAmbientSound()Lnet/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer.of(Lnet/minecraft/core/Holder;Lnet/minecraft/tags/TagKey;)Lnet/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/StandingSignBlock.<init>(Lnet/minecraft/world/level/block/state/properties/WoodType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/state/BlockBehaviour$Properties.of()Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/state/BlockBehaviour$Properties.offsetType(Lnet/minecraft/world/level/block/state/BlockBehaviour$OffsetType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/state/BlockBehaviour$Properties.ofLegacyCopy(Lnet/minecraft/world/level/block/state/BlockBehaviour;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/state/BlockBehaviour$Properties.sound(Lnet/minecraft/world/level/block/SoundType;)Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/TintedParticleLeavesBlock.<init>(FLnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/TrapDoorBlock.<init>(Lnet/minecraft/world/level/block/state/properties/BlockSetType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/UntintedParticleLeavesBlock.<init>(FLnet/minecraft/core/particles/ParticleOptions;Lnet/minecraft/world/level/block/sounds/AmbientLeavesBlockSoundPlayer;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/WallHangingSignBlock.<init>(Lnet/minecraft/world/level/block/state/properties/WoodType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/block/WallSignBlock.<init>(Lnet/minecraft/world/level/block/state/properties/WoodType;Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V`, called by `Blocks.SNOW`
+- `net/minecraft/world/level/BlockGetter.forEachBlockIntersectedBetween(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Lnet/minecraft/world/level/BlockGetter$BlockStepVisitor;)Z`, called by `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`
+- `net/minecraft/world/level/border/WorldBorder.isInsideCloseToBorder(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z`, called by `Entity.collide`, `Entity.move`
+- `net/minecraft/world/level/Level.explode(Lnet/minecraft/world/entity/Entity;DDDFLnet/minecraft/world/level/Level$ExplosionInteraction;)V`, called by `Creeper.explodeCreeper`
+- `net/minecraft/world/level/Level.explode(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/damagesource/DamageSource;Lnet/minecraft/world/level/ExplosionDamageCalculator;DDDFZLnet/minecraft/world/level/Level$ExplosionInteraction;)V`, called by `EndCrystal.hurtServer`
+- `net/minecraft/world/level/Level.getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;`, called by `EnderDragon.aiStep`, `LightningBolt.tick`
+- `net/minecraft/world/level/Level.isDebug()Z`, called by `ServerChunkCache.tickChunks()V`
+- `net/minecraft/world/level/levelgen/structure/BoundingBox.<init>(IIIIII)V`, called by `MineshaftPieces$MineShaftCorridor.findCorridorSize`, `MineshaftPieces$MineShaftCrossing.findCrossing`, `MineshaftPieces$MineShaftStairs.findStairs`, `StructurePiece.makeBoundingBox`
+- `net/minecraft/world/level/levelgen/structure/pieces/StructurePiecesBuilder.<init>()V`, called by `Structure$GenerationStub.getPiecesBuilder`
+- `net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$StartPiece.<init>(Lnet/minecraft/util/RandomSource;II)V`, called by `NetherFortressStructure.generatePieces`
+- `net/minecraft/world/level/levelgen/structure/StructureStart.isValid()Z`, called by `ChunkGenerator.findNearestMapStructure`
+- `net/minecraft/world/level/LevelReader.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;`, called by `Drowned.finalizeSpawn`, `MapItem.renderBiomePreviewMap`
+- `net/minecraft/world/level/LocalMobCapCalculator.<init>(Lnet/minecraft/server/level/ChunkMap;)V`, called by `ServerChunkCache.tickChunks()V`
+- `net/minecraft/world/level/material/FlowingFluid.getSource(Z)Lnet/minecraft/world/level/material/FluidState;`, called by `BubbleColumnBlock.getFluidState`
 - `net/minecraft/world/level/material/Fluid.isSame(Lnet/minecraft/world/level/material/Fluid;)Z`, called by `FlowingFluid.getSpread`
 - `net/minecraft/world/level/material/FluidState.canBeReplacedWith(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/material/Fluid;Lnet/minecraft/core/Direction;)Z`, called by `FlowingFluid.getSpread`
+- `net/minecraft/world/level/storage/loot/LootParams$Builder.<init>(Lnet/minecraft/server/level/ServerLevel;)V`, called by `ItemCommands.applyModifier`
+- `net/minecraft/world/level/storage/TagValueInput.create(Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderLookup$Provider;Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/world/level/storage/ValueInput;`, called by `FallingBlockEntity.tick`
+- `net/minecraft/world/level/storage/TagValueOutput.createWithContext(Lnet/minecraft/util/ProblemReporter;Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/world/level/storage/TagValueOutput;`, called by `FallingBlockEntity.tick`
+- `net/minecraft/world/phys/AABB.ofSize(Lnet/minecraft/world/phys/Vec3;DDD)Lnet/minecraft/world/phys/AABB;`, called by `Entity.isInWall`, `Painting.calculateBoundingBox`
+- `net/minecraft/world/phys/shapes/Shapes.joinIsNotEmpty(Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/world/phys/shapes/BooleanOp;)Z`, called by `Entity.isInWall`
 - `net/minecraft/world/phys/shapes/VoxelShape.bounds()Lnet/minecraft/world/phys/AABB;`, called by `PistonMovingBlockEntity.moveCollidedEntities`
-- `net/minecraft/world/phys/shapes/VoxelShape.toAabbs()Ljava/util/List;`, called by `PistonMovingBlockEntity.moveCollidedEntities`
+- `net/minecraft/world/phys/shapes/VoxelShape.toAabbs()Ljava/util/List;`, called by `AbstractArrow.tick`, `Blocks.SNOW`, `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`, `PistonMovingBlockEntity.moveCollidedEntities`
 
 ## Sources
 

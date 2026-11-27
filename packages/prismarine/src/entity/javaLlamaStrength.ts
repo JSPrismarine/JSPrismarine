@@ -7,6 +7,8 @@
  * and 5. Bedrock's pack weighs them 32, 32, 32, 2 and 2. Strength sizes the llama's chest, which
  * the server decides, so Java's chances decide
  * ([ADR 0001](../../../../docs/adr/0001-entity-stat-authority.md)).
+ *
+ * @javaSee Llama.setRandomStrength
  */
 import { isRecord } from '../utils/isRecord';
 

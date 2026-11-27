@@ -14,7 +14,11 @@ import type { DataEntity } from './DataEntity';
 /** The cart that carries a command. */
 export const COMMAND_BLOCK_MINECART = 'minecraft:command_block_minecart';
 
-/** Java's `MinecartCommandBlock.ACTIVATION_DELAY`: ticks between two runs over a powered rail. */
+/**
+ * Java's `MinecartCommandBlock.ACTIVATION_DELAY`: ticks between two runs over a powered rail.
+ *
+ * @javaSource MinecartCommandBlock.ACTIVATION_DELAY
+ */
 export const MINECART_ACTIVATION_DELAY = 4;
 
 const isText = (value: unknown): value is string => typeof value === 'string';
@@ -60,6 +64,7 @@ export const setMinecartCommand = (entity: DataEntity, edit: MinecartCommandEdit
  * @param gameTime - The world's game tick now.
  * @param run - Runs a command as the cart, from where it stands, under a name.
  * @returns Whether the command ran.
+ * @javaSource MinecartCommandBlock.activateMinecart
  */
 export const activateMinecartCommand = (
     entity: DataEntity,

@@ -612,7 +612,7 @@ interface SeededPipeline {
 /**
  * One decoration step's features, in the order that seeds them.
  *
- * This is Java's `FeatureSorter.StepFeatureData`: one list per step covering every biome of the
+ * This is Java's `FeatureSorter$StepFeatureData`: one list per step covering every biome of the
  * dimension, so a feature keeps its index wherever it is placed.
  */
 interface StepFeatures {
@@ -2044,6 +2044,8 @@ export class DataDrivenGenerator implements Generator {
      * next one along each axis, and picks one of those eight after a seeded jitter. A block reads
      * only its own chunk's cells when both cells along x and z are inside the chunk, which is
      * local x and z 2 to 13, and both along y are inside the dimension's cells.
+     *
+     * @javaSource BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;
      */
     private ownCellsReach(cx: number, cz: number, pipeline: SeededPipeline, cells: RegionBiomeCells): LocalBiomes {
         const bottomQuart = pipeline.dimension.minY >> 2;

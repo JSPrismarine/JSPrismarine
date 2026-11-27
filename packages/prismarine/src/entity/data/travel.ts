@@ -1,4 +1,8 @@
-/** Java's `LivingEntity.travel` on land: the drag, the friction and the stride a mob's input gives. */
+/**
+ * Java's `LivingEntity.travel` on land: the drag, the friction and the stride a mob's input gives.
+ *
+ * @javaSee LivingEntity.travel
+ */
 
 /** Java's horizontal drag on an airborne entity, applied once a tick. */
 export const DRAG = 0.91;
@@ -6,10 +10,18 @@ export const DRAG = 0.91;
 /** Java's default slipperiness for a block the loaded world cannot resolve. */
 export const DEFAULT_BLOCK_FRICTION = 0.6;
 
-/** The numerator of Java's `LivingEntity.getFrictionInfluencedSpeed`, the cube of the default friction. */
+/**
+ * The numerator of Java's `LivingEntity.getFrictionInfluencedSpeed`, the cube of the default friction.
+ *
+ * @javaSource LivingEntity.getFrictionInfluencedSpeed
+ */
 const FRICTION_SPEED_REFERENCE = 0.21600002;
 
-/** Java's `LivingEntity.getFlyingSpeed`: what a mob's input is scaled by while it is off the ground. */
+/**
+ * Java's `LivingEntity.getFlyingSpeed`: what a mob's input is scaled by while it is off the ground.
+ *
+ * @javaSource LivingEntity.getFlyingSpeed
+ */
 const AIR_SPEED = 0.02;
 
 /** One tick of a walk: how far the mob goes, and the momentum it carries into the next tick. */
@@ -34,6 +46,7 @@ export interface WalkStride {
  * @param grounded - Whether the mob stands on the ground at the start of the tick.
  * @param friction - The Java friction of the block under the mob.
  * @returns The stride this tick and the momentum left for the next.
+ * @javaSource LivingEntity.travel
  */
 export const walkStride = (momentum: number, speed: number, grounded: boolean, friction: number): WalkStride => {
     // `moveRelative` normalizes an input longer than one block.

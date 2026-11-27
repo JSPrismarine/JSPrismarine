@@ -63,12 +63,16 @@ export interface PortalArrival extends Arrival {
 /**
  * Java's `ServerLevel.END_SPAWN_POINT`, `new BlockPos(100, 50, 0)`: where an end portal drops
  * everything that goes into the End.
+ *
+ * @javaSource ServerLevel.END_SPAWN_POINT
  */
 export const END_SPAWN_POINT = { x: 100, y: 50, z: 0 } as const;
 
 /**
  * Java's `Direction.WEST.toYRot()`: the yaw a traveler faces on arriving in the End. Bedrock
  * counts yaw the same way, 0 south and 90 west.
+ *
+ * @javaSource Direction.toYRot
  */
 export const END_ARRIVAL_YAW = 90;
 
@@ -296,6 +300,8 @@ export class DimensionTravel {
      * entity that rides or carries another, which Bedrock refuses to send through
      * (MCPE-47288), or for a player whose client is still on the loading screen of the last
      * change.
+     *
+     * @javaSource Entity.setAsInsidePortal
      */
     public touch(entity: StoreActor, portal: PortalBlockRef): void {
         if (isMidDimensionChange(entity) || this.isDeparting(entity) || this.isInRide(entity)) return;
