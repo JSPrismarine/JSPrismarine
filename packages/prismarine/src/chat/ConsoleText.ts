@@ -1,6 +1,6 @@
 import type { Chat } from './Chat';
 import { ChatType } from './Chat';
-import { ENGLISH } from '@jsprismarine/protocol/java/versions/26.3/lang';
+import { ENGLISH } from '@jsprismarine/protocol/java/versions/newest';
 
 /** The server's own words, which no client has a translation of. */
 const OWN_TEXT = {

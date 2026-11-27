@@ -1,7 +1,7 @@
 import { decodeSections, LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import { unpackHeightmap } from '@jsprismarine/protocol/java/chunk/palettedContainer';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
+import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/newest';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';

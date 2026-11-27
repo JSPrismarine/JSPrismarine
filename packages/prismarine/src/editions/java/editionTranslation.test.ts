@@ -1,6 +1,5 @@
 import { BEDROCK_ONLY_BLOCKS } from '@jsprismarine/mapping';
-import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
-import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
+import { BLOCK_STATES, ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';

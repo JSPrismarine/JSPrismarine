@@ -46,7 +46,7 @@ import {
     SystemChat,
     TeleportEntity
 } from '@jsprismarine/protocol/java/packet/play';
-import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 

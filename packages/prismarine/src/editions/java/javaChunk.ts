@@ -8,7 +8,7 @@
 import type { JavaChunkSection, JavaSectionKinds } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import { encodeSections, JavaHeightmapType } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import { biomesKind, blockStatesKind, packHeightmap } from '@jsprismarine/protocol/java/chunk/palettedContainer';
-import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
+import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/newest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Chunk from '../../world/chunk/Chunk';

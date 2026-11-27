@@ -15,7 +15,7 @@ import {
     UpdateTags
 } from '@jsprismarine/protocol/java/packet/configuration';
 import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
-import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 
 import { englishOf } from '../../../chat/ConsoleText';
 import { beginPlay } from '../javaPlay';
