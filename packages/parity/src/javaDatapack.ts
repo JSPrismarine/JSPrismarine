@@ -16,17 +16,6 @@ import { FETCH_CACHE, REFERENCES } from './references.ts';
  * system and nothing executes what it finds; entry names are checked before they become paths.
  */
 
-/** The directories of `data/minecraft/` the parity rows read. */
-const WANTED = [
-    'loot_table/',
-    'recipe/',
-    'tags/',
-    'predicate/',
-    'item_modifier/',
-    'sulfur_cube_archetype/',
-    'painting_variant/'
-];
-
 /** Rejects an archive entry name that would escape the directory it unpacks into. */
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
@@ -49,7 +38,8 @@ export const readServerJar = (jarPath: string): Map<string, Uint8Array> => {
 /**
  * Unpacks the vanilla datapack JSON out of the pinned server jar, once per version.
  *
- * The datapack is inside the real server jar that the bundler holds.
+ * The datapack is inside the real server jar that the bundler holds. The folder is the one
+ * `datagen:java` writes and the server reads, so it gets the whole datapack.
  * @returns The directory holding `pack.mcmeta` and `data/`.
  * @throws {Error} When the jar is not in the fetch cache, or holds no inner server jar.
  */
@@ -63,8 +53,10 @@ export const unpackVanillaDatapack = (): string => {
     if (existsSync(mcmeta)) return target;
 
     for (const [name, bytes] of readServerJar(jarPath)) {
-        if (!name.endsWith('.json') || !isSafePath(name)) continue;
-        if (!WANTED.some((wanted) => name.startsWith(`data/minecraft/${wanted}`))) continue;
+        // All of `data/`, not only the registries the rows read: the server loads this folder as
+        // its vanilla datapack, and one without advancements or worldgen made a server started
+        // later in the same run unlock no recipes.
+        if (!name.startsWith('data/') || !name.endsWith('.json') || !isSafePath(name)) continue;
         const absolute = join(target, ...name.split('/'));
         mkdirSync(dirname(absolute), { recursive: true });
         writeFileSync(absolute, bytes);
