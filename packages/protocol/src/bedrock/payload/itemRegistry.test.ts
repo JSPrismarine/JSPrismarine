@@ -7,6 +7,7 @@ import {
     BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS,
     FIRST_CUSTOM_ITEM_ID,
     ITEM_VERSION,
+    blockItemRuntimeId,
     buildItemRegistry
 } from './itemRegistry';
 
@@ -68,6 +69,57 @@ describe('buildItemRegistry', () => {
             componentBased: true,
             version: ITEM_VERSION.DataDriven,
             runtimeId: FIRST_CUSTOM_ITEM_ID
+        });
+    });
+
+    describe('the item form of a declared block', () => {
+        it('numbers a vanilla block item the way the captured table does', () => {
+            // `minecraft:black_concrete_slab` is block 1473 in the captured block definitions.
+            expect(blockItemRuntimeId(1473)).toBe(item_table['minecraft:black_concrete_slab']!.runtime_id);
+        });
+
+        it('gives a pack block with no item of its own a plain entry, as BDS does', () => {
+            const { entries, allocated } = buildItemRegistry([typeOf('minecraft:stick')], {
+                table: item_table,
+                blocks: new Map([
+                    ['dynamiclights:light', 10000],
+                    ['dynamiclights:light_warm', 10001]
+                ])
+            });
+
+            expect(allocated).toEqual([]);
+            expect(entries).toEqual([
+                { name: 'dynamiclights:light', runtimeId: -9745, componentBased: false, version: ITEM_VERSION.None },
+                {
+                    name: 'dynamiclights:light_warm',
+                    runtimeId: -9746,
+                    componentBased: false,
+                    version: ITEM_VERSION.None
+                },
+                expect.objectContaining({ name: 'minecraft:stick' })
+            ]);
+        });
+
+        it('writes no item for a block whose number does not fit an int16', () => {
+            const { entries } = buildItemRegistry([], {
+                table: item_table,
+                blocks: new Map([
+                    ['mypack:last', 33_023],
+                    ['mypack:past', 33_024]
+                ])
+            });
+
+            expect(entries.map((entry) => [entry.name, entry.runtimeId])).toEqual([['mypack:last', -32_768]]);
+        });
+
+        it('keeps the item a block already has', () => {
+            const stone = typeOf('minecraft:stone');
+            const withBlock = buildItemRegistry([stone], {
+                table: item_table,
+                blocks: new Map([['minecraft:stone', 1]])
+            });
+
+            expect(withBlock.entries).toEqual(buildItemRegistry([stone], { table: item_table }).entries);
         });
     });
 

@@ -7,7 +7,7 @@
  * expects every one of them here. The reference this module is written
  * against is the capture of those 98 that `@jsprismarine/bedrock-data`
  * publishes as `block_definitions`, taken from a Bedrock Dedicated Server
- * 1.26.51.1.
+ * 1.26.60.6.
  *
  * The component names in the NBT are not the component names in the JSON,
  * and the differences are not a pattern: `seconds_to_destroy` becomes
@@ -445,6 +445,11 @@ export interface BlockPropertiesResult {
     readonly properties: readonly BlockProperty[];
     /** Components no translation covered, reported rather than dropped in silence. */
     readonly untranslated: readonly UntranslatedComponent[];
+    /**
+     * The `block_id` each block was declared with, by identifier: its own, or the one allocated
+     * from {@link BlockPropertiesOptions.firstCustomBlockId}. Its item's number derives from it.
+     */
+    readonly blockIds: ReadonlyMap<string, number>;
 }
 
 /** A resolved type or a parsed document; both carry the same definition. */
@@ -565,6 +570,7 @@ export const buildBlockProperties = (
 
     const properties: BlockProperty[] = [];
     const untranslated: UntranslatedComponent[] = [];
+    const blockIds = new Map<string, number>();
 
     for (const source of blocks) {
         const document = documentOf(source);
@@ -595,6 +601,7 @@ export const buildBlockProperties = (
         const states = document.description.states.filter((state) => !state.name.startsWith('minecraft:'));
         const traits = document.description.traits;
         const blockId = document.description.internalVanillaData?.blockId ?? nextBlockId++;
+        blockIds.set(name, blockId);
 
         const definition = nbtCompound({
             blockTags: tags.length > 0 ? nbtList(tags.map(nbtString)) : undefined,
@@ -614,5 +621,5 @@ export const buildBlockProperties = (
         properties.push({ name, definition: writeNetworkNbt(definition) });
     }
 
-    return { properties, untranslated };
+    return { properties, untranslated, blockIds };
 };

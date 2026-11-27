@@ -12,7 +12,7 @@
  *
  * Every tag type below is read off the `item_components` capture that
  * `@jsprismarine/bedrock-data` publishes, taken from a Bedrock Dedicated
- * Server 1.26.51.1. The two that look like mistakes are not:
+ * Server 1.26.60.6. The two that look like mistakes are not:
  * `minecraft:max_stack_size.value` is a byte while `item_properties
  * .max_stack_size` is an int, and `hidden_in_commands` is a byte holding 2 on
  * every one of the 78 items the server sends components for.
@@ -51,6 +51,21 @@ export const ITEM_VERSION = {
  * numbers above it.
  */
 export const FIRST_CUSTOM_ITEM_ID = 10000;
+
+/**
+ * The item number of a block's item form: `255 - block_id`, negative for every block past the
+ * first 256.
+ *
+ * Every vanilla block item in the captured table follows it, `minecraft:black_concrete_slab`'s
+ * -1218 for `block_id` 1473 among them, and a Bedrock Dedicated Server 1.26.60.6 numbers a
+ * pack's blocks the same way: the two it was given, with `block_id` 10000 and 10001, went out
+ * as -9745 and -9746.
+ */
+export const blockItemRuntimeId = (blockId: number): number => 255 - blockId;
+
+/** Whether an item number fits `Item Id`, an int16 on the wire. */
+const fitsItemId = (runtimeId: number): boolean =>
+    Number.isInteger(runtimeId) && runtimeId >= -32_768 && runtimeId <= 32_767;
 
 /** The `item_properties` keys {@link BEDROCK_ONLY_ITEM_PROPERTIES} names, which no Java component decides. */
 export interface BedrockOnlyItemProperties {
@@ -129,6 +144,18 @@ export interface ItemRegistryOptions {
      * the default here; `all` sends the projection for every item.
      */
     components?: 'component-based' | 'all';
+    /**
+     * The blocks `StartGamePacket.Block Properties` declares, by identifier, with the `block_id`
+     * each was declared with. A block with no item of the same name gets its item form here.
+     *
+     * A client that is told about a block and finds no item for it closes on the loading
+     * screen, which is what an addon's blocks did. A Bedrock Dedicated Server sends an item for
+     * each block a pack adds, hidden ones included, as a plain entry: not component based,
+     * version {@link ITEM_VERSION.None}, numbered by {@link blockItemRuntimeId}. A block whose
+     * number does not fit `Item Id`, an int16, which takes a `block_id` above 33023, gets no
+     * entry, so the packet can still be written.
+     */
+    blocks?: ReadonlyMap<string, number>;
 }
 
 /** An item the captured table does not name, and the number it was given. */
@@ -513,6 +540,20 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
     const entries: ItemRegistryEntry[] = [];
     const allocated: AllocatedItemId[] = [];
     const sorted = [...items].sort((left, right) => (left.identifier < right.identifier ? -1 : 1));
+    const named = new Set(sorted.map((type) => type.identifier));
+
+    for (const [name, blockId] of options.blocks ?? []) {
+        if (named.has(name)) continue;
+        const row = table[name];
+        const runtimeId = row?.runtime_id ?? blockItemRuntimeId(blockId);
+        if (!fitsItemId(runtimeId)) continue;
+        entries.push({
+            name,
+            runtimeId,
+            componentBased: false,
+            version: row?.version ?? ITEM_VERSION.None
+        });
+    }
 
     for (const type of sorted) {
         const row = table[type.identifier];
@@ -549,5 +590,6 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
         });
     }
 
+    entries.sort((left, right) => (left.name < right.name ? -1 : 1));
     return { entries, allocated };
 };
