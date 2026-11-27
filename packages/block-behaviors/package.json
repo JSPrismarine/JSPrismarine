@@ -89,8 +89,7 @@
         "build:watch": "vite build --watch",
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
-        "vectors": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/run.mjs",
-        "vectors:placement": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/placement.mjs"
+        "vectors": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/run.mjs"
     },
     "repository": {
         "type": "git",
