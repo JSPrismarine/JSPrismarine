@@ -11,6 +11,9 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
+            // Keep subpath imports on dist declarations instead of mixing in their source graph:
+            // a packet class from source is not the same type as the one `index.d.ts` names.
+            "@jsprismarine/protocol/*": ["../protocol/dist/*"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }
     },
