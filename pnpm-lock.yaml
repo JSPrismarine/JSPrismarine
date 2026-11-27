@@ -301,6 +301,21 @@ importers:
         specifier: 2.9.1
         version: 2.9.1
 
+  addons/motd:
+    devDependencies:
+      '@jsprismarine/script-types':
+        specifier: workspace:*
+        version: link:../../packages/script-types
+      '@minecraft/server':
+        specifier: 2.11.0
+        version: 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
+      rimraf:
+        specifier: 6.1.4
+        version: 6.1.4
+      tsc-ts:
+        specifier: 0.1.5
+        version: 0.1.5(@scriptc/threads@0.4.17)
+
   addons/multiverse:
     devDependencies:
       '@jsprismarine/script-types':
