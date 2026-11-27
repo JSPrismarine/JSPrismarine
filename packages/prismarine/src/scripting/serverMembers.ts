@@ -1,7 +1,8 @@
 /**
- * What `@jsprismarine/server`'s `performance`, `getPing`, `bossBars` and `playerList` reach of
- * the server: its ticker's figures, a player's round trip time from their transport, boss bars on
- * a player's own screen, and the name a player's entry shows in every client's player list.
+ * What `@jsprismarine/server`'s `performance`, `getPing`, `bossBars`, `playerList` and
+ * `serverList` reach of the server: its ticker's figures, a player's round trip time from their
+ * transport, boss bars on a player's own screen, the name a player's entry shows in every
+ * client's player list, and the status every transport advertises in a server list.
  */
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
@@ -10,7 +11,8 @@ import type {
     ScriptBossBarState,
     ScriptLevelInfo,
     ScriptLevelMembers,
-    ScriptPermissionMembers
+    ScriptPermissionMembers,
+    ScriptServerListMembers
 } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
 
@@ -19,6 +21,7 @@ import { BossBar } from '../player/BossBar';
 import type PlayerSession from '../player/PlayerSession';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { checkExpiry, checkNode } from '../permission/model';
+import type { ServerStatus } from '../network/ServerStatus';
 import type Server from '../Server';
 import { SeedGenerator } from '../utils/Seed';
 import type { Level } from '../world/Level';
@@ -271,6 +274,20 @@ export const scriptPermissionMembers = (
 };
 
 /**
+ * `serverList` of `@jsprismarine/server` over the status every transport advertises. Each pack's
+ * scripts are an owner of their own, and a change shows on every transport at once.
+ * @param status - The server's status.
+ */
+export const scriptServerListMembers = (status: ServerStatus): ScriptServerListMembers => ({
+    current: () => {
+        const { motd, levelName, onlinePlayers, maxPlayers } = status.current();
+        return { motd, levelName, onlinePlayers, maxPlayers };
+    },
+    update: (owner, fields) => status.override(owner, fields),
+    reset: (owner) => status.clear(owner)
+});
+
+/**
  * `levels` of `@jsprismarine/server` over the world manager, for the runtime of one level.
  * @param server - The server whose levels they read and change.
  * @param level - The level the runtime's packs run in.
@@ -345,6 +362,7 @@ export const scriptServerMembers = (server: Server, level: Level): JsprismarineS
             server.getSessionManager().getSessions()
         ),
         levels: scriptLevelMembers(server, level, sessionOf),
+        serverList: scriptServerListMembers(server.getServerStatus()),
         performance: () => ({
             tps: server.getTPS(),
             tpsAverages: server.getTPSAverages(),

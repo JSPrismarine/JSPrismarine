@@ -58,6 +58,7 @@ const describe = (jsp) => ({
     bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
     config: 'config' in jsp ? typesOf(jsp.config) : 'absent',
     playerList: 'playerList' in jsp ? typesOf(jsp.playerList) : 'absent',
+    serverList: 'serverList' in jsp ? typesOf(jsp.serverList) : 'absent',
     permissions: 'permissions' in jsp ? typesOf(jsp.permissions) : 'absent',
     allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });

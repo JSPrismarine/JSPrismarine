@@ -10,6 +10,7 @@ import BossEventPacket, {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type ClientConnection from '../network/ClientConnection';
+import { ServerStatus } from '../network/ServerStatus';
 import type PlayerSession from '../player/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import type Server from '../Server';
@@ -187,8 +188,18 @@ describe('scriptServerMembers', () => {
             getLastTickMs: () => 61,
             getTickMs: () => 44.5,
             getSessionManager: () => stub<SessionManager>({ getSessions: () => [...sessions] }),
-            getPermissionManager: () => stub<PermissionManager>()
+            getPermissionManager: () => stub<PermissionManager>(),
+            getServerStatus: () => status
         });
+    const status = new ServerStatus({
+        motd: 'A JSPrismarine server',
+        levelName: 'JSPrismarine',
+        onlinePlayers: 1,
+        maxPlayers: 20,
+        protocol: 2193,
+        version: '1.26.51',
+        gamemode: 'survival'
+    });
 
     it("reads the ticker's figures each time", () => {
         expect(scriptServerMembers(server([]), stub<Level>()).performance()).toEqual({
@@ -215,6 +226,32 @@ describe('scriptServerMembers', () => {
         members.resetPlayerListName('10');
 
         expect(steve.listNames).toEqual(['§aSteve', undefined]);
+    });
+
+    it('changes the server status for each owner, reads its list fields, and takes an owner back', () => {
+        const { serverList } = scriptServerMembers(server([]), stub<Level>());
+        if (serverList === undefined) throw new TypeError('No serverList');
+        const lobby = {};
+        const ranks = {};
+
+        serverList.update(lobby, { motd: '§aLobby', maxPlayers: 100 });
+        serverList.update(ranks, { onlinePlayers: 64 });
+        expect(serverList.current()).toStrictEqual({
+            motd: '§aLobby',
+            levelName: 'JSPrismarine',
+            onlinePlayers: 64,
+            maxPlayers: 100
+        });
+        expect(status.current()).toMatchObject({ motd: '§aLobby', onlinePlayers: 64, maxPlayers: 100 });
+
+        serverList.reset(lobby);
+        serverList.reset(ranks);
+        expect(serverList.current()).toStrictEqual({
+            motd: 'A JSPrismarine server',
+            levelName: 'JSPrismarine',
+            onlinePlayers: 1,
+            maxPlayers: 20
+        });
     });
 
     it("puts a script's bar on the screen of the player it names", async () => {

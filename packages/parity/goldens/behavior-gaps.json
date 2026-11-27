@@ -3693,7 +3693,7 @@
     "scripting.lifecycle": {
         "bds-record:jsp-detect": {
             "kind": "intentional",
-            "reason": "import @jsprismarine/server: JSPrismarine resolves an undeclared @jsprismarine/server. server: a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList, config and permissions included, and @jsprismarine/placeholders beside it, and takes the fallback only where the import rejects. import ./static.js: modules under @jsprismarine/ need no manifest entry, so a static import of one resolves.",
+            "reason": "import @jsprismarine/server: JSPrismarine resolves an undeclared @jsprismarine/server. server: a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList, serverList, config and permissions included, and @jsprismarine/placeholders beside it, and takes the fallback only where the import rejects. import ./static.js: modules under @jsprismarine/ need no manifest entry, so a static import of one resolves.",
             "reference": "docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md, docs/guide/jsprismarine-module.md"
         },
         "bds-record:module-resolution": {

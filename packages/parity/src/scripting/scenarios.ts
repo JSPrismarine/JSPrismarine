@@ -255,7 +255,8 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                             'jsprismarine',
                             'performance',
                             'permissions',
-                            'playerList'
+                            'playerList',
+                            'serverList'
                         ],
                         name: 'JSPrismarine',
                         version: 'string',
@@ -272,6 +273,14 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         getPing: 'function',
                         bossBars: { show: 'function' },
                         playerList: { reset: 'function', setDisplayName: 'function' },
+                        serverList: {
+                            levelName: 'string',
+                            maxPlayers: 'number',
+                            motd: 'string',
+                            onlinePlayers: 'number',
+                            reset: 'function',
+                            update: 'function'
+                        },
                         placeholders: {
                             namespaces: 'function',
                             parse: 'function',
@@ -298,7 +307,7 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                 },
                 because:
                     'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList, ' +
-                    'config and permissions included, and @jsprismarine/placeholders beside it, and takes the fallback only ' +
+                    'serverList, config and permissions included, and @jsprismarine/placeholders beside it, and takes the fallback only ' +
                     'where the import rejects',
                 reference: 'docs/guide/jsprismarine-module.md'
             },
