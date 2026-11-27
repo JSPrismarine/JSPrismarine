@@ -9,6 +9,7 @@ import { JavaSourceError } from './fingerprint.mts';
 import {
     formatJavaSourceGolden,
     goldenProblems,
+    javaSourceKindCounts,
     needsReview,
     readJavaSourceGolden,
     resolveJavaSource,
@@ -178,5 +179,32 @@ describe('readJavaSourceGolden', () => {
             sources: {}
         });
         expect(() => readJavaSourceGolden(import.meta.dirname)).toThrow(/EISDIR/);
+    });
+});
+
+describe('javaSourceKindCounts', () => {
+    it('counts tags by verification kind, overall and per package, with plain for none', () => {
+        const tag = (file: string, verified?: string) => ({ file, line: 1, spelling: 'Sponge.absorb', verified });
+
+        expect(
+            javaSourceKindCounts([
+                tag('packages/features/src/a.ts'),
+                tag('packages/features/src/b.ts', 'vectors'),
+                tag('packages/entity-goals/src/c.ts')
+            ])
+        ).toEqual({
+            plain: 2,
+            vectors: 1,
+            read: 0,
+            extracted: 0,
+            'features: plain': 1,
+            'features: vectors': 1,
+            'features: read': 0,
+            'features: extracted': 0,
+            'entity-goals: plain': 1,
+            'entity-goals: vectors': 0,
+            'entity-goals: read': 0,
+            'entity-goals: extracted': 0
+        });
     });
 });

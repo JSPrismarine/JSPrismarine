@@ -178,6 +178,28 @@ export const scanJavaSources = (file: string, text: string): JavaSourceScan => {
 };
 
 /**
+ * How many `@javaSource` tags each `@javaVerified` kind has, overall and per package, with
+ * `plain` for a tag without one. The dashboard reports these, so the share of copies only a re-read
+ * checks is visible and can shrink as copies move to vectors or extracted data.
+ *
+ * @param tags - Every tag in the repository.
+ * @returns Counts keyed `<kind>` and `<package>: <kind>`, a package being the directory under
+ *   `packages/`, with every kind present in both forms.
+ */
+export const javaSourceKindCounts = (tags: readonly JavaSourceTag[]): Record<string, number> => {
+    const kinds = ['plain', ...JAVA_VERIFIED_KINDS];
+    const counts: Record<string, number> = Object.fromEntries(kinds.map((kind) => [kind, 0]));
+    for (const tag of tags) {
+        const kind = tag.verified ?? 'plain';
+        const pkg = /^packages\/([^/]+)\//.exec(tag.file)?.[1] ?? tag.file;
+        for (const name of kinds) counts[`${pkg}: ${name}`] ??= 0;
+        counts[kind] = (counts[kind] ?? 0) + 1;
+        counts[`${pkg}: ${kind}`] = (counts[`${pkg}: ${kind}`] ?? 0) + 1;
+    }
+    return counts;
+};
+
+/**
  * The files a tag may sit in: package sources, without tests and generated output. The parity
  * suite reads Java code to compare with it rather than copying it, so its citations are not
  * transcriptions.
