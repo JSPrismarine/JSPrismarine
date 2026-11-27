@@ -260,6 +260,11 @@
                 "import": "./dist/scripting/LevelScriptWorld.js",
                 "module": "./dist/scripting/LevelScriptWorld.js"
             },
+            "./scripting/DataDrivenScreens": {
+                "types": "./dist/scripting/DataDrivenScreens.d.ts",
+                "import": "./dist/scripting/DataDrivenScreens.js",
+                "module": "./dist/scripting/DataDrivenScreens.js"
+            },
             "./scripting/ScriptHttpInputs": {
                 "types": "./dist/scripting/ScriptHttpInputs.d.ts",
                 "import": "./dist/scripting/ScriptHttpInputs.js",
@@ -2229,6 +2234,10 @@
         "./scripting/LevelScriptWorld": {
             "jsprismarine:dist": "./dist/scripting/LevelScriptWorld.js",
             "default": "./src/scripting/LevelScriptWorld.ts"
+        },
+        "./scripting/DataDrivenScreens": {
+            "jsprismarine:dist": "./dist/scripting/DataDrivenScreens.js",
+            "default": "./src/scripting/DataDrivenScreens.ts"
         },
         "./scripting/ScriptHttpInputs": {
             "jsprismarine:dist": "./dist/scripting/ScriptHttpInputs.js",

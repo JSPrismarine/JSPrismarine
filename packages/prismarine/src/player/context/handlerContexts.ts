@@ -52,6 +52,15 @@ const contextOf = <E extends object>(server: ContextSource, session: PlayerSessi
     }
 });
 
+/** The scripts of the level a player is in, by the id the scripts know the player by. */
+const scriptsOfPlayer = (server: ContextSource, player: string) => {
+    const session = server
+        .getSessionManager()
+        .getSessions()
+        .find((each) => String(each.getRuntimeId()) === player);
+    return server.getScripts(session?.getWorld().getLevel());
+};
+
 const servicesOf = (server: ContextSource): HandlerServices => ({
     get content() {
         return server.getContent();
@@ -96,14 +105,15 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
         return server.getResourcePacks();
     },
     scriptForms: {
-        // The answer goes to the scripts of the level the player is in, whose form it was.
+        // An answer goes to the scripts of the level the player is in, whose form it was.
         answerForm: (response) => {
-            const session = server
-                .getSessionManager()
-                .getSessions()
-                .find((each) => String(each.getRuntimeId()) === response.player);
-            const scripts = server.getScripts(session?.getWorld().getLevel());
+            const scripts = scriptsOfPlayer(server, response.player);
             scripts?.answerForm(response);
+            return scripts !== undefined;
+        },
+        answerDataDriven: (response) => {
+            const scripts = scriptsOfPlayer(server, response.player);
+            scripts?.answerDataDriven(response);
             return scripts !== undefined;
         }
     },

@@ -431,6 +431,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/World
 @jsprismarine/prismarine/scripting/LevelScripts
 @jsprismarine/prismarine/scripting/LevelScriptWorld
+@jsprismarine/prismarine/scripting/DataDrivenScreens
 @jsprismarine/prismarine/scripting/ScriptHttpInputs
 @jsprismarine/prismarine/player/presenter/SessionPresenter
 @jsprismarine/prismarine/network/presenter/SessionPresenter

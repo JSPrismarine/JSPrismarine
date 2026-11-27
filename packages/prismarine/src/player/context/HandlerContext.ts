@@ -9,7 +9,7 @@
  */
 import type { ServedResourcePacks } from '../../resourcePacks/ServedResourcePacks';
 import type { Logger } from '@jsprismarine/logger';
-import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
+import type { DataDrivenResponse, ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { ChatManager } from '../../chat/ChatManager';
 import type { CommandManager } from '../../command/CommandManager';
 import type { ConsoleSender } from '../../command/ConsoleSender';
@@ -120,6 +120,12 @@ export interface ScriptFormInbox {
      * @returns Whether any scripts run to take it.
      */
     answerForm(response: ScriptFormResponse): boolean;
+    /**
+     * Hands the scripts a client's write to, or close of, a data-driven screen, which their next
+     * flush applies.
+     * @returns Whether any scripts run to take it.
+     */
+    answerDataDriven(response: DataDrivenResponse): boolean;
 }
 
 /** The hooks of the input step that applies an input. */

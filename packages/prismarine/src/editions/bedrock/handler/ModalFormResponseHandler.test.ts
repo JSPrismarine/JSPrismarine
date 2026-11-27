@@ -30,7 +30,8 @@ const fakeSession = (scripts = true) => {
                 answerForm: (response) => {
                     answers.push(response);
                     return scripts;
-                }
+                },
+                answerDataDriven: () => scripts
             }
         }
     });
