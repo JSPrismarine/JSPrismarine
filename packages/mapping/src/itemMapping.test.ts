@@ -13,10 +13,16 @@ describe('createJavaItemMapping', () => {
     });
 
     it('carries the legacy damage value that selects a sub-item', () => {
-        expect(createJavaItemMapping(itemsTable)('minecraft:acacia_planks')).toEqual({
+        expect(createJavaItemMapping(itemsTable)('minecraft:black_bed')).toEqual({
             kind: 'mapped',
-            bedrock: { identifier: 'minecraft:acacia_planks', data: 4 }
+            bedrock: { identifier: 'minecraft:bed', data: 15 }
         });
+    });
+
+    it('drops the aux a flattened item had on the merged item it came from', () => {
+        for (const javaId of ['minecraft:birch_log', 'minecraft:spruce_log', 'minecraft:birch_leaves']) {
+            expect(javaItemToBedrock(javaId)).toEqual({ kind: 'mapped', bedrock: { identifier: javaId } });
+        }
     });
 
     it('gives each structure locator map its own aux value on a filled map', () => {
