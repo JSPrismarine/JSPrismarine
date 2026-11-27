@@ -215,7 +215,7 @@ importers:
         version: 7.0.0
       '@codecov/vite-plugin':
         specifier: 2.0.1
-        version: 2.0.1(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.0.1(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       '@commitlint/cli':
         specifier: 21.2.4
         version: 21.2.4(conventional-commits-parser@7.1.4)(typescript@7.0.2)
@@ -232,8 +232,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@scriptc/threads':
-        specifier: 0.4.16
-        version: 0.4.16
+        specifier: 0.4.17
+        version: 0.4.17
       '@turbo/gen':
         specifier: 2.11.13
         version: 2.11.13(@types/node@26.6.11)
@@ -265,17 +265,17 @@ importers:
         specifier: 3.10.1
         version: 3.10.1
       rolldown:
-        specifier: 1.3.3
-        version: 1.3.3
+        specifier: 1.3.4
+        version: 1.3.4
       scriptc:
-        specifier: 0.4.16
-        version: 0.4.16
+        specifier: 0.4.17
+        version: 0.4.17
       ts-mockito:
         specifier: 2.6.1
         version: 2.6.1
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -289,11 +289,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       yaml:
         specifier: 2.9.1
         version: 2.9.1
@@ -311,7 +311,7 @@ importers:
         version: 6.1.4
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
 
   addons/standard-placeholders:
     devDependencies:
@@ -326,7 +326,7 @@ importers:
         version: 6.1.4
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
 
   addons/tab-list:
     devDependencies:
@@ -341,7 +341,7 @@ importers:
         version: 6.1.4
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
 
   addons/tps-bar:
     devDependencies:
@@ -356,7 +356,7 @@ importers:
         version: 6.1.4
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
 
   packages/addon-tools:
     dependencies:
@@ -368,7 +368,7 @@ importers:
         version: link:../packs
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
     devDependencies:
       '@types/node':
         specifier: 26.6.11
@@ -383,11 +383,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/advancements:
     dependencies:
@@ -408,11 +408,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/auth:
     dependencies:
@@ -442,11 +442,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/bedrock-data:
     devDependencies:
@@ -478,11 +478,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/binaryutils:
     dependencies:
@@ -503,11 +503,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/block-behaviors:
     dependencies:
@@ -540,11 +540,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/blocks:
     dependencies:
@@ -580,11 +580,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/brigadier:
     dependencies:
@@ -605,11 +605,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/chunkgen:
     dependencies:
@@ -633,11 +633,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/client:
     dependencies:
@@ -691,11 +691,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/color-parser:
     devDependencies:
@@ -712,11 +712,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/commands:
     dependencies:
@@ -749,11 +749,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/console:
     dependencies:
@@ -783,11 +783,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/console-protocol:
     dependencies:
@@ -811,11 +811,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/content:
     dependencies:
@@ -836,11 +836,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/enchantments:
     dependencies:
@@ -861,11 +861,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/engine-systems:
     dependencies:
@@ -892,11 +892,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/entities:
     dependencies:
@@ -932,11 +932,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/entity-brains:
     dependencies:
@@ -957,11 +957,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/entity-goals:
     dependencies:
@@ -994,11 +994,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/errors:
     devDependencies:
@@ -1015,11 +1015,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/features:
     dependencies:
@@ -1043,11 +1043,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/item-behaviors:
     dependencies:
@@ -1071,11 +1071,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/items:
     dependencies:
@@ -1108,11 +1108,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/kernel:
     dependencies:
@@ -1133,11 +1133,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/leveldb:
     dependencies:
@@ -1158,11 +1158,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/lighting:
     dependencies:
@@ -1183,11 +1183,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/logger:
     dependencies:
@@ -1211,11 +1211,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/loot:
     dependencies:
@@ -1245,11 +1245,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/mapping:
     dependencies:
@@ -1279,11 +1279,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/math:
     dependencies:
@@ -1307,11 +1307,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/mcfunction:
     devDependencies:
@@ -1328,11 +1328,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/minecraft:
     dependencies:
@@ -1362,11 +1362,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/molang:
     dependencies:
@@ -1387,11 +1387,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/native-library:
     dependencies:
@@ -1412,11 +1412,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/native-network:
     dependencies:
@@ -1446,11 +1446,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/native-worldgen:
     dependencies:
@@ -1477,11 +1477,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/nbt:
     dependencies:
@@ -1505,11 +1505,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/nethernet:
     dependencies:
@@ -1542,11 +1542,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/packs:
     dependencies:
@@ -1582,11 +1582,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       vscode-languageserver-textdocument:
         specifier: 1.0.16
         version: 1.0.16
@@ -1690,11 +1690,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/predicates:
     dependencies:
@@ -1715,11 +1715,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/prismarine:
     dependencies:
@@ -1879,7 +1879,7 @@ importers:
         version: 2.10.0
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.16)
+        version: 0.1.5(@scriptc/threads@0.4.17)
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -1887,11 +1887,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     optionalDependencies:
       '@jsprismarine/script-host':
         specifier: workspace:*
@@ -1949,11 +1949,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/raknet:
     dependencies:
@@ -1980,11 +1980,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/recipes:
     devDependencies:
@@ -2007,11 +2007,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/script-host:
     dependencies:
@@ -2035,8 +2035,8 @@ importers:
         specifier: 6.1.4
         version: 6.1.4
       rolldown:
-        specifier: 1.3.3
-        version: 1.3.3
+        specifier: 1.3.4
+        version: 1.3.4
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -2044,11 +2044,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/script-types:
     devDependencies:
@@ -2129,11 +2129,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     optionalDependencies:
       '@jsprismarine/console':
         specifier: workspace:*
@@ -2167,11 +2167,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/structures:
     dependencies:
@@ -2204,11 +2204,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/trading:
     dependencies:
@@ -2238,11 +2238,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/worldgen:
     dependencies:
@@ -2266,11 +2266,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   tools/client-e2e:
     devDependencies:
@@ -2330,7 +2330,7 @@ importers:
         version: 2.0.0-alpha.21(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(postcss@8.5.33)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
       vitest:
         specifier: 5.1.2
-        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       yaml:
         specifier: 2.9.1
         version: 2.9.1
@@ -2681,20 +2681,11 @@ packages:
   '@emnapi/core@1.11.2':
     resolution: {integrity: sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA==}
 
-  '@emnapi/core@2.0.0-beta.2':
-    resolution: {integrity: sha512-MzCVoWtcg4Pm2B3je5mMvYMvj3MmBKw+fU7vbsJc9/iT8ip6/eYIHo/Dsm/mr+wsHB6SEyJDuxB09Yy6r/8+4A==}
-
   '@emnapi/runtime@1.11.2':
     resolution: {integrity: sha512-kyOl3X0DuTiT1h2ft8r2fYO8JYtU9a9Xis/zBSiGArNaagCOWx90N1k2wxp18czFDH+OgcWGb5ZP/XMt3dcyPA==}
 
-  '@emnapi/runtime@2.0.0-beta.2':
-    resolution: {integrity: sha512-JcrSPzPvZuNZvJqPTF9Fw25LbOJ8avzFVlaf2grmH4Cku0oGP47tRgqPZadcfj3YoZMHkFVnCYFbQM8I+i5QEw==}
-
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
-
-  '@emnapi/wasi-threads@2.2.0':
-    resolution: {integrity: sha512-JP7OYH38Q7+pyTAe14raZHLQIK7BDKbdwji+Xi3pcd/6QkJYQH3SX4wu6EplGrGJWRepoNzedfm0G3B9Z4e9Rw==}
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
@@ -3177,13 +3168,6 @@ packages:
     resolution: {integrity: sha512-xJIPs+bYuc9ASBl+cvGsKbGrJmS6fAKaSZCnT0lhahT5rhA2VVy9/EcIgd2JhtEuFOJNx7UHNn/qiTPTY4nrQw==}
     engines: {node: '>= 10'}
 
-  '@napi-rs/wasm-runtime@1.2.6':
-    resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
-    peerDependencies:
-      '@emnapi/core': ^1.7.1 || 2.0.0-beta.2
-      '@emnapi/runtime': ^1.7.1 || 2.0.0-beta.2
-
   '@napi-rs/wasm-runtime@1.2.7':
     resolution: {integrity: sha512-zJccwplOAbgfZju95IUHazLnx9RAPtPN2YGJXI6UbrgeaR9QfPjGrQL6ERkSAtnVCA4Q+83ApGyaX5zdpCaKkQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
@@ -3290,11 +3274,8 @@ packages:
     peerDependencies:
       web-tree-sitter: 0.25.10
 
-  '@oxc-project/types@0.156.0':
-    resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
-
-  '@oxc-project/types@0.159.0':
-    resolution: {integrity: sha512-QWjWhxheluOJ82kDHNyps00UvRpQCtI34B5A/SzpgQycUD/79FuvT4I0aQIfE/bdPwKmX4QPftnywFBH6FxJhQ==}
+  '@oxc-project/types@0.160.0':
+    resolution: {integrity: sha512-gw4k9syEmnckbOgw2A2FU1TBDdX9hfwV9jEn/uio65pguPzwWiXQS3OIJDMEhv9m06tj9XiEe6RoD0YA+LgreA==}
 
   '@oxc-resolver/binding-android-arm-eabi@11.24.2':
     resolution: {integrity: sha512-y09e0L0SRI2OA2tUIrjBgoV3eH5hvUKXNkJqXmNo5V2WxIjyC7I7aJfRLMEVpA8yi95f90gFDvO0VMgrDw+vwA==}
@@ -3609,204 +3590,103 @@ packages:
     resolution: {integrity: sha512-xBaJish5OeGmniDj9cW5PRa/PtmuVU3ziqrbr5xJj901ZDN4TosrVaNZpEiLZAxdfnhAe7uQ7QFWfjPe9d9K2Q==}
     engines: {node: '>= 10'}
 
-  '@rolldown/binding-android-arm-eabi@1.2.19':
-    resolution: {integrity: sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A==}
+  '@rolldown/binding-android-arm-eabi@1.3.4':
+    resolution: {integrity: sha512-xCW8CkL/ualx/SbYqeG9iK87lJCZGDQ0soE+kaORJ0Bd+pHALyE4qK7BStmEAyYWLEzZ3/biSIpA6/7GDFvzIg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [android]
 
-  '@rolldown/binding-android-arm-eabi@1.3.3':
-    resolution: {integrity: sha512-K1itOg1Xl50XyjLDa4qQZqaYsfiQbFbFRWXOEOupOsGr3whhm5ed4lgySd6Inohv2TB0+sdU4AxORKuS/TGang==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [android]
-
-  '@rolldown/binding-android-arm64@1.2.19':
-    resolution: {integrity: sha512-hOombrTJ+szt2ciEzS7oCA78lMPBgF5UMQWCJIyNfnrI7GLl8HYoFqCnpL2gcPOaXMqryGCU5ExdQKyDDcC+yA==}
+  '@rolldown/binding-android-arm64@1.3.4':
+    resolution: {integrity: sha512-5lifIO+b/prcM9sx/bkPN4w6UEToEfQ3gjhx0+0neuL+dkYskI792CfAq03T51jc8JFcaYXs2hi3l8RjiH/VWQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [android]
 
-  '@rolldown/binding-android-arm64@1.3.3':
-    resolution: {integrity: sha512-re+E0E3YSJXjEFzdOvBgkVUev1Gg49ileia04qy+Djn0lIMBr7pnwVOYQ+4vc9XbLClCmMziasqXHM7KTmKNKQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [android]
-
-  '@rolldown/binding-darwin-arm64@1.2.19':
-    resolution: {integrity: sha512-XoMA2pwCKGTQzUjPgtRwkedH4WmXhdIPKT6l6oOxd1PUbNodGI6DcBekgN7EC//+x3pfBYX/qL1gNmZAqivw5g==}
+  '@rolldown/binding-darwin-arm64@1.3.4':
+    resolution: {integrity: sha512-RCgxTI4AJQxhVF//BI3ImQOsXTHrF4Eg+f99jBy8WoETA2kSEGFxpnrVmW0leQq/2aBR4R5AC6csmy3rc66e3Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [darwin]
 
-  '@rolldown/binding-darwin-arm64@1.3.3':
-    resolution: {integrity: sha512-6pMLYsUiQJXPkUj/CG447hOBKtbe+hjWw/wbxe/mucoPKgnLSVRTzey7s0kXfqrjxhDd3gQ2hj6lgUKRumsIzw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@rolldown/binding-darwin-x64@1.2.19':
-    resolution: {integrity: sha512-zo8EsSSwMZCY/e+fRnGaX02YGgvJD0yvhNi/9hpGPA2MJ9ZF8dPCw75UGfpI6OpQ/myR/dIYmogRvqiZD0TrXg==}
+  '@rolldown/binding-darwin-x64@1.3.4':
+    resolution: {integrity: sha512-zNPJVVPUaDEj+L0lImoK3rFv2b+Z5gNijI6DWu/fcD3/1TfmRXKb9ZyxbSN+2AhlctqjbNzUvCsMa+EBhnEM4Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [darwin]
 
-  '@rolldown/binding-darwin-x64@1.3.3':
-    resolution: {integrity: sha512-Lz+TskwvhceQgwnP+0ox5ZeL7HDDXHKWVRpOqC1Eo05y6rYyfvvep0msGqC95kQTykXrmGgP6qwJB1NdgNZVhg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [darwin]
-
-  '@rolldown/binding-freebsd-x64@1.2.19':
-    resolution: {integrity: sha512-O8ISAOfI1nj7AuBPd30FSF47z7f7lzlk5poQVGgiikvQuGEBFYvW8ki+UEnT+YJPnNGjQzn304klt4O9FUE7mA==}
+  '@rolldown/binding-freebsd-x64@1.3.4':
+    resolution: {integrity: sha512-upP6g7ZIRy5by1RDQ/EphHIdJ5xK0eUD7sUgfZFWJ49s4XdbYsIvIlAPtrFpayR70Hhf9J22lb4Pm8/9FhrZmg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [freebsd]
 
-  '@rolldown/binding-freebsd-x64@1.3.3':
-    resolution: {integrity: sha512-sIzqNDbA7GFDXU8k9/vcJyV1p45mCe+xHOLo9qD7gdbTbMlwB+SpnFoP7WSpC2iYdGfOX9pjBxCfViRn/Nu3Jw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@rolldown/binding-linux-arm-gnueabihf@1.2.19':
-    resolution: {integrity: sha512-/lYCba5NO0yq4S0jGMH8QTBtkvQxoXjoQWzF5BcWp9MjB9jxVRD1GQDNofkVjcOj30DWyhLIN/4Oe60JKzaONw==}
+  '@rolldown/binding-linux-arm-gnueabihf@1.3.4':
+    resolution: {integrity: sha512-SAX5C5+poMLCxu8dkPF6h5yst40rkzs+9Y3cbPn2OFSydmHjAEprrGi64zGgnYyPIVZfdGUFqJ2fJbfbnHI+mA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [linux]
 
-  '@rolldown/binding-linux-arm-gnueabihf@1.3.3':
-    resolution: {integrity: sha512-HYysnZZ7HD3FM5RIBN6wDMoxtOjw4LS9HhRuQ57MsZt5XGpGRPxVpplvr7vUXRN+9MD8zb6vn1JRP06PXIuMYQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@rolldown/binding-linux-arm64-gnu@1.2.19':
-    resolution: {integrity: sha512-pm/apFMBnSbFb3O6nG5pHO1iqHhZrjGDFEjSm+ot9J17XXPvH9L90y5h+jgfHCE+Qdlsvy8qKEcU4VKxgjD+vA==}
+  '@rolldown/binding-linux-arm64-gnu@1.3.4':
+    resolution: {integrity: sha512-nwHqdlRZS6GWBef3dG5/pMY6RNTBBUjj7s0Da+m6xsFpe7jx6IC46SLZcCu8f46JOfCovZmwnrz51EzGE+7Fyw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@rolldown/binding-linux-arm64-gnu@1.3.3':
-    resolution: {integrity: sha512-XAyLqWSoEKVc8wsDbCIz5o2sBY6ye+0YByK9ib5QxFReoM1KHyThSHsdUODa1DKNzlEfae+p9QwK62LsVwo6Nw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rolldown/binding-linux-arm64-musl@1.2.19':
-    resolution: {integrity: sha512-K1SmQp3FFichn8oqrNIwvFoZ5wcvjC7goBzpaMNvLf9FZc+QB/QvLmnpJZgAAGHiD980tP8FZZnXk2K94rvlxg==}
+  '@rolldown/binding-linux-arm64-musl@1.3.4':
+    resolution: {integrity: sha512-Gr78X2ur/AgLCkmZgHffk/FerIX8S5zb/eII4bCcvJo0ANzeXhTShahdNbpnY6bpiszIAgIfiuKS9ziziWsamw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@rolldown/binding-linux-arm64-musl@1.3.3':
-    resolution: {integrity: sha512-oVyicDPj6vUVFRnuoQS7M2Ab8EkGWoq3a5ntyQqjtZoXfgVykIJqN2IAJSi9q9UyNoQUW0vbBLQSgGtlPJ40Kg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@rolldown/binding-linux-ppc64-gnu@1.2.19':
-    resolution: {integrity: sha512-I0xwD57jP/3A7+5UPZin2w8Y7XHEmEM5zqpYZOcQ45MlNW6tUJUziymV3yRr7rL4vwyfEcRsRksC4a7Kc08p5Q==}
+  '@rolldown/binding-linux-ppc64-gnu@1.3.4':
+    resolution: {integrity: sha512-o9Wcn8nWrsQasaBRYM4d//FwhlBsTJYWkPVlhlt6FwzpwEoovY4IopRZjk5Fq3+ntRuSDORJjF/nA8sFeF2q6w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
     os: [linux]
     libc: [glibc]
 
-  '@rolldown/binding-linux-ppc64-gnu@1.3.3':
-    resolution: {integrity: sha512-k7aFSWgUoi/X7jCst7UEof7pS5jc5ymD8mT/pdFE+pO1IBBI2+JU5Os4HEDqS/tYhetRggwM7MOiLP3cg1bSBQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rolldown/binding-linux-s390x-gnu@1.2.19':
-    resolution: {integrity: sha512-BrtEHT24SNXj9HiXqy+s/kXiSiQGt6EKCPUlRirAoIioVxKGnbXBUEkbZASAei7iZJB0/Ynm+0JP00Ipx7AnSw==}
+  '@rolldown/binding-linux-s390x-gnu@1.3.4':
+    resolution: {integrity: sha512-UDWu4jkVcx2kiBKm3Ec//4lVCbeTWj8gmJ9SyLWCdLWtTlyq7fQVeVV/14nXvRtSLErvJ2+yA/Ux5taS31Y17Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [s390x]
     os: [linux]
     libc: [glibc]
 
-  '@rolldown/binding-linux-s390x-gnu@1.3.3':
-    resolution: {integrity: sha512-D5mxHpr1qIb1Pt5UT+Bm2p6vJ7+VxcxWcxZCYVDFzZwWRq9iLiEg4/ROsaXFQl1O8sDQZZJ55UoRWWMK64uH5w==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@rolldown/binding-linux-x64-gnu@1.2.19':
-    resolution: {integrity: sha512-rm75/9DkHKeU2WnA8w4X94WGYgLlDCFCfkQC+4bguVJmC/jvDRv2B+2wLOYhyE0fVuv7//Ckk39OoOufyCu76Q==}
+  '@rolldown/binding-linux-x64-gnu@1.3.4':
+    resolution: {integrity: sha512-W9mGtTa0w4fWh8RLMNPyaEhhcuqUfO07Q4I1bBc4PDMNg7gQSw0yPQNQ3D0qwbkXwxbyL4YrIzc8n6k1vuFExQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@rolldown/binding-linux-x64-gnu@1.3.3':
-    resolution: {integrity: sha512-nmW1O4BbNEmQI9+KTHbJgbDv0EuyZy64oBnRlMCtLJ8lQMIJ/H/iziQ0g2IUlHEhNrSebGvs9cRrlRj8oEfP+g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rolldown/binding-linux-x64-musl@1.2.19':
-    resolution: {integrity: sha512-irh/4+iYFM4GAzpluDErgjz89bj6NDtqqMAG/6O1LG38Ed3NpyebzCpcVNkFW8uhy+/3/BocUvnXDR33CXWe9A==}
+  '@rolldown/binding-linux-x64-musl@1.3.4':
+    resolution: {integrity: sha512-8B+ofyQZ7/aCmkqnyMonPr5zKLqMVNczhRGFNtdIuItiwNn8iQWJawMq2E58r7bxD1XEbtRRsULY/eCWwZQ01Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@rolldown/binding-linux-x64-musl@1.3.3':
-    resolution: {integrity: sha512-ivU4JFHK5nFzrRbzp3+vwYdLj8mFckH4oz3hEl5LH/YeThr9/m2N2vF3NvLevtHq6e0COimgrEVyYTwQhh4ODg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@rolldown/binding-openharmony-arm64@1.2.19':
-    resolution: {integrity: sha512-+KWTWNoPt+CfSq94CiceWu3yPE+QzkaG+phPyz9G60tmZLwfQkcA4AeksafzvJAw4pvg1mcd5a1TkUqVv0s4JA==}
+  '@rolldown/binding-openharmony-arm64@1.3.4':
+    resolution: {integrity: sha512-TlD0FSZaC7o2B4NCe9V5N11ugTnhzTM9ksj4sgRLvrKosDzjEkvlsTX3ehkw4ZlPv8AADimZZTvJGEa16pfXug==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
 
-  '@rolldown/binding-openharmony-arm64@1.3.3':
-    resolution: {integrity: sha512-XxZoRIkNZ/7pFgvOA8QJmx3uFjMyVz7zS2/urzlaFffoOGclDvpUAMu3AHKT551E8JBKXLxIjpYxYMdF6Mz9vQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [openharmony]
-
-  '@rolldown/binding-wasm32-wasi@1.2.19':
-    resolution: {integrity: sha512-7EH+skOsl5qpWnK0vzamgJFhOv1cwxQpsxm8tI883K9fur5c27p8q87fzEO6BbBPabA2/+s/zR63/pLc137iOg==}
+  '@rolldown/binding-wasm32-wasi@1.3.4':
+    resolution: {integrity: sha512-jwO8P3o53ygo7b5061B7BeaJ1BGv3BKZ6jroFdw/01qWry7Z+qNBlDvulzbTle5s/A0Fc1FRgsTxrke9DvsSbA==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
     cpu: [wasm32]
 
-  '@rolldown/binding-wasm32-wasi@1.3.3':
-    resolution: {integrity: sha512-bBl1MB2gF26PSPy3CiDLiv+A6JGI546WbsDR34LfKAywSGeBeQXaDanoDG6QdZDJs53M1QyJir5MTKTu1n4ptA==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
-    cpu: [wasm32]
-
-  '@rolldown/binding-win32-arm64-msvc@1.2.19':
-    resolution: {integrity: sha512-3Q1Yg1Q7tEvBWoZf5rFvG/GKZQPgwfru+p4wBajDfJFBs0SHCpL++dfTjW9gyAKd1T7ZpIYvdaUax7Pa/IhFVQ==}
+  '@rolldown/binding-win32-arm64-msvc@1.3.4':
+    resolution: {integrity: sha512-8adGMrNtrdzi2WD1ozhYapER59gD8Q/DV6SCKJlyG2HqULPdeQUBvMa33lTsiEYwIqTZUaIU2MmvPp5f1wbtXA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [win32]
 
-  '@rolldown/binding-win32-arm64-msvc@1.3.3':
-    resolution: {integrity: sha512-6rZur0hyen4LPhOxWIg7az1YX+Eo8Vvauc0D6lFYGK/QCvN+1XpnB8aFe3jQc/PBUGIReJJnLX3sS8h33/5v7A==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [win32]
-
-  '@rolldown/binding-win32-x64-msvc@1.2.19':
-    resolution: {integrity: sha512-y/sqRRc6d7hECzOFc5n3LSeqctmIp9mMjY1Kq4s14uLPd/LZ4z7i1zrW6fMtp2mPeuQIC4e6ULMcwQzMomqQag==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [win32]
-
-  '@rolldown/binding-win32-x64-msvc@1.3.3':
-    resolution: {integrity: sha512-Ggzyuq1mN7claruAZH10aiiM1N3LRCoMP5xDXPdU514ulL0D2bksCWgFqEmEM2/pDzEP7Dq+dcv7IH452jtr1w==}
+  '@rolldown/binding-win32-x64-msvc@1.3.4':
+    resolution: {integrity: sha512-rIMjtESdXJCIoOiUTroQ1Y1rjVDZkuUVRUxs3APX2vNv175D7TDWvzdELiIhzGq9cUNUFat+co+PTmPHPqSREg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
@@ -3814,109 +3694,109 @@ packages:
   '@rolldown/pluginutils@1.1.1':
     resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
 
-  '@scriptc/cli-darwin-arm64@0.4.16':
-    resolution: {integrity: sha512-IKHMu+UV3lhTmVjENv28sxv/Y8e75SERGxzC0LuStnhwTYimeFEz1nwttjbMxYgh+3ZCvN4P6PkyvVP9/zSazQ==}
+  '@scriptc/cli-darwin-arm64@0.4.17':
+    resolution: {integrity: sha512-axPmcti/ZMhVmrDr9G5R5VOg/CNulOjuDJk+RXEWOvwyNvA5smzxaI21YWwkt1a3nskGWh3rZ9J+GRDGPH5h4g==}
     cpu: [arm64]
     os: [darwin]
 
-  '@scriptc/cli-darwin-x64@0.4.16':
-    resolution: {integrity: sha512-5viGYRf+fnIjF4qa2txU+dHfATQjB4iCYeBXTVkoG8omsHgJKiGfxKNNBhIufe1BULhVnevxMKCimg9Uv514Gg==}
+  '@scriptc/cli-darwin-x64@0.4.17':
+    resolution: {integrity: sha512-3qW9kqk6EablsSuKTAqHjiGC9ZMMYlHGn2LUrlMxf7kI+zoQbVe0TCLrhVKXIX+uyr4VaoR7kL0qjLGLAzFq5g==}
     cpu: [x64]
     os: [darwin]
 
-  '@scriptc/cli-linux-arm64-gnu@0.4.16':
-    resolution: {integrity: sha512-BqPYO9NnsRUVRV2tIrQmDVJNgUOl1exS+4U8XkPKMTMbYN4wuGy1rKe7uCerkFrs8Jd3BA2rR0vBM5Kb4c2AaQ==}
+  '@scriptc/cli-linux-arm64-gnu@0.4.17':
+    resolution: {integrity: sha512-IQ0g6m3qFvOPuuZ5pTrT1MXddhBUiX7dRKNVdOatOFht6T2GLSE13anrgfOmubfkQJV+bg16AMLpoeFLj84wrQ==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@scriptc/cli-linux-arm64-musl@0.4.16':
-    resolution: {integrity: sha512-8DHVkOqUeHaiRn0c1H0QT6Sc8JXd9/cj7i88zPeiKYq1O4lZm8VCN+VBKVHzoKiXeM6gbWHvWzSIbLNhUcJBBg==}
+  '@scriptc/cli-linux-arm64-musl@0.4.17':
+    resolution: {integrity: sha512-QjJci2TvXCu1jouO3c3f2sb8wO5FDbxMGnmKfwn5Mgp5Iu5T7nJKGHLNCGCB3lJkaKfqSJpW2th23B+P+Q7Jpw==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@scriptc/cli-linux-x64-gnu@0.4.16':
-    resolution: {integrity: sha512-nq8mfWiERM+FeQTgBS2qv1CrCuybgAH+rVXq31RUC+4tJD+DYWenuT1vzpWSM2ToNHtWAXhgxNYSXcqtaE7Cfg==}
+  '@scriptc/cli-linux-x64-gnu@0.4.17':
+    resolution: {integrity: sha512-ABY3WpwYfRZCdAoXMwxnjMWgP78YJT4E6E+cuJr2zqnUv90pTPHeEuRZvvTm0uhvAxt+axngw4VDOr05/kgigg==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@scriptc/cli-linux-x64-musl@0.4.16':
-    resolution: {integrity: sha512-dCBjE5qv3GTDRXfEuhIW+o+xCZYnW4z2sJmFgh0mLWTE+Txvv2/Phsa84hZFIXrJLXYaYH7b5bZW+um1UrDCmA==}
+  '@scriptc/cli-linux-x64-musl@0.4.17':
+    resolution: {integrity: sha512-aNFHvEQrdIpk/POv0HK09WeT63lV0cmq1KTpj6XlJMEODbtewEUEJByTQerZRMWVyKNSFt+9IFN9FnrX6c6vfw==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@scriptc/cli-win32-x64-msvc@0.4.16':
-    resolution: {integrity: sha512-saiBzXfS6+/kC0ZYiW0MQDScsqPZs34tBVB8gdD7AGty9ARKvdDqzoQ3eQuGgTd/NWQ4BDR6i9Se/Yfqu2vTeg==}
+  '@scriptc/cli-win32-x64-msvc@0.4.17':
+    resolution: {integrity: sha512-mnhWOhVMG8xwCdIDnee/ubGN+XhrsyPYdH9LCsUIIC8G5J5Fy6VZqwpLQAgYUUL02N+WQ49NsBpzPmuVcNDvKQ==}
     cpu: [x64]
     os: [win32]
 
-  '@scriptc/llvm-darwin-arm64@0.4.16':
-    resolution: {integrity: sha512-BbIQH7ItjKUeDHI3CeL9y4jcIHuaREr3nesOuI6I8gWdSFyBoWXIpQ/6/fJJIttrfl9LHRu/LGtOXFWygppzjQ==}
+  '@scriptc/llvm-darwin-arm64@0.4.17':
+    resolution: {integrity: sha512-BrzXBEZLFNFXr7V+x1LuE+3evusIKU0pPItO08hj/6mGOxVomrYMq1DlGTYSnzhvk+xeQLs4I1+rzG7xQywB5g==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@scriptc/llvm-darwin-x64@0.4.16':
-    resolution: {integrity: sha512-DrH//qC1svOqvwbT/zmA45Vt3ll8WI6/Pn9pE8XminpI+aF5IfygAjqgV2o4QVbiUxp6jyJ1mQeEN7CiI8VQUg==}
+  '@scriptc/llvm-darwin-x64@0.4.17':
+    resolution: {integrity: sha512-ZbjUvmfxfZyKfi9p4S5igoE0hZrvfb9vJP19owOZq4K6+npw7ryWvzp4TsmSpfhqdfFZeKuApUTz8ERndIX1Ew==}
     cpu: [x64]
     os: [darwin]
     hasBin: true
 
-  '@scriptc/llvm-linux-arm64-gnu@0.4.16':
-    resolution: {integrity: sha512-8OitrV62uh9senXW38sYBjXMv4x/muX0cCcU24CpZ5a9YZbg2WPJYn6x3FCmDQQ1QX+2tfwecRyILUHfOGzaYw==}
+  '@scriptc/llvm-linux-arm64-gnu@0.4.17':
+    resolution: {integrity: sha512-kEjlAO5VjycWBGn9IDxgQ4OkwGrjeKDJRMfjUHUMZw8NmM+aWDvMOx+mnbA5DqerfLS8Oyu0rAzyP/w+lYnPmg==}
     cpu: [arm64]
     os: [linux]
     hasBin: true
 
-  '@scriptc/llvm-linux-arm64-musl@0.4.16':
-    resolution: {integrity: sha512-FZUmKZamO/Re50Z0IQ4kOgVA3r85U9Z8L34tt+acY8A6aHBNn+MVMupuuTYPoJ9ZcfZ78WRBuelDLQ3y9jNrng==}
+  '@scriptc/llvm-linux-arm64-musl@0.4.17':
+    resolution: {integrity: sha512-JWoFE4p5vUCpEv64T0cpVmBVV5z6WhnIsfpCEbq4LERsHpHfDVu9oiBeUWxEqQ+r7d4Xir1jcI3aWJ3Pgqh0sw==}
     cpu: [arm64]
     os: [linux]
     hasBin: true
 
-  '@scriptc/llvm-linux-x64-gnu@0.4.16':
-    resolution: {integrity: sha512-E8B0y9NErQQKp7DEUtLnry5RjDC5v7veKNtpN7TlUZx8FixBKACvcbRtFtUR+zQal1xLhan3N5tu+y9w9H9Iwg==}
+  '@scriptc/llvm-linux-x64-gnu@0.4.17':
+    resolution: {integrity: sha512-oyoeYHEt9uaeSOowngzIwkUCspB0qzNgLYwGTGPRZto9i2mEupl8lirwCQ/KW+7/nf78ek0Nw9QrnQzIqWYGzw==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@scriptc/llvm-linux-x64-musl@0.4.16':
-    resolution: {integrity: sha512-GD/93NuaNXRTTgBAe34J3qJLq+e7nf8nvwDCAIfiuKeA/YEj2SOv++bAEzbCN9zx4Epr3c9/vVGRb1+3wSVKCw==}
+  '@scriptc/llvm-linux-x64-musl@0.4.17':
+    resolution: {integrity: sha512-ZgjkaeWwmef+4IiIeX0OEfknE5/WhPtoGAnETqSftb2zrojjcKqlFOsVCt+B7cnD1k5vlWwf5raFj41+Iq931Q==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@scriptc/llvm-win32-x64-msvc@0.4.16':
-    resolution: {integrity: sha512-u5yOylaiyN23rkXmER3UiCwzpFKlv4MTw42tSI0nP9EaTE7HCXmCgZbb/+PNRR5HsduhkEe35bUjSIpsX1WbSg==}
+  '@scriptc/llvm-win32-x64-msvc@0.4.17':
+    resolution: {integrity: sha512-WXBuSTGhOKZfJ7YgEAjTJpWhZ7xNy9QhE05qPABt9r2TOnh3M68qnt/c461RynyqO74KEw4eMflBxWM5hvl6DQ==}
     cpu: [x64]
     os: [win32]
 
-  '@scriptc/runtime-darwin-arm64@0.4.16':
-    resolution: {integrity: sha512-NQCegw0wlcNMmyNioxirhIWTaNRGuI7pLd0qrbXcfVkHK5flypDJCmOIsmQkwXkpl9OvLx6A6l7AX1qjDdJoKw==}
+  '@scriptc/runtime-darwin-arm64@0.4.17':
+    resolution: {integrity: sha512-Fj0jXNUOHmLfCSaH+p2QVI1FwNpvl+d3Msdi8Y0JBt/rfB0msNs+houGX+WNkpNCYfz0mRlX1xy8YhFRORXcIw==}
 
-  '@scriptc/runtime-darwin-x64@0.4.16':
-    resolution: {integrity: sha512-zx7BE4XFD80BA6xDTOI/avx6SIkEImd1jvRtV2PoGqro4jkukgYivejrON8MtSB4Udc8v07YszXXwh8jLhNGyw==}
+  '@scriptc/runtime-darwin-x64@0.4.17':
+    resolution: {integrity: sha512-eKb751gVpLAiEbxTveR/nZtSx050liAgjj9o0CkytoubKygJ4oW63PT+ay2kZ7VodQUa743Lg4Hb2rzzse+uYw==}
 
-  '@scriptc/runtime-linux-arm64-gnu@0.4.16':
-    resolution: {integrity: sha512-mULnAQzLHP6bCdydiPiY4D7GDgFeX5g/4q+b1N59FRjmljRsp7R2ntUk2Z7e4GynvMmdWbsE01B6iOuYbdckFg==}
+  '@scriptc/runtime-linux-arm64-gnu@0.4.17':
+    resolution: {integrity: sha512-m2gN2p9L+QmklWB7NLMvGHBthu4cqDoerui+Sd9tRrSKHFZ07r2ae4yqll4UczSylXn1MRJigzi4HQWAVR5Ijg==}
 
-  '@scriptc/runtime-linux-arm64-musl@0.4.16':
-    resolution: {integrity: sha512-Etd14fspTwWEyg1Ok2vJWldlgKCehzxECztmSe5aXL/AHfF34yajHIg5lHZ0RK4nXFAwZyDx0LVds0BziwTJ4Q==}
+  '@scriptc/runtime-linux-arm64-musl@0.4.17':
+    resolution: {integrity: sha512-xw1tzANr9N1qoqFkhB31SzmAaXJ3BTyVL53JiinaSKR28UGvDBmGlemB3un3b0hoJjDGLj31mMxQHS4mRLAxJQ==}
 
-  '@scriptc/runtime-linux-x64-gnu@0.4.16':
-    resolution: {integrity: sha512-CuGi0fwKUtPEtfig/ooyBvLYT6GCK/dM9oVaFFcLp6oZV1fkGBJtUE4mhFAzfbjv+pA3zR+/6NPSfM+BsXUJ2w==}
+  '@scriptc/runtime-linux-x64-gnu@0.4.17':
+    resolution: {integrity: sha512-VMzmCPSjUEHpQsfMu4+VBOtFT2o4mOreYHMNp/h5Q6Ot6qvEtrpUG8pdyNRBv/ezGeF2Ch5grIdtRUeUFVEqAQ==}
 
-  '@scriptc/runtime-linux-x64-musl@0.4.16':
-    resolution: {integrity: sha512-w3R22LhA42m96zWooa3SJtDesz59NYwXy57hpOk9UnOFt0ofJxt2hKuAHalG+FKT7iJC5YvRVkDhmfBwdfCfiA==}
+  '@scriptc/runtime-linux-x64-musl@0.4.17':
+    resolution: {integrity: sha512-WPAc1AY8GNrh2Brsg1evXm6dHkuIkBGWrOch8TP9sShQuS08kFAWo1+PkGBr80H57gwf1peMG89rTXjm98ty+A==}
 
-  '@scriptc/runtime-win32-x64-msvc@0.4.16':
-    resolution: {integrity: sha512-hrRR+o6139wN4hc+a1MZJIl3BbF5Iau4R75rbsaoc9He7BZGVmbndtcCzE04rjXS1aVJPEqQYoU0NTcOxAJE/g==}
+  '@scriptc/runtime-win32-x64-msvc@0.4.17':
+    resolution: {integrity: sha512-EOlzqbkBEu5mQHItlS+zKXZB8fWAorKHNXHhSKiaaW/4+RUBg5byMwtHTgujiuAeHMLqIw7+tH5h0DzKkFAgLw==}
 
-  '@scriptc/threads@0.4.16':
-    resolution: {integrity: sha512-tm1/sSsNIPDvGpnPsKfneNss05Pw378Rc6eICYZrH1OXVZRII1an2gQQFcOnSDYypO/ovBOQei99Gwe/MRttLw==}
+  '@scriptc/threads@0.4.17':
+    resolution: {integrity: sha512-cNfbhMU/UWAscYIJJKfsN/mWyKIDx+2S5H6Uz0hxG+TnD9qWNhvfJ+K3yESW6Va7xjF1ktZ7U6ndF0tFbmpyKA==}
     engines: {node: '>=24.0.0'}
 
   '@sec-ant/readable-stream@0.4.1':
@@ -5355,6 +5235,12 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  napi-windows-process-start-time@0.1.0:
+    resolution: {integrity: sha512-zHxhzKsIFu3elch3eFw69WEUGc79DFhbc3nD/WEOzWL/pFFLZRW13EHnuO0c+0YjncE5uCaS9ICHxOBXkb6vPw==}
+    engines: {node: '>=20'}
+    cpu: [x64, arm64]
+    os: [win32]
+
   negotiator@1.1.0:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
@@ -5547,13 +5433,8 @@ packages:
     engines: {node: 20 || >=22}
     hasBin: true
 
-  rolldown@1.2.19:
-    resolution: {integrity: sha512-QIiV1J9d0pzN4jeeTH4sjPy0AZ6cAy2cG0ExeoE1+U8Rvj+hR3gYkokx0YbeUNGlZqiQJJ2utcETe0oKXwzsuA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-
-  rolldown@1.3.3:
-    resolution: {integrity: sha512-ksB1g74e7haRy02OYm4lOQAlr6sK6hBpAY5R+YC30Gkv4L1COwF6M9umBAYAPxWpGow6Vr+IXtyDjH9fq7A+Zg==}
+  rolldown@1.3.4:
+    resolution: {integrity: sha512-p2rq4bfBmF0M6yaR8+A89fbkBQynZI2fxUW4G07eq9kpctAkpo7q5BZ4X4Mo4XZ7HHROu33cX9PeopUFN6u+2Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -5578,8 +5459,8 @@ packages:
     resolution: {integrity: sha512-h7dm4BRMo8F53l9vOXOIfJoqeVXuZvyz13VsvVuwJb72sLfq+8uddJIJcjLKLv2BqWzDvYIpzi3rvBBS+ETuvw==}
     engines: {node: '>=16'}
 
-  scriptc@0.4.16:
-    resolution: {integrity: sha512-OvAkpd+GeviUk166+nymheYUeqvdkyNkemoeVALiukRrGBqOAmN7WQt6AHjRhXWDfXDAAfZ735Yg5wteVvs3yg==}
+  scriptc@0.4.17:
+    resolution: {integrity: sha512-t3C+zTsz8D3wSM6xp6dTkFnpOOodX3l+2OfGt2hSqwxnhGfWz6I4vwHwIqphgrnCLbwCks2ZPWtksPIE9I4lJw==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -5920,8 +5801,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite@8.3.8:
-    resolution: {integrity: sha512-LzOn3h9rG/0vhLdXrV4yJ4QFA9eEoqCl+Yx+kGJd7aB9w6nfNgVHKSYwLPZUHrz4ZGa+t+kXjV9itvcHDLQouA==}
+  vite@8.4.0:
+    resolution: {integrity: sha512-X2nUJg+9cutlz3hzqyO6p+WTwk9H257DjwAEf9EQYUFrQbDItmetadi9gYmb+l7VDy4r3VXLUnmLTwuPmzejDw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -6373,11 +6254,11 @@ snapshots:
       unplugin: 1.16.1
       zod: 3.25.76
 
-  '@codecov/vite-plugin@2.0.1(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
+  '@codecov/vite-plugin@2.0.1(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@codecov/bundler-plugin-core': 2.0.1
       unplugin: 1.16.1
-      vite: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
   '@commitlint/cli@21.2.4(conventional-commits-parser@7.1.4)(typescript@7.0.2)':
     dependencies:
@@ -6508,28 +6389,12 @@ snapshots:
       tslib: 2.9.1
     optional: true
 
-  '@emnapi/core@2.0.0-beta.2':
-    dependencies:
-      '@emnapi/wasi-threads': 2.2.0
-      tslib: 2.9.1
-    optional: true
-
   '@emnapi/runtime@1.11.2':
     dependencies:
       tslib: 2.9.1
     optional: true
 
-  '@emnapi/runtime@2.0.0-beta.2':
-    dependencies:
-      tslib: 2.9.1
-    optional: true
-
   '@emnapi/wasi-threads@1.2.2':
-    dependencies:
-      tslib: 2.9.1
-    optional: true
-
-  '@emnapi/wasi-threads@2.2.0':
     dependencies:
       tslib: 2.9.1
     optional: true
@@ -6900,13 +6765,6 @@ snapshots:
       '@napi-rs/nice-win32-x64-msvc': 1.1.1
     optional: true
 
-  '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
-    dependencies:
-      '@emnapi/core': 2.0.0-beta.2
-      '@emnapi/runtime': 2.0.0-beta.2
-      '@tybys/wasm-util': 0.10.5
-    optional: true
-
   '@napi-rs/wasm-runtime@1.2.7(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
       '@emnapi/core': 1.11.2
@@ -7016,9 +6874,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@oxc-project/types@0.156.0': {}
-
-  '@oxc-project/types@0.159.0': {}
+  '@oxc-project/types@0.160.0': {}
 
   '@oxc-resolver/binding-android-arm-eabi@11.24.2':
     optional: true
@@ -7193,197 +7049,143 @@ snapshots:
       '@resvg/resvg-js-win32-ia32-msvc': 2.6.2
       '@resvg/resvg-js-win32-x64-msvc': 2.6.2
 
-  '@rolldown/binding-android-arm-eabi@1.2.19':
+  '@rolldown/binding-android-arm-eabi@1.3.4':
     optional: true
 
-  '@rolldown/binding-android-arm-eabi@1.3.3':
+  '@rolldown/binding-android-arm64@1.3.4':
     optional: true
 
-  '@rolldown/binding-android-arm64@1.2.19':
+  '@rolldown/binding-darwin-arm64@1.3.4':
     optional: true
 
-  '@rolldown/binding-android-arm64@1.3.3':
+  '@rolldown/binding-darwin-x64@1.3.4':
     optional: true
 
-  '@rolldown/binding-darwin-arm64@1.2.19':
+  '@rolldown/binding-freebsd-x64@1.3.4':
     optional: true
 
-  '@rolldown/binding-darwin-arm64@1.3.3':
+  '@rolldown/binding-linux-arm-gnueabihf@1.3.4':
     optional: true
 
-  '@rolldown/binding-darwin-x64@1.2.19':
+  '@rolldown/binding-linux-arm64-gnu@1.3.4':
     optional: true
 
-  '@rolldown/binding-darwin-x64@1.3.3':
+  '@rolldown/binding-linux-arm64-musl@1.3.4':
     optional: true
 
-  '@rolldown/binding-freebsd-x64@1.2.19':
+  '@rolldown/binding-linux-ppc64-gnu@1.3.4':
     optional: true
 
-  '@rolldown/binding-freebsd-x64@1.3.3':
+  '@rolldown/binding-linux-s390x-gnu@1.3.4':
     optional: true
 
-  '@rolldown/binding-linux-arm-gnueabihf@1.2.19':
+  '@rolldown/binding-linux-x64-gnu@1.3.4':
     optional: true
 
-  '@rolldown/binding-linux-arm-gnueabihf@1.3.3':
+  '@rolldown/binding-linux-x64-musl@1.3.4':
     optional: true
 
-  '@rolldown/binding-linux-arm64-gnu@1.2.19':
+  '@rolldown/binding-openharmony-arm64@1.3.4':
     optional: true
 
-  '@rolldown/binding-linux-arm64-gnu@1.3.3':
-    optional: true
-
-  '@rolldown/binding-linux-arm64-musl@1.2.19':
-    optional: true
-
-  '@rolldown/binding-linux-arm64-musl@1.3.3':
-    optional: true
-
-  '@rolldown/binding-linux-ppc64-gnu@1.2.19':
-    optional: true
-
-  '@rolldown/binding-linux-ppc64-gnu@1.3.3':
-    optional: true
-
-  '@rolldown/binding-linux-s390x-gnu@1.2.19':
-    optional: true
-
-  '@rolldown/binding-linux-s390x-gnu@1.3.3':
-    optional: true
-
-  '@rolldown/binding-linux-x64-gnu@1.2.19':
-    optional: true
-
-  '@rolldown/binding-linux-x64-gnu@1.3.3':
-    optional: true
-
-  '@rolldown/binding-linux-x64-musl@1.2.19':
-    optional: true
-
-  '@rolldown/binding-linux-x64-musl@1.3.3':
-    optional: true
-
-  '@rolldown/binding-openharmony-arm64@1.2.19':
-    optional: true
-
-  '@rolldown/binding-openharmony-arm64@1.3.3':
-    optional: true
-
-  '@rolldown/binding-wasm32-wasi@1.2.19':
+  '@rolldown/binding-wasm32-wasi@1.3.4':
     dependencies:
-      '@emnapi/core': 2.0.0-beta.2
-      '@emnapi/runtime': 2.0.0-beta.2
-      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)
+      '@oxc-project/types': 0.160.0
     optional: true
 
-  '@rolldown/binding-wasm32-wasi@1.3.3':
-    dependencies:
-      '@emnapi/core': 2.0.0-beta.2
-      '@emnapi/runtime': 2.0.0-beta.2
-      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)
+  '@rolldown/binding-win32-arm64-msvc@1.3.4':
     optional: true
 
-  '@rolldown/binding-win32-arm64-msvc@1.2.19':
-    optional: true
-
-  '@rolldown/binding-win32-arm64-msvc@1.3.3':
-    optional: true
-
-  '@rolldown/binding-win32-x64-msvc@1.2.19':
-    optional: true
-
-  '@rolldown/binding-win32-x64-msvc@1.3.3':
+  '@rolldown/binding-win32-x64-msvc@1.3.4':
     optional: true
 
   '@rolldown/pluginutils@1.1.1': {}
 
-  '@scriptc/cli-darwin-arm64@0.4.16':
+  '@scriptc/cli-darwin-arm64@0.4.17':
     dependencies:
-      '@scriptc/llvm-darwin-arm64': 0.4.16
-      '@scriptc/runtime-darwin-arm64': 0.4.16
+      '@scriptc/llvm-darwin-arm64': 0.4.17
+      '@scriptc/runtime-darwin-arm64': 0.4.17
     optional: true
 
-  '@scriptc/cli-darwin-x64@0.4.16':
+  '@scriptc/cli-darwin-x64@0.4.17':
     dependencies:
-      '@scriptc/llvm-darwin-x64': 0.4.16
-      '@scriptc/runtime-darwin-x64': 0.4.16
+      '@scriptc/llvm-darwin-x64': 0.4.17
+      '@scriptc/runtime-darwin-x64': 0.4.17
     optional: true
 
-  '@scriptc/cli-linux-arm64-gnu@0.4.16':
+  '@scriptc/cli-linux-arm64-gnu@0.4.17':
     dependencies:
-      '@scriptc/llvm-linux-arm64-gnu': 0.4.16
-      '@scriptc/runtime-linux-arm64-gnu': 0.4.16
+      '@scriptc/llvm-linux-arm64-gnu': 0.4.17
+      '@scriptc/runtime-linux-arm64-gnu': 0.4.17
     optional: true
 
-  '@scriptc/cli-linux-arm64-musl@0.4.16':
+  '@scriptc/cli-linux-arm64-musl@0.4.17':
     dependencies:
-      '@scriptc/llvm-linux-arm64-musl': 0.4.16
-      '@scriptc/runtime-linux-arm64-musl': 0.4.16
+      '@scriptc/llvm-linux-arm64-musl': 0.4.17
+      '@scriptc/runtime-linux-arm64-musl': 0.4.17
     optional: true
 
-  '@scriptc/cli-linux-x64-gnu@0.4.16':
+  '@scriptc/cli-linux-x64-gnu@0.4.17':
     dependencies:
-      '@scriptc/llvm-linux-x64-gnu': 0.4.16
-      '@scriptc/runtime-linux-x64-gnu': 0.4.16
+      '@scriptc/llvm-linux-x64-gnu': 0.4.17
+      '@scriptc/runtime-linux-x64-gnu': 0.4.17
     optional: true
 
-  '@scriptc/cli-linux-x64-musl@0.4.16':
+  '@scriptc/cli-linux-x64-musl@0.4.17':
     dependencies:
-      '@scriptc/llvm-linux-x64-musl': 0.4.16
-      '@scriptc/runtime-linux-x64-musl': 0.4.16
+      '@scriptc/llvm-linux-x64-musl': 0.4.17
+      '@scriptc/runtime-linux-x64-musl': 0.4.17
     optional: true
 
-  '@scriptc/cli-win32-x64-msvc@0.4.16':
+  '@scriptc/cli-win32-x64-msvc@0.4.17':
     dependencies:
-      '@scriptc/llvm-win32-x64-msvc': 0.4.16
-      '@scriptc/runtime-win32-x64-msvc': 0.4.16
+      '@scriptc/llvm-win32-x64-msvc': 0.4.17
+      '@scriptc/runtime-win32-x64-msvc': 0.4.17
     optional: true
 
-  '@scriptc/llvm-darwin-arm64@0.4.16':
+  '@scriptc/llvm-darwin-arm64@0.4.17':
     optional: true
 
-  '@scriptc/llvm-darwin-x64@0.4.16':
+  '@scriptc/llvm-darwin-x64@0.4.17':
     optional: true
 
-  '@scriptc/llvm-linux-arm64-gnu@0.4.16':
+  '@scriptc/llvm-linux-arm64-gnu@0.4.17':
     optional: true
 
-  '@scriptc/llvm-linux-arm64-musl@0.4.16':
+  '@scriptc/llvm-linux-arm64-musl@0.4.17':
     optional: true
 
-  '@scriptc/llvm-linux-x64-gnu@0.4.16':
+  '@scriptc/llvm-linux-x64-gnu@0.4.17':
     optional: true
 
-  '@scriptc/llvm-linux-x64-musl@0.4.16':
+  '@scriptc/llvm-linux-x64-musl@0.4.17':
     optional: true
 
-  '@scriptc/llvm-win32-x64-msvc@0.4.16':
+  '@scriptc/llvm-win32-x64-msvc@0.4.17':
     optional: true
 
-  '@scriptc/runtime-darwin-arm64@0.4.16':
+  '@scriptc/runtime-darwin-arm64@0.4.17':
     optional: true
 
-  '@scriptc/runtime-darwin-x64@0.4.16':
+  '@scriptc/runtime-darwin-x64@0.4.17':
     optional: true
 
-  '@scriptc/runtime-linux-arm64-gnu@0.4.16':
+  '@scriptc/runtime-linux-arm64-gnu@0.4.17':
     optional: true
 
-  '@scriptc/runtime-linux-arm64-musl@0.4.16':
+  '@scriptc/runtime-linux-arm64-musl@0.4.17':
     optional: true
 
-  '@scriptc/runtime-linux-x64-gnu@0.4.16':
+  '@scriptc/runtime-linux-x64-gnu@0.4.17':
     optional: true
 
-  '@scriptc/runtime-linux-x64-musl@0.4.16':
+  '@scriptc/runtime-linux-x64-musl@0.4.17':
     optional: true
 
-  '@scriptc/runtime-win32-x64-msvc@0.4.16':
+  '@scriptc/runtime-win32-x64-msvc@0.4.17':
     optional: true
 
-  '@scriptc/threads@0.4.16': {}
+  '@scriptc/threads@0.4.17': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -7711,10 +7513,10 @@ snapshots:
 
   '@ungap/structured-clone@1.4.0': {}
 
-  '@vitejs/plugin-vue@6.0.11(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.46(typescript@6.0.3))':
+  '@vitejs/plugin-vue@6.0.11(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.46(typescript@6.0.3))':
     dependencies:
       '@rolldown/pluginutils': 1.1.1
-      vite: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vue: 3.5.46(typescript@6.0.3)
 
   '@vitest/coverage-v8@5.1.2(vitest@5.1.2)':
@@ -7727,7 +7529,7 @@ snapshots:
       obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/istanbul-lib-coverage@2.1.1': {}
 
@@ -7735,14 +7537,14 @@ snapshots:
     dependencies:
       '@vitest/istanbul-lib-coverage': 2.1.1
 
-  '@vitest/mocker@5.1.2(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
+  '@vitest/mocker@5.1.2(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.1.2
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
   '@vitest/spy@5.1.2': {}
 
@@ -8753,6 +8555,9 @@ snapshots:
 
   nanoid@3.3.20: {}
 
+  napi-windows-process-start-time@0.1.0:
+    optional: true
+
   negotiator@1.1.0:
     dependencies:
       content-type: 2.1.0
@@ -8955,49 +8760,27 @@ snapshots:
       glob: 14.0.6
       package-json-from-dist: 1.0.1
 
-  rolldown@1.2.19:
+  rolldown@1.3.4:
     dependencies:
-      '@oxc-project/types': 0.156.0
+      '@oxc-project/types': 0.160.0
       '@rolldown/pluginutils': 1.1.1
     optionalDependencies:
-      '@rolldown/binding-android-arm-eabi': 1.2.19
-      '@rolldown/binding-android-arm64': 1.2.19
-      '@rolldown/binding-darwin-arm64': 1.2.19
-      '@rolldown/binding-darwin-x64': 1.2.19
-      '@rolldown/binding-freebsd-x64': 1.2.19
-      '@rolldown/binding-linux-arm-gnueabihf': 1.2.19
-      '@rolldown/binding-linux-arm64-gnu': 1.2.19
-      '@rolldown/binding-linux-arm64-musl': 1.2.19
-      '@rolldown/binding-linux-ppc64-gnu': 1.2.19
-      '@rolldown/binding-linux-s390x-gnu': 1.2.19
-      '@rolldown/binding-linux-x64-gnu': 1.2.19
-      '@rolldown/binding-linux-x64-musl': 1.2.19
-      '@rolldown/binding-openharmony-arm64': 1.2.19
-      '@rolldown/binding-wasm32-wasi': 1.2.19
-      '@rolldown/binding-win32-arm64-msvc': 1.2.19
-      '@rolldown/binding-win32-x64-msvc': 1.2.19
-
-  rolldown@1.3.3:
-    dependencies:
-      '@oxc-project/types': 0.159.0
-      '@rolldown/pluginutils': 1.1.1
-    optionalDependencies:
-      '@rolldown/binding-android-arm-eabi': 1.3.3
-      '@rolldown/binding-android-arm64': 1.3.3
-      '@rolldown/binding-darwin-arm64': 1.3.3
-      '@rolldown/binding-darwin-x64': 1.3.3
-      '@rolldown/binding-freebsd-x64': 1.3.3
-      '@rolldown/binding-linux-arm-gnueabihf': 1.3.3
-      '@rolldown/binding-linux-arm64-gnu': 1.3.3
-      '@rolldown/binding-linux-arm64-musl': 1.3.3
-      '@rolldown/binding-linux-ppc64-gnu': 1.3.3
-      '@rolldown/binding-linux-s390x-gnu': 1.3.3
-      '@rolldown/binding-linux-x64-gnu': 1.3.3
-      '@rolldown/binding-linux-x64-musl': 1.3.3
-      '@rolldown/binding-openharmony-arm64': 1.3.3
-      '@rolldown/binding-wasm32-wasi': 1.3.3
-      '@rolldown/binding-win32-arm64-msvc': 1.3.3
-      '@rolldown/binding-win32-x64-msvc': 1.3.3
+      '@rolldown/binding-android-arm-eabi': 1.3.4
+      '@rolldown/binding-android-arm64': 1.3.4
+      '@rolldown/binding-darwin-arm64': 1.3.4
+      '@rolldown/binding-darwin-x64': 1.3.4
+      '@rolldown/binding-freebsd-x64': 1.3.4
+      '@rolldown/binding-linux-arm-gnueabihf': 1.3.4
+      '@rolldown/binding-linux-arm64-gnu': 1.3.4
+      '@rolldown/binding-linux-arm64-musl': 1.3.4
+      '@rolldown/binding-linux-ppc64-gnu': 1.3.4
+      '@rolldown/binding-linux-s390x-gnu': 1.3.4
+      '@rolldown/binding-linux-x64-gnu': 1.3.4
+      '@rolldown/binding-linux-x64-musl': 1.3.4
+      '@rolldown/binding-openharmony-arm64': 1.3.4
+      '@rolldown/binding-wasm32-wasi': 1.3.4
+      '@rolldown/binding-win32-arm64-msvc': 1.3.4
+      '@rolldown/binding-win32-x64-msvc': 1.3.4
 
   router@2.3.0(supports-color@10.2.2):
     dependencies:
@@ -9034,15 +8817,15 @@ snapshots:
       parse-css-color: 0.2.1
       postcss-value-parser: 4.2.0
 
-  scriptc@0.4.16:
+  scriptc@0.4.17:
     optionalDependencies:
-      '@scriptc/cli-darwin-arm64': 0.4.16
-      '@scriptc/cli-darwin-x64': 0.4.16
-      '@scriptc/cli-linux-arm64-gnu': 0.4.16
-      '@scriptc/cli-linux-arm64-musl': 0.4.16
-      '@scriptc/cli-linux-x64-gnu': 0.4.16
-      '@scriptc/cli-linux-x64-musl': 0.4.16
-      '@scriptc/cli-win32-x64-msvc': 0.4.16
+      '@scriptc/cli-darwin-arm64': 0.4.17
+      '@scriptc/cli-darwin-x64': 0.4.17
+      '@scriptc/cli-linux-arm64-gnu': 0.4.17
+      '@scriptc/cli-linux-arm64-musl': 0.4.17
+      '@scriptc/cli-linux-x64-gnu': 0.4.17
+      '@scriptc/cli-linux-x64-musl': 0.4.17
+      '@scriptc/cli-win32-x64-msvc': 0.4.17
 
   seek-bzip@2.0.0:
     dependencies:
@@ -9265,9 +9048,9 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  tsc-ts@0.1.5(@scriptc/threads@0.4.16):
+  tsc-ts@0.1.5(@scriptc/threads@0.4.17):
     optionalDependencies:
-      '@scriptc/threads': 0.4.16
+      '@scriptc/threads': 0.4.17
       '@tsc-ts/darwin-arm64': 0.1.5
       '@tsc-ts/darwin-x64': 0.1.5
       '@tsc-ts/linux-arm64-gnu': 0.1.5
@@ -9435,18 +9218,19 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.4
 
-  vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1):
+  vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
       postcss: 8.5.33
-      rolldown: 1.2.19
+      rolldown: 1.3.4
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 26.6.11
       esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
+      napi-windows-process-start-time: 0.1.0
       tsx: 4.23.15
       yaml: 2.9.1
 
@@ -9458,7 +9242,7 @@ snapshots:
       '@iconify-json/simple-icons': 1.2.103
       '@shikijs/transformers': 4.6.0
       '@types/markdown-it': 14.2.0
-      '@vitejs/plugin-vue': 6.0.11(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.46(typescript@6.0.3))
+      '@vitejs/plugin-vue': 6.0.11(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.46(typescript@6.0.3))
       '@vue/devtools-api': 8.2.1
       '@vue/shared': 3.5.46
       '@vueuse/core': 15.0.0(vue@3.5.46(typescript@6.0.3))
@@ -9467,7 +9251,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.2.0
       shiki: 4.6.0
-      vite: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vue: 3.5.46(typescript@6.0.3)
     optionalDependencies:
       postcss: 8.5.33
@@ -9497,10 +9281,10 @@ snapshots:
       - universal-cookie
       - yaml
 
-  vitest@5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
+  vitest@5.1.2(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.2(vite@8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      '@vitest/mocker': 5.1.2(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -9511,7 +9295,7 @@ snapshots:
       tinybench: 6.2.4
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.8(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 26.6.11
