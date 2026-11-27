@@ -18,7 +18,11 @@ export const above = (position: BlockPos, distance = 1): BlockPos => relative(po
 /** Returns the position one block down. */
 export const below = (position: BlockPos, distance = 1): BlockPos => relative(position, 'down', distance);
 
-/** Answers Java's `LevelAccessor.isEmptyBlock`. */
+/**
+ * Answers Java's `LevelAccessor.isEmptyBlock`.
+ *
+ * @javaSource LevelReader.isEmptyBlock
+ */
 export const isEmptyBlock = (world: FeatureWorld, position: BlockPos): boolean =>
     world.blocks.isAir(world.getBlock(position));
 
@@ -36,6 +40,8 @@ export const safeSetBlock = (
  * The direction order several features draw out of this decides which face a growth attaches to,
  * so the swap order matters as much as the result: Java walks from the end and swaps with a draw
  * in `[0, i)`.
+ *
+ * @javaSource Util.shuffle
  */
 export const shuffledCopy = <T>(items: readonly T[], random: RandomSource): T[] => {
     const copy = [...items];
@@ -54,7 +60,11 @@ export const shuffledCopy = <T>(items: readonly T[], random: RandomSource): T[] 
 export const outsideBuildHeight = (world: FeatureWorld, y: number): boolean =>
     y < world.minY || y >= world.minY + world.height;
 
-/** Iterates every position of an inclusive box, in Java's `BlockPos.betweenClosed` order. */
+/**
+ * Iterates every position of an inclusive box, in Java's `BlockPos.betweenClosed` order.
+ *
+ * @javaSource BlockPos.betweenClosed(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/lang/Iterable;
+ */
 export const betweenClosed = function* (from: BlockPos, to: BlockPos): Generator<BlockPos> {
     const minX = Math.min(from.x, to.x);
     const minY = Math.min(from.y, to.y);
@@ -75,6 +85,8 @@ export const betweenClosed = function* (from: BlockPos, to: BlockPos): Generator
  * It spirals outward by Manhattan distance, which is why `delta_feature` and
  * `netherrack_replace_blobs` can stop at the first position past their radius instead of
  * filtering the whole box.
+ *
+ * @javaSource BlockPos.withinBoxByManhattanDistance
  */
 export const withinManhattan = function* (
     center: BlockPos,

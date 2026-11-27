@@ -40,6 +40,8 @@ const DRIPSTONE_BLOCK = blockState('minecraft:dripstone_block');
  * column the origin sits in for a floor and a ceiling, and places relative to whichever it
  * found. Java's `Column.scan` is reproduced here as {@link scanColumn}, because the exact stop
  * condition decides whether a stalagmite roots in the floor or in the air above it.
+ *
+ * @javaSee Column.scan
  */
 
 /** A scanned column: the first non-matching block below and above the origin. */
@@ -58,6 +60,8 @@ export interface ScannedColumn {
  * It walks up to `searchRange - 1` steps in each direction while `inside` holds, and reports the
  * stopping position only when `validEdge` holds there. Both ends are the *edge* block, not the
  * last inside block, which is why a caller adds or subtracts one before placing.
+ *
+ * @javaSource Column.scan
  */
 export const scanColumn = (
     world: FeatureWorld,

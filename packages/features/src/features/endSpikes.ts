@@ -2,7 +2,7 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import { shuffledCopy } from './support';
 
-/** One of the End's ten obsidian pillars, Java's `EndSpikeFeature.EndSpike`. */
+/** One of the End's ten obsidian pillars, Java's `EndSpikeFeature$EndSpike`. */
 export interface EndSpike {
     /** The pillar's center x in world coordinates. */
     readonly centerX: number;
@@ -27,6 +27,7 @@ export interface EndSpike {
  * 1 or 2.
  *
  * @returns The ten pillars in Java's order, counterclockwise from (42, 0).
+ * @javaSource EndSpikeFeature.getSpikesForLevel
  */
 export const endSpikesForSeed = (seed: bigint): readonly EndSpike[] => {
     const key = new LegacyRandomSource(seed).nextLong() & 65535n;

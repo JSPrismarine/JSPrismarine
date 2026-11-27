@@ -221,7 +221,11 @@ export class WorldgenRandom implements RandomSource {
     }
 }
 
-/** Returns an integer in `[min, max]`, as Java's `Mth.randomBetweenInclusive` does. */
+/**
+ * Returns an integer in `[min, max]`, as Java's `Mth.randomBetweenInclusive` does.
+ *
+ * @javaSource Mth.randomBetweenInclusive
+ */
 export const randomBetweenInclusive = (random: RandomSource, min: number, max: number): number =>
     random.nextIntBounded(max - min + 1) + min;
 
@@ -229,7 +233,11 @@ export const randomBetweenInclusive = (random: RandomSource, min: number, max: n
 export const nextIntBetween = (random: RandomSource, min: number, max: number): number =>
     min >= max ? min : random.nextIntBounded(max - min + 1) + min;
 
-/** Returns a float in `[min, max)`, as Java's `Mth.randomBetween` does. */
+/**
+ * Returns a float in `[min, max)`, as Java's `Mth.randomBetween` does.
+ *
+ * @javaSource Mth.randomBetween
+ */
 export const randomBetween = (random: RandomSource, min: number, max: number): number =>
     f32(f32(random.nextFloat() * f32(max - min)) + min);
 
@@ -237,15 +245,27 @@ export const randomBetween = (random: RandomSource, min: number, max: number): n
 export const nextFloatBetween = (random: RandomSource, min: number, max: number): number =>
     min >= max ? min : randomBetween(random, min, max);
 
-/** Returns a double in `[min, max)`, as Java's `Mth.nextDouble` does. */
+/**
+ * Returns a double in `[min, max)`, as Java's `Mth.nextDouble` does.
+ *
+ * @javaSource Mth.nextDouble
+ */
 export const nextDoubleBetween = (random: RandomSource, min: number, max: number): number =>
     min >= max ? min : random.nextDouble() * (max - min) + min;
 
-/** Returns a normally distributed float, as Java's `Mth.normal` does. */
+/**
+ * Returns a normally distributed float, as Java's `Mth.normal` does.
+ *
+ * @javaSource Mth.normal
+ */
 export const normal = (random: RandomSource, mean: number, deviation: number): number =>
     f32(mean + f32(f32(random.nextGaussian()) * deviation));
 
-/** Picks one element uniformly, as Java's `Util.getRandom(List, RandomSource)` does. */
+/**
+ * Picks one element uniformly, as Java's `Util.getRandom(List, RandomSource)` does.
+ *
+ * @javaSource Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;
+ */
 export const randomElement = <T>(items: readonly T[], random: RandomSource): T => {
     const picked = items[random.nextIntBounded(items.length)];
     if (picked === undefined) throw new FeaturesErrors.CannotPickFromEmptyList();
@@ -263,6 +283,8 @@ export interface Weighted<T> {
  *
  * Java draws `nextInt(totalWeight)` and walks the list subtracting weights, so the draw count and
  * the tie-breaking order both depend on the declared order of the entries.
+ *
+ * @javaSource WeightedList.getRandomOrThrow
  */
 export const randomWeighted = <T>(entries: readonly Weighted<T>[], random: RandomSource): T => {
     let total = 0;

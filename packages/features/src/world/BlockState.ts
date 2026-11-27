@@ -38,6 +38,8 @@ export const DIRECTION_STEPS: Readonly<Record<Direction, readonly [number, numbe
  * This is north, east, south, west, which is not the order of `Direction.values()`. Anything
  * that draws a random horizontal direction indexes into this array, so the order is part of the
  * seed contract rather than a presentation detail.
+ *
+ * @javaSource Direction$Plane.HORIZONTAL
  */
 export const HORIZONTAL_DIRECTIONS = ['north', 'east', 'south', 'west'] as const satisfies readonly Direction[];
 

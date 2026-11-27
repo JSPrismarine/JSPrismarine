@@ -94,7 +94,11 @@ const GEODE_NOISE = new NormalNoise({
     amplitudeModifiers: [1]
 });
 
-/** Java's `Direction.values()` order, which is the order `GeodeFeature` looks around a crack in. */
+/**
+ * Java's `Direction.values()` order, which is the order `GeodeFeature` looks around a crack in.
+ *
+ * @javaSource Direction.values
+ */
 const GEODE_CRACK_NEIGHBORS = ['down', 'up', 'north', 'south', 'west', 'east'] as const satisfies readonly Direction[];
 
 /**

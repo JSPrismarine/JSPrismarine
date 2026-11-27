@@ -1,10 +1,14 @@
 import type { BlockPos } from '../world/FeatureWorld';
 
-/** Java's `BlockPos.hashCode()`. */
+/**
+ * Java's `BlockPos.hashCode()`.
+ *
+ * @javaSource Vec3i.hashCode
+ */
 export const blockPosHashCode = (position: BlockPos): number =>
     (Math.imul((position.y + Math.imul(position.z, 31)) | 0, 31) + position.x) | 0;
 
-/** Java's `HashMap.hash`, which folds the high bits down so a weak hash still spreads. */
+/** The JDK's `HashMap.hash`, which folds the high bits down so a weak hash still spreads. */
 const spread = (hash: number): number => (hash ^ (hash >>> 16)) | 0;
 
 /**
