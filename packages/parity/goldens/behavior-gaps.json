@@ -3357,22 +3357,22 @@
         "hud:tab-list-game-modes": {
             "kind": "deferred",
             "reason": "In Java: A client's tab list shows each player's game mode, latency and display name. For a Java client here: play/clientbound/player_info_update (a player's latency) has no presenter call that sends it; play/clientbound/player_info_update (a player's display name) has no presenter call that sends it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3812"
         },
         "hud:tab-list-header": {
             "kind": "deferred",
             "reason": "In Java: A client's tab list shows the server's header and footer. For a Java client here: play/clientbound/tab_list is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3812"
         },
         "hud:teams": {
             "kind": "deferred",
             "reason": "In Java: A client is shown teams: their colors, prefixes, name tag visibility and collision. For a Java client here: play/clientbound/set_player_team is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3812"
         },
         "hud:waypoints": {
             "kind": "deferred",
             "reason": "In Java: A client's locator bar shows the waypoints of other players. For a Java client here: play/clientbound/waypoint is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3812"
         },
         "items:drop-items": {
             "kind": "deferred",
@@ -3437,82 +3437,82 @@
         "services:client-tick": {
             "kind": "deferred",
             "reason": "In Java: A client says when each of its ticks ends, which the server times its movement checks by. For a Java client here: play/serverbound/client_tick_end is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:code-of-conduct": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the server's code of conduct and has to accept it before play. For a Java client here: configuration/clientbound/code_of_conduct is never sent; configuration/serverbound/accept_code_of_conduct is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:configuration-keep-alive": {
             "kind": "deferred",
             "reason": "In Java: A client in the configuration phase is pinged and timed out as one in play is. For a Java client here: configuration/clientbound/ping has no layout; configuration/serverbound/pong is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:cookies": {
             "kind": "deferred",
             "reason": "In Java: A server stores cookies on a client and reads them back in any phase. For a Java client here: login/clientbound/cookie_request is never sent; login/serverbound/cookie_response is not read; configuration/clientbound/cookie_request is never sent; configuration/clientbound/store_cookie is never sent; configuration/serverbound/cookie_response is not read; play/clientbound/cookie_request is never sent; play/clientbound/store_cookie is never sent; play/serverbound/cookie_response is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:dialogs": {
             "kind": "deferred",
             "reason": "In Java: A server shows a client dialogs, as `/dialog` does, and hears the actions their buttons run. For a Java client here: configuration/clientbound/show_dialog is never sent; configuration/clientbound/clear_dialog is never sent; configuration/serverbound/custom_click_action is not read; play/clientbound/show_dialog is never sent; play/clientbound/clear_dialog is never sent; play/serverbound/custom_click_action is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:login-plugin-query": {
             "kind": "deferred",
             "reason": "In Java: A server can ask a logging-in client a plugin query, which a proxy answers for the player. For a Java client here: login/clientbound/custom_query is never sent; login/serverbound/custom_query_answer is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:low-disk-space": {
             "kind": "deferred",
             "reason": "In Java: A server warns its operators when its disk runs low. For a Java client here: play/clientbound/low_disk_space_warning is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:play-ping": {
             "kind": "deferred",
             "reason": "In Java: A client's ping in play and the debug screen's ping chart are answered, and a server can ping the client. For a Java client here: play/clientbound/ping has no layout; play/serverbound/pong is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:plugin-channels": {
             "kind": "deferred",
             "reason": "In Java: The server and client exchange plugin channel messages, such as the brand, in play. For a Java client here: play/clientbound/custom_payload has no layout.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:post-effects": {
             "kind": "deferred",
             "reason": "In Java: A server sets the client's post-processing shader, as a spectated creeper or enderman does. For a Java client here: configuration/clientbound/post_effects is never sent; play/clientbound/post_effects is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:reconfiguration": {
             "kind": "deferred",
             "reason": "In Java: A server takes a client in play back to the configuration phase, to change its packs or registries. For a Java client here: play/clientbound/start_configuration is never sent; play/serverbound/configuration_acknowledged is not read; play/clientbound/update_tags is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:report-details": {
             "kind": "deferred",
             "reason": "In Java: A server adds its own details to the client's crash and abuse reports. For a Java client here: configuration/clientbound/custom_report_details is never sent; play/clientbound/custom_report_details is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:reset-chat": {
             "kind": "deferred",
             "reason": "In Java: A server clears the chat a reconfigured client keeps from before. For a Java client here: configuration/clientbound/reset_chat is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:resource-packs": {
             "kind": "deferred",
             "reason": "In Java: A server pushes resource packs a client downloads, and hears whether it loaded them. For a Java client here: configuration/clientbound/resource_pack_push is never sent; configuration/clientbound/resource_pack_pop is never sent; configuration/serverbound/resource_pack is not read; play/clientbound/resource_pack_push is never sent; play/clientbound/resource_pack_pop is never sent; play/serverbound/resource_pack is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:server-links": {
             "kind": "deferred",
             "reason": "In Java: A client lists the server's links on its pause screen and disconnect screen. For a Java client here: configuration/clientbound/server_links is never sent; play/clientbound/server_links is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "services:transfer": {
             "kind": "deferred",
             "reason": "In Java: A server sends a client to another server, as `/transfer` does. For a Java client here: configuration/clientbound/transfer has no layout.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3814"
         },
         "tools:books": {
             "kind": "deferred",
@@ -3557,72 +3557,72 @@
         "world:biome-updates": {
             "kind": "deferred",
             "reason": "In Java: A client is sent the biomes `/fillbiome` changed in chunks it holds. For a Java client here: play/clientbound/chunks_biomes is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:block-entities": {
             "kind": "deferred",
             "reason": "In Java: A client is sent a block entity's data when it changes, such as a sign's text or a banner's patterns. For a Java client here: play/clientbound/block_entity_data is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:block-events": {
             "kind": "deferred",
             "reason": "In Java: A client sees block events: chests opening, note blocks playing, pistons moving and bells ringing. For a Java client here: play/clientbound/block_event is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:chunk-rate": {
             "kind": "deferred",
             "reason": "In Java: A server sends chunks at the rate each client's batch acknowledgments ask for. For a Java client here: play/serverbound/chunk_batch_received is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:difficulty": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the difficulty, and an operator changes or locks it from the options screen. For a Java client here: play/serverbound/change_difficulty is not read; play/serverbound/lock_difficulty is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:explosions": {
             "kind": "deferred",
             "reason": "In Java: A client sees an explosion, its particles and sound, and is knocked back by it. For a Java client here: play/clientbound/explode is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:game-events": {
             "kind": "deferred",
             "reason": "In Java: A client is told the game events with no packet of their own: no respawn block, the end credits, arrow hits, the pufferfish sting, the elder guardian curse, immediate respawn and limited crafting. For a Java client here: play/clientbound/game_event (every event other than the game mode and waiting for chunks) has no presenter call that sends it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:level-events": {
             "kind": "deferred",
             "reason": "In Java: A client sees level events and particles: break particles, doors, dispensers, fireworks and potions. For a Java client here: play/clientbound/level_event is never sent; play/clientbound/level_particles is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:light-updates": {
             "kind": "deferred",
             "reason": "In Java: A client is sent the light that changed in a chunk it holds. For a Java client here: play/clientbound/light_update is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:maps": {
             "kind": "deferred",
             "reason": "In Java: A client holding a filled map is sent the map's colors and decorations. For a Java client here: play/clientbound/map_item_data is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:mining-progress": {
             "kind": "deferred",
             "reason": "In Java: A client sees the cracks of a block another player is mining. For a Java client here: play/clientbound/block_destruction is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:sounds": {
             "kind": "deferred",
             "reason": "In Java: A client hears sounds at positions and from entities, and `/stopsound` stops them. For a Java client here: play/clientbound/sound is never sent; play/clientbound/sound_entity is never sent; play/clientbound/stop_sound is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:transient-blocks": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the block a landing falling block becomes, before the block update reaches it. For a Java client here: play/clientbound/add_transient_block is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         },
         "world:world-border": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the world border, its center, size, growth and warnings. For a Java client here: play/clientbound/initialize_border is never sent; play/clientbound/set_border_center is never sent; play/clientbound/set_border_lerp_size is never sent; play/clientbound/set_border_size is never sent; play/clientbound/set_border_warning_delay is never sent; play/clientbound/set_border_warning_distance is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3813"
         }
     },
     "scripting.admin": {

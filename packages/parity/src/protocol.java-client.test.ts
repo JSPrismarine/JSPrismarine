@@ -78,11 +78,11 @@ const AREA_ISSUES = {
     combat: 'https://github.com/JSPrismarine/JSPrismarine/issues/3767',
     items: 'https://github.com/JSPrismarine/JSPrismarine/issues/3768',
     containers: 'https://github.com/JSPrismarine/JSPrismarine/issues/3769',
-    hud: 'https://github.com/JSPrismarine/JSPrismarine/issues/3770',
-    world: 'https://github.com/JSPrismarine/JSPrismarine/issues/3771',
+    hud: 'https://github.com/JSPrismarine/JSPrismarine/issues/3812',
+    world: 'https://github.com/JSPrismarine/JSPrismarine/issues/3813',
     player: 'https://github.com/JSPrismarine/JSPrismarine/issues/3772',
     commands: 'https://github.com/JSPrismarine/JSPrismarine/issues/3773',
-    services: 'https://github.com/JSPrismarine/JSPrismarine/issues/3774',
+    services: 'https://github.com/JSPrismarine/JSPrismarine/issues/3814',
     tools: 'https://github.com/JSPrismarine/JSPrismarine/issues/3775'
 } as const satisfies Record<string, string | undefined>;
 
