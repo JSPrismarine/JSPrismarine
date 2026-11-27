@@ -12,6 +12,7 @@
         "AbstractNautilus.applyEffects": "net/minecraft/world/entity/animal/nautilus/AbstractNautilus.applyEffects(Lnet/minecraft/world/level/Level;)V",
         "AbstractSchoolingFish.canRandomSwim": "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.canRandomSwim()Z",
         "AbstractSchoolingFish.tick": "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.tick()V",
+        "AbstractSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/AbstractSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "AbstractThrownPotion.onHit": "net/minecraft/world/entity/projectile/throwableitemprojectile/AbstractThrownPotion.onHit(Lnet/minecraft/world/phys/HitResult;)V",
         "ActivityData.createPriorityPairs": "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;",
         "AllayAi.getItemDepositPosition": "net/minecraft/world/entity/animal/allay/AllayAi.getItemDepositPosition(Lnet/minecraft/world/entity/LivingEntity;)Ljava/util/Optional;",
@@ -108,6 +109,47 @@
         "ChunkAccess.isOldNoiseGeneration": "net/minecraft/world/level/chunk/ChunkAccess.isOldNoiseGeneration()Z",
         "ChunkAccess.markPosForPostProcessing": "net/minecraft/world/level/chunk/ChunkAccess.markPosForPostProcessing(Lnet/minecraft/core/BlockPos;)V",
         "ChunkGenerator.findNearestMapStructure": "net/minecraft/world/level/chunk/ChunkGenerator.findNearestMapStructure(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/HolderSet;Lnet/minecraft/core/BlockPos;IZ)Lcom/mojang/datafixers/util/Pair;",
+        "ClientboundAddEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundAddEntityPacket.STREAM_CODEC",
+        "ClientboundBlockChangedAckPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBlockChangedAckPacket.STREAM_CODEC",
+        "ClientboundBlockUpdatePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.STREAM_CODEC",
+        "ClientboundBossEventPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBossEventPacket.STREAM_CODEC",
+        "ClientboundChunkBatchFinishedPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket.STREAM_CODEC",
+        "ClientboundChunkBatchStartPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundChunkBatchStartPacket.STREAM_CODEC",
+        "ClientboundContainerSetContentPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundContainerSetContentPacket.STREAM_CODEC",
+        "ClientboundContainerSetSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundContainerSetSlotPacket.STREAM_CODEC",
+        "ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC": "net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC",
+        "ClientboundDisconnectPacket.STREAM_CODEC": "net/minecraft/network/protocol/common/ClientboundDisconnectPacket.STREAM_CODEC",
+        "ClientboundFinishConfigurationPacket.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ClientboundFinishConfigurationPacket.STREAM_CODEC",
+        "ClientboundGameEventPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundGameEventPacket.STREAM_CODEC",
+        "ClientboundHelloPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ClientboundHelloPacket.STREAM_CODEC",
+        "ClientboundKeepAlivePacket.STREAM_CODEC": "net/minecraft/network/protocol/common/ClientboundKeepAlivePacket.STREAM_CODEC",
+        "ClientboundLevelChunkWithLightPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.STREAM_CODEC",
+        "ClientboundLoginCompressionPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ClientboundLoginCompressionPacket.STREAM_CODEC",
+        "ClientboundLoginDisconnectPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ClientboundLoginDisconnectPacket.STREAM_CODEC",
+        "ClientboundLoginFinishedPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.STREAM_CODEC",
+        "ClientboundLoginPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundLoginPacket.STREAM_CODEC",
+        "ClientboundPlayerCombatKillPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundPlayerCombatKillPacket.STREAM_CODEC",
+        "ClientboundPlayerInfoRemovePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundPlayerInfoRemovePacket.STREAM_CODEC",
+        "ClientboundPlayerInfoUpdatePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.STREAM_CODEC",
+        "ClientboundPlayerPositionPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundPlayerPositionPacket.STREAM_CODEC",
+        "ClientboundPongResponsePacket.STREAM_CODEC": "net/minecraft/network/protocol/ping/ClientboundPongResponsePacket.STREAM_CODEC",
+        "ClientboundRegistryDataPacket.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ClientboundRegistryDataPacket.STREAM_CODEC",
+        "ClientboundRemoveEntitiesPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundRemoveEntitiesPacket.STREAM_CODEC",
+        "ClientboundRespawnPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundRespawnPacket.STREAM_CODEC",
+        "ClientboundRotateHeadPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundRotateHeadPacket.STREAM_CODEC",
+        "ClientboundSectionBlocksUpdatePacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSectionBlocksUpdatePacket.STREAM_CODEC",
+        "ClientboundSelectKnownPacks.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ClientboundSelectKnownPacks.STREAM_CODEC",
+        "ClientboundSetChunkCacheCenterPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetChunkCacheCenterPacket.STREAM_CODEC",
+        "ClientboundSetEntityDataPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetEntityDataPacket.STREAM_CODEC",
+        "ClientboundSetEquipmentPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.STREAM_CODEC",
+        "ClientboundSetHealthPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetHealthPacket.STREAM_CODEC",
+        "ClientboundSetHeldSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSetHeldSlotPacket.STREAM_CODEC",
+        "ClientboundStatusResponsePacket.STREAM_CODEC": "net/minecraft/network/protocol/status/ClientboundStatusResponsePacket.STREAM_CODEC",
+        "ClientboundSystemChatPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundSystemChatPacket.STREAM_CODEC",
+        "ClientboundTeleportEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundTeleportEntityPacket.STREAM_CODEC",
+        "ClientboundUpdateEnabledFeaturesPacket.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.STREAM_CODEC",
+        "ClientboundUpdateTagsPacket.STREAM_CODEC": "net/minecraft/network/protocol/common/ClientboundUpdateTagsPacket.STREAM_CODEC",
+        "ClientIntentionPacket.STREAM_CODEC": "net/minecraft/network/protocol/handshake/ClientIntentionPacket.STREAM_CODEC",
         "CocoaBlock.getStateForPlacement": "net/minecraft/world/level/block/CocoaBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Column.scan": "net/minecraft/world/level/levelgen/Column.scan(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;ILjava/util/function/Predicate;Ljava/util/function/Predicate;)Ljava/util/Optional;",
         "CombatRules.getDamageAfterMagicAbsorb": "net/minecraft/world/damagesource/CombatRules.getDamageAfterMagicAbsorb(FF)F",
@@ -313,7 +355,9 @@
         "Leashable.canHaveALeashAttachedTo": "net/minecraft/world/entity/Leashable.canHaveALeashAttachedTo(Lnet/minecraft/world/entity/Entity;)Z",
         "Leashable.tickLeash": "net/minecraft/world/entity/Leashable.tickLeash(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;)V",
         "LeavesBlock.DECAY_DISTANCE": "net/minecraft/world/level/block/LeavesBlock.DECAY_DISTANCE",
+        "LeavesBlock.getOptionalDistanceAt": "net/minecraft/world/level/block/LeavesBlock.getOptionalDistanceAt(Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/OptionalInt;",
         "LeavesBlock.getStateForPlacement": "net/minecraft/world/level/block/LeavesBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "LeavesBlock.updateDistance": "net/minecraft/world/level/block/LeavesBlock.updateDistance(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LecternBlock.getStateForPlacement": "net/minecraft/world/level/block/LecternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Level.isBrightOutside": "net/minecraft/world/level/Level.isBrightOutside()Z",
         "Level.isRainingAt": "net/minecraft/world/level/Level.isRainingAt(Lnet/minecraft/core/BlockPos;)Z",
@@ -510,11 +554,38 @@
         "RepeaterBlock.getStateForPlacement": "net/minecraft/world/level/block/RepeaterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Rotation.getRotated": "net/minecraft/world/level/block/Rotation.getRotated(Lnet/minecraft/world/level/block/Rotation;)Lnet/minecraft/world/level/block/Rotation;",
         "Rotation.rotate(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;": "net/minecraft/world/level/block/Rotation.rotate(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/Direction;",
+        "RotationSegment.convertToDirection": "net/minecraft/world/level/block/state/properties/RotationSegment.convertToDirection(I)Ljava/util/Optional;",
         "RotationSegment.convertToSegment(F)I": "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(F)I",
+        "RotationSegment.convertToSegment(Lnet/minecraft/core/Direction;)I": "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(Lnet/minecraft/core/Direction;)I",
         "ScatteredFeaturePiece.updateAverageGroundHeight": "net/minecraft/world/level/levelgen/structure/ScatteredFeaturePiece.updateAverageGroundHeight(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;I)Z",
         "SecondaryPoiSensor.SCAN_RATE": "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE",
+        "SegmentableBlock.getStateForPlacement": "net/minecraft/world/level/block/SegmentableBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/block/state/properties/IntegerProperty;Lnet/minecraft/world/level/block/state/properties/EnumProperty;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Sensor.DEFAULT_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE",
         "Sensor.DEFAULT_TARGETING_RANGE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE",
+        "ServerboundAcceptTeleportationPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.STREAM_CODEC",
+        "ServerboundChatCommandPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundChatCommandPacket.STREAM_CODEC",
+        "ServerboundChatPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundChatPacket.STREAM_CODEC",
+        "ServerboundChunkBatchReceivedPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundChunkBatchReceivedPacket.STREAM_CODEC",
+        "ServerboundClientCommandPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundClientCommandPacket.STREAM_CODEC",
+        "ServerboundFinishConfigurationPacket.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ServerboundFinishConfigurationPacket.STREAM_CODEC",
+        "ServerboundHelloPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ServerboundHelloPacket.STREAM_CODEC",
+        "ServerboundKeepAlivePacket.STREAM_CODEC": "net/minecraft/network/protocol/common/ServerboundKeepAlivePacket.STREAM_CODEC",
+        "ServerboundKeyPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ServerboundKeyPacket.STREAM_CODEC",
+        "ServerboundLoginAcknowledgedPacket.STREAM_CODEC": "net/minecraft/network/protocol/login/ServerboundLoginAcknowledgedPacket.STREAM_CODEC",
+        "ServerboundMovePlayerPacket$Pos.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$Pos.STREAM_CODEC",
+        "ServerboundMovePlayerPacket$PosRot.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$PosRot.STREAM_CODEC",
+        "ServerboundMovePlayerPacket$Rot.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$Rot.STREAM_CODEC",
+        "ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC",
+        "ServerboundPingRequestPacket.STREAM_CODEC": "net/minecraft/network/protocol/ping/ServerboundPingRequestPacket.STREAM_CODEC",
+        "ServerboundPlayerActionPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerActionPacket.STREAM_CODEC",
+        "ServerboundPlayerCommandPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerCommandPacket.STREAM_CODEC",
+        "ServerboundPlayerInputPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerInputPacket.STREAM_CODEC",
+        "ServerboundPlayerLoadedPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerLoadedPacket.STREAM_CODEC",
+        "ServerboundSelectKnownPacks.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ServerboundSelectKnownPacks.STREAM_CODEC",
+        "ServerboundSetCarriedItemPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundSetCarriedItemPacket.STREAM_CODEC",
+        "ServerboundSetCreativeModeSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundSetCreativeModeSlotPacket.STREAM_CODEC",
+        "ServerboundStatusRequestPacket.STREAM_CODEC": "net/minecraft/network/protocol/status/ServerboundStatusRequestPacket.STREAM_CODEC",
+        "ServerboundUseItemOnPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.STREAM_CODEC",
         "ServerChunkCache.tickChunks()V": "net/minecraft/server/level/ServerChunkCache.tickChunks()V",
         "ServerGamePacketListenerImpl.handleSetCommandBlock": "net/minecraft/server/network/ServerGamePacketListenerImpl.handleSetCommandBlock(Lnet/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket;)V",
         "ServerLevel.END_SPAWN_POINT": "net/minecraft/server/level/ServerLevel.END_SPAWN_POINT",
@@ -645,6 +716,8 @@
         "VillagerProfession.NONE": "net/minecraft/world/entity/npc/villager/VillagerProfession.NONE",
         "Vindicator.DOOR_BREAKING_PREDICATE": "net/minecraft/world/entity/monster/illager/Vindicator.DOOR_BREAKING_PREDICATE",
         "WallBannerBlock.getStateForPlacement": "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "WallHangingSignBlock.canAttachTo": "net/minecraft/world/level/block/WallHangingSignBlock.canAttachTo(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+        "WallHangingSignBlock.canPlace": "net/minecraft/world/level/block/WallHangingSignBlock.canPlace(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "WallHangingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallSignBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "WallSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -804,6 +877,257 @@
         "net/minecraft/core/Vec3i.hashCode()I": {
             "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db",
             "26.4-pre-1": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
+        },
+        "net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC": {
+            "26.3": "sha256:4b12c3d0509bba290ebbb6108d99e0b84e8bce164a57d2224b01801c15e654f4"
+        },
+        "net/minecraft/network/protocol/common/ClientboundDisconnectPacket.STREAM_CODEC": {
+            "26.3": "sha256:7b1ee127e1e32497c90f8d398b454a921a38b580277e3adca389406e2f2b91d7",
+            "26.4-pre-1": "sha256:7b1ee127e1e32497c90f8d398b454a921a38b580277e3adca389406e2f2b91d7"
+        },
+        "net/minecraft/network/protocol/common/ClientboundKeepAlivePacket.STREAM_CODEC": {
+            "26.3": "sha256:8a325a33c3cd6c20e30b1858ed89361f68433e3fc77c6533ac9a461da579a634",
+            "26.4-pre-1": "sha256:8a325a33c3cd6c20e30b1858ed89361f68433e3fc77c6533ac9a461da579a634"
+        },
+        "net/minecraft/network/protocol/common/ClientboundUpdateTagsPacket.STREAM_CODEC": {
+            "26.3": "sha256:4ece8345b48bd642db39e288a9b500e0464d565ceef281d3644d41ecc440c30d",
+            "26.4-pre-1": "sha256:4ece8345b48bd642db39e288a9b500e0464d565ceef281d3644d41ecc440c30d"
+        },
+        "net/minecraft/network/protocol/common/ServerboundKeepAlivePacket.STREAM_CODEC": {
+            "26.3": "sha256:40717343129df0872cdbe94e00b4f81393355f1b20d59f7231cdfed434d42475",
+            "26.4-pre-1": "sha256:40717343129df0872cdbe94e00b4f81393355f1b20d59f7231cdfed434d42475"
+        },
+        "net/minecraft/network/protocol/configuration/ClientboundFinishConfigurationPacket.STREAM_CODEC": {
+            "26.3": "sha256:3a8d5783eb1899c653f95555158e22963ac930e3315733f08d64ebf6e84dc39d",
+            "26.4-pre-1": "sha256:3a8d5783eb1899c653f95555158e22963ac930e3315733f08d64ebf6e84dc39d"
+        },
+        "net/minecraft/network/protocol/configuration/ClientboundRegistryDataPacket.STREAM_CODEC": {
+            "26.3": "sha256:32c24a0868caabb590a00195ca6a543ce70f1f9db945980cb49d21636e4a1fbd",
+            "26.4-pre-1": "sha256:32c24a0868caabb590a00195ca6a543ce70f1f9db945980cb49d21636e4a1fbd"
+        },
+        "net/minecraft/network/protocol/configuration/ClientboundSelectKnownPacks.STREAM_CODEC": {
+            "26.3": "sha256:58081e819c3a383f0885cb191727e702dd3c28213c47caa66d7f8074d1ea5523",
+            "26.4-pre-1": "sha256:58081e819c3a383f0885cb191727e702dd3c28213c47caa66d7f8074d1ea5523"
+        },
+        "net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.STREAM_CODEC": {
+            "26.3": "sha256:4a262dc69a9468a489423867db80c8636c0b3fde0e9e7877ed06358df37a2023",
+            "26.4-pre-1": "sha256:4a262dc69a9468a489423867db80c8636c0b3fde0e9e7877ed06358df37a2023"
+        },
+        "net/minecraft/network/protocol/configuration/ServerboundFinishConfigurationPacket.STREAM_CODEC": {
+            "26.3": "sha256:fd8f740e13f3e73379ce63a89cc019c21e339eab50a053bdb8531176771571c3",
+            "26.4-pre-1": "sha256:fd8f740e13f3e73379ce63a89cc019c21e339eab50a053bdb8531176771571c3"
+        },
+        "net/minecraft/network/protocol/configuration/ServerboundSelectKnownPacks.STREAM_CODEC": {
+            "26.3": "sha256:406240d838fb8e37ad8010d6248339e7f0621497b50f3f9496fe57f60c8376b6",
+            "26.4-pre-1": "sha256:406240d838fb8e37ad8010d6248339e7f0621497b50f3f9496fe57f60c8376b6"
+        },
+        "net/minecraft/network/protocol/game/ClientboundAddEntityPacket.STREAM_CODEC": {
+            "26.3": "sha256:1646eccf372533153ea8f52aa8f036dc063b4c1ab6e2d9c62c8b8cf23474fe27",
+            "26.4-pre-1": "sha256:1646eccf372533153ea8f52aa8f036dc063b4c1ab6e2d9c62c8b8cf23474fe27"
+        },
+        "net/minecraft/network/protocol/game/ClientboundBlockChangedAckPacket.STREAM_CODEC": {
+            "26.3": "sha256:23351ce5f78c7deb73733b40cc0e212f8482d88c2dfe7243e13640cf731a8b1b",
+            "26.4-pre-1": "sha256:23351ce5f78c7deb73733b40cc0e212f8482d88c2dfe7243e13640cf731a8b1b"
+        },
+        "net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.STREAM_CODEC": {
+            "26.3": "sha256:b07663aca09dc065103037cf744ee508b13ad8de963e539750bed5e0a9073777"
+        },
+        "net/minecraft/network/protocol/game/ClientboundBossEventPacket.STREAM_CODEC": {
+            "26.3": "sha256:8c4bd24aca273e77c81a8a7c61e01e219e923ee0a02b3d29dec9d03d3f76f8e9",
+            "26.4-pre-1": "sha256:8c4bd24aca273e77c81a8a7c61e01e219e923ee0a02b3d29dec9d03d3f76f8e9"
+        },
+        "net/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket.STREAM_CODEC": {
+            "26.3": "sha256:56aec6a83f0acc8c91425ae29f15a42bcb34dc28510333a6ad0235149354dd3c",
+            "26.4-pre-1": "sha256:56aec6a83f0acc8c91425ae29f15a42bcb34dc28510333a6ad0235149354dd3c"
+        },
+        "net/minecraft/network/protocol/game/ClientboundChunkBatchStartPacket.STREAM_CODEC": {
+            "26.3": "sha256:568f5a94dbb10bf9b08ac176293a89dbe7d043479cc09512a645d14407ddbdbc",
+            "26.4-pre-1": "sha256:568f5a94dbb10bf9b08ac176293a89dbe7d043479cc09512a645d14407ddbdbc"
+        },
+        "net/minecraft/network/protocol/game/ClientboundContainerSetContentPacket.STREAM_CODEC": {
+            "26.3": "sha256:2cc484f174c32e31f077cec2591e96e1d52431711a3b79d8f4e53495c78e94ab",
+            "26.4-pre-1": "sha256:2cc484f174c32e31f077cec2591e96e1d52431711a3b79d8f4e53495c78e94ab"
+        },
+        "net/minecraft/network/protocol/game/ClientboundContainerSetSlotPacket.STREAM_CODEC": {
+            "26.3": "sha256:8fc445c0a902d93a9c37fd1b96e7aae3baf4db26b815ab90e02757a08a9c5504",
+            "26.4-pre-1": "sha256:8fc445c0a902d93a9c37fd1b96e7aae3baf4db26b815ab90e02757a08a9c5504"
+        },
+        "net/minecraft/network/protocol/game/ClientboundGameEventPacket.STREAM_CODEC": {
+            "26.3": "sha256:d6362a783baef3309295a46b50c266f09c4d5fa205ea430cbde9f14e7c4c99e2",
+            "26.4-pre-1": "sha256:d6362a783baef3309295a46b50c266f09c4d5fa205ea430cbde9f14e7c4c99e2"
+        },
+        "net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.STREAM_CODEC": {
+            "26.3": "sha256:487627b2573b846e321d8c2eb7f278a836fe1a61d617d27f6e6e79026e5e0e8b",
+            "26.4-pre-1": "sha256:487627b2573b846e321d8c2eb7f278a836fe1a61d617d27f6e6e79026e5e0e8b"
+        },
+        "net/minecraft/network/protocol/game/ClientboundLoginPacket.STREAM_CODEC": {
+            "26.3": "sha256:644d083767089263141240c4728f5336000544af4fa72422fe45b51e7a7c4425"
+        },
+        "net/minecraft/network/protocol/game/ClientboundPlayerCombatKillPacket.STREAM_CODEC": {
+            "26.3": "sha256:489ead98bc489cc134812bb27df4a5741b3f12dd47e0134f4a1cffc67cd9c7e3",
+            "26.4-pre-1": "sha256:489ead98bc489cc134812bb27df4a5741b3f12dd47e0134f4a1cffc67cd9c7e3"
+        },
+        "net/minecraft/network/protocol/game/ClientboundPlayerInfoRemovePacket.STREAM_CODEC": {
+            "26.3": "sha256:82186c8db91a0d4b70d1fd781b7c40d670402c030b4cba8e88cf704062d0b481",
+            "26.4-pre-1": "sha256:82186c8db91a0d4b70d1fd781b7c40d670402c030b4cba8e88cf704062d0b481"
+        },
+        "net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.STREAM_CODEC": {
+            "26.3": "sha256:3abb65856fe6d87333d1881328d99780b53e6c8927459293e08be135eaa6083e",
+            "26.4-pre-1": "sha256:3abb65856fe6d87333d1881328d99780b53e6c8927459293e08be135eaa6083e"
+        },
+        "net/minecraft/network/protocol/game/ClientboundPlayerPositionPacket.STREAM_CODEC": {
+            "26.3": "sha256:99057423cec8d801db87664f9fb78da3e585e57ecb0066593811d39c9c7a177f",
+            "26.4-pre-1": "sha256:99057423cec8d801db87664f9fb78da3e585e57ecb0066593811d39c9c7a177f"
+        },
+        "net/minecraft/network/protocol/game/ClientboundRemoveEntitiesPacket.STREAM_CODEC": {
+            "26.3": "sha256:4b4a4b6eea24e5d53212479e571c2a6006afdce49b61ebcdafe8974680eb3da2",
+            "26.4-pre-1": "sha256:4b4a4b6eea24e5d53212479e571c2a6006afdce49b61ebcdafe8974680eb3da2"
+        },
+        "net/minecraft/network/protocol/game/ClientboundRespawnPacket.STREAM_CODEC": {
+            "26.3": "sha256:42292f5d1793b14adc91782cb43a451c42f4c008a02d9815bbc3a82f691906bc",
+            "26.4-pre-1": "sha256:42292f5d1793b14adc91782cb43a451c42f4c008a02d9815bbc3a82f691906bc"
+        },
+        "net/minecraft/network/protocol/game/ClientboundRotateHeadPacket.STREAM_CODEC": {
+            "26.3": "sha256:47f130fe60e9f2c12498957303511cca52323eec16f3e39cc48041f533b059cf",
+            "26.4-pre-1": "sha256:47f130fe60e9f2c12498957303511cca52323eec16f3e39cc48041f533b059cf"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSectionBlocksUpdatePacket.STREAM_CODEC": {
+            "26.3": "sha256:62255f59078cf7fb24aa73300df4b6b1169ecdc7e937e53719084825d9421797",
+            "26.4-pre-1": "sha256:62255f59078cf7fb24aa73300df4b6b1169ecdc7e937e53719084825d9421797"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSetChunkCacheCenterPacket.STREAM_CODEC": {
+            "26.3": "sha256:7e6e57a83e289ca7b4e894dcb06650fcb598d7b2604509081ae9d76c637cc01b",
+            "26.4-pre-1": "sha256:7e6e57a83e289ca7b4e894dcb06650fcb598d7b2604509081ae9d76c637cc01b"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSetEntityDataPacket.STREAM_CODEC": {
+            "26.3": "sha256:5a68f3a73b59f24f4a9b091e956abf775f319dccb61da0b9f0302888e7f8648b",
+            "26.4-pre-1": "sha256:5a68f3a73b59f24f4a9b091e956abf775f319dccb61da0b9f0302888e7f8648b"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.STREAM_CODEC": {
+            "26.3": "sha256:d5ab3585280a0b9933476479da21cf1131d1d4ecfbc66327165517a9ea470edc"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSetHealthPacket.STREAM_CODEC": {
+            "26.3": "sha256:7b730b20afeee854b0989a5445199b60e0fc20623c99cd1776dfec6ef6c12090",
+            "26.4-pre-1": "sha256:7b730b20afeee854b0989a5445199b60e0fc20623c99cd1776dfec6ef6c12090"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSetHeldSlotPacket.STREAM_CODEC": {
+            "26.3": "sha256:143755e11be634c341bef207fb91392c9784f07bad7924442adba0046ba49a90",
+            "26.4-pre-1": "sha256:143755e11be634c341bef207fb91392c9784f07bad7924442adba0046ba49a90"
+        },
+        "net/minecraft/network/protocol/game/ClientboundSystemChatPacket.STREAM_CODEC": {
+            "26.3": "sha256:0268c4f14c175907475aa3cdb73653ccc19ce0d981cbcee16367950fbe11c4ef",
+            "26.4-pre-1": "sha256:0268c4f14c175907475aa3cdb73653ccc19ce0d981cbcee16367950fbe11c4ef"
+        },
+        "net/minecraft/network/protocol/game/ClientboundTeleportEntityPacket.STREAM_CODEC": {
+            "26.3": "sha256:e953ab2830b316758aacc8dd62d45461533612e58daf680e13ee44506301edbe",
+            "26.4-pre-1": "sha256:e953ab2830b316758aacc8dd62d45461533612e58daf680e13ee44506301edbe"
+        },
+        "net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.STREAM_CODEC": {
+            "26.3": "sha256:d8ffeef2c3b3d8cc10505c8863a21c7caef8d963eaa38156dbca40dc3e0ba52c",
+            "26.4-pre-1": "sha256:d8ffeef2c3b3d8cc10505c8863a21c7caef8d963eaa38156dbca40dc3e0ba52c"
+        },
+        "net/minecraft/network/protocol/game/ServerboundChatCommandPacket.STREAM_CODEC": {
+            "26.3": "sha256:abcdf82e61111daaf2b701b848cd756ae260297996f466f081c74db19f9e4b62",
+            "26.4-pre-1": "sha256:abcdf82e61111daaf2b701b848cd756ae260297996f466f081c74db19f9e4b62"
+        },
+        "net/minecraft/network/protocol/game/ServerboundChatPacket.STREAM_CODEC": {
+            "26.3": "sha256:1ab9e45f0e7b88c8dcd575779a1115f93de48e580d0cb25c3c78124601cdcbec",
+            "26.4-pre-1": "sha256:1ab9e45f0e7b88c8dcd575779a1115f93de48e580d0cb25c3c78124601cdcbec"
+        },
+        "net/minecraft/network/protocol/game/ServerboundChunkBatchReceivedPacket.STREAM_CODEC": {
+            "26.3": "sha256:afb1564fdf1e3b61a306823072242e96ae779640fbb12b28d0be2992488cf98a",
+            "26.4-pre-1": "sha256:afb1564fdf1e3b61a306823072242e96ae779640fbb12b28d0be2992488cf98a"
+        },
+        "net/minecraft/network/protocol/game/ServerboundClientCommandPacket.STREAM_CODEC": {
+            "26.3": "sha256:c081bcc70adac9a72aaa5fbd30376af5cba1bdc74b5506f3df54214af6f643bb",
+            "26.4-pre-1": "sha256:c081bcc70adac9a72aaa5fbd30376af5cba1bdc74b5506f3df54214af6f643bb"
+        },
+        "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$Pos.STREAM_CODEC": {
+            "26.3": "sha256:e70004077ae759287eae3b0bf221428278f657cd6cd174a521461da79bb77718",
+            "26.4-pre-1": "sha256:e70004077ae759287eae3b0bf221428278f657cd6cd174a521461da79bb77718"
+        },
+        "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$PosRot.STREAM_CODEC": {
+            "26.3": "sha256:1aa194bfdde964f8f4993dc686e2e3ac16f26fec55f1728c1074b13e81118272",
+            "26.4-pre-1": "sha256:1aa194bfdde964f8f4993dc686e2e3ac16f26fec55f1728c1074b13e81118272"
+        },
+        "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$Rot.STREAM_CODEC": {
+            "26.3": "sha256:1e4ca3ed7b9eec5dfa0eba085ec98d8c83f8297da3971fb9b33f366e2a04f561",
+            "26.4-pre-1": "sha256:1e4ca3ed7b9eec5dfa0eba085ec98d8c83f8297da3971fb9b33f366e2a04f561"
+        },
+        "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC": {
+            "26.3": "sha256:2bb81c851dafbf6995b3d84732e7554eccc56ad322dc25ab3423bf7cd268e3c8",
+            "26.4-pre-1": "sha256:2bb81c851dafbf6995b3d84732e7554eccc56ad322dc25ab3423bf7cd268e3c8"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPlayerActionPacket.STREAM_CODEC": {
+            "26.3": "sha256:7d481b06a7cb659e228ed48ae99b47978bea0a01be7feee95c896011a2cffcf2",
+            "26.4-pre-1": "sha256:7d481b06a7cb659e228ed48ae99b47978bea0a01be7feee95c896011a2cffcf2"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPlayerCommandPacket.STREAM_CODEC": {
+            "26.3": "sha256:d9ec00f955e2ef91f23fba61ba4a95f74edb3934afbf0c960e1aeae08fa349d8",
+            "26.4-pre-1": "sha256:d9ec00f955e2ef91f23fba61ba4a95f74edb3934afbf0c960e1aeae08fa349d8"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPlayerInputPacket.STREAM_CODEC": {
+            "26.3": "sha256:771f6621e9582d69d4ddbdbec7c3a4e35b0b56246d93c652e8cb951d0d2b4113",
+            "26.4-pre-1": "sha256:771f6621e9582d69d4ddbdbec7c3a4e35b0b56246d93c652e8cb951d0d2b4113"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPlayerLoadedPacket.STREAM_CODEC": {
+            "26.3": "sha256:38ee3222337303127688cc84721fea49eaddbc21a673fb555c9583952a43a2e8",
+            "26.4-pre-1": "sha256:38ee3222337303127688cc84721fea49eaddbc21a673fb555c9583952a43a2e8"
+        },
+        "net/minecraft/network/protocol/game/ServerboundSetCarriedItemPacket.STREAM_CODEC": {
+            "26.3": "sha256:0365f3e62e6a8dc4940723d31f5fd7fc3f37f85571ff41682f814c16ac6895b5",
+            "26.4-pre-1": "sha256:0365f3e62e6a8dc4940723d31f5fd7fc3f37f85571ff41682f814c16ac6895b5"
+        },
+        "net/minecraft/network/protocol/game/ServerboundSetCreativeModeSlotPacket.STREAM_CODEC": {
+            "26.3": "sha256:6efaf8cdea8f4c0f6d13903799965b8a6d96937dbf4616e570ff40eee15857e6",
+            "26.4-pre-1": "sha256:6efaf8cdea8f4c0f6d13903799965b8a6d96937dbf4616e570ff40eee15857e6"
+        },
+        "net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.STREAM_CODEC": {
+            "26.3": "sha256:becd29ca40fb94b40285514d888d80f82cd5e768f5fabc011fc2f0926c32a4f9",
+            "26.4-pre-1": "sha256:becd29ca40fb94b40285514d888d80f82cd5e768f5fabc011fc2f0926c32a4f9"
+        },
+        "net/minecraft/network/protocol/handshake/ClientIntentionPacket.STREAM_CODEC": {
+            "26.3": "sha256:7b4864c06ba94e09764a935399a2642fdf4a007949957987d2b83fea250bd5c5"
+        },
+        "net/minecraft/network/protocol/login/ClientboundHelloPacket.STREAM_CODEC": {
+            "26.3": "sha256:4aedb066ad6204468d618fc9deebbf9e257ea4a166c28ad0cd5cda5ea5f0b960"
+        },
+        "net/minecraft/network/protocol/login/ClientboundLoginCompressionPacket.STREAM_CODEC": {
+            "26.3": "sha256:7b5d80afa93ccbad40da07c262d0e26b3d0a7450b0ded46485acaef47b10a2bf"
+        },
+        "net/minecraft/network/protocol/login/ClientboundLoginDisconnectPacket.STREAM_CODEC": {
+            "26.3": "sha256:10478786672e5af6cac62c1836f22704907319a5d5b348d0f69e60bf5bb16653",
+            "26.4-pre-1": "sha256:10478786672e5af6cac62c1836f22704907319a5d5b348d0f69e60bf5bb16653"
+        },
+        "net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.STREAM_CODEC": {
+            "26.3": "sha256:e90446e5dc1269f5b13902e86f8e13235cb871128cdc15705866ee220eafa0c2"
+        },
+        "net/minecraft/network/protocol/login/ServerboundHelloPacket.STREAM_CODEC": {
+            "26.3": "sha256:4b7a5c6a86ec9fbc40f1e504c4c6cbbda1954ad078f95eb18c9d023a6553c930",
+            "26.4-pre-1": "sha256:4b7a5c6a86ec9fbc40f1e504c4c6cbbda1954ad078f95eb18c9d023a6553c930"
+        },
+        "net/minecraft/network/protocol/login/ServerboundKeyPacket.STREAM_CODEC": {
+            "26.3": "sha256:126219f5d22983a8f743dba7ae524815daa435fbfd2c16376c2703074f07c519"
+        },
+        "net/minecraft/network/protocol/login/ServerboundLoginAcknowledgedPacket.STREAM_CODEC": {
+            "26.3": "sha256:9777556afdd9de103f3c0aa30470bee552f3b31fc9d96f20c16e1c8e37533e7d",
+            "26.4-pre-1": "sha256:9777556afdd9de103f3c0aa30470bee552f3b31fc9d96f20c16e1c8e37533e7d"
+        },
+        "net/minecraft/network/protocol/ping/ClientboundPongResponsePacket.STREAM_CODEC": {
+            "26.3": "sha256:fb7f1e339df3a1513e75349457b3ca08b61328201683af68a1107ee9e5170ff4",
+            "26.4-pre-1": "sha256:fb7f1e339df3a1513e75349457b3ca08b61328201683af68a1107ee9e5170ff4"
+        },
+        "net/minecraft/network/protocol/ping/ServerboundPingRequestPacket.STREAM_CODEC": {
+            "26.3": "sha256:dab8960df73e04040b8d78f26e7438b40ea714c811181ca1e302bd185c352950",
+            "26.4-pre-1": "sha256:dab8960df73e04040b8d78f26e7438b40ea714c811181ca1e302bd185c352950"
+        },
+        "net/minecraft/network/protocol/status/ClientboundStatusResponsePacket.STREAM_CODEC": {
+            "26.3": "sha256:51bdd67818b965364332861e94bde25ee53b62e44d680faa1be33fcab79ea444",
+            "26.4-pre-1": "sha256:51bdd67818b965364332861e94bde25ee53b62e44d680faa1be33fcab79ea444"
+        },
+        "net/minecraft/network/protocol/status/ServerboundStatusRequestPacket.STREAM_CODEC": {
+            "26.3": "sha256:4065a8acdad9115cd1111a959bd3bb43443734e3594ec80d51e1b09e5bf9dbbd",
+            "26.4-pre-1": "sha256:4065a8acdad9115cd1111a959bd3bb43443734e3594ec80d51e1b09e5bf9dbbd"
         },
         "net/minecraft/resources/Identifier.read(Ljava/lang/String;)Lcom/mojang/serialization/DataResult;": {
             "26.3": "sha256:50a139f7afc40210855669ea934cf12405e9c2ac842e3c09f47ee9696a772f5f",
@@ -2509,6 +2833,10 @@
             "26.3": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2",
             "26.4-pre-1": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2"
         },
+        "net/minecraft/world/level/block/AbstractSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:5618ff0c82f43509cba805ecbab5795f5a29708852651bce8591ab3e6d569cef",
+            "26.4-pre-1": "sha256:5618ff0c82f43509cba805ecbab5795f5a29708852651bce8591ab3e6d569cef"
+        },
         "net/minecraft/world/level/block/AmethystClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:385549b78818752025e0da36a5f43b2aabb9ef2b6f1ecf3694ca5376a8c5d8ee"
         },
@@ -2688,8 +3016,15 @@
             "26.3": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a",
             "26.4-pre-1": "sha256:dfd0ea0d41f20bf8e9bd22a3e58d6b7aab4cbc8b0fb97c779b8047888c0c117a"
         },
+        "net/minecraft/world/level/block/LeavesBlock.getOptionalDistanceAt(Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/OptionalInt;": {
+            "26.3": "sha256:6d1982fed732e5ffeffa9424c7fe32ff7c143cc3b91127a0fc8e6b6b0feac51b"
+        },
         "net/minecraft/world/level/block/LeavesBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:69e6e3d23c49c74f32c9c5ce83e4b838af33d2441be1e35276fbaeb7c658d6d4"
+        },
+        "net/minecraft/world/level/block/LeavesBlock.updateDistance(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:8d9661fab41e316c8750516c710022a0592c72f35de0e54293bdf36c33a62b7e",
+            "26.4-pre-1": "sha256:8d9661fab41e316c8750516c710022a0592c72f35de0e54293bdf36c33a62b7e"
         },
         "net/minecraft/world/level/block/LecternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:ada93f3f974947c4a5c5848842f00eaae202eac0a7b28cf67feae29538892029",
@@ -2752,6 +3087,9 @@
             "26.3": "sha256:e8cba07ff35ef31d5780b91726a9a926377eed2ac51acec06185b0a2a4206c72",
             "26.4-pre-1": "sha256:e8cba07ff35ef31d5780b91726a9a926377eed2ac51acec06185b0a2a4206c72"
         },
+        "net/minecraft/world/level/block/SegmentableBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/block/state/properties/IntegerProperty;Lnet/minecraft/world/level/block/state/properties/EnumProperty;)Lnet/minecraft/world/level/block/state/BlockState;": {
+            "26.3": "sha256:be73ebbce79f03007b1b9c24137b3f32afa475fdfedbdf0e46c61a944004692a"
+        },
         "net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:ba188b2f3705ad581876934891c37af4ecda6a4b4f513cf36603d7c2e2de7d33"
         },
@@ -2812,9 +3150,17 @@
             "26.3": "sha256:6fa38308a0097b82d973fad0c4ea9229728c6b50ec457642282ccd1910a11c77",
             "26.4-pre-1": "sha256:6fa38308a0097b82d973fad0c4ea9229728c6b50ec457642282ccd1910a11c77"
         },
+        "net/minecraft/world/level/block/state/properties/RotationSegment.convertToDirection(I)Ljava/util/Optional;": {
+            "26.3": "sha256:3dd8c42062839240676e4caf6eb9c313532874524a2c81081738f401f370412c",
+            "26.4-pre-1": "sha256:3dd8c42062839240676e4caf6eb9c313532874524a2c81081738f401f370412c"
+        },
         "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(F)I": {
             "26.3": "sha256:166b7ffc2c398994800e72a7e1380a7af357002fe1454e8bae54fce623453201",
             "26.4-pre-1": "sha256:166b7ffc2c398994800e72a7e1380a7af357002fe1454e8bae54fce623453201"
+        },
+        "net/minecraft/world/level/block/state/properties/RotationSegment.convertToSegment(Lnet/minecraft/core/Direction;)I": {
+            "26.3": "sha256:ef5e34ede768b17c0bb0dbe57533e35301896623bc30b4bfd43446806d677e96",
+            "26.4-pre-1": "sha256:ef5e34ede768b17c0bb0dbe57533e35301896623bc30b4bfd43446806d677e96"
         },
         "net/minecraft/world/level/block/StonecutterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:f4df971587de3ca86f7b4682a3dec0e99152c5050c7a6a61c6557f2844f5e8a2",
@@ -2838,6 +3184,14 @@
         "net/minecraft/world/level/block/WallBannerBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630",
             "26.4-pre-1": "sha256:601b980d2d6277f7d9035a01f056ba3516b2908ab09694f4fd28ad8983b1a630"
+        },
+        "net/minecraft/world/level/block/WallHangingSignBlock.canAttachTo(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z": {
+            "26.3": "sha256:0c8c100c7b6d8393ac52768c0bede9ddecbd5750be23f3cb1a272edfa68ee8b4",
+            "26.4-pre-1": "sha256:0c8c100c7b6d8393ac52768c0bede9ddecbd5750be23f3cb1a272edfa68ee8b4"
+        },
+        "net/minecraft/world/level/block/WallHangingSignBlock.canPlace(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:86e3079f7411ba97f7278e8d480079cd01be6b8dbffbef3b3b92eb3bf4c0a8bc",
+            "26.4-pre-1": "sha256:86e3079f7411ba97f7278e8d480079cd01be6b8dbffbef3b3b92eb3bf4c0a8bc"
         },
         "net/minecraft/world/level/block/WallHangingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:42db295e91ed93cbdff8daf04ded224dee941d38edb531092840a861d4c5cc93"

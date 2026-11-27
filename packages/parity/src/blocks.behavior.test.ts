@@ -17,6 +17,15 @@ import { needsSupport } from '@jsprismarine/prismarine/world/physics/BlockRules'
 import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { expect, it } from 'vitest';
 
+import type { PlacementGroup, PlacementMember, PlacementMismatch } from '../../block-behaviors/vectors/placement.ts';
+import {
+    describePlacement,
+    placementCount,
+    placementGapOf,
+    placementMismatches,
+    placementVectors
+} from '../../block-behaviors/vectors/placement.ts';
+
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
@@ -174,6 +183,32 @@ const javaPlacementClassOf = (javaId: string): string | undefined =>
         .find(({ kind }) => kind.aspect === 'placement')
         ?.evidence.find((member) => member.endsWith('.getStateForPlacement'))
         ?.split('.')[0];
+
+/**
+ * The first block of each group the placement vectors record, by Java id. The blocks of a group
+ * place alike, and `javaPlacement.vectors.test.ts` in block-behaviors places every one of them;
+ * the row places one, so the family stays inside its time.
+ */
+const PLACEMENT_VECTOR_BLOCKS = new Map(
+    placementVectors.blocks.flatMap(
+        (group): (readonly [string, { group: PlacementGroup; member: PlacementMember }])[] => {
+            const member = group.blocks[0];
+            return member === undefined ? [] : [[member.block, { group, member }]];
+        }
+    )
+);
+
+const placementVectorMismatches = new Map<string, readonly PlacementMismatch[]>();
+
+/** A vector block's placements that differ from Java's, computed once for the row and its classification. */
+const vectorMismatchesOf = (javaId: string): readonly PlacementMismatch[] => {
+    const cached = placementVectorMismatches.get(javaId);
+    if (cached !== undefined) return cached;
+    const entry = PLACEMENT_VECTOR_BLOCKS.get(javaId);
+    const mismatches = entry === undefined ? [] : placementMismatches(entry.group, entry.member);
+    placementVectorMismatches.set(javaId, mismatches);
+    return mismatches;
+};
 
 /** Minecraft yaws for a placer looking each horizontal way: 0 is south and 90 is west. */
 const LOOKING: readonly (readonly [facing: string, yaw: number])[] = [
@@ -1010,6 +1045,32 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'placement-vectors',
+        java: "A block a player places takes the state Java's getStateForPlacement gives it, or is refused where Java's item refuses it, for every click, look, neighbor layout, water and sneak the placement vectors record.",
+        reference:
+            "packages/block-behaviors/vectors/26.3/placement.json, Java's getStateForPlacement run against the pinned server jar",
+        subjects: () => [...PLACEMENT_VECTOR_BLOCKS.keys()].flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const mismatches = vectorMismatchesOf(subject.javaId);
+            const first = mismatches[0];
+            if (first === undefined) return undefined;
+            return `${mismatches.length} of ${placementCount} placements differ, first ${describePlacement(first.placement)}: Java ${first.java}, port ${first.port}`;
+        },
+        classify: (subject) => {
+            const group = PLACEMENT_VECTOR_BLOCKS.get(subject.javaId)?.group;
+            if (group === undefined) return undefined;
+            const gaps = new Set(vectorMismatchesOf(subject.javaId).map((mismatch) => placementGapOf(group, mismatch)));
+            if (gaps.has(undefined)) return undefined;
+            const known = [...gaps].filter((gap) => gap !== undefined);
+            return {
+                kind: 'defect',
+                reason: known.map((gap) => gap.reason).join(' '),
+                reference: known.map((gap) => `issue #${gap.issue.split('/').pop() ?? ''}`).join(', ')
+            };
+        }
+    },
+    {
         name: 'speleothem-placement',
         java: "Pointed dripstone points away from where its placer looks, or the other way when only that way has support, and takes the column's thickness: base, middle, frustum and tip, or a merged tip where two tips meet.",
         reference: 'Java SpeleothemBlock.getStateForPlacement, calculateTipDirection and calculateSpeleothemThickness',
@@ -1469,6 +1530,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'pops-without-support': ['support'],
     'stairs-placement': ['placement'],
     'speleothem-placement': ['placement', 'neighbor-update'],
+    'placement-vectors': ['placement'],
     'placement-rule-matches-java-class': ['placement'],
     'stalactite-falls': ['support', 'falling', 'scheduled-tick'],
     'lantern-placement': ['placement'],
