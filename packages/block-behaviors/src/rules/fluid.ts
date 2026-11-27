@@ -214,15 +214,47 @@ const isWaterContainer = (world: WorldActions, block: HookBlock | undefined): bo
 const canHoldSpecificFluid = (world: WorldActions, block: HookBlock | undefined, fluid: LiquidState): boolean =>
     !isWaterContainer(world, block) || (fluid.kind === 'water' && fluid.source);
 
-/** Whether the fluid already at a position can be replaced from this direction. */
+/**
+ * {@link canHoldSpecificFluid} for a flowing fluid, which is what the slope search asks about a
+ * cell it would pass through or fall into. No container takes one.
+ */
+const canHoldFlowing = (world: WorldActions, block: HookBlock | undefined): boolean => !isWaterContainer(world, block);
+
+/**
+ * Whether a block is ground a new source may form on, Java's `BlockStateBase.isSolid`. A host that
+ * cannot say falls back to the full cube test, which misses the solid blocks that are not cubes,
+ * such as soul sand and slabs.
+ *
+ * @javaSee BlockBehaviour$BlockStateBase.isSolid
+ */
+const isSolid = (world: WorldActions, block: HookBlock): boolean => world.isSolid?.(block) ?? isFullCube(world, block);
+
+/** Java's `0.44444445F`, the height from which lava gives way to water. */
+const LAVA_REPLACEABLE_HEIGHT = Math.fround(0.44444445);
+
+/**
+ * Whether the fluid already at a position gives way to an incoming one from this direction.
+ *
+ * Water gives way only to a fluid falling into it that is not water. Lava gives way to water once
+ * its height reaches 4/9. Java compares that in floats, where amount 4 is exactly on it, and a lava
+ * cell with lava above it counts as full height whatever its amount.
+ *
+ * @javaSee WaterFluid.canBeReplacedWith
+ * @javaSee LavaFluid.canBeReplacedWith
+ * @javaSee FlowingFluid.getHeight
+ */
 const canBeReplacedWith = (
+    world: WorldActions,
+    at: BlockPosition,
     existing: LiquidState | undefined,
     incoming: LiquidState['kind'],
     direction: BlockFace
 ): boolean => {
     if (existing === undefined) return true;
     if (existing.kind === 'water') return direction === 'down' && incoming !== 'water';
-    return existing.amount / 9 >= 0.44444445 && incoming === 'water';
+    if (incoming !== 'water') return false;
+    const height = fluidAt(world, offset(at, 'up'))?.kind === existing.kind ? 1 : Math.fround(existing.amount / 9);
+    return height >= LAVA_REPLACEABLE_HEIGHT;
 };
 
 /** Whether a fluid state is a source of the requested kind. */
@@ -255,7 +287,7 @@ const newLiquidAt = (
     if (neighborSources >= 2 && sourceConversionEnabled(world, kind)) {
         const belowAt = offset(at, 'down');
         const below = world.getBlock(belowAt);
-        if (below !== undefined && (isFullCube(world, below) || isSourceOf(fluidAt(world, belowAt), kind))) {
+        if (below !== undefined && (isSolid(world, below) || isSourceOf(fluidAt(world, belowAt), kind))) {
             return { kind, amount: 8, falling: false, source: true };
         }
     }
@@ -286,11 +318,18 @@ const canMaybePassThrough = (
     (canFluidOccupy(world, world.getBlock(to)) || isWaterContainer(world, world.getBlock(to))) &&
     canPassThroughWall(world, from, to);
 
-/** Whether fluid at this position has an opening to fall through. */
+/**
+ * Whether fluid at this position has an opening to fall through: the same fluid below, or a block
+ * the flowing fluid may enter.
+ *
+ * @javaSee FlowingFluid.isWaterHole
+ */
 const isHole = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): boolean => {
     const belowAt = offset(at, 'down');
     if (!canPassThroughWall(world, at, belowAt)) return false;
-    return fluidAt(world, belowAt)?.kind === kind || canFluidOccupy(world, world.getBlock(belowAt));
+    if (fluidAt(world, belowAt)?.kind === kind) return true;
+    const below = world.getBlock(belowAt);
+    return canFluidOccupy(world, below) && canHoldFlowing(world, below);
 };
 
 /** What one slope search remembers: whether a cell is a hole, and what a branch found. */
@@ -320,11 +359,14 @@ const isHoleIn = (search: SlopeSearch, world: WorldActions, at: BlockPosition, k
 };
 
 /**
- * Searches sideways for the nearest hole, without doubling back.
+ * Searches sideways for the nearest hole, without doubling back, through cells the flowing fluid
+ * may enter.
  *
  * Java's `getSlopeDistance` walks every path and answers the shortest. A branch's answer depends
  * only on its cell, the face it came from and its depth, and the search writes nothing, so a
  * branch the walk reaches again by another path answers from the first time.
+ *
+ * @javaSee FlowingFluid.getSlopeDistance
  */
 const slopeDistance = (
     world: WorldActions,
@@ -343,7 +385,7 @@ const slopeDistance = (
     for (const direction of HORIZONTAL_FACES) {
         if (direction === from) continue;
         const testAt = offset(at, direction);
-        if (!canMaybePassThrough(world, at, testAt, kind)) continue;
+        if (!canMaybePassThrough(world, at, testAt, kind) || !canHoldFlowing(world, world.getBlock(testAt))) continue;
 
         if (isHoleIn(search, world, testAt, kind)) {
             lowest = pass;
@@ -370,7 +412,7 @@ const SEARCH_SPAN = SEARCH_REACH * 2 + 1;
  * block states. What the host says about a block it read, whether it is a full cube and how fluid
  * reacts to it, is kept beside it, since the host works that out from the block's state each time.
  *
- * @javaSource FlowingFluid.getSpread
+ * @javaSee FlowingFluid.getSpread
  */
 const searchView = (
     world: WorldActions,
@@ -425,7 +467,16 @@ const searchView = (
     return { view, keyOf };
 };
 
-/** Finds the lowest-scoring horizontal routes toward holes below the fluid. */
+/**
+ * Finds the lowest-scoring horizontal routes toward holes below the fluid, and the fluid state
+ * each one receives.
+ *
+ * `src/rules/fluidSpread.test.ts` compares this with what Java's own `getSpread` answers for a
+ * set of small layouts, which the package's `vectors` script records from the pinned jar.
+ *
+ * @javaSource FlowingFluid.getSpread
+ * @javaVerified vectors
+ */
 const fluidSpreadDirections = (
     host: WorldActions,
     at: BlockPosition,
@@ -449,7 +500,7 @@ const fluidSpreadDirections = (
             : slopeDistance(world, testAt, 1, opposite(direction), kind, rates.slopeFindDistance, search);
         if (distance < lowest) result.clear();
         if (distance <= lowest) {
-            if (canBeReplacedWith(fluidAt(world, testAt), kind, direction)) {
+            if (canBeReplacedWith(world, testAt, fluidAt(world, testAt), kind, direction)) {
                 result.set(direction, next);
             }
             lowest = distance;
@@ -560,7 +611,7 @@ const spreadFluid = (world: WorldActions, at: BlockPosition, state: LiquidState,
             source: false
         };
         if (
-            canBeReplacedWith(fluidAt(world, belowAt), state.kind, 'down') &&
+            canBeReplacedWith(world, belowAt, fluidAt(world, belowAt), state.kind, 'down') &&
             canHoldSpecificFluid(world, world.getBlock(belowAt), nextBelow)
         ) {
             spreadTo(world, belowAt, 'down', { ...nextBelow, falling: true }, dimension);
