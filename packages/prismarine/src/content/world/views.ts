@@ -21,6 +21,7 @@ import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
 import {
     AIR,
     hasSturdyTopFace as engineHasSturdyTopFace,
+    isFaceSturdy as engineIsFaceSturdy,
     isFullCube as engineIsFullCube,
     isSolid as engineIsSolid,
     TICK_PRIORITIES
@@ -258,6 +259,10 @@ const blockActionsOf = (
         isFullCube: (block) => engineIsFullCube(engineWorld.getBlock(block.position)),
         // Java's legacy solid flag, which a new fluid source asks of the block below it.
         isSolid: (block) => engineIsSolid({ name: block.identifier, states: block.states }),
+        // Java's face sturdiness, which a ladder, a lever, a lantern or a bell asks of the block
+        // it hangs on.
+        isFaceSturdy: (block, face, type) =>
+            engineIsFaceSturdy({ name: block.identifier, states: block.states }, face, type),
         faceOccludes: (block, neighbor, face) => faceOccludesIn(content().blocks.types, block, neighbor, face),
         fluidSourceConversion: (kind) => {
             const value = adapter.level.gameRule(kind === 'water' ? WATER_SOURCE_CONVERSION : LAVA_SOURCE_CONVERSION);

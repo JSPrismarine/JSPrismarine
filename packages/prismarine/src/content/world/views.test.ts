@@ -261,6 +261,25 @@ describe('the content world views', () => {
         expect(actions.isSolid?.({ identifier: 'minecraft:portal', position: at, dimension, states: {} })).toBe(false);
     });
 
+    it('answers which face of a block is sturdy for each support type', () => {
+        const { adapter } = stubWorld();
+        const actions = contentFor(adapter).world.blockWorld.at('minecraft:overworld');
+        const at = { x: 0, y: 0, z: 0 };
+        const dimension = 'minecraft:overworld';
+        const slab = {
+            identifier: 'minecraft:normal_stone_slab',
+            position: at,
+            dimension,
+            states: { 'minecraft:vertical_half': 'bottom' }
+        };
+        const fence = { identifier: 'minecraft:oak_fence', position: at, dimension, states: {} };
+
+        expect(actions.isFaceSturdy?.(slab, 'down', 'full')).toBe(true);
+        expect(actions.isFaceSturdy?.(slab, 'up', 'full')).toBe(false);
+        expect(actions.isFaceSturdy?.(fence, 'up', 'center')).toBe(true);
+        expect(actions.isFaceSturdy?.(fence, 'up', 'full')).toBe(false);
+    });
+
     it('answers the light engine out of the flattened block table', () => {
         const { adapter } = stubWorld();
         const content = contentFor(adapter);
