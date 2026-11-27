@@ -5,7 +5,7 @@
  */
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
-import { bool, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
+import { bool, byteArray, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import {
     blockPosition,
     double,
@@ -23,7 +23,7 @@ import {
 } from '../wire/javaTypes';
 import type { JavaText } from '../wire/javaTypes';
 import { profileProperty } from './login';
-import { identifier } from './configuration';
+import { CLIENT_INFORMATION, identifier, pluginData } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
 /**
@@ -173,6 +173,63 @@ export const ClientboundKeepAlive = defineJavaPacket('Clientbound Keep Alive (pl
  */
 export const ServerboundKeepAlive = defineJavaPacket('Serverbound Keep Alive (play)', 'play/serverbound/keep_alive', {
     id: long
+});
+
+/**
+ * `Ping Request (play)` (serverbound): a number the client times the round trip with, for the
+ * ping chart on its debug screen.
+ * @javaSource ServerboundPingRequestPacket.STREAM_CODEC
+ */
+export const PlayPingRequest = defineJavaPacket('Ping Request (play)', 'play/serverbound/ping_request', {
+    timestamp: long
+});
+
+/**
+ * `Pong Response (play)` (clientbound): the number the ping carried, sent back.
+ * @javaSource ClientboundPongResponsePacket.STREAM_CODEC
+ */
+export const PlayPongResponse = defineJavaPacket('Pong Response (play)', 'play/clientbound/pong_response', {
+    timestamp: long
+});
+
+/**
+ * `Client Information (play)`: the client's settings, each time the player changes one.
+ * @javaSource ServerboundClientInformationPacket.STREAM_CODEC
+ */
+export const PlayClientInformation = defineJavaPacket(
+    'Client Information (play)',
+    'play/serverbound/client_information',
+    CLIENT_INFORMATION
+);
+
+/**
+ * `Serverbound Plugin Message (play)`: a channel and its bytes.
+ * @javaSource ServerboundCustomPayloadPacket.STREAM_CODEC
+ */
+export const PlayServerboundPluginMessage = defineJavaPacket(
+    'Serverbound Plugin Message (play)',
+    'play/serverbound/custom_payload',
+    { channel: identifier, data: pluginData }
+);
+
+/**
+ * `Server Data`: the server's description and its icon as PNG bytes, which the client shows in its
+ * server list entry once it has played there.
+ * @javaSource ClientboundServerDataPacket.STREAM_CODEC
+ */
+export const ServerData = defineJavaPacket('Server Data', 'play/clientbound/server_data', {
+    motd: textComponent,
+    icon: optional(byteArray)
+});
+
+/**
+ * `Transfer (play)`: sends the client to another server, which it connects to as it would from its
+ * server list.
+ * @javaSource ClientboundTransferPacket.STREAM_CODEC
+ */
+export const PlayTransfer = defineJavaPacket('Transfer (play)', 'play/clientbound/transfer', {
+    host: javaString(32_767),
+    port: varInt
 });
 
 /** The flags byte the move packets end with: on the ground, and against a wall. */

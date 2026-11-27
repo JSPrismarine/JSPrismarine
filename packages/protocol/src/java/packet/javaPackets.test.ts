@@ -6,11 +6,18 @@ import {
     AcknowledgeFinishConfiguration,
     ClientboundKnownPacks,
     ClientboundPluginMessage,
+    ConfigurationClientboundKeepAlive,
+    ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationServerboundKeepAlive,
     FeatureFlags,
     FinishConfiguration,
+    JavaChatVisibility,
+    JavaMainHand,
+    JavaParticleStatus,
     RegistryData,
     ServerboundKnownPacks,
+    ServerboundPluginMessage,
     UpdateTags,
     brandOf,
     brandPayload
@@ -92,6 +99,12 @@ import {
     SetTime,
     TickingState,
     TickingStep,
+    PlayClientInformation,
+    PlayPingRequest,
+    PlayPongResponse,
+    PlayServerboundPluginMessage,
+    PlayTransfer,
+    ServerData,
     SetCarriedItem,
     SetCenterChunk,
     SetCreativeModeSlot,
@@ -154,6 +167,18 @@ const SPAWN_INFO = {
  * Each value uses only what the wire keeps exactly: an angle in 256ths of a turn, a float a
  * float holds.
  */
+/** A client's settings, as the configuration and play packets both carry them. */
+const SETTINGS = {
+    language: 'sv_se',
+    viewDistance: 12,
+    chatVisibility: JavaChatVisibility.System,
+    chatColors: false,
+    modelCustomisation: 0x7f,
+    mainHand: JavaMainHand.Left,
+    textFilteringEnabled: true,
+    allowsListing: false,
+    particleStatus: JavaParticleStatus.Decreased
+};
 const SAMPLES: readonly Sample[] = [
     sample(Intention, {
         protocolVersion: NEWEST_JAVA_RELEASE.protocolVersion,
@@ -449,6 +474,20 @@ const SAMPLES: readonly Sample[] = [
     sample(SetSimulationDistance, { distance: 8 }),
     sample(TickingState, { tickRate: 20, frozen: true }),
     sample(TickingStep, { steps: 5 }),
+    sample(ServerboundPluginMessage, { channel: 'minecraft:brand', data: brandPayload('vanilla') }),
+    sample(ConfigurationClientInformation, SETTINGS),
+    sample(ConfigurationClientboundKeepAlive, { id: 123_456_789n }),
+    sample(ConfigurationServerboundKeepAlive, { id: -1n }),
+    sample(PlayPingRequest, { timestamp: 42n }),
+    sample(PlayPongResponse, { timestamp: 42n }),
+    sample(PlayClientInformation, SETTINGS),
+    sample(PlayServerboundPluginMessage, { channel: 'example:empty', data: Buffer.alloc(0) }),
+    sample(
+        ServerData,
+        { motd: 'A server', icon: null },
+        { motd: { translate: 'menu.server' }, icon: Buffer.from([0x89, 0x50]) }
+    ),
+    sample(PlayTransfer, { host: 'play.example.org', port: 25_565 }),
     sample(LevelChunkWithLight, {
         x: -1,
         z: 0,

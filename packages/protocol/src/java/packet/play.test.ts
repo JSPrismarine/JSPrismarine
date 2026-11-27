@@ -4,6 +4,23 @@ import type { JavaPacketDefinition, JavaPayload } from './JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from './JavaPacket';
 import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
 import {
+    ConfigurationClientboundKeepAlive,
+    ConfigurationClientInformation,
+    ConfigurationServerboundKeepAlive,
+    JavaChatVisibility,
+    JavaMainHand,
+    JavaParticleStatus,
+    ServerboundPluginMessage,
+    brandOf,
+    brandPayload
+} from './configuration';
+import {
+    PlayClientInformation,
+    PlayPingRequest,
+    PlayPongResponse,
+    PlayServerboundPluginMessage,
+    PlayTransfer,
+    ServerData,
     BlockChangedAck,
     ChangeDifficulty,
     ClearTitles,
@@ -614,5 +631,79 @@ describe('the world state packets', () => {
         expect(bodyOf(TickingState, { tickRate: 20, frozen: true })).toEqual([0x41, 0xa0, 0, 0, 1]);
         expect(roundTrip(TickingState, { tickRate: 20, frozen: true })).toEqual({ tickRate: 20, frozen: true });
         expect(roundTrip(TickingStep, { steps: 40 })).toEqual({ steps: 40 });
+    });
+});
+
+describe('the services packets', () => {
+    const roundTrip = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) =>
+        decodeJavaPacket(
+            NEWEST_JAVA_RELEASE,
+            definition,
+            readJavaPacketId(encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value)).body
+        );
+    const bodyOf = <D extends JavaPacketDefinition>(definition: D, value: JavaPayload<D>) => [
+        ...encodeJavaPacket(NEWEST_JAVA_RELEASE, definition, value).subarray(idOf(definition).length)
+    ];
+
+    it("reads the client's settings in the order ClientInformation writes them, in either phase", () => {
+        const settings = {
+            language: 'en_us',
+            viewDistance: 12,
+            chatVisibility: JavaChatVisibility.System,
+            chatColors: true,
+            modelCustomisation: 0x7f,
+            mainHand: JavaMainHand.Left,
+            textFilteringEnabled: false,
+            allowsListing: true,
+            particleStatus: JavaParticleStatus.Minimal
+        };
+
+        expect(bodyOf(ConfigurationClientInformation, settings)).toEqual([
+            5,
+            ...Buffer.from('en_us'),
+            12,
+            1,
+            1,
+            0x7f,
+            0,
+            0,
+            1,
+            2
+        ]);
+        expect(roundTrip(ConfigurationClientInformation, settings)).toEqual(settings);
+        expect(roundTrip(PlayClientInformation, settings)).toEqual(settings);
+    });
+
+    it('reads a plugin message as its channel and every byte after it', () => {
+        const brand = { channel: 'minecraft:brand', data: Buffer.from([7, ...Buffer.from('vanilla')]) };
+
+        expect(roundTrip(ServerboundPluginMessage, brand)).toEqual(brand);
+        expect(roundTrip(PlayServerboundPluginMessage, brand)).toEqual(brand);
+        expect(brandOf(brand.data)).toBe('vanilla');
+        expect(brandOf(brandPayload('JSPrismarine'))).toBe('JSPrismarine');
+    });
+
+    it('carries the keep-alive and ping numbers as longs', () => {
+        expect(bodyOf(ConfigurationClientboundKeepAlive, { id: 258n })).toEqual([0, 0, 0, 0, 0, 0, 1, 2]);
+        expect(roundTrip(ConfigurationServerboundKeepAlive, { id: -1n })).toEqual({ id: -1n });
+        expect(roundTrip(PlayPingRequest, { timestamp: 42n })).toEqual({ timestamp: 42n });
+        expect(roundTrip(PlayPongResponse, { timestamp: 42n })).toEqual({ timestamp: 42n });
+    });
+
+    it('writes a transfer as the host, then the port as a VarInt', () => {
+        expect(bodyOf(PlayTransfer, { host: 'a.b', port: 25_565 })).toEqual([
+            3,
+            ...Buffer.from('a.b'),
+            0xdd,
+            0xc7,
+            0x01
+        ]);
+        expect(roundTrip(PlayTransfer, { host: 'a.b', port: 25_565 })).toEqual({ host: 'a.b', port: 25_565 });
+    });
+
+    it('writes the server data as the description, then whether an icon follows', () => {
+        expect(roundTrip(ServerData, { motd: 'A server', icon: null })).toEqual({ motd: 'A server', icon: null });
+        const icon = Buffer.from([0x89, 0x50]);
+        expect(roundTrip(ServerData, { motd: 'A server', icon })).toEqual({ motd: 'A server', icon });
     });
 });
