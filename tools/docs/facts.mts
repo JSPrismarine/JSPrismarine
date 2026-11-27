@@ -880,6 +880,15 @@ function nativeWorldgenFacts() {
 /** A source file the facts below quote, read as text. */
 const sourceText = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
 
+/** The file the composed vanilla prefix is cached in, read from the pack stack that writes it. */
+function packCacheFacts() {
+    const file = /export const VANILLA_PREFIX_CACHE_FILE = '([^']+)';/.exec(
+        sourceText('packages', 'prismarine', 'src', 'content', 'packStack.ts')
+    )?.[1];
+    if (file === undefined) throw new Error('The docs facts no longer find VANILLA_PREFIX_CACHE_FILE.');
+    return { 'packs.vanillaPrefixCacheFile': `node_modules/.cache/jsprismarine/${file}` };
+}
+
 /** The numbers the world blender and the below-zero upgrade run on, read from the code that uses them. */
 function blendingFacts() {
     const record = readFileSync(
@@ -1673,6 +1682,7 @@ export async function loadFacts(): Promise<Facts> {
             ...fluidFacts(),
             ...replicationFacts(),
             ...blendingFacts(),
+            ...packCacheFacts(),
             ...nativeWorldgenFacts(),
             ...parityFamilyFacts(),
             ...e2eFacts(),
