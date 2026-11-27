@@ -73,6 +73,20 @@ describe.each(pairs)('the $java tables', (pair) => {
         }
     });
 
+    it('give every Java block state of the block table its support facts', () => {
+        const blocks = readJson<BlocksTable>(join(dir, 'blocks.json'));
+        const support = readJson<{ blocks: Record<string, number | (number | [number, number])[]> }>(
+            join(dir, 'blockSupport.json')
+        );
+        expect(Object.keys(support.blocks)).toEqual(Object.keys(blocks.blocks));
+        for (const [name, block] of Object.entries(blocks.blocks)) {
+            const runs = support.blocks[name]!;
+            if (typeof runs === 'number') continue;
+            const expected = Object.values(block.properties ?? {}).reduce((total, values) => total * values.length, 1);
+            expect(stateCount(runs), name).toBe(expected);
+        }
+    });
+
     it(`map every Java item onto an item of the ${pair.protocol} item table`, () => {
         const items = readJson<ItemsTable>(join(dir, 'items.json'));
         const itemTable = readJson<Record<string, unknown>>(

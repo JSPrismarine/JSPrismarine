@@ -298,6 +298,45 @@ export const bedrockBlockStateToJava = (
 };
 
 /**
+ * The index into the target palette of one Bedrock block state, which every per-state table
+ * that follows the palette is indexed by. A value the state set leaves out or spells wrong
+ * resolves as {@link bedrockBlockStateToJava} resolves it, to the block's first state.
+ *
+ * @param {string} bedrockId - The namespaced Bedrock block identifier.
+ * @param {Readonly<Record<string, BlockStateValue>>} [states] - The state values as the palette
+ *   spells them; booleans may be `true` and `false`.
+ * @returns {number | undefined} The palette index, or undefined for a Bedrock-only block.
+ */
+export const bedrockPaletteIndexOf = (
+    bedrockId: string,
+    states?: Readonly<Record<string, BlockStateValue>>
+): number | undefined => {
+    const block = paletteBlocks.get(bedrockId);
+    return block === undefined ? undefined : block.first + offsetOf(block, states);
+};
+
+/** The Java block state a palette state comes back as: its block, and its index within the block. */
+export interface JavaStateSource {
+    /** The namespaced Java block identifier. */
+    readonly javaId: string;
+    /** The state's index in the block's state cross product, Java's `getPossibleStates` order. */
+    readonly state: number;
+}
+
+/**
+ * The Java state {@link bedrockBlockStateToJava} answers for a palette index, as its block and
+ * in-block state index rather than its property words, for a table keyed by Java state.
+ *
+ * @param {number} paletteIndex - An index {@link bedrockPaletteIndexOf} returned.
+ * @returns {JavaStateSource | undefined} The source, or undefined where no Java state maps.
+ */
+export const javaStateSourceAt = (paletteIndex: number): JavaStateSource | undefined => {
+    const sources = sourcesOf();
+    const javaId = sources.javaIds[sources.blocks[paletteIndex] ?? -1];
+    return javaId === undefined ? undefined : { javaId, state: sources.states[paletteIndex]! };
+};
+
+/**
  * Each palette state's answer from {@link bedrockBlockStateToJava}, frozen and shared. A fluid
  * search or a tag check asks about the same few states thousands of times a tick, and the answer
  * for a palette index never changes.

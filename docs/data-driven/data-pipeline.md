@@ -113,6 +113,13 @@ unless `--java <release>` names another:
   resistance, friction, light, map color, sound type, push reaction and the rest) for all 1286
   blocks, with state-invariant values once per block and per-state differences under
   `stateOverrides`.
+- `block_support.json`: each block state's legacy solid flag (`BlockState.isSolid`) and whether
+  each of its six faces is sturdy for the full, center and rigid support types
+  (`BlockState.isFaceSturdy`), packed into one integer per state in Java's state order and run-length
+  encoded per block. The file names its faces and support types, which give the bit layout: the
+  solid flag in bit 0, then one bit per face for each support type in turn. The survival rules
+  of signs, ladders, bells, lanterns and the other attached blocks read these facts, as do the
+  fluid source and portal floor rules.
 - `entity_attributes.json`: the default attribute values, dimensions and category for the <!-- fact:java.entityAttributes -->93<!-- /fact --> entity
   types with an attribute supplier.
 - `entity_navigation.json`: the path navigation class and flags each mob type starts with.
@@ -120,7 +127,7 @@ unless `--java <release>` names another:
 The dumper needs a JDK matching the jar's class file version (Java <!-- fact:java.jdk -->25<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->). It shares the
 search in `utils/java/jdk.ts` with the compose stage, which looks at `JSP_JAVA_HOME`, `JAVA_HOME`
 and, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape and counts of
-both files.
+the files.
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run dump:java-goals
@@ -202,6 +209,16 @@ flattens the Java block property golden through the block mapping into
 `packages/mapping/src/tables/<release>/blockProperties.json`, keyed by Bedrock state. It needs only committed
 inputs, no fetched sources.
 
+```sh
+pnpm --filter @jsprismarine/mapping run generate:block-support
+```
+
+checks the Java block support golden against the release's block table and writes it to
+`packages/mapping/src/tables/<release>/blockSupport.json`. The table stays keyed by Java state:
+`bedrockBlockSupportOf` reads a Bedrock state through the Java state `bedrockBlockStateToJava`
+picks for it, so a stair whose Java shape Bedrock does not keep answers as the straight stair the
+server reads it as.
+
 ## Running the server from the pipeline
 
 The data-driven overworld generator reads both halves of the Java data, so a development server
@@ -235,8 +252,9 @@ A Bedrock version bump takes these steps:
 3. Run `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` on a Linux x86-64 machine (or let
    `.github/workflows/capture.yml` run it and open the pull request), then run
    `pnpm --filter @jsprismarine/bedrock-data run generate`.
-4. Run `pnpm --filter @jsprismarine/mapping run generate:tables` and
-   `pnpm --filter @jsprismarine/mapping run generate:block-properties`, then review the table
+4. Run `pnpm --filter @jsprismarine/mapping run generate:tables`,
+   `pnpm --filter @jsprismarine/mapping run generate:block-properties` and
+   `pnpm --filter @jsprismarine/mapping run generate:block-support`, then review the table
    diffs. New losses must be added to the reviewed loss lists before the generator will emit.
 5. Run the mapping property tests and the parity suite (`pnpm run test`); they fail on any
    unreviewed gap.

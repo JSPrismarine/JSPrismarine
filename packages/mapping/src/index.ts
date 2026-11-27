@@ -31,6 +31,13 @@ export {
     bedrockBlockStateOverridesOf,
     type BedrockBlockProperties
 } from './blockProperties';
+export {
+    BLOCK_SUPPORT_JAVA_VERSION,
+    bedrockBlockSupportOf,
+    type BedrockBlockSupport,
+    type BlockSupportFace,
+    type SupportType
+} from './blockSupport';
 export { bedrockDimensionOverlay, javaDimensionTypeOf, type BedrockDimensionOverlay } from './dimensionMapping';
 export { javaEntityTypeToBedrock, type EntityMappingResult } from './entityMapping';
 export { javaItemToBedrock, type BedrockItem, type ItemMappingResult } from './itemMapping';
