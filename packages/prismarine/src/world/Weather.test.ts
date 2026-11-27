@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { WorldWeather, savedWeatherOf } from './Weather';
 import type { WeatherWorld } from './Weather';
+import { weatherEventsOf } from '../editions/bedrock/presenter/bedrockWeather';
 
 /** A world that records what went out and always draws the shortest stretch. */
 const weatherWorld = (cycleAllowed = true) => {
@@ -11,7 +12,9 @@ const weatherWorld = (cycleAllowed = true) => {
     const world: WeatherWorld = {
         cycleAllowed: () => cycleAllowed,
         randomInt: () => 0,
-        broadcast: (event, data) => void sent.push({ event, data })
+        show: (from, to) => {
+            for (const [event, data] of weatherEventsOf(from, to)) sent.push({ event, data });
+        }
     };
 
     return { sent, weather: new WorldWeather(world), events: () => sent.map(({ event }) => event) };

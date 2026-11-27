@@ -15,16 +15,6 @@
  */
 import { CLEAR_WEATHER, advanceWeatherCycle, weatherCommandState, weatherOf } from '@jsprismarine/engine-systems';
 import type { Weather, WeatherState } from '@jsprismarine/engine-systems';
-import { LevelEvent } from '@jsprismarine/minecraft';
-
-/**
- * The intensity a level event carries, which the client reads as a fraction of this.
- *
- * Java fades its rain in over a hundred ticks through a float per level. Nothing here carries
- * a partial level, so the rain is either falling or not and the client is told the full
- * amount.
- */
-const FULL_INTENSITY = 65535;
 
 /** What {@link WorldWeather} needs from the world it belongs to. */
 export interface WeatherWorld {
@@ -32,8 +22,8 @@ export interface WeatherWorld {
     cycleAllowed(): boolean;
     /** A draw in `[0, bound)`, used only when a stretch has to be booked. */
     randomInt(bound: number): number;
-    /** Sends a level event to everybody in the world. */
-    broadcast(event: LevelEvent, data: number): void;
+    /** Shows everybody in the world a change of weather, which each client's edition draws its own way. */
+    show(from: Weather, to: Weather): void;
 }
 
 /** The weather stored by the provider, which is Java's `WeatherData` field for field. */
@@ -219,19 +209,8 @@ export class WorldWeather {
         for (const listener of [...this.listeners]) listener({ previous, current });
     }
 
-    /**
-     * Tells every client what the sky is doing.
-     *
-     * Bedrock has a start and a stop event per kind and no way to set both at once, so going
-     * from a storm to clear skies is two events and the order matters: the client keeps a
-     * lightning level of its own, and stopping the rain without stopping the storm leaves it
-     * flashing over a blue sky.
-     */
+    /** Tells every client what the sky is doing; see {@link WeatherWorld.show}. */
     private announce(from: Weather, to: Weather): void {
-        if (from === 'thunder' && to !== 'thunder') this.world.broadcast(LevelEvent.STOP_THUNDERSTORM, 0);
-        if (from !== 'clear' && to === 'clear') this.world.broadcast(LevelEvent.STOP_RAINING, 0);
-
-        if (to !== 'clear') this.world.broadcast(LevelEvent.START_RAINING, FULL_INTENSITY);
-        if (to === 'thunder') this.world.broadcast(LevelEvent.START_THUNDERSTORM, FULL_INTENSITY);
+        this.world.show(from, to);
     }
 }

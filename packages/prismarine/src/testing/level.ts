@@ -100,7 +100,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     const weather = new WorldWeather({
         cycleAllowed: () => gameRules.getGameRule('doWeatherCycle')?.[0] !== false,
         randomInt: (bound) => Math.floor(Math.random() * bound),
-        broadcast: () => {}
+        show: () => {}
     });
     const worlds = options.worlds ?? (() => []);
     const clock = new LevelClock(() => gameRuleValue(gameRules, ADVANCE_TIME) !== false);
@@ -161,6 +161,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         getDayTime: () => clock.getDayTime(),
         setDayTime: (time) => clock.setDayTime(time),
         isDayTimePaused: () => clock.isPaused(),
+        isDayTimeAdvancing: () => clock.isDayAdvancing(),
         setDayTimePaused: (paused) => clock.setPaused(paused),
         getGameRuleManager: () => gameRules,
         getWeather: () => weather,

@@ -375,7 +375,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         sends.push(session.addToPlayerList());
         sends.push(session.sendPlayerList());
 
-        sends.push(session.sendTime(world.getDayTime()));
+        sends.push(session.sendTime());
 
         sends.push(connection.sendDataPacket(playerSpawnPositionPacket(session.getPlayer(), world, spawns.overworld)));
 

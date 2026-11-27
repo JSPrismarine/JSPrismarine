@@ -1534,8 +1534,13 @@ export default class PlayerSession {
         const viewDistance = this.viewDistance || dist || 0;
 
         const unloaded = this.chunks.need(currentXChunk, currentZChunk, viewDistance, forceResend);
+        // A Java client keeps a chunk until it is told to drop it; a Bedrock one drops it itself
+        // once it leaves the radius the publisher below names.
+        if (unloaded.length > 0 && this.presenter.chunkWire !== undefined) {
+            this.released(this.presenter.chunkWire.forget(unloaded));
+        }
 
-        if (!unloaded && this.chunkSendQueue.length !== 0)
+        if (unloaded.length === 0 && this.chunkSendQueue.length !== 0)
             return this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         return allSent([]);
     }
@@ -2211,11 +2216,16 @@ export default class PlayerSession {
     }
 
     /**
-     * Send the current tick to a client.
-     * @param {number} tick - The tick
+     * Tells the client the time on the clock of the level its player is in: the time of day, the
+     * game time and whether the day moves on.
+     * @param level - The level, when the player is moving to another one.
      */
-    public sendTime(tick: number): Promise<void> {
-        return this.presenter.sendTime(tick);
+    public sendTime(level: Level = this.getWorld().getLevel()): Promise<void> {
+        return this.presenter.sendTime({
+            dayTime: level.getDayTime(),
+            gameTime: level.getTicks(),
+            advancing: level.isDayTimeAdvancing()
+        });
     }
 
     /**
@@ -2474,7 +2484,7 @@ export default class PlayerSession {
     public async setViewDistance(distance: number): Promise<void> {
         this.viewDistance = distance;
         const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
-        await this.connection.sendDataPacket(packet);
+        await (this.presenter.chunkWire?.radius(distance) ?? this.connection.sendDataPacket(packet));
         // The request is applied in an input step, and a removal later in the same step, such as
         // a login of the same account replacing this one, can take the player off meanwhile.
         if (!this.isConnected()) return;
@@ -3828,7 +3838,7 @@ export default class PlayerSession {
         if (tick % ADVANCEMENT_CHECK_TICKS === 0) advancementPlayerTick(this);
 
         // Every five minutes of ticks.
-        if (tick % (20 * 5 * 60 * 1) === 0) this.released(this.sendTime(tick));
+        if (tick % (20 * 5 * 60 * 1) === 0) this.released(this.sendTime());
     }
 
     /**

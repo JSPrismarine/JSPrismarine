@@ -6,6 +6,8 @@
  * position, and its game mode. The rest of the contract has no Java packet yet and sends nothing,
  * each saying which slice of `docs/plans/java-multiprotocol.md` brings it.
  */
+import type { Weather } from '@jsprismarine/engine-systems';
+import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
@@ -13,7 +15,19 @@ import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChun
 import {
     AddEntity,
     BossEvent,
+    ChangeDifficulty,
     ClearTitles,
+    ForgetLevelChunk,
+    RAIN_LEVEL_CHANGE,
+    SetChunkCacheRadius,
+    SetDefaultSpawnPosition,
+    SetSimulationDistance,
+    SetTime,
+    START_RAINING,
+    STOP_RAINING,
+    THUNDER_LEVEL_CHANGE,
+    TickingState,
+    TickingStep,
     ChunkBatchFinished,
     ChunkBatchStart,
     SetCenterChunk,
@@ -85,8 +99,11 @@ import type {
     ShownRespawn,
     ShownScore,
     ShownStack,
+    ShownTicking,
+    ShownTime,
     ShownTitle,
-    ShownVitals
+    ShownVitals,
+    ShownWorldSpawn
 } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
 import type { ChunkWire } from '../../player/ChunkView';
@@ -249,6 +266,17 @@ export const javaGameModeOf = (gamemode: Gametype): number =>
 const DIMENSION_TYPES: readonly string[] =
     CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
+/**
+ * The Overworld's world clock, by its index in the `minecraft:world_clock` registry a client was
+ * configured with: the clock its sky draws from.
+ */
+const OVERWORLD_CLOCK = Math.max(
+    0,
+    (CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:world_clock')?.entries ?? []).indexOf(
+        'minecraft:overworld'
+    )
+);
+
 /** Java's spelling of the vanilla dimensions, which a `dimension_type` id and its level share. */
 const OVERWORLD = 'minecraft:overworld';
 const NETHER = 'minecraft:the_nether';
@@ -398,6 +426,8 @@ export class JavaPresenter implements SessionPresenter {
     private readonly objectives = new Map<string, string>();
     /** The objective each Java display slot shows. */
     private readonly slots = new Map<JavaDisplaySlot, string>();
+    /** The weather the client was last shown, or undefined before it was shown any. */
+    private weather: Weather | undefined;
     /** The holders each known objective has a score sent for, which a later snapshot without them resets. */
     private readonly holders = new Map<string, Set<string>>();
 
@@ -440,6 +470,14 @@ export class JavaPresenter implements SessionPresenter {
             this.send(ChunkBatchStart, {});
             for (const chunk of chunks) this.send(LevelChunkWithLight, this.columns.columnOf(chunk, light));
             this.send(ChunkBatchFinished, { batchSize: chunks.length });
+        },
+        forget: async (chunks) => {
+            for (const { x, z } of chunks) this.send(ForgetLevelChunk, { x, z });
+        },
+        // The server simulates as far as it shows, as the login's two distances say.
+        radius: async (distance) => {
+            this.send(SetChunkCacheRadius, { radius: distance });
+            this.send(SetSimulationDistance, { distance });
         }
     };
 
@@ -455,8 +493,16 @@ export class JavaPresenter implements SessionPresenter {
         return stack === null || item === undefined ? null : { item, count: stack.count };
     }
 
-    /** Not shown yet: the time of day comes with the world state slice, PR 10. */
-    public async sendTime(): Promise<void> {}
+    /**
+     * Sends `Update Time` with the game time and the Overworld's clock, which runs at the client
+     * between updates unless the day is held.
+     */
+    public async sendTime({ dayTime, gameTime, advancing }: ShownTime): Promise<void> {
+        this.send(SetTime, {
+            gameTime: BigInt(gameTime),
+            clocks: [{ clock: OVERWORLD_CLOCK, totalTicks: BigInt(dayTime), partialTick: 0, rate: advancing ? 1 : 0 }]
+        });
+    }
 
     /** Sends `Game Event` 3, which sets the client's own game mode. */
     public async sendGamemode(gamemode: Gametype): Promise<void> {
@@ -715,6 +761,8 @@ export class JavaPresenter implements SessionPresenter {
         this.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
         // A client spawned again holds no chunks, so the next center is sent whatever it is.
         this.center = undefined;
+        // Nor its weather, which the world's resend of the current weather shows it again.
+        this.weather = undefined;
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */
@@ -811,5 +859,42 @@ export class JavaPresenter implements SessionPresenter {
         if (!this.objectives.delete(objective)) return;
         this.holders.delete(objective);
         this.send(SetObjective, { objective, change: { method: JavaObjectiveMethod.Remove } });
+    }
+
+    /**
+     * Sends the game events that take the client's sky to the weather: rain begins or ends, then
+     * its strength and the storm's, each 0 or 1, as vanilla's join and weather cycle send them.
+     * The client is only told of a change from what it was last shown; a Bedrock client's resend
+     * of the same weather sends nothing.
+     */
+    public async showWeather(_from: Weather | undefined, to: Weather): Promise<void> {
+        const shown = this.weather;
+        if (shown === to) return;
+        this.weather = to;
+        const raining = to !== 'clear';
+        const wasRaining = shown !== undefined && shown !== 'clear';
+        if (raining !== wasRaining) this.send(GameEvent, { event: raining ? START_RAINING : STOP_RAINING, value: 0 });
+        this.send(GameEvent, { event: RAIN_LEVEL_CHANGE, value: raining ? 1 : 0 });
+        this.send(GameEvent, { event: THUNDER_LEVEL_CHANGE, value: to === 'thunder' ? 1 : 0 });
+    }
+
+    /** Sends `Change Difficulty`; Bedrock numbers the difficulties as Java does, and none is locked. */
+    public async showDifficulty(difficulty: Difficulty): Promise<void> {
+        this.send(ChangeDifficulty, { difficulty, locked: false });
+    }
+
+    /** Sends `Set Default Spawn Position`, which the client's compass points to. */
+    public async showWorldSpawn({ dimension, position, yaw }: ShownWorldSpawn): Promise<void> {
+        this.send(SetDefaultSpawnPosition, { dimension: dimension.id, position, yaw, pitch: 0 });
+    }
+
+    /** Sends `Set Ticking State`, which the client runs its own ticks at. */
+    public async showTicking({ rate, frozen }: ShownTicking): Promise<void> {
+        this.send(TickingState, { tickRate: rate, frozen });
+    }
+
+    /** Sends `Step Tick`. */
+    public async showTickStep(ticks: number): Promise<void> {
+        this.send(TickingStep, { steps: ticks });
     }
 }

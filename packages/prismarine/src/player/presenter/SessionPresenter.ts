@@ -14,7 +14,8 @@
  */
 import type { TitleInstruction } from '@jsprismarine/commands';
 import type { Vector3 } from '@jsprismarine/math';
-import type { Gametype } from '@jsprismarine/minecraft';
+import type { Weather } from '@jsprismarine/engine-systems';
+import type { Difficulty, Gametype } from '@jsprismarine/minecraft';
 
 import type { ListedPlayer } from '../../network/playerListEntry';
 import type { AbilityTarget } from '../../network/replica/firstSight';
@@ -218,6 +219,30 @@ export interface ShownObjective {
     readonly scores: readonly ShownScore[];
 }
 
+/** The time on a level's clock. */
+export interface ShownTime {
+    /** The time of day in ticks, which draws the sun and the sky. */
+    readonly dayTime: number;
+    /** The ticks since the level was created. */
+    readonly gameTime: number;
+    /** Whether the time of day moves on with the game time, or is held still. */
+    readonly advancing: boolean;
+}
+
+/** A world's spawn: the point a compass shows, in the world it is in. */
+export interface ShownWorldSpawn {
+    /** The world's dimension, by its Java id and its Bedrock number. */
+    readonly dimension: { readonly id: string; readonly bedrockId: number };
+    readonly position: { readonly x: number; readonly y: number; readonly z: number };
+    readonly yaw: number;
+}
+
+/** The rate the server ticks at, and whether its worlds are frozen. */
+export interface ShownTicking {
+    readonly rate: number;
+    readonly frozen: boolean;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -234,11 +259,11 @@ export interface SessionPresenter {
     readonly chunkWire?: ChunkWire;
 
     /**
-     * Tells the client the world's time of day.
+     * Tells the client the time on its level's clock.
      *
-     * @param tick - The time, in ticks.
+     * @param time - The time.
      */
-    sendTime(tick: number): Promise<void>;
+    sendTime(time: ShownTime): Promise<void>;
 
     /**
      * Tells the client its own game mode.
@@ -441,4 +466,41 @@ export interface SessionPresenter {
      * @param objective - The objective.
      */
     removeObjective(objective: string): Promise<void>;
+
+    /**
+     * Shows the client the weather of the world it is in.
+     *
+     * @param from - The weather the client was last shown, or undefined when it may hold any.
+     * @param to - The weather now.
+     */
+    showWeather(from: Weather | undefined, to: Weather): Promise<void>;
+
+    /**
+     * Shows the client the server's difficulty.
+     *
+     * @param difficulty - The difficulty.
+     */
+    showDifficulty(difficulty: Difficulty): Promise<void>;
+
+    /**
+     * Shows the client a world's spawn, which its compass points to.
+     *
+     * @param spawn - The spawn.
+     */
+    showWorldSpawn(spawn: ShownWorldSpawn): Promise<void>;
+
+    /**
+     * Shows the client the tick rate and whether the game is frozen, which a client that runs
+     * its own ticks follows.
+     *
+     * @param ticking - The state.
+     */
+    showTicking(ticking: ShownTicking): Promise<void>;
+
+    /**
+     * Shows the client a step of a frozen game.
+     *
+     * @param ticks - How many ticks it runs, or 0 when a step ends.
+     */
+    showTickStep(ticks: number): Promise<void>;
 }

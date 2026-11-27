@@ -23,6 +23,10 @@ export interface ChunkWire {
     center(x: number, z: number): Promise<void>;
     /** Sends chunks of the world the session's player is in, as one batch. */
     send(chunks: readonly Chunk[], session: PlayerSession): Promise<void>;
+    /** Tells the client to drop chunks that left its view. */
+    forget(chunks: readonly ChunkCoord[]): Promise<void>;
+    /** Tells the client how many chunks around it to keep, as the view's radius changed. */
+    radius(distance: number): Promise<void>;
 }
 
 /**
@@ -36,7 +40,7 @@ export interface ChunkWire {
 export const CHUNK_SEND_RETRIES = 3;
 
 /** A chunk column's coordinates. */
-interface ChunkCoord {
+export interface ChunkCoord {
     readonly x: number;
     readonly z: number;
 }
@@ -102,9 +106,9 @@ export class ChunkView {
      * @param centerZ - The player's chunk.
      * @param viewDistance - The radius, in chunks.
      * @param forceResend - Whether every chunk of the area is sent again.
-     * @returns Whether a chunk the client held was forgotten.
+     * @returns The chunks the client held that were forgotten, none when nothing left the view.
      */
-    public need(centerX: number, centerZ: number, viewDistance: number, forceResend = false): boolean {
+    public need(centerX: number, centerZ: number, viewDistance: number, forceResend = false): ChunkCoord[] {
         this.sender.setCenter(centerX, centerZ);
 
         // One area decides both what is sent and what is forgotten below. See ChunkViewArea
@@ -123,12 +127,12 @@ export class ChunkView {
             }
         }
 
-        let unloaded = false;
+        const unloaded: ChunkCoord[] = [];
         const outOfView = (x: number, z: number): boolean => !area.contains(x - centerX, z - centerZ);
 
         for (const [hash, { x, z }] of this.loaded) {
             if (outOfView(x, z)) {
-                unloaded = true;
+                unloaded.push({ x, z });
                 this.loaded.delete(hash);
             }
         }

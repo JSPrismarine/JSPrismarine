@@ -998,8 +998,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public timeChanged(ticks: number): void {
-        this.released(this.world.getViewers().map((session) => session.sendTime(ticks)));
+    public timeChanged(): void {
+        // Each session reads its level's clock, which holds the time this change set.
+        this.released(this.world.getViewers().map((session) => session.sendTime()));
     }
 
     /** @inheritdoc */

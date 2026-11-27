@@ -8,9 +8,7 @@
  * The client is told the new level's game rules, clock, weather, custom dimensions and
  * scoreboard, which belong to the level rather than to the player.
  */
-import { LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import { showScoreboard } from '../command/host/scoreboard';
@@ -27,9 +25,6 @@ import { sharedParts, withSharedParts } from './playerDataGroups';
 import { applyPlayerRecord, playerRecordOf, recordedPosition } from './playerRecord';
 import type { MoveTarget } from './portal/DimensionTravel';
 import { spawnTarget } from './portal/DimensionTravel';
-
-/** The level event data that starts rain or a storm at full strength. */
-const FULL_INTENSITY = 65535;
 
 /**
  * The record a player starts a level with when they have never been in it: an empty inventory,
@@ -53,20 +48,13 @@ const sendLevelState = (session: PlayerSession, level: Level): void => {
     const rules = [...level.getGameRuleManager().getGameRules()].map(([name, [value, editable]]) =>
         toNetworkGameRule(name, value, editable)
     );
-    const weather = level.getWeather().current();
-    // The stops first: the client keeps a lightning level of its own, as `WorldWeather` says.
-    const events: Array<readonly [LevelEvent, number]> = [
-        [LevelEvent.STOP_THUNDERSTORM, 0],
-        [LevelEvent.STOP_RAINING, 0]
-    ];
-    if (weather !== 'clear') events.push([LevelEvent.START_RAINING, FULL_INTENSITY]);
-    if (weather === 'thunder') events.push([LevelEvent.START_THUNDERSTORM, FULL_INTENSITY]);
     const dimensions = customDimensionData(level);
     session.released(
         Promise.all([
             session.sendGameRules(rules),
-            session.sendTime(level.getDayTime()),
-            ...events.map(([eventId, data]) => session.send(new LevelEventPacket({ eventId, position: null, data }))),
+            session.sendTime(level),
+            // The client may hold any weather from the level it left.
+            session.presenter.showWeather(undefined, level.getWeather().current()),
             ...(dimensions === undefined ? [] : [session.send(dimensions)]),
             showScoreboard(session, level.getScoreboard())
         ]).then(() => {})
