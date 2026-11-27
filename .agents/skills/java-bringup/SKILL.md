@@ -109,6 +109,7 @@ pnpm --filter @jsprismarine/bedrock-data run dump:java --java <R>
 pnpm --filter @jsprismarine/bedrock-data run dump:java-goals --java <R>
 pnpm --filter @jsprismarine/mapping run generate:tables --java <R>
 pnpm --filter @jsprismarine/mapping run generate:block-properties --java <R>
+pnpm --filter @jsprismarine/mapping run generate:block-support --java <R>
 pnpm --filter @jsprismarine/mapping run generate:block-states --java <R>
 pnpm --filter @jsprismarine/items run generate:item-types --java <R>
 pnpm --filter @jsprismarine/bedrock-data run dump:java-protocol --java <R>

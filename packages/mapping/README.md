@@ -185,6 +185,22 @@ waterlogged state another color than the dry one, as it gives a waterlogged barr
 `water`, the row carries it as `waterloggedMapColor`, since Bedrock keeps the water outside the
 state.
 
+## The block support table
+
+`bedrockBlockSupportOf(name, states?)` answers Java's legacy solid flag (`BlockState.isSolid`) and
+whether each face of a Bedrock block state is sturdy for the full, center and rigid support types
+(`isFaceSturdy`). Signs and banners stand on a solid block, ladders and levers need a full face,
+lanterns and hanging bells a sturdy center, water forms a new source over solid ground and a portal
+needs a solid floor. The facts come from the `block_support.json` jar dump golden in
+`@jsprismarine/bedrock-data`; regenerate this package's copy with:
+
+```sh
+pnpm --filter @jsprismarine/mapping run generate:block-support
+```
+
+The table stays keyed by Java state, one packed integer per state, and a Bedrock state answers as
+the Java state `bedrockBlockStateToJava` maps it back to. A Bedrock-only block returns `undefined`.
+
 ## The property tests
 
 `src/mappingProperties.test.ts` adopts Chunker's five property tests, run one way: every Java
