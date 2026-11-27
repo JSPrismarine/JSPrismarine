@@ -660,6 +660,14 @@ export interface AllowListCommandHost {
     reload(): void;
 }
 
+/** What `/recipe` changed for one player. */
+export interface RecipeChange {
+    /** The player's name, as the command's feedback names a single target. */
+    readonly player: string;
+    /** How many recipes the player gained or lost. */
+    readonly recipes: number;
+}
+
 /** The administrative verbs a command needs. */
 export interface ServerCommandHost {
     readonly allowList: AllowListCommandHost;
@@ -671,8 +679,11 @@ export interface ServerCommandHost {
     reload(): void;
     readonly ticking: TickCommandHost;
     transfer(player: EntityRef, host: string, port: number): boolean;
-    /** Unlocks or locks recipes for players. */
-    recipes(players: readonly EntityRef[], recipe: string, give: boolean): number;
+    /**
+     * Unlocks or locks a recipe, or every recipe for `*`, for each player.
+     * @returns One entry per player still connected, with how many recipes it changed.
+     */
+    recipes(players: readonly EntityRef[], recipe: string, give: boolean): readonly RecipeChange[];
     /** Sends chat text. `kind` picks the message form the client renders. */
     sendMessage(targets: readonly EntityRef[], kind: 'chat' | 'whisper' | 'emote' | 'raw', text: string): void;
     /** Sends a title, subtitle, action bar, clear, reset or timing change. */

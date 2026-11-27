@@ -329,14 +329,27 @@ const transfer = (context: Context, hasTargets: boolean): number => {
     return report(current, moved, `Transferred ${moved} players`);
 };
 
+/**
+ * `/recipe give` and `/recipe take`. The feedback counts recipes, and names the player when only
+ * one player's book changed.
+ * @javaSee RecipeCommand.giveRecipes
+ * @javaSee RecipeCommand.takeRecipes
+ */
 const recipes = (context: Context, give: boolean): number => {
     const current = source(context);
-    const changed = current.host.server.recipes(
-        select(current, value(context, 'targets')),
-        value(context, 'recipe'),
-        give
+    const changed = current.host.server
+        .recipes(select(current, value(context, 'targets')), value(context, 'recipe'), give)
+        .filter((change) => change.recipes > 0);
+    const total = changed.reduce((sum, change) => sum + change.recipes, 0);
+    if (total === 0) return report(current, 0, give ? 'No new recipes were learned' : 'No recipes could be forgotten');
+
+    const only = changed.length === 1 ? changed[0]?.player : undefined;
+    const whom = only ?? `${changed.length} players`;
+    return report(
+        current,
+        total,
+        give ? `Unlocked ${total} recipe(s) for ${whom}` : `Took ${total} recipe(s) from ${whom}`
     );
-    return report(current, changed, `${give ? 'Unlocked' : 'Locked'} ${changed} recipes`);
 };
 
 /** The Java `/tick` tree: `query`, `rate`, `freeze`, `unfreeze`, `step` and `sprint`. */
