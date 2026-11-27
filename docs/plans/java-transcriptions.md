@@ -226,7 +226,9 @@ default matters, and its own regression test either way.
    The family reports the tags by `@javaVerified` kind and by package as dashboard measurements.
    The copies large enough to deserve vectors or extraction each got an issue, and each is done:
    - The dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)):
-     `entity-goals` records seeded fights and the node graph with Java's own `EnderDragon`.
+     `entity-goals` records seeded fights and the node graph with Java's own `EnderDragon`,
+     including blocks in its path, the wings' and head's hits, blows to its head and body, and a
+     fight away from the world's origin.
    - Nether portal placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762)):
      `block-behaviors` records the portal Java's `PortalForcer.createPortal` builds in each layout.
    - Fluid spread ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)): what Java's
@@ -244,8 +246,10 @@ default matters, and its own regression test either way.
    `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
    are fixed. The differences left open have issues:
    [#3783](https://github.com/JSPrismarine/JSPrismarine/issues/3783),
-   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784) and
-   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786).
+   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784),
+   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786),
+   [#3792](https://github.com/JSPrismarine/JSPrismarine/issues/3792) and
+   [#3793](https://github.com/JSPrismarine/JSPrismarine/issues/3793).
 
 ## Decisions
 
