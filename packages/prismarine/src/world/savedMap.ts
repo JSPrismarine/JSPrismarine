@@ -313,3 +313,20 @@ export const biomePreviewColors = (
     }
     return colors;
 };
+
+/**
+ * A map one step further out than `map`, around the same center, as a map extended with paper
+ * in a crafting table becomes: Java's `MapItemSavedData.scaled`. Nothing is drawn on it yet.
+ *
+ * @javaSource MapItemSavedData.scaled
+ */
+export const scaledSavedMap = (map: SavedMap): SavedMap => ({
+    ...blankSavedMap({
+        dimension: map.dimension,
+        x: map.centerX,
+        z: map.centerZ,
+        scale: Math.min(MAX_MAP_SCALE, Math.max(0, map.scale + 1))
+    }),
+    trackingPosition: map.trackingPosition,
+    unlimitedTracking: map.unlimitedTracking
+});

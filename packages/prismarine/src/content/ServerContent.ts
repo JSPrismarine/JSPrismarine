@@ -36,7 +36,8 @@ import { flattenItemFacts, loadItemTypes, maxDamage, maxStackSize, vanillaItemDe
 import { defaultItemStackOps } from '@jsprismarine/predicates';
 import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
 import { LootRegistry, bedrockLootTables, javaLootTables } from '@jsprismarine/loot';
-import { createPackIdentifierResolver } from '@jsprismarine/mapping';
+import { createPackIdentifierResolver, javaItemToBedrock } from '@jsprismarine/mapping';
+import { dyeFireworkRgb, dyeTextureRgb } from '../item/dyeColors';
 import { load as loadPacks } from '@jsprismarine/packs';
 import type { Definition, Definitions, IdentifierResolver } from '@jsprismarine/packs';
 import { loadRecipes } from '@jsprismarine/recipes';
@@ -489,10 +490,21 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     // The loader wraps each file in a record carrying its pack and path; the recipe grammar
     // reads the file itself. Tags go in because without them every `#tag` ingredient parses
-    // as accepting nothing.
+    // as accepting nothing. The durability lookup is what lets two worn tools repair each other,
+    // and the two dye tables are what dyed armor and a firework star take their colors from.
     const recipes = loadRecipes(
         [...definitions.recipesJava].map(([id, definition]) => [id, definition.data] as const),
-        { tags: (registry, tag) => (tags.has(registry, tag) ? tags.members(registry, tag) : undefined) }
+        {
+            tags: (registry, tag) => (tags.has(registry, tag) ? tags.members(registry, tag) : undefined),
+            maxDamageOf: (javaId) => {
+                const mapped = javaItemToBedrock(javaId);
+                if (mapped.kind === 'unknown') return undefined;
+                const limit = items.types.get(mapped.bedrock.identifier)?.params(maxDamage);
+                return limit === undefined || limit <= 0 ? undefined : limit;
+            },
+            dyeColorRgb: dyeTextureRgb,
+            dyeFireworkRgb
+        }
     );
     // `@jsprismarine/recipes` reports against the recipe id and a field path rather than
     // against a pack and a file, so its findings are restated in the shared report shape.

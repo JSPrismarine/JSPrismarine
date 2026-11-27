@@ -6,7 +6,8 @@ import {
     blankSavedMap,
     drawnColors,
     holderDecorationOnMap,
-    newSavedMap
+    newSavedMap,
+    scaledSavedMap
 } from './savedMap';
 
 /** Java's packed map color: the color id over the brightness id. */
@@ -148,5 +149,26 @@ describe("a holder's marker", () => {
             )?.rotation;
 
         expect(new Set(Array.from({ length: 20 }, (_unused, tick) => spun(tick * 10))).size).toBeGreaterThan(1);
+    });
+});
+
+describe('a map extended with paper', () => {
+    it('zooms out one step around the cell holding its old center, blank and tracking as before', () => {
+        // Java's grid is offset by 64 blocks: this map centers on (256, -128), and one zoom out
+        // the 256-block cell that holds that point centers on (320, -192).
+        const map = blankSavedMap({ dimension: 'minecraft:overworld', x: 200, z: -100, scale: 0 });
+        const scaled = scaledSavedMap(map);
+
+        expect([map.centerX, map.centerZ]).toEqual([256, -128]);
+        expect(scaled.scale).toBe(1);
+        expect([scaled.centerX, scaled.centerZ]).toEqual([320, -192]);
+        expect(scaled.colors?.every((color) => color === 0)).toBe(true);
+        expect(scaled.trackingPosition).toBe(map.trackingPosition);
+    });
+
+    it('stops at the furthest zoom', () => {
+        const map = blankSavedMap({ dimension: 'minecraft:overworld', x: 0, z: 0, scale: 4 });
+
+        expect(scaledSavedMap(map).scale).toBe(4);
     });
 });

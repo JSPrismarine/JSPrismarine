@@ -844,7 +844,75 @@ describe('network', () => {
                 const made = inventory.container('inventory').get(0);
                 expect(made?.getName()).toBe('minecraft:iron_chestplate');
                 expect(made?.getEnchantmentLevel('minecraft:protection')).toBe(2);
+                // The trim the recipe wrote, which the stack used to drop (#3691).
+                expect(made?.getComponents()['minecraft:trim']).toEqual({
+                    material: 'minecraft:redstone',
+                    pattern: 'minecraft:coast'
+                });
                 expect(open.inputs).toEqual([null, null, null]);
+            });
+
+            it("makes a firework star in its dyes' firework colors through the fireworks entry", async () => {
+                const id = 'minecraft:firework_star';
+                const content = contentWithRecipe(
+                    id,
+                    {
+                        type: 'minecraft:crafting_special_firework_star',
+                        dye: ['minecraft:red_dye'],
+                        fuel: 'minecraft:gunpowder',
+                        result: { id },
+                        shapes: { large_ball: 'minecraft:fire_charge' },
+                        trail: 'minecraft:diamond',
+                        twinkle: 'minecraft:glowstone_dust'
+                    },
+                    ['minecraft:firework_star', 'minecraft:gunpowder', 'minecraft:red_dye', 'minecraft:diamond']
+                );
+                const server = fakeServer([], { getContent: () => content });
+                const fireworks = joinContentPayloads(content, server.getLogger(), {
+                    clientPalette: fixtureBlockPalette()
+                })?.crafting.multi.find((entry) => entry.uuid.toString('hex') === '00000000000000000000000000000002');
+                if (fireworks === undefined) throw new Error('the fireworks entry was not advertised');
+
+                const craftingInput = new CraftingInput();
+                craftingInput.set(0, new Item({ name: 'minecraft:gunpowder' }));
+                craftingInput.set(1, new Item({ name: 'minecraft:red_dye' }));
+                craftingInput.set(2, new Item({ name: 'minecraft:diamond' }));
+                const inventory = new HumanInventory();
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                    recipeNetId: fireworks.netId,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                const made = inventory.container('inventory').get(0);
+                expect(made?.getComponents()['minecraft:firework_explosion']).toEqual({
+                    shape: 'small_ball',
+                    // Java's firework color for red, not the tint it dyes leather with.
+                    colors: [0xb3312c],
+                    has_trail: true
+                });
+                expect(made?.userDataTag()?.getCompound('FireworksItem', false)?.getByte('FireworkTrail', 0)).toBe(1);
             });
         });
 

@@ -17,6 +17,10 @@ import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '.
 import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../../inventory/containerStore';
 import type { ContainerViewer, OpenContainerSlots } from '../../../inventory/containerStore';
 import { Item } from '../../../item/Item';
+import { stackComponentsOf } from '../../../item/stackComponents';
+import { isRecord } from '../../../utils/isRecord';
+import type { Level } from '../../../world/Level';
+import { scaledSavedMap } from '../../../world/savedMap';
 import { itemDataForProtocol } from '../../../network/codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import { craftingRecipeCount, joinContentPayloads } from '../contentPayloads';
@@ -343,15 +347,27 @@ const advertisedOutputOf = (advertised: AdvertisedRecipe): ItemStackData | undef
     return undefined;
 };
 
+/** The levels of a `minecraft:enchantments` component, which Java wraps in `levels`. */
+const enchantmentLevelsOf = (value: unknown): Readonly<Record<string, number>> => {
+    if (!isRecord(value)) return {};
+    const levels = isRecord(value.levels) ? value.levels : value;
+    return Object.fromEntries(
+        Object.entries(levels).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+    );
+};
+
 /**
  * The stack a built-in or trim recipe makes, which no entry advertises.
  *
- * Each of these copies one of its inputs: a trim its armor piece, a banner duplicate its
+ * Most of these copy one of their inputs: a trim its armor piece, a banner duplicate its
  * patterned banner, a cloned map or book its original. Copying that input keeps what the
- * server holds of it, such as its enchantments and name, and a recipe with no input of the
- * result's kind, such as a firework rocket, gets a new stack. The Java components the result
- * gains, such as a trim or a firework's explosions, have no home on a server stack yet
- * (https://github.com/JSPrismarine/JSPrismarine/issues/3691).
+ * server holds of it and the recipe never reads, such as its name, lore and map, and a recipe
+ * with no input of the result's kind, such as a firework rocket, gets a new stack.
+ *
+ * The result's components then decide the rest, because the recipe computed them from the
+ * inputs' own: its enchantments (a repaired tool keeps only its curses), the durability it has
+ * spent, and every other component it carries, such as the trim, the firework's explosions or
+ * the banner's patterns. One the input had and the result does not is removed.
  */
 const builtInResult = (
     result: RecipeItemStack,
@@ -359,15 +375,49 @@ const builtInResult = (
     content: HandlerServices['content']
 ): Item | undefined => {
     const source = inputs.find((input) => input !== null && javaStackOf(input)?.id === result.id);
-    const damage = result.components?.['minecraft:damage'];
-    if (source != null) {
-        const copy = splitOff(source, result.count);
-        return typeof damage === 'number' ? copy.withDurability(copy.getMaxDurability() - damage) : copy;
+    let made: Item;
+    if (source != null) made = splitOff(source, result.count);
+    else {
+        const mapped = javaItemToBedrock(result.id);
+        if (mapped.kind === 'unknown') return undefined;
+        made = new Item({
+            name: mapped.bedrock.identifier,
+            meta: mapped.bedrock.data ?? 0,
+            count: result.count,
+            content
+        });
     }
 
-    const mapped = javaItemToBedrock(result.id);
-    if (mapped.kind === 'unknown') return undefined;
-    return new Item({ name: mapped.bedrock.identifier, meta: mapped.bedrock.data ?? 0, count: result.count, content });
+    const components = result.components ?? {};
+    const damage = components['minecraft:damage'];
+    if (typeof damage === 'number') made = made.withDurability(made.getMaxDurability() - damage);
+    made = made.withEnchantments(enchantmentLevelsOf(components['minecraft:enchantments']));
+
+    const kept = stackComponentsOf(components);
+    const changes: Record<string, unknown> = { ...kept };
+    for (const id of Object.keys(made.getComponents())) if (!(id in kept)) changes[id] = undefined;
+    return made.withComponents(changes);
+};
+
+/** Java's `minecraft:map_post_processing`, which marks a crafted map for {@link postProcessedMap}. */
+const MAP_POST_PROCESSING = 'minecraft:map_post_processing';
+
+/**
+ * A crafted map after Java's `MapItem.onCraftedPostProcess`: a map extended with paper gets a
+ * new id, saved as its old map one step further out. Any other stack, and a map whose saved
+ * data the level does not have, comes back with the post-processing mark removed.
+ *
+ * @javaSource MapItem.onCraftedPostProcess
+ */
+const postProcessedMap = (item: Item, level: () => Level): Item => {
+    const processing = item.getComponents()[MAP_POST_PROCESSING];
+    if (processing === undefined) return item;
+
+    const plain = item.withComponents({ [MAP_POST_PROCESSING]: undefined });
+    const id = item.getMapId();
+    if (processing !== 'scale' || id === undefined) return plain;
+    const saved = level().getMap(id);
+    return saved === undefined ? plain : plain.withMapId(level().addMap(scaledSavedMap(saved)));
 };
 
 /**
@@ -384,7 +434,8 @@ const transmuted = (output: Item, input: JavaIngredient, inputs: readonly (Item 
     return output
         .withEnchantments(source.getEnchantments())
         .withDisplay(source.getCustomName(), source.getLore())
-        .withContents(source.getContents());
+        .withContents(source.getContents())
+        .withComponents(source.getComponents());
 };
 
 export default class ItemStackRequestHandler implements InputLaneHandler<ItemStackRequestPacket> {
@@ -650,7 +701,11 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                 enchantments: item.getEnchantments(),
                 customName: item.getCustomName(),
                 lore: item.getLore(),
-                contents: item.getContents()
+                contents: item.getContents(),
+                canPlaceOnBlocks: item.getCanPlaceOnBlocks(),
+                canDestroyBlocks: item.getCanDestroyBlocks(),
+                mapId: item.getMapId(),
+                components: item.getComponents()
             });
             stack.durability = item.getDurability();
             stack.stackNetworkId = 0;
@@ -997,7 +1052,11 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                             const recipeOutput =
                                 advertisedOutput === undefined
                                     ? builtInResult(matched.result, inputItems, services.content)
-                                    : bedrockRecipeResult(matched.result.id, advertisedOutput, services.content);
+                                    : bedrockRecipeResult(
+                                          matched.result.id,
+                                          advertisedOutput,
+                                          services.content
+                                      )?.withComponents(stackComponentsOf(matched.result.components));
                             if (recipeOutput === undefined)
                                 return deny(`the result of ${matched.recipe.id} has no Bedrock item mapping`);
 
@@ -1020,6 +1079,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                             }
                         }
 
+                        output = postProcessedMap(output, () => context.session.getWorld().getLevel());
                         created = ownStack(output, output.getAmount() * crafts);
 
                         if (autoCraftPlan !== null) {
