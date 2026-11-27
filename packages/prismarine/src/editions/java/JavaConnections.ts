@@ -89,8 +89,8 @@ export interface JavaWorldHost {
     maxPlayers(): number;
 }
 
-/** Every handler of what a Java client sends. */
-const HANDLERS = new JavaPacketHandlers([
+/** Every handler of what a Java client sends, which the parity suite reads for what a Java client can do. */
+export const JAVA_HANDLERS = new JavaPacketHandlers([
     ...STATUS_HANDLERS,
     ...LOGIN_HANDLERS,
     ...CONFIGURATION_HANDLERS,
@@ -149,7 +149,7 @@ export class JavaConnections {
             const packet =
                 connection.compression === undefined ? frame : decompressFrame(frame, connection.compression);
             const { id: packetId, body } = readJavaPacketId(packet);
-            const found = HANDLERS.lookup(connection.protocol, connection.phase, packetId);
+            const found = JAVA_HANDLERS.lookup(connection.protocol, connection.phase, packetId);
             if (found.kind === 'handled') {
                 const payload = decodeJavaPacket(connection.protocol, found.handler.packet, body);
                 return await found.handler.handle(payload, { connection, services: this.services });

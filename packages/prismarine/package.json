@@ -2005,6 +2005,22 @@
             "jsprismarine:dist": "./dist/profiling/TickRecorder.js",
             "default": "./src/profiling/TickRecorder.ts"
         },
+        "./editions/java/JavaConnections": {
+            "jsprismarine:dist": "./dist/editions/java/JavaConnections.js",
+            "default": "./src/editions/java/JavaConnections.ts"
+        },
+        "./editions/java/editionTranslation": {
+            "jsprismarine:dist": "./dist/editions/java/editionTranslation.js",
+            "default": "./src/editions/java/editionTranslation.ts"
+        },
+        "./editions/java/javaChunk": {
+            "jsprismarine:dist": "./dist/editions/java/javaChunk.js",
+            "default": "./src/editions/java/javaChunk.ts"
+        },
+        "./editions/java/JavaPresenter": {
+            "jsprismarine:dist": "./dist/editions/java/JavaPresenter.js",
+            "default": "./src/editions/java/JavaPresenter.ts"
+        },
         "./testing/entityServer": {
             "jsprismarine:dist": "./dist/testing/entityServer.js",
             "default": "./src/testing/entityServer.ts"
