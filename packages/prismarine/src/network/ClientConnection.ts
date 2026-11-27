@@ -2,7 +2,7 @@ import type PlayerSession from '../player/PlayerSession';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
-import { DisconnectReason } from '@jsprismarine/minecraft';
+import { BuildPlatform, DisconnectReason } from '@jsprismarine/minecraft';
 import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
 import { DisconnectPacket } from '@jsprismarine/protocol';
@@ -160,6 +160,41 @@ export default class ClientConnection extends MinecraftSession {
         } finally {
             await goodbye;
         }
+    }
+
+    /**
+     * Whether the client's player is in its world. A player is only added to a world once the
+     * client reports itself initialized, so a connection whose player is not in one is still
+     * joining, or gave up between login and spawn.
+     */
+    public hasSpawned(): boolean {
+        const session = this.playerSession;
+        return session !== null && session.getWorld().viewerOf(session.runtimeId) === session;
+    }
+
+    /**
+     * Logs a join that failed through the server's fault, with a link to report it, once per
+     * connection. A connection whose player spawned has joined, and reports nothing.
+     * @param log - Where it is logged.
+     * @param cause - What went wrong, as one sentence.
+     * @param error - The error the server threw, when it threw one.
+     * @returns Whether it was logged.
+     */
+    public reportJoinFailure(log: Pick<Logger, 'warn'>, cause: string, error?: unknown): boolean {
+        if (this.hasSpawned()) return false;
+        const session = this.playerSession;
+        const os = session?.getPlayer().device?.os;
+        const platform = os === undefined ? undefined : BuildPlatform[os];
+        const address = this.getAddress().toToken();
+        return this.joinDiagnostics.report(log, session === null ? address : `${session.identity.name} (${address})`, {
+            edition: 'Bedrock',
+            minecraftVersions: this.codec.minecraftVersions,
+            protocolVersion: this.codec.protocolVersion,
+            ...(platform === undefined ? {} : { platform }),
+            phase: this.phase,
+            cause,
+            ...(error === undefined ? {} : { error })
+        });
     }
 
     public getPlayerSession(): PlayerSession | null {

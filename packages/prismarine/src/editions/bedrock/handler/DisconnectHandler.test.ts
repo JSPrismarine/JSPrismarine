@@ -21,17 +21,25 @@ import DisconnectHandler from './DisconnectHandler';
 const harness = () => {
     const info = vi.fn();
     const forceDisconnect = vi.fn();
+    /** The causes of the failed joins the connection reported. */
+    const reported: string[] = [];
 
     const session = stub<PlayerSession>({
         identity: identityNamed('runner'),
         getConnection: () =>
             stub<ClientConnection>({
                 forceDisconnect,
+                reportJoinFailure: (_log, cause) => reported.push(cause) > 0,
                 getAddress: () => stub<InetAddress>({ toToken: () => '127.0.0.1:19133' })
             })
     });
 
-    return { info, forceDisconnect, context: sessionContext(session, { log: stub<Logger>({ info }) }) };
+    return {
+        info,
+        forceDisconnect,
+        reported,
+        context: sessionContext(session, { log: stub<Logger>({ info }) })
+    };
 };
 
 const goodbye = (reason: number, message?: string): DisconnectPacket =>
@@ -73,6 +81,16 @@ describe('DisconnectHandler', () => {
 
         const [line] = info.mock.calls[0]!;
         expect(line).toMatch(/reason 150$/);
+    });
+
+    it("reports a failed join for a reason that blames the server's packets, and not for a player leaving", () => {
+        const blamed = harness();
+        new DisconnectHandler().handle(goodbye(DisconnectReason.BAD_PACKET, 'Bad packet'), blamed.context);
+        expect(blamed.reported).toEqual(['The client left with reason 90 (BAD_PACKET) and message "Bad packet".']);
+
+        const left = harness();
+        new DisconnectHandler().handle(goodbye(DisconnectReason.DISCONNECTED), left.context);
+        expect(left.reported).toEqual([]);
     });
 
     it('hangs up on RakNet after logging', () => {

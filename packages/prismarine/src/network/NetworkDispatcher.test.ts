@@ -216,6 +216,8 @@ const makeDispatcher = (options?: {
         }
     });
     const built: ClientConnection[] = [];
+    /** The causes of the failed joins the connections reported. */
+    const reports: string[] = [];
     const outboundRecorderSetup: {
         recorder: OutboundPacketRecorder;
         connectionId: number;
@@ -240,6 +242,11 @@ const makeDispatcher = (options?: {
                 phase: options?.session?.phase ?? 'handshake',
                 decryptFrame: (frame) => frame,
                 getPlayerSession: () => options?.session?.session ?? null,
+                hasSpawned: () => {
+                    const session = options?.session?.session;
+                    return session !== undefined && session.getWorld().viewerOf(session.runtimeId) === session;
+                },
+                reportJoinFailure: (_log, cause) => reports.push(cause) > 0,
                 closePlayerSession: async () => options?.onClosePlayerSession?.(),
                 setOutboundPacketRecorder: (recorder, connectionId, getTick) =>
                     void outboundRecorderSetup.push({ recorder, connectionId, getTick })
@@ -249,7 +256,7 @@ const makeDispatcher = (options?: {
         }
     });
 
-    return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup, logFilter };
+    return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup, logFilter, reports };
 };
 
 describe('network', () => {
@@ -890,6 +897,54 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('boom')), 1);
 
             expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('Handler error'))).toBe(true);
+        });
+
+        it("reports a handler failure as a failed join, naming the client's packet", async () => {
+            const { transport, reports } = makeDispatcher({
+                handler: {
+                    phases: ['handshake'],
+                    handle: async () => {
+                        throw new Error('handler blew up');
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection(1).connection);
+
+            await transport.emitFrame(frameOf(message('boom')), 1);
+
+            expect(reports).toEqual(["The server failed to handle the client's TextPacket."]);
+        });
+
+        it('reports a logged-in player who times out before spawning, and not one who left', async () => {
+            const joining = () =>
+                makeDispatcher({
+                    session: {
+                        session: stub<PlayerSession>({
+                            identity: STEVE,
+                            getWorld: () => stub<World>({ viewerOf: () => undefined })
+                        }),
+                        phase: 'play'
+                    }
+                });
+            const timedOut = joining();
+            await timedOut.transport.emitConnect(fakeConnection(1).connection);
+            const left = joining();
+            await left.transport.emitConnect(fakeConnection(1).connection);
+
+            const closes = [
+                timedOut.transport.emitDisconnect(1, 'timeout'),
+                left.transport.emitDisconnect(1, 'client disconnect')
+            ];
+            // The removal waits for the input step.
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            timedOut.dispatcher.admitInputs();
+            left.dispatcher.admitInputs();
+            await Promise.all(closes);
+
+            expect(timedOut.reports).toEqual([
+                'The client stopped answering during the join, which is how a client crash looks to the server.'
+            ]);
+            expect(left.reports).toEqual([]);
         });
     });
 

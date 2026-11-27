@@ -260,12 +260,17 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // a source of its own the removal could run in an earlier round than the client's inputs.
         await this.inputs.hold(session, () => {
             // Read here, before the tear-down, which detaches the session and takes the player
-            // out of its world. A player is only added to a world once the client reports itself
-            // initialized, so a session whose player is not in one belongs to a client that gave
-            // up between login and spawn.
+            // out of its world.
             const playerSession = session.getPlayerSession();
-            const spawned =
-                playerSession !== null && playerSession.getWorld().viewerOf(playerSession.runtimeId) === playerSession;
+            const spawned = session.hasSpawned();
+            // A client that crashes stops answering, so a logged-in player that times out before
+            // spawning most often met something the server sent that the client could not take.
+            if (!spawned && playerSession !== null && reason === 'timeout') {
+                session.reportJoinFailure(
+                    this.logger,
+                    'The client stopped answering during the join, which is how a client crash looks to the server.'
+                );
+            }
 
             try {
                 session.closePlayerSession();
@@ -401,6 +406,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         } catch (error: unknown) {
             this.logger.error(error);
             this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
+            connection.reportJoinFailure(
+                this.logger,
+                `The server could not read the client's ${packet.getName()}.`,
+                error
+            );
             return false;
         }
     }
@@ -675,7 +685,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 await HandlerContexts.of(this.server).run(handler, packet, session);
             } else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
         } catch (error: unknown) {
-            this.handlerError(packet, error);
+            this.handlerError(packet, error, connection);
         }
     }
 
@@ -696,7 +706,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const { packet, handler } = gated;
         if (handler.lane !== 'input') throw new PrismarineNetworkErrors.NoInputLaneHandler({ name: packet.getName() });
 
-        const report = (error: unknown) => this.handlerError(packet, error);
+        const report = (error: unknown) => this.handlerError(packet, error, connection);
         try {
             const session = connection.getPlayerSession();
             if (session === null) {
@@ -859,9 +869,17 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         if (routed !== undefined && !routed.now) await routed.done;
     }
 
-    /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */
-    private handlerError(packet: NetworkPacket<unknown>, error: unknown): void {
+    /**
+     * One failure shape for the lookup and the handler itself, as the old dispatch had it. A
+     * handler's failure on a connection whose player has not spawned is reported as a failed join.
+     */
+    private handlerError(packet: NetworkPacket<unknown>, error: unknown, connection?: ClientConnection): void {
         this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
         this.logger.error(error);
+        connection?.reportJoinFailure(
+            this.logger,
+            `The server failed to handle the client's ${packet.getName()}.`,
+            error
+        );
     }
 }
