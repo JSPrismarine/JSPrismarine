@@ -9,11 +9,12 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 
 /**
- * The shove a blow with an attacker gives, Java's `LivingEntity.dealDefaultKnockback` `knockback(0.4F, ...)`.
+ * The shove a blow with an attacker gives, Java's `LivingEntity.dealDefaultKnockback`
+ * `knockback(0.4F, ...)`: a `float` widened to a `double`, `0.4000000059604645`.
  *
  * @javaSource LivingEntity.dealDefaultKnockback
  */
-export const BASE_KNOCKBACK = 0.4;
+export const BASE_KNOCKBACK = Math.fround(0.4);
 
 /** What each level of sprint-or-Knockback adds, as a second shove after the blow's own. */
 export const KNOCKBACK_PER_LEVEL = 0.5;
@@ -33,8 +34,11 @@ export const KNOCKBACK_LIFT = 0.4;
 const MIN_RESISTANCE = -2;
 const MAX_RESISTANCE = 1;
 
-/** The shortest direction Java's `knockback` pushes along, `1.0E-5F` squared; a shorter one is replaced. */
-const SHORTEST_DIRECTION = Math.sqrt(1e-5);
+/**
+ * The squared length below which Java's `knockback` replaces the direction it was given: `1.0E-5F`,
+ * a `float` widened to a `double`, compared with `x * x + z * z`.
+ */
+const SHORTEST_DIRECTION_SQUARED = Math.fround(1e-5);
 
 /** What {@link livingKnockback} works a shove out from. */
 export interface LivingKnockbackInput {
@@ -76,13 +80,14 @@ export const livingKnockback = (input: LivingKnockbackInput): EntityPosition => 
     if (power <= 0) return input.velocity;
 
     let { x, z } = input.toward;
-    let length = Math.hypot(x, z);
-    if (length < SHORTEST_DIRECTION) {
+    if (x * x + z * z < SHORTEST_DIRECTION_SQUARED) {
         const angle = ((((input.tieBreak % 8) + 8) % 8) / 8) * Math.PI * 2;
         x = Math.cos(angle);
         z = Math.sin(angle);
-        length = 1;
     }
+    // `Vec3.normalize` divides by `Math.sqrt(x * x + y * y + z * z)` with `y` 0, which can round
+    // differently from `Math.hypot`.
+    const length = Math.sqrt(x * x + z * z);
 
     const { velocity } = input;
     return {

@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 772 | 97 | 10 | 665 |
+| 789 | 98 | 10 | 681 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -877,7 +877,7 @@ Tagged at `packages/prismarine/src/world/generators/datadriven/javaStructurePlac
 
 #### `ClientboundBlockUpdatePacket.STREAM_CODEC`
 
-Tagged at `packages/protocol/src/java/packet/play.ts:407`.
+Tagged at `packages/protocol/src/java/packet/play.ts:432`.
 
 ```diff
     getstatic net/minecraft/core/BlockPos.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
@@ -887,6 +887,19 @@ Tagged at `packages/protocol/src/java/packet/play.ts:407`.
 +   getstatic net/minecraft/world/level/block/Block.BLOCK_STATE_REGISTRY_STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
     invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.getBlockState()Lnet/minecraft/world/level/block/state/BlockState;, methodType (Lnet/minecraft/network/protocol/game/ClientboundBlockUpdatePacket;)Lnet/minecraft/world/level/block/state/BlockState;]
     invokedynamic apply ()Ljava/util/function/BiFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.<init>(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V, methodType (Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/network/protocol/game/ClientboundBlockUpdatePacket;]
+```
+
+#### `ClientboundChangeDifficultyPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/play.ts:1170`.
+
+```diff
+  field net/minecraft/network/protocol/game/ClientboundChangeDifficultyPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+  inlined net/minecraft/network/protocol/game/ClientboundChangeDifficultyPacket.<clinit>()V
+-   getstatic net/minecraft/world/Difficulty.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
++   getstatic net/minecraft/world/Difficulty.STREAM_CODEC Lnet/minecraft/network/codec/EnumStreamCodec;
+    invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/game/ClientboundChangeDifficultyPacket.difficulty()Lnet/minecraft/world/Difficulty;, methodType (Lnet/minecraft/network/protocol/game/ClientboundChangeDifficultyPacket;)Lnet/minecraft/world/Difficulty;]
+    getstatic net/minecraft/network/codec/ByteBufCodecs.BOOL Lnet/minecraft/network/codec/StreamCodec;
 ```
 
 #### `ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC`
@@ -958,7 +971,7 @@ Tagged at `packages/protocol/src/java/packet/play.ts:55`.
 
 #### `ClientboundSetEquipmentPacket.STREAM_CODEC`
 
-Tagged at `packages/protocol/src/java/packet/play.ts:698`.
+Tagged at `packages/protocol/src/java/packet/play.ts:723`.
 
 ```diff
     putfield net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.entity I
@@ -2951,7 +2964,7 @@ Tagged at `packages/prismarine/src/entity/Difficulty.ts:16`.
 
 #### `PlayerList.respawn`
 
-Tagged at `packages/prismarine/src/player/PlayerSession.ts:2961`.
+Tagged at `packages/prismarine/src/player/PlayerSession.ts:2971`.
 
 ```diff
     new net/minecraft/network/protocol/game/ClientboundSoundPacket

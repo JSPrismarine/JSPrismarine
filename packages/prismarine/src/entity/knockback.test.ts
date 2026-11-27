@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { behind, livingKnockback } from './knockback';
+import { BASE_KNOCKBACK, behind, livingKnockback } from './knockback';
 
 const STILL = { x: 0, y: 0, z: 0 };
 
@@ -39,6 +39,33 @@ describe("Java's LivingEntity.knockback", () => {
         const shove = { velocity: STILL, onGround: false, resistance: 0, power: 0.4, toward: STILL, tieBreak: 3 };
         expect(livingKnockback(shove)).toEqual(livingKnockback(shove));
         expect(Math.hypot(livingKnockback(shove).x, livingKnockback(shove).z)).toBeCloseTo(0.4);
+    });
+
+    it("shoves with Java's 0.4F and keeps a direction Java's 1.0E-5F squared length keeps (#3799)", () => {
+        // `0.4F` widened to a double.
+        expect(BASE_KNOCKBACK).toBe(0.4000000059604645);
+        const straight = livingKnockback({
+            velocity: STILL,
+            onGround: false,
+            resistance: 0,
+            power: BASE_KNOCKBACK,
+            toward: { x: 1, z: 0 },
+            tieBreak: 0
+        });
+        expect(straight.x).toBe(-0.4000000059604645);
+
+        // Squared, 9.9999998e-6 is at least `1.0E-5F` (9.99999974e-6) though under 1e-5, so Java
+        // shoves along it rather than drawing a new direction.
+        const short = livingKnockback({
+            velocity: STILL,
+            onGround: false,
+            resistance: 0,
+            power: 1,
+            toward: { x: Math.sqrt(9.9999998e-6), z: 0 },
+            tieBreak: 2
+        });
+        expect(short.x).toBeCloseTo(-1, 12);
+        expect(short.z).toBe(0);
     });
 
     it("points behind an entity's yaw, so the push goes the way it faces", () => {

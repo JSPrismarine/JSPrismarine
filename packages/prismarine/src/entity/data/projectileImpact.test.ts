@@ -32,7 +32,8 @@ describe('projectile impact', () => {
                 onGround: false,
                 punch: 0
             });
-            expect(next).toEqual({ x: 0.1, y: -0.3, z: -0.4 });
+            // Java pushes with `0.4F`, widened to a double.
+            expect(next).toEqual({ x: 0.1, y: -0.3, z: -0.4000000059604645 });
         });
 
         it('takes the resistance off the push, and a body that resists it all stays put', () => {
