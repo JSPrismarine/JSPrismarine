@@ -37,6 +37,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { EntityRuntimes } from '../entity/data/live';
 import { useItemOnBlock } from '../item/interaction';
 import type ClientConnection from '../network/ClientConnection';
+import { inDispatch } from '../testing/commandDispatch.test-utils';
 import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type PlayerSession from '../player/PlayerSession';
@@ -319,7 +320,9 @@ describe('a player with a spawn point of their own', () => {
         await scene.world.addPlayer(player);
 
         const host = worldCommandHost(scene.server);
-        const set = host.setSpawnPoint(entityRefOf(player), 'minecraft:overworld', { x: 32, y: 65, z: -17 }, 0);
+        const set = await inDispatch(() =>
+            host.setSpawnPoint(entityRefOf(player), 'minecraft:overworld', { x: 32, y: 65, z: -17 }, 0)
+        );
 
         expect(set).toBe(true);
         expect(player.getSpawnPoint()).toEqual({
@@ -343,7 +346,9 @@ describe('a player with a spawn point of their own', () => {
         const player = buildPlayer(scene.world, scene.server, UUID.fromRandom());
 
         const host = worldCommandHost(scene.server);
-        expect(host.setWorldSpawn('minecraft:overworld', { x: -8, y: 72, z: 44 }, 0)).toBe(true);
+        expect(await inDispatch(() => host.setWorldSpawn('minecraft:overworld', { x: -8, y: 72, z: 44 }, 0))).toBe(
+            true
+        );
         expect(await scene.world.getSpawnPosition()).toEqual(new Vector3(-8, 72, 44));
 
         // A player with no point of their own comes back at it.

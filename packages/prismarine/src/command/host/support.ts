@@ -33,7 +33,7 @@ import type { StoreActor } from '../../entity/data/storeActors';
 import { dimensionByName } from '../../world/DimensionType';
 import type { Level } from '../../world/Level';
 import type { World } from '../../world/World';
-import { deferCommandWork } from '../deferred';
+import { deferCommandWork, requireCommandDispatch } from '../deferred';
 
 /**
  * Refuses a command whose host verb has no subsystem behind it.
@@ -70,8 +70,11 @@ export const refuse: (message: string) => never = (message) => {
  *   `deferCommandWork`.
  * @param answer - What the verb reports, decided before the work started.
  * @returns `answer`, unchanged, so a verb reads as one expression.
+ * @throws {PrismarineCommandErrors.CommandWorkOutsideDispatch} When the verb ran outside a
+ *   dispatch, where nothing would await `work`.
  */
 export const carryOut = <T>(work: Promise<unknown>, answer: T): T => {
+    requireCommandDispatch();
     deferCommandWork(work.then(() => undefined));
     return answer;
 };

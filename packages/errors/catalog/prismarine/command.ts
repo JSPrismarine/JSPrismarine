@@ -57,5 +57,11 @@ export const PrismarineCommandErrors = defineErrors('prismarine/command', {
      * The command acts on the player who runs it, so the console cannot run it. Run it in game, or
      * use `/execute as` with a player.
      */
-    CommandCannotRunFromConsole: "This command can't be run from the console"
+    CommandCannotRunFromConsole: "This command can't be run from the console",
+    /**
+     * A command host verb ran outside a command dispatch, so nothing would await the work it
+     * started or report its failure. Run the command through `CommandManager.dispatchCommand`, or
+     * wrap the call in `collectAsyncCommands` and await the promises it returns.
+     */
+    CommandWorkOutsideDispatch: 'A command host verb ran outside a command dispatch, where nothing awaits its work'
 });

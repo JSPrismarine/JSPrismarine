@@ -72,6 +72,7 @@ import type { AttributeWrite } from '@jsprismarine/entities/attributes';
 import type { EntityInstance } from '@jsprismarine/entities/entityInstance';
 import { StoreActor } from '../../entity/data/storeActors';
 import { ObservedSet } from '../../entity/data/observedCollections';
+import { inDispatch } from '../../testing/commandDispatch.test-utils';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -1014,7 +1015,7 @@ describe('the server command host', () => {
     });
 
     describe('reload', () => {
-        it('reloads the behavior pack functions, scripts and the permission files, as Bedrock’s /reload does, and keeps the server running', () => {
+        it('reloads the behavior pack functions, scripts and the permission files, as Bedrock’s /reload does, and keeps the server running', async () => {
             const calls: string[] = [];
             permissionReloads.length = 0;
             const server = Object.assign(Object.create(fixture.server), {
@@ -1037,7 +1038,7 @@ describe('the server command host', () => {
                 }
             });
 
-            serverCommandHost(server).server.reload();
+            await inDispatch(() => serverCommandHost(server).server.reload());
 
             expect(calls).toEqual(['reloadFunctions', 'sync always']);
             expect(permissionReloads).toEqual(['permissions.reload']);
@@ -1059,7 +1060,7 @@ describe('the server command host', () => {
                 }
             });
 
-            await serverCommandHost(server).server.reload();
+            await inDispatch(() => serverCommandHost(server).server.reload());
 
             expect(calls).toEqual(['reloadScripts']);
             expect(errors).toEqual(['Could not sync the addons: addons.json is invalid']);

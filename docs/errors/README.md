@@ -58,7 +58,7 @@ There are <!-- fact:errors.count -->1396<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/nethernet`](nethernet.md)               | 42     |
 | [`@jsprismarine/packs`](packs.md)                       | 38     |
 | [`@jsprismarine/predicates`](predicates.md)             | 2      |
-| [`@jsprismarine/prismarine`](prismarine.md)             | 434    |
+| [`@jsprismarine/prismarine`](prismarine.md)             | 435    |
 | [`@jsprismarine/protocol`](protocol.md)                 | 147    |
 | [`@jsprismarine/raknet`](raknet.md)                     | 30     |
 | [`@jsprismarine/script-host`](script-host.md)           | 89     |

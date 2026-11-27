@@ -462,6 +462,43 @@ class CommandCannotRunFromConsole extends JSPrismarineError {
     }
 }
 
+/**
+ * A command host verb ran outside a command dispatch, so nothing would await the work it
+ * started or report its failure. Run the command through `CommandManager.dispatchCommand`, or
+ * wrap the call in `collectAsyncCommands` and await the promises it returns.
+ */
+class CommandWorkOutsideDispatch extends JSPrismarineError {
+    public static get code(): 'PRISMARINE_COMMAND_WORK_OUTSIDE_DISPATCH' {
+        return 'PRISMARINE_COMMAND_WORK_OUTSIDE_DISPATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'A command host verb ran outside a command dispatch, where nothing awaits its work' {
+        return 'A command host verb ran outside a command dispatch, where nothing awaits its work';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-work-outside-dispatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-work-outside-dispatch';
+    }
+
+    public override readonly code = 'PRISMARINE_COMMAND_WORK_OUTSIDE_DISPATCH';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-work-outside-dispatch';
+    readonly #params: Readonly<Record<string, unknown>> = {};
+
+    public constructor(options?: ErrorOptions) {
+        super('A command host verb ran outside a command dispatch, where nothing awaits its work', options);
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The errors the command code of `@jsprismarine/prismarine` throws. */
 export const PrismarineCommandErrors = Object.freeze({
     StartupOnlySetting,
@@ -476,5 +513,6 @@ export const PrismarineCommandErrors = Object.freeze({
     WorldNotLoaded,
     ReturnOutsideFunction,
     UncleanShutdown,
-    CommandCannotRunFromConsole
+    CommandCannotRunFromConsole,
+    CommandWorkOutsideDispatch
 });

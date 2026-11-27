@@ -19,6 +19,16 @@ Thrown as `PrismarineCommandErrors.CommandCannotRunFromConsole`, which extends `
 The command acts on the player who runs it, so the console cannot run it. Run it in game, or
 use `/execute as` with a player.
 
+## `PRISMARINE_COMMAND_WORK_OUTSIDE_DISPATCH`
+
+`A command host verb ran outside a command dispatch, where nothing awaits its work`
+
+Thrown as `PrismarineCommandErrors.CommandWorkOutsideDispatch`, which extends `Error`.
+
+A command host verb ran outside a command dispatch, so nothing would await the work it
+started or report its failure. Run the command through `CommandManager.dispatchCommand`, or
+wrap the call in `collectAsyncCommands` and await the promises it returns.
+
 ## `PRISMARINE_DUPLICATE_COMMAND_RANDOM_SEQUENCE_STATE`
 
 `Duplicate command random sequence state: {entry}`
