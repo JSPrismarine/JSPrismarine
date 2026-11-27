@@ -2,7 +2,8 @@
  * A behavior pack's `item_catalog/crafting_item_catalog.json`, merged into the creative catalog.
  *
  * The catalog file names, per creative tab, groups of items: a group with a `group_identifier` is
- * a collapsible heading and merges into the heading of the same name, and a group without one is
+ * a collapsible heading and merges into the heading of the same name, where
+ * `minecraft:itemGroup.name.planks` names the vanilla `itemGroup.name.planks`, and a group without one is
  * loose items. Tabs cannot be added or reordered, and what a pack adds goes after what the tab
  * already holds. That is Mojang's description of how the Bedrock Dedicated Server merges a pack's
  * catalog into the vanilla one, in `CraftingItemCatalogDocumentation.md` of `bedrock-samples`.
@@ -13,6 +14,8 @@
 import { NBTTagCompound, Types, ByteOrder } from '@jsprismarine/nbt';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { blockRuntimeId } from '@jsprismarine/protocol';
+
+import { creativeGroupName } from '@jsprismarine/protocol/bedrock/payload';
 
 import type {
     CreativeCatalog,
@@ -92,7 +95,12 @@ export const mergeItemCatalogs = (
         const existing =
             heading === undefined
                 ? undefined
-                : sections.find((section) => section.group.category === tab && section.group.name === heading.name);
+                : sections.find(
+                      (section) =>
+                          section.group.category === tab &&
+                          (section.group.name === creativeGroupName(heading.name) ||
+                              section.group.name === heading.name)
+                  );
         if (existing !== undefined) {
             existing.entries.push(...entries);
             return;

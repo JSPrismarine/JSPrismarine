@@ -86,6 +86,32 @@ describe('mergeItemCatalogs', () => {
         expect(merged.groups).toHaveLength(vanilla.groups.length);
     });
 
+    it('reads a minecraft group key as the vanilla heading without its namespace', () => {
+        const planks = 'itemGroup.name.planks';
+        const before = itemsUnder(vanilla, planks);
+
+        const merged = mergeItemCatalogs(
+            vanilla,
+            [
+                catalogFile([
+                    {
+                        category_name: 'construction',
+                        groups: [
+                            {
+                                group_identifier: { icon: 'minecraft:oak_planks', name: `minecraft:${planks}` },
+                                items: ['test:planks']
+                            }
+                        ]
+                    }
+                ])
+            ],
+            content
+        );
+
+        expect(itemsUnder(merged, planks)).toEqual([...before, 'test:planks']);
+        expect(merged.groups).toHaveLength(vanilla.groups.length);
+    });
+
     it('files loose items as a heading-less group, reads an aux suffix, and skips a tab that does not exist', () => {
         const merged = mergeItemCatalogs(
             vanilla,
