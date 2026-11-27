@@ -37,7 +37,13 @@ describe('load', () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: basePack }]);
 
         const robot = definitions.entities.get('fixture:robot');
-        expect(robot).toMatchObject({ pack: 'Base Pack', path: 'entities/robot.json', formatVersion: [1, 26, 0] });
+        expect(robot).toMatchObject({
+            pack: 'Base Pack',
+            path: 'entities/robot.json',
+            formatVersion: [1, 26, 0],
+            // The pack's own min_engine_version, which versions its Molang.
+            minEngineVersion: [1, 26, 50]
+        });
         expect(definitions.blocks.get('fixture:marble')).toBeDefined();
         expect(definitions.tradeTables.get('trading/economy_trades/robot_trades.json')).toBeDefined();
         expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
