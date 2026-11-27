@@ -213,8 +213,9 @@ default matters, and its own regression test either way.
    packages; the 35 it printed were tagged by hand. Eight named members 26.3 no longer has, such
    as `NautilusAi.findNautilusAttackTarget`, which is `findNearestValidAttackTarget`. Resolution
    skips the bridge methods `javac` writes beside an override, and a tag may name a constructor
-   as `<init>` with its descriptor, for a field the constructor sets. `prismarine` follows in
-   [#3766](https://github.com/JSPrismarine/JSPrismarine/issues/3766).
+   as `<init>` with its descriptor, for a field the constructor sets.
+   `prismarine` followed in [#3766](https://github.com/JSPrismarine/JSPrismarine/issues/3766):
+   the codemod tagged 355 citations there, and `--hints <file>` settled the 56 it printed.
 4. **Bring-up stage** ([#3704](https://github.com/JSPrismarine/JSPrismarine/issues/3704)). Done.
    `bringup:java` has a `transcriptions` stage, also runnable as `java:transcriptions --java <R>`,
    that writes the "Transcriptions to re-read" section of the delta note. On 26.4-pre-1 against
@@ -222,20 +223,30 @@ default matters, and its own regression test either way.
    holds 26.4-pre-1 fingerprints for the 366 members it left alone, and the family's preview rows
    record the other 39 as `deferred` in `behavior-gaps.json`.
 5. **Promote heavy copies** ([#3705](https://github.com/JSPrismarine/JSPrismarine/issues/3705)). Done.
-   The family reports the tags by `@javaVerified` kind and by package as dashboard measurements;
-   all 418 are plain today. The copies large enough to deserve vectors or extraction have issues:
-   the dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)), portal
-   placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762), done:
-   `PortalForcer.createPortal` is `@javaVerified vectors` against layouts Java built portals in), fluid spread
-   ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)), static-initializer constants
-   ([#3764](https://github.com/JSPrismarine/JSPrismarine/issues/3764)) and block placement states
-   ([#3765](https://github.com/JSPrismarine/JSPrismarine/issues/3765)).
-   Fluid spread is the first with vectors: `FlowingFluid.getSpread` is tagged
-   `@javaVerified vectors`, and six of its layouts showed the copy flowing differently
-   from Java.
-   The dragon's flight has its vectors: `entity-goals` records seeded fights and the node graph
-   with Java's own `EnderDragon` and flies the copy against them in
-   `dragonPhases.vectors.test.ts`, and the copies those fights run carry `@javaVerified vectors`.
+   The family reports the tags by `@javaVerified` kind and by package as dashboard measurements.
+   The copies large enough to deserve vectors or extraction each got an issue, and each is done:
+   - The dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)):
+     `entity-goals` records seeded fights and the node graph with Java's own `EnderDragon`.
+   - Nether portal placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762)):
+     `block-behaviors` records the portal Java's `PortalForcer.createPortal` builds in each layout.
+   - Fluid spread ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)): what Java's
+     `FlowingFluid.getSpread` returns for each layout.
+   - Block placement states ([#3765](https://github.com/JSPrismarine/JSPrismarine/issues/3765)):
+     what every tagged `getStateForPlacement` returns over a grid of placements.
+   - Static-initializer constants ([#3764](https://github.com/JSPrismarine/JSPrismarine/issues/3764)):
+     a copy of a value set in a static initializer names the field with `@javaSee`, and the family
+     reads the value out of the jar, so a release that adds an unrelated constant no longer flags
+     it.
+
+   Each vector set comes from a Java program in the package's `utils/oracle/` that runs Java's real
+   code on a `ServerLevel` or `Level` allocated without its constructor, and each package's
+   `vectors` script regenerates its files. The copies those vectors exercise carry
+   `@javaVerified vectors`. The vectors showed the copies differing from Java in many places, which
+   are fixed. The differences left open have issues:
+   [#3783](https://github.com/JSPrismarine/JSPrismarine/issues/3783),
+   [#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784),
+   [#3786](https://github.com/JSPrismarine/JSPrismarine/issues/3786) and
+   [#3787](https://github.com/JSPrismarine/JSPrismarine/issues/3787).
 
 ## Decisions
 
