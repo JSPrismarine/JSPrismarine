@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 672 | 84 | 8 | 580 |
+| 745 | 93 | 10 | 642 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -435,7 +435,7 @@ Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:46`.
 
 #### `BaseCoralPlantTypeBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:384`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:583`.
 
 ```diff
   method net/minecraft/world/level/block/BaseCoralPlantTypeBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -465,7 +465,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:384`.
 
 #### `BigDripleafBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:352`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:449`.
 
 ```diff
     astore_2
@@ -755,7 +755,7 @@ Tagged at `packages/block-behaviors/src/families/world.ts:53`.
 
 #### `CeilingHangingSignBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:313`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:363`.
 
 ```diff
     aload_3
@@ -862,6 +862,174 @@ Tagged at `packages/prismarine/src/world/generators/datadriven/javaStructurePlac
     aload 10
 ```
 
+#### `ClientboundBlockUpdatePacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/play.ts:407`.
+
+```diff
+    getstatic net/minecraft/core/BlockPos.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.getPos()Lnet/minecraft/core/BlockPos;, methodType (Lnet/minecraft/network/protocol/game/ClientboundBlockUpdatePacket;)Lnet/minecraft/core/BlockPos;]
+-   getstatic net/minecraft/world/level/block/Block.BLOCK_STATE_REGISTRY Lnet/minecraft/core/IdMapper;
+-   invokestatic net/minecraft/network/codec/ByteBufCodecs.idMapper (Lnet/minecraft/core/IdMap;)Lnet/minecraft/network/codec/StreamCodec;
++   getstatic net/minecraft/world/level/block/Block.BLOCK_STATE_REGISTRY_STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.getBlockState()Lnet/minecraft/world/level/block/state/BlockState;, methodType (Lnet/minecraft/network/protocol/game/ClientboundBlockUpdatePacket;)Lnet/minecraft/world/level/block/state/BlockState;]
+    invokedynamic apply ()Ljava/util/function/BiFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/game/ClientboundBlockUpdatePacket.<init>(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V, methodType (Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/network/protocol/game/ClientboundBlockUpdatePacket;]
+```
+
+#### `ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/configuration.ts:90`.
+
+```diff
+  inlined net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.<clinit>()V
+    invokedynamic create ()Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$FallbackProvider; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Lnet/minecraft/resources/Identifier;)Lnet/minecraft/network/codec/StreamCodec;, handle invokeStatic net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.lambda#0(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/network/codec/StreamCodec;, methodType (Lnet/minecraft/resources/Identifier;)Lnet/minecraft/network/codec/StreamCodec;]
+-   iconst_1
+-   anewarray net/minecraft/network/protocol/common/custom/CustomPacketPayload$TypeAndCodec
+-   dup
+-   iconst_0
+-   new net/minecraft/network/protocol/common/custom/CustomPacketPayload$TypeAndCodec
++   new java/util/ArrayList
+    dup
+-   getstatic net/minecraft/network/protocol/common/custom/BrandPayload.TYPE Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;
+-   getstatic net/minecraft/network/protocol/common/custom/BrandPayload.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+-   invokespecial net/minecraft/network/protocol/common/custom/CustomPacketPayload$TypeAndCodec.<init> (Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;)V
+-   aastore
+-   invokestatic com/google/common/collect/Lists.newArrayList ([Ljava/lang/Object;)Ljava/util/ArrayList;
++   invokespecial java/util/ArrayList.<init> ()V
+    invokedynamic accept ()Ljava/util/function/Consumer; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)V, handle invokeStatic net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.lambda#1(Ljava/util/ArrayList;)V, methodType (Ljava/util/ArrayList;)V]
+    invokestatic net/minecraft/util/Util.make (Ljava/lang/Object;Ljava/util/function/Consumer;)Ljava/lang/Object;
+…
+    areturn
+  inlined net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.lambda#1(Ljava/util/ArrayList;)V
++   aload_0
++   new net/minecraft/network/protocol/common/custom/CustomPacketPayload$TypeAndCodec
++   dup
++   getstatic net/minecraft/network/protocol/common/custom/BrandPayload.TYPE Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;
++   getstatic net/minecraft/network/protocol/common/custom/BrandPayload.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
++   invokespecial net/minecraft/network/protocol/common/custom/CustomPacketPayload$TypeAndCodec.<init> (Lnet/minecraft/network/protocol/common/custom/CustomPacketPayload$Type;Lnet/minecraft/network/codec/StreamCodec;)V
++   invokevirtual java/util/ArrayList.add (Ljava/lang/Object;)Z
++   pop
+    return
+  inlined net/minecraft/network/protocol/common/ClientboundCustomPayloadPacket.lambda#2(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/network/codec/StreamCodec;
+```
+
+#### `ClientboundLoginFinishedPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/login.ts:66`.
+
+```diff
+    getstatic net/minecraft/core/UUIDUtil.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.sessionId()Ljava/util/UUID;, methodType (Lnet/minecraft/network/protocol/login/ClientboundLoginFinishedPacket;)Ljava/util/UUID;]
+-   invokedynamic apply ()Ljava/util/function/BiFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.<init>(Lcom/mojang/authlib/GameProfile;Ljava/util/UUID;)V, methodType (Lcom/mojang/authlib/GameProfile;Ljava/util/UUID;)Lnet/minecraft/network/protocol/login/ClientboundLoginFinishedPacket;]
+-   invokestatic net/minecraft/network/codec/StreamCodec.composite (Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Ljava/util/function/BiFunction;)Lnet/minecraft/network/codec/StreamCodec;
++   getstatic net/minecraft/network/protocol/login/ConnectionOptionsPacket.FLAG_FIELD_STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.options()B, methodType (Lnet/minecraft/network/protocol/login/ClientboundLoginFinishedPacket;)Ljava/lang/Byte;]
++   invokedynamic apply ()Lcom/mojang/datafixers/util/Function3; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.<init>(Lcom/mojang/authlib/GameProfile;Ljava/util/UUID;B)V, methodType (Lcom/mojang/authlib/GameProfile;Ljava/util/UUID;Ljava/lang/Byte;)Lnet/minecraft/network/protocol/login/ClientboundLoginFinishedPacket;]
++   invokestatic net/minecraft/network/codec/StreamCodec.composite (Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function3;)Lnet/minecraft/network/codec/StreamCodec;
+    putstatic net/minecraft/network/protocol/login/ClientboundLoginFinishedPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    return
+```
+
+#### `ClientboundLoginPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/play.ts:55`.
+
+```diff
+    getstatic net/minecraft/core/registries/Registries.DIMENSION Lnet/minecraft/resources/ResourceKey;
+    invokestatic net/minecraft/resources/ResourceKey.streamCodec (Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/network/codec/StreamCodec;
+-   invokedynamic apply ()Ljava/util/function/IntFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (I)Ljava/lang/Object;, handle invokeStatic com/google/common/collect/Sets.newHashSetWithExpectedSize(I)Ljava/util/HashSet;, methodType (I)Ljava/util/Set;]
++   invokedynamic apply ()Ljava/util/function/IntFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (I)Ljava/lang/Object;, handle newInvokeSpecial java/util/HashSet.<init>(I)V, methodType (I)Ljava/util/Set;]
+    invokestatic net/minecraft/network/codec/ByteBufCodecs.collection (Ljava/util/function/IntFunction;)Lnet/minecraft/network/codec/StreamCodec$CodecOperation;
+    invokeinterface net/minecraft/network/codec/StreamCodec.apply (Lnet/minecraft/network/codec/StreamCodec$CodecOperation;)Lnet/minecraft/network/codec/StreamCodec;
+```
+
+#### `ClientboundSetEquipmentPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/play.ts:698`.
+
+```diff
+    putfield net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.entity I
+    aload_0
+-   invokestatic com/google/common/collect/Lists.newArrayList ()Ljava/util/ArrayList;
++   new java/util/ArrayList
++   dup
++   invokespecial java/util/ArrayList.<init> ()V
+    putfield net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.slots Ljava/util/List;
+    aload_1
+…
+    bipush -128
+    iand
+-   ifne L36
+-   goto L37
+-   goto L9
++   ifne L38
++   goto L39
++   goto L11
+    return
+```
+
+#### `ClientIntentionPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/handshake.ts:22`.
+
+```diff
+  field net/minecraft/network/protocol/handshake/ClientIntentionPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+  inlined net/minecraft/network/protocol/handshake/ClientIntentionPacket.<clinit>()V
+-   invokedynamic encode ()Lnet/minecraft/network/codec/StreamMemberEncoder; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)V, handle invokeVirtual net/minecraft/network/protocol/handshake/ClientIntentionPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V, methodType (Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;Lnet/minecraft/network/FriendlyByteBuf;)V]
+-   invokedynamic decode ()Lnet/minecraft/network/codec/StreamDecoder; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/handshake/ClientIntentionPacket.<init>(Lnet/minecraft/network/FriendlyByteBuf;)V, methodType (Lnet/minecraft/network/FriendlyByteBuf;)Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;]
+-   invokestatic net/minecraft/network/protocol/Packet.codec (Lnet/minecraft/network/codec/StreamMemberEncoder;Lnet/minecraft/network/codec/StreamDecoder;)Lnet/minecraft/network/codec/StreamCodec;
++   getstatic net/minecraft/network/codec/ByteBufCodecs.VAR_INT Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/handshake/ClientIntentionPacket.protocolVersion()I, methodType (Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;)Ljava/lang/Integer;]
++   sipush 1024
++   invokestatic net/minecraft/network/codec/ByteBufCodecs.stringUtf8 (I)Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/handshake/ClientIntentionPacket.hostName()Ljava/lang/String;, methodType (Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;)Ljava/lang/String;]
++   getstatic net/minecraft/network/codec/ByteBufCodecs.UNSIGNED_SHORT Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/handshake/ClientIntentionPacket.port()I, methodType (Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;)Ljava/lang/Integer;]
++   getstatic net/minecraft/network/protocol/handshake/ClientIntent.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/handshake/ClientIntentionPacket.intention()Lnet/minecraft/network/protocol/handshake/ClientIntent;, methodType (Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;)Lnet/minecraft/network/protocol/handshake/ClientIntent;]
++   invokedynamic apply ()Lcom/mojang/datafixers/util/Function4; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/handshake/ClientIntentionPacket.<init>(ILjava/lang/String;ILnet/minecraft/network/protocol/handshake/ClientIntent;)V, methodType (Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/Integer;Lnet/minecraft/network/protocol/handshake/ClientIntent;)Lnet/minecraft/network/protocol/handshake/ClientIntentionPacket;]
++   invokestatic net/minecraft/network/codec/StreamCodec.composite (Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function4;)Lnet/minecraft/network/codec/StreamCodec;
+    putstatic net/minecraft/network/protocol/handshake/ClientIntentionPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    return
+- inlined net/minecraft/network/protocol/handshake/ClientIntentionPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/handshake/ClientIntentionPacket.protocolVersion I
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeVarInt (I)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/handshake/ClientIntentionPacket.hostName Ljava/lang/String;
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeUtf (Ljava/lang/String;)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/handshake/ClientIntentionPacket.port I
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeShort (I)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/handshake/ClientIntentionPacket.intention Lnet/minecraft/network/protocol/handshake/ClientIntent;
+-   invokevirtual net/minecraft/network/protocol/handshake/ClientIntent.id ()I
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeVarInt (I)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   return
+- inlined net/minecraft/network/protocol/handshake/ClientIntentionPacket.<init>(Lnet/minecraft/network/FriendlyByteBuf;)V
+-   aload_0
+-   aload_1
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readVarInt ()I
+-   aload_1
+-   sipush 255
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readUtf (I)Ljava/lang/String;
+-   aload_1
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readUnsignedShort ()I
+-   aload_1
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readVarInt ()I
+-   invokestatic net/minecraft/network/protocol/handshake/ClientIntent.byId (I)Lnet/minecraft/network/protocol/handshake/ClientIntent;
+-   invokespecial net/minecraft/network/protocol/handshake/ClientIntentionPacket.<init> (ILjava/lang/String;ILnet/minecraft/network/protocol/handshake/ClientIntent;)V
+-   return
+```
+
 #### `CombatRules.getDamageAfterMagicAbsorb`
 
 Tagged at `packages/prismarine/src/entity/Damage.ts:47`.
@@ -877,7 +1045,7 @@ Tagged at `packages/prismarine/src/entity/Damage.ts:47`.
 
 #### `CopperGolemStatueBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:358`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:560`.
 
 ```diff
   method net/minecraft/world/level/block/CopperGolemStatueBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -963,7 +1131,7 @@ Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:745`.
 
 #### `DriedGhastBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:362`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:564`.
 
 ```diff
   method net/minecraft/world/level/block/DriedGhastBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -1082,7 +1250,7 @@ Tagged at `packages/prismarine/src/item/actorPort.ts:503`.
 
 #### `EnderChestBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:364`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:566`.
 
 ```diff
   method net/minecraft/world/level/block/EnderChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -1700,7 +1868,7 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:434`.
 
 #### `LadderBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:260`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:282`.
 
 ```diff
     astore 4
@@ -1750,7 +1918,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:260`.
 
 #### `LanternBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/families/furniture.ts:279`.
+Tagged at `packages/block-behaviors/src/families/furniture.ts:281`.
 
 ```diff
   method net/minecraft/world/level/block/LanternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -1867,9 +2035,32 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:2390`.
     checkcast net/minecraft/world/entity/Leashable
 ```
 
+#### `LeavesBlock.getOptionalDistanceAt`
+
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:511`.
+
+```diff
+    aload_0
+    getstatic net/minecraft/world/level/block/LeavesBlock.DISTANCE Lnet/minecraft/world/level/block/state/properties/IntegerProperty;
+-   invokevirtual net/minecraft/world/level/block/state/BlockState.hasProperty (Lnet/minecraft/world/level/block/state/properties/Property;)Z
+-   ifeq L18
+-   aload_0
+-   getstatic net/minecraft/world/level/block/LeavesBlock.DISTANCE Lnet/minecraft/world/level/block/state/properties/IntegerProperty;
+-   invokevirtual net/minecraft/world/level/block/state/BlockState.getValue (Lnet/minecraft/world/level/block/state/properties/Property;)Ljava/lang/Comparable;
++   aconst_null
++   invokevirtual net/minecraft/world/level/block/state/BlockState.getValueOrElse (Lnet/minecraft/world/level/block/state/properties/Property;Ljava/lang/Comparable;)Ljava/lang/Comparable;
+    checkcast java/lang/Integer
++   astore_1
++   aload_1
++   ifnull L19
++   aload_1
+    invokevirtual java/lang/Integer.intValue ()I
+    invokestatic java/util/OptionalInt.of (I)Ljava/util/OptionalInt;
+```
+
 #### `LeavesBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:367`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:509`.
 
 ```diff
   method net/minecraft/world/level/block/LeavesBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -1892,7 +2083,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:367`.
 
 #### `LightningRodBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:369`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:570`.
 
 ```diff
   method net/minecraft/world/level/block/LightningRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -2357,7 +2548,7 @@ Tagged at `packages/prismarine/src/inventory/containerLoot.ts:88`.
 
 #### `MangrovePropaguleBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:388`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:586`.
 
 ```diff
   method net/minecraft/world/level/block/MangrovePropaguleBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -2417,7 +2608,7 @@ Tagged at `packages/prismarine/src/world/savedMap.ts:73`, `packages/prismarine/s
 
 #### `Mth.cos`
 
-Tagged at `packages/entity-goals/src/javaMth.ts:36`.
+Tagged at `packages/block-behaviors/src/mth.ts:38`, `packages/entity-goals/src/javaMth.ts:36`.
 
 ```diff
   method net/minecraft/util/Mth.cos(D)F
@@ -2472,7 +2663,7 @@ Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:94
 
 #### `Mth.sin`
 
-Tagged at `packages/entity-goals/src/javaMth.ts:28`.
+Tagged at `packages/block-behaviors/src/mth.ts:31`, `packages/entity-goals/src/javaMth.ts:28`.
 
 ```diff
   method net/minecraft/util/Mth.sin(D)F
@@ -2868,6 +3059,73 @@ Tagged at `packages/prismarine/src/entity/javaGoals.ts:30`.
   inlined net/minecraft/world/item/alchemy/Potions.register(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/item/alchemy/Potion;)Lnet/minecraft/core/Holder;
 ```
 
+#### `SegmentableBlock.getStateForPlacement`
+
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:533`.
+
+```diff
+  method net/minecraft/world/level/block/SegmentableBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/block/state/properties/IntegerProperty;Lnet/minecraft/world/level/block/state/properties/EnumProperty;)Lnet/minecraft/world/level/block/state/BlockState;
+    aload_1
+-   invokevirtual net/minecraft/world/item/context/BlockPlaceContext.getLevel ()Lnet/minecraft/world/level/Level;
+-   aload_1
+-   invokevirtual net/minecraft/world/item/context/BlockPlaceContext.getClickedPos ()Lnet/minecraft/core/BlockPos;
+-   invokevirtual net/minecraft/world/level/Level.getBlockState (Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;
++   invokevirtual net/minecraft/world/item/context/BlockPlaceContext.getClickedBlockState ()Lnet/minecraft/world/level/block/state/BlockState;
+    astore 5
+    aload 5
+    aload_2
+    invokevirtual net/minecraft/world/level/block/state/BlockState.is (Ljava/lang/Object;)Z
+-   ifeq L25
++   ifeq L22
+    aload 5
+    aload_3
+```
+
+#### `ServerboundKeyPacket.STREAM_CODEC`
+
+Tagged at `packages/protocol/src/java/packet/login.ts:41`.
+
+```diff
+  field net/minecraft/network/protocol/login/ServerboundKeyPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+  inlined net/minecraft/network/protocol/login/ServerboundKeyPacket.<clinit>()V
+-   invokedynamic encode ()Lnet/minecraft/network/codec/StreamMemberEncoder; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)V, handle invokeVirtual net/minecraft/network/protocol/login/ServerboundKeyPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V, methodType (Lnet/minecraft/network/protocol/login/ServerboundKeyPacket;Lnet/minecraft/network/FriendlyByteBuf;)V]
+-   invokedynamic decode ()Lnet/minecraft/network/codec/StreamDecoder; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/login/ServerboundKeyPacket.<init>(Lnet/minecraft/network/FriendlyByteBuf;)V, methodType (Lnet/minecraft/network/FriendlyByteBuf;)Lnet/minecraft/network/protocol/login/ServerboundKeyPacket;]
+-   invokestatic net/minecraft/network/protocol/Packet.codec (Lnet/minecraft/network/codec/StreamMemberEncoder;Lnet/minecraft/network/codec/StreamDecoder;)Lnet/minecraft/network/codec/StreamCodec;
++   getstatic net/minecraft/network/codec/ByteBufCodecs.X509_XDH_PUBLIC_KEY Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/login/ServerboundKeyPacket.clientKey()Ljava/security/PublicKey;, methodType (Lnet/minecraft/network/protocol/login/ServerboundKeyPacket;)Ljava/security/PublicKey;]
++   bipush 32
++   invokestatic net/minecraft/network/codec/ByteBufCodecs.fixedSizeByteArray (I)Lnet/minecraft/network/codec/StreamCodec;
++   invokedynamic apply ()Ljava/util/function/Function; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;)Ljava/lang/Object;, handle invokeVirtual net/minecraft/network/protocol/login/ServerboundKeyPacket.signature()[B, methodType (Lnet/minecraft/network/protocol/login/ServerboundKeyPacket;)[B]
++   invokedynamic apply ()Ljava/util/function/BiFunction; java/lang/invoke/LambdaMetafactory.metafactory [methodType (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;, handle newInvokeSpecial net/minecraft/network/protocol/login/ServerboundKeyPacket.<init>(Ljava/security/PublicKey;[B)V, methodType (Ljava/security/PublicKey;[B)Lnet/minecraft/network/protocol/login/ServerboundKeyPacket;]
++   invokestatic net/minecraft/network/codec/StreamCodec.composite (Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Ljava/util/function/BiFunction;)Lnet/minecraft/network/codec/StreamCodec;
+    putstatic net/minecraft/network/protocol/login/ServerboundKeyPacket.STREAM_CODEC Lnet/minecraft/network/codec/StreamCodec;
+    return
+- inlined net/minecraft/network/protocol/login/ServerboundKeyPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/login/ServerboundKeyPacket.keybytes [B
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeByteArray ([B)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   aload_1
+-   aload_0
+-   getfield net/minecraft/network/protocol/login/ServerboundKeyPacket.encryptedChallenge [B
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.writeByteArray ([B)Lnet/minecraft/network/FriendlyByteBuf;
+-   pop
+-   return
+- inlined net/minecraft/network/protocol/login/ServerboundKeyPacket.<init>(Lnet/minecraft/network/FriendlyByteBuf;)V
+-   aload_0
+-   invokespecial java/lang/Object.<init> ()V
+-   aload_0
+-   aload_1
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readByteArray ()[B
+-   putfield net/minecraft/network/protocol/login/ServerboundKeyPacket.keybytes [B
+-   aload_0
+-   aload_1
+-   invokevirtual net/minecraft/network/FriendlyByteBuf.readByteArray ()[B
+-   putfield net/minecraft/network/protocol/login/ServerboundKeyPacket.encryptedChallenge [B
+-   return
+```
+
 #### `ServerChunkCache.tickChunks()V`
 
 Tagged at `packages/prismarine/src/world/World.ts:3673`, `packages/prismarine/src/world/WorldSystems.ts:626`.
@@ -2905,7 +3163,7 @@ Tagged at `packages/prismarine/src/command/host/entities.ts:122`.
 
 #### `ShelfBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:376`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:577`.
 
 ```diff
   method net/minecraft/world/level/block/ShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -3056,7 +3314,7 @@ Tagged at `packages/block-behaviors/src/rules/dripstone.ts:131`.
 
 #### `StandingSignBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:302`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:328`.
 
 ```diff
   method net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;
@@ -3218,7 +3476,7 @@ Tagged at `packages/prismarine/src/entity/data/projectileFlight.ts:27`.
 
 #### `TrapDoorBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/families/openable.ts:148`.
+Tagged at `packages/block-behaviors/src/families/openable.ts:149`.
 
 ```diff
     astore_2
@@ -3287,7 +3545,7 @@ Tagged at `packages/block-behaviors/src/families/openable.ts:148`.
 
 #### `WallHangingSignBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:332`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:423`.
 
 ```diff
     astore_2
@@ -3353,7 +3611,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:332`.
 
 #### `WallSignBlock.getStateForPlacement`
 
-Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:386`.
+Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:585`.
 
 ```diff
     astore_2
@@ -3509,9 +3767,11 @@ Tagged at `packages/entity-goals/src/goals/movement.ts:2274`.
 
 ### Removed or renamed
 
-- `AmethystClusterBlock.getStateForPlacement`, tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:370`: net/minecraft/world/level/block/AmethystClusterBlock declares no getStateForPlacement. The closest 26.4-pre-1 member is `net/minecraft/world/level/block/AbstractCrystalClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;`, which a superclass declares now.
+- `AmethystClusterBlock.getStateForPlacement`, tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:571`: net/minecraft/world/level/block/AmethystClusterBlock declares no getStateForPlacement. The closest 26.4-pre-1 member is `net/minecraft/world/level/block/AbstractCrystalClusterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;`, which a superclass declares now.
 - `BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;`, tagged at `packages/prismarine/src/world/generators/datadriven/DataDrivenGenerator.ts:2041`: net/minecraft/world/level/biome/BiomeManager declares no getBiome.
 - `BlocksAttacks.resolveBlockedDamage`, tagged at `packages/prismarine/src/entity/data/itemBlocking.ts:65`: resolves to net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;, not net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F. The closest 26.4-pre-1 member is `net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)Ljava/util/Optional;`.
+- `ClientboundHelloPacket.STREAM_CODEC`, tagged at `packages/protocol/src/java/packet/login.ts:30`: the jar holds no class ClientboundHelloPacket.
+- `ClientboundLoginCompressionPacket.STREAM_CODEC`, tagged at `packages/protocol/src/java/packet/login.ts:50`: the jar holds no class ClientboundLoginCompressionPacket.
 - `Entity.checkFallDamage`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:7279`: resolves to net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V, not net/minecraft/world/entity/Entity.checkFallDamage(DZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V. The closest 26.4-pre-1 member is `net/minecraft/world/entity/Entity.checkFallDamage(ZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V`.
 - `ItemCommands.applyModifier`, tagged at `packages/prismarine/src/command/host/inventory.ts:291`: resolves to net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;, not net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator;. The closest 26.4-pre-1 member is `net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;`.
 - `LivingEntity.applyItemBlocking`, tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:4399`: resolves to net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;, not net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)F. The closest 26.4-pre-1 member is `net/minecraft/world/entity/LivingEntity.applyItemBlocking(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Ljava/util/Optional;`.
@@ -3526,12 +3786,17 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/commands/arguments/SlotSourceArgument$Result.value()Lnet/minecraft/world/item/slot/SlotSource;`, called by `net/minecraft/server/commands/ExecuteCommand.countItems`
 - `net/minecraft/commands/Commands.performPrefixedCommand(Lnet/minecraft/commands/CommandSourceStack;Ljava/lang/String;)V`, called by `BaseCommandBlock.performCommand`
 - `net/minecraft/core/BlockPos$6.<init>(Lnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;I)V`, called by `BlockPos.spiralAround`
+- `net/minecraft/core/HolderLookup$Provider.createSerializationContext(Lcom/mojang/serialization/DynamicOps;)Lnet/minecraft/resources/RegistryOps;`, called by `ClientboundLoginDisconnectPacket.STREAM_CODEC`, `ClientboundStatusResponsePacket.STREAM_CODEC`
 - `net/minecraft/core/Registry.getTagOrEmpty(Lnet/minecraft/tags/TagKey;)Ljava/lang/Iterable;`, called by `Painting.create`
 - `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Stats.TIME_SINCE_REST`
 - `net/minecraft/core/Registry.register(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;)Ljava/lang/Object;`, called by `Blocks.SNOW`
 - `net/minecraft/CrashReportCategory.populateBlockDetails(Lnet/minecraft/CrashReportCategory;Lnet/minecraft/world/level/LevelHeightAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V`, called by `Entity.checkInsideBlocks(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/InsideBlockEffectApplier$StepBasedCollector;Lit/unimi/dsi/fastutil/longs/LongSet;I)I`
 - `net/minecraft/network/chat/Component.getString()Ljava/lang/String;`, called by `BaseCommandBlock.performCommand`
 - `net/minecraft/network/codec/ByteBufCodecs.idMapper(Ljava/util/function/IntFunction;Ljava/util/function/ToIntFunction;)Lnet/minecraft/network/codec/StreamCodec;`, called by `DyeColor.BLACK`, `EquipmentSlot.SADDLE`
+- `net/minecraft/network/codec/ByteBufCodecs.idMapper(Lnet/minecraft/core/IdMap;)Lnet/minecraft/network/codec/StreamCodec;`, called by `ClientboundBlockUpdatePacket.STREAM_CODEC`
+- `net/minecraft/network/codec/ByteBufCodecs.lenientJson(I)Lnet/minecraft/network/codec/StreamCodec;`, called by `ClientboundLoginDisconnectPacket.STREAM_CODEC`, `ClientboundStatusResponsePacket.STREAM_CODEC`
+- `net/minecraft/network/codec/ByteBufCodecs.registry(Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/network/codec/StreamCodec;`, called by `ClientboundAddEntityPacket.STREAM_CODEC`
+- `net/minecraft/network/protocol/handshake/ClientIntent.byId(I)Lnet/minecraft/network/protocol/handshake/ClientIntent;`, called by `ClientIntentionPacket.STREAM_CODEC`
 - `net/minecraft/server/commands/item/ItemAccessor.getSlots(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/item/slot/SlotSource;)Lnet/minecraft/world/item/slot/SlotCollection;`, called by `net/minecraft/server/commands/ExecuteCommand.countItems`
 - `net/minecraft/server/level/ServerPlayer.<init>(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/server/level/ServerLevel;Lcom/mojang/authlib/GameProfile;Lnet/minecraft/server/level/ClientInformation;)V`, called by `PlayerList.respawn`
 - `net/minecraft/server/level/ServerPlayer.createCommonSpawnInfo(Lnet/minecraft/server/level/ServerLevel;)Lnet/minecraft/network/protocol/game/CommonPlayerSpawnInfo;`, called by `PlayerList.respawn`
