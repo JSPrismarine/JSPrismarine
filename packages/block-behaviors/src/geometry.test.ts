@@ -10,7 +10,8 @@ import {
     offset,
     opposite,
     rotateClockwise,
-    rotateCounterClockwise
+    rotateCounterClockwise,
+    spiralAround
 } from './geometry';
 
 describe('offset', () => {
@@ -86,5 +87,30 @@ describe('axisOfFace', () => {
         expect(axisOfFace('up')).toBe('y');
         expect(axisOfFace('east')).toBe('x');
         expect(axisOfFace('north')).toBe('z');
+    });
+});
+
+describe('spiralAround', () => {
+    it("starts on the origin, leaves it eastward and turns south, as Java's BlockPos.spiralAround does", () => {
+        expect([...spiralAround(2)].slice(0, 10)).toEqual([
+            { x: 0, z: 0 },
+            { x: 1, z: 0 },
+            { x: 1, z: 1 },
+            { x: 0, z: 1 },
+            { x: -1, z: 1 },
+            { x: -1, z: 0 },
+            { x: -1, z: -1 },
+            { x: 0, z: -1 },
+            { x: 1, z: -1 },
+            { x: 2, z: -1 }
+        ]);
+    });
+
+    it('visits every offset of the square once and ends on its north-east corner', () => {
+        const offsets = [...spiralAround(16)];
+
+        expect(offsets).toHaveLength(33 * 33);
+        expect(new Set(offsets.map(({ x, z }) => `${x},${z}`)).size).toBe(33 * 33);
+        expect(offsets.at(-1)).toEqual({ x: 16, z: -16 });
     });
 });
