@@ -45,7 +45,8 @@ export type {
  * `Data Store Name` alone. Strings are a varuint32 byte length followed by UTF-8.
  *
  * Mojang split this packet and `ServerboundDataStorePacket` out of `DataStoreSyncPacket` "for
- * future use in UI". The server has nothing to send in it today.
+ * future use in UI". The server sends a `@minecraft/server-ui` `CustomForm` or `MessageBox` in it
+ * before `ClientboundDataDrivenUIShowScreenPacket` opens the screen.
  */
 export default class ClientboundDataStorePacket extends NetworkPacket<ClientboundDataStore> {
     /** The name this packet's wire id is listed under. */

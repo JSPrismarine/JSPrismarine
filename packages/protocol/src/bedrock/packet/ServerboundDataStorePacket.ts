@@ -18,8 +18,8 @@ export type { ServerboundDataStore } from '../wire/definitions/serverboundDataSt
  * varuint32 byte length followed by UTF-8.
  *
  * Mojang split this packet and `ClientboundDataStorePacket` out of `DataStoreSyncPacket`
- * "for future use in UI". A retail client sends it only when a server-driven UI binds a
- * data store, so the server has nothing to handle today.
+ * "for future use in UI". A client sends it for a click or an input on a data-driven screen,
+ * such as a `@minecraft/server-ui` `CustomForm`, as a write to one path of the screen's property.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-data-store-packet/
  */
 export default class ServerboundDataStorePacket extends NetworkPacket<ServerboundDataStore> {

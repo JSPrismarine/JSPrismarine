@@ -176,6 +176,21 @@
                 "import": "./dist/bedrock/packet/ClientboundCloseFormPacket.js",
                 "module": "./dist/bedrock/packet/ClientboundCloseFormPacket.js"
             },
+            "./bedrock/packet/ClientboundDataDrivenUICloseScreenPacket": {
+                "types": "./dist/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket.js",
+                "module": "./dist/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket.js"
+            },
+            "./bedrock/packet/ClientboundDataDrivenUIShowScreenPacket": {
+                "types": "./dist/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket.js",
+                "module": "./dist/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket.js"
+            },
+            "./bedrock/packet/ClientboundDataStorePacket": {
+                "types": "./dist/bedrock/packet/ClientboundDataStorePacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientboundDataStorePacket.js",
+                "module": "./dist/bedrock/packet/ClientboundDataStorePacket.js"
+            },
             "./bedrock/packet/CommandBlockUpdatePacket": {
                 "types": "./dist/bedrock/packet/CommandBlockUpdatePacket.d.ts",
                 "import": "./dist/bedrock/packet/CommandBlockUpdatePacket.js",
@@ -1056,6 +1071,26 @@
                 "types": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.d.ts",
                 "import": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js",
                 "module": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js"
+            },
+            "./bedrock/packet/ServerboundDataDrivenScreenClosedPacket": {
+                "types": "./dist/bedrock/packet/ServerboundDataDrivenScreenClosedPacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerboundDataDrivenScreenClosedPacket.js",
+                "module": "./dist/bedrock/packet/ServerboundDataDrivenScreenClosedPacket.js"
+            },
+            "./bedrock/packet/ServerboundDataStorePacket": {
+                "types": "./dist/bedrock/packet/ServerboundDataStorePacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerboundDataStorePacket.js",
+                "module": "./dist/bedrock/packet/ServerboundDataStorePacket.js"
+            },
+            "./bedrock/structure/DataStoreUpdate": {
+                "types": "./dist/bedrock/structure/DataStoreUpdate.d.ts",
+                "import": "./dist/bedrock/structure/DataStoreUpdate.js",
+                "module": "./dist/bedrock/structure/DataStoreUpdate.js"
+            },
+            "./bedrock/wire/wireGates": {
+                "types": "./dist/bedrock/wire/wireGates.d.ts",
+                "import": "./dist/bedrock/wire/wireGates.js",
+                "module": "./dist/bedrock/wire/wireGates.js"
             }
         }
     },
@@ -1203,6 +1238,18 @@
         "./bedrock/packet/ClientboundCloseFormPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/ClientboundCloseFormPacket.js",
             "default": "./src/bedrock/packet/ClientboundCloseFormPacket.ts"
+        },
+        "./bedrock/packet/ClientboundDataDrivenUICloseScreenPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket.js",
+            "default": "./src/bedrock/packet/ClientboundDataDrivenUICloseScreenPacket.ts"
+        },
+        "./bedrock/packet/ClientboundDataDrivenUIShowScreenPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket.js",
+            "default": "./src/bedrock/packet/ClientboundDataDrivenUIShowScreenPacket.ts"
+        },
+        "./bedrock/packet/ClientboundDataStorePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundDataStorePacket.js",
+            "default": "./src/bedrock/packet/ClientboundDataStorePacket.ts"
         },
         "./bedrock/packet/CommandBlockUpdatePacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/CommandBlockUpdatePacket.js",
@@ -1964,6 +2011,22 @@
         "./bedrock/packet/PlayerUpdateEntityOverridesPacket": {
             "jsprismarine:dist": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js",
             "default": "./src/bedrock/packet/PlayerUpdateEntityOverridesPacket.ts"
+        },
+        "./bedrock/packet/ServerboundDataDrivenScreenClosedPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerboundDataDrivenScreenClosedPacket.js",
+            "default": "./src/bedrock/packet/ServerboundDataDrivenScreenClosedPacket.ts"
+        },
+        "./bedrock/packet/ServerboundDataStorePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerboundDataStorePacket.js",
+            "default": "./src/bedrock/packet/ServerboundDataStorePacket.ts"
+        },
+        "./bedrock/structure/DataStoreUpdate": {
+            "jsprismarine:dist": "./dist/bedrock/structure/DataStoreUpdate.js",
+            "default": "./src/bedrock/structure/DataStoreUpdate.ts"
+        },
+        "./bedrock/wire/wireGates": {
+            "jsprismarine:dist": "./dist/bedrock/wire/wireGates.js",
+            "default": "./src/bedrock/wire/wireGates.ts"
         }
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
