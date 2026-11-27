@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { langSource, packetTableSource, releaseSource } from './source.ts';
+import {
+    configurationModuleSource,
+    isSnapshotProtocol,
+    javaReleasesSource,
+    langSource,
+    newestSource,
+    packetTableSource,
+    registriesModuleSource,
+    releaseSource
+} from './source.ts';
 
 describe('dump:java-protocol sources', () => {
     it('writes each phase, direction and packet in name order, without the namespace', () => {
@@ -58,5 +67,51 @@ describe('dump:java-protocol sources', () => {
             'death.attack.drown',
             'death.attack.lava'
         ]);
+    });
+
+    it('registers every dumped release but snapshots, newest first', () => {
+        const source = javaReleasesSource([
+            { version: '26.3', protocolVersion: 777 },
+            { version: '26.4-pre-1', protocolVersion: 0x4000_0000 | 300 },
+            { version: '26.4', protocolVersion: 780 }
+        ]);
+
+        expect(source).toContain("import { PACKETS as PACKETS_26_4 } from './26.4/packets';");
+        expect(source).toContain(
+            'export const NEWEST_JAVA_RELEASE: JavaProtocol = { ...RELEASE_26_4, packets: PACKETS_26_4 };'
+        );
+        expect(source).toContain(
+            'export const JAVA_RELEASES: readonly JavaProtocol[] = [NEWEST_JAVA_RELEASE, JAVA_26_3];'
+        );
+        expect(source).not.toContain('26.4-pre-1');
+    });
+
+    it('refuses to register when every release is a snapshot', () => {
+        expect(isSnapshotProtocol(0x4000_0000 | 300)).toBe(true);
+        expect(isSnapshotProtocol(777)).toBe(false);
+        expect(() => javaReleasesSource([{ version: '26.4-pre-1', protocolVersion: 0x4000_0000 | 300 }])).toThrow(
+            'every dumped release is a snapshot'
+        );
+    });
+
+    it("names the newest release's data under each release module's own names", () => {
+        const source = newestSource([
+            { version: '26.3', protocolVersion: 777 },
+            { version: '26.4', protocolVersion: 780 }
+        ]);
+
+        expect(source).toContain("import { BLOCK_STATES as RELEASE_BLOCK_STATES } from './26.4/blockStates';");
+        expect(source).toContain('export const BLOCK_STATES = RELEASE_BLOCK_STATES;');
+        expect(source).toContain('export const ENTITY_TYPES = RELEASE_ENTITY_TYPES;');
+        expect(source).toContain("import type { PACKETS } from './26.4/packets';");
+        expect(source).not.toContain("'./26.3/");
+    });
+
+    it('writes one constant for each static registry, and the configuration capture module', () => {
+        expect(registriesModuleSource('26.4')).toContain(
+            'export const ENTITY_TYPES = new JavaRegistry(registries.entity_type);'
+        );
+        expect(registriesModuleSource('26.4')).toContain('export const ITEMS = new JavaRegistry(registries.item);');
+        expect(configurationModuleSource('26.4')).toContain('export const CONFIGURATION: JavaConfiguration = capture;');
     });
 });

@@ -11,8 +11,10 @@
  * task, run on a Java version bump: `pnpm --filter @jsprismarine/bedrock-data run
  * dump:java-protocol [--java <release>]`.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { isRecord } from '../isRecord.ts';
 import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
@@ -20,15 +22,21 @@ import { extractJavaLang, javaLangPath } from '../java/extract-lang.ts';
 import { javaServerJarPath, packageDir, worldgenCachePaths } from '../java/worldgen-cache.ts';
 import {
     blockStateRows,
+    blockStatesModuleSource,
     blockStatesSource,
+    configurationModuleSource,
+    javaReleasesSource,
     LANG_PREFIXES,
+    langModuleSource,
     langSource,
+    newestSource,
     packetTableSource,
+    registriesModuleSource,
     releaseSource,
     STATIC_REGISTRIES,
     staticRegistriesSource
 } from './source.ts';
-import type { PacketTable, ReportBlock } from './source.ts';
+import type { DumpedRelease, PacketTable, ReportBlock } from './source.ts';
 
 const release = await resolveJavaRelease(process.argv);
 const reportPath = join(worldgenCachePaths(release.version).reports, 'reports', 'packets.json');
@@ -84,6 +92,47 @@ if (!existsSync(langPath)) await extractJavaLang(javaServerJarPath(release), lan
 const lang: unknown = JSON.parse(readFileSync(langPath, 'utf8'));
 writeFileSync(join(outDir, 'lang.json'), langSource(lang, LANG_PREFIXES));
 
+writeFileSync(join(outDir, 'blockStates.ts'), blockStatesModuleSource(release.version));
+writeFileSync(join(outDir, 'registries.ts'), registriesModuleSource(release.version));
+writeFileSync(join(outDir, 'lang.ts'), langModuleSource(release.version));
+writeFileSync(join(outDir, 'configuration.ts'), configurationModuleSource(release.version));
 console.log(
     `Wrote ${release.version}'s release, packet ids and ${rows.length} blocks' states (protocol ${jar.protocol_version}) to ${outDir}`
 );
+
+// What the release's configuration phase sends, which only running its server shows. The capture
+// logs in with the packet ids written above.
+const captured = spawnSync(
+    'pnpm',
+    ['--filter', '@jsprismarine/protocol', 'run', 'capture:java-configuration', '--java', release.version],
+    { stdio: 'inherit' }
+);
+if (captured.status !== 0) throw new Error(`capture:java-configuration --java ${release.version} failed`);
+
+// Every release written so far, which the server speaks unless it is a snapshot.
+const versionsDir = resolve(outDir, '..');
+const dumped: DumpedRelease[] = [];
+for (const entry of readdirSync(versionsDir, { withFileTypes: true })) {
+    const releaseModule = join(versionsDir, entry.name, 'release.ts');
+    if (!entry.isDirectory() || !existsSync(releaseModule)) continue;
+    // A module this script wrote, loaded by path because the releases are found at run time.
+    const { RELEASE } = await import(pathToFileURL(releaseModule).href);
+    dumped.push({ version: RELEASE.minecraftVersion, protocolVersion: RELEASE.protocolVersion });
+}
+writeFileSync(join(versionsDir, 'javaReleases.ts'), javaReleasesSource(dumped));
+writeFileSync(join(versionsDir, 'newest.ts'), newestSource(dumped));
+spawnSync(
+    'pnpm',
+    [
+        'exec',
+        'prettier',
+        '--write',
+        join(versionsDir, 'javaReleases.ts'),
+        join(versionsDir, 'newest.ts'),
+        ...['release', 'packets', 'blockStates', 'registries', 'lang', 'configuration'].map((name) =>
+            join(outDir, `${name}.ts`)
+        )
+    ],
+    { stdio: 'inherit' }
+);
+console.log(`Registered ${dumped.map(({ version }) => version).join(', ')} in ${versionsDir}`);
