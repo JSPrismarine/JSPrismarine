@@ -17,6 +17,11 @@ export interface Definition {
     pack: string;
     /** The pack-relative path of the file. */
     path: string;
+    /**
+     * The `min_engine_version` of the pack the definition came from, when its manifest declares
+     * one. The engine versions the pack's Molang by it.
+     */
+    minEngineVersion?: readonly [number, number, number];
     /** The parsed definition, replaced whole by a later pack, never merged. */
     data: unknown;
 }
