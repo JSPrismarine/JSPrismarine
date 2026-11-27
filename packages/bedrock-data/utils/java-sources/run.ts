@@ -22,11 +22,17 @@
  * pnpm --filter @jsprismarine/bedrock-data run --silent java:sources --list X --java 26.4 > new
  * diff old new
  * ```
+ *
+ * `--tag <directory>` runs the citation codemod over the scanned sources under each directory, such
+ * as `packages/features`: every JSDoc comment whose ``Java's `Class.member` `` citations all
+ * resolve in the jar gets a tag per member, and the rest are printed for a person to tag. Review
+ * the diff, then stamp with `--update`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { tagCitations } from '@jsprismarine/java-classfile/citations';
 import type { JavaClass } from '@jsprismarine/java-classfile/classFile';
 import { parseJavaClass } from '@jsprismarine/java-classfile/classFile';
 import { javaSourceFingerprint, javaSourceKey, javaSourceListing } from '@jsprismarine/java-classfile/fingerprint';
@@ -188,9 +194,34 @@ const update = async (tags: readonly JavaSourceTag[], golden: JavaSourceGolden, 
     return problems;
 };
 
+/**
+ * Runs the citation codemod over the scanned sources under each directory and writes the result.
+ *
+ * @returns Each citation it left for a person, as `file:line: citation: reason`.
+ */
+const tag = async (directories: readonly string[]): Promise<string[]> => {
+    const { index } = await readJar();
+    const left: string[] = [];
+    let tagged = 0;
+    for (const file of scanRepository(repoRoot).keys()) {
+        if (!directories.some((directory) => file.startsWith(`${directory.replace(/\/$/, '')}/`))) continue;
+        const path = join(repoRoot, file);
+        const result = tagCitations(readFileSync(path, 'utf8'), index);
+        if (result.added.length > 0) writeFileSync(path, result.text);
+        tagged += result.added.length;
+        for (const citation of result.untagged)
+            left.push(`${file}:${citation.line}: ${citation.citation}: ${citation.reason}`);
+    }
+    console.log(`Added ${tagged} tags; ${left.length} citations need a person.`);
+    return left;
+};
+
 if (import.meta.filename === process.argv[1]) {
     const lists = flagValues(process.argv, '--list');
-    if (lists.length > 0) {
+    const directories = flagValues(process.argv, '--tag');
+    if (directories.length > 0) {
+        for (const citation of await tag(directories)) console.log(citation);
+    } else if (lists.length > 0) {
         const { version, index } = await readJar();
         for (const spelling of lists) {
             console.log(`# ${spelling} in ${version}`);
@@ -207,7 +238,7 @@ if (import.meta.filename === process.argv[1]) {
         if (problems.length > 0) process.exitCode = 1;
     } else {
         console.error(
-            'Pass --update [--reviewed <spelling>]... or --list <spelling>, with an optional --java <release>.'
+            'Pass --update [--reviewed <spelling>]..., --list <spelling> or --tag <directory>, with an optional --java <release>.'
         );
         process.exitCode = 1;
     }
