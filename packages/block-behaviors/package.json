@@ -36,6 +36,11 @@
                 "import": "./dist/rules/piston.js",
                 "module": "./dist/rules/piston.js"
             },
+            "./rules/portalVectors": {
+                "types": "./dist/rules/portalVectors.d.ts",
+                "import": "./dist/rules/portalVectors.js",
+                "module": "./dist/rules/portalVectors.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -71,6 +76,10 @@
         "./rules/piston": {
             "jsprismarine:dist": "./dist/rules/piston.js",
             "default": "./src/rules/piston.ts"
+        },
+        "./rules/portalVectors": {
+            "jsprismarine:dist": "./dist/rules/portalVectors.js",
+            "default": "./src/rules/portalVectors.ts"
         },
         "./package.json": "./package.json"
     },

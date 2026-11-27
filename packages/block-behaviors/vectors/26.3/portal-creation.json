@@ -1,0 +1,3662 @@
+{
+    "javaVersion": "26.3",
+    "blockRules": {
+        "minecraft:air": {
+            "canBeReplaced": true,
+            "isSolid": false,
+            "hasFluid": false,
+            "motionBlocking": false
+        },
+        "minecraft:bedrock": {
+            "canBeReplaced": false,
+            "isSolid": true,
+            "hasFluid": false,
+            "motionBlocking": true
+        },
+        "minecraft:cobweb": {
+            "canBeReplaced": false,
+            "isSolid": true,
+            "hasFluid": false,
+            "motionBlocking": false
+        },
+        "minecraft:lava": {
+            "canBeReplaced": true,
+            "isSolid": false,
+            "hasFluid": true,
+            "motionBlocking": true
+        },
+        "minecraft:nether_portal": {
+            "canBeReplaced": false,
+            "isSolid": false,
+            "hasFluid": false,
+            "motionBlocking": false
+        },
+        "minecraft:netherrack": {
+            "canBeReplaced": false,
+            "isSolid": true,
+            "hasFluid": false,
+            "motionBlocking": true
+        },
+        "minecraft:obsidian": {
+            "canBeReplaced": false,
+            "isSolid": true,
+            "hasFluid": false,
+            "motionBlocking": true
+        },
+        "minecraft:short_grass": {
+            "canBeReplaced": true,
+            "isSolid": false,
+            "hasFluid": false,
+            "motionBlocking": false
+        },
+        "minecraft:snow": {
+            "canBeReplaced": true,
+            "isSolid": false,
+            "hasFluid": false,
+            "motionBlocking": false
+        },
+        "minecraft:stone": {
+            "canBeReplaced": false,
+            "isSolid": true,
+            "hasFluid": false,
+            "motionBlocking": true
+        }
+    },
+    "cases": [
+        {
+            "name": "open-air-x",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [3, 70, -2],
+            "axis": "x",
+            "origin": [3, 63, -2],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [2, 62, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 63, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 64, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 65, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 66, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 62, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 66, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 62, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 62, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 63, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 64, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 65, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 66, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 63, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [3, 64, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [3, 65, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 63, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 64, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 65, -2],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "open-air-z",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 63, 0],
+            "axis": "z",
+            "origin": [0, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [0, 62, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 63, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "pillar-ties",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-2, 63, -2],
+                    "to": [2, 100, 2],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "x",
+            "origin": [4, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [3, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "pillar-ties-z",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-2, 63, -2],
+                    "to": [2, 100, 2],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "z",
+            "origin": [4, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [4, 62, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 63, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 64, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 65, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 62, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 62, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 63, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 64, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 65, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 66, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [4, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [4, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [4, 63, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [4, 64, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [4, 65, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "cliff-below",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [0, 63, -24],
+                    "to": [24, 90, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [-4, 70, 0],
+            "axis": "x",
+            "origin": [-4, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-5, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-4, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-4, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-3, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-3, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-3, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "cliff-edge-x",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [0, 63, -24],
+                    "to": [24, 90, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [1, 91, 0],
+            "axis": "x",
+            "origin": [1, 91, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [0, 90, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 91, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 92, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 93, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 94, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 90, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 94, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 90, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 94, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 90, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 91, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 92, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 93, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 94, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 91, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 92, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 93, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [2, 91, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [2, 92, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [2, 93, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "cliff-edge-z",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [0, 63, -24],
+                    "to": [24, 90, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 91, 0],
+            "axis": "z",
+            "origin": [1, 91, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [1, 90, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 91, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 92, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 93, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 94, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 90, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 94, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 90, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 94, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 90, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 91, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 92, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 93, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 94, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 91, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [1, 92, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [1, 93, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [1, 91, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [1, 92, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [1, 93, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "short-grass",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-24, 63, -24],
+                    "to": [24, 63, 24],
+                    "block": "minecraft:short_grass"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "x",
+            "origin": [0, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-1, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "snow-layer",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-24, 63, -24],
+                    "to": [24, 63, 24],
+                    "block": "minecraft:snow"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "x",
+            "origin": [0, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-1, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "snow-patch",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-6, 63, -6],
+                    "to": [6, 63, 6],
+                    "block": "minecraft:snow"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "z",
+            "origin": [0, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [0, 62, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 63, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "cobweb-layer",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-24, 63, -24],
+                    "to": [24, 63, 24],
+                    "block": "minecraft:cobweb"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "x",
+            "origin": [-1, 70, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-1, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 71, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 72, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 71, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 72, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 71, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 72, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 71, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 72, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 69, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 71, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 72, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 71, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 72, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-2, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 70, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 71, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 72, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 73, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 73, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 73, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 70, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 71, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 72, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 73, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-1, 71, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-1, 72, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 70, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 71, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 72, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "cobweb-cave",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [-24, 63, -24],
+                    "to": [24, 63, 24],
+                    "block": "minecraft:cobweb"
+                },
+                {
+                    "from": [-24, 68, -24],
+                    "to": [24, 72, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 64, 0],
+            "axis": "x",
+            "origin": [0, 64, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-1, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 67, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 67, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 67, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [2, 67, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 66, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [1, 66, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "lava-lake",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [
+                {
+                    "from": [-24, 28, -24],
+                    "to": [24, 40, 24],
+                    "block": "minecraft:netherrack"
+                },
+                {
+                    "from": [-12, 32, -12],
+                    "to": [12, 40, 12],
+                    "block": "minecraft:lava"
+                },
+                {
+                    "from": [-24, 123, -24],
+                    "to": [24, 127, 24],
+                    "block": "minecraft:bedrock"
+                }
+            ],
+            "target": [0, 45, 0],
+            "axis": "z",
+            "origin": [14, 41, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [14, 40, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 41, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 42, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 43, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 44, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 40, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 44, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 40, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 44, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 40, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 41, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 42, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 43, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 44, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 41, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [14, 42, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [14, 43, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [14, 41, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [14, 42, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [14, 43, 1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "lava-lake-x",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [
+                {
+                    "from": [-24, 28, -24],
+                    "to": [24, 40, 24],
+                    "block": "minecraft:netherrack"
+                },
+                {
+                    "from": [-12, 32, -12],
+                    "to": [12, 40, 12],
+                    "block": "minecraft:lava"
+                },
+                {
+                    "from": [-24, 123, -24],
+                    "to": [24, 127, 24],
+                    "block": "minecraft:bedrock"
+                }
+            ],
+            "target": [3, 36, -1],
+            "axis": "x",
+            "origin": [14, 41, -1],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [13, 40, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [13, 41, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [13, 42, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [13, 43, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [13, 44, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 40, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 44, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [15, 40, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [15, 44, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [16, 40, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [16, 41, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [16, 42, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [16, 43, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [16, 44, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [14, 41, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [14, 42, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [14, 43, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [15, 41, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [15, 42, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [15, 43, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "lava-sea",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [
+                {
+                    "from": [-24, 28, -24],
+                    "to": [24, 31, 24],
+                    "block": "minecraft:netherrack"
+                },
+                {
+                    "from": [-24, 32, -24],
+                    "to": [24, 40, 24],
+                    "block": "minecraft:lava"
+                }
+            ],
+            "target": [5, 36, 5],
+            "axis": "x",
+            "origin": [4, 70, 5],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [4, 69, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 70, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 71, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 72, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 69, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 70, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 71, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 72, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 70, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 71, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 72, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 70, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 71, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 72, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 69, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 70, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 71, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 72, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 69, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 70, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 71, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 72, 6],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [3, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 70, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 71, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 72, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [3, 73, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 73, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 73, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 69, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 70, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 71, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 72, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 73, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 70, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 71, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [4, 72, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 70, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 71, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 72, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "void-overworld",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [],
+            "target": [10, 100, 10],
+            "axis": "x",
+            "origin": [9, 100, 10],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [9, 99, 9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 100, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 101, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 102, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 99, 9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [10, 100, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 101, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 102, 9],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 100, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 101, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 102, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [10, 100, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 101, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 102, 10],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 99, 11],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 100, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 101, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [9, 102, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 99, 11],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [10, 100, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 101, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [10, 102, 11],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [8, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 100, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 101, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 102, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 103, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 103, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [10, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [10, 103, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [11, 99, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [11, 100, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [11, 101, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [11, 102, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [11, 103, 10],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [9, 100, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [9, 101, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [9, 102, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [10, 100, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [10, 101, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [10, 102, 10],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "void-nether-low",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [],
+            "target": [0, 20, 0],
+            "axis": "z",
+            "origin": [0, 70, -1],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [1, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 70, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [1, 71, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [1, 72, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [1, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 70, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [1, 71, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [1, 72, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 71, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 72, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 71, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 72, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 71, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 72, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 70, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 71, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 72, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 69, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 71, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 72, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 73, -2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 69, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 73, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 69, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 73, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 69, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 71, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 72, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 73, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 70, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 71, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 72, -1],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 70, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 71, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 72, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "void-nether-high",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [],
+            "target": [0, 125, 0],
+            "axis": "x",
+            "origin": [-1, 118, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-1, 117, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 118, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 119, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 120, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 117, -1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 118, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 119, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 120, -1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 118, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 119, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 120, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 118, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 119, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 120, 0],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 117, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 118, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 119, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-1, 120, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 117, 1],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 118, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 119, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [0, 120, 1],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-2, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 118, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 119, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 117, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 118, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 119, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [1, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 118, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-1, 119, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-1, 120, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 118, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 119, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [0, 120, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "void-overworld-high",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [],
+            "target": [-7, 319, 4],
+            "axis": "z",
+            "origin": [-7, 310, 3],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-6, 309, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 310, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 311, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 312, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 309, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 310, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 311, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 312, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 309, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 310, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 311, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 312, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 309, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 310, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 311, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 312, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 309, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-8, 310, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 311, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 312, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 309, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-8, 310, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 311, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-8, 312, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-7, 309, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 310, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 311, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 312, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 313, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 309, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 313, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 309, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 313, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 309, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 310, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 311, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 312, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 313, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-7, 310, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [-7, 311, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [-7, 312, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [-7, 310, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [-7, 311, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [-7, 312, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "build-limit",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "fills": [
+                {
+                    "from": [-24, 300, -24],
+                    "to": [-1, 314, 24],
+                    "block": "minecraft:stone"
+                },
+                {
+                    "from": [0, 300, -24],
+                    "to": [24, 315, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 319, 0],
+            "axis": "x",
+            "origin": [-3, 315, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-4, 314, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 315, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 316, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 317, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 318, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 314, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 318, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 314, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-2, 318, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 314, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 315, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 316, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 317, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-1, 318, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 315, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-3, 316, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-3, 317, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-2, 315, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-2, 316, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-2, 317, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "nether-roof",
+            "dimension": {
+                "name": "the_nether",
+                "minY": 0,
+                "height": 256,
+                "logicalHeight": 128
+            },
+            "fills": [
+                {
+                    "from": [-24, 95, -24],
+                    "to": [24, 120, 24],
+                    "block": "minecraft:netherrack"
+                },
+                {
+                    "from": [-24, 121, -24],
+                    "to": [24, 127, 24],
+                    "block": "minecraft:bedrock"
+                },
+                {
+                    "from": [-24, 128, -24],
+                    "to": [24, 140, 24],
+                    "block": "minecraft:netherrack"
+                },
+                {
+                    "from": [4, 121, -2],
+                    "to": [8, 125, 2],
+                    "block": "minecraft:air"
+                }
+            ],
+            "target": [0, 120, 0],
+            "axis": "x",
+            "origin": [5, 121, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [4, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 122, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 123, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 124, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 124, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 124, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 120, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 121, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 122, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 123, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 124, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 121, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 122, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [5, 123, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [6, 121, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [6, 122, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [6, 123, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "border-search",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "border": {
+                "minX": -8,
+                "maxX": 8,
+                "minZ": -8,
+                "maxZ": 8
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [6, 63, 0],
+            "axis": "x",
+            "origin": [6, 63, 0],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [5, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [7, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 62, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 63, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 64, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 65, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [8, 66, 0],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [6, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [6, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [7, 63, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [7, 64, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [7, 65, 0],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "border-search-z",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "border": {
+                "minX": -8,
+                "maxX": 8,
+                "minZ": -8,
+                "maxZ": 8
+            },
+            "fills": [
+                {
+                    "from": [-24, 60, -24],
+                    "to": [24, 62, 24],
+                    "block": "minecraft:stone"
+                }
+            ],
+            "target": [0, 63, -9],
+            "axis": "z",
+            "origin": [0, 63, -8],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [0, 62, -9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, -9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, -9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, -9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -9],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, -8],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -8],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, -7],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -7],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 62, -6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, -6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 64, -6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 65, -6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 66, -6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [0, 63, -8],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, -8],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, -8],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 63, -7],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 64, -7],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [0, 65, -7],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "border-forced-west",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "border": {
+                "minX": -4.75,
+                "maxX": 5.25,
+                "minZ": -5,
+                "maxZ": 5
+            },
+            "fills": [],
+            "target": [-20, 100, 3],
+            "axis": "x",
+            "origin": [-5, 100, 3],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [-5, 99, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 100, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 101, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 102, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 99, 2],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 100, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 101, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 102, 2],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 100, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 101, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 102, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 100, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 101, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 102, 3],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 100, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 101, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-5, 102, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 100, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 101, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-4, 102, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [-6, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 100, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 101, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 102, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-6, 103, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 103, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-4, 103, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 100, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 101, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 102, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-3, 103, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [-5, 100, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-5, 101, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-5, 102, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-4, 100, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-4, 101, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                },
+                {
+                    "at": [-4, 102, 3],
+                    "block": "minecraft:nether_portal",
+                    "axis": "x"
+                }
+            ]
+        },
+        {
+            "name": "border-forced-east",
+            "dimension": {
+                "name": "overworld",
+                "minY": -64,
+                "height": 384,
+                "logicalHeight": 384
+            },
+            "border": {
+                "minX": -4.75,
+                "maxX": 5.25,
+                "minZ": -5,
+                "maxZ": 5
+            },
+            "fills": [],
+            "target": [20, 100, 20],
+            "axis": "z",
+            "origin": [5, 100, 4],
+            "width": 2,
+            "height": 3,
+            "writes": [
+                {
+                    "at": [6, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 100, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [6, 101, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [6, 102, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [6, 99, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [6, 100, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [6, 101, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [6, 102, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 100, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 101, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 102, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 99, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 100, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 101, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 102, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 100, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 101, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 102, 4],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 99, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [4, 100, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 101, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [4, 102, 5],
+                    "block": "minecraft:air"
+                },
+                {
+                    "at": [5, 99, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 100, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 101, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 102, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 103, 3],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 99, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 103, 4],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 99, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 103, 5],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 99, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 100, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 101, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 102, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 103, 6],
+                    "block": "minecraft:obsidian"
+                },
+                {
+                    "at": [5, 100, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [5, 101, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [5, 102, 4],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [5, 100, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [5, 101, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                },
+                {
+                    "at": [5, 102, 5],
+                    "block": "minecraft:nether_portal",
+                    "axis": "z"
+                }
+            ]
+        },
+        {
+            "name": "too-short",
+            "dimension": {
+                "name": "shallow",
+                "minY": 0,
+                "height": 64,
+                "logicalHeight": 64
+            },
+            "fills": [],
+            "target": [0, 30, 0],
+            "axis": "x",
+            "origin": null,
+            "writes": []
+        }
+    ]
+}

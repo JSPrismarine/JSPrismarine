@@ -559,6 +559,7 @@ const clampToBorder = (border: PortalWorldBorder | undefined, position: BlockPos
  * and the caller writes a platform under it.
  *
  * @javaSource PortalForcer.createPortal
+ * @javaVerified vectors
  * @param target - The scaled arrival position in the destination dimension.
  * @param axis - The source portal's axis, which the new portal keeps.
  * @returns The site, or undefined when the dimension is too short for a forced portal, which is

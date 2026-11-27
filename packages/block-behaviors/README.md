@@ -203,13 +203,38 @@ it from four hooks.
 | `onRandomTick` | `portal` | In the Overworld, `piglinSpawnRoll` is `random() * 2000 < difficultyId`, and a hit spawns `minecraft:zombie_pigman` beside the bottom of the portal: south of a portal on the x axis, east of one on the z axis. |
 
 Two more functions are for the server's travel code rather than for a hook. `portalCreationSite`
-is Java's search for where a new portal goes: every column within 16 blocks of the target, a
-replaceable run on a solid floor with room for the 4 by 5 frame, the footprint plus a block on each
-side in the first pass and the footprint alone in the second, closest by 3D distance. When nothing
-fits the site is forced one block back from the target with y clamped to `[70, maxY - 10]`.
-`writeNetherPortal` writes the frame with corners and six portal blocks, and for a forced site an
-obsidian platform with four netherrack blocks on each side as Bedrock does. `writeEndPlatform`
-writes the 5 by 5 obsidian platform and three rows of air above it, destroying what is in the way.
+is Java's search for where a new portal goes. It visits every column within 16 blocks of the target
+in Java's spiral, skips a column outside the world border when the bounds carry one, and walks each
+column down from its `MOTION_BLOCKING` height for a replaceable run on a solid floor with room for
+the 4 by 5 frame. The first pass wants the footprint plus a block on each side, the second the
+footprint alone, and the closest site by 3D distance wins, the first the spiral met on a tie. When
+nothing fits the site is forced one block back from the target with y clamped to
+`[70, maxY - 10]` and the column clamped into the border. A dimension too short for that range
+gets no site, as Java builds nothing there. `writeNetherPortal` writes the frame with corners and
+six portal blocks, and for a forced site an obsidian platform with four netherrack blocks on each
+side as Bedrock does. `writeEndPlatform` writes the 5 by 5 obsidian platform and three rows of air
+above it, destroying what is in the way.
+
+### Portal vectors
+
+`vectors/<release>/portal-creation.json` records what Java's `PortalForcer.createPortal` does in a
+set of fixed layouts: open ground, a pillar that leaves equally close sites, a cliff, short grass,
+snow and cobwebs, a Nether lava lake and a lava sea, empty dimensions, ground near the build limit,
+the Nether roof, a world border and a dimension too short for a forced portal. For each it holds the
+layout as cuboid fills, the origin and axis Java chose and every block Java wrote, and for each
+block the layouts use the rules the search reads. `src/rules/portal.vectors.test.ts` rebuilds every
+layout through `replayPortalVector` in `src/rules/portalVectors.ts`, and the `blocks.portals`
+parity row does the same. Both fail when the port builds somewhere Java does not or writes other
+blocks. The netherrack beside a forced platform is the one difference they accept. A layout the
+port still gets wrong is listed with its issue: Java stands a portal on cobwebs under a roof, where
+the port does not ([#3784](https://github.com/JSPrismarine/JSPrismarine/issues/3784)).
+
+`utils/oracle/DumpPortalVectors.java` writes the file. It runs Java's own `createPortal` on a
+`ServerLevel` subclass that answers the few methods the search calls from a map of block states,
+allocated without a constructor so no server has to start, with the vanilla data pack's tags bound.
+Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vectors`, adding
+`-- --java <release>` for a release other than the default. The script fetches the pinned server
+jar when it is missing and needs the JDK the jar's `version.json` declares.
 
 The block list comes from `PORTAL_BLOCK_NAMES` in `@jsprismarine/blocks`, which is the same list
 the `jsprismarine:portal` family rule matches on, so the family and the geometry agree on what a
