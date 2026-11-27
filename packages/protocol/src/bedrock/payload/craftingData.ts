@@ -68,7 +68,10 @@ export interface ShapedRecipeEntry extends RecipeEntryBase {
     readonly symmetric: boolean;
 }
 
-/** A shapeless crafting recipe, which is also how a stonecutter recipe travels. */
+/**
+ * A shapeless crafting recipe, which is also how a stonecutter recipe and a cooking recipe
+ * travel: the station tag says which block makes it.
+ */
 export interface ShapelessRecipeEntry extends RecipeEntryBase {
     readonly ingredients: readonly WireIngredient[];
     readonly outputs: readonly WireResult[];
@@ -112,12 +115,6 @@ export interface PotionMixEntry {
     readonly reagentMeta: number;
     readonly outputId: number;
     readonly outputMeta: number;
-}
-
-/** A cooking recipe. There is no list for one at protocol 2193; see the README. */
-export interface FurnaceRecipeEntry extends RecipeEntryBase {
-    readonly input: WireIngredient;
-    readonly output: WireResult;
 }
 
 /** A recipe with no Bedrock form, and why. */
@@ -206,13 +203,6 @@ export interface CraftingDataPayload {
     readonly smithingTransform: readonly SmithingTransformEntry[];
     readonly smithingTrim: readonly SmithingTrimEntry[];
     readonly potionMixes: readonly PotionMixEntry[];
-    /**
-     * Cooking recipes. Protocol 2193 has no list for them - smelting became
-     * client-side data - so a writer at that version drops this list and the
-     * server smelts on its own. It is produced anyway because the recipes
-     * exist and a later protocol may take them.
-     */
-    readonly furnace: readonly FurnaceRecipeEntry[];
 }
 
 /** What {@link buildCraftingData} produced, and everything it could not say on the wire. */
@@ -296,6 +286,25 @@ const ingredientOf = (
     return { descriptor: { kind: 'name', name: first.identifier, meta: first.data ?? ANY_META }, count: 1 };
 };
 
+/**
+ * A cooking recipe's inputs as the wire's single slot can carry them: one name per item, each
+ * with the suffix its entry's id takes past the first. The Bedrock Dedicated Server writes a
+ * recipe per item too (`furnace_chainmail_boots` and the rest), and names sand and red sand one
+ * by one rather than by a tag, so narrowing the input to its first item, or to a tag the client
+ * may not hold, would hide items from the client's furnace.
+ */
+const cookingInputs = (
+    ingredient: CompiledIngredient | null
+): readonly { readonly input: WireIngredient; readonly suffix: string }[] => {
+    const items = ingredient?.items ?? [];
+    if (items.length === 0) return [{ input: emptyIngredient, suffix: '' }];
+
+    return items.map((item) => ({
+        input: { descriptor: { kind: 'name', name: item.identifier, meta: item.data ?? ANY_META }, count: 1 },
+        suffix: `_from_${item.identifier.replace(/^.*:/, '')}${item.data === undefined ? '' : `_${item.data}`}`
+    }));
+};
+
 /** The station tags a recipe's station maps to; campfire cooking has two. */
 const stationTags = (recipe: CompiledRecipe): readonly string[] =>
     recipe.blockTags.length > 0 ? recipe.blockTags : BEDROCK_STATION_TAGS[recipe.station];
@@ -319,7 +328,6 @@ export const buildCraftingData = (
     const smithingTransform: SmithingTransformEntry[] = [];
     const smithingTrim: SmithingTrimEntry[] = [];
     const potionMixes: PotionMixEntry[] = [];
-    const furnace: FurnaceRecipeEntry[] = [];
     const omitted: OmittedRecipe[] = [];
     const widened: WidenedIngredient[] = [];
     const recipesByNetId = new Map<number, string[]>();
@@ -497,14 +505,37 @@ export const buildCraftingData = (
             case 'minecraft:smelting':
             case 'minecraft:blasting':
             case 'minecraft:smoking':
-            case 'minecraft:campfire_cooking':
-                // One entry per station tag: campfire cooking is both the
-                // campfire and the soul campfire, and the wire writes one
-                // station string per entry.
-                for (const tag of stationTags(recipe)) {
-                    furnace.push({ ...base, station: tag, input: slot(first ?? null), output: resultOf(result) });
+            case 'minecraft:campfire_cooking': {
+                // A shapeless entry of one ingredient for each station tag and input, as the
+                // Bedrock Dedicated Server writes its own cooking recipes: campfire cooking is
+                // both the campfire and the soul campfire, and an entry carries one station. The
+                // client reads these to know what a furnace's input slot takes, which is where a
+                // shift-click puts a stack. A furnace makes them itself, so no net id is a
+                // recipe a client can name in a craft.
+                //
+                // Each entry has an id of its own, since the client keys its recipe book on the
+                // id and the wire derives the entry's UUID from it: the first keeps the recipe's
+                // id, and the rest add the station past the first and the input past the first.
+                const inputs = cookingInputs(first ?? null);
+                const ids = new Set<string>();
+                for (const [tagIndex, tag] of stationTags(recipe).entries()) {
+                    for (const [inputIndex, { input, suffix }] of inputs.entries()) {
+                        let id = `${recipe.id}${tagIndex === 0 ? '' : `_${tag}`}${inputIndex === 0 ? '' : suffix}`;
+                        if (ids.has(id)) id = `${id}_${inputIndex}`;
+                        ids.add(id);
+                        shapeless.push({
+                            ...base,
+                            id,
+                            netId: ids.size === 1 ? recipe.netId : nextNetId++,
+                            station: tag,
+                            ingredients: [input],
+                            outputs: [resultOf(result)],
+                            priority
+                        });
+                    }
                 }
                 break;
+            }
 
             default:
                 omitted.push({
@@ -523,7 +554,6 @@ export const buildCraftingData = (
         smithingTransform,
         smithingTrim,
         potionMixes,
-        furnace,
         recipesByNetId,
         omitted,
         widened

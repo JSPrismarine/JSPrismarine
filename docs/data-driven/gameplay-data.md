@@ -204,10 +204,12 @@ past the first take net ids after the last recipe's. Every `smithing_trim` recip
 single trim entry the Bedrock Dedicated Server sends, which takes any template, armor piece and
 material the client's own tags name. `crafting_dye`, `crafting_imbue` and
 `crafting_special_shielddecoration` have no form yet
-([#3690](https://github.com/JSPrismarine/JSPrismarine/issues/3690)), and the four cooking
-serializers are left out because protocol 2193's packet has no list for them; the server cooks on
-its own instead. The startup report counts what was left out, along with any ingredient the wire
-forced down to a single item.
+([#3690](https://github.com/JSPrismarine/JSPrismarine/issues/3690)). The four cooking serializers
+go out as shapeless entries of one ingredient whose station is the furnace, blast furnace, smoker
+or campfire, one entry per station, as the Bedrock Dedicated Server sends them. The client reads
+them to know what a furnace's input slot takes, which is where a shift-click puts a stack, and the
+furnace still cooks with the server's own recipes. The startup report counts what was left out,
+along with any ingredient the wire forced down to a single item.
 
 When a client crafts, it names the entry's net id, and the server looks up the Java recipes that id
 stands for and makes the one the inputs match.
