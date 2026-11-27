@@ -378,6 +378,7 @@
         "LecternBlock.getStateForPlacement": "net/minecraft/world/level/block/LecternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Level.isBrightOutside": "net/minecraft/world/level/Level.isBrightOutside()Z",
         "Level.isRainingAt": "net/minecraft/world/level/Level.isRainingAt(Lnet/minecraft/core/BlockPos;)Z",
+        "Level.removeBlock": "net/minecraft/world/level/Level.removeBlock(Lnet/minecraft/core/BlockPos;Z)Z",
         "LevelChunk.postProcessGeneration": "net/minecraft/world/level/chunk/LevelChunk.postProcessGeneration(Lnet/minecraft/server/level/ServerLevel;)V",
         "LevelChunkSection.isRandomlyTicking": "net/minecraft/world/level/chunk/LevelChunkSection.isRandomlyTicking()Z",
         "LevelReader.getPathfindingCostFromLightLevels": "net/minecraft/world/level/LevelReader.getPathfindingCostFromLightLevels(Lnet/minecraft/core/BlockPos;)F",
@@ -3369,6 +3370,10 @@
         "net/minecraft/world/level/Level.isRainingAt(Lnet/minecraft/core/BlockPos;)Z": {
             "26.3": "sha256:4c3e2691df222f60400275053fa22f35de6008364aa544c5c8b0286012238760",
             "26.4-pre-1": "sha256:4c3e2691df222f60400275053fa22f35de6008364aa544c5c8b0286012238760"
+        },
+        "net/minecraft/world/level/Level.removeBlock(Lnet/minecraft/core/BlockPos;Z)Z": {
+            "26.3": "sha256:c1034e9e83c924338eaabd87ad4e1ea304d23ebc03cb7dc40bdb7b7aa17bee44",
+            "26.4-pre-1": "sha256:c1034e9e83c924338eaabd87ad4e1ea304d23ebc03cb7dc40bdb7b7aa17bee44"
         },
         "net/minecraft/world/level/levelgen/Column.scan(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;ILjava/util/function/Predicate;Ljava/util/function/Predicate;)Ljava/util/Optional;": {
             "26.3": "sha256:66bb001dd1a0b7dcab2c5963ddc26e975bc0245ba6316444f4a3f0085cf6a17d",
