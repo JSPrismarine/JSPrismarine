@@ -26,7 +26,7 @@ export const recipeBook: Scenario = {
         server.command(`teleport ${playerName} 0.5 64 0.5`);
 
         const ready = server.waitForLine(/recipe-book-fixture-ready/, 30_000);
-        server.command(`recipe give ${playerName} crafting_table/minecraft:oak_planks`);
+        server.command(`recipe give ${playerName} minecraft:oak_planks`);
         server.command('say recipe-book-fixture-ready');
         await ready;
 
