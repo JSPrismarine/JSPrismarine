@@ -26,7 +26,10 @@ import { profileProperty } from './login';
 import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
-/** `Disconnect (play)` (clientbound): ends the connection, with the reason as a text component. */
+/**
+ * `Disconnect (play)` (clientbound): ends the connection, with the reason as a text component.
+ * @javaSource ClientboundDisconnectPacket.STREAM_CODEC
+ */
 export const PlayDisconnect = defineJavaPacket('Disconnect (play)', 'play/clientbound/disconnect', {
     reason: textComponent
 });
@@ -47,7 +50,10 @@ const SPAWN_INFO = {
     seaLevel: varInt
 };
 
-/** `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings. */
+/**
+ * `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings.
+ * @javaSource ClientboundLoginPacket.STREAM_CODEC
+ */
 export const PlayLogin = defineJavaPacket('Login (play)', 'play/clientbound/login', {
     entityId: int,
     hardcore: bool,
@@ -63,7 +69,10 @@ export const PlayLogin = defineJavaPacket('Login (play)', 'play/clientbound/logi
     enforcesSecureChat: bool
 });
 
-/** `Synchronize Player Position` (clientbound): moves the client's own player, which confirms it by id. */
+/**
+ * `Synchronize Player Position` (clientbound): moves the client's own player, which confirms it by id.
+ * @javaSource ClientboundPlayerPositionPacket.STREAM_CODEC
+ */
 export const SynchronizePlayerPosition = defineJavaPacket(
     'Synchronize Player Position',
     'play/clientbound/player_position',
@@ -82,7 +91,10 @@ export const SynchronizePlayerPosition = defineJavaPacket(
     }
 );
 
-/** `Confirm Teleportation` (serverbound): the client applied a position, and where it put the player. */
+/**
+ * `Confirm Teleportation` (serverbound): the client applied a position, and where it put the player.
+ * @javaSource ServerboundAcceptTeleportationPacket.STREAM_CODEC
+ */
 export const ConfirmTeleportation = defineJavaPacket('Confirm Teleportation', 'play/serverbound/accept_teleportation', {
     teleportId: varInt,
     x: double,
@@ -92,7 +104,10 @@ export const ConfirmTeleportation = defineJavaPacket('Confirm Teleportation', 'p
     pitch: float
 });
 
-/** `Game Event` (clientbound): a change of state the client applies, by event number. */
+/**
+ * `Game Event` (clientbound): a change of state the client applies, by event number.
+ * @javaSource ClientboundGameEventPacket.STREAM_CODEC
+ */
 export const GameEvent = defineJavaPacket('Game Event', 'play/clientbound/game_event', {
     event: uint8,
     value: float
@@ -101,31 +116,49 @@ export const GameEvent = defineJavaPacket('Game Event', 'play/clientbound/game_e
 /** The `Game Event` that tells a joining client to wait for chunks around it before showing the world. */
 export const START_WAITING_FOR_LEVEL_CHUNKS = 13;
 
-/** `Set Center Chunk` (clientbound): the chunk the client's view is centered on. */
+/**
+ * `Set Center Chunk` (clientbound): the chunk the client's view is centered on.
+ * @javaSource ClientboundSetChunkCacheCenterPacket.STREAM_CODEC
+ */
 export const SetCenterChunk = defineJavaPacket('Set Center Chunk', 'play/clientbound/set_chunk_cache_center', {
     x: varInt,
     z: varInt
 });
 
-/** `Chunk Batch Start` (clientbound): chunks follow, which the client times. */
+/**
+ * `Chunk Batch Start` (clientbound): chunks follow, which the client times.
+ * @javaSource ClientboundChunkBatchStartPacket.STREAM_CODEC
+ */
 export const ChunkBatchStart = defineJavaPacket('Chunk Batch Start', 'play/clientbound/chunk_batch_start', {});
 
-/** `Chunk Batch Finished` (clientbound): how many chunks the batch held. */
+/**
+ * `Chunk Batch Finished` (clientbound): how many chunks the batch held.
+ * @javaSource ClientboundChunkBatchFinishedPacket.STREAM_CODEC
+ */
 export const ChunkBatchFinished = defineJavaPacket('Chunk Batch Finished', 'play/clientbound/chunk_batch_finished', {
     batchSize: varInt
 });
 
-/** `Chunk Batch Received` (serverbound): how many chunks a tick the client would like next. */
+/**
+ * `Chunk Batch Received` (serverbound): how many chunks a tick the client would like next.
+ * @javaSource ServerboundChunkBatchReceivedPacket.STREAM_CODEC
+ */
 export const ChunkBatchReceived = defineJavaPacket('Chunk Batch Received', 'play/serverbound/chunk_batch_received', {
     chunksPerTick: float
 });
 
-/** `Clientbound Keep Alive (play)`: a number the client must send back, or the server drops it. */
+/**
+ * `Clientbound Keep Alive (play)`: a number the client must send back, or the server drops it.
+ * @javaSource ClientboundKeepAlivePacket.STREAM_CODEC
+ */
 export const ClientboundKeepAlive = defineJavaPacket('Clientbound Keep Alive (play)', 'play/clientbound/keep_alive', {
     id: long
 });
 
-/** `Serverbound Keep Alive (play)`: the number the server sent. */
+/**
+ * `Serverbound Keep Alive (play)`: the number the server sent.
+ * @javaSource ServerboundKeepAlivePacket.STREAM_CODEC
+ */
 export const ServerboundKeepAlive = defineJavaPacket('Serverbound Keep Alive (play)', 'play/serverbound/keep_alive', {
     id: long
 });
@@ -133,7 +166,10 @@ export const ServerboundKeepAlive = defineJavaPacket('Serverbound Keep Alive (pl
 /** The flags byte the move packets end with: on the ground, and against a wall. */
 const moveFlags = uint8;
 
-/** `Set Player Position` (serverbound). */
+/**
+ * `Set Player Position` (serverbound).
+ * @javaSource ServerboundMovePlayerPacket$Pos.STREAM_CODEC
+ */
 export const MovePlayerPos = defineJavaPacket('Set Player Position', 'play/serverbound/move_player_pos', {
     x: double,
     y: double,
@@ -141,21 +177,30 @@ export const MovePlayerPos = defineJavaPacket('Set Player Position', 'play/serve
     flags: moveFlags
 });
 
-/** `Set Player Position and Rotation` (serverbound). */
+/**
+ * `Set Player Position and Rotation` (serverbound).
+ * @javaSource ServerboundMovePlayerPacket$PosRot.STREAM_CODEC
+ */
 export const MovePlayerPosRot = defineJavaPacket(
     'Set Player Position and Rotation',
     'play/serverbound/move_player_pos_rot',
     { x: double, y: double, z: double, yaw: float, pitch: float, flags: moveFlags }
 );
 
-/** `Set Player Rotation` (serverbound). */
+/**
+ * `Set Player Rotation` (serverbound).
+ * @javaSource ServerboundMovePlayerPacket$Rot.STREAM_CODEC
+ */
 export const MovePlayerRot = defineJavaPacket('Set Player Rotation', 'play/serverbound/move_player_rot', {
     yaw: float,
     pitch: float,
     flags: moveFlags
 });
 
-/** `Set Player Movement Flags` (serverbound). */
+/**
+ * `Set Player Movement Flags` (serverbound).
+ * @javaSource ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC
+ */
 export const MovePlayerStatusOnly = defineJavaPacket(
     'Set Player Movement Flags',
     'play/serverbound/move_player_status_only',
@@ -176,6 +221,7 @@ export enum PlayerCommandAction {
 /**
  * `Player Command` (serverbound): the player got out of bed, started or stopped sprinting, or
  * jumped with or opened the inventory of what it rides. `data` is a riding jump's strength.
+ * @javaSource ServerboundPlayerCommandPacket.STREAM_CODEC
  */
 export const PlayerCommand = defineJavaPacket('Player Command', 'play/serverbound/player_command', {
     entityId: varInt,
@@ -194,13 +240,19 @@ export enum PlayerInputFlag {
     Sprint = 0x40
 }
 
-/** `Player Input` (serverbound): the movement keys the player holds, sent each time they change. */
+/**
+ * `Player Input` (serverbound): the movement keys the player holds, sent each time they change.
+ * @javaSource ServerboundPlayerInputPacket.STREAM_CODEC
+ */
 export const PlayerInput = defineJavaPacket('Player Input', 'play/serverbound/player_input', { flags: uint8 });
 
 /** The move flags' bit for a player standing on the ground. */
 export const MOVE_ON_GROUND = 0x01;
 
-/** `System Chat Message` (clientbound): text the client shows in chat, or over the hotbar when `overlay`. */
+/**
+ * `System Chat Message` (clientbound): text the client shows in chat, or over the hotbar when `overlay`.
+ * @javaSource ClientboundSystemChatPacket.STREAM_CODEC
+ */
 export const SystemChat = defineJavaPacket('System Chat Message', 'play/clientbound/system_chat', {
     content: textComponent,
     overlay: bool
@@ -220,7 +272,10 @@ const acknowledged = custom<Buffer>(
     (s) => s.read(3)
 );
 
-/** `Chat Message` (serverbound): what the player typed, with the secure chat fields this server does not check. */
+/**
+ * `Chat Message` (serverbound): what the player typed, with the secure chat fields this server does not check.
+ * @javaSource ServerboundChatPacket.STREAM_CODEC
+ */
 export const ChatMessage = defineJavaPacket('Chat Message', 'play/serverbound/chat', {
     message: javaString(256),
     timestamp: long,
@@ -231,7 +286,10 @@ export const ChatMessage = defineJavaPacket('Chat Message', 'play/serverbound/ch
     checksum: uint8
 });
 
-/** `Chat Command` (serverbound): a command the player typed, without its slash. */
+/**
+ * `Chat Command` (serverbound): a command the player typed, without its slash.
+ * @javaSource ServerboundChatCommandPacket.STREAM_CODEC
+ */
 export const ChatCommand = defineJavaPacket('Chat Command', 'play/serverbound/chat_command', {
     command: javaString(32_767)
 });
@@ -239,7 +297,10 @@ export const ChatCommand = defineJavaPacket('Chat Command', 'play/serverbound/ch
 /** `Game Event` 3: the client's own game mode changed, to the value's game mode. */
 export const CHANGE_GAME_MODE = 3;
 
-/** `Player Loaded` (serverbound): the client has the world around it and shows the player. */
+/**
+ * `Player Loaded` (serverbound): the client has the world around it and shows the player.
+ * @javaSource ServerboundPlayerLoadedPacket.STREAM_CODEC
+ */
 export const PlayerLoaded = defineJavaPacket('Player Loaded', 'play/serverbound/player_loaded', {});
 
 /** An angle as one byte: 256 steps to a turn. */
@@ -263,7 +324,10 @@ const restingVelocity = custom<null>(
     }
 );
 
-/** `Spawn Entity` (clientbound): an entity coming into view, by type id, at rest. */
+/**
+ * `Spawn Entity` (clientbound): an entity coming into view, by type id, at rest.
+ * @javaSource ClientboundAddEntityPacket.STREAM_CODEC
+ */
 export const AddEntity = defineJavaPacket('Spawn Entity', 'play/clientbound/add_entity', {
     entityId: varInt,
     uuid,
@@ -278,12 +342,18 @@ export const AddEntity = defineJavaPacket('Spawn Entity', 'play/clientbound/add_
     data: varInt
 });
 
-/** `Remove Entities` (clientbound): entities leaving view. */
+/**
+ * `Remove Entities` (clientbound): entities leaving view.
+ * @javaSource ClientboundRemoveEntitiesPacket.STREAM_CODEC
+ */
 export const RemoveEntities = defineJavaPacket('Remove Entities', 'play/clientbound/remove_entities', {
     entityIds: list(varInt)
 });
 
-/** `Teleport Entity` (clientbound): an entity's absolute position and facing. */
+/**
+ * `Teleport Entity` (clientbound): an entity's absolute position and facing.
+ * @javaSource ClientboundTeleportEntityPacket.STREAM_CODEC
+ */
 export const TeleportEntity = defineJavaPacket('Teleport Entity', 'play/clientbound/teleport_entity', {
     entityId: varInt,
     x: double,
@@ -299,7 +369,10 @@ export const TeleportEntity = defineJavaPacket('Teleport Entity', 'play/clientbo
     onGround: bool
 });
 
-/** `Set Head Rotation` (clientbound): where an entity's head faces. */
+/**
+ * `Set Head Rotation` (clientbound): where an entity's head faces.
+ * @javaSource ClientboundRotateHeadPacket.STREAM_CODEC
+ */
 export const RotateHead = defineJavaPacket('Set Head Rotation', 'play/clientbound/rotate_head', {
     entityId: varInt,
     headYaw: angle
@@ -314,18 +387,25 @@ export enum PlayerInfoAction {
 /**
  * `Player Info Update` (clientbound) adding players to the tab list: their profile, and listed.
  * The action set is fixed to adding and listing, whose fields each entry carries in that order.
+ * @javaSource ClientboundPlayerInfoUpdatePacket.STREAM_CODEC
  */
 export const PlayerInfoAdd = defineJavaPacket('Player Info Update', 'play/clientbound/player_info_update', {
     actions: uint8,
     players: list(record({ uuid, name: javaString(16), properties: list(profileProperty), listed: bool }))
 });
 
-/** `Player Info Remove` (clientbound): players leaving the tab list. */
+/**
+ * `Player Info Remove` (clientbound): players leaving the tab list.
+ * @javaSource ClientboundPlayerInfoRemovePacket.STREAM_CODEC
+ */
 export const PlayerInfoRemove = defineJavaPacket('Player Info Remove', 'play/clientbound/player_info_remove', {
     uuids: list(uuid)
 });
 
-/** `Block Update` (clientbound): one block's new state, by its state id. */
+/**
+ * `Block Update` (clientbound): one block's new state, by its state id.
+ * @javaSource ClientboundBlockUpdatePacket.STREAM_CODEC
+ */
 export const BlockUpdate = defineJavaPacket('Block Update', 'play/clientbound/block_update', {
     position: blockPosition,
     state: varInt
@@ -350,7 +430,10 @@ const sectionBlock = custom<SectionBlock>(
     }
 );
 
-/** `Update Section Blocks` (clientbound): several blocks of one section at once. */
+/**
+ * `Update Section Blocks` (clientbound): several blocks of one section at once.
+ * @javaSource ClientboundSectionBlocksUpdatePacket.STREAM_CODEC
+ */
 export const SectionBlocksUpdate = defineJavaPacket('Update Section Blocks', 'play/clientbound/section_blocks_update', {
     section: sectionPosition,
     blocks: list(sectionBlock)
@@ -376,6 +459,7 @@ export enum PlayerActionStatus {
  * `Player Action` (serverbound): mining a block, and the hand's other actions. `face` is the
  * direction's 3D data value, 0 to 5 for down, up, north, south, west and east, and `sequence` is
  * what the server's `Block Changed Ack` answers.
+ * @javaSource ServerboundPlayerActionPacket.STREAM_CODEC
  */
 export const PlayerAction = defineJavaPacket('Player Action', 'play/serverbound/player_action', {
     status: varInt,
@@ -384,7 +468,10 @@ export const PlayerAction = defineJavaPacket('Player Action', 'play/serverbound/
     sequence: varInt
 });
 
-/** `Acknowledge Block Change` (clientbound): the client's block predictions up to `sequence` are answered. */
+/**
+ * `Acknowledge Block Change` (clientbound): the client's block predictions up to `sequence` are answered.
+ * @javaSource ClientboundBlockChangedAckPacket.STREAM_CODEC
+ */
 export const BlockChangedAck = defineJavaPacket('Acknowledge Block Change', 'play/clientbound/block_changed_ack', {
     sequence: varInt
 });
@@ -450,6 +537,7 @@ const untrustedItemStack = custom<JavaItemStack | null>(
  * `Set Container Content` (clientbound): every slot of a window, and what the cursor carries.
  * Window 0 is the player's own inventory: 0 the crafting result, 1 to 4 the crafting grid, 5 to 8
  * the armor from the head down, 9 to 35 the main inventory, 36 to 44 the hotbar and 45 the off hand.
+ * @javaSource ClientboundContainerSetContentPacket.STREAM_CODEC
  */
 export const ContainerSetContent = defineJavaPacket('Set Container Content', 'play/clientbound/container_set_content', {
     window: varInt,
@@ -458,7 +546,10 @@ export const ContainerSetContent = defineJavaPacket('Set Container Content', 'pl
     carried: itemStack
 });
 
-/** `Set Container Slot` (clientbound): one slot of a window. */
+/**
+ * `Set Container Slot` (clientbound): one slot of a window.
+ * @javaSource ClientboundContainerSetSlotPacket.STREAM_CODEC
+ */
 export const ContainerSetSlot = defineJavaPacket('Set Container Slot', 'play/clientbound/container_set_slot', {
     window: varInt,
     stateId: varInt,
@@ -466,17 +557,26 @@ export const ContainerSetSlot = defineJavaPacket('Set Container Slot', 'play/cli
     item: itemStack
 });
 
-/** `Set Held Item` (clientbound): the hotbar slot the player holds, 0 to 8. */
+/**
+ * `Set Held Item` (clientbound): the hotbar slot the player holds, 0 to 8.
+ * @javaSource ClientboundSetHeldSlotPacket.STREAM_CODEC
+ */
 export const SetHeldSlot = defineJavaPacket('Set Held Item', 'play/clientbound/set_held_slot', {
     slot: varInt
 });
 
-/** `Set Held Item` (serverbound): the hotbar slot the player moved its hand to, 0 to 8. */
+/**
+ * `Set Held Item` (serverbound): the hotbar slot the player moved its hand to, 0 to 8.
+ * @javaSource ServerboundSetCarriedItemPacket.STREAM_CODEC
+ */
 export const SetCarriedItem = defineJavaPacket('Set Held Item', 'play/serverbound/set_carried_item', {
     slot: short
 });
 
-/** `Set Creative Mode Slot` (serverbound): a creative player put a stack in a slot of its inventory, or emptied it. */
+/**
+ * `Set Creative Mode Slot` (serverbound): a creative player put a stack in a slot of its inventory, or emptied it.
+ * @javaSource ServerboundSetCreativeModeSlotPacket.STREAM_CODEC
+ */
 export const SetCreativeModeSlot = defineJavaPacket(
     'Set Creative Mode Slot',
     'play/serverbound/set_creative_mode_slot',
@@ -494,6 +594,7 @@ export enum JavaHand {
  * where on the block, each coordinate from 0 to 1; `inside` says the eyes were inside the block,
  * and `worldBorderHit` that the click landed on the world border. `sequence` is what the server's
  * `Acknowledge Block Change` answers.
+ * @javaSource ServerboundUseItemOnPacket.STREAM_CODEC
  */
 export const UseItemOn = defineJavaPacket('Use Item On', 'play/serverbound/use_item_on', {
     hand: varInt,
@@ -507,14 +608,20 @@ export const UseItemOn = defineJavaPacket('Use Item On', 'play/serverbound/use_i
     sequence: varInt
 });
 
-/** `Set Health` (clientbound): the player's own health, food level and saturation. */
+/**
+ * `Set Health` (clientbound): the player's own health, food level and saturation.
+ * @javaSource ClientboundSetHealthPacket.STREAM_CODEC
+ */
 export const SetHealth = defineJavaPacket('Set Health', 'play/clientbound/set_health', {
     health: float,
     food: varInt,
     saturation: float
 });
 
-/** `Combat Death` (clientbound): a player died, which opens its client's death screen with the message. */
+/**
+ * `Combat Death` (clientbound): a player died, which opens its client's death screen with the message.
+ * @javaSource ClientboundPlayerCombatKillPacket.STREAM_CODEC
+ */
 export const PlayerCombatKill = defineJavaPacket('Combat Death', 'play/clientbound/player_combat_kill', {
     playerId: varInt,
     message: textComponent
@@ -527,7 +634,10 @@ export enum ClientCommandAction {
     RequestGameRuleValues = 2
 }
 
-/** `Client Command` (serverbound): the death screen's respawn button, and requests for statistics. */
+/**
+ * `Client Command` (serverbound): the death screen's respawn button, and requests for statistics.
+ * @javaSource ServerboundClientCommandPacket.STREAM_CODEC
+ */
 export const ClientCommand = defineJavaPacket('Client Command', 'play/serverbound/client_command', {
     action: varInt
 });
@@ -536,6 +646,7 @@ export const ClientCommand = defineJavaPacket('Client Command', 'play/serverboun
  * `Respawn` (clientbound): the player is spawned again into a world, which a death's respawn and a
  * change of dimension send. `dataToKeep` keeps the attributes (1) and the entity data (2) the
  * client had; a respawn after death keeps neither.
+ * @javaSource ClientboundRespawnPacket.STREAM_CODEC
  */
 export const Respawn = defineJavaPacket('Respawn', 'play/clientbound/respawn', {
     ...SPAWN_INFO,
@@ -582,7 +693,10 @@ const equipmentList = custom<JavaEquipment[]>(
     }
 );
 
-/** `Set Equipment` (clientbound): what an entity holds and wears, slot by slot; at least one slot. */
+/**
+ * `Set Equipment` (clientbound): what an entity holds and wears, slot by slot; at least one slot.
+ * @javaSource ClientboundSetEquipmentPacket.STREAM_CODEC
+ */
 export const SetEquipment = defineJavaPacket('Set Equipment', 'play/clientbound/set_equipment', {
     entityId: varInt,
     equipment: equipmentList
@@ -630,7 +744,10 @@ const entityData = custom<JavaEntityDataEntry[]>(
     }
 );
 
-/** `Set Entity Metadata` (clientbound): some of an entity's data, by index. */
+/**
+ * `Set Entity Metadata` (clientbound): some of an entity's data, by index.
+ * @javaSource ClientboundSetEntityDataPacket.STREAM_CODEC
+ */
 export const SetEntityData = defineJavaPacket('Set Entity Metadata', 'play/clientbound/set_entity_data', {
     entityId: varInt,
     entries: entityData
@@ -787,6 +904,7 @@ const bossEventOperation = custom<JavaBossEvent>(
 /**
  * `Boss Event` (clientbound): adds, removes or updates one boss bar at the top of the screen. The
  * client keys its bars by the UUID, which the server picks.
+ * @javaSource ClientboundBossEventPacket.STREAM_CODEC
  */
 export const BossEvent = defineJavaPacket('Boss Event', 'play/clientbound/boss_event', {
     uuid,

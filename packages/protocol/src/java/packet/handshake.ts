@@ -17,7 +17,10 @@ export enum ClientIntent {
     Transfer = 3
 }
 
-/** `Intention` (serverbound): the client's protocol, the address it dialed and what it wants. */
+/**
+ * `Intention` (serverbound): the client's protocol, the address it dialed and what it wants.
+ * @javaSource ClientIntentionPacket.STREAM_CODEC
+ */
 export const Intention = defineJavaPacket('Intention', 'handshake/serverbound/intention', {
     protocolVersion: varInt,
     serverAddress: javaString(255),

@@ -109,7 +109,10 @@ export enum JavaHeightmapType {
     MotionBlockingNoLeaves = 5
 }
 
-/** `Chunk Data and Update Light` (clientbound). */
+/**
+ * `Chunk Data and Update Light` (clientbound).
+ * @javaSource ClientboundLevelChunkWithLightPacket.STREAM_CODEC
+ */
 export const LevelChunkWithLight = defineJavaPacket(
     'Chunk Data and Update Light',
     'play/clientbound/level_chunk_with_light',
