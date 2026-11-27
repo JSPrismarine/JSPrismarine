@@ -54,15 +54,17 @@ export const creationBounds = (dimension: DimensionType): PortalCreationBounds =
  * @param world - The destination dimension, with the chunks around `target` loaded.
  * @param target - The scaled arrival block, from `scalePosition`.
  * @param axis - The source portal's axis, which the new portal keeps.
- * @returns The written interior and whether it was forced.
+ * @returns The written interior and whether it was forced, or undefined when the dimension is
+ *   too short for a forced portal and nothing fits, where Java builds nothing either.
  */
 export const createNetherPortal = (
     world: WorldActions,
     target: BlockPosition,
     axis: PortalAxis,
     dimension: DimensionType
-): CreatedPortal => {
+): CreatedPortal | undefined => {
     const site = portalCreationSite(world, target, axis, creationBounds(dimension));
+    if (site === undefined) return undefined;
     writeNetherPortal(world, site.at, axis, site.forced);
     return {
         rectangle: {

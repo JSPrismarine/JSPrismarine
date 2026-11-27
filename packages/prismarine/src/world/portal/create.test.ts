@@ -75,20 +75,21 @@ describe('createNetherPortal', () => {
         const world = createVoxelWorld().overworld;
 
         const low = createNetherPortal(world, { x: 40, y: 20, z: 40 }, 'x', Dimensions.Nether);
-        expect(low.forced).toBe(true);
+        expect(low?.forced).toBe(true);
         // `bipush 70` is the floor.
-        expect(low.rectangle.minCorner).toEqual(new Vector3(39, 70, 40));
+        expect(low?.rectangle.minCorner).toEqual(new Vector3(39, 70, 40));
 
         const high = createNetherPortal(createVoxelWorld().overworld, { x: 40, y: 125, z: 40 }, 'z', Dimensions.Nether);
         // 128 - 10 is the ceiling in the Nether; 320 - 10 would be the Overworld's.
-        expect(high.rectangle.minCorner).toEqual(new Vector3(40, 118, 39));
+        expect(high?.rectangle.minCorner).toEqual(new Vector3(40, 118, 39));
     });
 
     it('flanks a forced platform with netherrack beyond the obsidian, as Bedrock does', () => {
         const world = createVoxelWorld().overworld;
 
         const created = createNetherPortal(world, TARGET, 'x', Dimensions.Nether);
-        const corner = created.rectangle.minCorner;
+        expect(created).toBeDefined();
+        const corner = created!.rectangle.minCorner;
         const floorY = corner.getY() - 1;
 
         // Obsidian under the two interior columns and one block to each side across the axis.

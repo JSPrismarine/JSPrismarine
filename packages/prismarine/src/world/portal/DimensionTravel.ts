@@ -880,7 +880,9 @@ export class DimensionTravel {
             // Only a player builds a portal on Bedrock; an item or a mob with nowhere to arrive stays.
             if (!route.player) return undefined;
             const actions = this.server.getContent().world.blockWorld.at(to.getDimension().name, to.getLevel().name);
-            destination = createNetherPortal(actions, blockOf(route.target), route.axis, to.getDimension()).rectangle;
+            // A dimension too short for a forced portal gets none, and the trip fails as Java's does.
+            destination = createNetherPortal(actions, blockOf(route.target), route.axis, to.getDimension())?.rectangle;
+            if (destination === undefined) return undefined;
             createdPortal = true;
         }
 
