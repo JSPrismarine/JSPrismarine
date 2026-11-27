@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { findJdkHome } from '../../../bedrock-data/utils/java/jdk.ts';
 import { readJarVersion, resolveJavaRelease } from '../../../bedrock-data/utils/java/release.ts';
+import { scanRepository } from '../../../../tools/java-classfile/src/sources.mts';
 
 /**
  * Compiles and runs each vector dumper in {@link DUMPERS} against a pinned Java Edition server jar,
@@ -41,12 +42,40 @@ const { java_version: requiredJdkMajor } = await readJarVersion(bundlerJar);
 const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac'] });
 const classpath = [serverJar, path.join(librariesDir, '*')].join(path.delimiter);
 /**
- * Each dumper: its Java class, beside this script, the vectors file it writes, and whether it takes
- * that file's path or the directory to write it in.
+ * The block classes whose `getStateForPlacement` this package tags with `@javaSource`, which are
+ * the classes the placement dumper records.
+ */
+const packagePrefix = `${path.relative(repoRoot, packageRoot).split(path.sep).join('/')}/src/`;
+const placementClasses = [
+    ...new Set(
+        [...scanRepository(repoRoot).values()]
+            .flatMap((scan) => scan.tags)
+            .filter((tag) => tag.file.startsWith(packagePrefix))
+            .map((tag) => /^(\w+)\.getStateForPlacement$/.exec(tag.spelling)?.[1])
+            .filter((name) => name !== undefined)
+    )
+].sort();
+
+/**
+ * Each dumper: its Java class, beside this script, the vectors file it writes, whether it takes
+ * that file's path or the directory to write it in, and the arguments after it.
  */
 const DUMPERS = [
-    { name: 'fluid spread', className: 'DumpFluidSpreadVectors', file: 'fluid-spread.json', takes: 'file' },
-    { name: 'portal creation', className: 'DumpPortalVectors', file: 'portal-creation.json', takes: 'directory' }
+    { name: 'fluid spread', className: 'DumpFluidSpreadVectors', file: 'fluid-spread.json', takes: 'file', extra: [] },
+    {
+        name: 'portal creation',
+        className: 'DumpPortalVectors',
+        file: 'portal-creation.json',
+        takes: 'directory',
+        extra: []
+    },
+    {
+        name: 'placement',
+        className: 'DumpPlacementVectors',
+        file: 'placement.json',
+        takes: 'file',
+        extra: placementClasses
+    }
 ];
 
 const classesDir = path.join(cacheDir, 'block-behaviors-vector-classes');
@@ -70,14 +99,20 @@ const vectorsDir = path.join(packageRoot, 'vectors', javaVersion);
 fs.mkdirSync(vectorsDir, { recursive: true });
 fs.mkdirSync(outputDir, { recursive: true });
 const written = [];
-for (const { name, className, file, takes } of DUMPERS) {
+for (const { name, className, file, takes, extra } of DUMPERS) {
     console.log(`Running the ${name} dumper...`);
     const output = path.join(outputDir, file);
     // Mojang's logger writes a `logs/` directory into the working directory, so the dumper runs
     // inside the cache rather than in the repository root.
     execFileSync(
         path.join(jdkHome, 'bin/java'),
-        ['-cp', [classesDir, classpath].join(path.delimiter), className, takes === 'directory' ? outputDir : output],
+        [
+            '-cp',
+            [classesDir, classpath].join(path.delimiter),
+            className,
+            takes === 'directory' ? outputDir : output,
+            ...extra
+        ],
         { cwd: cacheDir, stdio: 'inherit' }
     );
     const target = path.join(vectorsDir, file);

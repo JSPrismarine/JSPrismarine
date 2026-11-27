@@ -192,7 +192,7 @@ too, for what Bedrock keeps elsewhere, such as a head's rotation. Blocks that an
 alike share one entry, and the test places each of them. `PLACEMENT_GAPS` lists the differences that
 stay open, each with its issue, and the parity suite's `placement-vectors` row shows them.
 
-Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vectors:placement`, adding
+Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vectors`, adding
 `-- --java <release>` for a pinned release other than the default. The command prepares the pinned
 jar and needs the JDK the jar's `version.json` declares.
 
