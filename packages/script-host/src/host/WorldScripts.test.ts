@@ -18,6 +18,8 @@ import type {
     ScriptBossBarState,
     ScriptLevelInfo,
     ScriptLevelMembers,
+    ScriptServerListMembers,
+    ScriptServerListStatus,
     ScriptPerformance,
     ScriptPermissionMembers,
     ScriptPermissionsChange
@@ -739,6 +741,7 @@ system.run(() => {
             public readonly calls: string[] = [];
             public permissions?: RecordingPermissions;
             public levels?: ScriptLevelMembers;
+            public serverList?: ScriptServerListMembers;
             public performance(): ScriptPerformance {
                 return this.current;
             }
@@ -759,6 +762,29 @@ system.run(() => {
             }
             public resetPlayerListName(player: string): void {
                 this.calls.push(`unname ${player}`);
+            }
+        }
+
+        /** A server list that records each change and shows the last one. */
+        class RecordingServerList implements ScriptServerListMembers {
+            private static readonly BASE: ScriptServerListStatus = {
+                motd: 'A JSPrismarine server',
+                levelName: 'JSPrismarine',
+                onlinePlayers: 2,
+                maxPlayers: 20
+            };
+            public readonly calls: string[] = [];
+            private shown = RecordingServerList.BASE;
+            public current(): ScriptServerListStatus {
+                return this.shown;
+            }
+            public update(_owner: object, fields: Partial<ScriptServerListStatus>): void {
+                this.calls.push(`update ${JSON.stringify(fields)}`);
+                this.shown = { ...this.shown, ...fields };
+            }
+            public reset(): void {
+                this.calls.push('reset');
+                this.shown = RecordingServerList.BASE;
             }
         }
 
@@ -986,6 +1012,58 @@ system.run(() => {
                 'not a player TypeError: playerList.setDisplayName takes a Player as its player'
             ]);
             expect(members.calls).toEqual([`name ${steve} "§aSteve"`, `unname ${steve}`]);
+        });
+
+        it('changes the server list for the pack, refusing what the ping cannot carry, and takes it back when the scripts stop', () => {
+            const members = new RecordingMembers();
+            const list = new RecordingServerList();
+            members.serverList = list;
+            const { scripts, log } = start(
+                [
+                    writePack(`import { system } from '@minecraft/server';
+                        const show = (label, call) => {
+                            try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                        };
+                        let jsp;
+                        import('@jsprismarine/server').then((module) => { jsp = module; });
+                        const read = () => [jsp.serverList.motd, jsp.serverList.levelName, jsp.serverList.onlinePlayers, jsp.serverList.maxPlayers];
+                        system.runTimeout(() => {
+                            show('before', read);
+                            jsp.serverList.update({ motd: '§aLobby', maxPlayers: 100 });
+                            show('after', read);
+                            show('semicolon', () => jsp.serverList.update({ motd: 'a;b' }));
+                            show('fraction', () => jsp.serverList.update({ onlinePlayers: 1.5 }));
+                            show('negative', () => jsp.serverList.update({ maxPlayers: -1 }));
+                            show('options', () => jsp.serverList.update('motd'));
+                            show('frozen', () => Object.isFrozen(jsp.serverList));
+                        }, 1);
+                        system.runTimeout(() => {
+                            jsp.serverList.reset();
+                            // A reset of a pack that changed nothing since reaches nothing.
+                            jsp.serverList.reset();
+                            jsp.serverList.update({ onlinePlayers: 3 });
+                        }, 2);`)
+                ],
+                { members }
+            );
+            for (let tick = 0; tick < 3; tick++) scripts.flush();
+            scripts.shutdown();
+
+            expect(log.printed()).toEqual([
+                'before ["A JSPrismarine server","JSPrismarine",2,20]',
+                'after ["§aLobby","JSPrismarine",2,100]',
+                'semicolon TypeError: serverList.update takes a string without `;` as its motd',
+                'fraction TypeError: serverList.update takes a whole number from 0 to 2147483647 as its onlinePlayers',
+                'negative TypeError: serverList.update takes a whole number from 0 to 2147483647 as its maxPlayers',
+                'options TypeError: serverList.update takes an object as its options',
+                'frozen true'
+            ]);
+            expect(list.calls).toEqual([
+                'update {"motd":"§aLobby","maxPlayers":100}',
+                'reset',
+                'update {"onlinePlayers":3}',
+                'reset'
+            ]);
         });
 
         it('gives every player list name back when the scripts stop, and only the ones still set', () => {

@@ -45,6 +45,11 @@ const recordingHost = () => {
         barValid: record('barValid', (id) => id === 7),
         setListName: record('setListName', () => undefined),
         resetListName: record('resetListName', () => undefined),
+        serverListStatus: record('serverListStatus', () =>
+            JSON.stringify({ motd: '§aLobby', levelName: 'JSPrismarine', onlinePlayers: 3, maxPlayers: 20 })
+        ),
+        updateServerList: record('updateServerList', () => undefined),
+        resetServerList: record('resetServerList', () => undefined),
         readConfig: record('readConfig', () => JSON.stringify({ interval: 20, groups: { vip: 'x' } })),
         writeConfig: record('writeConfig', () => undefined),
         onConfigChange: record('onConfigChange', () => undefined),
@@ -343,6 +348,44 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('reads the server list through the host on every read, and forwards its changes', () => {
+        const { host, calls } = recordingHost();
+        const { serverList } = namespaceOf(host);
+
+        expect(Object.keys(serverList ?? {}).sort()).toEqual(
+            [
+                ...Object.keys(JSPRISMARINE_SERVER.serverList.properties),
+                ...Object.keys(JSPRISMARINE_SERVER.serverList.methods)
+            ].sort()
+        );
+        expect(['motd', 'levelName', 'onlinePlayers', 'maxPlayers'].map((key) => at(serverList, key))).toEqual([
+            '§aLobby',
+            'JSPrismarine',
+            3,
+            20
+        ]);
+        const update = at(serverList, 'update');
+        const reset = at(serverList, 'reset');
+        if (typeof update !== 'function' || typeof reset !== 'function')
+            throw new TypeError('serverList has no methods');
+        const options = { motd: 'x' };
+        update(options);
+        reset();
+
+        expect(calls.filter(([name]) => name === 'updateServerList' || name === 'resetServerList')).toEqual([
+            ['updateServerList', options],
+            ['resetServerList']
+        ]);
+        expect(calls.filter(([name]) => name === 'serverListStatus')).toHaveLength(4);
+    });
+
+    it('leaves serverList out of a namespace whose host has no server list functions', () => {
+        const { host } = recordingHost();
+        const { serverListStatus: _serverListStatus, ...without } = host;
+
+        expect('serverList' in namespaceOf(without)).toBe(false);
+    });
+
     it('makes @jsprismarine/placeholders with every member it defines, forwarding each call to its host', () => {
         const { placeholdersHost, calls } = recordingHost();
         const placeholders = placeholdersOf(placeholdersHost);
@@ -465,6 +508,8 @@ describe('@jsprismarine/server', () => {
         expect(typings).toContain('        show(player: Player, options?: BossBarOptions): BossBar;');
         expect(typings).toContain('        setDisplayName(player: Player, name: string): void;');
         expect(typings).toContain('        reset(player: Player): void;');
+        expect(typings).toContain('        update(options: ServerListOptions): void;');
+        expect(typings).toContain('        readonly onlinePlayers?: number;');
         for (const [name, type] of Object.entries(JSPRISMARINE_TYPES)) {
             const declaration = type.kind === 'interface' ? `export interface ${name} {` : `export type ${name} =`;
             expect(typings).toContain(`    /** ${type.summary} */\n    ${declaration}`);

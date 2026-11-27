@@ -1,7 +1,7 @@
 /**
  * What the members of `@jsprismarine/server` that reach the running server read and show: the
- * embedder's side of `performance`, `getPing`, `bossBars` and `playerList`, the boss bars the
- * packs show and the player list names they set.
+ * embedder's side of `performance`, `getPing`, `bossBars`, `playerList` and `serverList`, the
+ * boss bars the packs show, the player list names and the server list changes they make.
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
@@ -64,6 +64,29 @@ export interface ScriptPermissionMembers {
     onChange(listener: (change: ScriptPermissionsChange) => void): () => void;
 }
 
+/** What a server list shows of the server, as `serverList` in `@jsprismarine/server` reads it. */
+export interface ScriptServerListStatus {
+    readonly motd: string;
+    /** The second name, below the MOTD. */
+    readonly levelName: string;
+    readonly onlinePlayers: number;
+    readonly maxPlayers: number;
+}
+
+/**
+ * What `serverList` in `@jsprismarine/server` reads and changes of the status every transport
+ * advertises. Each change belongs to an owner, one pack's scripts, and the owner that changed a
+ * field last shows.
+ */
+export interface ScriptServerListMembers {
+    /** What the list shows now. */
+    current(): ScriptServerListStatus;
+    /** Layers an owner's changes over the status, merged with its earlier ones. */
+    update(owner: object, fields: Partial<ScriptServerListStatus>): void;
+    /** Takes every change an owner made back. */
+    reset(owner: object): void;
+}
+
 /** One level, as `levels` in `@jsprismarine/server` gives it. */
 export interface ScriptLevelInfo {
     readonly id: string;
@@ -104,6 +127,8 @@ export interface JsprismarineServerMembers {
     readonly permissions?: ScriptPermissionMembers;
     /** The server's levels. Without it the module leaves `levels` out. */
     readonly levels?: ScriptLevelMembers;
+    /** What a server list shows. Without it the module leaves `serverList` out. */
+    readonly serverList?: ScriptServerListMembers;
     /** How fast the server ticks right now. */
     performance(): ScriptPerformance;
     /** A player's round trip time in milliseconds, or undefined while there is no sample. */
@@ -172,6 +197,54 @@ export const bossBarOptions = (
         ...(text === undefined ? {} : { text }),
         ...(progress === undefined ? {} : { progress: Math.min(1, Math.max(0, progress)) }),
         ...(color === undefined ? {} : { color })
+    };
+};
+
+/** The largest count a server list carries: Java Edition's status reads the counts as 32-bit integers. */
+const MAX_COUNT = 2_147_483_647;
+
+/**
+ * The changes a pack's `serverList.update` options ask for, checked.
+ * @throws JspModuleArgument for options that are not an object, a name that is not a string or
+ *   holds a `;`, or a count that is not a whole number from 0 to {@link MAX_COUNT}.
+ */
+export const serverListOptions = (
+    engine: ScriptEngine,
+    value: ScriptValue,
+    member: string
+): Partial<ScriptServerListStatus> => {
+    if (!(value instanceof ScriptHandle)) {
+        throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'an object', argument: 'options' });
+    }
+    const name = (key: 'motd' | 'levelName'): string | undefined => {
+        const text = readProperty(engine, value, key);
+        if (text === undefined) return undefined;
+        // RakNet's pong separates its fields with `;`, so one in a name would shift every field after it.
+        if (typeof text !== 'string' || text.includes(';'))
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a string without `;`', argument: key });
+        return text;
+    };
+    const count = (key: 'onlinePlayers' | 'maxPlayers'): number | undefined => {
+        const number = readProperty(engine, value, key);
+        if (number === undefined) return undefined;
+        if (typeof number !== 'number' || !Number.isInteger(number) || number < 0 || number > MAX_COUNT) {
+            throw new ScriptHostErrors.JspModuleArgument({
+                member,
+                expected: `a whole number from 0 to ${MAX_COUNT}`,
+                argument: key
+            });
+        }
+        return number;
+    };
+    const motd = name('motd');
+    const levelName = name('levelName');
+    const onlinePlayers = count('onlinePlayers');
+    const maxPlayers = count('maxPlayers');
+    return {
+        ...(motd === undefined ? {} : { motd }),
+        ...(levelName === undefined ? {} : { levelName }),
+        ...(onlinePlayers === undefined ? {} : { onlinePlayers }),
+        ...(maxPlayers === undefined ? {} : { maxPlayers })
     };
 };
 
@@ -279,5 +352,41 @@ export class ScriptPlayerListNames {
     /** Gives every player their login name back, as the scripts stop. */
     public resetAll(): void {
         for (const player of [...this.named]) this.reset(player);
+    }
+}
+
+/**
+ * The server list changes the packs of one runtime made, each pack its own owner. The packs'
+ * scripts stop together, on a reload or a shutdown, so the runtime takes every change back then.
+ */
+export class ScriptServerList {
+    private readonly members: ScriptServerListMembers;
+    /** The packs whose changes the list shows. */
+    private readonly owners = new Set<object>();
+
+    public constructor(members: ScriptServerListMembers) {
+        this.members = members;
+    }
+
+    /** What the list shows now. */
+    public current(): ScriptServerListStatus {
+        return this.members.current();
+    }
+
+    /** Layers a pack's changes over the list. */
+    public update(owner: object, fields: Partial<ScriptServerListStatus>): void {
+        this.owners.add(owner);
+        this.members.update(owner, fields);
+    }
+
+    /** Takes a pack's changes back. A pack that changed nothing is left alone. */
+    public reset(owner: object): void {
+        if (!this.owners.delete(owner)) return;
+        this.members.reset(owner);
+    }
+
+    /** Takes every pack's changes back, as the scripts stop. */
+    public resetAll(): void {
+        for (const owner of [...this.owners]) this.reset(owner);
     }
 }

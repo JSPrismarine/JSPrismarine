@@ -57,10 +57,18 @@ import {
     jsprismarineServerSource,
     LEVEL_HOST_FUNCTIONS,
     PERMISSION_HOST_FUNCTIONS,
-    placeholdersModuleSource
+    placeholdersModuleSource,
+    SERVER_LIST_HOST_FUNCTIONS
 } from './jsprismarineServer';
 import type { JsprismarineServerMembers, ScriptPermissionsChange } from './jsprismarineMembers';
-import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames, SERVER_PLACEHOLDER_OWNER } from './jsprismarineMembers';
+import {
+    bossBarOptions,
+    ScriptBossBars,
+    ScriptPlayerListNames,
+    ScriptServerList,
+    SERVER_PLACEHOLDER_OWNER,
+    serverListOptions
+} from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
 import type { TemplateHost } from './templates';
 import { parseShorthand, renderTemplate, templateOf } from './templates';
@@ -433,6 +441,8 @@ export class WorldScripts {
     private readonly bossBars: ScriptBossBars | undefined;
     /** The player list names the packs set through `@jsprismarine/server`. */
     private readonly playerListNames: ScriptPlayerListNames | undefined;
+    /** The server list changes the packs make through `@jsprismarine/server`, each pack its own owner. */
+    private readonly serverList: ScriptServerList | undefined;
     /**
      * The placeholder namespaces the packs register through `@jsprismarine/server`, and the ones
      * the server registers under an owner of its own. A reload ends the packs' registrations and
@@ -470,6 +480,8 @@ export class WorldScripts {
         this.custom = this.customContent();
         this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
         this.playerListNames = options.members === undefined ? undefined : new ScriptPlayerListNames(options.members);
+        const serverList = options.members?.serverList;
+        this.serverList = serverList === undefined ? undefined : new ScriptServerList(serverList);
         const permissions = options.members?.permissions;
         if (permissions !== undefined) {
             this.stopPermissionChanges = permissions.onChange((change) => this.permissionsChanged(change));
@@ -753,9 +765,11 @@ export class WorldScripts {
         this.levelCalls.clear();
         // The world stops drawing what the runtime's shapes drew, since nothing can remove them after.
         this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.clear() ?? []));
-        // A bar belongs to the scripts that showed it, so it goes with them, as does a name they set.
+        // A bar belongs to the scripts that showed it, so it goes with them, as does a name they set
+        // and a change of the server list.
         this.bossBars?.hideAll();
         this.playerListNames?.resetAll();
+        this.serverList?.resetAll();
         for (const loaded of this.loaded) {
             // So does a placeholder namespace, whose resolver is one of the pack's functions.
             this.placeholders.release(loaded.pack);
@@ -1140,6 +1154,7 @@ export class WorldScripts {
                     names.reset(playerOf(value, 'playerList.reset').id);
                     return undefined;
                 },
+                ...this.serverListFunctions(loaded),
                 readConfig: () => {
                     const value = store?.read(loaded.pack);
                     return value === undefined ? undefined : JSON.stringify(value);
@@ -1190,6 +1205,9 @@ export class WorldScripts {
             if (permissions === undefined && (PERMISSION_HOST_FUNCTIONS as readonly string[]).includes(name)) continue;
             // Without level management, the module leaves `levels` out in the same way.
             if (members.levels === undefined && (LEVEL_HOST_FUNCTIONS as readonly string[]).includes(name)) continue;
+            // And `serverList` without a status to change.
+            if (this.serverList === undefined && (SERVER_LIST_HOST_FUNCTIONS as readonly string[]).includes(name))
+                continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
@@ -1484,6 +1502,31 @@ export class WorldScripts {
                 if (!(dispatch instanceof ScriptHandle)) return undefined;
                 if (loaded.permissionsChange !== undefined) engine.free(loaded.permissionsChange);
                 loaded.permissionsChange = engine.duplicate(dispatch);
+                return undefined;
+            }
+        };
+    }
+
+    /**
+     * The host functions behind `serverList`, with the loaded pack as the owner of its changes: a
+     * pack that every level loads owns its changes in each level apart.
+     */
+    private serverListFunctions(
+        loaded: LoadedPack
+    ): Record<(typeof SERVER_LIST_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> {
+        const list = (): ScriptServerList => {
+            if (this.serverList === undefined)
+                throw new ScriptHostErrors.JspMemberUnavailable({ member: 'serverList' });
+            return this.serverList;
+        };
+        return {
+            serverListStatus: () => JSON.stringify(list().current()),
+            updateServerList: (options) => {
+                list().update(loaded, serverListOptions(this.engine, options, 'serverList.update'));
+                return undefined;
+            },
+            resetServerList: () => {
+                list().reset(loaded);
                 return undefined;
             }
         };
@@ -2521,6 +2564,7 @@ export class WorldScripts {
             // Nothing redraws a bar or a name once the scripts stop, so they go now rather than at the teardown.
             this.bossBars?.hideAll();
             this.playerListNames?.resetAll();
+            this.serverList?.resetAll();
             this.options.onShutdown?.(kind);
         }
     }

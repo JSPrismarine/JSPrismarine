@@ -184,7 +184,7 @@ declare const console: {
 ## Use JSPrismarine-only features
 
 `@jsprismarine/server` gives a script what only JSPrismarine has, such as the server's ticks per
-second, a player's ping, boss bars and the names in the player list. An addon that uses it can still run on Bedrock Dedicated
+second, a player's ping, boss bars, the names in the player list and what the server list shows. An addon that uses it can still run on Bedrock Dedicated
 Server (BDS) if it detects the module and falls back:
 
 ```js

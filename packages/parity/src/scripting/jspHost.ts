@@ -196,8 +196,8 @@ const isJson = (text: string): boolean => {
 
 /**
  * What `@jsprismarine/server`'s members that reach the server read in a world scenario: a level
- * with no ticker and no transport, so the figures are fixed and nobody has a ping, a bar or a
- * list entry.
+ * with no ticker and no transport, so the figures are fixed, nobody has a ping, a bar or a
+ * list entry, and nobody sees the server list.
  */
 const SCENARIO_MEMBERS: JsprismarineServerMembers = {
     performance: () => ({ tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 }),
@@ -207,6 +207,12 @@ const SCENARIO_MEMBERS: JsprismarineServerMembers = {
     hideBossBar: () => {},
     setPlayerListName: () => {},
     resetPlayerListName: () => {},
+    // A server list that shows the config's defaults, and that a change does not reach.
+    serverList: {
+        current: () => ({ motd: 'Dedicated Server', levelName: 'JSPrismarine', onlinePlayers: 0, maxPlayers: 10 }),
+        update: () => {},
+        reset: () => {}
+    },
     // Permission files with nothing in them: everyone holds `default` alone, and a write changes nothing.
     permissions: {
         has: () => false,

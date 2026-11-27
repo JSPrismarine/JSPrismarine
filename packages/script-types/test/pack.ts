@@ -46,6 +46,15 @@ if (jsp !== undefined) {
         // @ts-expect-error The name is a string.
         jsp.playerList.setDisplayName(player, 7);
     }
+
+    if ('serverList' in jsp) {
+        const { motd, onlinePlayers, maxPlayers } = jsp.serverList;
+        jsp.serverList.update({ motd: `${motd} §7${onlinePlayers}/${maxPlayers}`, levelName: 'Lobby' });
+        jsp.serverList.update({ maxPlayers: 100 });
+        jsp.serverList.reset();
+        // @ts-expect-error A count is a number.
+        jsp.serverList.update({ onlinePlayers: '7' });
+    }
 }
 
 // The placeholders live in a module of their own, loaded the same way.

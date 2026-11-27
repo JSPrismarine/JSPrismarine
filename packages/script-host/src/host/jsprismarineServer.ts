@@ -174,6 +174,47 @@ export const JSPRISMARINE_SERVER = {
             }
         }
     },
+    serverList: {
+        kind: 'methods',
+        summary:
+            "What a server list shows of the server, the same over every way a client asks: Bedrock's server list and LAN, the query protocol and Java Edition's multiplayer screen. Each property reads what the list shows now. A change belongs to the pack that made it and goes when the pack's scripts stop, as on `/reload`; where two packs change one property, the one that changed it last shows.",
+        properties: {
+            motd: {
+                type: 'string',
+                summary:
+                    "The MOTD, the server's first line, which `§` format codes color. `config.json`'s `motd` until a pack changes it."
+            },
+            levelName: {
+                type: 'string',
+                summary:
+                    'The second name, which a Bedrock client shows below the MOTD for a server on its LAN. `JSPrismarine` until a pack changes it.'
+            },
+            onlinePlayers: {
+                type: 'number',
+                summary:
+                    'How many players the list says are online. The players connected over every transport until a pack changes it.'
+            },
+            maxPlayers: {
+                type: 'number',
+                summary:
+                    'The player limit the list shows. `max-players` until a pack changes it. A change shows in the list only: the server still turns a player away at `max-players`.'
+            }
+        },
+        methods: {
+            update: {
+                summary:
+                    "Changes what the server list shows. A property the options leave out keeps the value the pack gave it before, or the server's own. Throws a `TypeError` for a MOTD or second name with a `;`, which the Bedrock ping cannot carry, and for a count that is not a whole number from 0 to 2147483647.",
+                parameters: 'options: ServerListOptions',
+                returns: 'void'
+            },
+            reset: {
+                summary:
+                    "Takes back every change the pack made, at once rather than when its scripts stop, so the list shows another pack's change or the server's own values again.",
+                parameters: '',
+                returns: 'void'
+            }
+        }
+    },
     config: {
         kind: 'methods',
         summary:
@@ -407,6 +448,24 @@ export const JSPRISMARINE_TYPES = {
                 type: 'string',
                 optional: true,
                 summary: 'The world seed, read as `config.json` reads one. A random seed when left out.'
+            }
+        }
+    },
+    ServerListOptions: {
+        kind: 'interface',
+        summary: 'What `serverList.update` changes. A property left out keeps its value.',
+        properties: {
+            motd: { type: 'string', optional: true, summary: 'The MOTD, without a `;`.' },
+            levelName: { type: 'string', optional: true, summary: 'The second name, without a `;`.' },
+            onlinePlayers: {
+                type: 'number',
+                optional: true,
+                summary: 'The online count to show, a whole number from 0 to 2147483647.'
+            },
+            maxPlayers: {
+                type: 'number',
+                optional: true,
+                summary: 'The player limit to show, a whole number from 0 to 2147483647.'
             }
         }
     },
@@ -660,6 +719,9 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'barValid',
     'setListName',
     'resetListName',
+    'serverListStatus',
+    'updateServerList',
+    'resetServerList',
     'readConfig',
     'writeConfig',
     'onConfigChange',
@@ -737,6 +799,19 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '    setDisplayName: (player, name) => host.setListName(player, name),',
         '    reset: (player) => host.resetListName(player)',
         '})'
+    ].join('\n'),
+    serverList: [
+        '(() => {',
+        '    const status = () => parse(host.serverListStatus());',
+        '    return freeze({',
+        '        get motd() { return status().motd; },',
+        '        get levelName() { return status().levelName; },',
+        '        get onlinePlayers() { return status().onlinePlayers; },',
+        '        get maxPlayers() { return status().maxPlayers; },',
+        '        update(options) { host.updateServerList(options); },',
+        '        reset() { host.resetServerList(); }',
+        '    });',
+        '})()'
     ].join('\n'),
     config: [
         '(() => {',
@@ -838,8 +913,16 @@ export const LEVEL_HOST_FUNCTIONS = [
     'detachLevel'
 ] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
 
+/** The host functions behind `serverList`, installed only on a server that advertises a status. */
+export const SERVER_LIST_HOST_FUNCTIONS = [
+    'serverListStatus',
+    'updateServerList',
+    'resetServerList'
+] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
+
 /** A member the host object must have more than its existence for, by the check its source makes. */
 const MEMBER_GUARDS: Readonly<Record<string, string>> = {
+    serverList: `host.${SERVER_LIST_HOST_FUNCTIONS[0]} !== undefined`,
     config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`,
     // Without the permission files a server installs none of these, and the module leaves `permissions` out.
     permissions: `host.${PERMISSION_HOST_FUNCTIONS[0]} !== undefined`,
