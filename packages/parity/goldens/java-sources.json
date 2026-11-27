@@ -665,6 +665,8 @@
         "Witch.aiStep": "net/minecraft/world/entity/monster/Witch.aiStep()V",
         "Witch.getDamageAfterMagicAbsorb": "net/minecraft/world/entity/monster/Witch.getDamageAfterMagicAbsorb(Lnet/minecraft/world/damagesource/DamageSource;F)F",
         "WorkAtComposter.useWorkstation": "net/minecraft/world/entity/ai/behavior/WorkAtComposter.useWorkstation(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/npc/villager/Villager;)V",
+        "WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;": "net/minecraft/world/level/border/WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;",
+        "WorldBorder.isWithinBounds(DDD)Z": "net/minecraft/world/level/border/WorldBorder.isWithinBounds(DDD)Z",
         "Zoglin.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/Zoglin.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;)Ljava/util/Optional;",
         "Zoglin.hurtServer": "net/minecraft/world/entity/monster/Zoglin.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
         "Zombie.canBreakDoors()Z": "net/minecraft/world/entity/monster/zombie/Zombie.canBreakDoors()Z",
@@ -688,7 +690,8 @@
             "26.3": "sha256:4f02123893541d5e0719ea8283701780efb93b35403295f960df60fffc5c1437"
         },
         "net/minecraft/core/BlockPos.spiralAround(Lnet/minecraft/core/BlockPos;ILnet/minecraft/core/Direction;Lnet/minecraft/core/Direction;)Ljava/lang/Iterable;": {
-            "26.3": "sha256:10ba1474a253e3c3738fe70aaf76ca02c5a21610d7ab429fdfe55f5c688f69de"
+            "26.3": "sha256:10ba1474a253e3c3738fe70aaf76ca02c5a21610d7ab429fdfe55f5c688f69de",
+            "26.4-pre-1": "sha256:b1b11bc9b7bcc4d4dc5bf0f0dcc2c2d4c5967cb1fcba736def4ba4025347834a"
         },
         "net/minecraft/core/BlockPos.withinBoxByManhattanDistance(Lnet/minecraft/core/BlockPos;III)Ljava/lang/Iterable;": {
             "26.3": "sha256:46f4219108fc909bdc4a64798e3251984ad64a269ffe84bf6de6d3cd2c001b44",
@@ -2849,6 +2852,14 @@
         "net/minecraft/world/level/block/WebBlock.entityInside(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/InsideBlockEffectApplier;Z)V": {
             "26.3": "sha256:55fd0966050f4fda0ded189ed7ee200b6fdc72ba31570e59a92dbdbf59cdf679",
             "26.4-pre-1": "sha256:55fd0966050f4fda0ded189ed7ee200b6fdc72ba31570e59a92dbdbf59cdf679"
+        },
+        "net/minecraft/world/level/border/WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;": {
+            "26.3": "sha256:e1d66b8cb431516d802209da2bda2fac667b6bad27959ff04e75f5add508c92a",
+            "26.4-pre-1": "sha256:c39262bd1676f330c5f4402fe5557102bdb1180a34367ba648c2ae94071f9712"
+        },
+        "net/minecraft/world/level/border/WorldBorder.isWithinBounds(DDD)Z": {
+            "26.3": "sha256:6473d137c7ace8a91fe1e06c75992a148c9178ccc65ba28bed444c64a3ec25e5",
+            "26.4-pre-1": "sha256:6473d137c7ace8a91fe1e06c75992a148c9178ccc65ba28bed444c64a3ec25e5"
         },
         "net/minecraft/world/level/chunk/ChunkAccess.isOldNoiseGeneration()Z": {
             "26.3": "sha256:47170ba2457094abd6118d17dc6c520a64253567cf4d47b4962c57efcd5bc62c",
