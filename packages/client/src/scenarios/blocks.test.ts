@@ -148,19 +148,18 @@ const standAt = async (player: LoopbackPlayer, at: WorldPosition): Promise<void>
 };
 
 /**
- * Mines a block as a survival client with server-timed breaking does: a start in the input's
- * block actions, an input a tick while the button is held, then the predicted destroy.
+ * Sends a player's block actions on a position, one input a tick, as a client does.
  *
  * The inputs carry their own tick numbers, past any the player's own `input` has used.
- * @param player - Who mines.
- * @param at - The block, mined from its top face.
- * @param ticks - How many ticks the button is held before the break is predicted.
+ * @param player - Who acts.
+ * @param at - The block, acted on from its top face.
+ * @returns A sender of one input, with a block action or with none.
  */
-const mine = async (player: LoopbackPlayer, at: BlockAt, ticks: number): Promise<void> => {
+const blockActions = (player: LoopbackPlayer, at: BlockAt): ((action?: PlayerActionType) => Promise<void>) => {
     const position = player.world.getPosition();
-    if (position === undefined) throw new Error(`${player.name} has no position to mine from`);
+    if (position === undefined) throw new Error(`${player.name} has no position to act from`);
     let inputTick = 1_000_000n;
-    const send = async (action?: PlayerActionType): Promise<void> => {
+    return async (action) => {
         inputTick += 1n;
         const packet = playerAuthInput({ position, pitch: 0, yaw: 0, headYaw: 0 }, { tick: inputTick });
         const input = packet.getPacketData();
@@ -171,6 +170,17 @@ const mine = async (player: LoopbackPlayer, at: BlockAt, ticks: number): Promise
         await player.client.getSession().send(packet);
         await jsp.tick();
     };
+};
+
+/**
+ * Mines a block as a survival client with server-timed breaking does: a start in the input's
+ * block actions, an input a tick while the button is held, then the predicted destroy.
+ * @param player - Who mines.
+ * @param at - The block, mined from its top face.
+ * @param ticks - How many ticks the button is held before the break is predicted.
+ */
+const mine = async (player: LoopbackPlayer, at: BlockAt, ticks: number): Promise<void> => {
+    const send = blockActions(player, at);
     await send(PlayerActionType.StartDestroyBlock);
     for (let tick = 0; tick < ticks; tick++) await send();
     await send(PlayerActionType.PredictDestroyBlock);
@@ -360,6 +370,39 @@ describe('edge-chunk-block-change', () => {
             'breaking the updated edge block never showed its drop'
         );
         expect(serverBlockName(edge)).toBe('minecraft:air');
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('creative-break-container', () => {
+    /** A spot on the flat surface, clear of what the other scenarios build. */
+    const STAND = { x: 140.5, y: -60, z: 140.5 };
+
+    it('spills what a chest held when a creative player breaks it, and drops no chest', async () => {
+        const player = await jsp.join('Collector');
+        await jsp.command(`gamemode creative ${player.name}`);
+        await standAt(player, STAND);
+        await jsp.command('kill @e[type=item]');
+
+        const chest = { x: 142, y: -60, z: 140 };
+        await place(chest, 'minecraft:chest');
+        await jsp.command(`replaceitem block ${chest.x} ${chest.y} ${chest.z} slot.container 0 minecraft:stick 3`);
+        const before = player.world.actorsOfType('minecraft:item').length;
+
+        await blockActions(player, chest)(PlayerActionType.CreativeDestroyBlock);
+        await jsp.until(
+            () => player.world.actorsOfType('minecraft:item').length > before,
+            'breaking the chest in creative never showed what it held'
+        );
+        await jsp.tick(5);
+
+        expect(serverBlockName(chest)).toBe('minecraft:air');
+        // One stack of three, the sticks, and no chest: creative takes the block's own drop away.
+        const drops = player.world.actorsOfType('minecraft:item').slice(before);
+        expect(drops.map(({ item }) => item?.stackSize)).toEqual([3]);
+
+        await jsp.command('kill @e[type=item]');
         player.leave();
         await jsp.tick();
     });
