@@ -132,3 +132,10 @@ export const brandPayload = (brand: string): Buffer => {
     javaString(32_767).write(stream, brand);
     return stream.getBuffer();
 };
+
+/**
+ * Reads a `minecraft:brand` payload, as {@link brandPayload} writes it.
+ * @param payload - The plugin message's bytes.
+ * @returns The name the server or client goes by.
+ */
+export const brandOf = (payload: Buffer): string => javaString(32_767).read(new BinaryStream(payload));

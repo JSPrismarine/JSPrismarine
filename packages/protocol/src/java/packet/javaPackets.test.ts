@@ -12,6 +12,7 @@ import {
     RegistryData,
     ServerboundKnownPacks,
     UpdateTags,
+    brandOf,
     brandPayload
 } from './configuration';
 import { ClientIntent, Intention } from './handshake';
@@ -474,6 +475,12 @@ describe('every Java packet goes both ways', () => {
             roundTrips.map((check, index) => ({ name: definition.name, index, check }))
         )
     )('writes and reads back $name, sample $index', ({ check }) => check());
+});
+
+describe('the brand payload', () => {
+    it('reads back the name it carries', () => {
+        expect(brandOf(brandPayload('JSPrismarine'))).toBe('JSPrismarine');
+    });
 });
 
 describe('javaPacketsById', () => {
