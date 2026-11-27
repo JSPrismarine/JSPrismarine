@@ -3036,6 +3036,33 @@ describe('EntityRuntime', () => {
             expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
         });
 
+        it("lands a mob's blow on a mob inside the last one's grace only for what it adds, as Java's hurtServer does", () => {
+            const { runtime } = runtimeOf();
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const victim = runtime.spawn('minecraft:cow', GROUND);
+            const health = (): number | undefined => victim!.instance.attributes.get('health')?.current;
+            const target = runtime.mobById(victim!.id)!;
+
+            runtime.attack(attacker!.body, target, 2);
+            runtime.attack(attacker!.body, target, 2);
+            expect(health()).toBe(8);
+            runtime.attack(attacker!.body, target, 5);
+            expect(health()).toBe(5);
+        });
+
+        it("remembers a mob's last blow each way, as Java's getLastHurtMob and getLastHurtByMob", () => {
+            const { runtime } = runtimeOf();
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const victim = runtime.spawn('minecraft:cow', GROUND);
+            runtime.attack(attacker!.body, runtime.mobById(victim!.id)!);
+
+            expect(runtime.mobById(victim!.id)?.lastHurtBy?.()?.mob.id).toBe(attacker!.id);
+            expect(runtime.mobById(attacker!.id)?.lastHurt?.()?.mob.id).toBe(victim!.id);
+
+            runtime.remove(attacker!.id, 'test');
+            expect(runtime.mobById(victim!.id)?.lastHurtBy?.()).toBeUndefined();
+        });
+
         it("pushes a mob's target 0.4 away from the attacker, less its resistance, as Java's dealDefaultKnockback does", () => {
             const { runtime } = runtimeOf();
             const attacker = runtime.spawn('minecraft:cow', GROUND);

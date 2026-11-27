@@ -127,7 +127,7 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
             return last === undefined ? undefined : scene.mobById(last);
         },
         owner: () => (entity.body.owner === undefined ? undefined : scene.mobById(entity.body.owner)),
-        ...(clientOwnsMovement(entity.identifier) ? scene.playerCombat(entity.id) : {})
+        ...scene.combatOf(entity.id)
     };
     sceneViews.set(entity, view);
     return view;
@@ -524,7 +524,7 @@ const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, sc
                     player.position,
                     player.tags,
                     scene.host.playerView?.(player.id),
-                    scene.playerCombat(player.id),
+                    scene.combatOf(player.id),
                     () => scene.host.heldItemOf?.(player.id)
                 ),
                 away

@@ -406,15 +406,15 @@ const CREAKING_ACTIVATION_RANGE = 12;
 const GAZE_DISGUISE_TAG = 'minecraft:gaze_disguise_equipment';
 
 /** One remembered blow: the runtime id on its other side, and the game tick it landed. */
-interface PlayerBlow {
+interface BlowMark {
     readonly id: number;
     readonly tick: number;
 }
 
-/** The last blow a player dealt and the last one it took. */
-interface PlayerBlows {
-    readonly hurt?: PlayerBlow;
-    readonly hurtBy?: PlayerBlow;
+/** The last blow an entity or a player dealt and the last one it took. */
+interface BlowMarks {
+    readonly hurt?: BlowMark;
+    readonly hurtBy?: BlowMark;
 }
 
 const PROJECTILE_KNOCKBACK = 0.4;
@@ -869,12 +869,12 @@ export class EntityRuntime implements EntityScene {
     /** The causes each `blocks_attacks` damage type set stands for, by the set written out. */
     private readonly damageSets = new Map<string, ReadonlySet<DamageCause>>();
     /**
-     * The last blow each player dealt and the last one it took, by player runtime id, which the
-     * owner and trust goals read as Java's `getLastHurtMob` and `getLastHurtByMob`. A mob's own
-     * are its damage record. Written through {@link EntityRuntime.markPlayerBlow}, so an undone
-     * unit puts it back.
+     * The last blow each entity and player dealt and the last one it took, by runtime id, which
+     * the owner and trust goals and the ender dragon's wings read as Java's `getLastHurtMob` and
+     * `getLastHurtByMob`. Written through {@link EntityRuntime.markBlow}, so an undone unit puts
+     * it back.
      */
-    private readonly playerBlows = new Map<number, PlayerBlows>();
+    private readonly blowMarks = new Map<number, BlowMarks>();
 
     /** Each boat's `VehicleEntity` damage, which blows add to and every tick takes from. */
     private readonly vehicleDamage = new Map<number, number>();
@@ -2279,6 +2279,7 @@ export class EntityRuntime implements EntityScene {
         // Kept for an undo of the removal: the saved form the entity is added back from has neither.
         this.setDying(id, false);
         this.setHitGrace(id, undefined);
+        this.setBlowMarks(id, undefined);
         this.byInstance.delete(entity.instance);
         entity.body.onEquipmentChanged = undefined;
         this.index.remove(entity);
@@ -3179,7 +3180,7 @@ export class EntityRuntime implements EntityScene {
                   player.position,
                   player.tags,
                   this.host.playerView?.(player.id),
-                  this.playerCombat(player.id),
+                  this.combatOf(player.id),
                   () => this.host.heldItemOf?.(player.id)
               );
     }
@@ -3328,7 +3329,8 @@ export class EntityRuntime implements EntityScene {
      * A target this index does not hold goes out through {@link EntityHostFacts.hurt}, and a
      * host that supplies no route for it is told once per swing rather than letting the mob
      * connect with nothing. A player in the store takes the blow here, with the armor,
-     * resistance, absorption and grace period the host's route gives a player.
+     * resistance and absorption the host's route gives a player, and every target in the store
+     * with the grace period after a blow.
      */
     public attack(attacker: MobBody, target: GoalMob, override?: number): void {
         if (typeof target.id !== 'number') return;
@@ -3362,7 +3364,9 @@ export class EntityRuntime implements EntityScene {
                 levels: 0,
                 ...(extra > 0 ? { extra: { power: extra, yaw: attacker.yaw } } : {})
             };
-            const blow = player ? { mitigated: true, graced: true, knockback } : { knockback };
+            // Java's `LivingEntity.hurtServer` gives every living target the half second of
+            // invulnerability, in which a harder blow lands only for what it adds.
+            const blow = player ? { mitigated: true, graced: true, knockback } : { graced: true, knockback };
             // A blow a raised shield took whole is not a hurt, so `doHurtTarget` does nothing more.
             const outcome = this.blow(other, attacker.id, 'entity_attack', damage, blow);
             const landed = outcome.committed && !wasBlockedWhole(outcome);
@@ -3385,7 +3389,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
-        this.markPlayerBlow(target.id, 'hurtBy', attacker.id);
+        this.markBlow(target.id, 'hurtBy', attacker.id);
         if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
     }
 
@@ -3497,7 +3501,7 @@ export class EntityRuntime implements EntityScene {
                     return;
                 }
                 this.host.hurt(id, damage, cause, sourceId, params.deathMessageOverride);
-                if (sourceId !== undefined) this.markPlayerBlow(id, 'hurtBy', sourceId);
+                if (sourceId !== undefined) this.markBlow(id, 'hurtBy', sourceId);
             } else this.hurt(target, sourceId, cause, damage, { route: 'area_attack' });
 
             if (params.playAttackSound) this.host.attackSound?.(entity.id);
@@ -3792,8 +3796,8 @@ export class EntityRuntime implements EntityScene {
             this.keepDamageRecord(entity);
             entity.body.damage.record(intent.attacker, intent.cause, result.amount);
             if (intent.attacker !== undefined) {
-                this.markPlayerBlow(intent.attacker, 'hurt', entity.id);
-                this.markPlayerBlow(entity.id, 'hurtBy', intent.attacker);
+                this.markBlow(intent.attacker, 'hurt', entity.id);
+                this.markBlow(entity.id, 'hurtBy', intent.attacker);
             }
             this.setLastDamagedAt(entity, this.world.level.gameTime());
             this.disablePiglinAdmirationAfterDamage(entity);
@@ -4122,24 +4126,25 @@ export class EntityRuntime implements EntityScene {
      * has: a grace an undone blow left would refuse that blow when it comes again.
      */
     /**
-     * Remembers one blow on a player's side of it: `hurt` for a blow the player dealt to `other`,
-     * `hurtBy` for one `other` dealt the player. Anything that is not a player keeps its blows in
-     * its damage record instead, so this leaves it alone.
+     * Remembers one blow on one side of it: `hurt` for a blow `id` dealt to `other`, `hurtBy` for
+     * one `other` dealt `id`. Java's `LivingEntity` keeps both for every living thing, the
+     * `lastHurtByMob` side once a blow gets past `hurtServer`'s invulnerability.
      */
-    private markPlayerBlow(player: number, side: keyof PlayerBlows, other: number): void {
-        if (player === other || !this.isPlayer(player)) return;
-        const before = this.playerBlows.get(player);
-        this.playerBlows.set(player, { ...before, [side]: { id: other, tick: this.world.level.gameTime() } });
-        this.store.undoWith(() => {
-            if (before === undefined) this.playerBlows.delete(player);
-            else this.playerBlows.set(player, before);
-        });
+    private markBlow(id: number, side: keyof BlowMarks, other: number): void {
+        if (id === other) return;
+        this.setBlowMarks(id, { ...this.blowMarks.get(id), [side]: { id: other, tick: this.world.level.gameTime() } });
     }
 
-    /** Whether a runtime id is a player: one the host holds, or a player entity in the store. */
-    private isPlayer(id: number): boolean {
-        const entity = this.store.get(id);
-        return entity === undefined ? this.host.playerById(id) !== undefined : clientOwnsMovement(entity.identifier);
+    /** Writes or forgets one entity's blow marks, with an undo as {@link EntityRuntime.setHitGrace} has. */
+    private setBlowMarks(id: number, marks: BlowMarks | undefined): void {
+        const before = this.blowMarks.get(id);
+        if (before === marks) return;
+        if (marks === undefined) this.blowMarks.delete(id);
+        else this.blowMarks.set(id, marks);
+        this.store.undoWith(() => {
+            if (before === undefined) this.blowMarks.delete(id);
+            else this.blowMarks.set(id, before);
+        });
     }
 
     /**
@@ -4149,10 +4154,10 @@ export class EntityRuntime implements EntityScene {
      *
      * @javaSource LivingEntity.tick
      */
-    private playerBlow(player: number, side: keyof PlayerBlows): GoalCombatMark | undefined {
-        const blows = this.playerBlows.get(player);
-        if (blows !== undefined && this.store.get(player) === undefined && this.host.playerById(player) === undefined) {
-            this.playerBlows.delete(player);
+    private blowMark(id: number, side: keyof BlowMarks): GoalCombatMark | undefined {
+        const blows = this.blowMarks.get(id);
+        if (blows !== undefined && this.store.get(id) === undefined && this.host.playerById(id) === undefined) {
+            this.blowMarks.delete(id);
             return undefined;
         }
         const mark = blows?.[side];
@@ -4162,11 +4167,11 @@ export class EntityRuntime implements EntityScene {
         return mob === undefined ? undefined : { mob, tick: mark.tick };
     }
 
-    /** The blows a player remembers, as a player's goal mob answers them. */
-    public playerCombat(player: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'> {
+    /** The blows an entity or a player remembers, as its goal mob answers them. */
+    public combatOf(id: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'> {
         return {
-            lastHurt: () => this.playerBlow(player, 'hurt'),
-            lastHurtBy: () => this.playerBlow(player, 'hurtBy')
+            lastHurt: () => this.blowMark(id, 'hurt'),
+            lastHurtBy: () => this.blowMark(id, 'hurtBy')
         };
     }
 
@@ -7721,7 +7726,7 @@ export class EntityRuntime implements EntityScene {
                 if (this.host.hurtByProjectile !== undefined)
                     this.host.hurtByProjectile(target.id, damage, projectile.id, owner);
                 else this.host.hurt?.(target.id, damage, 'projectile', owner);
-                if (owner !== undefined) this.markPlayerBlow(target.id, 'hurtBy', owner);
+                if (owner !== undefined) this.markBlow(target.id, 'hurtBy', owner);
             }
         }
 
