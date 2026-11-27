@@ -343,13 +343,18 @@ const brainScenarios = (): readonly BehaviorScenario<EntitySubject>[] =>
 /** The dragon's contact with the world, which Java runs outside its phases; issue #3171 if any differs. */
 const DRAGON_CONTACT_ISSUE = '#3171';
 
+/** How close two positions measured from different probes' origins count as the same place, in blocks. */
+const SAME_PLACE = 1e-9;
+
 /** A dragon in its own probe, centered on its fight, in one phase, with only that phase's goal. */
 const withDragon = <T>(subject: EntitySubject, goal: string, phase: DragonPhaseName, body: (probe: Probe) => T): T =>
     probeGoals(
         subject,
         [goal],
         {
-            groups: [goal === 'dragonholdingpattern' ? 'dragon_flying' : 'dragon_sitting'],
+            groups: [
+                ['dragonholdingpattern', 'dragonchargeplayer'].includes(goal) ? 'dragon_flying' : 'dragon_sitting'
+            ],
             without: (name) => name.startsWith('dragon_'),
             data: (origin) => ({ fight_origin: [origin.x, origin.y, origin.z] })
         },
@@ -440,6 +445,55 @@ const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 !perched.burning && 'the arrow off a perched dragon was not set on fire',
                 !perched.back && 'the arrow off a perched dragon did not turn back',
                 flying.taken <= 0 && 'a dragon in flight took nothing from an arrow'
+            ]);
+        }
+    },
+    {
+        name: 'dragon-blow-knockback',
+        java: 'An arrow that hurts a dragon in flight knocks it back along the arrow, as every blow with knockback does; Java skips the knockback only while the dragon is perched.',
+        reference:
+            'Java EnderDragon.knockback (LivingEntity.knockback unless a sitting phase runs) and LivingEntity.hurtServer (dealDefaultKnockback at 0.4 for a blow that lands whole); issue #3792',
+        subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:behavior.dragonchargeplayer'],
+        run: (subject) => {
+            // The same charge twice, once with an arrow fired along +x into the dragon, measured
+            // from each probe's own origin. A charge draws nothing at random, so the two fly alike
+            // but for the blow.
+            const charge = (shot: boolean) =>
+                withDragon(subject, 'dragonchargeplayer', 'charging_player', (probe) => {
+                    const target = probe.at(0, 12, 40);
+                    probe.entity.instance.componentState.set(dragonPhaseState, {
+                        phase: 'charging_player',
+                        flameCount: 0,
+                        chargeTarget: [target.x, target.y, target.z]
+                    });
+                    probe.entity.position = probe.at(0, 6, 0);
+                    if (shot) {
+                        const archer = probe.player(-12, 6, 0);
+                        const arrow = probe.runtime.spawn('minecraft:arrow', probe.at(-6, 7.5, 0), { ownerId: archer });
+                        if (arrow === undefined) throw new Error('the server could not spawn an arrow');
+                        arrow.body.velocity = { x: 2.5, y: 0, z: 0 };
+                    }
+                    const before = healthOf(probe);
+                    probe.tick(6);
+                    const origin = probe.at(0, 0, 0);
+                    return { x: probe.entity.position.x - origin.x, taken: before - healthOf(probe) };
+                });
+            const calm = charge(false);
+            const again = charge(false);
+            const struck = charge(true);
+            // Each probe stands somewhere else, so the same flight measured from its origin can
+            // differ in the last bits.
+            const repeatable = Math.abs(again.x - calm.x) < SAME_PLACE;
+            const pushed = struck.x - calm.x;
+            return differences([
+                !repeatable && 'the same charge ended in two places, so the knockback cannot be measured',
+                struck.taken <= 0 && 'the arrow did not hurt the dragon in flight',
+                repeatable &&
+                    struck.taken > 0 &&
+                    !(pushed > SAME_PLACE) &&
+                    `an arrow along +x moved a charging dragon ${pushed.toFixed(3)} blocks along it, where Java's knocks it back`
             ]);
         }
     },

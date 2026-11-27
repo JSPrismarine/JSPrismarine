@@ -1371,6 +1371,11 @@
             "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
             "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
+        "dragon-blow-knockback:minecraft:ender_dragon": {
+            "kind": "defect",
+            "reason": "An arrow that hurts a dragon in flight knocks it back along the arrow. Observed: a charging dragon an arrow hurt ended where the same charge without the arrow did, as the dragon flight keeps its own velocity and no knockback reaches it. Tracked in #3792.",
+            "reference": "Java EnderDragon.knockback (LivingEntity.knockback unless a sitting phase runs) and LivingEntity.hurtServer (dealDefaultKnockback at 0.4 for a blow that lands whole); issue #3792"
+        },
         "entity-item-slot:chested llama/horse.chest": {
             "kind": "deferred",
             "reason": "A mount's chest is the minecraft:is_chested component group, which a slot write does not switch yet.",
