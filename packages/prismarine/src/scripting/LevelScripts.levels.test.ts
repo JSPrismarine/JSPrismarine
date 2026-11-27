@@ -66,6 +66,8 @@ describe.skipIf(!scriptHostAvailable())('the scripts of several levels', { tags:
             path.join(root, 'config.json'),
             JSON.stringify({
                 'online-mode': false,
+                // Java's listener binds a fixed TCP port, which another server in the run may hold.
+                'java-enabled': false,
                 'preload-radius': 0,
                 'view-distance': 1,
                 'enable-ticking': false,
