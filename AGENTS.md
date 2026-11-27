@@ -269,24 +269,28 @@ by biome, `/locate`, or portals between dimensions.
   fetches, and takes several minutes. CI runs it in its own job.
 - When package exports or published behavior change, check the built package from a consumer context.
   Workspace resolution alone does not verify the published package contract.
+- Run locally only what your change reaches, and no check twice on the same files. CI runs
+  everything a diff reaches before a merge, so a local run earns its time only by catching a
+  failure sooner than CI would.
 - After an edit, run `pnpm exec vitest run --since-last-run` to test only what the edit affects.
   It reruns a test file when a file that test loaded on its last run has changed since, and it
   reruns failed files until they pass. The first run in a fresh checkout or worktree is a full run
   that builds the records. It cannot see a file no test loaded, such as a new `.env` or
-  `__mocks__` file, or a file whose modification time a checkout set in the past, so run the
-  relevant suites in full once before you finish. CI uses `--changed` instead, against the pull
-  request base or, on master, the last master commit whose tests passed, because those baselines
-  are the same on every machine. A nightly run tests every suite.
-- Run the relevant checks for the change. The root scripts include `pnpm run build`,
-  `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
-  cover the affected work.
+  `__mocks__` file, or a file whose modification time a checkout set in the past, so run the test
+  files that read such a file by path. Do not run `pnpm run test` or whole suites: CI uses
+  `--changed`, against the pull request base or, on master, the last master commit whose tests
+  passed, because those baselines are the same on every machine. A nightly run tests every suite.
+- Typecheck the packages you changed and their dependents with
+  `pnpm exec turbo run typecheck --filter='...[origin/master]'`, not `pnpm run typecheck`, which
+  checks every package. Build only when the change touches build configuration, package exports or
+  published output.
 - `pnpm run lint` and `pnpm run format` run Prettier and Biome on the files that differ from the
   merge base with `master`, including staged, unstaged and untracked files. A change to the
   formatters' configuration checks every file; the root `package.json` and the lockfile are
   checked as changed files, and CI's `lint:all` covers a formatter upgrade.
   `pnpm run lint:all` and `pnpm run format:all` always cover every file; the CI workflow's plan job
-  runs `lint:all`.
-- After changing repository files, run `pnpm run lint:custom` after your final edit. Its script in
-  the root `package.json` lists the checks it runs, and `pnpm run lint` includes it.
+  runs `lint:all`. Do not run these, or `pnpm run lint:custom`, yourself: the lint gate below runs
+  what your change reaches when you commit and when you finish. To iterate on a failure it
+  reports, run that one check's script.
 - `scripts/agent-lint-gate.mts` runs as a Claude Code and Codex hook (`.claude/settings.json`, `.codex/hooks.json`). It lints the uncommitted changes before `git commit` and when you finish, and blocks either on failure. Prettier and Biome check only files that differ from `HEAD`, and of the `lint:custom` checks it runs only those whose inputs those files reach (`scripts/lint-gate-checks.mts` maps each check to its inputs; add an entry when you add a check). A clean tree skips the lint, and changes that already passed are not linted again. `lint:custom` also typechecks the root scripts project (`pnpm run typecheck:scripts`, `tsconfig.scripts.json`), which no package typecheck covers: a script that imports a package's source pulls that source into its NodeNext rules, and the gate catches the break before CI's typecheck does. `git push` is not gated, since each commit passed the commit gate. Fix the reported problems instead of working around the hook. Codex asks to trust the project hooks on first use; review them with `/hooks`.
 - Review the diff and `git status --short` before finishing. Report the checks actually run and any failures or checks that could not be completed.
