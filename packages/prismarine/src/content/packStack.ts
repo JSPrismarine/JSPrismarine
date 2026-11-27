@@ -35,6 +35,12 @@ import {
 } from '@jsprismarine/bedrock-data/sources';
 import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
+/**
+ * The file the composed vanilla prefix is cached in, under the cache root. The suffix moves
+ * whenever the shape of a cached definition changes, so a warm boot never reads an older one.
+ */
+export const VANILLA_PREFIX_CACHE_FILE = 'composed-vanilla-prefix.v13';
+
 /** Points the resolver at a local copy of one fetched source. */
 export const PACK_STACK_ENV = {
     /** A composed vanilla Bedrock behavior pack directory, or a folder of BDS vanilla layers. */
@@ -429,7 +435,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
     const cache: PrefixCacheOptions | undefined =
         prefixLength > 0 && version !== undefined
             ? {
-                  filePath: join(root, 'composed-vanilla-prefix.v12'),
+                  filePath: join(root, VANILLA_PREFIX_CACHE_FILE),
                   prefixLength,
                   fingerprint: fingerprintPackDirectories(overlayDirectories),
                   validatorKey: 'structural-validator-v1'
