@@ -8,9 +8,9 @@
  * pinned jar, and `pnpm --filter @jsprismarine/bedrock-data run java:sources --update` stamps them.
  *
  * This check fails on a malformed tag, on a tag whose spelling the golden does not name, and on a
- * golden entry no tag uses. When the pinned jar is cached it also resolves every `@javaSource` and
- * `@javaSee` tag in it and compares the fingerprints, as the parity family does in CI. It also
- * counts the ``Java's `X.y` `` citations in JSDoc comments without a tag, per file, against
+ * golden entry no tag uses. `lint:java-sources` then runs `java:sources --check`, which resolves
+ * every `@javaSource` and `@javaSee` tag in the pinned jar, as the parity family does in CI. It
+ * lives beside the jar pin, outside this script's NodeNext project. This check also counts the ``Java's `X.y` `` citations in JSDoc comments without a tag, per file, against
  * `scripts/java-sources-baseline.json`, which only shrinks: `--update-baseline` lowers it.
  */
 
@@ -23,7 +23,6 @@ import {
     readJavaSourceGolden,
     scanRepository
 } from '../tools/java-classfile/src/sources.mts';
-import { pinnedJarProblems, readPinnedJar } from '../packages/bedrock-data/utils/java-sources/run.ts';
 
 import type { Counts } from './rule-baseline.mts';
 import { runBaselineCheck } from './rule-baseline.mts';
@@ -43,22 +42,10 @@ if (import.meta.filename === process.argv[1]) {
         ),
         ...goldenProblems(tags, readJavaSourceGolden(goldenPath))
     ];
-    // With the pinned jar cached, as `pnpm test` and `pnpm dev` leave it, the tags are also
-    // resolved in it, so an overloaded or renamed member fails here before it fails the
-    // java.transcriptions parity family in CI.
-    const jar = await readPinnedJar();
-    if (jar === undefined) {
-        console.log(
-            'The pinned Java server jar is not cached, so the tags were not resolved in it; `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` fetches it.'
-        );
-    } else {
-        const references = [...scans.values()].flatMap((scan) => scan.references);
-        problems.push(...pinnedJarProblems(tags, references, readJavaSourceGolden(goldenPath), jar));
-    }
     if (problems.length > 0) {
         for (const problem of problems) console.error(problem);
         console.error(
-            `\n${problems.length} Java tag problems. Spell an overloaded member with its descriptor, and run \`pnpm --filter @jsprismarine/bedrock-data run java:sources --update\` after adding or removing a ${JAVA_SOURCE_TAG} tag (docs/plans/java-transcriptions.md).`
+            `\n${problems.length} Java tag problems. Run \`pnpm --filter @jsprismarine/bedrock-data run java:sources --update\` after adding or removing a ${JAVA_SOURCE_TAG} tag (docs/plans/java-transcriptions.md).`
         );
         process.exitCode = 1;
     }

@@ -14,6 +14,11 @@
  * for a release stamped for the first time, and it is stamped only when `--reviewed <spelling>`
  * names it, after someone has read the new bytecode against the TypeScript that copies it.
  *
+ * `--check` resolves every `@javaSource` and `@javaSee` tag in the pinned jar and fails on the
+ * problems {@link pinnedJarProblems} finds, before the parity family does in CI.
+ * `pnpm run lint:java-sources`, and so the commit gate, runs it. Without a cached jar it says so
+ * and passes.
+ *
  * `--list <spelling>` prints the normalized listing the fingerprint hashes, for that review. Two
  * releases' listings diff cleanly:
  *
@@ -110,7 +115,7 @@ const readJar = async (): Promise<{ readonly version: string; readonly index: Ja
  * @param jar - The pinned jar, from {@link readPinnedJar}.
  * @returns One `file:line: message` line per problem.
  */
-export const pinnedJarProblems = (
+const pinnedJarProblems = (
     tags: readonly JavaSourceTag[],
     references: readonly JavaReference[],
     golden: JavaSourceGolden,
@@ -236,6 +241,28 @@ if (import.meta.filename === process.argv[1]) {
             console.log(`# ${spelling} in ${version}`);
             console.log(javaSourceListing(index.load, resolveJavaSource(spelling, index)).join('\n'));
         }
+    } else if (process.argv.includes('--check')) {
+        const scans = [...scanRepository(repoRoot).values()];
+        const jar = await readPinnedJar();
+        if (jar === undefined) {
+            console.log(
+                'The pinned Java server jar is not cached, so the Java tags were not resolved in it; `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` fetches it.'
+            );
+        } else {
+            const problems = pinnedJarProblems(
+                scans.flatMap((scan) => scan.tags),
+                scans.flatMap((scan) => scan.references),
+                readJavaSourceGolden(goldenPath),
+                jar
+            );
+            for (const problem of problems) console.error(problem);
+            if (problems.length > 0) {
+                console.error(
+                    `\n${problems.length} Java tags do not match the ${jar.version} jar. Spell an overloaded member with its descriptor, and run \`pnpm --filter @jsprismarine/bedrock-data run java:sources --update\` after adding or removing a @javaSource tag.`
+                );
+                process.exitCode = 1;
+            } else console.log(`Every Java tag resolves in the ${jar.version} jar.`);
+        }
     } else if (process.argv.includes('--update')) {
         const tags = [...scanRepository(repoRoot).values()].flatMap((scan) => scan.tags);
         const problems = await update(
@@ -247,7 +274,7 @@ if (import.meta.filename === process.argv[1]) {
         if (problems.length > 0) process.exitCode = 1;
     } else {
         console.error(
-            'Pass --update [--reviewed <spelling>]..., --list <spelling> or --tag <directory>, with an optional --java <release>.'
+            'Pass --check, --update [--reviewed <spelling>]..., --list <spelling> or --tag <directory>, with an optional --java <release>.'
         );
         process.exitCode = 1;
     }

@@ -59,7 +59,7 @@
         "labels:coderabbit": "node scripts/coderabbit-labels.mts",
         "lint:custom": "concurrently --prefix '{name}' pnpm:lint:american-filenames pnpm:lint:addon-turbo pnpm:lint:barrels pnpm:lint:landmines pnpm:lint:packets pnpm:lint:wire-layouts pnpm:lint:error-classes pnpm:lint:jsdoc pnpm:lint:java-sources pnpm:lint:encoding pnpm:lint:docs-facts pnpm:lint:brand-assets pnpm:lint:coderabbit-labels pnpm:lint:changesets pnpm:lint:vscode-launch",
         "lint:barrels": "node scripts/check-barrels.mts",
-        "lint:java-sources": "node scripts/check-java-sources.mts",
+        "lint:java-sources": "node scripts/check-java-sources.mts && node packages/bedrock-data/utils/java-sources/run.ts --check",
         "lint:landmines": "node scripts/check-landmines.mts",
         "lint:packets": "node scripts/check-packet-codecs.mts",
         "lint:wire-layouts": "node scripts/check-wire-layouts.mts",
