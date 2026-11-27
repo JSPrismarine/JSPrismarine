@@ -625,6 +625,8 @@
         "ServerboundMovePlayerPacket$PosRot.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$PosRot.STREAM_CODEC",
         "ServerboundMovePlayerPacket$Rot.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$Rot.STREAM_CODEC",
         "ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC",
+        "ServerboundPickItemFromBlockPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPickItemFromBlockPacket.STREAM_CODEC",
+        "ServerboundPickItemFromEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPickItemFromEntityPacket.STREAM_CODEC",
         "ServerboundPingRequestPacket.STREAM_CODEC": "net/minecraft/network/protocol/ping/ServerboundPingRequestPacket.STREAM_CODEC",
         "ServerboundPlayerActionPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerActionPacket.STREAM_CODEC",
         "ServerboundPlayerCommandPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerCommandPacket.STREAM_CODEC",
@@ -1196,6 +1198,12 @@
         "net/minecraft/network/protocol/game/ServerboundMovePlayerPacket$StatusOnly.STREAM_CODEC": {
             "26.3": "sha256:2bb81c851dafbf6995b3d84732e7554eccc56ad322dc25ab3423bf7cd268e3c8",
             "26.4-pre-1": "sha256:2bb81c851dafbf6995b3d84732e7554eccc56ad322dc25ab3423bf7cd268e3c8"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPickItemFromBlockPacket.STREAM_CODEC": {
+            "26.3": "sha256:42190c284a2a862d77b92e8baf7abb5760463f822f7955efee73169385188e4f"
+        },
+        "net/minecraft/network/protocol/game/ServerboundPickItemFromEntityPacket.STREAM_CODEC": {
+            "26.3": "sha256:d6aa18ed095c182a64da506cc6b4831aebbeaf48d3c432d102faf06cb65bd6d8"
         },
         "net/minecraft/network/protocol/game/ServerboundPlayerActionPacket.STREAM_CODEC": {
             "26.3": "sha256:7d481b06a7cb659e228ed48ae99b47978bea0a01be7feee95c896011a2cffcf2",

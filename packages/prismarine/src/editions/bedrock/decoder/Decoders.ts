@@ -1,9 +1,12 @@
 import ActorEventDecoder from './ActorEventDecoder';
+import ActorPickRequestDecoder from './ActorPickRequestDecoder';
 import AnimateDecoder from './AnimateDecoder';
+import BlockPickRequestDecoder from './BlockPickRequestDecoder';
 import BossEventDecoder from './BossEventDecoder';
 import ContainerCloseDecoder from './ContainerCloseDecoder';
 import EmoteDecoder from './EmoteDecoder';
 import InteractDecoder from './InteractDecoder';
+import LecternUpdateDecoder from './LecternUpdateDecoder';
 import LevelSoundEventDecoder from './LevelSoundEventDecoder';
 import MobEquipmentDecoder from './MobEquipmentDecoder';
 import RequestAbilityDecoder from './RequestAbilityDecoder';
@@ -25,11 +28,14 @@ import TextDecoder from './TextDecoder';
  */
 export {
     ActorEventDecoder,
+    ActorPickRequestDecoder,
     AnimateDecoder,
+    BlockPickRequestDecoder,
     BossEventDecoder,
     ContainerCloseDecoder,
     EmoteDecoder,
     InteractDecoder,
+    LecternUpdateDecoder,
     LevelSoundEventDecoder,
     MobEquipmentDecoder,
     RequestAbilityDecoder,

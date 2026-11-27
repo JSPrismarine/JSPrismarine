@@ -21,6 +21,8 @@ import {
     MovePlayerPosRot,
     MovePlayerRot,
     MovePlayerStatusOnly,
+    PickItemFromBlock,
+    PickItemFromEntity,
     PlayerAction,
     PlayerCommand,
     PlayerCommandAction,
@@ -229,6 +231,17 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
         );
         connection.queue(world.players.intent(session, { kind: 'setSneaking', sneaking: sneak }));
     }),
+    // A middle click. Java's entity ids are the server's runtime ids.
+    intentHandler(PickItemFromBlock, ({ position, includeData }) => ({
+        kind: 'pickBlock',
+        position,
+        withData: includeData
+    })),
+    intentHandler(PickItemFromEntity, ({ entityId, includeData }) => ({
+        kind: 'pickEntity',
+        target: BigInt(entityId),
+        withData: includeData
+    })),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
         intent: javaMiningIntentOf(action, session.getPlayer().gamemode) ?? javaDropIntentOf(action.status),

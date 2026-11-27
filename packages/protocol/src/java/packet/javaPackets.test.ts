@@ -83,6 +83,8 @@ import {
     PlayerInfoRemove,
     PlayerInfoUpdateGameMode,
     PlayerInput,
+    PickItemFromBlock,
+    PickItemFromEntity,
     PlayerInputFlag,
     PlayerLoaded,
     RemoveEntities,
@@ -274,6 +276,8 @@ const SAMPLES: readonly Sample[] = [
     sample(MovePlayerStatusOnly, { flags: MOVE_ON_GROUND }),
     sample(PlayerCommand, { entityId: 7, action: PlayerCommandAction.StartSprinting, data: 0 }),
     sample(PlayerInput, { flags: PlayerInputFlag.Forward | PlayerInputFlag.Jump }),
+    sample(PickItemFromBlock, { position: { x: -3, y: 70, z: 12 }, includeData: true }),
+    sample(PickItemFromEntity, { entityId: 42, includeData: false }),
     sample(
         SystemChat,
         { content: 'Hello', overlay: false },

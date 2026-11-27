@@ -1915,6 +1915,10 @@
             "jsprismarine:dist": "./dist/editions/bedrock/handler/AnvilDamageHandler.js",
             "default": "./src/editions/bedrock/handler/AnvilDamageHandler.ts"
         },
+        "./input/handlers/TurnLecternPageHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/TurnLecternPageHandler.js",
+            "default": "./src/input/handlers/TurnLecternPageHandler.ts"
+        },
         "./input/handlers/BlockTarget": {
             "jsprismarine:dist": "./dist/input/handlers/BlockTarget.js",
             "default": "./src/input/handlers/BlockTarget.ts"
@@ -1938,14 +1942,6 @@
         "./network/handler/LabTableHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/LabTableHandler.js",
             "default": "./src/editions/bedrock/handler/LabTableHandler.ts"
-        },
-        "./editions/bedrock/handler/LecternUpdateHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/LecternUpdateHandler.js",
-            "default": "./src/editions/bedrock/handler/LecternUpdateHandler.ts"
-        },
-        "./network/handler/LecternUpdateHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/LecternUpdateHandler.js",
-            "default": "./src/editions/bedrock/handler/LecternUpdateHandler.ts"
         },
         "./editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler.js",

@@ -150,11 +150,6 @@ export interface IntentPayloads {
         readonly breaksIfInstant: boolean;
     };
     /**
-     * A creative player put a stack in a slot of its own inventory, or emptied it, as a Java
-     * client says outright. `container` is the inventory's 36 slots (the hotbar's 9 first),
-     * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier.
-     */
-    /**
      * The player used the item in hand on a block: `face` the face clicked, 0 to 5 as both
      * editions number them, and `faceLocation` where on it, each coordinate from 0 to 1.
      */
@@ -168,6 +163,11 @@ export interface IntentPayloads {
      * stack, which it throws ahead of itself.
      */
     readonly dropHeldItem: { readonly all: boolean };
+    /**
+     * A creative player put a stack in a slot of its own inventory, or emptied it, as a Java
+     * client says outright. `container` is the inventory's 36 slots (the hotbar's 9 first),
+     * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier.
+     */
     readonly setCreativeSlot: {
         readonly container: 'inventory' | 'armor' | 'offhand';
         readonly slot: number;
@@ -199,6 +199,25 @@ export interface IntentPayloads {
     readonly setSleeping: { readonly sleeping: boolean };
     /** Which of the buttons scripts hear of the player holds: the jump and sneak buttons. */
     readonly holdButtons: { readonly jump: boolean; readonly sneak: boolean };
+    /**
+     * The player middle-clicked a block to take its item into the hand, and with `withData` asked
+     * for the block's data on the item too.
+     */
+    readonly pickBlock: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly withData: boolean;
+    };
+    /**
+     * The player middle-clicked an actor, by runtime id, to take its spawn egg into the hand, and
+     * with `withData` asked for the actor's data on the egg too.
+     */
+    readonly pickEntity: { readonly target: bigint; readonly withData: boolean };
+    /** The player turned the book on a lectern to `page`, of the book's `totalPages`. */
+    readonly turnLecternPage: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly page: number;
+        readonly totalPages: number;
+    };
 }
 
 /** What the table declares about one intent. */
@@ -264,7 +283,13 @@ export const Intents = {
     setFlying: { lane: 'input' },
     setSleeping: { lane: 'input' },
     // Raised on the input lane so the scripts hear it in the tick it arrived in.
-    holdButtons: { lane: 'input' }
+    holdButtons: { lane: 'input' },
+    // A pick reads the block or the actor picked. Picking is not implemented, so the handlers
+    // only log, and the entity pick checks the player was shown the actor.
+    pickBlock: { lane: 'read' },
+    pickEntity: { lane: 'read' },
+    // Reads the block at the lectern's position; the page is not stored.
+    turnLecternPage: { lane: 'read' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

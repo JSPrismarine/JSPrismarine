@@ -29,6 +29,8 @@ import {
     PlayerInfoAction,
     PlayerInput,
     PlayerInputFlag,
+    PickItemFromBlock,
+    PickItemFromEntity,
     RAIN_LEVEL_CHANGE,
     START_RAINING,
     STOP_RAINING,
@@ -1046,7 +1048,17 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'pick-block',
         area: 'containers',
         java: 'A client picks the block or entity it looks at into its hand.',
-        needs: [read('play/serverbound/pick_item_from_block'), read('play/serverbound/pick_item_from_entity')]
+        needs: [
+            decoded(
+                PickItemFromBlock,
+                'pick a block',
+                { position: { x: 0, y: 64, z: 0 }, includeData: false },
+                { kind: 'pickBlock' }
+            ),
+            decoded(PickItemFromEntity, 'pick an entity', { entityId: 1, includeData: false }, { kind: 'pickEntity' }),
+            // Vanilla's `tryPickItem` answers with the slot the picked item went to.
+            shown('play/clientbound/set_held_slot', 'the picked item in hand', undefined)
+        ]
     },
     {
         id: 'bundles',

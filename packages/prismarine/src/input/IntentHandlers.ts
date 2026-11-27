@@ -11,6 +11,8 @@ import MineBlockHandler from './handlers/MineBlockHandler';
 import MoveHandler from './handlers/MoveHandler';
 import OpenInventoryHandler from './handlers/OpenInventoryHandler';
 import OpenNpcHandler from './handlers/OpenNpcHandler';
+import PickBlockHandler from './handlers/PickBlockHandler';
+import PickEntityHandler from './handlers/PickEntityHandler';
 import PlaySoundHandler from './handlers/PlaySoundHandler';
 import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PressRespawnHandler from './handlers/PressRespawnHandler';
@@ -29,6 +31,7 @@ import SetSleepingHandler from './handlers/SetSleepingHandler';
 import SetSneakingHandler from './handlers/SetSneakingHandler';
 import SetSprintingHandler from './handlers/SetSprintingHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
+import TurnLecternPageHandler from './handlers/TurnLecternPageHandler';
 import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
 
 /**
@@ -49,6 +52,8 @@ export {
     MoveHandler,
     OpenInventoryHandler,
     OpenNpcHandler,
+    PickBlockHandler,
+    PickEntityHandler,
     PlaySoundHandler,
     PlayerInitializedHandler,
     PressRespawnHandler,
@@ -67,5 +72,6 @@ export {
     SetSneakingHandler,
     SetSprintingHandler,
     SetViewDistanceHandler,
+    TurnLecternPageHandler,
     UseItemOnBlockHandler
 };

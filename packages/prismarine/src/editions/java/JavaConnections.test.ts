@@ -33,6 +33,8 @@ import {
     PlayerCommandAction,
     PlayerInput,
     PlayerInputFlag,
+    PickItemFromBlock,
+    PickItemFromEntity,
     PlayerActionStatus,
     PlayerLoaded,
     PlayClientInformation,
@@ -302,7 +304,8 @@ describe('JavaConnections', () => {
                         void did.push(
                             intent.kind === 'move'
                                 ? `move ${intent.position.x} ${intent.position.y - EYE_HEIGHT} ${intent.onGround} ${intent.handledTeleport}`
-                                : `intent ${JSON.stringify(intent)}`
+                                : // A replacer, since an entity pick names its target as a bigint.
+                                  `intent ${JSON.stringify(intent, (_, value) => (typeof value === 'bigint' ? `${value}n` : value))}`
                         ),
                     leave: async () => {
                         did.push('leave');
@@ -380,7 +383,10 @@ describe('JavaConnections', () => {
         java.send(MovePlayerPos, { x: 40.5, y: 70.4, z: 8.5, flags: 0 });
         java.send(PlayerInput, { flags: PlayerInputFlag.Jump | PlayerInputFlag.Shift });
         java.send(PlayerCommand, { entityId: 7, action: PlayerCommandAction.StartSprinting, data: 0 });
-        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"setSprinting","sprinting":true}');
+        // Middle clicks on a block and on an entity, which name the entity by its runtime id.
+        java.send(PickItemFromBlock, { position: { x: 1, y: -60, z: 2 }, includeData: true });
+        java.send(PickItemFromEntity, { entityId: 12, includeData: false });
+        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"pickEntity","target":"12n","withData":false}');
         java.destroy();
         await leaving;
 
@@ -399,6 +405,8 @@ describe('JavaConnections', () => {
             'intent {"kind":"holdButtons","jump":true,"sneak":true}',
             'intent {"kind":"setSneaking","sneaking":true}',
             'intent {"kind":"setSprinting","sprinting":true}',
+            'intent {"kind":"pickBlock","position":{"x":1,"y":-60,"z":2},"withData":true}',
+            'intent {"kind":"pickEntity","target":"12n","withData":false}',
             'leave'
         ]);
     });

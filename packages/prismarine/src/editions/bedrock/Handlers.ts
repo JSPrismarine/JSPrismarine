@@ -1,6 +1,4 @@
-import ActorPickRequestHandler from './handler/ActorPickRequestHandler';
 import AnvilDamageHandler from './handler/AnvilDamageHandler';
-import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
 import BookEditHandler from './handler/BookEditHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
@@ -14,7 +12,6 @@ import EmoteListHandler from './handler/EmoteListHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import LabTableHandler from './handler/LabTableHandler';
-import LecternUpdateHandler from './handler/LecternUpdateHandler';
 import LoginHandler from './handler/LoginHandler';
 import MapCreateLockedCopyHandler from './handler/MapCreateLockedCopyHandler';
 import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
@@ -56,9 +53,7 @@ import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandl
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 
 export {
-    ActorPickRequestHandler,
     AnvilDamageHandler,
-    BlockPickRequestHandler,
     BookEditHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
@@ -72,7 +67,6 @@ export {
     InventoryTransactionHandler,
     ItemStackRequestHandler,
     LabTableHandler,
-    LecternUpdateHandler,
     LoginHandler,
     MapCreateLockedCopyHandler,
     MapInfoRequestHandler,

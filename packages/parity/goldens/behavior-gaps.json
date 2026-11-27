@@ -3401,7 +3401,7 @@
         },
         "containers:pick-block": {
             "kind": "deferred",
-            "reason": "In Java: A client picks the block or entity it looks at into its hand. For a Java client here: play/serverbound/pick_item_from_block is not read; play/serverbound/pick_item_from_entity is not read.",
+            "reason": "In Java: A client picks the block or entity it looks at into its hand. For a Java client here: play/clientbound/set_held_slot (the picked item in hand) has no presenter call that sends it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3769"
         },
         "containers:recipe-book": {
