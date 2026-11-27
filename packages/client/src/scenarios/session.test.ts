@@ -56,7 +56,8 @@ describe('xbox-achievements', () => {
     });
 });
 
-describe('furnace-inputs', () => {
+// The recipes come from the Java vanilla datapack, which only the real-data job has.
+describe('furnace-inputs', { tags: ['real-data'] }, () => {
     /**
      * A Bedrock client picks the slot a shift-click puts a stack in by itself: a furnace's input
      * slot for something one of its cooking recipes takes, the fuel slot for fuel. The cooking
@@ -98,7 +99,8 @@ describe('furnace-inputs', () => {
     });
 });
 
-describe('recipe-book', () => {
+// The recipes and the advancement that unlocks one come from the Java vanilla datapack.
+describe('recipe-book', { tags: ['real-data'] }, () => {
     it('starts a new player with an empty book and unlocks a recipe when its ingredient arrives', async () => {
         const { player, joined } = jsp.connect('Booker');
         const registry = player.client.getRegistry();
