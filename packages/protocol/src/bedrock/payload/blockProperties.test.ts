@@ -63,6 +63,28 @@ describe('buildBlockProperties', () => {
         expect(ids).toEqual([`int:${FIRST_CUSTOM_BLOCK_ID}`, `int:${FIRST_CUSTOM_BLOCK_ID + 1}`]);
     });
 
+    it("ignores a pack block's internal_vanilla_data, as BDS does", () => {
+        const declaring = {
+            description: {
+                identifier: 'test:declared',
+                internal_vanilla_data: { block_id: 40_000, material: 'solid' },
+                menu_category: { category: 'construction' }
+            },
+            components: {}
+        };
+        const { properties, blockIds } = buildBlockProperties([document(minimal), document(declaring)], {
+            fromPacks: true
+        });
+
+        expect([...blockIds]).toEqual([
+            ['test:thing', FIRST_CUSTOM_BLOCK_ID],
+            ['test:declared', FIRST_CUSTOM_BLOCK_ID + 1]
+        ]);
+        expect(nbtToPlain(readNetworkNbt(properties[1]!.definition))).toMatchObject({
+            vanilla_block_data: { block_id: `int:${FIRST_CUSTOM_BLOCK_ID + 1}`, material: 'string:dirt' }
+        });
+    });
+
     it('keeps the block id and the archetype a vanilla file declares', () => {
         const definition = definitionOf({
             description: {

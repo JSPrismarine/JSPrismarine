@@ -100,16 +100,39 @@ describe('buildItemRegistry', () => {
             ]);
         });
 
-        it('writes no item for a block whose number does not fit an int16', () => {
-            const { entries } = buildItemRegistry([], {
+        it('wraps a number past the int16 range, as BDS sent block 33024 as 32767', () => {
+            expect(blockItemRuntimeId(33_023)).toBe(-32_768);
+            expect(blockItemRuntimeId(33_024)).toBe(32_767);
+            expect(blockItemRuntimeId(33_099)).toBe(32_692);
+        });
+
+        it('gives no item to a block whose number another item has, and reports it', () => {
+            const apple = item_table['minecraft:apple']!.runtime_id;
+            // The block whose item form wraps onto the apple's number.
+            const clashing = 255 - apple + 65_536;
+            const { entries, unnumberedBlocks } = buildItemRegistry([typeOf('minecraft:apple')], {
                 table: item_table,
                 blocks: new Map([
-                    ['mypack:last', 33_023],
-                    ['mypack:past', 33_024]
+                    ['mypack:ok', 10_000],
+                    ['mypack:clash', clashing]
                 ])
             });
 
-            expect(entries.map((entry) => [entry.name, entry.runtimeId])).toEqual([['mypack:last', -32_768]]);
+            expect(entries.map((entry) => entry.name)).toEqual(['minecraft:apple', 'mypack:ok']);
+            expect(unnumberedBlocks).toEqual([
+                { identifier: 'mypack:clash', runtimeId: apple, takenBy: 'minecraft:apple' }
+            ]);
+        });
+
+        it('allocates an invented item past the numbers the other items and blocks have', () => {
+            const { allocated } = buildItemRegistry([typeOf('minecraft:apple'), typeOf('minecraft:stick')], {
+                // The stick holds the first custom number; the apple has no row.
+                table: { 'minecraft:stick': { runtime_id: FIRST_CUSTOM_ITEM_ID, component_based: false, version: 2 } },
+                // A block whose item form wraps onto the next one.
+                blocks: new Map([['mypack:block', 255 - (FIRST_CUSTOM_ITEM_ID + 1) + 65_536]])
+            });
+
+            expect(allocated).toEqual([{ identifier: 'minecraft:apple', runtimeId: FIRST_CUSTOM_ITEM_ID + 2 }]);
         });
 
         it('keeps the item a block already has', () => {

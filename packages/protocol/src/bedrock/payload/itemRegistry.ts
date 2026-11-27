@@ -53,19 +53,17 @@ export const ITEM_VERSION = {
 export const FIRST_CUSTOM_ITEM_ID = 10000;
 
 /**
- * The item number of a block's item form: `255 - block_id`, negative for every block past the
- * first 256.
+ * The item number of a block's item form: `255 - block_id`, kept to the int16 `Item Id`
+ * travels as.
  *
  * Every vanilla block item in the captured table follows it, `minecraft:black_concrete_slab`'s
  * -1218 for `block_id` 1473 among them, and a Bedrock Dedicated Server 1.26.60.6 numbers a
  * pack's blocks the same way: the two it was given, with `block_id` 10000 and 10001, went out
- * as -9745 and -9746.
+ * as -9745 and -9746. Past `block_id` 33023 the difference no longer fits, and that server
+ * wraps it as two's complement does, without a warning: given 23100 blocks, it sent
+ * `block_id` 33024 as 32767 and 33099 as 32692, and the client joined.
  */
-export const blockItemRuntimeId = (blockId: number): number => 255 - blockId;
-
-/** Whether an item number fits `Item Id`, an int16 on the wire. */
-const fitsItemId = (runtimeId: number): boolean =>
-    Number.isInteger(runtimeId) && runtimeId >= -32_768 && runtimeId <= 32_767;
+export const blockItemRuntimeId = (blockId: number): number => ((255 - blockId) << 16) >> 16;
 
 /** The `item_properties` keys {@link BEDROCK_ONLY_ITEM_PROPERTIES} names, which no Java component decides. */
 export interface BedrockOnlyItemProperties {
@@ -152,10 +150,19 @@ export interface ItemRegistryOptions {
      * screen, which is what an addon's blocks did. A Bedrock Dedicated Server sends an item for
      * each block a pack adds, hidden ones included, as a plain entry: not component based,
      * version {@link ITEM_VERSION.None}, numbered by {@link blockItemRuntimeId}. A block whose
-     * number does not fit `Item Id`, an int16, which takes a `block_id` above 33023, gets no
-     * entry, so the packet can still be written.
+     * number another item already has gets no entry and is reported in
+     * {@link ItemRegistryResult.unnumberedBlocks}, since two items under one number would leave
+     * the client resolving one of them as the other.
      */
     blocks?: ReadonlyMap<string, number>;
+}
+
+/** A declared block that got no item, and the item whose number its item form needed. */
+export interface UnnumberedBlock {
+    readonly identifier: string;
+    readonly runtimeId: number;
+    /** The item that already travels as {@link runtimeId}. */
+    readonly takenBy: string;
 }
 
 /** An item the captured table does not name, and the number it was given. */
@@ -170,6 +177,8 @@ export interface ItemRegistryResult {
     readonly entries: readonly ItemRegistryEntry[];
     /** Items with no row in the captured table, which were given ids of this server's own. */
     readonly allocated: readonly AllocatedItemId[];
+    /** Declared blocks whose item form's number another item has, which got no entry. */
+    readonly unnumberedBlocks: readonly UnnumberedBlock[];
 }
 
 /**
@@ -539,25 +548,42 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
 
     const entries: ItemRegistryEntry[] = [];
     const allocated: AllocatedItemId[] = [];
+    const unnumberedBlocks: UnnumberedBlock[] = [];
     const sorted = [...items].sort((left, right) => (left.identifier < right.identifier ? -1 : 1));
     const named = new Set(sorted.map((type) => type.identifier));
 
+    // Every number already spoken for, by the item that has it: the table's rows for the items
+    // and blocks this build sends, then each block's item form. An allocated item skips them all.
+    const taken = new Map<number, string>();
+    for (const type of sorted) {
+        const row = table[type.identifier];
+        if (row !== undefined) taken.set(row.runtime_id, type.identifier);
+    }
+    const blockItems: ItemRegistryEntry[] = [];
     for (const [name, blockId] of options.blocks ?? []) {
         if (named.has(name)) continue;
         const row = table[name];
         const runtimeId = row?.runtime_id ?? blockItemRuntimeId(blockId);
-        if (!fitsItemId(runtimeId)) continue;
-        entries.push({
-            name,
-            runtimeId,
-            componentBased: false,
-            version: row?.version ?? ITEM_VERSION.None
-        });
+        const holder = taken.get(runtimeId);
+        if (holder !== undefined) {
+            unnumberedBlocks.push({ identifier: name, runtimeId, takenBy: holder });
+            continue;
+        }
+        taken.set(runtimeId, name);
+        blockItems.push({ name, runtimeId, componentBased: false, version: row?.version ?? ITEM_VERSION.None });
     }
+    entries.push(...blockItems);
+
+    /** The next number no item has. */
+    const allocate = (identifier: string): number => {
+        while (taken.has(nextItemId)) nextItemId++;
+        taken.set(nextItemId, identifier);
+        return nextItemId++;
+    };
 
     for (const type of sorted) {
         const row = table[type.identifier];
-        const runtimeId = row?.runtime_id ?? nextItemId++;
+        const runtimeId = row?.runtime_id ?? allocate(type.identifier);
         if (row === undefined) allocated.push({ identifier: type.identifier, runtimeId });
 
         // An item this server invented is one the client has no table row
@@ -591,5 +617,5 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
     }
 
     entries.sort((left, right) => (left.name < right.name ? -1 : 1));
-    return { entries, allocated };
+    return { entries, allocated, unnumberedBlocks };
 };

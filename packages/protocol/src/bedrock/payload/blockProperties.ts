@@ -437,7 +437,22 @@ export interface BlockPropertiesOptions {
      * writes only the top-level `blockTags` list, so that is the default.
      */
     tagComponents?: boolean;
+    /**
+     * The blocks come from packs, not from Mojang's vanilla behavior pack.
+     *
+     * A Bedrock Dedicated Server 1.26.60.6 reads `internal_vanilla_data` only from its own
+     * pack. Given a pack block that declared `block_id` 40000, it allocated 10001 and wrote
+     * `vanilla_block_data` as `{ block_id, material: "dirt" }`, as it does for every pack
+     * block. With this set, every block is numbered from
+     * {@link BlockPropertiesOptions.firstCustomBlockId} and gets that compound, so a pack
+     * cannot push its blocks onto a vanilla block's number or past the ones the item registry
+     * can carry. Off by default, which reads each block's `internal_vanilla_data`.
+     */
+    fromPacks?: boolean;
 }
+
+/** The `vanilla_block_data.material` that server writes for every pack block. */
+const PACK_BLOCK_MATERIAL = 'dirt';
 
 /** What {@link buildBlockProperties} produced, and what it could not. */
 export interface BlockPropertiesResult {
@@ -567,6 +582,7 @@ export const buildBlockProperties = (
     const molangVersion = options.molangVersion ?? MOLANG_VERSION;
     const tagComponents = options.tagComponents ?? false;
     let nextBlockId = options.firstCustomBlockId ?? FIRST_CUSTOM_BLOCK_ID;
+    const fromPacks = options.fromPacks ?? false;
 
     const properties: BlockProperty[] = [];
     const untranslated: UntranslatedComponent[] = [];
@@ -600,7 +616,8 @@ export const buildBlockProperties = (
         const menu = document.description.menuCategory;
         const states = document.description.states.filter((state) => !state.name.startsWith('minecraft:'));
         const traits = document.description.traits;
-        const blockId = document.description.internalVanillaData?.blockId ?? nextBlockId++;
+        const internal = fromPacks ? undefined : document.description.internalVanillaData;
+        const blockId = internal?.blockId ?? nextBlockId++;
         blockIds.set(name, blockId);
 
         const definition = nbtCompound({
@@ -615,7 +632,9 @@ export const buildBlockProperties = (
             permutations: permutations.length > 0 ? nbtList(permutations) : undefined,
             properties: states.length > 0 ? nbtList(states.map(propertyEntry)) : undefined,
             traits: traits.length > 0 ? nbtList(traits.map(traitEntry)) : undefined,
-            vanilla_block_data: vanillaBlockData(document, blockId)
+            vanilla_block_data: fromPacks
+                ? nbtCompound({ block_id: nbtInt(blockId), material: nbtString(PACK_BLOCK_MATERIAL) })
+                : vanillaBlockData(document, blockId)
         });
 
         properties.push({ name, definition: writeNetworkNbt(definition) });
