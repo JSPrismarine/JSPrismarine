@@ -85,6 +85,13 @@ export interface BlockPlacementContext {
     readonly faceLocation?: FaceLocation;
     /** Whether the player was sneaking, Java's `isSecondaryUseActive`. */
     readonly sneaking?: boolean;
+    /**
+     * Whether the block replaced the one the player clicked, such as short grass, rather than
+     * going against its face.
+     *
+     * @javaSee BlockPlaceContext.replacingClickedOnBlock
+     */
+    readonly replacingClicked?: boolean;
 }
 
 /**
@@ -143,6 +150,15 @@ export interface BlockPlaceEvent extends BlockEvent {
      * dripstone tip from merging with the one it meets. Absent for a world placement.
      */
     readonly sneaking?: boolean;
+    /**
+     * Whether the block replaced the one clicked, such as short grass, rather than going against
+     * its face. A trapdoor then ignores the clicked face and a lantern looks for support in the
+     * order the placer looks. Absent for a world placement and from a host that does not report
+     * it, which reads as a click against the face.
+     *
+     * @javaSee BlockPlaceContext.replacingClickedOnBlock
+     */
+    readonly replacingClicked?: boolean;
 }
 
 /** A block was broken. */
