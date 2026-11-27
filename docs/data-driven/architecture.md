@@ -90,8 +90,8 @@ the tables are generated rather than hand-maintained. [mapping.md](mapping.md) c
 
 Each domain gets one registry shape holding the resolved types, with tags merged across the stack.
 The client-facing packets (`ItemRegistryPacket`, the block properties NBT in `StartGamePacket`,
-`CreativeContentPacket`) are written from the registries, which is what will give plugins custom
-blocks and items on the wire. Storage stays Bedrock-shaped on disk, so existing worlds remain
+`CreativeContentPacket`) are written from the registries, which is how a pack's own blocks and
+items reach the client and its creative menu. Storage stays Bedrock-shaped on disk, so existing worlds remain
 readable throughout the migration.
 
 ## Where each subsystem lives
