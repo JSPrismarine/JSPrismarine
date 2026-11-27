@@ -30,6 +30,10 @@ import {
 } from '../../addons/multiverse/src/worlds.ts';
 import { PLACEHOLDERS } from '../../addons/standard-placeholders/src/placeholders.ts';
 import { DEFAULT_INTERVAL, EVENTS as TAB_LIST_EVENTS } from '../../addons/tab-list/src/templates.ts';
+import {
+    DEFAULT_FRAME_INTERVAL as MOTD_FRAME_INTERVAL,
+    DEFAULT_INTERVAL as MOTD_INTERVAL
+} from '../../addons/motd/src/motd.ts';
 import { MSPT_LEVELS, TICK_BUDGET_MS, TPS_LEVELS } from '../../addons/tps-bar/src/bar.ts';
 import {
     ADDON_INDEX_FILE,
@@ -1556,6 +1560,14 @@ function tabListFacts() {
     };
 }
 
+/** The MOTD addon's default intervals, read from the module that decides them. */
+function motdFacts() {
+    return {
+        'addons.motd.interval': String(MOTD_INTERVAL),
+        'addons.motd.frameInterval': String(MOTD_FRAME_INTERVAL)
+    };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -1675,6 +1687,7 @@ export async function loadFacts(): Promise<Facts> {
             ...tpsBarFacts(),
             ...standardPlaceholdersFacts(),
             ...tabListFacts(),
+            ...motdFacts(),
             ...multiverseFacts(),
             ...leveldbFacts(),
             ...tickBudgetFacts(),

@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "MOTD",
+        "description": "Renders the server list's MOTD from templates: colors, gradients, animations and placeholders.",
+        "uuid": "b6e65b1f-1b34-4328-9e21-35838968fc78",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 26, 60]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "d867ea0d-6bf7-4d10-8f21-5006ddf4b4c3",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.11.0" }]
+}

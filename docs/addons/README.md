@@ -32,6 +32,18 @@ each addon's <!-- fact:addons.files -->`manifest.json`, `addon.json` and `README
 listed here goes onto the <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release once its change reaches `master`.
 
 <!-- fact:addons.catalog -->
+### [MOTD](../../addons/motd/README.md)
+
+Renders the server list's MOTD from templates: colors, gradients, animations and placeholders.
+
+| Version | Runs on | License |
+| ------- | ------- | ------- |
+| `1.0.0` | JSPrismarine `0.27.0` or newer | (MIT OR MPL-2.0) |
+
+```text
+addon install motd
+```
+
 ### [Multiverse](../../addons/multiverse/README.md)
 
 Creates worlds, each a level of its own, and moves players between them, with per-world game mode and access.

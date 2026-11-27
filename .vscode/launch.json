@@ -2,6 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug addon scripts: MOTD",
+            "type": "minecraft-js",
+            "request": "attach",
+            "mode": "listen",
+            "port": 19144,
+            "localRoot": "${workspaceFolder}/addons/motd/src",
+            "sourceMapRoot": "${workspaceFolder}/addons/motd/scripts",
+            "generatedSourceRoot": "${workspaceFolder}/addons/motd/scripts",
+            "targetModuleUuid": "d867ea0d-6bf7-4d10-8f21-5006ddf4b4c3",
+            "preLaunchTask": "Dev server with script debugging"
+        },
+        {
             "name": "Debug addon scripts: Multiverse",
             "type": "minecraft-js",
             "request": "attach",
