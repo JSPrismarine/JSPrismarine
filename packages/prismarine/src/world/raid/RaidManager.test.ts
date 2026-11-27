@@ -145,6 +145,23 @@ describe('RaidManager', () => {
         expect(manager.records()).toEqual([]);
     });
 
+    it("celebrates a win for Java's 600 ticks before it ends", () => {
+        const { host, spawned, dead } = world();
+        const manager = new RaidManager(host);
+        for (let wave = 1; wave <= wavesFor(2); wave += 1) {
+            for (let guard = 0; guard < 2000 && manager.records()[0]?.groupsSpawned !== wave; guard += 1)
+                run(manager, 1);
+            for (const identity of spawned) dead.add(identity);
+        }
+        run(manager, 1);
+        expect(manager.records()[0]?.status).toBe('victory');
+
+        run(manager, 599);
+        expect(manager.records()[0]?.status).toBe('victory');
+        run(manager, 1);
+        expect(manager.records()).toEqual([]);
+    });
+
     it('adds a bonus wave and a stronger hero for a higher omen', () => {
         const { host, giveOmen } = world();
         giveOmen(3);

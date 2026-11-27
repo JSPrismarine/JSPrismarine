@@ -10,7 +10,7 @@
  *
  * The numbers are Java's `Raid`: three, five or seven waves by difficulty and one more when the
  * omen is stronger than level one, the per-wave raider table, the bonus raiders a harder
- * difficulty adds, 48000 ticks before a raid gives up, and a ten second celebration after a win.
+ * difficulty adds, 48000 ticks before a raid gives up, and a thirty second celebration after a win.
  */
 
 /** A position in the world, in blocks. */
@@ -95,8 +95,8 @@ const MAX_OMEN_LEVEL = 5;
 const WAVE_COUNTDOWN_TICKS = 300;
 /** Java's `Raid.MAX_TICKS_ACTIVE`: a raid this old is given up on. */
 const MAX_TICKS_ACTIVE = 48_000;
-/** How long raiders stay on after a win, Java's `Raid.CELEBRATION_TICKS`. */
-const CELEBRATION_TICKS = 200;
+/** How long raiders stay on after a win, Java's `Raid.MAX_CELEBRATION_TICKS`. */
+const CELEBRATION_TICKS = 600;
 /** How far from a raid's center a player counts as taking part. */
 const PARTICIPANT_RADIUS = 96;
 /** How far out from the center the raiders appear. */
