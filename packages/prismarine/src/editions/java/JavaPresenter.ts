@@ -967,6 +967,12 @@ export class JavaPresenter implements SessionPresenter {
         this.send(TickingStep, { steps: ticks });
     }
 
+    /**
+     * Not shown: this server sends a Java client no recipes, so there is no book to change.
+     * @see https://github.com/JSPrismarine/JSPrismarine/issues/3769
+     */
+    public async showRecipeBook(): Promise<void> {}
+
     /** Sends `Transfer (play)`. */
     public async transfer(host: string, port: number): Promise<void> {
         this.send(PlayTransfer, { host, port });

@@ -249,6 +249,15 @@ export interface ShownTicking {
     readonly frozen: boolean;
 }
 
+/**
+ * A change to a player's recipe book, naming recipes by their Java recipe ids. `initial` is the
+ * whole book, sent once at join, and `unlocked` and `locked` are deltas.
+ */
+export interface RecipeBookChange {
+    readonly kind: 'initial' | 'unlocked' | 'locked';
+    readonly recipes: readonly string[];
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -536,6 +545,13 @@ export interface SessionPresenter {
      * @param ticks - How many ticks it runs, or 0 when a step ends.
      */
     showTickStep(ticks: number): Promise<void>;
+
+    /**
+     * Shows the client a change to the player's recipe book.
+     *
+     * @param change - The recipes the book now holds, or the ones it gained or lost.
+     */
+    showRecipeBook(change: RecipeBookChange): Promise<void>;
 
     /**
      * Sends the client to another server, as `/transfer` does. The client leaves this one and

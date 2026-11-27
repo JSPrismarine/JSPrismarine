@@ -7,12 +7,12 @@
  * how - and where the two rewards this server can actually pay are paid.
  *
  * Vanilla uses `experience` on 23 of its 1866 files and `recipes` on 1739, and
- * uses neither `loot` nor `function` on any. Of those two, only experience is
- * paid here: there is no recipe book to unlock into, so a recipe reward
- * reports through the engine's own diagnostic rather than being swallowed.
+ * uses neither `loot` nor `function` on any. Both of those two are paid here:
+ * experience into the player's bar, and recipes into the player's recipe book.
  */
 import type { RewardHooks } from '@jsprismarine/advancements';
 
+import { isLearnableRecipe, unlockRecipes } from '../crafting/recipeBook';
 import { addExperiencePoints } from '../entity/Experience';
 import { playerOfSubject } from './subject';
 
@@ -28,5 +28,18 @@ export const advancementRewards = (): RewardHooks => ({
         if (!player) return;
 
         addExperiencePoints(player.getExperience(), amount);
+    },
+    /**
+     * Unlocks the recipe, skipping one the content has no recipe for, as Java's lookup by key
+     * does, and one the book cannot hold.
+     * @javaSee ServerPlayer.awardRecipesByKey
+     */
+    unlockRecipe: (subject, recipe) => {
+        const player = playerOfSubject(subject);
+        if (!player) return;
+
+        const known = player.getServer().getContent().recipes.get(recipe);
+        if (known === undefined || !isLearnableRecipe(known)) return;
+        unlockRecipes(player, [recipe]);
     }
 });

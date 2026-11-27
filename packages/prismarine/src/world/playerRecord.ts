@@ -18,6 +18,7 @@ import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/str
 import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import { storedAdvancements } from '../advancement/progress';
+import { recipeBookOf } from '../crafting/recipeBook';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import type { ServerContent } from '../content/ServerContent';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
@@ -90,6 +91,8 @@ export interface PlayerRecordTarget {
  */
 export interface PlayerServiceState {
     readonly advancements: PlayerProgressJson;
+    /** The recipe book, which a caller that has none leaves out of the record. */
+    readonly recipeBook?: readonly string[];
     readonly enchantmentSeed: number;
 }
 
@@ -129,6 +132,7 @@ export const playerRecordFrom = (
         },
         dimension: dimension.id,
         advancements: services.advancements,
+        ...(services.recipeBook === undefined ? {} : { recipeBook: services.recipeBook }),
         enchantmentSeed: services.enchantmentSeed,
         inventory: storedInventory(player.getInventory()),
         health: player.getHealth(),
@@ -183,7 +187,11 @@ export const playerRecordOf = (
 ): WorldPlayerData =>
     playerRecordFrom(
         player,
-        { advancements: storedAdvancements(keyed), enchantmentSeed: enchantmentSeedOf(keyed) },
+        {
+            advancements: storedAdvancements(keyed),
+            recipeBook: recipeBookOf(keyed),
+            enchantmentSeed: enchantmentSeedOf(keyed)
+        },
         dimension
     );
 

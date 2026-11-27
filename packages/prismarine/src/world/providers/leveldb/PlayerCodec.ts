@@ -374,6 +374,9 @@ export const playerDataToNbt = (data: WorldPlayerData, known: KnownDimensions = 
         // difference between 1 and 1.0 on the way back.
         saved.addValue('advancements', new Types.StringVal(JSON.stringify(data.advancements)));
     }
+    // JSON too, for the same reason, and so an empty book is written and reads back as one.
+    if (data.recipeBook !== undefined)
+        saved.addValue('recipeBook', new Types.StringVal(JSON.stringify(data.recipeBook)));
 
     const position = new NBTTagCompound('position');
     position.addValue('x', new Types.DoubleVal(data.position.x));
@@ -406,6 +409,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
     const legacyAttributes = legacyAttributesFrom(attributes);
     const inventory = inventoryFromNbt(nbt);
     const advancements = saved?.getString('advancements', '') ?? '';
+    const recipeBook = saved?.has('recipeBook') ? parseRecipeBook(saved.getString('recipeBook', '')) : undefined;
     const spawn = spawnFromNbt(nbt, saved, types);
     const dimension = dimensionFromNbt(
         saved?.getString('dimension', ''),
@@ -434,6 +438,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
             ? { attributes }
             : {}),
         ...(advancements === '' ? {} : { advancements: parseAdvancements(advancements) }),
+        ...(recipeBook === undefined ? {} : { recipeBook }),
         ...(spawn === undefined ? {} : { spawn }),
         ...(nbt.has('PortalCooldown') ? { portalCooldown: nbt.getNumber('PortalCooldown', 0) } : {}),
         ...(seenCredits === undefined ? {} : { seenCredits }),
@@ -448,6 +453,19 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
             ? {}
             : { experience: { level: legacyAttributes.level ?? 0, progress: legacyAttributes.progress ?? 0 } })
     };
+};
+
+/**
+ * The recipe book out of its JSON tag: the strings of the array, or undefined when the tag holds
+ * no array, which reads as a record without a book.
+ */
+const parseRecipeBook = (encoded: string): readonly string[] | undefined => {
+    try {
+        const parsed: unknown = JSON.parse(encoded);
+        return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : undefined;
+    } catch {
+        return undefined;
+    }
 };
 
 /**

@@ -28,6 +28,7 @@ import { vanillaBlockPalette } from '@jsprismarine/blocks';
 import { javaBlockStateToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream, blockRuntimeId } from '@jsprismarine/protocol';
+import { RecipeUnlockingContext } from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
 import { compileRecipeBook } from '@jsprismarine/recipes';
 import {
     assertBlockPaletteAgrees,
@@ -45,6 +46,7 @@ import { assertContentPaletteAgrees } from './contentPalette';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ServerContent } from '../../content/ServerContent';
+import type { RecipeBookEntries } from './presenter/BedrockPresenter';
 import type { BlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
 import type {
@@ -119,6 +121,12 @@ export interface NetworkContentPayloads {
      * every Java recipe it covers, and a transmute goes out under several ids.
      */
     readonly recipesByNetId: ReadonlyMap<number, readonly string[]>;
+    /**
+     * The entries of {@link crafting} each Java recipe unlocks in the client's recipe book, by
+     * Java recipe id. Only crafting table recipes are in the book; see {@link BOOK_UNLOCKING}.
+     * A transmute is here under every entry it went out as.
+     */
+    readonly bookEntriesByRecipe: ReadonlyMap<string, readonly string[]>;
     readonly report: ContentPayloadReport;
 }
 
@@ -177,6 +185,50 @@ const creativeStack = (
         content.items.types.get(instance.name)?.hasComponent('minecraft:blocks_attacks') ?? false
     )
 });
+
+/**
+ * The unlocking requirement of a recipe in the recipe book: none the client checks itself, so the
+ * recipe stays out of the book until an `UnlockedRecipesPacket` names it.
+ *
+ * Java's recipe book holds only the recipes the server unlocked, through `/recipe` and the
+ * `recipes/` advancements, and this is how the Bedrock book is made to agree. The pinned Bedrock
+ * Dedicated Server writes the same requirement, the `NONE` context with an empty list, for 525
+ * of its crafting table recipes. It writes `ALWAYS_UNLOCKED` for only 20 recipes.
+ */
+const BOOK_UNLOCKING = { context: RecipeUnlockingContext.NONE, ingredients: [] };
+
+/**
+ * The station of the recipes the book holds. Java's stonecutter lists every recipe whatever the
+ * book holds, so a recipe at any other station keeps the packet's default, which unlocks it from
+ * the start.
+ */
+const BOOK_STATION = 'crafting_table';
+
+/** The unlocking requirement of an entry at a station, or none for the packet's default. */
+const unlockingAt = (station: string): { unlocking?: typeof BOOK_UNLOCKING } =>
+    station === BOOK_STATION ? { unlocking: BOOK_UNLOCKING } : {};
+
+/**
+ * Which book entries each Java recipe stands behind, from the entries' net ids.
+ *
+ * @param entries - The crafting entries, each with its id and net id.
+ * @param recipesByNetId - The Java recipes behind each net id.
+ */
+const bookEntriesOf = (
+    entries: Iterable<{ readonly id: string; readonly netId: number; readonly station: string }>,
+    recipesByNetId: ReadonlyMap<number, readonly string[]>
+): ReadonlyMap<string, readonly string[]> => {
+    const byRecipe = new Map<string, string[]>();
+    for (const entry of entries) {
+        if (entry.station !== BOOK_STATION) continue;
+        for (const recipe of recipesByNetId.get(entry.netId) ?? []) {
+            const held = byRecipe.get(recipe);
+            if (held === undefined) byRecipe.set(recipe, [entry.id]);
+            else held.push(entry.id);
+        }
+    }
+    return byRecipe;
+};
 
 /**
  * How a recipe's output reaches the client: its item id, and the hashed
@@ -324,7 +376,8 @@ export const buildNetworkContentPayloads = (
                 pattern: recipe.pattern,
                 outputs: recipe.outputs.map(output),
                 priority: recipe.priority,
-                symmetric: recipe.symmetric
+                symmetric: recipe.symmetric,
+                ...unlockingAt(recipe.station)
             })),
             shapeless: crafting.shapeless.map((recipe) => ({
                 id: recipe.id,
@@ -332,7 +385,8 @@ export const buildNetworkContentPayloads = (
                 station: recipe.station,
                 ingredients: recipe.ingredients,
                 outputs: recipe.outputs.map(output),
-                priority: recipe.priority
+                priority: recipe.priority,
+                ...unlockingAt(recipe.station)
             })),
             multi: crafting.multi.map((recipe) => ({
                 uuid: Buffer.from(recipe.uuid.replaceAll('-', ''), 'hex'),
@@ -344,7 +398,8 @@ export const buildNetworkContentPayloads = (
                 station: recipe.station,
                 ingredients: recipe.ingredients,
                 outputs: recipe.outputs.map(output),
-                priority: recipe.priority
+                priority: recipe.priority,
+                ...unlockingAt(recipe.station)
             })),
             shapelessChemistry: [],
             shapedChemistry: [],
@@ -381,6 +436,10 @@ export const buildNetworkContentPayloads = (
             cleanRecipes: true
         },
         recipesByNetId: crafting.recipesByNetId,
+        bookEntriesByRecipe: bookEntriesOf(
+            [...crafting.shaped, ...crafting.shapeless, ...crafting.userDataShapeless],
+            crafting.recipesByNetId
+        ),
         report: {
             inventedBlocks: declared.properties.length,
             allocatedItemIds: items.allocated.map((entry) => entry.identifier),
@@ -568,3 +627,21 @@ export const joinContentPayloads = (
         return undefined;
     }
 };
+
+/**
+ * The recipe book entries of each Java recipe, from the payloads of the content a session's client
+ * was sent. The payloads are looked up on each call, so a content reload is followed, and a build
+ * with no payloads names each recipe by its own id.
+ *
+ * @param server - Where the content and the logger come from.
+ * @param itemData - The item registry data the session speaks, read on each call.
+ */
+export const recipeBookEntriesOf =
+    (
+        server: { getContent(): ServerContent | undefined; getLogger(): Pick<Logger, 'info' | 'warn' | 'error'> },
+        itemData: () => ProtocolItemData
+    ): RecipeBookEntries =>
+    (recipe) => {
+        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), { itemData: itemData() });
+        return payloads === undefined ? [recipe] : (payloads.bookEntriesByRecipe.get(recipe) ?? []);
+    };

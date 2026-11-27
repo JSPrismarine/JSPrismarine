@@ -111,6 +111,15 @@ describe('world', () => {
             expect(playerDataFromNbt(nbt)).toEqual(data);
         });
 
+        it('round-trips the recipe book, an empty one included, and leaves out one the record lacks', () => {
+            const unlocked = record({ recipeBook: ['minecraft:torch', 'minecraft:stick'] });
+            const empty = record({ recipeBook: [] });
+
+            expect(playerDataFromNbt(playerDataToNbt(unlocked))).toEqual(unlocked);
+            expect(playerDataFromNbt(playerDataToNbt(empty))).toEqual(empty);
+            expect(playerDataFromNbt(playerDataToNbt(record()))).not.toHaveProperty('recipeBook');
+        });
+
         it("round-trips the ticks since rest under Bedrock's TimeSinceRest tag", () => {
             const data = record({ timeSinceRest: 80_000 });
             const nbt = playerDataToNbt(data);

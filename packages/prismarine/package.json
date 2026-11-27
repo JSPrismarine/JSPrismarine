@@ -2911,6 +2911,10 @@
             "jsprismarine:dist": "./dist/crafting/CraftingInput.js",
             "default": "./src/crafting/CraftingInput.ts"
         },
+        "./crafting/recipeBook": {
+            "jsprismarine:dist": "./dist/crafting/recipeBook.js",
+            "default": "./src/crafting/recipeBook.ts"
+        },
         "./inventory/ItemContainer": {
             "jsprismarine:dist": "./dist/inventory/ItemContainer.js",
             "default": "./src/inventory/ItemContainer.ts"

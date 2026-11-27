@@ -21,6 +21,7 @@
             "done": false
         }
     },
+    "recipeBook": [],
     "enchantmentSeed": 987654,
     "inventory": {
         "items": [
