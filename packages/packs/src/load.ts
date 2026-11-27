@@ -29,6 +29,11 @@ export interface Definition {
     path: string;
     /** The file's parsed `format_version`, when it declares one. */
     formatVersion?: FormatVersion;
+    /**
+     * The `min_engine_version` of the pack the definition came from, when its manifest declares
+     * one. The engine versions the pack's Molang by it.
+     */
+    minEngineVersion?: FormatVersion;
     /** The parsed definition, replaced whole by a later pack, never merged. */
     data: unknown;
 }
@@ -241,8 +246,8 @@ const composeUnits = (
         for (const diagnostic of unit.diagnostics) collector.add(diagnostic);
 
         for (const pack of unit.packs) {
-            const packName = loadManifest(pack.origin, pack.files.get('manifest.json'), collector);
-            if (packName === undefined) continue;
+            const header = loadManifest(pack.origin, pack.files.get('manifest.json'), collector);
+            if (header === undefined) continue;
 
             for (const [path, bytes] of pack.files) {
                 const provider = lastProvider.get(path);
@@ -251,7 +256,7 @@ const composeUnits = (
                 // Path-addressed registries use the file path as their identifier, so an
                 // earlier copy can be skipped once a later loadable pack provides that path.
                 if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
-                loadDefinitionFile(registries, packName, path, bytes, superseded, validator, collector);
+                loadDefinitionFile(registries, header, path, bytes, superseded, validator, collector);
             }
         }
     }
@@ -424,12 +429,18 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
     return result;
 };
 
-/** Parses and validates a pack's manifest; returns the pack name, or undefined to skip the pack. */
+/** What a definition takes from its pack's manifest. */
+interface PackHeader {
+    readonly name: string;
+    readonly minEngineVersion: FormatVersion | undefined;
+}
+
+/** Parses and validates a pack's manifest; returns its header, or undefined to skip the pack. */
 const loadManifest = (
     origin: string,
     bytes: Uint8Array | undefined,
     collector: DiagnosticCollector
-): string | undefined => {
+): PackHeader | undefined => {
     if (!bytes) {
         collector.add({
             severity: 'error',
@@ -456,7 +467,9 @@ const loadManifest = (
 
     const { manifest, diagnostics } = parseManifest(parsed, origin);
     for (const diagnostic of diagnostics) collector.add(diagnostic);
-    return manifest?.header.name;
+    return manifest === undefined
+        ? undefined
+        : { name: manifest.header.name, minEngineVersion: manifest.header.minEngineVersion };
 };
 
 /**
@@ -466,7 +479,7 @@ const loadManifest = (
  */
 const loadDefinitionFile = (
     registries: DefinitionRegistries,
-    pack: string,
+    { name: pack, minEngineVersion }: PackHeader,
     path: string,
     bytes: Uint8Array,
     superseded: boolean,
@@ -530,5 +543,13 @@ const loadDefinitionFile = (
         typeof data === 'object' && data !== null && !Array.isArray(data) ? { ...data } : undefined;
     const formatVersion = record ? parseVersion(record.format_version) : undefined;
 
-    registries[registry].set(identifier, { identifier, registry, pack, path, formatVersion, data });
+    registries[registry].set(identifier, {
+        identifier,
+        registry,
+        pack,
+        path,
+        formatVersion,
+        ...(minEngineVersion === undefined ? {} : { minEngineVersion }),
+        data
+    });
 };
