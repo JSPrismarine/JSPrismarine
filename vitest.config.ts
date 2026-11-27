@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { normalizePath } from 'vite';
 import { defineConfig } from 'vitest/config';
 
+import { seedSinceLastRun } from './scripts/vitest-seed-dependencies.ts';
+
 const ci = !!process.env.GITHUB_ACTIONS;
 
 /**
@@ -67,6 +69,7 @@ export const forceRerunTriggers = [
     '{vitest,vite}.config.*',
     '.test/**',
     'scripts/vitest-changed-files.ts',
+    'scripts/vitest-seed-dependencies.ts',
     'packages/bedrock-data/sources.json',
     'packages/bedrock-data/pack-hashes.json',
     'packages/bedrock-data/src/generated/**',
@@ -81,6 +84,9 @@ const rootPattern = normalizePath(__dirname).replace(/[$()*+?[\\\]^{|}!@]/g, '\\
 
 export default defineConfig({
     root: resolve(__dirname),
+    // A checkout with no `--since-last-run` records gets them from the import graph, so its first
+    // run is not a full one.
+    plugins: [seedSinceLastRun({ forceRerunTriggers })],
     optimizeDeps: {
         force: true,
         esbuildOptions: {

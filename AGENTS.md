@@ -283,10 +283,14 @@ by biome, `/locate`, or portals between dimensions.
   failure sooner than CI would.
 - After an edit, run `pnpm exec vitest run --since-last-run` to test only what the edit affects.
   It reruns a test file when a file that test loaded on its last run has changed since, and it
-  reruns failed files until they pass. The first run in a fresh checkout or worktree is a full run
-  that builds the records. It cannot see a file no test loaded, such as a new `.env` or
-  `__mocks__` file, or a file whose modification time a checkout set in the past, so run the test
-  files that read such a file by path. Do not run `pnpm run test` or whole suites: CI uses
+  reruns failed files until they pass. In a fresh checkout or worktree, which has no records yet,
+  `scripts/vitest-seed-dependencies.ts` writes them from the static import graph before the first
+  run, so that run tests only what changed since the merge base with `origin/master`. A change to
+  a file in `forceRerunTriggers` in `vitest.config.ts` still makes that first run a full one, as
+  in CI. It cannot see a file no test loaded, such as a new `.env` or `__mocks__` file, or a file
+  whose modification time a checkout set in the past, so run the test files that read such a file
+  by path. Put those paths before the flag: in `vitest run --since-last-run <path>`, the flag takes
+  the path as its value and runs every affected file. Do not run `pnpm run test` or whole suites: CI uses
   `--changed`, against the pull request base or, on master, the last master commit whose tests
   passed, because those baselines are the same on every machine. A nightly run tests every suite.
 - Typecheck the packages you changed and their dependents with
