@@ -6,6 +6,7 @@ import type { Diagnostic } from './diagnostics';
 import { compareVersions, parseVersion } from './formatVersion';
 import { parseLenientJson } from './lenientJson';
 import { readContentArchive } from './archive';
+import type { RegistryId } from './registries';
 import { createZipBudget } from './zip';
 import type { ZipBudget } from './zip';
 
@@ -22,34 +23,48 @@ import type { ZipBudget } from './zip';
  */
 export const VANILLA_BEHAVIOR_PACK_UUID = 'fe9f8597-5454-481a-8730-8d070a8e2e58';
 
-/** A Bedrock pack source: definitions keyed by identifier, later pack wins whole. */
-export type BedrockPackSource =
-    /** A loose pack folder with `manifest.json` at its root. */
-    | { kind: 'directory'; path: string }
-    /** A `.mcpack` (one pack) or `.mcaddon` (several `.mcpack` members). */
-    | { kind: 'archive'; path: string }
+/** What every Bedrock pack source may say about which of its files load. */
+export interface BedrockSourceOptions {
     /**
-     * A folder of layered pack folders the way BDS ships vanilla: `vanilla`,
-     * `vanilla_1.14`, ... Each layer is a pack; layers apply in version order.
+     * Registries this source leaves empty: files that route into one of them are never read.
+     *
+     * The server skips `recipes` in the vanilla Bedrock pack. Its recipe book comes from the Java
+     * vanilla datapack, and Bedrock's copies of the same recipes would otherwise reach the book a
+     * second time beside an addon's own.
      */
-    | {
-          kind: 'brarchiveLayers';
-          path: string;
-          /**
-           * Which packs in the folder to compose, by header UUID. Every
-           * folder is a layer of some pack, so this selects whole packs
-           * rather than individual layers.
-           *
-           * Every pack in the folder by default, which is what a caller
-           * pointing at a folder it assembled itself wants. BDS keeps several
-           * unrelated packs in one `behavior_packs` folder - chemistry, the
-           * editor and the experimental toggles beside vanilla - and a world
-           * composes only the ones it turns on, so a caller pointing at that
-           * folder says which. {@link VANILLA_BEHAVIOR_PACK_UUID} is the
-           * vanilla one.
-           */
-          uuids?: readonly string[];
-      };
+    readonly skipRegistries?: readonly RegistryId[];
+}
+
+/** A Bedrock pack source: definitions keyed by identifier, later pack wins whole. */
+export type BedrockPackSource = BedrockSourceOptions &
+    /** A loose pack folder with `manifest.json` at its root. */
+    (
+        | { kind: 'directory'; path: string }
+        /** A `.mcpack` (one pack) or `.mcaddon` (several `.mcpack` members). */
+        | { kind: 'archive'; path: string }
+        /**
+         * A folder of layered pack folders the way BDS ships vanilla: `vanilla`,
+         * `vanilla_1.14`, ... Each layer is a pack; layers apply in version order.
+         */
+        | {
+              kind: 'brarchiveLayers';
+              path: string;
+              /**
+               * Which packs in the folder to compose, by header UUID. Every
+               * folder is a layer of some pack, so this selects whole packs
+               * rather than individual layers.
+               *
+               * Every pack in the folder by default, which is what a caller
+               * pointing at a folder it assembled itself wants. BDS keeps several
+               * unrelated packs in one `behavior_packs` folder - chemistry, the
+               * editor and the experimental toggles beside vanilla - and a world
+               * composes only the ones it turns on, so a caller pointing at that
+               * folder says which. {@link VANILLA_BEHAVIOR_PACK_UUID} is the
+               * vanilla one.
+               */
+              uuids?: readonly string[];
+          }
+    );
 
 /**
  * A Java datapack: a folder or zip with `pack.mcmeta` and `data/` at its root.

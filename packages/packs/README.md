@@ -45,6 +45,10 @@ pack in the folder, which is what a caller pointing at a folder it assembled its
 no folder declares is reported as `source.unknown-pack`, so a renamed identity says so instead of
 composing nothing.
 
+Any Bedrock source also takes `skipRegistries`, the Bedrock registries it leaves empty. A file that
+routes into one of them is never opened. The server skips `recipes` in the vanilla Bedrock pack,
+whose recipes it reads from the Java vanilla datapack instead.
+
 `load` opens only the Bedrock files a registry owns. A pack folder holds much else - the composed
 vanilla pack ships 1311 `.nbt` structures, a 3 MB `level.dat` and its textures beside 2588 readable
 files - and a path no registry routes could never reach the result anyway. `expandSource`, the
