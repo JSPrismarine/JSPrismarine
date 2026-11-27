@@ -29,6 +29,144 @@ describe('buildServerContent', () => {
         expect(content.items.types.get('minecraft:diamond_pickaxe')?.hasTag('minecraft:is_pickaxe')).toBe(true);
     });
 
+    describe('Bedrock behavior pack recipes', () => {
+        /** The fixture content with Bedrock recipe files, by identifier, in the loaded `recipes` registry. */
+        const withBedrockRecipes = (recipes: Record<string, unknown>) => {
+            const definitions = fixtureDefinitions();
+            const loaded = new Map(
+                Object.entries(recipes).map(([id, file]) => [id, definitionOf('recipes', id, file)])
+            );
+            return buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({ definitions: { ...definitions, recipes: loaded }, diagnostics: [] })
+                })
+            );
+        };
+
+        // Issue #3835: the server built its recipe book from the Java datapacks alone.
+        it("adds a pack's recipe to the book beside the datapack's, and crafts it", () => {
+            const content = withBedrockRecipes({
+                'test:dirt_to_cobblestone': {
+                    format_version: '1.20.10',
+                    'minecraft:recipe_shapeless': {
+                        description: { identifier: 'test:dirt_to_cobblestone' },
+                        tags: ['crafting_table'],
+                        ingredients: [{ item: 'minecraft:dirt' }],
+                        result: { item: 'minecraft:cobblestone' }
+                    }
+                }
+            });
+
+            expect(content.recipes.recipes.map((recipe) => recipe.id).sort()).toEqual([
+                'minecraft:torch',
+                'test:dirt_to_cobblestone'
+            ]);
+            const crafted = content.recipes.match({
+                station: 'crafting',
+                grid: { width: 2, height: 2, slots: [{ id: 'minecraft:dirt', count: 1 }, null, null, null] }
+            });
+            expect(crafted?.recipe.id).toBe('test:dirt_to_cobblestone');
+            expect(crafted?.result).toMatchObject({ id: 'minecraft:cobblestone', count: 1 });
+        });
+
+        it('replaces the Java recipe of the same identifier', () => {
+            const content = withBedrockRecipes({
+                'minecraft:torch': {
+                    format_version: '1.20.10',
+                    'minecraft:recipe_shapeless': {
+                        description: { identifier: 'minecraft:torch' },
+                        tags: ['crafting_table'],
+                        ingredients: ['minecraft:dirt'],
+                        result: { item: 'minecraft:torch', count: 8 }
+                    }
+                }
+            });
+
+            const torch = content.recipes.get('minecraft:torch');
+            expect(torch?.type === 'minecraft:crafting_shapeless' && torch.ingredients[0]?.items).toEqual([
+                'minecraft:dirt'
+            ]);
+        });
+
+        it('reports a recipe it cannot load against its pack file', () => {
+            const content = withBedrockRecipes({
+                'test:lab': {
+                    format_version: '1.20.10',
+                    'minecraft:recipe_shaped_chemistry': {
+                        description: { identifier: 'test:lab' },
+                        tags: ['lab_table'],
+                        pattern: ['#'],
+                        key: { '#': 'minecraft:dirt' },
+                        result: 'minecraft:cobblestone'
+                    }
+                }
+            });
+
+            expect(content.recipes.get('test:lab')).toBeUndefined();
+            expect(content.diagnostics).toContainEqual(
+                expect.objectContaining({ code: 'recipe.unsupported', path: 'recipes/test:lab.json' })
+            );
+        });
+
+        // Issue #3838: a pack's brewing recipes loaded as nothing.
+        it("brews a pack's brewing mix", () => {
+            const content = withBedrockRecipes({
+                'test:awkward_from_dirt': {
+                    format_version: '1.20.10',
+                    'minecraft:recipe_brewing_mix': {
+                        description: { identifier: 'test:awkward_from_dirt' },
+                        tags: ['brewing_stand'],
+                        input: 'minecraft:potion_type:water',
+                        reagent: 'minecraft:dirt',
+                        output: 'minecraft:potion_type:awkward'
+                    }
+                }
+            });
+
+            const brewed = content.recipes.match({
+                station: 'brewing',
+                input: {
+                    id: 'minecraft:splash_potion',
+                    count: 1,
+                    components: { 'minecraft:potion_contents': { potion: 'minecraft:water' } }
+                },
+                reagent: { id: 'minecraft:dirt', count: 1 }
+            });
+            expect(brewed?.recipe.id).toBe('test:awkward_from_dirt_splash_potion');
+            expect(brewed?.result).toMatchObject({
+                id: 'minecraft:splash_potion',
+                components: { 'minecraft:potion_contents': { potion: 'minecraft:awkward' } }
+            });
+        });
+
+        it("keeps a pack's material reduction when the registry has its items, and reports it otherwise", () => {
+            const reduction = (input: string, output: string) => ({
+                format_version: '1.14',
+                'minecraft:recipe_material_reduction': {
+                    description: { identifier: `test:${input.replace(/^.*:/, '')}` },
+                    tags: 'material_reducer',
+                    input,
+                    output: [{ item: output, count: 2 }]
+                }
+            });
+            const content = withBedrockRecipes({
+                'test:stone': reduction('minecraft:stone', 'minecraft:redstone_lamp'),
+                'test:andesite_slab': reduction('minecraft:andesite_slab', 'minecraft:element_14')
+            });
+
+            expect(content.materialReductions.map(({ id, input, outputs }) => ({ id, input, outputs }))).toEqual([
+                {
+                    id: 'test:stone',
+                    input: { identifier: 'minecraft:stone', data: 0 },
+                    outputs: [{ identifier: 'minecraft:redstone_lamp', count: 2 }]
+                }
+            ]);
+            expect(content.diagnostics).toContainEqual(
+                expect.objectContaining({ code: 'recipe.invalid', path: 'recipes/test:andesite_slab.json' })
+            );
+        });
+    });
+
     it('fingerprints the effective definitions and content tables', () => {
         const original = fixtureDefinitions();
         const biomes = new Map(original.biomes);

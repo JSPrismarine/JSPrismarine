@@ -8,8 +8,10 @@
  * menu as a light block addon's are. A vanilla client closes on the loading screen when
  * `StartGame` declares a block the item registry has no item for, which is how an addon's blocks
  * kept players out. The pack also files a heading of its own in the creative menu through its
- * `item_catalog/crafting_item_catalog.json`.
+ * `item_catalog/crafting_item_catalog.json`, and adds a crafting recipe, a brewing mix and a
+ * material reduction in Bedrock's own grammar.
  */
+import CraftingDataPacket from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
 import CreativeContentPacket from '@jsprismarine/protocol/bedrock/packet/CreativeContentPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import { nbtToPlain, readNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
@@ -73,6 +75,39 @@ const CATALOG = {
     }
 };
 
+/** The recipe of issue #3835, which a server once built no part of its recipe book from. */
+const RECIPE = {
+    format_version: '1.20.10',
+    'minecraft:recipe_shapeless': {
+        description: { identifier: 'loopback:dirt_to_cobblestone' },
+        tags: ['crafting_table'],
+        ingredients: [{ item: 'minecraft:dirt' }],
+        result: { item: 'minecraft:cobblestone' }
+    }
+};
+
+/** A brewing mix and a material reduction, which issue #3838 found loading as nothing. */
+const BREW = {
+    format_version: '1.20.10',
+    'minecraft:recipe_brewing_mix': {
+        description: { identifier: 'loopback:awkward_from_dirt' },
+        tags: ['brewing_stand'],
+        input: 'minecraft:potion_type:water',
+        reagent: 'minecraft:dirt',
+        output: 'minecraft:potion_type:awkward'
+    }
+};
+
+const REDUCTION = {
+    format_version: '1.14',
+    'minecraft:recipe_material_reduction': {
+        description: { identifier: 'loopback:reduce_andesite_slab' },
+        tags: 'material_reducer',
+        input: 'minecraft:andesite_slab',
+        output: [{ item: 'minecraft:cobblestone', count: 2 }]
+    }
+};
+
 let jsp: LoopbackServer;
 
 // Booting the server builds its content, the slow part, so it happens once for the file.
@@ -83,7 +118,10 @@ beforeAll(async () => {
             'pack/manifest.json': JSON.stringify(MANIFEST),
             'pack/blocks/light.json': JSON.stringify(LIGHT),
             'pack/blocks/stone.json': JSON.stringify(STONE),
-            'pack/item_catalog/crafting_item_catalog.json': JSON.stringify(CATALOG)
+            'pack/item_catalog/crafting_item_catalog.json': JSON.stringify(CATALOG),
+            'pack/recipes/dirt_to_cobblestone.json': JSON.stringify(RECIPE),
+            'pack/recipes/awkward_from_dirt.json': JSON.stringify(BREW),
+            'pack/recipes/reduce_andesite_slab.json': JSON.stringify(REDUCTION)
         },
         config: (stateRoot) => ({ 'content-world-packs': [path.join(stateRoot, 'pack')] })
     });
@@ -190,6 +228,53 @@ describe('pack item catalog', () => {
         expect(
             menu?.entries.filter((entry) => entry.group === heading).map((entry) => nameOf(entry.item.runtimeId))
         ).toEqual(['loopback:stone', 'minecraft:dirt']);
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('pack recipes', () => {
+    it("sends the pack's recipes to a joining client", async () => {
+        const { player, joined } = jsp.connect('Crafter');
+        const registry = player.client.getRegistry();
+        if (!registry.has(new CraftingDataPacket().getId())) registry.register(CraftingDataPacket);
+        const items: ItemRegistryEntry[] = [];
+        const lists: CraftingDataPacket[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof ItemRegistryPacket) items.push(...(packet.getPacketData()?.items ?? []));
+            if (packet instanceof CraftingDataPacket) lists.push(packet);
+        });
+        let settled = false;
+        const done = (): void => {
+            settled = true;
+        };
+        void joined.then(done, done);
+        await jsp.until(() => settled, 'Crafter never joined', 400);
+        await joined;
+        await jsp.until(() => lists.length > 0, 'Crafter was never sent the recipe list');
+
+        const recipe = lists
+            .at(-1)
+            ?.getPacketData()
+            ?.shapeless.find((entry) => entry.id === 'loopback:dirt_to_cobblestone');
+        expect(recipe?.station).toBe('crafting_table');
+        const nameOf = (runtimeId: number) => items.find((item) => item.runtimeId === runtimeId)?.name;
+        expect(recipe?.outputs.map((output) => nameOf(output.runtimeId))).toEqual(['minecraft:cobblestone']);
+        expect(
+            recipe?.ingredients.map(({ descriptor }) => (descriptor?.kind === 'name' ? descriptor.name : undefined))
+        ).toEqual(['minecraft:dirt']);
+
+        // A potion mix names its items by number, and a material reducer packs the input's
+        // number into the high half of its key.
+        const crafting = lists.at(-1)?.getPacketData();
+        const idOf = (name: string) => items.find((item) => item.name === name)?.runtimeId;
+        expect(crafting?.potionMixes).toContainEqual(
+            expect.objectContaining({ inputId: idOf('minecraft:potion'), reagentId: idOf('minecraft:dirt') })
+        );
+        expect(crafting?.materialReducers).toContainEqual({
+            fromItemKey: (idOf('minecraft:andesite_slab') ?? -1) << 16,
+            outputs: [{ itemId: idOf('minecraft:cobblestone'), itemCount: 2 }]
+        });
         player.leave();
         await jsp.tick();
     });

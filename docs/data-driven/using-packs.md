@@ -64,6 +64,10 @@ chemistry — whose `reducer_*` recipes override eight vanilla ones, since every
 sorts after every unversioned one.
 | `datapack`        | A Java datapack folder or zip with `pack.mcmeta` and `data/`                   |
 
+Any Bedrock source also takes `skipRegistries`, a list of Bedrock registries it leaves empty: a
+file that routes into one of them is never read. The server passes `['recipes']` for the vanilla
+Bedrock pack, as the next section explains.
+
 `definitions` is a `Definitions` object: one map per registry, from identifier to the winning
 parsed definition. The Bedrock registries are blocks, items, entities, loot tables, trade tables,
 spawn rules, recipes, biomes, features, feature rules, and the item catalog. The Java registries
@@ -90,6 +94,57 @@ tab's last one. A group without one adds its items as loose entries at the end
 of the tab. A tab other than `construction`, `nature`, `equipment` or `items` is skipped. Every
 pack's catalog is merged, in stack order, and only a later layer of the same pack, one with the
 same header UUID, replaces a pack's file.
+
+## Recipes from a behavior pack
+
+The server's recipe book reads Java's recipe grammar, and its vanilla recipes come from the Java
+datapack. A behavior pack's `recipes/*.json` files use Bedrock's grammar, so the server restates
+each one as the Java recipe it means and adds it to the same book. A client is sent it in
+`CraftingData` with the vanilla recipes, and the server crafts it. The vanilla Bedrock pack's own
+recipe files are skipped, since the Java datapack already holds those recipes.
+
+| Bedrock type                            | Station tags                                                      | Becomes                                 |
+| --------------------------------------- | ----------------------------------------------------------------- | --------------------------------------- |
+| `minecraft:recipe_shaped`               | `crafting_table`                                                  | `minecraft:crafting_shaped`             |
+| `minecraft:recipe_shapeless`            | `crafting_table`                                                  | `minecraft:crafting_shapeless`          |
+| `minecraft:recipe_shapeless`            | `stonecutter`, with one ingredient                                | `minecraft:stonecutting`                |
+| `minecraft:recipe_furnace`              | `furnace`, `blast_furnace`, `smoker`, `campfire`, `soul_campfire` | one cooking recipe per station          |
+| `minecraft:recipe_smithing_transform`   | `smithing_table`                                                  | `minecraft:smithing_transform`          |
+| `minecraft:recipe_smithing_trim`        | `smithing_table`                                                  | one `minecraft:smithing_trim` per template |
+| `minecraft:recipe_brewing_mix`          | `brewing_stand`                                                   | one `minecraft:brewing` per container   |
+| `minecraft:recipe_brewing_container`    | `brewing_stand`                                                   | one `minecraft:brewing` per potion      |
+| `minecraft:recipe_material_reduction`   | `material_reducer`                                                | a material reducer entry                |
+
+A recipe that becomes one Java recipe keeps its identifier. One that becomes several adds what
+tells them apart: `<identifier>_from_<station>` for each station, such as
+`example:iron_from_blasting`, the container of a brewing mix (`example:brew_splash_potion`), the
+potion of a brewing container recipe (`example:splash_strength`), or the pattern of a smithing trim
+(`example:trim_coast`). A recipe with the identifier of a Java recipe replaces it.
+
+Items resolve to their Java identifiers: `"minecraft:bed:14"` and `{ "item": "minecraft:bed", "data": 14 }`
+both name a red bed, and an ingredient that names no data value accepts every variant. A legacy
+name such as `minecraft:boat` with data 4, or `minecraft:muttonRaw`, is renamed through Bedrock's
+alias table first. An item outside the `minecraft` namespace keeps its identifier. A `tag`
+ingredient accepts the items of the Bedrock item tag of that name, or of the Java item tag when
+Bedrock has no such tag. A pattern row shorter than the longest ends in empty cells, as in Bedrock.
+An ingredient's `count` asks for that many of it, each in a slot of its own. Only the first of
+several results is crafted.
+
+A brewing mix names its potions as `minecraft:potion_type:<name>` and applies to the potion, the
+splash potion and the lingering potion alike. Each potion resolves to the Java potion it maps to,
+so `minecraft:potion_type:nightvision` is Java's `minecraft:night_vision`. A brewing container
+recipe, such as gunpowder turning a potion into a splash potion, keeps whatever potion the bottle
+holds. The server does not run brewing stands yet, for these or for Java's own brewing recipes;
+[issue #3841](https://github.com/JSPrismarine/JSPrismarine/issues/3841) tracks it. A smithing trim takes its pattern from each template's name, as Java's do:
+`minecraft:coast_armor_trim_smithing_template` writes the `minecraft:coast` pattern.
+
+A material reduction breaks an item into Education Edition elements, which Java has no items for,
+so it stays out of the recipe book. The server sends it in `CraftingData` for the material reducer
+block, which comes with the Education and chemistry content, and does not reduce items itself.
+
+A station tag other than the ones in the table, such as a custom block's, has no Java equivalent;
+a recipe made only there is left out with a `recipe.unsupported` warning. A recipe that names an
+item, potion or trim pattern Java does not have is left out with a `recipe.invalid` error.
 
 ## Datapack specifics
 

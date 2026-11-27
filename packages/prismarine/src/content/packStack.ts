@@ -22,7 +22,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, sep } from 'node:path';
 
 import type { Diagnostic } from '@jsprismarine/content';
-import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions } from '@jsprismarine/packs';
+import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions, RegistryId } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
 import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
@@ -287,6 +287,13 @@ const namedJavaRelease = (release: string, root: string, releases: readonly stri
 };
 
 /**
+ * What the vanilla Bedrock members leave unread. The recipe book is the Java vanilla datapack's,
+ * so Bedrock's own copy of every vanilla recipe would reach it twice. A world or plugin pack's
+ * recipes still load and join the book.
+ */
+const VANILLA_SKIPPED_REGISTRIES: readonly RegistryId[] = ['recipes'];
+
+/**
  * Reads one Bedrock path as the pack or packs it holds.
  *
  * A `manifest.json` at the root makes it one composed pack, the form
@@ -297,8 +304,13 @@ const namedJavaRelease = (release: string, root: string, releases: readonly stri
  */
 const bedrockSource = (path: string, packs: readonly string[] | 'all'): BedrockPackSource =>
     existsSync(join(path, 'manifest.json'))
-        ? { kind: 'directory', path }
-        : { kind: 'brarchiveLayers', path, uuids: packs === 'all' ? undefined : packs };
+        ? { kind: 'directory', path, skipRegistries: VANILLA_SKIPPED_REGISTRIES }
+        : {
+              kind: 'brarchiveLayers',
+              path,
+              uuids: packs === 'all' ? undefined : packs,
+              skipRegistries: VANILLA_SKIPPED_REGISTRIES
+          };
 
 /** The overlay's path inside whichever `node_modules` holds `@jsprismarine/blocks`. */
 const OVERLAY_SEGMENTS = ['@jsprismarine', 'blocks', 'vanilla_overlay'] as const;
@@ -361,11 +373,12 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
             // definitions as binary files this loader cannot read, and leaves others out, so the
             // villagers of three professions had no trades at all. That holds whether the layers
             // came from the cache or from the override.
-            if (samples && source.kind === 'brarchiveLayers') stack.push({ kind: 'directory', path: samples });
+            if (samples && source.kind === 'brarchiveLayers')
+                stack.push({ kind: 'directory', path: samples, skipRegistries: VANILLA_SKIPPED_REGISTRIES });
             stack.push(source);
             prefixLength = stack.length;
         } else if (loose) {
-            stack.push({ kind: 'directory', path: loose });
+            stack.push({ kind: 'directory', path: loose, skipRegistries: VANILLA_SKIPPED_REGISTRIES });
             prefixLength = stack.length;
         } else {
             missing(

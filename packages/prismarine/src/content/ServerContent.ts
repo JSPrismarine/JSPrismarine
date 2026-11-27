@@ -37,6 +37,8 @@ import { defaultItemStackOps } from '@jsprismarine/predicates';
 import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
 import { LootRegistry, bedrockLootTables, javaLootTables } from '@jsprismarine/loot';
 import { createPackIdentifierResolver, javaItemToBedrock } from '@jsprismarine/mapping';
+import { javaRecipesFromBedrock } from '../crafting/bedrockRecipes';
+import type { MaterialReduction } from '../crafting/bedrockRecipes';
 import { dyeFireworkRgb, dyeTextureRgb } from '../item/dyeColors';
 import { load as loadPacks } from '@jsprismarine/packs';
 import type { Definition, Definitions, IdentifierResolver } from '@jsprismarine/packs';
@@ -163,6 +165,12 @@ export interface ServerContent {
     readonly entities: ServerContentEntities;
     /** Java's recipe grammar, with net ids assigned in registry order. */
     readonly recipes: RecipeBook;
+    /**
+     * The behavior packs' material reduction recipes, in Bedrock's own item names. They break an
+     * item into Education Edition elements, which Java has no items for, so they stay out of
+     * {@link recipes} and only the crafting packet carries them.
+     */
+    readonly materialReductions: readonly MaterialReduction[];
     /** Java's loot tables, compiled on first roll. */
     readonly loot: LootRegistry;
     /**
@@ -489,11 +497,36 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     );
 
     // The loader wraps each file in a record carrying its pack and path; the recipe grammar
-    // reads the file itself. Tags go in because without them every `#tag` ingredient parses
-    // as accepting nothing. The durability lookup is what lets two worn tools repair each other,
-    // and the two dye tables are what dyed armor and a firework star take their colors from.
+    // reads the file itself. A behavior pack's Bedrock recipes are restated in Java's grammar
+    // and go in after the datapacks', so one that reuses a Java recipe's identifier replaces
+    // it. Tags go in because without them every `#tag` ingredient parses as accepting nothing.
+    // The durability lookup is what lets two worn tools repair each other, and the two dye
+    // tables are what dyed armor and a firework star take their colors from.
+    const recipeFiles = new Map<string, { readonly data: unknown; readonly source: Definition }>();
+    for (const [id, source] of definitions.recipesJava) recipeFiles.set(id, { data: source.data, source });
+    const bedrockRecipes = javaRecipesFromBedrock(definitions.recipes, diagnostics, (tag) =>
+        items.bedrockTags.has(tag) ? items.bedrockTags.members(tag) : undefined
+    );
+    for (const { id, data, source } of bedrockRecipes.recipes) recipeFiles.set(id, { data, source });
+    // A material reduction names Bedrock items straight, so it is checked against the item
+    // registry here rather than by the Java recipe grammar.
+    const materialReductions = bedrockRecipes.materialReductions.filter((reduction) => {
+        const unknown = [reduction.input.identifier, ...reduction.outputs.map((output) => output.identifier)].filter(
+            (identifier) => items.registry.idOf(identifier) === undefined
+        );
+        for (const identifier of unknown) {
+            diagnostics.push({
+                severity: 'error',
+                code: 'recipe.invalid',
+                pack: reduction.source.pack,
+                path: reduction.source.path,
+                message: `${reduction.id} names ${identifier}, which is not an item`
+            });
+        }
+        return unknown.length === 0;
+    });
     const recipes = loadRecipes(
-        [...definitions.recipesJava].map(([id, definition]) => [id, definition.data] as const),
+        [...recipeFiles].map(([id, file]) => [id, file.data] as const),
         {
             tags: (registry, tag) => (tags.has(registry, tag) ? tags.members(registry, tag) : undefined),
             maxDamageOf: (javaId) => {
@@ -512,8 +545,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         diagnostics.push({
             severity: entry.severity,
             code: 'recipe.invalid',
-            pack: definitions.recipesJava.get(entry.recipeId)?.pack ?? entry.recipeId,
-            path: definitions.recipesJava.get(entry.recipeId)?.path,
+            pack: recipeFiles.get(entry.recipeId)?.source.pack ?? entry.recipeId,
+            path: recipeFiles.get(entry.recipeId)?.source.path,
             message: `${entry.recipeId} ${entry.path}: ${entry.message}`
         });
     }
@@ -649,6 +682,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             )
         },
         recipes: recipes.book,
+        materialReductions,
         loot,
         equipmentLoot,
         equipmentDifficulty,
