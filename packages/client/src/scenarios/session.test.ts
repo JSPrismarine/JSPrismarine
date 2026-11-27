@@ -1,10 +1,14 @@
 /**
  * What a joined player sees of the server's answers to chat, commands and the console: the
  * client e2e scenarios `chat`, `title`, `teleport`, `damage`, `command-syntax-error` and `kick`,
- * played over a loopback pipe against a server stepped by hand.
+ * and the recipe book that `recipe-book` crafts from, played over a loopback pipe against a server
+ * stepped by hand.
  */
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
-import CraftingDataPacket from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
+import CraftingDataPacket, { RecipeUnlockingContext } from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
+import UnlockedRecipesPacket, {
+    UnlockedRecipesType
+} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 import { CommandDataFlags } from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -87,6 +91,55 @@ describe('furnace-inputs', () => {
         expect(cooks('smoker', 'minecraft:beef')).toBe(true);
         expect(cooks('blast_furnace', 'minecraft:beef')).toBe(false);
         expect(cooks('furnace', 'minecraft:coal')).toBe(false);
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('recipe-book', () => {
+    it('starts a new player with an empty book and unlocks a recipe when its ingredient arrives', async () => {
+        const { player, joined } = jsp.connect('Booker');
+        const registry = player.client.getRegistry();
+        for (const packet of [CraftingDataPacket, UnlockedRecipesPacket]) {
+            if (!registry.has(new packet().getId())) registry.register(packet);
+        }
+        const recipes: CraftingDataPacket[] = [];
+        const books: UnlockedRecipesPacket[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof CraftingDataPacket) recipes.push(packet);
+            if (packet instanceof UnlockedRecipesPacket) books.push(packet);
+        });
+        let done = false;
+        void joined.finally(() => {
+            done = true;
+        });
+        await jsp.until(() => done, 'Booker never joined', 120);
+        await joined;
+        await jsp.until(() => books.length > 0, 'Booker was never sent a recipe book');
+
+        const crafting = recipes.at(-1)?.getPacketData();
+        const planks = [...(crafting?.shaped ?? []), ...(crafting?.shapeless ?? [])].find(
+            (recipe) => recipe.id === 'minecraft:oak_planks'
+        );
+        // Out of the book until the server says otherwise, so the craftable filter shows nothing.
+        expect(planks?.unlocking).toEqual({ context: RecipeUnlockingContext.NONE, ingredients: [] });
+        expect(books[0]?.getPacketData()).toEqual({
+            type: UnlockedRecipesType.INITIALLY_UNLOCKED_RECIPES,
+            recipes: []
+        });
+
+        // Holding a log completes `recipes/building_blocks/oak_planks`, which rewards the recipe.
+        // Commands find the player once it is in the world, an input step after the join.
+        await jsp.until(
+            () => player.session()?.getConnection().hasSpawned() === true,
+            'Booker never entered the world'
+        );
+        await jsp.command('give Booker minecraft:oak_log');
+        await jsp.until(
+            () => books.some((book) => book.getPacketData()?.recipes.includes('minecraft:oak_planks') === true),
+            'the log never unlocked the oak planks'
+        );
+        expect(books.at(-1)?.getPacketData()?.type).toBe(UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES);
         player.leave();
         await jsp.tick();
     });
