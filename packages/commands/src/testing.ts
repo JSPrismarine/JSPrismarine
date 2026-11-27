@@ -166,7 +166,7 @@ const server = (): ServerCommandHost => ({
         stopSprint: () => false
     },
     transfer: () => false,
-    recipes: () => 0,
+    recipes: () => [],
     sendMessage: () => {},
     sendTitle: () => {},
     shakeCamera: () => 0,

@@ -1896,3 +1896,42 @@ describe('/execute as a real subcommand chain', () => {
         expect(notes[0]?.reason).toBe('bedrock-only');
     });
 });
+
+describe('/recipe', () => {
+    /** Runs a `/recipe` line against a host that answers with the given changes. */
+    const recipe = (line: string, changes: readonly { player: string; recipes: number }[]) => {
+        const feedback: string[] = [];
+        const errors: string[] = [];
+        const { results } = run(
+            line,
+            { server: { recipes: () => changes } },
+            { entity: testEntity({ name: 'Steve' }), feedback, errors }
+        );
+        return { results, feedback, errors };
+    };
+
+    it("counts recipes and names the player when one player's book changed", () => {
+        const { results, feedback } = recipe('recipe give @s *', [{ player: 'Steve', recipes: 3 }]);
+
+        expect(results).toEqual([3]);
+        expect(feedback).toEqual(['Unlocked 3 recipe(s) for Steve']);
+    });
+
+    it('counts the players whose book changed, leaving out the ones that already had every recipe', () => {
+        const { results, feedback } = recipe('recipe take @s minecraft:torch', [
+            { player: 'Steve', recipes: 1 },
+            { player: 'Alex', recipes: 1 },
+            { player: 'Sam', recipes: 0 }
+        ]);
+
+        expect(results).toEqual([2]);
+        expect(feedback).toEqual(['Took 2 recipe(s) from 2 players']);
+    });
+
+    it('fails when no book changed', () => {
+        expect(recipe('recipe give @s minecraft:torch', [{ player: 'Steve', recipes: 0 }]).errors).toEqual([
+            'No new recipes were learned'
+        ]);
+        expect(recipe('recipe take @s minecraft:torch', []).errors).toEqual(['No recipes could be forgotten']);
+    });
+});
