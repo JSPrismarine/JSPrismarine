@@ -2812,6 +2812,11 @@
             "reason": "ClientboundBlockUpdatePacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/play.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:ClientboundChangeDifficultyPacket.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ClientboundChangeDifficultyPacket.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/play.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC": {
             "kind": "deferred",
             "reason": "ClientboundCustomPayloadPacket.CONFIG_STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/configuration.ts then.",
@@ -3349,19 +3354,9 @@
             "reason": "In Java: A client uses the item in its hand in the air, eats, drinks, draws a bow and lets it go, and stabs with a spear. For a Java client here: play/serverbound/use_item is not read; play/serverbound/player_action (release a used item) decodes into nothing; play/serverbound/player_action (stab) decodes into nothing; play/clientbound/cooldown is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3769"
         },
-        "hud:action-bar": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown action bar text above its hotbar. For a Java client here: play/clientbound/set_action_bar_text is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
-        "hud:scoreboard": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown scoreboard objectives in the sidebar, the tab list and below names. For a Java client here: play/clientbound/set_objective is never sent; play/clientbound/set_display_objective is never sent; play/clientbound/set_score is never sent; play/clientbound/reset_score is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
         "hud:tab-list-game-modes": {
             "kind": "deferred",
-            "reason": "In Java: A client's tab list shows each player's game mode, latency and display name. For a Java client here: play/clientbound/player_info_update (another player's game mode) is not sent.",
+            "reason": "In Java: A client's tab list shows each player's game mode, latency and display name. For a Java client here: play/clientbound/player_info_update (a player's latency) has no presenter call that sends it; play/clientbound/player_info_update (a player's display name) has no presenter call that sends it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
         },
         "hud:tab-list-header": {
@@ -3372,11 +3367,6 @@
         "hud:teams": {
             "kind": "deferred",
             "reason": "In Java: A client is shown teams: their colors, prefixes, name tag visibility and collision. For a Java client here: play/clientbound/set_player_team is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
-        },
-        "hud:titles": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown titles and subtitles with their timing, as `/title` sends them. For a Java client here: play/clientbound/set_title_text is never sent; play/clientbound/set_subtitle_text is never sent; play/clientbound/set_titles_animation is never sent; play/clientbound/clear_titles is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3770"
         },
         "hud:waypoints": {
@@ -3594,14 +3584,9 @@
             "reason": "In Java: A server sends chunks at the rate each client's batch acknowledgments ask for. For a Java client here: play/serverbound/chunk_batch_received is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
         },
-        "world:chunk-unload": {
-            "kind": "deferred",
-            "reason": "In Java: A client forgets each chunk that leaves its view, and is told the view and simulation distance. For a Java client here: play/clientbound/forget_level_chunk is never sent; play/clientbound/set_chunk_cache_radius is never sent; play/clientbound/set_simulation_distance is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
-        },
         "world:difficulty": {
             "kind": "deferred",
-            "reason": "In Java: A client is shown the difficulty, and an operator changes or locks it from the options screen. For a Java client here: play/clientbound/change_difficulty is never sent; play/serverbound/change_difficulty is not read; play/serverbound/lock_difficulty is not read.",
+            "reason": "In Java: A client is shown the difficulty, and an operator changes or locks it from the options screen. For a Java client here: play/serverbound/change_difficulty is not read; play/serverbound/lock_difficulty is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
         },
         "world:explosions": {
@@ -3639,34 +3624,14 @@
             "reason": "In Java: A client hears sounds at positions and from entities, and `/stopsound` stops them. For a Java client here: play/clientbound/sound is never sent; play/clientbound/sound_entity is never sent; play/clientbound/stop_sound is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
         },
-        "world:tick-rate": {
-            "kind": "deferred",
-            "reason": "In Java: A client runs at the tick rate `/tick` sets, and steps when the game is frozen. For a Java client here: play/clientbound/ticking_state is never sent; play/clientbound/ticking_step is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
-        },
-        "world:time": {
-            "kind": "deferred",
-            "reason": "In Java: A client is told the time of day, which draws the sun and the sky. For a Java client here: play/clientbound/set_time (the time of day) is not sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
-        },
         "world:transient-blocks": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the block a landing falling block becomes, before the block update reaches it. For a Java client here: play/clientbound/add_transient_block is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
         },
-        "world:weather": {
-            "kind": "deferred",
-            "reason": "In Java: A client is shown rain, thunder and their strength through game events. For a Java client here: play/clientbound/game_event (begin and end rain, rain and thunder level) has no presenter call that sends it.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
-        },
         "world:world-border": {
             "kind": "deferred",
             "reason": "In Java: A client is shown the world border, its center, size, growth and warnings. For a Java client here: play/clientbound/initialize_border is never sent; play/clientbound/set_border_center is never sent; play/clientbound/set_border_lerp_size is never sent; play/clientbound/set_border_size is never sent; play/clientbound/set_border_warning_delay is never sent; play/clientbound/set_border_warning_distance is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
-        },
-        "world:world-spawn": {
-            "kind": "deferred",
-            "reason": "In Java: A client is told the world's spawn, which compasses point to. For a Java client here: play/clientbound/set_default_spawn_position is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3771"
         }
     },
