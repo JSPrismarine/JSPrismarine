@@ -288,10 +288,11 @@ describe('buildCraftingData', () => {
         });
     });
 
-    it('writes one furnace entry per station tag, because the wire holds one station each', () => {
-        const { furnace } = buildCraftingData([
+    it('writes a cooking recipe as one shapeless entry per station tag, as BDS does', () => {
+        const { shapeless, recipesByNetId } = buildCraftingData([
             compiled({
                 id: 'a',
+                netId: 1,
                 type: 'minecraft:campfire_cooking',
                 station: 'campfire_cooking',
                 ingredients: [accepts('minecraft:beef')],
@@ -299,7 +300,62 @@ describe('buildCraftingData', () => {
             })
         ]);
 
-        expect(furnace.map((entry) => entry.station)).toEqual(['campfire', 'soul_campfire']);
+        expect(shapeless.map((entry) => [entry.id, entry.station, entry.netId])).toEqual([
+            ['a', 'campfire', 1],
+            ['a_soul_campfire', 'soul_campfire', 2]
+        ]);
+        expect(shapeless[0]).toMatchObject({
+            ingredients: [{ descriptor: { kind: 'name', name: 'minecraft:beef' }, count: 1 }],
+            outputs: [{ name: 'minecraft:cooked_beef', count: 1 }]
+        });
+        // A furnace cooks by itself, so no craft request can name a cooking entry.
+        expect(recipesByNetId.size).toBe(0);
+    });
+
+    it('writes a cooking input of several items as one entry per item, as BDS does', () => {
+        const nuggets = compiled({
+            id: 'minecraft:iron_nugget_from_smelting',
+            netId: 4,
+            type: 'minecraft:smelting',
+            station: 'smelting',
+            ingredients: [accepts('minecraft:iron_pickaxe', 'minecraft:iron_axe')],
+            result: { identifier: 'minecraft:iron_nugget', count: 1 }
+        });
+
+        const { shapeless, widened } = buildCraftingData([nuggets]);
+        expect(shapeless.map((entry) => [entry.id, entry.netId, entry.ingredients[0]?.descriptor])).toEqual([
+            [
+                'minecraft:iron_nugget_from_smelting',
+                4,
+                { kind: 'name', name: 'minecraft:iron_pickaxe', meta: ANY_META }
+            ],
+            [
+                'minecraft:iron_nugget_from_smelting_from_iron_axe',
+                5,
+                { kind: 'name', name: 'minecraft:iron_axe', meta: ANY_META }
+            ]
+        ]);
+        expect(widened).toEqual([]);
+    });
+
+    it('gives every entry of a cooking recipe its own id, across stations and inputs', () => {
+        const { shapeless } = buildCraftingData([
+            compiled({
+                id: 'minecraft:cooked_beef_from_campfire_cooking',
+                type: 'minecraft:campfire_cooking',
+                station: 'campfire_cooking',
+                ingredients: [accepts('minecraft:beef', 'minecraft:mutton')],
+                result: { identifier: 'minecraft:cooked_beef', count: 1 }
+            })
+        ]);
+
+        expect(shapeless.map((entry) => [entry.id, entry.station])).toEqual([
+            ['minecraft:cooked_beef_from_campfire_cooking', 'campfire'],
+            ['minecraft:cooked_beef_from_campfire_cooking_from_mutton', 'campfire'],
+            ['minecraft:cooked_beef_from_campfire_cooking_soul_campfire', 'soul_campfire'],
+            ['minecraft:cooked_beef_from_campfire_cooking_soul_campfire_from_mutton', 'soul_campfire']
+        ]);
+        expect(new Set(shapeless.map((entry) => entry.netId)).size).toBe(4);
     });
 
     describe('brewing', () => {

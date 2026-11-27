@@ -337,8 +337,7 @@ describe('network', () => {
             untranslatedComponents: [],
             unknownCreativeItems: [],
             omittedRecipes: 0,
-            widenedIngredients: 0,
-            furnaceRecipes: 0
+            widenedIngredients: 0
         } satisfies ContentPayloadReport;
 
         it('says nothing about a build that said everything exactly', () => {

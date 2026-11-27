@@ -95,8 +95,6 @@ export interface ContentPayloadReport {
     readonly omittedRecipes: number;
     /** Ingredients narrowed to one item because the wire has room for one. */
     readonly widenedIngredients: number;
-    /** Cooking recipes, which protocol 2193's packet has no list for. */
-    readonly furnaceRecipes: number;
 }
 
 /** Everything the join burst sends that comes out of the content registries. */
@@ -390,8 +388,7 @@ export const buildNetworkContentPayloads = (
             untranslatedComponents: declared.untranslated.map((entry) => `${entry.block}/${entry.component}`),
             unknownCreativeItems: creative.unknown,
             omittedRecipes: crafting.omitted.length,
-            widenedIngredients: crafting.widened.length,
-            furnaceRecipes: crafting.furnace.length
+            widenedIngredients: crafting.widened.length
         }
     };
 };
@@ -515,8 +512,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
         [report.untranslatedComponents.length, 'could not translate §e%§r block components'],
         [report.unknownCreativeItems.length, 'left §e%§r creative entries out, since no item names them'],
         [report.omittedRecipes, 'left §e%§r recipes out, since the wire has no list for them'],
-        [report.widenedIngredients, 'narrowed §e%§r recipe ingredients to one item'],
-        [report.furnaceRecipes, 'held back §e%§r cooking recipes']
+        [report.widenedIngredients, 'narrowed §e%§r recipe ingredients to one item']
     ];
 
     const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replaceAll('%', String(count)));

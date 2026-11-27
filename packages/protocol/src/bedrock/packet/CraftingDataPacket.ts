@@ -61,8 +61,9 @@ export const readCraftingData = (stream: NetworkBinaryStream): CraftingData =>
  * Chemistry Recipes, Shaped Chemistry Recipes, Smithing Transform Recipes, Smithing Trim
  * Recipes, Potion Mixes, Container Mixes, Material Reducers, then Clear Recipes as a boolean.
  * There is no type id in front of a recipe: its list is its type. The layout is the same at
- * protocols 2193 and 2225. Cooking recipes have no list at all, because smelting became
- * client-side data; a server still smelts with its own recipes, it just no longer says so here.
+ * protocols 2193 and 2225. Cooking recipes have no list of their own: each goes out as a
+ * shapeless recipe of one ingredient whose station is `furnace`, `blast_furnace`, `smoker`,
+ * `campfire` or `soul_campfire`, which is what tells the client what a furnace takes.
  *
  * An ingredient is the legacy descriptor form and not the `recipe-ingredient` type page's. A
  * result is an `ItemStack`.
