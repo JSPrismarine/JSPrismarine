@@ -3434,11 +3434,6 @@
             "reason": "In Java: A client rides an entity, steers it, jumps a horse, opens its inventory and paddles a boat. For a Java client here: play/clientbound/set_passengers is never sent; play/serverbound/move_vehicle is not read; play/clientbound/move_vehicle is never sent; play/serverbound/paddle_boat is not read; play/serverbound/player_command (start a riding jump) decodes into nothing; play/serverbound/player_command (stop a riding jump) decodes into nothing; play/serverbound/player_command (open the mount's inventory) decodes into nothing; play/clientbound/mount_screen_open is never sent; play/clientbound/move_minecart_along_track is never sent.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3772"
         },
-        "services:client-information": {
-            "kind": "deferred",
-            "reason": "In Java: The client's language, view distance, skin parts, main hand and chat settings reach the server. For a Java client here: configuration/serverbound/client_information is not read; play/serverbound/client_information is not read.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
-        },
         "services:client-tick": {
             "kind": "deferred",
             "reason": "In Java: A client says when each of its ticks ends, which the server times its movement checks by. For a Java client here: play/serverbound/client_tick_end is not read.",
@@ -3451,7 +3446,7 @@
         },
         "services:configuration-keep-alive": {
             "kind": "deferred",
-            "reason": "In Java: A client in the configuration phase is pinged and timed out as one in play is. For a Java client here: configuration/clientbound/keep_alive is never sent; configuration/serverbound/keep_alive is not read; configuration/clientbound/ping is never sent; configuration/serverbound/pong is not read.",
+            "reason": "In Java: A client in the configuration phase is pinged and timed out as one in play is. For a Java client here: configuration/clientbound/ping has no layout; configuration/serverbound/pong is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
         },
         "services:cookies": {
@@ -3476,12 +3471,12 @@
         },
         "services:play-ping": {
             "kind": "deferred",
-            "reason": "In Java: A client's ping in play and the debug screen's ping chart are answered, and a server can ping the client. For a Java client here: play/serverbound/ping_request is not read; play/clientbound/pong_response is never sent; play/clientbound/ping is never sent; play/serverbound/pong is not read.",
+            "reason": "In Java: A client's ping in play and the debug screen's ping chart are answered, and a server can ping the client. For a Java client here: play/clientbound/ping has no layout; play/serverbound/pong is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
         },
         "services:plugin-channels": {
             "kind": "deferred",
-            "reason": "In Java: The server and client exchange plugin channel messages, such as the brand, in play. For a Java client here: configuration/serverbound/custom_payload is not read; play/clientbound/custom_payload is never sent; play/serverbound/custom_payload is not read.",
+            "reason": "In Java: The server and client exchange plugin channel messages, such as the brand, in play. For a Java client here: play/clientbound/custom_payload has no layout.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
         },
         "services:post-effects": {
@@ -3509,11 +3504,6 @@
             "reason": "In Java: A server pushes resource packs a client downloads, and hears whether it loaded them. For a Java client here: configuration/clientbound/resource_pack_push is never sent; configuration/clientbound/resource_pack_pop is never sent; configuration/serverbound/resource_pack is not read; play/clientbound/resource_pack_push is never sent; play/clientbound/resource_pack_pop is never sent; play/serverbound/resource_pack is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
         },
-        "services:server-data": {
-            "kind": "deferred",
-            "reason": "In Java: A client in play is told the server's description and icon. For a Java client here: play/clientbound/server_data is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
-        },
         "services:server-links": {
             "kind": "deferred",
             "reason": "In Java: A client lists the server's links on its pause screen and disconnect screen. For a Java client here: configuration/clientbound/server_links is never sent; play/clientbound/server_links is never sent.",
@@ -3521,7 +3511,7 @@
         },
         "services:transfer": {
             "kind": "deferred",
-            "reason": "In Java: A server sends a client to another server, as `/transfer` does. For a Java client here: configuration/clientbound/transfer is never sent; play/clientbound/transfer is never sent.",
+            "reason": "In Java: A server sends a client to another server, as `/transfer` does. For a Java client here: configuration/clientbound/transfer has no layout.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3774"
         },
         "tools:books": {

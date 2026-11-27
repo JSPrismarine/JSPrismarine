@@ -498,7 +498,12 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'transfer',
         area: 'services',
         java: 'A server sends a client to another server, as `/transfer` does.',
-        needs: [sent('configuration/clientbound/transfer'), sent('play/clientbound/transfer')]
+        needs: [
+            sent('configuration/clientbound/transfer'),
+            shown('play/clientbound/transfer', 'a transfer', (presenter) =>
+                presenter.transfer('play.example.org', 25_565)
+            )
+        ]
     },
     {
         id: 'server-links',
