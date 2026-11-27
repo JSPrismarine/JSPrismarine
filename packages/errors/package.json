@@ -482,7 +482,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "generate": "node ../../scripts/generate-error-classes.mts",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",

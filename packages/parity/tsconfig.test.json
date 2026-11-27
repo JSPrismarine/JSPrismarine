@@ -5,5 +5,5 @@
         "noEmit": true
     },
     "exclude": [],
-    "include": ["src/**/*"]
+    "include": ["src/**/*", "scripts/**/*"]
 }

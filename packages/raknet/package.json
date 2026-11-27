@@ -45,7 +45,7 @@
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "bench:frame-set-sends": "vitest bench benchmarks/frame-set-sends.bench.ts",
         "bench:worker-transport": "node --import tsx benchmarks/workerTransport.bench.ts",
         "bench:socket-buffers": "node benchmarks/socketBuffers.bench.mjs",

@@ -111,7 +111,7 @@
         "bench:interpolated-cell": "node benchmarks/runInterpolatedCell.mts",
         "bench:biome-manager": "node benchmarks/runBiomeManager.mts",
         "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "vectors": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/run.mjs"
     },
     "repository": {

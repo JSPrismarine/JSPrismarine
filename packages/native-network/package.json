@@ -36,7 +36,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "build:native": "node scripts/build-native.mts",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "postinstall": "node scripts/postinstall.mjs",
         "ensure:native": "node scripts/postinstall.mjs"
     },

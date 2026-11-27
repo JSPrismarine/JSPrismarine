@@ -2038,7 +2038,7 @@
         "bench:layout": "node ../../scripts/run-ts.mjs benchmarks/layout.bench.ts",
         "bench:layout-cache": "node ../../scripts/run-ts.mjs bench/layout.bench.ts",
         "test:dist-contract": "node --conditions=jsprismarine:dist --import tsx scripts/check-packet-class-names.mjs",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "capture:java-configuration": "node --import tsx scripts/capture-java-configuration.ts"
     },
     "repository": {

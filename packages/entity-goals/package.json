@@ -143,7 +143,7 @@
         "build:watch": "vite build --watch",
         "bench": "node --expose-gc ../../scripts/run-ts.mjs benchmarks/pathSearch.bench.ts",
         "test": "vitest run",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "inventory": "node utils/build-inventory.ts",
         "vectors": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/run.mjs"
     },

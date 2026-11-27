@@ -44,7 +44,7 @@
         "build:watch": "vite build --watch",
         "bench:random": "node benchmarks/runRandomDraws.mts",
         "test": "vitest run",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json",
         "vectors": "node utils/oracle/run.mjs"
     },
     "repository": {

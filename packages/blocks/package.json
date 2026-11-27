@@ -66,7 +66,7 @@
         "generate:liquid-reactions": "vite build && node utils/generate-liquid-reactions.mjs",
         "generate:overlay": "pnpm run generate:display-names && turbo run build --filter=@jsprismarine/blocks && node --conditions=jsprismarine:dist utils/generate-overlay.mjs",
         "test": "vitest run",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",
