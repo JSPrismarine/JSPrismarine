@@ -237,6 +237,12 @@ component in [0, 1] measured from the face's lower north-west corner, which is w
 half and a stair's `upside_down_bit`. `FaceLocation` is a separate type from `BlockPosition` because
 its components are fractions of a block rather than world coordinates.
 
+`replacingClicked` says whether the new block replaced the one clicked, such as short grass, rather
+than going against its face. It is Java's `BlockPlaceContext.replacingClickedOnBlock`: a trapdoor
+placed that way ignores the clicked face, and a lantern looks for support in the order the placer
+looks. The field is optional, and a host that leaves it out has every placement read as a click
+against the face.
+
 `behaviorFor(identifier, archetype?)` gives the family name. An archetype wins when the block's own
 definition declares one, because Mojang already decided the family there; otherwise the identifier
 picks a rule from `BLOCK_FAMILIES`. The two agree by construction: `slab_block` lands in
