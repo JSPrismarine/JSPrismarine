@@ -19,6 +19,9 @@ completed slice after its relevant checks pass, in dependency order.
 - Check the current branch and `git status --short`; distinguish this task's files from existing work.
 - Stage only files for the intended slice. Inspect the staged diff and confirm it covers one domain.
 - Use the repository's Conventional Commit format. Follow the present-tense, imperative-mood, and 72-character subject-line rules in [Contributing](../../../CONTRIBUTING.md#git-commit-messages).
+- Count the first line before you commit: 72 characters is the whole line, type, scope, colon and
+  space included, so `fix(bedrock-data): ` leaves 53 for the subject. Write a subject that fits
+  rather than one that names every change; the body carries the detail.
 
 ## Amendments and branch history
 

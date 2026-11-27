@@ -3,8 +3,11 @@
  * lint. Claude Code and Codex both pipe the hook event as JSON on stdin, so
  * `.claude/settings.json` and `.codex/hooks.json` run this same file.
  *
- * - `PreToolUse` on a shell command that runs `git commit`: lints the
- *   uncommitted changes and denies the command when they fail.
+ * - `PreToolUse` on a shell command that runs `git commit`: runs commitlint
+ *   on the message the command passes, then lints the uncommitted changes,
+ *   and denies the command when either fails. The message check comes first
+ *   because it takes a second and the lint can take minutes, and Git's
+ *   `commit-msg` hook would otherwise reject the message only after both.
  * - `Stop`: lints the uncommitted changes and asks the agent to keep going
  *   when they fail.
  *
@@ -20,6 +23,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { commitMessage } from './commit-message.mts';
 import type { ChangedPath } from './lint-gate-checks.mts';
 import { customChecks, gateScripts } from './lint-gate-checks.mts';
 
@@ -149,6 +153,15 @@ const lintFailure = (cwd: string): string | undefined => {
     return output.split('\n').slice(-OUTPUT_TAIL_LINES).join('\n').trim();
 };
 
+/** Runs commitlint on `message` and returns its report when the message breaks a rule. */
+const commitMessageFailure = (cwd: string, message: string): string | undefined => {
+    const result = spawnSync('pnpm', ['exec', 'commitlint'], { cwd, input: message, encoding: 'utf8' });
+    if (result.status === 0) return undefined;
+    // Without commitlint the `commit-msg` hook cannot run either; leave the report to Git.
+    if (result.error) return undefined;
+    return `${result.stdout}${result.stderr}`.trim();
+};
+
 let input: HookInput;
 try {
     // Hook payloads are untrusted JSON from the agent host.
@@ -168,7 +181,16 @@ const cwd = input.cwd ?? process.cwd();
 
 if (input.hook_event_name === 'PreToolUse') {
     const command = input.tool_input?.command;
-    if (typeof command !== 'string' || !GATED_GIT_COMMAND.test(command)) process.exit(0);
+    const gated = typeof command === 'string' ? GATED_GIT_COMMAND.exec(command) : null;
+    if (typeof command !== 'string' || gated === null) process.exit(0);
+    const message = commitMessage(command, gated.index + gated[0].length, cwd);
+    const messageFailure = message === undefined ? undefined : commitMessageFailure(cwd, message);
+    if (messageFailure !== undefined) {
+        console.error(
+            `The commit message breaks the commit rules, so this git command is blocked. Rewrite the message and run it again.\n\n${messageFailure}`
+        );
+        process.exit(2);
+    }
     const failure = lintFailure(cwd);
     if (failure === undefined) process.exit(0);
     console.error(`Lint fails, so this git command is blocked. Fix the problems and run it again.\n\n${failure}`);
