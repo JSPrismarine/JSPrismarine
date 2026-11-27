@@ -3,6 +3,37 @@
     "addons": [
         {
             "repository": "JSPrismarine/JSPrismarine",
+            "name": "motd",
+            "entry": {
+                "name": "motd",
+                "version": "1.0.0",
+                "description": "Renders the server list's MOTD from templates: colors, gradients, animations and placeholders.",
+                "minServer": "0.27.0",
+                "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/motd-1.0.0.mcpack",
+                "sha256": "22e041bbbfefbe4351a0e6f6edfa356e8bcca76b5fca18da523f1864464fb45f"
+            },
+            "listing": {
+                "title": "MOTD",
+                "license": "(MIT OR MPL-2.0)",
+                "tags": [],
+                "authors": [],
+                "readme": {
+                    "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/motd-1.0.0.md",
+                    "sha256": "43c403303983a84869ef65ca39ab739ccab383617ed13f858750b52b12da981c"
+                },
+                "screenshots": []
+            },
+            "versions": [
+                {
+                    "version": "1.0.0",
+                    "minServer": "0.27.0",
+                    "sha256": "22e041bbbfefbe4351a0e6f6edfa356e8bcca76b5fca18da523f1864464fb45f",
+                    "published": "2026-11-27"
+                }
+            ]
+        },
+        {
+            "repository": "JSPrismarine/JSPrismarine",
             "name": "multiverse",
             "entry": {
                 "name": "multiverse",
