@@ -115,7 +115,11 @@ const isNarrowed = (goal: JavaGoalEntry, ...predicates: readonly string[]): bool
         return true;
     });
 
-/** Java's `Goal.reducedTickDelay`: a delay halved, rounding up, for a goal that ticks on selector runs only. */
+/**
+ * Java's `Goal.reducedTickDelay`: a delay halved, rounding up, for a goal that ticks on selector runs only.
+ *
+ * @javaSource Goal.reducedTickDelay
+ */
 const reducedTickDelay = (ticks: number): number => Math.ceil(ticks / 2);
 
 /** A body with the given keys set, the undefined ones left as they were. */

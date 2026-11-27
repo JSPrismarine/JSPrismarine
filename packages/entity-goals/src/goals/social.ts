@@ -35,7 +35,11 @@ import type { GoalItemCraft, GoalMob } from '../world';
  * `OfferFlowerGoal` offers for 400 ticks on a 1-in-8000 chance per tick.
  */
 
-/** How far a breeding partner may be, from Java's `BreedGoal.PARTNER_TARGETING`. */
+/**
+ * How far a breeding partner may be, from Java's `BreedGoal.PARTNER_TARGETING`.
+ *
+ * @javaSource BreedGoal.PARTNER_TARGETING
+ */
 const PARTNER_RANGE = 8;
 
 /** How long two animals court before the child appears, from Java's `BreedGoal`. */
@@ -47,22 +51,40 @@ const BREED_DISTANCE = 3;
 /** Whether a host can rule out a mate search before supplying nearby entities. */
 const canSearchForMate = (support: GoalSupport): boolean => support.world.isReadyToBreed?.() !== false;
 
-/** How far a baby looks for its parent, from Java's `FollowParentGoal.HORIZONTAL_SCAN_RANGE`. */
+/**
+ * How far a baby looks for its parent, from Java's `FollowParentGoal.HORIZONTAL_SCAN_RANGE`.
+ *
+ * @javaSource FollowParentGoal.HORIZONTAL_SCAN_RANGE
+ */
 const PARENT_SCAN_RANGE = 8;
 
-/** How close a baby stops following, from Java's `FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN`. */
+/**
+ * How close a baby stops following, from Java's `FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN`.
+ *
+ * @javaSource FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN
+ */
 const PARENT_STOP_DISTANCE = 3;
 
-/** How far a baby gives up, from Java's `FollowParentGoal.canContinueToUse`. */
+/**
+ * How far a baby gives up, from Java's `FollowParentGoal.canContinueToUse`.
+ *
+ * @javaSource FollowParentGoal.canContinueToUse
+ */
 const PARENT_GIVE_UP_DISTANCE = 16;
 
-/** Where a tempted entity stops, from Java's `TemptGoal.DEFAULT_STOP_DISTANCE`. */
+/**
+ * Where a tempted entity stops, from Java's `TemptGoal.DEFAULT_STOP_DISTANCE`.
+ *
+ * @javaSource TemptGoal.DEFAULT_STOP_DISTANCE
+ */
 const TEMPT_STOP_DISTANCE = 2.5;
 
 /**
  * How long the iron golem holds a flower out, in goal ticks: Java's `OfferFlowerGoal.start` sets
  * `adjustedTickDelay(400)`, which halves the 400 game ticks for a goal that only ticks on the
  * selector's every-other-tick pass.
+ *
+ * @javaSource OfferFlowerGoal.start
  */
 const OFFER_TICKS = 200;
 
@@ -629,6 +651,8 @@ const controlItemsOf = (support: GoalSupport): readonly string[] => {
  * `Strider.getControllingPassenger` hand the mob to a player riding first only
  * while the player holds the item, and a mob carrying a player without it goes
  * its own way; a mob riding first steers it whatever it holds.
+ *
+ * @javaSource Pig.getControllingPassenger
  */
 export const controlledByPlayer = goal<{ readonly mountSpeedMultiplier: number }>({
     name: 'minecraft:behavior.controlled_by_player',
@@ -937,7 +961,11 @@ export const offerFlower = goal<{ readonly filters: Filter | undefined }>({
     controlFlags: ['move', 'look'],
     schema: bodySchema((body) => ({ filters: filterAt(body, 'filters') })),
     create: (params, support) => {
-        /** How often the offer starts, from Java's `OfferFlowerGoal.canUse`. */
+        /**
+         * How often the offer starts, from Java's `OfferFlowerGoal.canUse`.
+         *
+         * @javaSource OfferFlowerGoal.canUse
+         */
         const offerChance = 1 / 8000;
         /** How far the golem looks, from Java's `OFFER_TARGET_CONTEXT`. */
         const offerRange = 6;
@@ -1021,7 +1049,11 @@ export const tradeWithPlayer = goal<{ readonly filters: Filter | undefined }>({
     controlFlags: ['move', 'jump'],
     schema: bodySchema((body) => ({ filters: filterAt(body, 'filters') })),
     create: (params, support) => {
-        /** How far the player may get, from Java's `TradeWithPlayerGoal.canContinueToUse`. */
+        /**
+         * How far the player may get, from Java's `TradeWithPlayerGoal.canContinueToUse`.
+         *
+         * @javaSource Goal.canContinueToUse
+         */
         const tradeRange = 4;
         return {
             canStart: () => {

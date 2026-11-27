@@ -67,13 +67,21 @@ const SITTING_GROUP_PHASES: readonly DragonPhaseName[] = [
 /** The phases Java's `isSitting` answers true for, in which damage can make the dragon take off. */
 const SITTING_PHASES: readonly DragonPhaseName[] = ['sitting_scanning', 'sitting_attacking', 'sitting_flaming'];
 
-/** Whether a dragon phase is one Java's `DragonPhaseInstance.isSitting` answers true for. */
+/**
+ * Whether a dragon phase is one Java's `DragonPhaseInstance.isSitting` answers true for.
+ *
+ * @javaSee DragonPhaseInstance.isSitting
+ */
 export const isSittingDragonPhase = (phase: DragonPhaseName): boolean => SITTING_PHASES.includes(phase);
 
 /** How much of its health a sitting dragon takes before it flies off, Java's `0.25F * getMaxHealth()`. */
 const SITTING_DAMAGE_SHARE = 0.25;
 
-/** Java's `EnderDragon.nodeAdjacency`: which of the 24 path nodes each node connects to, as bits. */
+/**
+ * Java's `EnderDragon.nodeAdjacency`: which of the 24 path nodes each node connects to, as bits.
+ *
+ * @javaSource EnderDragon.findClosestNode()I
+ */
 const NODE_ADJACENCY = [
     6146, 8197, 8202, 16404, 32808, 32848, 65696, 131392, 131712, 263424, 526848, 525313, 1581057, 3166214, 2138120,
     6373424, 4358208, 12910976, 9044480, 9706496, 15216640, 13688832, 11763712, 8257536
@@ -84,21 +92,49 @@ const NODE_COUNT = 24;
 /** The first inner node; a fight with no crystals left keeps to the inner two rings. */
 const INNER_NODES = 12;
 
-/** Java's `DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT`. */
+/**
+ * Java's `DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT`.
+ *
+ * @javaSource DragonStrafePlayerPhase.FIREBALL_CHARGE_AMOUNT
+ */
 const FIREBALL_CHARGE = 5;
-/** Java's `DragonChargePlayerPhase.CHARGE_RECOVERY_TIME_IN_TICKS`. */
+/**
+ * Java's `DragonChargePlayerPhase.CHARGE_RECOVERY_TIME`.
+ *
+ * @javaSource DragonChargePlayerPhase.CHARGE_RECOVERY_TIME
+ */
 const CHARGE_RECOVERY_TICKS = 10;
-/** Java's `DragonSittingScanningPhase.SCANNING_TIME`. */
+/**
+ * Java's `DragonSittingScanningPhase.SITTING_SCANNING_IDLE_TICKS`.
+ *
+ * @javaSource DragonSittingScanningPhase.SITTING_SCANNING_IDLE_TICKS
+ */
 const SCANNING_TICKS = 100;
 /** How long a scan waits before it turns to the attack, in ticks. */
 const SCAN_ATTACK_DELAY = 25;
-/** Java's `DragonSittingAttackingPhase.ROAR_DURATION`. */
+/**
+ * Java's `DragonSittingAttackingPhase.ROAR_DURATION`.
+ *
+ * @javaSource DragonSittingAttackingPhase.ROAR_DURATION
+ */
 const ROAR_TICKS = 40;
-/** Java's `DragonSittingFlamingPhase.FLAME_DURATION`. */
+/**
+ * Java's `DragonSittingFlamingPhase.FLAME_DURATION`.
+ *
+ * @javaSource DragonSittingFlamingPhase.FLAME_DURATION
+ */
 const FLAME_TICKS = 200;
-/** Java's `DragonSittingFlamingPhase.SITTING_FLAME_ATTACKS_COUNT`. */
+/**
+ * Java's `DragonSittingFlamingPhase.SITTING_FLAME_ATTACKS_COUNT`.
+ *
+ * @javaSource DragonSittingFlamingPhase.SITTING_FLAME_ATTACKS_COUNT
+ */
 const FLAME_ATTACKS = 4;
-/** Java's `DragonSittingFlamingPhase.WARMUP_TIME`. */
+/**
+ * Java's `DragonSittingFlamingPhase.WARMUP_TIME`.
+ *
+ * @javaSource DragonSittingFlamingPhase.WARMUP_TIME
+ */
 const FLAME_WARMUP = 10;
 /** How far below the head the breath looks for ground before it gives up, in blocks. */
 const FLAME_SEARCH_DEPTH = 384;
@@ -167,7 +203,11 @@ const isDone = (path: NodePath): boolean => path.next >= path.nodes.length;
 
 const distance = (a: PathNode, b: PathNode): number => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
-/** Java's `Mth.wrapDegrees`. */
+/**
+ * Java's `Mth.wrapDegrees`.
+ *
+ * @javaSource Mth.wrapDegrees(D)D
+ */
 const wrapDegrees = (degrees: number): number => {
     const wrapped = degrees % 360;
     return wrapped >= 180 ? wrapped - 360 : wrapped < -180 ? wrapped + 360 : wrapped;
@@ -251,6 +291,8 @@ class DragonPhases {
      * Java's `EnderDragon.hurt` while a sitting phase runs: the damage adds up, and once it passes
      * a quarter of the dragon's health the dragon takes off. Read as the health it lost since the
      * last tick, since a goal sees the dragon's health and not each blow.
+     *
+     * @javaSource EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z
      */
     private takeSittingDamage(): void {
         const health = this.support.entity.attributes.get('health');
@@ -267,7 +309,11 @@ class DragonPhases {
         }
     }
 
-    /** Java's `EnderDragonPhaseManager.setPhase`: ends the current phase and begins the next. */
+    /**
+     * Java's `EnderDragonPhaseManager.setPhase`: ends the current phase and begins the next.
+     *
+     * @javaSource EnderDragonPhaseManager.setPhase
+     */
     public setPhase(next: DragonPhaseName): void {
         if (next === this.phaseName) return;
         this.end();
@@ -416,7 +462,11 @@ class DragonPhases {
         return away < 100 || away > 22500;
     }
 
-    /** Java's `DragonHoldingPatternPhase.findNewTarget`. */
+    /**
+     * Java's `DragonHoldingPatternPhase.findNewTarget`.
+     *
+     * @javaSource DragonHoldingPatternPhase.findNewTarget
+     */
     private holdingPatternTarget(): void {
         if (this.path !== undefined && isDone(this.path)) {
             const portal = this.portal();
@@ -476,7 +526,11 @@ class DragonPhases {
         this.targetLocation = { x: node.x, y: node.y + this.support.random() * 20, z: node.z };
     }
 
-    /** Java's `DragonStrafePlayerPhase.setTarget`: a path toward the target, ending above it. */
+    /**
+     * Java's `DragonStrafePlayerPhase.setTarget`: a path toward the target, ending above it.
+     *
+     * @javaSource DragonStrafePlayerPhase.setTarget
+     */
     private strafeAt(target: GoalMob): void {
         this.strafeTarget = target;
         const here = this.support.position();
@@ -493,7 +547,11 @@ class DragonPhases {
         }
     }
 
-    /** Java's `DragonStrafePlayerPhase.doServerTick`. */
+    /**
+     * Java's `DragonStrafePlayerPhase.doServerTick`.
+     *
+     * @javaSource DragonStrafePlayerPhase.doServerTick
+     */
     private strafeTick(): void {
         const target = this.strafeTarget;
         if (target === undefined || (target.health?.() ?? 1) <= 0) {
@@ -531,6 +589,8 @@ class DragonPhases {
     /**
      * Java's `DragonChargePlayerPhase.doServerTick`, whose recovery count runs on both the
      * post-increment that checks it and the miss that follows in the same tick.
+     *
+     * @javaSource DragonChargePlayerPhase.doServerTick
      */
     private chargeTick(): void {
         if (this.targetLocation === undefined) {
@@ -549,7 +609,11 @@ class DragonPhases {
         if (this.offCourse()) this.timeSinceCharge += 1;
     }
 
-    /** Java's `DragonLandingApproachPhase.findNewTarget`, and the hand-over to the landing. */
+    /**
+     * Java's `DragonLandingApproachPhase.findNewTarget`, and the hand-over to the landing.
+     *
+     * @javaSource DragonLandingApproachPhase.findNewTarget
+     */
     private landingApproachTarget(): void {
         if (this.path === undefined || isDone(this.path)) {
             const from = this.closestNode();
@@ -574,7 +638,11 @@ class DragonPhases {
         if (this.path !== undefined && isDone(this.path)) this.setPhase('landing');
     }
 
-    /** Java's `DragonTakeoffPhase.findNewTarget`: a path off the portal, out ahead of the dragon. */
+    /**
+     * Java's `DragonTakeoffPhase.findNewTarget`: a path off the portal, out ahead of the dragon.
+     *
+     * @javaSource DragonTakeoffPhase.findNewTarget
+     */
     private takeoffTarget(): void {
         const from = this.closestNode();
         const [forwardX, forwardZ] = this.forward();
@@ -589,7 +657,11 @@ class DragonPhases {
         if (!isDone(path)) this.toNextNode();
     }
 
-    /** Java's `DragonSittingScanningPhase.doServerTick`. */
+    /**
+     * Java's `DragonSittingScanningPhase.doServerTick`.
+     *
+     * @javaSource DragonSittingScanningPhase.doServerTick
+     */
     private scanTick(): void {
         this.scanningTime += 1;
         const here = this.support.position();
@@ -630,7 +702,11 @@ class DragonPhases {
         }
     }
 
-    /** Java's `DragonSittingFlamingPhase.doServerTick`: the breath ten ticks in, the end at 200. */
+    /**
+     * Java's `DragonSittingFlamingPhase.doServerTick`: the breath ten ticks in, the end at 200.
+     *
+     * @javaSource DragonSittingFlamingPhase.doServerTick
+     */
     private flameTick(): void {
         this.flameTicks += 1;
         if (this.flameTicks >= FLAME_TICKS) {
@@ -705,7 +781,11 @@ class DragonPhases {
         return this.phaseName === 'landing' ? capped / moving : 0.7 / capped / moving;
     }
 
-    /** Java's `EnderDragon.aiStep` flight: climb, turn, thrust along the heading, move and drag. */
+    /**
+     * Java's `EnderDragon.aiStep` flight: climb, turn, thrust along the heading, move and drag.
+     *
+     * @javaSource EnderDragon.aiStep
+     */
     private fly(): void {
         const target = this.flyTarget();
         const here = this.support.position();
@@ -760,6 +840,8 @@ class DragonPhases {
      * ticks: each wing shoves every living thing near it away from the body, and while the
      * dragon flies hurts it for 5, and the head and the neck hurt every living thing
      * they touch for 10. A player in creative or spectator is left alone.
+     *
+     * @javaSource EnderDragon.aiStep
      */
     private touch(): void {
         if (this.hurtTime > 0) return;
@@ -805,6 +887,8 @@ class DragonPhases {
      * Java's `EnderDragon.checkWalls` over its head, neck and body: with `mobGriefing` on, every
      * block in them but air, the `minecraft:dragon_transparent` blocks and the
      * `minecraft:dragon_immune` ones is removed, dropping nothing.
+     *
+     * @javaSource EnderDragon.checkWalls
      */
     private checkWalls(): void {
         if (this.support.world.gameRule?.('mobGriefing') === false) return;
@@ -861,7 +945,11 @@ class DragonPhases {
 
     // The fight's geometry.
 
-    /** The fight's origin, Java's `EnderDragon.getFightOrigin`. */
+    /**
+     * The fight's origin, Java's `EnderDragon.getFightOrigin`.
+     *
+     * @javaSource EnderDragon.getFightOrigin
+     */
     private fightOrigin(): EntityPosition {
         return this.support.world.fightOrigin?.() ?? { x: 0, y: 0, z: 0 };
     }
@@ -959,6 +1047,8 @@ class DragonPhases {
     /**
      * Java's `EnderDragon.findPath`: A* over the node graph from one node to another, ending at
      * `last` when one is given. A search that cannot reach its end goes as near as it can.
+     *
+     * @javaSource EnderDragon.findPath
      */
     private findPath(from: number, to: number, last: PathNode | undefined): NodePath | undefined {
         const nodes = this.pathNodes();

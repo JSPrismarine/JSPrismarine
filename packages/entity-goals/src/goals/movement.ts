@@ -39,13 +39,21 @@ import type { GoalMob } from '../world';
  * when it does not.
  */
 
-/** How often a wandering goal looks for somewhere to go, from Java's `RandomStrollGoal.DEFAULT_INTERVAL`. */
+/**
+ * How often a wandering goal looks for somewhere to go, from Java's `RandomStrollGoal.DEFAULT_INTERVAL`.
+ *
+ * @javaSource RandomStrollGoal.DEFAULT_INTERVAL
+ */
 const STROLL_INTERVAL = 120;
 
 /** How far a flee draws its destination, from Java's `AvoidEntityGoal`. */
 const FLEE_XZ_DISTANCE = 16;
 
-/** Within this many blocks of its threat a fleeing entity sprints, from Java's `AvoidEntityGoal.tick` (49 squared). */
+/**
+ * Within this many blocks of its threat a fleeing entity sprints, from Java's `AvoidEntityGoal.tick` (49 squared).
+ *
+ * @javaSource AvoidEntityGoal.tick
+ */
 const AVOID_SPRINT_DISTANCE = 7;
 
 /** How far up and down a flee draws its destination, from Java's `AvoidEntityGoal`. */
@@ -262,6 +270,8 @@ const surfaceUnder = (support: GoalSupport, position: EntityPosition, reach: num
  * Java's `Bee$BeeWanderGoal.findPos` steering: once the entity's block is `distance` or more from
  * its home's, a wander keeps to the half of the circle that faces home, as `HoverRandomPos` keeps
  * within 90 degrees of the direction to the hive. Nearer home, or with no home, it draws freely.
+ *
+ * @javaSource Bee$BeeWanderGoal.findPos
  */
 const towardHome = (
     support: GoalSupport,
@@ -532,6 +542,8 @@ export const slimeFloat = goal<{ readonly jumpChance: number; readonly speedMult
  * is above that, as Java's `Strider.floatStrider` lifts a strider 0.05 a tick until it stands on
  * the lava's surface. Java floats it from `Strider.tick`, not from a goal, so the goal holds no
  * control flag: a strider walks across the lava while it floats.
+ *
+ * @javaSource Strider.floatStrider
  */
 export const riseToLiquidLevel = goal<{
     readonly liquidYOffset: number;
@@ -888,7 +900,11 @@ export const fleeSun = goal<{ readonly speedMultiplier: number }>({
 /** How many selector updates `Fox$SeekShelterGoal` waits between its searches in daylight. */
 const SEEK_SHELTER_INTERVAL = 100;
 
-/** The block an animal's walk-target value rates highest, as Java's `Animal.getWalkTargetValue` does. */
+/**
+ * The block an animal's walk-target value rates highest, as Java's `Animal.getWalkTargetValue` does.
+ *
+ * @javaSource Animal.getWalkTargetValue
+ */
 const ANIMAL_FAVORITE_FLOOR = 'minecraft:grass_block';
 
 /**
@@ -1122,7 +1138,11 @@ export const moveToLand = goal<MoveToBlockParams>({
         })
 });
 
-/** Java's `MoveToBlockGoal.nextStartTick` draw, `200 + random.nextInt(200)`, before `reducedTickDelay`. */
+/**
+ * Java's `MoveToBlockGoal.nextStartTick` draw, `200 + random.nextInt(200)`, before `reducedTickDelay`.
+ *
+ * @javaSource MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I
+ */
 const BLOCK_SEARCH_DELAY = 200;
 
 /**
@@ -1132,6 +1152,12 @@ const BLOCK_SEARCH_DELAY = 200;
  * Java's `Strider.StriderGoToLavaGoal` is a `MoveToBlockGoal`, which searches on its first
  * selector pass and then waits `reducedTickDelay(200 + nextInt(200))` passes before the next
  * search, where Bedrock rolls one tick in `tick_interval`.
+ *
+ * @javaSource Strider$StriderGoToLavaGoal.getMoveToTarget
+ * @javaSource Strider$StriderGoToLavaGoal.canContinueToUse
+ * @javaSource Strider$StriderGoToLavaGoal.canUse
+ * @javaSource Strider$StriderGoToLavaGoal.shouldRecalculatePath
+ * @javaSource Strider$StriderGoToLavaGoal.isValidTarget
  */
 export const moveToLiquid = goal<MoveToBlockParams & { readonly materialType: string }>({
     name: 'minecraft:behavior.move_to_liquid',
@@ -1788,7 +1814,11 @@ export const jumpToBlock = goal<JumpToBlockParams>({
     }
 });
 
-/** The air supply below which Java's `BreathAirGoal.canUse` sends the entity up, in ticks. */
+/**
+ * The air supply below which Java's `BreathAirGoal.canUse` sends the entity up, in ticks.
+ *
+ * @javaSource BreathAirGoal.canUse
+ */
 const BREATH_AIR_TICKS = 140;
 
 /** Whether the entity's air has run below {@link BREATH_AIR_TICKS}; an entity with no air state never does. */
@@ -2240,6 +2270,9 @@ const DOOR_KEEP_REACH = 2;
  * (Bedrock's default is hard, Java's `Zombie.DOOR_BREAKING_PREDICATE`; the vindicator's normal is
  * Java's `Vindicator.DOOR_BREAKING_PREDICATE`). It holds no control flags, as Java's holds none,
  * so the mob keeps chasing what it chases while it breaks the door.
+ *
+ * @javaSource Zombie.DOOR_BREAKING_PREDICATE
+ * @javaSource Vindicator.DOOR_BREAKING_PREDICATE
  */
 export const breakDoor = goal<{ readonly minDifficulty: string }>({
     name: 'minecraft:annotation.break_door',

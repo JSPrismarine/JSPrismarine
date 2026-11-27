@@ -74,6 +74,8 @@ export interface GoalCombatMark {
  * One mob's place in a fish school: Java's `AbstractSchoolingFish.leader` and `schoolSize`. The
  * world keeps one per mob and hands out the same object every time, since a school is the leader's
  * object that its followers point at. Java saves neither, so a server need not either.
+ *
+ * @javaSee AbstractSchoolingFish.leader
  */
 export interface SchoolMembership {
     /** The membership of the leader this mob follows, or undefined when it follows none. */
@@ -214,6 +216,8 @@ export interface GoalWorld {
     /**
      * Java's `LivingEntity.hasLineOfSight`: whether no block stands between the entity's eyes and
      * the mob's, up to 128 blocks, whatever the entity's follow range.
+     *
+     * @javaSee LivingEntity.hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z
      */
     hasLineOfSight?(mob: GoalMob): boolean;
     /** Whether Java's combat target rules allow this mob to be selected or retained. */
@@ -254,7 +258,11 @@ export interface GoalWorld {
     shoot?(mob: GoalMob, projectile: string | undefined): void;
     /** Knocks the mob away from the entity. */
     knockback?(mob: GoalMob, horizontal: number, vertical: number): void;
-    /** Adds to another mob's velocity, Java's `Entity.push`, for the dragon's wings. */
+    /**
+     * Adds to another mob's velocity, Java's `Entity.push`, for the dragon's wings.
+     *
+     * @javaSee Entity.push(Lnet/minecraft/world/phys/Vec3;)V
+     */
     pushMob?(mob: GoalMob, velocity: EntityPosition): void;
     /** Adds to the entity's own velocity, for the leap, charge and ram goals. */
     push?(velocity: EntityPosition): void;
@@ -274,6 +282,8 @@ export interface GoalWorld {
      * Whether the entity may pick up items at all, for a pickup goal that declares
      * `pickup_based_on_chance`: Java's `Mob.canPickUpLoot`, rolled once per mob. A host that
      * leaves it out has the goal roll a chance on each attempt instead.
+     *
+     * @javaSee Mob.canPickUpLoot()Z
      */
     canPickUpLoot?(): boolean;
     /** Takes up to `count` items from the stack into the entity's inventory or hand. */
@@ -322,6 +332,8 @@ export interface GoalWorld {
     /**
      * Whether the entity's last move was stopped short sideways, Java's `Entity.horizontalCollision`,
      * which tells a door breaker that the door is in its way.
+     *
+     * @javaSee Entity.horizontalCollision
      */
     horizontalCollision?(): boolean;
     /**
@@ -333,6 +345,8 @@ export interface GoalWorld {
     /**
      * Shows the cracks on a door a mob is breaking, Java's `Level.destroyBlockProgress`: `stage`
      * from 0 to 9, or -1 to take them away.
+     *
+     * @javaSee Level.destroyBlockProgress
      */
     doorBreakProgress?(position: EntityPosition, stage: number): void;
     /** Plays the sound of a mob beating on a wooden door, Java's level event 1019. */
@@ -355,7 +369,11 @@ export interface GoalWorld {
     self?(): GoalMob | undefined;
     /** Fires an entity event on another entity, as the evoker's wololo spell does on a sheep. */
     fireOn?(mob: GoalMob, event: string): void;
-    /** Java's `Level.getGameTime`: ticks since the world was created, which spell intervals count against. */
+    /**
+     * Java's `Level.getGameTime`: ticks since the world was created, which spell intervals count against.
+     *
+     * @javaSee LevelAccessor.getGameTime
+     */
     gameTime?(): number;
     /** Removes another entity the goal made, as the dragon's flame phase takes back its breath. */
     discard?(mob: GoalMob): void;
@@ -372,7 +390,11 @@ export interface GoalWorld {
     surfaceY?(x: number, z: number): number | undefined;
     /** The dimension's sea level. */
     seaLevel?(): number;
-    /** Where the dragon fight the entity belongs to is centered, Java's `EnderDragon.getFightOrigin`. */
+    /**
+     * Where the dragon fight the entity belongs to is centered, Java's `EnderDragon.getFightOrigin`.
+     *
+     * @javaSee EnderDragon.getFightOrigin
+     */
     fightOrigin?(): EntityPosition;
     /**
      * How many end crystals still stand on the fight's pillars, Java's `getCrystalsAlive`, or

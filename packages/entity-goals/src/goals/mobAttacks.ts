@@ -29,7 +29,11 @@ interface MobAttackParams {
 
 const projectileSchema = bodySchema((body): MobAttackParams => ({ projectile: stringAt(body, 'projectile') }));
 
-/** The follow range a mob whose definition declares none has, Java's `Attributes.FOLLOW_RANGE` default. */
+/**
+ * The follow range a mob whose definition declares none has, Java's `Attributes.FOLLOW_RANGE` default.
+ *
+ * @javaSource Attributes.FOLLOW_RANGE
+ */
 const DEFAULT_FOLLOW_RANGE = 16;
 
 /** `Blaze$BlazeAttackGoal`: a bite inside 2 blocks, otherwise a charge and a burst of fireballs. */
@@ -222,7 +226,11 @@ const PHANTOM_TARGET = {
     upDown: 64
 } as const;
 
-/** A player's box, which Java's `EntityType.PLAYER` sizes 0.6 across and 1.8 tall. */
+/**
+ * A player's box, which Java's `Avatar.STANDING_DIMENSIONS` sizes 0.6 across and 1.8 tall.
+ *
+ * @javaSource Avatar.STANDING_DIMENSIONS
+ */
 const PLAYER_BOX = { width: 0.6, height: 1.8 } as const;
 
 /**

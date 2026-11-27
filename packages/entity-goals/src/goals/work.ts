@@ -481,7 +481,11 @@ const pickBerries = (support: GoalSupport, position: EntityPosition, item: strin
     for (let index = 0; index < left; index += 1) support.world.dropItem?.(item, position);
 };
 
-/** Java's `CaveVines.use`: the vine loses its berries and drops one glow berry. */
+/**
+ * Java's `CaveVines.use`: the vine loses its berries and drops one glow berry.
+ *
+ * @javaSource CaveVines.use
+ */
 const caveVineHarvest: Harvest = {
     ripe: () => true,
     eat: (support, position, block) => {
@@ -496,6 +500,14 @@ const caveVineHarvest: Harvest = {
  * A fox picks a sweet berry bush that has berries, growth 2 or more, back to growth 1, for one
  * or two berries and one more from a full bush; a vine with glow berries loses them. A rabbit
  * eats into a fully grown carrot crop one stage at a time and removes it at the last.
+ *
+ * @javaSource Fox$FoxEatBerriesGoal.acceptedDistance
+ * @javaSource Fox$FoxEatBerriesGoal.shouldRecalculatePath
+ * @javaSource Fox$FoxEatBerriesGoal.isValidTarget
+ * @javaSource Fox$FoxEatBerriesGoal.tick
+ * @javaSource Fox$FoxEatBerriesGoal.onReachedTarget
+ * @javaSource Fox$FoxEatBerriesGoal.canUse
+ * @javaSource Fox$FoxEatBerriesGoal.start
  */
 const HARVESTS: ReadonlyMap<string, Harvest> = new Map<string, Harvest>([
     [

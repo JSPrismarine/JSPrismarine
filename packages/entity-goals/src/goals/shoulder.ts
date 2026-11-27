@@ -21,7 +21,11 @@ export const LAND_ON_OWNERS_SHOULDER = 'jsprismarine:behavior.land_on_owners_sho
 /** `ShoulderRidingEntity.canSitOnShoulder`: `rideCooldownCounter > 100`, counted in entity ticks. */
 const RIDE_COOLDOWN_TICKS = 100;
 
-/** A player's box, which Java's `EntityType.PLAYER` sizes 0.6 across and 1.8 tall. */
+/**
+ * A player's box, which Java's `Avatar.STANDING_DIMENSIONS` sizes 0.6 across and 1.8 tall.
+ *
+ * @javaSource Avatar.STANDING_DIMENSIONS
+ */
 const PLAYER_BOX = { width: 0.6, height: 1.8 } as const;
 
 /** The entity's own box, from `minecraft:collision_box`. */

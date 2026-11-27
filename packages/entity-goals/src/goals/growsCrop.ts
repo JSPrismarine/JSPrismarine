@@ -33,6 +33,8 @@ const HIVE_RANGE = 48;
  * The age Java's `CropBlock.getMaxAge` gives each crop that `#minecraft:bee_growables` names
  * through `#minecraft:crops`. The pitcher crop is in the tag but is no `CropBlock`, so a bee
  * leaves it alone.
+ *
+ * @javaSource CropBlock.getMaxAge
  */
 const CROP_MAX_AGE: Readonly<Record<string, number>> = {
     'minecraft:wheat': 7,

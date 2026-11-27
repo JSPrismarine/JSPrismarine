@@ -98,63 +98,6 @@
     "packages/entities/src/javaTaming.ts": {
         "untaggedJavaCitation": 1
     },
-    "packages/entity-goals/src/goals/attacking.ts": {
-        "untaggedJavaCitation": 8
-    },
-    "packages/entity-goals/src/goals/dragonPhases.ts": {
-        "untaggedJavaCitation": 25
-    },
-    "packages/entity-goals/src/goals/environment.ts": {
-        "untaggedJavaCitation": 5
-    },
-    "packages/entity-goals/src/goals/growsCrop.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/entity-goals/src/goals/looking.ts": {
-        "untaggedJavaCitation": 5
-    },
-    "packages/entity-goals/src/goals/mobAttacks.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/entity-goals/src/goals/movement.ts": {
-        "untaggedJavaCitation": 10
-    },
-    "packages/entity-goals/src/goals/schooling.ts": {
-        "untaggedJavaCitation": 3
-    },
-    "packages/entity-goals/src/goals/shoulder.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/entity-goals/src/goals/social.ts": {
-        "untaggedJavaCitation": 9
-    },
-    "packages/entity-goals/src/goals/specials.ts": {
-        "untaggedJavaCitation": 3
-    },
-    "packages/entity-goals/src/goals/targeting.ts": {
-        "untaggedJavaCitation": 4
-    },
-    "packages/entity-goals/src/goals/work.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/entity-goals/src/javaArguments.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/entity-goals/src/navigation/profile.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/entity-goals/src/navigation/view.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/entity-goals/src/navigator.ts": {
-        "untaggedJavaCitation": 4
-    },
-    "packages/entity-goals/src/support.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/entity-goals/src/world.ts": {
-        "untaggedJavaCitation": 8
-    },
     "packages/features/src/features/caves.ts": {
         "untaggedJavaCitation": 2
     },

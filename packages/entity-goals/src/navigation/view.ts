@@ -49,6 +49,8 @@ export interface NavigationView {
     /**
      * Java's `LevelReader.getPathfindingCostFromLightLevels` at the block: its light-dependent
      * brightness less 0.5, which an animal's walk-target value is off grass.
+     *
+     * @javaSee LevelReader.getPathfindingCostFromLightLevels
      */
     lightPathfindingCost?(position: EntityPosition): number;
     /** Whether the block is a portal, for `avoid_portals`. */
@@ -77,6 +79,8 @@ export const centerOf = (block: EntityPosition): EntityPosition => ({
  * Where a path node puts an entity `width` blocks wide, Java's `Path.getEntityPosAtNode`: the
  * middle of the `width` by `width` cells the node's corner starts, which for a one-block mob is
  * {@link centerOf}.
+ *
+ * @javaSource Path.getEntityPosAtNode
  */
 export const entityPositionAtNode = (node: EntityPosition, width = 1): EntityPosition => ({
     x: Math.floor(node.x) + width * 0.5,
