@@ -56,6 +56,13 @@ export interface Scenario {
         addonConfigs?: Readonly<Record<string, unknown>>;
         /** The server's `keep-alive-interval`, in seconds; the shortest of a suite's wins. */
         keepAliveInterval?: number;
+        /**
+         * Files written into the server's folder before it boots, by path relative to it, such as
+         * an `.mcpack` under `addons/`. A path two scenarios of a suite both give gets the last one.
+         */
+        files?: Readonly<Record<string, Uint8Array>>;
+        /** Config entries written over the harness's own; a key two scenarios of a suite set gets the last one. */
+        config?: Readonly<Record<string, unknown>>;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }

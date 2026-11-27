@@ -431,7 +431,9 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                           ...suite.scenarios.map((scenario) => scenario.serverOptions?.keepAliveInterval ?? Infinity)
                       )
                   }
-                : {})
+                : {}),
+            files: Object.assign({}, ...suite.scenarios.map((scenario) => scenario.serverOptions?.files ?? {})),
+            config: Object.assign({}, ...suite.scenarios.map((scenario) => scenario.serverOptions?.config ?? {}))
         });
         const suiteServer = server;
         console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);

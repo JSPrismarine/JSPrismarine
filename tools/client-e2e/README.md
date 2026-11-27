@@ -237,3 +237,6 @@ files inside the provided artifacts directory and avoid shared mutable state. A 
 additional clients waits until no scenario in another suite has any: on CI's software renderer, a
 fresh client's loading screen runs past its join budget when another one loads beside it. Assert
 with `node:assert/strict` and throw to fail; the runner joins the client before the first scenario.
+A scenario that needs its server set up differently says so in `serverOptions`: `files` writes files
+into the server's folder before it boots, such as an `.mcpack` under `addons/` that installs on
+startup, and `config` writes config entries over the harness's own. Both apply to the whole suite.
