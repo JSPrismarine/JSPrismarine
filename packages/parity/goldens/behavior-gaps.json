@@ -3044,9 +3044,19 @@
             "reason": "MapItemSavedData.createFresh changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/savedMap.ts, packages/prismarine/src/world/savedMap.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:Mth.cos": {
+            "kind": "deferred",
+            "reason": "Mth.cos changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/javaMth.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;": {
             "kind": "deferred",
             "reason": "Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream; changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/biomeSearch.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Mth.sin": {
+            "kind": "deferred",
+            "reason": "Mth.sin changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/entity-goals/src/javaMth.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:MushroomBlock.canSurvive": {

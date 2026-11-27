@@ -62,6 +62,11 @@
         "BellBlock.getStateForPlacement": "net/minecraft/world/level/block/BellBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BellBlockEntity.updateEntities": "net/minecraft/world/level/block/entity/BellBlockEntity.updateEntities()V",
         "BigDripleafBlock.getStateForPlacement": "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "BinaryHeap.changeCost": "net/minecraft/world/level/pathfinder/BinaryHeap.changeCost(Lnet/minecraft/world/level/pathfinder/Node;F)V",
+        "BinaryHeap.downHeap": "net/minecraft/world/level/pathfinder/BinaryHeap.downHeap(I)V",
+        "BinaryHeap.insert": "net/minecraft/world/level/pathfinder/BinaryHeap.insert(Lnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Node;",
+        "BinaryHeap.pop": "net/minecraft/world/level/pathfinder/BinaryHeap.pop()Lnet/minecraft/world/level/pathfinder/Node;",
+        "BinaryHeap.upHeap": "net/minecraft/world/level/pathfinder/BinaryHeap.upHeap(I)V",
         "Biome.coldEnoughToSnow": "net/minecraft/world/level/biome/Biome.coldEnoughToSnow(Lnet/minecraft/core/BlockPos;I)Z",
         "Biome.getTemperature": "net/minecraft/world/level/biome/Biome.getTemperature(Lnet/minecraft/core/BlockPos;I)F",
         "BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;": "net/minecraft/world/level/biome/BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;",
@@ -153,6 +158,8 @@
         "DoorBlock.setOpen": "net/minecraft/world/level/block/DoorBlock.setOpen(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Z)V",
         "DragonChargePlayerPhase.CHARGE_RECOVERY_TIME": "net/minecraft/world/entity/boss/enderdragon/phases/DragonChargePlayerPhase.CHARGE_RECOVERY_TIME",
         "DragonChargePlayerPhase.doServerTick": "net/minecraft/world/entity/boss/enderdragon/phases/DragonChargePlayerPhase.doServerTick(Lnet/minecraft/server/level/ServerLevel;)V",
+        "DragonFlightHistory.get(I)Lnet/minecraft/world/entity/boss/enderdragon/DragonFlightHistory$Sample;": "net/minecraft/world/entity/boss/enderdragon/DragonFlightHistory.get(I)Lnet/minecraft/world/entity/boss/enderdragon/DragonFlightHistory$Sample;",
+        "DragonFlightHistory.record": "net/minecraft/world/entity/boss/enderdragon/DragonFlightHistory.record(DF)V",
         "DragonHoldingPatternPhase.findNewTarget": "net/minecraft/world/entity/boss/enderdragon/phases/DragonHoldingPatternPhase.findNewTarget(Lnet/minecraft/server/level/ServerLevel;)V",
         "DragonLandingApproachPhase.findNewTarget": "net/minecraft/world/entity/boss/enderdragon/phases/DragonLandingApproachPhase.findNewTarget(Lnet/minecraft/server/level/ServerLevel;)V",
         "DragonSittingAttackingPhase.ROAR_DURATION": "net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingAttackingPhase.ROAR_DURATION",
@@ -181,6 +188,7 @@
         "EnderDragon.aiStep": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.aiStep()V",
         "EnderDragon.checkWalls": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.checkWalls(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/AABB;)Z",
         "EnderDragon.findClosestNode()I": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findClosestNode()I",
+        "EnderDragon.findClosestNode(DDD)I": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findClosestNode(DDD)I",
         "EnderDragon.findPath": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findPath(IILnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Path;",
         "EnderDragon.getFightOrigin": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.getFightOrigin()Lnet/minecraft/core/BlockPos;",
         "EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
@@ -375,6 +383,7 @@
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
         "MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING",
         "Mth.atan2": "net/minecraft/util/Mth.atan2(DD)D",
+        "Mth.cos": "net/minecraft/util/Mth.cos(D)F",
         "Mth.fastInvSqrt": "net/minecraft/util/Mth.fastInvSqrt(D)D",
         "Mth.floor(D)I": "net/minecraft/util/Mth.floor(D)I",
         "Mth.nextDouble": "net/minecraft/util/Mth.nextDouble(Lnet/minecraft/util/RandomSource;DD)D",
@@ -383,7 +392,9 @@
         "Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;": "net/minecraft/util/Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;",
         "Mth.randomBetween": "net/minecraft/util/Mth.randomBetween(Lnet/minecraft/util/RandomSource;FF)F",
         "Mth.randomBetweenInclusive": "net/minecraft/util/Mth.randomBetweenInclusive(Lnet/minecraft/util/RandomSource;II)I",
+        "Mth.sin": "net/minecraft/util/Mth.sin(D)F",
         "Mth.wrapDegrees(D)D": "net/minecraft/util/Mth.wrapDegrees(D)D",
+        "Mth.wrapDegrees(F)F": "net/minecraft/util/Mth.wrapDegrees(F)F",
         "MushroomBlock.canSurvive": "net/minecraft/world/level/block/MushroomBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "NautilusAi.findNearestValidAttackTarget": "net/minecraft/world/entity/animal/nautilus/NautilusAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;)Ljava/util/Optional;",
         "NautilusAi.initMemories": "net/minecraft/world/entity/animal/nautilus/NautilusAi.initMemories(Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;Lnet/minecraft/util/RandomSource;)V",
@@ -622,6 +633,8 @@
         "Util.shuffle": "net/minecraft/util/Util.shuffle(Ljava/util/List;Lnet/minecraft/util/RandomSource;)V",
         "VaultBlock.getStateForPlacement": "net/minecraft/world/level/block/VaultBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Vec3.atBottomCenterOf": "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;",
+        "Vec3.normalize": "net/minecraft/world/phys/Vec3.normalize()Lnet/minecraft/world/phys/Vec3;",
+        "Vec3i.distToCenterSqr(Lnet/minecraft/core/Position;)D": "net/minecraft/core/Vec3i.distToCenterSqr(Lnet/minecraft/core/Position;)D",
         "Vec3i.hashCode": "net/minecraft/core/Vec3i.hashCode()I",
         "VehicleEntity.hurtServer": "net/minecraft/world/entity/vehicle/VehicleEntity.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
         "Villager.BREEDING_FOOD_THRESHOLD": "net/minecraft/world/entity/npc/villager/Villager.BREEDING_FOOD_THRESHOLD",
@@ -781,6 +794,10 @@
             "26.3": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8",
             "26.4-pre-1": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8"
         },
+        "net/minecraft/core/Vec3i.distToCenterSqr(Lnet/minecraft/core/Position;)D": {
+            "26.3": "sha256:ba4a69b7367ba0a6834dad25c2ad697fcbc74e33d7a9475694047c8d453fca4a",
+            "26.4-pre-1": "sha256:ba4a69b7367ba0a6834dad25c2ad697fcbc74e33d7a9475694047c8d453fca4a"
+        },
         "net/minecraft/core/Vec3i.hashCode()I": {
             "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db",
             "26.4-pre-1": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
@@ -858,6 +875,9 @@
             "26.3": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321",
             "26.4-pre-1": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321"
         },
+        "net/minecraft/util/Mth.cos(D)F": {
+            "26.3": "sha256:8810d506edda2d16a29a2b8b70d11702ba92b165d36dca5ec5e6b0429b13d54d"
+        },
         "net/minecraft/util/Mth.fastInvSqrt(D)D": {
             "26.3": "sha256:4b033b2754cd2f439071dfb7b8cf55891e82c2b33ca5850cfaa091bc74f00020",
             "26.4-pre-1": "sha256:4b033b2754cd2f439071dfb7b8cf55891e82c2b33ca5850cfaa091bc74f00020"
@@ -889,9 +909,16 @@
             "26.3": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc",
             "26.4-pre-1": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc"
         },
+        "net/minecraft/util/Mth.sin(D)F": {
+            "26.3": "sha256:81760a8ee4b75aaea21e1040e42980ef1c31b59049180959e67419a2d57ec7ce"
+        },
         "net/minecraft/util/Mth.wrapDegrees(D)D": {
             "26.3": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf",
             "26.4-pre-1": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf"
+        },
+        "net/minecraft/util/Mth.wrapDegrees(F)F": {
+            "26.3": "sha256:e07364112a1a4dfd3bcbe94f81d91a450f3536735dee0156b29f7f0fcdb854e3",
+            "26.4-pre-1": "sha256:e07364112a1a4dfd3bcbe94f81d91a450f3536735dee0156b29f7f0fcdb854e3"
         },
         "net/minecraft/util/random/WeightedList.getRandomOrThrow(Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": {
             "26.3": "sha256:8ee507911c14f55cf243e0c27990a2fd34939f960c7a2adcfa6119e4a39e8f1b",
@@ -1575,6 +1602,14 @@
             "26.3": "sha256:baf7682092b515c58a295ea204c1c0b18608f337879f4ec9c3a2c314984642b8",
             "26.4-pre-1": "sha256:baf7682092b515c58a295ea204c1c0b18608f337879f4ec9c3a2c314984642b8"
         },
+        "net/minecraft/world/entity/boss/enderdragon/DragonFlightHistory.get(I)Lnet/minecraft/world/entity/boss/enderdragon/DragonFlightHistory$Sample;": {
+            "26.3": "sha256:1469ee40f5705c44e66387b1b73a87962d30201b8e8f75eec54bd6d59a084730",
+            "26.4-pre-1": "sha256:1469ee40f5705c44e66387b1b73a87962d30201b8e8f75eec54bd6d59a084730"
+        },
+        "net/minecraft/world/entity/boss/enderdragon/DragonFlightHistory.record(DF)V": {
+            "26.3": "sha256:b340c366e5ba85bdc27aac35cce87679946bfadd540033f3060b1a5d6bf6347d",
+            "26.4-pre-1": "sha256:b340c366e5ba85bdc27aac35cce87679946bfadd540033f3060b1a5d6bf6347d"
+        },
         "net/minecraft/world/entity/boss/enderdragon/EndCrystal.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z": {
             "26.3": "sha256:c2af841822d476fd1a8f2823ab025704a7b09f41ad65e9650d3c7d4a5b55bc5e",
             "26.4-pre-1": "sha256:c2af841822d476fd1a8f2823ab025704a7b09f41ad65e9650d3c7d4a5b55bc5e"
@@ -1589,6 +1624,10 @@
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findClosestNode()I": {
             "26.3": "sha256:f812374327d6ff73bbbb9f9b7977d5e29c1bcb9d9ae75f3ac3969f8dc2d8aa46",
             "26.4-pre-1": "sha256:f812374327d6ff73bbbb9f9b7977d5e29c1bcb9d9ae75f3ac3969f8dc2d8aa46"
+        },
+        "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findClosestNode(DDD)I": {
+            "26.3": "sha256:8d8b8ab31823887ac20aac3eac364ad38236e04508e89a8c8ed77036a286405f",
+            "26.4-pre-1": "sha256:8d8b8ab31823887ac20aac3eac364ad38236e04508e89a8c8ed77036a286405f"
         },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findPath(IILnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Path;": {
             "26.3": "sha256:f4decd6672e284e6e8d5804365938d43a94bc63a1c3b87366708f7b6e62e7316"
@@ -3117,6 +3156,26 @@
         "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;": {
             "26.3": "sha256:89f67a682df41522a9ce813d1c58d7484eed0a0ad8666d9fa8a49b0796d68f11"
         },
+        "net/minecraft/world/level/pathfinder/BinaryHeap.changeCost(Lnet/minecraft/world/level/pathfinder/Node;F)V": {
+            "26.3": "sha256:8da868eae4a5649a34860d891aac86baa7da2d8a43ee5033fcbaad1f6fc3906a",
+            "26.4-pre-1": "sha256:8da868eae4a5649a34860d891aac86baa7da2d8a43ee5033fcbaad1f6fc3906a"
+        },
+        "net/minecraft/world/level/pathfinder/BinaryHeap.downHeap(I)V": {
+            "26.3": "sha256:bee01ba722572f36124caae66b56d3b6cef739f87156d901e86c687cdfdda4c5",
+            "26.4-pre-1": "sha256:bee01ba722572f36124caae66b56d3b6cef739f87156d901e86c687cdfdda4c5"
+        },
+        "net/minecraft/world/level/pathfinder/BinaryHeap.insert(Lnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Node;": {
+            "26.3": "sha256:f16b9db8fef9725b123cb805dcb0734eaffa2889187743db36a8dd832cdff7df",
+            "26.4-pre-1": "sha256:f16b9db8fef9725b123cb805dcb0734eaffa2889187743db36a8dd832cdff7df"
+        },
+        "net/minecraft/world/level/pathfinder/BinaryHeap.pop()Lnet/minecraft/world/level/pathfinder/Node;": {
+            "26.3": "sha256:1587c34a20f324f9a46c9069b6ce02f6ae9c812f1675e53ec7c7f65d130dd9ce",
+            "26.4-pre-1": "sha256:1587c34a20f324f9a46c9069b6ce02f6ae9c812f1675e53ec7c7f65d130dd9ce"
+        },
+        "net/minecraft/world/level/pathfinder/BinaryHeap.upHeap(I)V": {
+            "26.3": "sha256:6454680abe7e2276f588c7e6d6f9f4d72ac8c1eca21f8330c10cb3d34e6d0883",
+            "26.4-pre-1": "sha256:6454680abe7e2276f588c7e6d6f9f4d72ac8c1eca21f8330c10cb3d34e6d0883"
+        },
         "net/minecraft/world/level/pathfinder/Path.getEntityPosAtNode(Lnet/minecraft/world/entity/Entity;I)Lnet/minecraft/world/phys/Vec3;": {
             "26.3": "sha256:2d7c503f122ceef0f585b62f70164d66ee632af3996d6ff0a95e2fe6a3cf7033",
             "26.4-pre-1": "sha256:2d7c503f122ceef0f585b62f70164d66ee632af3996d6ff0a95e2fe6a3cf7033"
@@ -3193,6 +3252,10 @@
         "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;": {
             "26.3": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6",
             "26.4-pre-1": "sha256:829a91c5a1692cad484676cecce7b51099910cf657e53615ecaa63e4ee7fa9a6"
+        },
+        "net/minecraft/world/phys/Vec3.normalize()Lnet/minecraft/world/phys/Vec3;": {
+            "26.3": "sha256:e2c374081d22c1e17f99dc0c8d30a4f814bc489322b7fca4f930616cfba8c620",
+            "26.4-pre-1": "sha256:e2c374081d22c1e17f99dc0c8d30a4f814bc489322b7fca4f930616cfba8c620"
         },
         "net/minecraft/world/ticks/LevelTicks.removeContainer(Lnet/minecraft/world/level/ChunkPos;)V": {
             "26.3": "sha256:c2ff39b1b939d5c7620c631601651235a0bd4a62ea66df88eceec058f1f6cefd",
