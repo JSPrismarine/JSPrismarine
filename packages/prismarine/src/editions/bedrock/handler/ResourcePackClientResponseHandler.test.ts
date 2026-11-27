@@ -187,7 +187,8 @@ const harness = ({
             getPacketCompressionLevel: () => 1,
             getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking,
             getKeepAliveIntervalMs: () => 15_000,
-            getTexturepackRequired: () => true
+            getTexturepackRequired: () => true,
+            getXboxAchievements: () => true
         },
         services: {
             content,

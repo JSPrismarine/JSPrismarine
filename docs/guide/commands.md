@@ -44,6 +44,24 @@ anything.
 For how the server parses commands, what differs from Bedrock Edition and how to run functions from
 a datapack, see [Commands and functions](../data-driven/commands.md).
 
+## Commands and Xbox achievements
+
+A Bedrock client earns Xbox achievements only in a world it was told has cheats off, and in such a
+world it refuses to send a command the server listed as a cheat. With `xbox-achievements` on, the
+default in [`config.json`](running.md#configuration), JSPrismarine tells every client that cheats
+are off and lists every command as one that is not a cheat. Operators keep `/gamemode`, `/give`
+and the rest, and earn achievements as well, which a Bedrock Dedicated Server does not allow.
+The columns above still decide who may run what. Each client checks only its own game mode, so a
+player in creative mode earns nothing while the players around them keep earning.
+
+Set `xbox-achievements` to `false` to tell every client that cheats are on. Nobody earns
+achievements then.
+
+A command still records whether it is a cheat: Mojang's metadata marks the vanilla ones, an
+addon's script passes `cheatsRequired` to `customCommandRegistry.registerCommand`, and server code
+passes `requiresCheats` to `CommandRegistry.register`. The flag changes nothing a client sees
+while every command goes out as not a cheat.
+
 ## Permissions
 
 `/perms` manages the groups and users of `permissions.json`, which

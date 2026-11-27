@@ -40,6 +40,7 @@ export type HandlerConfig = Pick<
     | 'getPacketCompressionLevel'
     | 'getKeepAliveIntervalMs'
     | 'getTexturepackRequired'
+    | 'getXboxAchievements'
 >;
 
 /** What every handler of a player session is handed, and all a connection-lane or read-lane one gets. */

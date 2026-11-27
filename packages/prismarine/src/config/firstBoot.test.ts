@@ -64,6 +64,7 @@ describe('the config file a boot generates', () => {
         'protocol-content',
         'allow-list',
         'online-mode',
+        'xbox-achievements',
         'enable-raknet',
         'use-raknet-worker',
         'enable-nethernet',

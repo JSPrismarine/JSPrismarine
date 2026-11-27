@@ -12,7 +12,7 @@ import type { BedrockParameterTypeName, FlattenedCommand, FlattenedParameter } f
 import { aliasEnumName, COMMAND_NAME_ENUM, commandNames } from '@jsprismarine/commands/flatten';
 
 import { CommandChainedSubcommand } from '@jsprismarine/protocol/bedrock/wire/structures/CommandChainedSubcommand';
-import CommandData from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
+import CommandData, { CommandDataFlags } from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
 import type { CommandParameterType } from '@jsprismarine/protocol/bedrock/wire/structures/CommandParameter';
 import CommandParameter, {
@@ -109,6 +109,11 @@ const parameterOf = (parameter: FlattenedParameter): CommandParameter => {
 /**
  * One flattened command as the packet writes it.
  *
+ * Every command goes out marked {@link CommandDataFlags.NOT_CHEAT}. With `xbox-achievements` on,
+ * `StartGame` tells the client cheats are off, and the client then refuses to send any command
+ * that lacks the flag. The server decides who may run a command, so the client has nothing to
+ * refuse.
+ *
  * @param command - What the flattener produced for one root literal.
  * @param permission - The level to send, which is the lower of what the
  *   command needs and what the recipient has; see
@@ -118,7 +123,7 @@ export const commandDataOf = (command: FlattenedCommand, permission: number): Co
     const data = new CommandData();
     data.commandName = command.name;
     data.commandDescription = command.description;
-    data.flags = command.flags;
+    data.flags = command.flags | CommandDataFlags.NOT_CHEAT;
     data.permission = permission;
 
     if (command.aliases.length > 0) {

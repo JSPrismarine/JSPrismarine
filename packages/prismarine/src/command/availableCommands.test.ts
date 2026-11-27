@@ -4,6 +4,7 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
+import { CommandDataFlags } from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
 import {
     CommandParameterFlags,
     CommandParameterTypeFlag
@@ -30,6 +31,16 @@ describe('the available-commands bridge', () => {
         expect(data.commandName).toBe('say');
         expect(data.commandDescription).toBe('Sends a message to everyone.');
         expect(data.permission).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+    });
+
+    it('marks every command, cheat or not, as one a client with cheats off may send', () => {
+        // A client told cheats are off refuses a command without the flag, and the server
+        // checks permissions itself, so /gamemode needs it as much as /me.
+        for (const name of ['gamemode', 'give', 'me']) {
+            expect(commandDataOf(find(name), CommandPermissionLevel.ANY).flags & CommandDataFlags.NOT_CHEAT).toBe(
+                CommandDataFlags.NOT_CHEAT
+            );
+        }
     });
 
     it('lists the command itself first in its alias enum', () => {

@@ -215,6 +215,16 @@ describe('config', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
 
+        it('lets Bedrock players earn Xbox achievements by default, and reads the switch from config.json', async () => {
+            expect(config.getXboxAchievements()).toBe(true);
+
+            writeFileSync(path.join(configDirectory, 'config.json'), '{"xbox-achievements":false}');
+            const reconfigured = new Config();
+            await reconfigured.enable();
+
+            expect(reconfigured.getXboxAchievements()).toBe(false);
+        });
+
         it('runs RakNet on a worker thread by default', () => {
             expect(config.getUseRakNetWorker()).toBe(true);
         });
