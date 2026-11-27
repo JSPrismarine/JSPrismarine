@@ -8,7 +8,8 @@
  * the block's full-cube shape.
  */
 
-import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
+import { bedrockBlockPropertiesOf, bedrockBlockSupportOf } from '@jsprismarine/mapping';
+import type { BlockSupportFace, SupportType } from '@jsprismarine/mapping';
 
 import type { BlockRef } from './world';
 import { AIR } from './world';
@@ -79,3 +80,29 @@ export const hasSturdyTopFace = (block: BlockRef): boolean => {
     if (half === 'top' || half === true || half === 1) return true;
     return block.states['upside_down_bit'] === true || block.states['upside_down_bit'] === 1;
 };
+
+/**
+ * Java's legacy `BlockStateBase.isSolid`: on for a block that forces it, otherwise whether the
+ * collision shape's bounds fill most of the cell or its full height, so soul sand, a cactus, a
+ * slab and a cobweb are solid where a nether portal block is not. Read from the mapping table's
+ * support facts, which Java's own code computed; a block with no Java source answers by
+ * {@link isFullCube}.
+ *
+ * @javaSee BlockBehaviour$BlockStateBase.isSolid
+ */
+export const isSolid = (block: BlockRef): boolean =>
+    bedrockBlockSupportOf(block.name, block.states)?.solid ?? isFullCube(block);
+
+/**
+ * Java's `BlockStateBase.isFaceSturdy`: whether a face of the block holds what a support type
+ * needs, a whole face (`full`), a post in its middle (`center`) or its rim (`rigid`). Read from the
+ * mapping table's support facts; a block with no Java source answers by {@link hasSturdyTopFace}
+ * for its top and by {@link isFullCube} for any other face.
+ *
+ * @param face - The face of this block, such as `up` for what stands on it.
+ * @param type - What the face has to hold, `full` when left out.
+ * @javaSee BlockBehaviour$BlockStateBase.isFaceSturdy(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/block/SupportType;)Z
+ */
+export const isFaceSturdy = (block: BlockRef, face: BlockSupportFace, type: SupportType = 'full'): boolean =>
+    bedrockBlockSupportOf(block.name, block.states)?.isFaceSturdy(face, type) ??
+    (face === 'up' ? hasSturdyTopFace(block) : isFullCube(block));

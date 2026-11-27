@@ -61,6 +61,13 @@ The vanilla overlay supplies the 28 exceptions extracted from Java's block regis
 data-driven packs can declare the same component for their blocks. Collision shapes are not
 published, so the full-cube fallback remains an approximation for partial blocks.
 
+## Solid blocks and sturdy faces
+
+`isSolid(block)` answers Java's legacy solid flag and `isFaceSturdy(block, face, type?)` whether a
+face holds a full, center or rigid support, both from the support facts
+`@jsprismarine/mapping` carries, which Java's own `isSolid` and `isFaceSturdy` computed for every
+block state. A block with no Java source falls back to the full cube test.
+
 ## Random ticking
 
 The driver draws `random_tick_speed` positions from each selected section using Java's
