@@ -79,7 +79,7 @@ const JOIN_SETTINGS = {
     doLimitedCrafting: false
 };
 const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
-const quiet = { debug: () => {}, info: () => {} };
+const quiet = { debug: () => {}, info: () => {}, warn: () => {} };
 const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63 };
 const NETHER: ShownDimension = { id: 'minecraft:the_nether', seaLevel: 32 };
 /** The dimension types the client is configured with, in network id order. */
@@ -92,7 +92,13 @@ describe('JavaConnections', () => {
 
     /** Every session server question, and the profile Mojang is said to hold. */
     const asked: { name: string; hash: string }[] = [];
+    /** What the server warned of: the failed joins it reported. */
+    const warned: string[] = [];
+    /** Settles with the first warning. */
+    let warning = Promise.withResolvers<string>();
     const listen = async ({ onlineMode = false, mojang }: { onlineMode?: boolean; mojang?: JavaProfile } = {}) => {
+        warned.length = 0;
+        warning = Promise.withResolvers<string>();
         asked.length = 0;
         transport = new TcpTransport(new ConnectionIds(), quiet);
         new JavaConnections(transport, {
@@ -106,7 +112,13 @@ describe('JavaConnections', () => {
                 asked.push({ name, hash });
                 return mojang;
             },
-            log: quiet
+            log: {
+                ...quiet,
+                warn: (message: string) => {
+                    warned.push(message);
+                    warning.resolve(message);
+                }
+            }
         });
         await transport.listen('127.0.0.1', 0);
         return transport.port()!;
@@ -602,6 +614,10 @@ describe('JavaConnections', () => {
         java.send(AcknowledgeFinishConfiguration, {});
 
         await java.closed;
+        // A vanilla client keeps to the order, so a packet out of it is more likely the server's mistake.
+        expect(warned).toEqual([
+            expect.stringContaining('The server could not handle what the client sent in its configuration phase.')
+        ]);
     });
 
     it('hangs up on a packet its phase has no place for', async () => {
@@ -611,6 +627,29 @@ describe('JavaConnections', () => {
         java.send(PingRequest, { timestamp: 1n });
 
         await java.closed;
+        expect(warned).toEqual([]);
+    });
+
+    it('reports a client that hangs up during its configuration as a failed join, with a link to file it', async () => {
+        const port = await listen();
+        const java = await configuring(port);
+        await java.receive(ClientboundPluginMessage);
+
+        java.destroy();
+
+        const line = await warning.promise;
+        expect(warned).toHaveLength(1);
+        expect(line).toContain('Steve (127.0.0.1:');
+        expect(line).toContain('The client closed the connection during the join');
+        const url = new URL(line.slice(line.indexOf('https://')));
+        expect(url.searchParams.get('title')).toBe(
+            `Bug: Java ${NEWEST_JAVA_RELEASE.minecraftVersion} client fails to join: The client closed the connection during the join, as a Java client does when it cannot read a packet`
+        );
+        expect(url.searchParams.get('body')).toContain('- Join phase: configuration');
+        // The packets the server sent before the client hung up.
+        expect(url.searchParams.get('body')).toContain('Set Compression');
+        // The issue is public, so it does not name the player.
+        expect(url.searchParams.get('body')).not.toContain('Steve');
     });
 });
 

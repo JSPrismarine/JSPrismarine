@@ -60,7 +60,7 @@ export interface JavaLoginOptions {
     enforcesSecureChat(): boolean;
     /** Asks the session server; {@link hasJoined} against Mojang unless a test gives another. */
     readonly hasJoined?: typeof hasJoined;
-    readonly log: Pick<Logger, 'debug' | 'info'>;
+    readonly log: Pick<Logger, 'debug' | 'info' | 'warn'>;
     /** The world a player who reaches play is shown; without one, the join ends there. */
     readonly world?: JavaWorldHost;
 }
@@ -104,6 +104,9 @@ const HANDLERS = new JavaPacketHandlers([
  */
 const READ_PAST: ReadonlySet<JavaConnection['phase']> = new Set(['configuration', 'play']);
 
+/** The phases a client that hangs up in is still joining, unless it loaded the world. */
+const JOINING: ReadonlySet<JavaConnection['phase']> = new Set(['configuration', 'play']);
+
 /** Drives each Java Edition connection from its handshake to the play phase. */
 export class JavaConnections {
     private readonly connections = new Map<ConnectionId, JavaConnection>();
@@ -133,6 +136,14 @@ export class JavaConnections {
         transport.onDisconnect(async (id) => {
             const connection = this.connections.get(id);
             if (connection !== undefined) connection.closed = true;
+            // A Java client that cannot read a packet shows a protocol error and hangs up without
+            // a word, so a client that hangs up between its login and the world loading most
+            // often met something the server sent that it could not take.
+            if (connection !== undefined && !connection.hungUp && JOINING.has(connection.phase)) {
+                connection.reportJoinFailure(
+                    'The client closed the connection during the join, as a Java client does when it cannot read a packet.'
+                );
+            }
             connection?.keepAlive?.stop();
             this.connections.delete(id);
             // Whether or not the join got as far as a session: one that ended early, replaced by a
@@ -159,6 +170,10 @@ export class JavaConnections {
         } catch (error) {
             this.options.log.debug(
                 `Java connection ${id} sent what its ${connection.phase} phase cannot read: ${errorMessage(error)}`
+            );
+            connection.reportJoinFailure(
+                `The server could not handle what the client sent in its ${connection.phase} phase.`,
+                error
             );
             await connection.close();
         }
