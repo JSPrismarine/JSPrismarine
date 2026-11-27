@@ -1,4 +1,4 @@
-import { Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { JAVA_HANDLERS } from '@jsprismarine/prismarine/editions/java/JavaConnections';
 import { JavaPresenter } from '@jsprismarine/prismarine/editions/java/JavaPresenter';
 import { javaBlockTranslation, javaItemTranslation } from '@jsprismarine/prismarine/editions/java/editionTranslation';
@@ -24,7 +24,11 @@ import {
     PlayerCommandAction,
     PlayerInfoAction,
     PlayerInput,
-    PlayerInputFlag
+    PlayerInputFlag,
+    RAIN_LEVEL_CHANGE,
+    START_RAINING,
+    STOP_RAINING,
+    THUNDER_LEVEL_CHANGE
 } from '@jsprismarine/protocol/java/packet/play';
 import * as statusPackets from '@jsprismarine/protocol/java/packet/status';
 import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
@@ -349,6 +353,20 @@ const changesAlexToCreative = (payload: unknown): boolean =>
             isRecord(player) && player.uuid === '00000000-0000-0000-0000-000000000002' && player.gameMode === 1
     );
 
+/** A change of the client's view distance, which the session tells its chunk wire. */
+const changeViewDistance: PresenterCall = async (presenter) => presenter.chunkWire?.radius(6);
+
+/** The `Game Event`s that start and stop the rain and set its and the storm's strength. */
+const WEATHER_EVENTS: ReadonlySet<unknown> = new Set([
+    START_RAINING,
+    STOP_RAINING,
+    RAIN_LEVEL_CHANGE,
+    THUNDER_LEVEL_CHANGE
+]);
+
+/** Whether a `Game Event` payload is one of {@link WEATHER_EVENTS}. */
+const changesWeather = (payload: unknown): boolean => isRecord(payload) && WEATHER_EVENTS.has(payload.event);
+
 /** An objective with one score, shown in the sidebar. */
 const showSidebar: PresenterCall = (presenter) =>
     presenter.showDisplaySlot('sidebar', {
@@ -601,9 +619,11 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'world',
         java: 'A client forgets each chunk that leaves its view, and is told the view and simulation distance.',
         needs: [
-            sent('play/clientbound/forget_level_chunk'),
-            sent('play/clientbound/set_chunk_cache_radius'),
-            sent('play/clientbound/set_simulation_distance')
+            shown('play/clientbound/forget_level_chunk', 'a chunk that left the view', async (presenter) =>
+                presenter.chunkWire?.forget([{ x: 3, z: 4 }])
+            ),
+            shown('play/clientbound/set_chunk_cache_radius', 'the view distance', changeViewDistance),
+            shown('play/clientbound/set_simulation_distance', 'the simulation distance', changeViewDistance)
         ]
     },
     {
@@ -747,7 +767,9 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'world',
         java: 'A client is shown the difficulty, and an operator changes or locks it from the options screen.',
         needs: [
-            sent('play/clientbound/change_difficulty'),
+            shown('play/clientbound/change_difficulty', 'the difficulty', (presenter) =>
+                presenter.showDifficulty(Difficulty.HARD)
+            ),
             read('play/serverbound/change_difficulty'),
             read('play/serverbound/lock_difficulty')
         ]
@@ -847,13 +869,27 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'time',
         area: 'world',
         java: 'A client is told the time of day, which draws the sun and the sky.',
-        needs: [shown('play/clientbound/set_time', 'the time of day', (presenter) => presenter.sendTime(6000))]
+        needs: [
+            shown('play/clientbound/set_time', 'the time of day', (presenter) =>
+                presenter.sendTime({ dayTime: 6000, gameTime: 6000, advancing: true })
+            )
+        ]
     },
     {
         id: 'weather',
         area: 'world',
         java: 'A client is shown rain, thunder and their strength through game events.',
-        needs: [shown('play/clientbound/game_event', 'begin and end rain, rain and thunder level')]
+        needs: [
+            shown(
+                'play/clientbound/game_event',
+                'begin and end rain, rain and thunder level',
+                async (presenter) => {
+                    await presenter.showWeather(undefined, 'thunder');
+                    await presenter.showWeather('thunder', 'clear');
+                },
+                changesWeather
+            )
+        ]
     },
     {
         id: 'game-events',
@@ -865,7 +901,15 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'world-spawn',
         area: 'world',
         java: "A client is told the world's spawn, which compasses point to.",
-        needs: [sent('play/clientbound/set_default_spawn_position')]
+        needs: [
+            shown('play/clientbound/set_default_spawn_position', "the world's spawn", (presenter) =>
+                presenter.showWorldSpawn({
+                    dimension: { id: 'minecraft:overworld', bedrockId: 0 },
+                    position: { x: 0, y: 64, z: 0 },
+                    yaw: 0
+                })
+            )
+        ]
     },
     {
         id: 'world-border',
@@ -884,7 +928,12 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'tick-rate',
         area: 'world',
         java: 'A client runs at the tick rate `/tick` sets, and steps when the game is frozen.',
-        needs: [sent('play/clientbound/ticking_state'), sent('play/clientbound/ticking_step')]
+        needs: [
+            shown('play/clientbound/ticking_state', 'the tick rate', (presenter) =>
+                presenter.showTicking({ rate: 10, frozen: true })
+            ),
+            shown('play/clientbound/ticking_step', 'a step', (presenter) => presenter.showTickStep(20))
+        ]
     },
     {
         id: 'maps',
