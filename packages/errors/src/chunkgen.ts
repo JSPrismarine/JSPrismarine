@@ -25,11 +25,18 @@ export abstract class ChunkReadOutOfWindowError extends JSPrismarineError {
  * path.
  */
 class EmbeddedPipelineOutsideExecutable extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_EMBEDDED_PIPELINE_OUTSIDE_EXECUTABLE';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Cannot load embedded generation pipeline {asset} outside a single executable';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-outside-executable';
+    public static get code(): 'CHUNKGEN_EMBEDDED_PIPELINE_OUTSIDE_EXECUTABLE' {
+        return 'CHUNKGEN_EMBEDDED_PIPELINE_OUTSIDE_EXECUTABLE';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Cannot load embedded generation pipeline {asset} outside a single executable' {
+        return 'Cannot load embedded generation pipeline {asset} outside a single executable';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-outside-executable' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-outside-executable';
+    }
 
     public override readonly code = 'CHUNKGEN_EMBEDDED_PIPELINE_OUTSIDE_EXECUTABLE';
     public override readonly docs =
@@ -52,10 +59,18 @@ class EmbeddedPipelineOutsideExecutable extends JSPrismarineError {
  * in the generation scheduler; report it with the stack trace.
  */
 class ChunkReleasedTooOften extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_CHUNK_RELEASED_TOO_OFTEN';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The chunk at {chunkX}, {chunkZ} has no reference left to release.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-released-too-often';
+    public static get code(): 'CHUNKGEN_CHUNK_RELEASED_TOO_OFTEN' {
+        return 'CHUNKGEN_CHUNK_RELEASED_TOO_OFTEN';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The chunk at {chunkX}, {chunkZ} has no reference left to release.' {
+        return 'The chunk at {chunkX}, {chunkZ} has no reference left to release.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-released-too-often' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-released-too-often';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_RELEASED_TOO_OFTEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-released-too-often';
@@ -80,10 +95,18 @@ class ChunkReleasedTooOften extends JSPrismarineRangeError {
  * `createGenerationPipeline`, so the build is broken. Rebuild the executable.
  */
 class EmbeddedPipelineHasNoFactory extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_EMBEDDED_PIPELINE_HAS_NO_FACTORY';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = '{pipeline} does not export createGenerationPipeline';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-has-no-factory';
+    public static get code(): 'CHUNKGEN_EMBEDDED_PIPELINE_HAS_NO_FACTORY' {
+        return 'CHUNKGEN_EMBEDDED_PIPELINE_HAS_NO_FACTORY';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): '{pipeline} does not export createGenerationPipeline' {
+        return '{pipeline} does not export createGenerationPipeline';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-has-no-factory' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-pipeline-has-no-factory';
+    }
 
     public override readonly code = 'CHUNKGEN_EMBEDDED_PIPELINE_HAS_NO_FACTORY';
     public override readonly docs =
@@ -106,10 +129,18 @@ class EmbeddedPipelineHasNoFactory extends JSPrismarineError {
  * generation pool starts.
  */
 class WorkerWithoutParentThread extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_WORKER_WITHOUT_PARENT_THREAD';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The embedded generation worker needs a parent thread';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-without-parent-thread';
+    public static get code(): 'CHUNKGEN_WORKER_WITHOUT_PARENT_THREAD' {
+        return 'CHUNKGEN_WORKER_WITHOUT_PARENT_THREAD';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The embedded generation worker needs a parent thread' {
+        return 'The embedded generation worker needs a parent thread';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-without-parent-thread' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-without-parent-thread';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_WITHOUT_PARENT_THREAD';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-without-parent-thread';
@@ -130,10 +161,18 @@ class WorkerWithoutParentThread extends JSPrismarineError {
  * stops.
  */
 class PoolIsClosed extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_POOL_IS_CLOSED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The embedded generation worker pool is closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-is-closed';
+    public static get code(): 'CHUNKGEN_POOL_IS_CLOSED' {
+        return 'CHUNKGEN_POOL_IS_CLOSED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The embedded generation worker pool is closed' {
+        return 'The embedded generation worker pool is closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-is-closed' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-is-closed';
+    }
 
     public override readonly code = 'CHUNKGEN_POOL_IS_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-is-closed';
@@ -154,10 +193,18 @@ class PoolIsClosed extends JSPrismarineError {
  * while the server stops.
  */
 class PoolWasClosed extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_POOL_WAS_CLOSED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The embedded generation worker pool was closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-was-closed';
+    public static get code(): 'CHUNKGEN_POOL_WAS_CLOSED' {
+        return 'CHUNKGEN_POOL_WAS_CLOSED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The embedded generation worker pool was closed' {
+        return 'The embedded generation worker pool was closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-was-closed' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-was-closed';
+    }
 
     public override readonly code = 'CHUNKGEN_POOL_WAS_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pool-was-closed';
@@ -178,10 +225,18 @@ class PoolWasClosed extends JSPrismarineError {
  * report it with the stack trace.
  */
 class WorkerReturnedUnexpectedTask extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_WORKER_RETURNED_UNEXPECTED_TASK';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The embedded generation worker returned an unexpected task id';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-returned-unexpected-task';
+    public static get code(): 'CHUNKGEN_WORKER_RETURNED_UNEXPECTED_TASK' {
+        return 'CHUNKGEN_WORKER_RETURNED_UNEXPECTED_TASK';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The embedded generation worker returned an unexpected task id' {
+        return 'The embedded generation worker returned an unexpected task id';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-returned-unexpected-task' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-returned-unexpected-task';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_RETURNED_UNEXPECTED_TASK';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-returned-unexpected-task';
@@ -202,10 +257,18 @@ class WorkerReturnedUnexpectedTask extends JSPrismarineError {
  * the generation host protocol.
  */
 class InvalidReusableInput extends JSPrismarineTypeError {
-    public static readonly code = 'CHUNKGEN_INVALID_REUSABLE_INPUT';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'An encoded reusable input is a plain object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-invalid-reusable-input';
+    public static get code(): 'CHUNKGEN_INVALID_REUSABLE_INPUT' {
+        return 'CHUNKGEN_INVALID_REUSABLE_INPUT';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'An encoded reusable input is a plain object' {
+        return 'An encoded reusable input is a plain object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-invalid-reusable-input' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-invalid-reusable-input';
+    }
 
     public override readonly code = 'CHUNKGEN_INVALID_REUSABLE_INPUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-invalid-reusable-input';
@@ -226,10 +289,18 @@ class InvalidReusableInput extends JSPrismarineTypeError {
  * log, says why; a missing world generation cache or too little memory are the usual causes.
  */
 class HostExitedDuringStartup extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_HOST_EXITED_DURING_STARTUP';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The generation host exited during startup';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-host-exited-during-startup';
+    public static get code(): 'CHUNKGEN_HOST_EXITED_DURING_STARTUP' {
+        return 'CHUNKGEN_HOST_EXITED_DURING_STARTUP';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The generation host exited during startup' {
+        return 'The generation host exited during startup';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-host-exited-during-startup' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-host-exited-during-startup';
+    }
 
     public override readonly code = 'CHUNKGEN_HOST_EXITED_DURING_STARTUP';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-host-exited-during-startup';
@@ -250,10 +321,18 @@ class HostExitedDuringStartup extends JSPrismarineError {
  * chunk workers, or give Node more memory.
  */
 class WorkerExited extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_WORKER_EXITED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Generation worker exited with code {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-exited';
+    public static get code(): 'CHUNKGEN_WORKER_EXITED' {
+        return 'CHUNKGEN_WORKER_EXITED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Generation worker exited with code {code}' {
+        return 'Generation worker exited with code {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-exited' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-exited';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_EXITED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-exited';
@@ -275,11 +354,18 @@ class WorkerExited extends JSPrismarineError {
  * it. Draw from the world seed and the chunk position instead.
  */
 class MathRandomInGeneration extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_MATH_RANDOM_IN_GENERATION';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'Math.random is seeded per V8 isolate, so a chunk that used it would depend on which worker built it. Draw from the seed and the position instead.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-math-random-in-generation';
+    public static get code(): 'CHUNKGEN_MATH_RANDOM_IN_GENERATION' {
+        return 'CHUNKGEN_MATH_RANDOM_IN_GENERATION';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Math.random is seeded per V8 isolate, so a chunk that used it would depend on which worker built it. Draw from the seed and the position instead.' {
+        return 'Math.random is seeded per V8 isolate, so a chunk that used it would depend on which worker built it. Draw from the seed and the position instead.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-math-random-in-generation' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-math-random-in-generation';
+    }
 
     public override readonly code = 'CHUNKGEN_MATH_RANDOM_IN_GENERATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-math-random-in-generation';
@@ -303,10 +389,18 @@ class MathRandomInGeneration extends JSPrismarineError {
  * is a bug in the generation scheduler.
  */
 class NoHolderToRelease extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_NO_HOLDER_TO_RELEASE';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'No holder at {chunkX}, {chunkZ} to release.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-no-holder-to-release';
+    public static get code(): 'CHUNKGEN_NO_HOLDER_TO_RELEASE' {
+        return 'CHUNKGEN_NO_HOLDER_TO_RELEASE';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'No holder at {chunkX}, {chunkZ} to release.' {
+        return 'No holder at {chunkX}, {chunkZ} to release.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-no-holder-to-release' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-no-holder-to-release';
+    }
 
     public override readonly code = 'CHUNKGEN_NO_HOLDER_TO_RELEASE';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-no-holder-to-release';
@@ -328,10 +422,18 @@ class NoHolderToRelease extends JSPrismarineRangeError {
  * so this is a bug.
  */
 class PyramidHasNoStep extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_PYRAMID_HAS_NO_STEP';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The pyramid has no step to {status}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pyramid-has-no-step';
+    public static get code(): 'CHUNKGEN_PYRAMID_HAS_NO_STEP' {
+        return 'CHUNKGEN_PYRAMID_HAS_NO_STEP';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The pyramid has no step to {status}.' {
+        return 'The pyramid has no step to {status}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pyramid-has-no-step' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pyramid-has-no-step';
+    }
 
     public override readonly code = 'CHUNKGEN_PYRAMID_HAS_NO_STEP';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-pyramid-has-no-step';
@@ -353,10 +455,18 @@ class PyramidHasNoStep extends JSPrismarineError {
  * generation host protocol.
  */
 class ReusableSlotNotArray extends JSPrismarineTypeError {
-    public static readonly code = 'CHUNKGEN_REUSABLE_SLOT_NOT_ARRAY';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Reusable slot field {field} is not an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-slot-not-array';
+    public static get code(): 'CHUNKGEN_REUSABLE_SLOT_NOT_ARRAY' {
+        return 'CHUNKGEN_REUSABLE_SLOT_NOT_ARRAY';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Reusable slot field {field} is not an array' {
+        return 'Reusable slot field {field} is not an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-slot-not-array' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-slot-not-array';
+    }
 
     public override readonly code = 'CHUNKGEN_REUSABLE_SLOT_NOT_ARRAY';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-slot-not-array';
@@ -378,10 +488,18 @@ class ReusableSlotNotArray extends JSPrismarineTypeError {
  * pool.
  */
 class ShardOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_SHARD_OUT_OF_RANGE';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Shard {shard} is outside this pool.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-shard-out-of-range';
+    public static get code(): 'CHUNKGEN_SHARD_OUT_OF_RANGE' {
+        return 'CHUNKGEN_SHARD_OUT_OF_RANGE';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Shard {shard} is outside this pool.' {
+        return 'Shard {shard} is outside this pool.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-shard-out-of-range' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-shard-out-of-range';
+    }
 
     public override readonly code = 'CHUNKGEN_SHARD_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-shard-out-of-range';
@@ -403,10 +521,18 @@ class ShardOutOfRange extends JSPrismarineRangeError {
  * This is a bug in the pool's worker numbering.
  */
 class WorkerHasNoHeapStatsSlot extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_WORKER_HAS_NO_HEAP_STATS_SLOT';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Worker {threadId} has no slot in the chunk-worker heap stats buffer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-heap-stats-slot';
+    public static get code(): 'CHUNKGEN_WORKER_HAS_NO_HEAP_STATS_SLOT' {
+        return 'CHUNKGEN_WORKER_HAS_NO_HEAP_STATS_SLOT';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Worker {threadId} has no slot in the chunk-worker heap stats buffer' {
+        return 'Worker {threadId} has no slot in the chunk-worker heap stats buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-heap-stats-slot' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-heap-stats-slot';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_HAS_NO_HEAP_STATS_SLOT';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-heap-stats-slot';
@@ -428,10 +554,18 @@ class WorkerHasNoHeapStatsSlot extends JSPrismarineRangeError {
  * for. This is a bug in the pool's worker numbering.
  */
 class WorkerHasNoStartupStatsSlot extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_WORKER_HAS_NO_STARTUP_STATS_SLOT';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'Worker {threadId} has no slot in the chunk-worker startup stats buffer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-startup-stats-slot';
+    public static get code(): 'CHUNKGEN_WORKER_HAS_NO_STARTUP_STATS_SLOT' {
+        return 'CHUNKGEN_WORKER_HAS_NO_STARTUP_STATS_SLOT';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Worker {threadId} has no slot in the chunk-worker startup stats buffer' {
+        return 'Worker {threadId} has no slot in the chunk-worker startup stats buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-startup-stats-slot' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-has-no-startup-stats-slot';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_HAS_NO_STARTUP_STATS_SLOT';
     public override readonly docs =
@@ -454,11 +588,18 @@ class WorkerHasNoStartupStatsSlot extends JSPrismarineRangeError {
  * Statuses run strictly in order, so this is a scheduler bug.
  */
 class ChunkStepOutOfOrder extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_CHUNK_STEP_OUT_OF_ORDER';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The chunk at {chunkX}, {chunkZ} cannot start {requested}: it has started {started}, and a chunk climbs the ladder one rung at a time.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-step-out-of-order';
+    public static get code(): 'CHUNKGEN_CHUNK_STEP_OUT_OF_ORDER' {
+        return 'CHUNKGEN_CHUNK_STEP_OUT_OF_ORDER';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The chunk at {chunkX}, {chunkZ} cannot start {requested}: it has started {started}, and a chunk climbs the ladder one rung at a time.' {
+        return 'The chunk at {chunkX}, {chunkZ} cannot start {requested}: it has started {started}, and a chunk climbs the ladder one rung at a time.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-step-out-of-order' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-step-out-of-order';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_STEP_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-step-out-of-order';
@@ -496,11 +637,18 @@ class ChunkStepOutOfOrder extends JSPrismarineError {
  * scheduler ran a layer before the layer below it finished.
  */
 class ChunkNotReady extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_CHUNK_NOT_READY';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The chunk at {chunkX}, {chunkZ} was read at {requested} while it holds {reached}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-not-ready';
+    public static get code(): 'CHUNKGEN_CHUNK_NOT_READY' {
+        return 'CHUNKGEN_CHUNK_NOT_READY';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The chunk at {chunkX}, {chunkZ} was read at {requested} while it holds {reached}.' {
+        return 'The chunk at {chunkX}, {chunkZ} was read at {requested} while it holds {reached}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-not-ready' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-not-ready';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_NOT_READY';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-not-ready';
@@ -538,10 +686,18 @@ class ChunkNotReady extends JSPrismarineError {
  * version of the server.
  */
 class UnknownChunkStatus extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_UNKNOWN_CHUNK_STATUS';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = '{subject} is not a chunk status. The ten are {statuses}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-unknown-chunk-status';
+    public static get code(): 'CHUNKGEN_UNKNOWN_CHUNK_STATUS' {
+        return 'CHUNKGEN_UNKNOWN_CHUNK_STATUS';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): '{subject} is not a chunk status. The ten are {statuses}.' {
+        return '{subject} is not a chunk status. The ten are {statuses}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-unknown-chunk-status' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-unknown-chunk-status';
+    }
 
     public override readonly code = 'CHUNKGEN_UNKNOWN_CHUNK_STATUS';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-unknown-chunk-status';
@@ -563,11 +719,18 @@ class UnknownChunkStatus extends JSPrismarineError {
  * feature that reaches that far is a bug in the feature or in its write radius.
  */
 class FeaturePatchOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'CHUNKGEN_FEATURE_PATCH_OUT_OF_RANGE';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        "A feature pass offered a patch at offset {dx}, {dz}. The eight neighbors are the only legal targets: a write into the chunk's own columns applies immediately, and nothing past radius 1 is inside the write zone of the features step.";
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-feature-patch-out-of-range';
+    public static get code(): 'CHUNKGEN_FEATURE_PATCH_OUT_OF_RANGE' {
+        return 'CHUNKGEN_FEATURE_PATCH_OUT_OF_RANGE';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): "A feature pass offered a patch at offset {dx}, {dz}. The eight neighbors are the only legal targets: a write into the chunk's own columns applies immediately, and nothing past radius 1 is inside the write zone of the features step." {
+        return "A feature pass offered a patch at offset {dx}, {dz}. The eight neighbors are the only legal targets: a write into the chunk's own columns applies immediately, and nothing past radius 1 is inside the write zone of the features step.";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-feature-patch-out-of-range' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-feature-patch-out-of-range';
+    }
 
     public override readonly code = 'CHUNKGEN_FEATURE_PATCH_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-feature-patch-out-of-range';
@@ -592,11 +755,18 @@ class FeaturePatchOutOfRange extends JSPrismarineRangeError {
  * twice. This is a scheduler bug.
  */
 class DuplicateFeaturePatch extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_DUPLICATE_FEATURE_PATCH';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The neighbor at {dx}, {dz} has already handed over its feature patch. A chunk runs the features step once, so a second patch from the same chunk means the step ran twice.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-duplicate-feature-patch';
+    public static get code(): 'CHUNKGEN_DUPLICATE_FEATURE_PATCH' {
+        return 'CHUNKGEN_DUPLICATE_FEATURE_PATCH';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The neighbor at {dx}, {dz} has already handed over its feature patch. A chunk runs the features step once, so a second patch from the same chunk means the step ran twice.' {
+        return 'The neighbor at {dx}, {dz} has already handed over its feature patch. A chunk runs the features step once, so a second patch from the same chunk means the step ran twice.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-duplicate-feature-patch' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-duplicate-feature-patch';
+    }
 
     public override readonly code = 'CHUNKGEN_DUPLICATE_FEATURE_PATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-duplicate-feature-patch';
@@ -621,11 +791,18 @@ class DuplicateFeaturePatch extends JSPrismarineError {
  * the server stops.
  */
 class GenerationPoolClosed extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_GENERATION_POOL_CLOSED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The generation pool is closed, so the chunk at {chunkX}, {chunkZ} was not built.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-pool-closed';
+    public static get code(): 'CHUNKGEN_GENERATION_POOL_CLOSED' {
+        return 'CHUNKGEN_GENERATION_POOL_CLOSED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The generation pool is closed, so the chunk at {chunkX}, {chunkZ} was not built.' {
+        return 'The generation pool is closed, so the chunk at {chunkX}, {chunkZ} was not built.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-pool-closed' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-pool-closed';
+    }
 
     public override readonly code = 'CHUNKGEN_GENERATION_POOL_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-pool-closed';
@@ -650,11 +827,18 @@ class GenerationPoolClosed extends JSPrismarineError {
  * before building it. Callers treat it as a cancellation.
  */
 class GenerationCanceled extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_GENERATION_CANCELED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The chunk at {chunkX}, {chunkZ} was no longer wanted, so it was dropped from the queue.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-canceled';
+    public static get code(): 'CHUNKGEN_GENERATION_CANCELED' {
+        return 'CHUNKGEN_GENERATION_CANCELED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The chunk at {chunkX}, {chunkZ} was no longer wanted, so it was dropped from the queue.' {
+        return 'The chunk at {chunkX}, {chunkZ} was no longer wanted, so it was dropped from the queue.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-canceled' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-canceled';
+    }
 
     public override readonly code = 'CHUNKGEN_GENERATION_CANCELED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-canceled';
@@ -679,11 +863,18 @@ class GenerationCanceled extends JSPrismarineError {
  * malformed; this is a bug in the pyramid's definition.
  */
 class MissingGenerationLayer extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_MISSING_GENERATION_LAYER';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'Reaching {target} needs a {status} layer, and the step table gives it no radius.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-generation-layer';
+    public static get code(): 'CHUNKGEN_MISSING_GENERATION_LAYER' {
+        return 'CHUNKGEN_MISSING_GENERATION_LAYER';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'Reaching {target} needs a {status} layer, and the step table gives it no radius.' {
+        return 'Reaching {target} needs a {status} layer, and the step table gives it no radius.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-generation-layer' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-generation-layer';
+    }
 
     public override readonly code = 'CHUNKGEN_MISSING_GENERATION_LAYER';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-generation-layer';
@@ -708,11 +899,18 @@ class MissingGenerationLayer extends JSPrismarineError {
  * is a scheduler bug.
  */
 class ChunkStatusRegression extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_CHUNK_STATUS_REGRESSION';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'A chunk at {from} cannot advance to {to}: a status body runs once and never runs backward.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-status-regression';
+    public static get code(): 'CHUNKGEN_CHUNK_STATUS_REGRESSION' {
+        return 'CHUNKGEN_CHUNK_STATUS_REGRESSION';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'A chunk at {from} cannot advance to {to}: a status body runs once and never runs backward.' {
+        return 'A chunk at {from} cannot advance to {to}: a status body runs once and never runs backward.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-status-regression' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-status-regression';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_STATUS_REGRESSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-status-regression';
@@ -737,11 +935,18 @@ class ChunkStatusRegression extends JSPrismarineError {
  * Point the pool at a pipeline module.
  */
 class MissingPipelineFactory extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_MISSING_PIPELINE_FACTORY';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        '{specifier} does not export createGenerationPipeline, so a worker has no status bodies to run.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-pipeline-factory';
+    public static get code(): 'CHUNKGEN_MISSING_PIPELINE_FACTORY' {
+        return 'CHUNKGEN_MISSING_PIPELINE_FACTORY';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): '{specifier} does not export createGenerationPipeline, so a worker has no status bodies to run.' {
+        return '{specifier} does not export createGenerationPipeline, so a worker has no status bodies to run.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-pipeline-factory' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-pipeline-factory';
+    }
 
     public override readonly code = 'CHUNKGEN_MISSING_PIPELINE_FACTORY';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-missing-pipeline-factory';
@@ -766,10 +971,18 @@ class MissingPipelineFactory extends JSPrismarineError {
  * by sending the value itself, so this never reaches the log on its own.
  */
 class ReusableMiss extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_REUSABLE_MISS';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The generation host holds no reusable input {key}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-miss';
+    public static get code(): 'CHUNKGEN_REUSABLE_MISS' {
+        return 'CHUNKGEN_REUSABLE_MISS';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The generation host holds no reusable input {key}' {
+        return 'The generation host holds no reusable input {key}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-miss' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-miss';
+    }
 
     public override readonly code = 'CHUNKGEN_REUSABLE_MISS';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-reusable-miss';
@@ -791,11 +1004,18 @@ class ReusableMiss extends JSPrismarineError {
  * generation depend on scheduling order, so it is refused; the step or its window is wrong.
  */
 class ChunkReadOutsideWindow extends ChunkReadOutOfWindowError {
-    public static readonly code = 'CHUNKGEN_CHUNK_READ_OUTSIDE_WINDOW';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The {step} step read a chunk at distance {distance}, which is outside its window.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-outside-window';
+    public static get code(): 'CHUNKGEN_CHUNK_READ_OUTSIDE_WINDOW' {
+        return 'CHUNKGEN_CHUNK_READ_OUTSIDE_WINDOW';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The {step} step read a chunk at distance {distance}, which is outside its window.' {
+        return 'The {step} step read a chunk at distance {distance}, which is outside its window.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-outside-window' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-outside-window';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_READ_OUTSIDE_WINDOW';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-outside-window';
@@ -820,11 +1040,18 @@ class ChunkReadOutsideWindow extends ChunkReadOutOfWindowError {
  * distance. The step or its window is wrong.
  */
 class ChunkReadPastGuarantee extends ChunkReadOutOfWindowError {
-    public static readonly code = 'CHUNKGEN_CHUNK_READ_PAST_GUARANTEE';
-    public static readonly domain = 'chunkgen';
-    public static readonly template =
-        'The {step} step asked for {requested} at distance {distance}, where only {allowed} is guaranteed.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-past-guarantee';
+    public static get code(): 'CHUNKGEN_CHUNK_READ_PAST_GUARANTEE' {
+        return 'CHUNKGEN_CHUNK_READ_PAST_GUARANTEE';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The {step} step asked for {requested} at distance {distance}, where only {allowed} is guaranteed.' {
+        return 'The {step} step asked for {requested} at distance {distance}, where only {allowed} is guaranteed.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-past-guarantee' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-past-guarantee';
+    }
 
     public override readonly code = 'CHUNKGEN_CHUNK_READ_PAST_GUARANTEE';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-chunk-read-past-guarantee';
@@ -862,10 +1089,18 @@ class ChunkReadPastGuarantee extends ChunkReadOutOfWindowError {
  * generation host's startup order.
  */
 class GenerationHostHasNoPool extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_GENERATION_HOST_HAS_NO_POOL';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The generation host has no pool';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-host-has-no-pool';
+    public static get code(): 'CHUNKGEN_GENERATION_HOST_HAS_NO_POOL' {
+        return 'CHUNKGEN_GENERATION_HOST_HAS_NO_POOL';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The generation host has no pool' {
+        return 'The generation host has no pool';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-host-has-no-pool' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-host-has-no-pool';
+    }
 
     public override readonly code = 'CHUNKGEN_GENERATION_HOST_HAS_NO_POOL';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-generation-host-has-no-pool';
@@ -886,11 +1121,18 @@ class GenerationHostHasNoPool extends JSPrismarineError {
  * worker's error handling.
  */
 class EmbeddedWorkerFailedWithoutError extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_EMBEDDED_WORKER_FAILED_WITHOUT_ERROR';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = 'The embedded generation worker failed without an error';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-worker-failed-without-error';
+    public static get code(): 'CHUNKGEN_EMBEDDED_WORKER_FAILED_WITHOUT_ERROR' {
+        return 'CHUNKGEN_EMBEDDED_WORKER_FAILED_WITHOUT_ERROR';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): 'The embedded generation worker failed without an error' {
+        return 'The embedded generation worker failed without an error';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-worker-failed-without-error' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-embedded-worker-failed-without-error';
+    }
 
     public override readonly code = 'CHUNKGEN_EMBEDDED_WORKER_FAILED_WITHOUT_ERROR';
     public override readonly docs =
@@ -909,10 +1151,18 @@ class EmbeddedWorkerFailedWithoutError extends JSPrismarineError {
 
 /** A generation worker's task threw. The message, name and stack are the worker's own, carried across the thread boundary. */
 class WorkerFailed extends JSPrismarineError {
-    public static readonly code = 'CHUNKGEN_WORKER_FAILED';
-    public static readonly domain = 'chunkgen';
-    public static readonly template = '{message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-failed';
+    public static get code(): 'CHUNKGEN_WORKER_FAILED' {
+        return 'CHUNKGEN_WORKER_FAILED';
+    }
+    public static get domain(): 'chunkgen' {
+        return 'chunkgen';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-failed' {
+        return 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-failed';
+    }
 
     public override readonly code = 'CHUNKGEN_WORKER_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/chunkgen#chunkgen-worker-failed';

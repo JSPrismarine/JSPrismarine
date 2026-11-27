@@ -12,11 +12,18 @@ import {
  * in world generation; report it with the stack trace.
  */
 class AmplitudeModifierCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_AMPLITUDE_MODIFIER_COUNT_MISMATCH';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        'amplitude_modifiers had size {amplitudeModifiersCount}, but octave_count was {octaveCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-amplitude-modifier-count-mismatch';
+    public static get code(): 'WORLDGEN_AMPLITUDE_MODIFIER_COUNT_MISMATCH' {
+        return 'WORLDGEN_AMPLITUDE_MODIFIER_COUNT_MISMATCH';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'amplitude_modifiers had size {amplitudeModifiersCount}, but octave_count was {octaveCount}' {
+        return 'amplitude_modifiers had size {amplitudeModifiersCount}, but octave_count was {octaveCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-amplitude-modifier-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-amplitude-modifier-count-mismatch';
+    }
 
     public override readonly code = 'WORLDGEN_AMPLITUDE_MODIFIER_COUNT_MISMATCH';
     public override readonly docs =
@@ -47,10 +54,18 @@ class AmplitudeModifierCountMismatch extends JSPrismarineRangeError {
  * this server needs the biomes listed. List them instead of the `#tag`.
  */
 class BiomeTagNotResolved extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_BIOME_TAG_NOT_RESOLVED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: biome tags are not resolved here, list the biomes instead, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-not-resolved';
+    public static get code(): 'WORLDGEN_BIOME_TAG_NOT_RESOLVED' {
+        return 'WORLDGEN_BIOME_TAG_NOT_RESOLVED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: biome tags are not resolved here, list the biomes instead, got {value}' {
+        return '{path}: biome tags are not resolved here, list the biomes instead, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-not-resolved' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-not-resolved';
+    }
 
     public override readonly code = 'WORLDGEN_BIOME_TAG_NOT_RESOLVED';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-not-resolved';
@@ -75,10 +90,18 @@ class BiomeTagNotResolved extends JSPrismarineTypeError {
  * whose `biomes` is not a list.
  */
 class BiomesNotList extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_BIOMES_NOT_LIST';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.biomes: expected an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biomes-not-list';
+    public static get code(): 'WORLDGEN_BIOMES_NOT_LIST' {
+        return 'WORLDGEN_BIOMES_NOT_LIST';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.biomes: expected an array' {
+        return '{path}.biomes: expected an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-biomes-not-list' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-biomes-not-list';
+    }
 
     public override readonly code = 'WORLDGEN_BIOMES_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biomes-not-list';
@@ -100,10 +123,18 @@ class BiomesNotList extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class InvalidBitCount extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_INVALID_BIT_COUNT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Bit count must be an integer in [0, 32], got {bits}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-bit-count';
+    public static get code(): 'WORLDGEN_INVALID_BIT_COUNT' {
+        return 'WORLDGEN_INVALID_BIT_COUNT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Bit count must be an integer in [0, 32], got {bits}' {
+        return 'Bit count must be an integer in [0, 32], got {bits}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-bit-count' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-bit-count';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_BIT_COUNT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-bit-count';
@@ -125,10 +156,18 @@ class InvalidBitCount extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class BoundMustBePositive extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_BOUND_MUST_BE_POSITIVE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Bound must be positive';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-bound-must-be-positive';
+    public static get code(): 'WORLDGEN_BOUND_MUST_BE_POSITIVE' {
+        return 'WORLDGEN_BOUND_MUST_BE_POSITIVE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Bound must be positive' {
+        return 'Bound must be positive';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-bound-must-be-positive' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-bound-must-be-positive';
+    }
 
     public override readonly code = 'WORLDGEN_BOUND_MUST_BE_POSITIVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-bound-must-be-positive';
@@ -149,10 +188,18 @@ class BoundMustBePositive extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class UncompilableDensityFunction extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNCOMPILABLE_DENSITY_FUNCTION';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Cannot compile density function node {node}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-uncompilable-density-function';
+    public static get code(): 'WORLDGEN_UNCOMPILABLE_DENSITY_FUNCTION' {
+        return 'WORLDGEN_UNCOMPILABLE_DENSITY_FUNCTION';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Cannot compile density function node {node}' {
+        return 'Cannot compile density function node {node}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-uncompilable-density-function' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-uncompilable-density-function';
+    }
 
     public override readonly code = 'WORLDGEN_UNCOMPILABLE_DENSITY_FUNCTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-uncompilable-density-function';
@@ -174,10 +221,18 @@ class UncompilableDensityFunction extends JSPrismarineTypeError {
  * biome source with no biomes.
  */
 class EmptyCheckerboardBiomeSource extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_EMPTY_CHECKERBOARD_BIOME_SOURCE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'A checkerboard biome source needs at least one biome';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-checkerboard-biome-source';
+    public static get code(): 'WORLDGEN_EMPTY_CHECKERBOARD_BIOME_SOURCE' {
+        return 'WORLDGEN_EMPTY_CHECKERBOARD_BIOME_SOURCE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'A checkerboard biome source needs at least one biome' {
+        return 'A checkerboard biome source needs at least one biome';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-checkerboard-biome-source' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-checkerboard-biome-source';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_CHECKERBOARD_BIOME_SOURCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-checkerboard-biome-source';
@@ -198,10 +253,18 @@ class EmptyCheckerboardBiomeSource extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class ClimateEntryValueUnknown extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_ENTRY_VALUE_UNKNOWN';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate entry contains a value absent from its table';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-value-unknown';
+    public static get code(): 'WORLDGEN_CLIMATE_ENTRY_VALUE_UNKNOWN' {
+        return 'WORLDGEN_CLIMATE_ENTRY_VALUE_UNKNOWN';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate entry contains a value absent from its table' {
+        return 'Climate entry contains a value absent from its table';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-value-unknown' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-value-unknown';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_ENTRY_VALUE_UNKNOWN';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-value-unknown';
@@ -222,10 +285,18 @@ class ClimateEntryValueUnknown extends JSPrismarineError {
  * malformed.
  */
 class ClimateEntryIsMissingAxis extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_ENTRY_IS_MISSING_AXIS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate entry {index} is missing axis {axis}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-is-missing-axis';
+    public static get code(): 'WORLDGEN_CLIMATE_ENTRY_IS_MISSING_AXIS' {
+        return 'WORLDGEN_CLIMATE_ENTRY_IS_MISSING_AXIS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate entry {index} is missing axis {axis}' {
+        return 'Climate entry {index} is missing axis {axis}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-is-missing-axis' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-is-missing-axis';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_ENTRY_IS_MISSING_AXIS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-entry-is-missing-axis';
@@ -247,10 +318,18 @@ class ClimateEntryIsMissingAxis extends JSPrismarineError {
  * biome source with no biomes.
  */
 class EmptyClimateParameterList extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_EMPTY_CLIMATE_PARAMETER_LIST';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'A climate parameter list needs at least one entry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-parameter-list';
+    public static get code(): 'WORLDGEN_EMPTY_CLIMATE_PARAMETER_LIST' {
+        return 'WORLDGEN_EMPTY_CLIMATE_PARAMETER_LIST';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'A climate parameter list needs at least one entry' {
+        return 'A climate parameter list needs at least one entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-parameter-list' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-parameter-list';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_CLIMATE_PARAMETER_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-parameter-list';
@@ -271,10 +350,18 @@ class EmptyClimateParameterList extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class ClimateSearchFoundNoLeaf extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_SEARCH_FOUND_NO_LEAF';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'A climate search subtree produced no leaf';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-search-found-no-leaf';
+    public static get code(): 'WORLDGEN_CLIMATE_SEARCH_FOUND_NO_LEAF' {
+        return 'WORLDGEN_CLIMATE_SEARCH_FOUND_NO_LEAF';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'A climate search subtree produced no leaf' {
+        return 'A climate search subtree produced no leaf';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-search-found-no-leaf' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-search-found-no-leaf';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_SEARCH_FOUND_NO_LEAF';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-search-found-no-leaf';
@@ -295,10 +382,18 @@ class ClimateSearchFoundNoLeaf extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class ClimateTableIsMissingEntry extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_TABLE_IS_MISSING_ENTRY';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate table is missing entry {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-table-is-missing-entry';
+    public static get code(): 'WORLDGEN_CLIMATE_TABLE_IS_MISSING_ENTRY' {
+        return 'WORLDGEN_CLIMATE_TABLE_IS_MISSING_ENTRY';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate table is missing entry {index}' {
+        return 'Climate table is missing entry {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-table-is-missing-entry' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-table-is-missing-entry';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_TABLE_IS_MISSING_ENTRY';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-table-is-missing-entry';
@@ -320,10 +415,18 @@ class ClimateTableIsMissingEntry extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class ClimateTreeValueUnknown extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_TREE_VALUE_UNKNOWN';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree contains a value absent from its entries';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-value-unknown';
+    public static get code(): 'WORLDGEN_CLIMATE_TREE_VALUE_UNKNOWN' {
+        return 'WORLDGEN_CLIMATE_TREE_VALUE_UNKNOWN';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree contains a value absent from its entries' {
+        return 'Climate tree contains a value absent from its entries';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-value-unknown' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-value-unknown';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_TREE_VALUE_UNKNOWN';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-value-unknown';
@@ -344,10 +447,18 @@ class ClimateTreeValueUnknown extends JSPrismarineError {
  * the stack trace.
  */
 class ClimateTreeLostChild extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_TREE_LOST_CHILD';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree flattening lost a child index';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-child';
+    public static get code(): 'WORLDGEN_CLIMATE_TREE_LOST_CHILD' {
+        return 'WORLDGEN_CLIMATE_TREE_LOST_CHILD';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree flattening lost a child index' {
+        return 'Climate tree flattening lost a child index';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-child' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-child';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_TREE_LOST_CHILD';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-child';
@@ -368,10 +479,18 @@ class ClimateTreeLostChild extends JSPrismarineError {
  * the stack trace.
  */
 class ClimateTreeLostNode extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_TREE_LOST_NODE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree flattening lost a node';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-node';
+    public static get code(): 'WORLDGEN_CLIMATE_TREE_LOST_NODE' {
+        return 'WORLDGEN_CLIMATE_TREE_LOST_NODE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree flattening lost a node' {
+        return 'Climate tree flattening lost a node';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-node' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-node';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_TREE_LOST_NODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-lost-node';
@@ -392,10 +511,18 @@ class ClimateTreeLostNode extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class ClimateTreeNodeIsMissingAxis extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_TREE_NODE_IS_MISSING_AXIS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree node is missing axis {axis}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-node-is-missing-axis';
+    public static get code(): 'WORLDGEN_CLIMATE_TREE_NODE_IS_MISSING_AXIS' {
+        return 'WORLDGEN_CLIMATE_TREE_NODE_IS_MISSING_AXIS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree node is missing axis {axis}' {
+        return 'Climate tree node is missing axis {axis}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-node-is-missing-axis' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-tree-node-is-missing-axis';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_TREE_NODE_IS_MISSING_AXIS';
     public override readonly docs =
@@ -418,10 +545,18 @@ class ClimateTreeNodeIsMissingAxis extends JSPrismarineError {
  * report it with the stack trace.
  */
 class ClimateSubtreeHasNoChild extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_SUBTREE_HAS_NO_CHILD';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree subtree has no first child';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-has-no-child';
+    public static get code(): 'WORLDGEN_CLIMATE_SUBTREE_HAS_NO_CHILD' {
+        return 'WORLDGEN_CLIMATE_SUBTREE_HAS_NO_CHILD';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree subtree has no first child' {
+        return 'Climate tree subtree has no first child';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-has-no-child' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-has-no-child';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_SUBTREE_HAS_NO_CHILD';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-has-no-child';
@@ -442,10 +577,18 @@ class ClimateSubtreeHasNoChild extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class ClimateSubtreeLostLeaf extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_CLIMATE_SUBTREE_LOST_LEAF';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Climate tree subtree lost its first leaf rank';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-lost-leaf';
+    public static get code(): 'WORLDGEN_CLIMATE_SUBTREE_LOST_LEAF' {
+        return 'WORLDGEN_CLIMATE_SUBTREE_LOST_LEAF';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Climate tree subtree lost its first leaf rank' {
+        return 'Climate tree subtree lost its first leaf rank';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-lost-leaf' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-lost-leaf';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_SUBTREE_LOST_LEAF';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-subtree-lost-leaf';
@@ -466,10 +609,18 @@ class ClimateSubtreeLostLeaf extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class SurfaceColumnWrongHeight extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_SURFACE_COLUMN_WRONG_HEIGHT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Column {localX},{localZ} has {columnCount} blocks, expected {height}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-column-wrong-height';
+    public static get code(): 'WORLDGEN_SURFACE_COLUMN_WRONG_HEIGHT' {
+        return 'WORLDGEN_SURFACE_COLUMN_WRONG_HEIGHT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Column {localX},{localZ} has {columnCount} blocks, expected {height}' {
+        return 'Column {localX},{localZ} has {columnCount} blocks, expected {height}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-column-wrong-height' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-column-wrong-height';
+    }
 
     public override readonly code = 'WORLDGEN_SURFACE_COLUMN_WRONG_HEIGHT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-column-wrong-height';
@@ -507,11 +658,18 @@ class SurfaceColumnWrongHeight extends JSPrismarineRangeError {
  * whose `coordinate_scale` is outside the range Java allows.
  */
 class CoordinateScaleOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_COORDINATE_SCALE_OUT_OF_RANGE';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        '{path}.coordinate_scale has to be between {coordinateScaleMin} and {coordinateScaleMax}, got {coordinateScale}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-coordinate-scale-out-of-range';
+    public static get code(): 'WORLDGEN_COORDINATE_SCALE_OUT_OF_RANGE' {
+        return 'WORLDGEN_COORDINATE_SCALE_OUT_OF_RANGE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.coordinate_scale has to be between {coordinateScaleMin} and {coordinateScaleMax}, got {coordinateScale}' {
+        return '{path}.coordinate_scale has to be between {coordinateScaleMin} and {coordinateScaleMax}, got {coordinateScale}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-coordinate-scale-out-of-range' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-coordinate-scale-out-of-range';
+    }
 
     public override readonly code = 'WORLDGEN_COORDINATE_SCALE_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-coordinate-scale-out-of-range';
@@ -554,10 +712,18 @@ class CoordinateScaleOutOfRange extends JSPrismarineRangeError {
  * functions that refer to each other in a loop, so none can be computed.
  */
 class DensityFunctionCycle extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_DENSITY_FUNCTION_CYCLE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Density function {id} references itself through {resolving}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-density-function-cycle';
+    public static get code(): 'WORLDGEN_DENSITY_FUNCTION_CYCLE' {
+        return 'WORLDGEN_DENSITY_FUNCTION_CYCLE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Density function {id} references itself through {resolving}' {
+        return 'Density function {id} references itself through {resolving}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-density-function-cycle' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-density-function-cycle';
+    }
 
     public override readonly code = 'WORLDGEN_DENSITY_FUNCTION_CYCLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-density-function-cycle';
@@ -579,10 +745,18 @@ class DensityFunctionCycle extends JSPrismarineRangeError {
  * that lists the same dimension twice.
  */
 class DuplicatePresetDimension extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_DUPLICATE_PRESET_DIMENSION';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.dimensions: {id} is defined twice';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-duplicate-preset-dimension';
+    public static get code(): 'WORLDGEN_DUPLICATE_PRESET_DIMENSION' {
+        return 'WORLDGEN_DUPLICATE_PRESET_DIMENSION';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.dimensions: {id} is defined twice' {
+        return '{path}.dimensions: {id} is defined twice';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-duplicate-preset-dimension' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-duplicate-preset-dimension';
+    }
 
     public override readonly code = 'WORLDGEN_DUPLICATE_PRESET_DIMENSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-duplicate-preset-dimension';
@@ -604,10 +778,18 @@ class DuplicatePresetDimension extends JSPrismarineTypeError {
  * without an overworld, which every world needs.
  */
 class WorldPresetHasNoOverworld extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_WORLD_PRESET_HAS_NO_OVERWORLD';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.dimensions: a world preset has to define {overworldStemId}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-world-preset-has-no-overworld';
+    public static get code(): 'WORLDGEN_WORLD_PRESET_HAS_NO_OVERWORLD' {
+        return 'WORLDGEN_WORLD_PRESET_HAS_NO_OVERWORLD';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.dimensions: a world preset has to define {overworldStemId}' {
+        return '{path}.dimensions: a world preset has to define {overworldStemId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-world-preset-has-no-overworld' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-world-preset-has-no-overworld';
+    }
 
     public override readonly code = 'WORLDGEN_WORLD_PRESET_HAS_NO_OVERWORLD';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-world-preset-has-no-overworld';
@@ -632,10 +814,18 @@ class WorldPresetHasNoOverworld extends JSPrismarineTypeError {
  * a list where a list belongs. The path names the field.
  */
 class ExpectedArray extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_ARRAY';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected an array, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-array';
+    public static get code(): 'WORLDGEN_EXPECTED_ARRAY' {
+        return 'WORLDGEN_EXPECTED_ARRAY';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected an array, got {value}' {
+        return '{path}: expected an array, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-array' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-array';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_ARRAY';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-array';
@@ -657,10 +847,18 @@ class ExpectedArray extends JSPrismarineTypeError {
  * a list where a list belongs. The path names the field.
  */
 class ExpectedList extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_LIST';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-list';
+    public static get code(): 'WORLDGEN_EXPECTED_LIST' {
+        return 'WORLDGEN_EXPECTED_LIST';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected an array' {
+        return '{path}: expected an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-list' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-list';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-list';
@@ -682,10 +880,18 @@ class ExpectedList extends JSPrismarineTypeError {
  * `true` or `false` where a boolean belongs.
  */
 class ExpectedBoolean extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_BOOLEAN';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected a boolean, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-boolean';
+    public static get code(): 'WORLDGEN_EXPECTED_BOOLEAN' {
+        return 'WORLDGEN_EXPECTED_BOOLEAN';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected a boolean, got {value}' {
+        return '{path}: expected a boolean, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-boolean' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-boolean';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_BOOLEAN';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-boolean';
@@ -707,10 +913,18 @@ class ExpectedBoolean extends JSPrismarineTypeError {
  * a number where a number belongs.
  */
 class ExpectedFiniteNumber extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_FINITE_NUMBER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected a finite number, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-finite-number';
+    public static get code(): 'WORLDGEN_EXPECTED_FINITE_NUMBER' {
+        return 'WORLDGEN_EXPECTED_FINITE_NUMBER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected a finite number, got {value}' {
+        return '{path}: expected a finite number, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-finite-number' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-finite-number';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_FINITE_NUMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-finite-number';
@@ -732,10 +946,18 @@ class ExpectedFiniteNumber extends JSPrismarineTypeError {
  * is not `floor` or `ceiling`.
  */
 class ExpectedCaveSurface extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_CAVE_SURFACE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected "floor" or "ceiling", got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-cave-surface';
+    public static get code(): 'WORLDGEN_EXPECTED_CAVE_SURFACE' {
+        return 'WORLDGEN_EXPECTED_CAVE_SURFACE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected "floor" or "ceiling", got {value}' {
+        return '{path}: expected "floor" or "ceiling", got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-cave-surface' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-cave-surface';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_CAVE_SURFACE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-cave-surface';
@@ -757,10 +979,18 @@ class ExpectedCaveSurface extends JSPrismarineTypeError {
  * whole number belongs.
  */
 class ExpectedInteger extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_INTEGER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected an integer, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-integer';
+    public static get code(): 'WORLDGEN_EXPECTED_INTEGER' {
+        return 'WORLDGEN_EXPECTED_INTEGER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected an integer, got {value}' {
+        return '{path}: expected an integer, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-integer' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-integer';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_INTEGER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-integer';
@@ -782,10 +1012,18 @@ class ExpectedInteger extends JSPrismarineTypeError {
  * that is not a number or a pair of numbers.
  */
 class ExpectedClimateRange extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_CLIMATE_RANGE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected [min, max], got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-climate-range';
+    public static get code(): 'WORLDGEN_EXPECTED_CLIMATE_RANGE' {
+        return 'WORLDGEN_EXPECTED_CLIMATE_RANGE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected [min, max], got {source}' {
+        return '{path}: expected [min, max], got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-climate-range' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-climate-range';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_CLIMATE_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-climate-range';
@@ -807,10 +1045,18 @@ class ExpectedClimateRange extends JSPrismarineTypeError {
  * range that is not a pair of numbers.
  */
 class ExpectedInterval extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_INTERVAL';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}[{targetIndex}].{id}: expected a [min, max] interval';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-interval';
+    public static get code(): 'WORLDGEN_EXPECTED_INTERVAL' {
+        return 'WORLDGEN_EXPECTED_INTERVAL';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}[{targetIndex}].{id}: expected a [min, max] interval' {
+        return '{path}[{targetIndex}].{id}: expected a [min, max] interval';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-interval' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-interval';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_INTERVAL';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-interval';
@@ -840,10 +1086,18 @@ class ExpectedInterval extends JSPrismarineTypeError {
  * an object where an object belongs.
  */
 class ExpectedObject extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_OBJECT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected an object, got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-object';
+    public static get code(): 'WORLDGEN_EXPECTED_OBJECT' {
+        return 'WORLDGEN_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected an object, got {source}' {
+        return '{path}: expected an object, got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-object' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-object';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-object';
@@ -865,10 +1119,18 @@ class ExpectedObject extends JSPrismarineTypeError {
  * an object where an object belongs.
  */
 class ExpectedEntryObject extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_ENTRY_OBJECT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{entryPath}: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-entry-object';
+    public static get code(): 'WORLDGEN_EXPECTED_ENTRY_OBJECT' {
+        return 'WORLDGEN_EXPECTED_ENTRY_OBJECT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{entryPath}: expected an object' {
+        return '{entryPath}: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-entry-object' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-entry-object';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_ENTRY_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-entry-object';
@@ -890,10 +1152,18 @@ class ExpectedEntryObject extends JSPrismarineTypeError {
  * that is neither an object nor a list of biomes.
  */
 class ExpectedBiomeSource extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_BIOME_SOURCE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected an object or an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-biome-source';
+    public static get code(): 'WORLDGEN_EXPECTED_BIOME_SOURCE' {
+        return 'WORLDGEN_EXPECTED_BIOME_SOURCE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected an object or an array' {
+        return '{path}: expected an object or an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-biome-source' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-biome-source';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_BIOME_SOURCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-biome-source';
@@ -915,10 +1185,18 @@ class ExpectedBiomeSource extends JSPrismarineTypeError {
  * set the field allows. The message lists the allowed values.
  */
 class ExpectedOne extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_ONE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected one of {allowed}, got {text}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-one';
+    public static get code(): 'WORLDGEN_EXPECTED_ONE' {
+        return 'WORLDGEN_EXPECTED_ONE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected one of {allowed}, got {text}' {
+        return '{path}: expected one of {allowed}, got {text}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-one' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-one';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_ONE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-one';
@@ -949,11 +1227,18 @@ class ExpectedOne extends JSPrismarineTypeError {
  * `relative_to_sea_level`.
  */
 class ExpectedVerticalAnchor extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_VERTICAL_ANCHOR';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level, got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-vertical-anchor';
+    public static get code(): 'WORLDGEN_EXPECTED_VERTICAL_ANCHOR' {
+        return 'WORLDGEN_EXPECTED_VERTICAL_ANCHOR';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level, got {source}' {
+        return '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level, got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-vertical-anchor' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-vertical-anchor';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_VERTICAL_ANCHOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-vertical-anchor';
@@ -978,10 +1263,18 @@ class ExpectedVerticalAnchor extends JSPrismarineTypeError {
  * a string where a registry identifier belongs.
  */
 class ExpectedRegistryIdentifier extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_REGISTRY_IDENTIFIER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Expected a registry identifier, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-registry-identifier';
+    public static get code(): 'WORLDGEN_EXPECTED_REGISTRY_IDENTIFIER' {
+        return 'WORLDGEN_EXPECTED_REGISTRY_IDENTIFIER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Expected a registry identifier, got {value}' {
+        return 'Expected a registry identifier, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-registry-identifier' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-registry-identifier';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_REGISTRY_IDENTIFIER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-registry-identifier';
@@ -1003,10 +1296,18 @@ class ExpectedRegistryIdentifier extends JSPrismarineTypeError {
  * a string where a string belongs.
  */
 class ExpectedString extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_STRING';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected a string, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-string';
+    public static get code(): 'WORLDGEN_EXPECTED_STRING' {
+        return 'WORLDGEN_EXPECTED_STRING';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected a string, got {value}' {
+        return '{path}: expected a string, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-string' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-string';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_STRING';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-string';
@@ -1029,11 +1330,18 @@ class ExpectedString extends JSPrismarineTypeError {
  * exactly that many.
  */
 class ThresholdCountMismatch extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_THRESHOLD_COUNT_MISMATCH';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        '{path}: expected {value} thresholds for {functionSourceCount} functions, got {thresholdSourceCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-threshold-count-mismatch';
+    public static get code(): 'WORLDGEN_THRESHOLD_COUNT_MISMATCH' {
+        return 'WORLDGEN_THRESHOLD_COUNT_MISMATCH';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected {value} thresholds for {functionSourceCount} functions, got {thresholdSourceCount}' {
+        return '{path}: expected {value} thresholds for {functionSourceCount} functions, got {thresholdSourceCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-threshold-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-threshold-count-mismatch';
+    }
 
     public override readonly code = 'WORLDGEN_THRESHOLD_COUNT_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-threshold-count-mismatch';
@@ -1076,10 +1384,18 @@ class ThresholdCountMismatch extends JSPrismarineTypeError {
  * generation file, from a datapack or the generated Java data, probably defines it.
  */
 class PositiveFirstOctave extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_POSITIVE_FIRST_OCTAVE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'firstOctave>0';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-positive-first-octave';
+    public static get code(): 'WORLDGEN_POSITIVE_FIRST_OCTAVE' {
+        return 'WORLDGEN_POSITIVE_FIRST_OCTAVE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'firstOctave>0' {
+        return 'firstOctave>0';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-positive-first-octave' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-positive-first-octave';
+    }
 
     public override readonly code = 'WORLDGEN_POSITIVE_FIRST_OCTAVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-positive-first-octave';
@@ -1100,11 +1416,18 @@ class PositiveFirstOctave extends JSPrismarineRangeError {
  * `interval_select` density function with fewer than two functions.
  */
 class IntervalSelectNeedsTwoFunctions extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INTERVAL_SELECT_NEEDS_TWO_FUNCTIONS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.functions: expected at least two functions';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-interval-select-needs-two-functions';
+    public static get code(): 'WORLDGEN_INTERVAL_SELECT_NEEDS_TWO_FUNCTIONS' {
+        return 'WORLDGEN_INTERVAL_SELECT_NEEDS_TWO_FUNCTIONS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.functions: expected at least two functions' {
+        return '{path}.functions: expected at least two functions';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-interval-select-needs-two-functions' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-interval-select-needs-two-functions';
+    }
 
     public override readonly code = 'WORLDGEN_INTERVAL_SELECT_NEEDS_TWO_FUNCTIONS';
     public override readonly docs =
@@ -1127,10 +1450,18 @@ class IntervalSelectNeedsTwoFunctions extends JSPrismarineTypeError {
  * density function whose start and end coordinates are equal, so it has no slope.
  */
 class FlatGradient extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_FLAT_GRADIENT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'gradient from_coordinate cannot equal to_coordinate';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-flat-gradient';
+    public static get code(): 'WORLDGEN_FLAT_GRADIENT' {
+        return 'WORLDGEN_FLAT_GRADIENT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'gradient from_coordinate cannot equal to_coordinate' {
+        return 'gradient from_coordinate cannot equal to_coordinate';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-flat-gradient' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-flat-gradient';
+    }
 
     public override readonly code = 'WORLDGEN_FLAT_GRADIENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-flat-gradient';
@@ -1151,10 +1482,18 @@ class FlatGradient extends JSPrismarineRangeError {
  * range Java allows for that field.
  */
 class NumberOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NUMBER_OUT_OF_RANGE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path} has to be between {min} and {max}, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-number-out-of-range';
+    public static get code(): 'WORLDGEN_NUMBER_OUT_OF_RANGE' {
+        return 'WORLDGEN_NUMBER_OUT_OF_RANGE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path} has to be between {min} and {max}, got {value}' {
+        return '{path} has to be between {min} and {max}, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-number-out-of-range' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-number-out-of-range';
+    }
 
     public override readonly code = 'WORLDGEN_NUMBER_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-number-out-of-range';
@@ -1187,10 +1526,18 @@ class NumberOutOfRange extends JSPrismarineRangeError {
  * whose `height` is not a multiple of 16.
  */
 class HeightNotMultipleOf16 extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_HEIGHT_NOT_MULTIPLE_OF16';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.height has to be a multiple of 16, got {height}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-height-not-multiple-of16';
+    public static get code(): 'WORLDGEN_HEIGHT_NOT_MULTIPLE_OF16' {
+        return 'WORLDGEN_HEIGHT_NOT_MULTIPLE_OF16';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.height has to be a multiple of 16, got {height}' {
+        return '{path}.height has to be a multiple of 16, got {height}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-height-not-multiple-of16' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-height-not-multiple-of16';
+    }
 
     public override readonly code = 'WORLDGEN_HEIGHT_NOT_MULTIPLE_OF16';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-height-not-multiple-of16';
@@ -1209,10 +1556,18 @@ class HeightNotMultipleOf16 extends JSPrismarineRangeError {
 
 /** A saved chunk's blending data has the wrong number of heights, so the chunk is damaged. */
 class BlendingHeightsWrongLength extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_BLENDING_HEIGHTS_WRONG_LENGTH';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'heights has to be of length {blendingCellColumnCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-blending-heights-wrong-length';
+    public static get code(): 'WORLDGEN_BLENDING_HEIGHTS_WRONG_LENGTH' {
+        return 'WORLDGEN_BLENDING_HEIGHTS_WRONG_LENGTH';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'heights has to be of length {blendingCellColumnCount}' {
+        return 'heights has to be of length {blendingCellColumnCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-blending-heights-wrong-length' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-blending-heights-wrong-length';
+    }
 
     public override readonly code = 'WORLDGEN_BLENDING_HEIGHTS_WRONG_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-blending-heights-wrong-length';
@@ -1234,10 +1589,18 @@ class BlendingHeightsWrongLength extends JSPrismarineRangeError {
  * range whose bounds are not numbers.
  */
 class InvalidIntervalBounds extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_INTERVAL_BOUNDS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}[{targetIndex}].{id}: interval bounds must be finite numbers';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-interval-bounds';
+    public static get code(): 'WORLDGEN_INVALID_INTERVAL_BOUNDS' {
+        return 'WORLDGEN_INVALID_INTERVAL_BOUNDS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}[{targetIndex}].{id}: interval bounds must be finite numbers' {
+        return '{path}[{targetIndex}].{id}: interval bounds must be finite numbers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-interval-bounds' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-interval-bounds';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_INTERVAL_BOUNDS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-interval-bounds';
@@ -1267,10 +1630,18 @@ class InvalidIntervalBounds extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class EmptyIntervalSelect extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_EMPTY_INTERVAL_SELECT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'interval_select needs at least one function';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-interval-select';
+    public static get code(): 'WORLDGEN_EMPTY_INTERVAL_SELECT' {
+        return 'WORLDGEN_EMPTY_INTERVAL_SELECT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'interval_select needs at least one function' {
+        return 'interval_select needs at least one function';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-interval-select' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-interval-select';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_INTERVAL_SELECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-interval-select';
@@ -1288,10 +1659,18 @@ class EmptyIntervalSelect extends JSPrismarineRangeError {
 
 /** A saved random state's cached Gaussian value has the wrong shape, so the save is damaged. */
 class InvalidGaussianCacheState extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_GAUSSIAN_CACHE_STATE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Invalid Gaussian cache state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-gaussian-cache-state';
+    public static get code(): 'WORLDGEN_INVALID_GAUSSIAN_CACHE_STATE' {
+        return 'WORLDGEN_INVALID_GAUSSIAN_CACHE_STATE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Invalid Gaussian cache state' {
+        return 'Invalid Gaussian cache state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-gaussian-cache-state' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-gaussian-cache-state';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_GAUSSIAN_CACHE_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-gaussian-cache-state';
@@ -1309,11 +1688,18 @@ class InvalidGaussianCacheState extends JSPrismarineTypeError {
 
 /** A saved legacy random state has the wrong shape, so the save is damaged. */
 class InvalidLegacyRandomSourceState extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_LEGACY_RANDOM_SOURCE_STATE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Invalid legacy random source state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-legacy-random-source-state';
+    public static get code(): 'WORLDGEN_INVALID_LEGACY_RANDOM_SOURCE_STATE' {
+        return 'WORLDGEN_INVALID_LEGACY_RANDOM_SOURCE_STATE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Invalid legacy random source state' {
+        return 'Invalid legacy random source state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-legacy-random-source-state' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-legacy-random-source-state';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_LEGACY_RANDOM_SOURCE_STATE';
     public override readonly docs =
@@ -1332,11 +1718,18 @@ class InvalidLegacyRandomSourceState extends JSPrismarineTypeError {
 
 /** A saved Xoroshiro random state has the wrong shape, so the save is damaged. */
 class InvalidXoroshiroRandomSourceState extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_XOROSHIRO_RANDOM_SOURCE_STATE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Invalid xoroshiro random source state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-xoroshiro-random-source-state';
+    public static get code(): 'WORLDGEN_INVALID_XOROSHIRO_RANDOM_SOURCE_STATE' {
+        return 'WORLDGEN_INVALID_XOROSHIRO_RANDOM_SOURCE_STATE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Invalid xoroshiro random source state' {
+        return 'Invalid xoroshiro random source state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-xoroshiro-random-source-state' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-xoroshiro-random-source-state';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_XOROSHIRO_RANDOM_SOURCE_STATE';
     public override readonly docs =
@@ -1358,10 +1751,18 @@ class InvalidXoroshiroRandomSourceState extends JSPrismarineTypeError {
  * biome tag, and the server reading it cannot resolve tags here. List the biomes instead.
  */
 class BiomeTagWithoutResolver extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_BIOME_TAG_WITHOUT_RESOLVER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{entryPath}: {entry} is a biome tag and no tag resolver was supplied';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-without-resolver';
+    public static get code(): 'WORLDGEN_BIOME_TAG_WITHOUT_RESOLVER' {
+        return 'WORLDGEN_BIOME_TAG_WITHOUT_RESOLVER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{entryPath}: {entry} is a biome tag and no tag resolver was supplied' {
+        return '{entryPath}: {entry} is a biome tag and no tag resolver was supplied';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-without-resolver' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-without-resolver';
+    }
 
     public override readonly code = 'WORLDGEN_BIOME_TAG_WITHOUT_RESOLVER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-biome-tag-without-resolver';
@@ -1386,10 +1787,18 @@ class BiomeTagWithoutResolver extends JSPrismarineRangeError {
  * characters registry identifiers do not allow, such as capitals or spaces.
  */
 class InvalidRegistryIdentifier extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_REGISTRY_IDENTIFIER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{value} is not a valid registry identifier';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-registry-identifier';
+    public static get code(): 'WORLDGEN_INVALID_REGISTRY_IDENTIFIER' {
+        return 'WORLDGEN_INVALID_REGISTRY_IDENTIFIER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{value} is not a valid registry identifier' {
+        return '{value} is not a valid registry identifier';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-registry-identifier' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-registry-identifier';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_REGISTRY_IDENTIFIER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-registry-identifier';
@@ -1411,10 +1820,18 @@ class InvalidRegistryIdentifier extends JSPrismarineTypeError {
  * that refer to each other in a loop.
  */
 class SurfaceRuleCycle extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_SURFACE_RULE_CYCLE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Material {key} references itself through {resolving}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-rule-cycle';
+    public static get code(): 'WORLDGEN_SURFACE_RULE_CYCLE' {
+        return 'WORLDGEN_SURFACE_RULE_CYCLE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Material {key} references itself through {resolving}' {
+        return 'Material {key} references itself through {resolving}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-rule-cycle' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-rule-cycle';
+    }
 
     public override readonly code = 'WORLDGEN_SURFACE_RULE_CYCLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-surface-rule-cycle';
@@ -1436,10 +1853,18 @@ class SurfaceRuleCycle extends JSPrismarineRangeError {
  * datapack or the generated Java data, probably gives it in the wrong order.
  */
 class ClimateMinAboveMax extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_CLIMATE_MIN_ABOVE_MAX';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'min > max: {min} {max}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-min-above-max';
+    public static get code(): 'WORLDGEN_CLIMATE_MIN_ABOVE_MAX' {
+        return 'WORLDGEN_CLIMATE_MIN_ABOVE_MAX';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'min > max: {min} {max}' {
+        return 'min > max: {min} {max}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-min-above-max' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-min-above-max';
+    }
 
     public override readonly code = 'WORLDGEN_CLIMATE_MIN_ABOVE_MAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-climate-min-above-max';
@@ -1461,10 +1886,18 @@ class ClimateMinAboveMax extends JSPrismarineRangeError {
  * function whose `min` is above its `max`.
  */
 class MinAboveMax extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_MIN_ABOVE_MAX';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: min ({min}) must be less than or equal to max ({max})';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-min-above-max';
+    public static get code(): 'WORLDGEN_MIN_ABOVE_MAX' {
+        return 'WORLDGEN_MIN_ABOVE_MAX';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: min ({min}) must be less than or equal to max ({max})' {
+        return '{path}: min ({min}) must be less than or equal to max ({max})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-min-above-max' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-min-above-max';
+    }
 
     public override readonly code = 'WORLDGEN_MIN_ABOVE_MAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-min-above-max';
@@ -1494,10 +1927,18 @@ class MinAboveMax extends JSPrismarineTypeError {
  * whose `min_y` is not a multiple of 16.
  */
 class MinYNotMultipleOf16 extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_MIN_YNOT_MULTIPLE_OF16';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.min_y has to be a multiple of 16, got {minY}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-min-ynot-multiple-of16';
+    public static get code(): 'WORLDGEN_MIN_YNOT_MULTIPLE_OF16' {
+        return 'WORLDGEN_MIN_YNOT_MULTIPLE_OF16';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.min_y has to be a multiple of 16, got {minY}' {
+        return '{path}.min_y has to be a multiple of 16, got {minY}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-min-ynot-multiple-of16' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-min-ynot-multiple-of16';
+    }
 
     public override readonly code = 'WORLDGEN_MIN_YNOT_MULTIPLE_OF16';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-min-ynot-multiple-of16';
@@ -1519,10 +1960,18 @@ class MinYNotMultipleOf16 extends JSPrismarineRangeError {
  * that reaches above the highest block Java allows.
  */
 class DimensionTooTall extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_DIMENSION_TOO_TALL';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: min_y + height has to be at most {maxYExclusive}, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-dimension-too-tall';
+    public static get code(): 'WORLDGEN_DIMENSION_TOO_TALL' {
+        return 'WORLDGEN_DIMENSION_TOO_TALL';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: min_y + height has to be at most {maxYExclusive}, got {value}' {
+        return '{path}: min_y + height has to be at most {maxYExclusive}, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-dimension-too-tall' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-dimension-too-tall';
+    }
 
     public override readonly code = 'WORLDGEN_DIMENSION_TOO_TALL';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-dimension-too-tall';
@@ -1552,10 +2001,18 @@ class DimensionTooTall extends JSPrismarineRangeError {
  * Java data, probably defines one.
  */
 class SplineHasNoPoints extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_SPLINE_HAS_NO_POINTS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'A multipoint spline needs at least one point';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-has-no-points';
+    public static get code(): 'WORLDGEN_SPLINE_HAS_NO_POINTS' {
+        return 'WORLDGEN_SPLINE_HAS_NO_POINTS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'A multipoint spline needs at least one point' {
+        return 'A multipoint spline needs at least one point';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-has-no-points' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-has-no-points';
+    }
 
     public override readonly code = 'WORLDGEN_SPLINE_HAS_NO_POINTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-has-no-points';
@@ -1576,10 +2033,18 @@ class SplineHasNoPoints extends JSPrismarineRangeError {
  * Java data, probably defines one with an empty `amplitudes` list.
  */
 class NoiseHasNoAmplitudes extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NOISE_HAS_NO_AMPLITUDES';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Need at least 1 amplitude';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-has-no-amplitudes';
+    public static get code(): 'WORLDGEN_NOISE_HAS_NO_AMPLITUDES' {
+        return 'WORLDGEN_NOISE_HAS_NO_AMPLITUDES';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Need at least 1 amplitude' {
+        return 'Need at least 1 amplitude';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-has-no-amplitudes' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-has-no-amplitudes';
+    }
 
     public override readonly code = 'WORLDGEN_NOISE_HAS_NO_AMPLITUDES';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-has-no-amplitudes';
@@ -1600,10 +2065,18 @@ class NoiseHasNoAmplitudes extends JSPrismarineRangeError {
  * function no loaded file defines.
  */
 class NoDensityFunctionIsRegistered extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NO_DENSITY_FUNCTION_IS_REGISTERED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'No density function is registered as {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-density-function-is-registered';
+    public static get code(): 'WORLDGEN_NO_DENSITY_FUNCTION_IS_REGISTERED' {
+        return 'WORLDGEN_NO_DENSITY_FUNCTION_IS_REGISTERED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'No density function is registered as {id}' {
+        return 'No density function is registered as {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-no-density-function-is-registered' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-no-density-function-is-registered';
+    }
 
     public override readonly code = 'WORLDGEN_NO_DENSITY_FUNCTION_IS_REGISTERED';
     public override readonly docs =
@@ -1626,11 +2099,18 @@ class NoDensityFunctionIsRegistered extends JSPrismarineRangeError {
  * condition no loaded file defines.
  */
 class NoMaterialConditionIsRegistered extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NO_MATERIAL_CONDITION_IS_REGISTERED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'No material condition is registered as {id}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-condition-is-registered';
+    public static get code(): 'WORLDGEN_NO_MATERIAL_CONDITION_IS_REGISTERED' {
+        return 'WORLDGEN_NO_MATERIAL_CONDITION_IS_REGISTERED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'No material condition is registered as {id}' {
+        return 'No material condition is registered as {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-condition-is-registered' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-condition-is-registered';
+    }
 
     public override readonly code = 'WORLDGEN_NO_MATERIAL_CONDITION_IS_REGISTERED';
     public override readonly docs =
@@ -1653,10 +2133,18 @@ class NoMaterialConditionIsRegistered extends JSPrismarineRangeError {
  * no loaded file defines.
  */
 class NoMaterialRuleIsRegistered extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NO_MATERIAL_RULE_IS_REGISTERED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'No material rule is registered as {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-rule-is-registered';
+    public static get code(): 'WORLDGEN_NO_MATERIAL_RULE_IS_REGISTERED' {
+        return 'WORLDGEN_NO_MATERIAL_RULE_IS_REGISTERED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'No material rule is registered as {id}' {
+        return 'No material rule is registered as {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-rule-is-registered' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-rule-is-registered';
+    }
 
     public override readonly code = 'WORLDGEN_NO_MATERIAL_RULE_IS_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-material-rule-is-registered';
@@ -1678,10 +2166,18 @@ class NoMaterialRuleIsRegistered extends JSPrismarineRangeError {
  * loaded file defines.
  */
 class NoNoiseIsRegistered extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NO_NOISE_IS_REGISTERED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'No noise is registered as {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-is-registered';
+    public static get code(): 'WORLDGEN_NO_NOISE_IS_REGISTERED' {
+        return 'WORLDGEN_NO_NOISE_IS_REGISTERED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'No noise is registered as {id}' {
+        return 'No noise is registered as {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-is-registered' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-is-registered';
+    }
 
     public override readonly code = 'WORLDGEN_NO_NOISE_IS_REGISTERED';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-is-registered';
@@ -1703,10 +2199,18 @@ class NoNoiseIsRegistered extends JSPrismarineRangeError {
  * datapacks it loads.
  */
 class NoNoiseSettingsAreRegistered extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NO_NOISE_SETTINGS_ARE_REGISTERED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'No noise settings are registered as {id}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-settings-are-registered';
+    public static get code(): 'WORLDGEN_NO_NOISE_SETTINGS_ARE_REGISTERED' {
+        return 'WORLDGEN_NO_NOISE_SETTINGS_ARE_REGISTERED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'No noise settings are registered as {id}' {
+        return 'No noise settings are registered as {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-settings-are-registered' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-no-noise-settings-are-registered';
+    }
 
     public override readonly code = 'WORLDGEN_NO_NOISE_SETTINGS_ARE_REGISTERED';
     public override readonly docs =
@@ -1729,10 +2233,18 @@ class NoNoiseSettingsAreRegistered extends JSPrismarineRangeError {
  * whose height is not a multiple of 16.
  */
 class NoiseHeightNotMultipleOf16 extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NOISE_HEIGHT_NOT_MULTIPLE_OF16';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.noise.height has to be a multiple of 16';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-height-not-multiple-of16';
+    public static get code(): 'WORLDGEN_NOISE_HEIGHT_NOT_MULTIPLE_OF16' {
+        return 'WORLDGEN_NOISE_HEIGHT_NOT_MULTIPLE_OF16';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.noise.height has to be a multiple of 16' {
+        return '{path}.noise.height has to be a multiple of 16';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-height-not-multiple-of16' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-height-not-multiple-of16';
+    }
 
     public override readonly code = 'WORLDGEN_NOISE_HEIGHT_NOT_MULTIPLE_OF16';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-height-not-multiple-of16';
@@ -1754,10 +2266,18 @@ class NoiseHeightNotMultipleOf16 extends JSPrismarineRangeError {
  * whose `min_y` is not a multiple of 16.
  */
 class NoiseMinYNotMultipleOf16 extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NOISE_MIN_YNOT_MULTIPLE_OF16';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.noise.min_y has to be a multiple of 16';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-min-ynot-multiple-of16';
+    public static get code(): 'WORLDGEN_NOISE_MIN_YNOT_MULTIPLE_OF16' {
+        return 'WORLDGEN_NOISE_MIN_YNOT_MULTIPLE_OF16';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.noise.min_y has to be a multiple of 16' {
+        return '{path}.noise.min_y has to be a multiple of 16';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-min-ynot-multiple-of16' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-min-ynot-multiple-of16';
+    }
 
     public override readonly code = 'WORLDGEN_NOISE_MIN_YNOT_MULTIPLE_OF16';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-min-ynot-multiple-of16';
@@ -1779,10 +2299,18 @@ class NoiseMinYNotMultipleOf16 extends JSPrismarineRangeError {
  * `amplitude_modifiers` is not a list.
  */
 class InvalidAmplitudeModifiers extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_AMPLITUDE_MODIFIERS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameter amplitude_modifiers must be an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-amplitude-modifiers';
+    public static get code(): 'WORLDGEN_INVALID_AMPLITUDE_MODIFIERS' {
+        return 'WORLDGEN_INVALID_AMPLITUDE_MODIFIERS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameter amplitude_modifiers must be an array' {
+        return 'Noise parameter amplitude_modifiers must be an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-amplitude-modifiers' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-amplitude-modifiers';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_AMPLITUDE_MODIFIERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-amplitude-modifiers';
@@ -1803,10 +2331,18 @@ class InvalidAmplitudeModifiers extends JSPrismarineTypeError {
  * first octave is not a whole number from -32 to 32.
  */
 class InvalidBaseOctave extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_INVALID_BASE_OCTAVE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameter base_octave must be an integer in [-32, 32], got {baseOctave}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-base-octave';
+    public static get code(): 'WORLDGEN_INVALID_BASE_OCTAVE' {
+        return 'WORLDGEN_INVALID_BASE_OCTAVE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameter base_octave must be an integer in [-32, 32], got {baseOctave}' {
+        return 'Noise parameter base_octave must be an integer in [-32, 32], got {baseOctave}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-base-octave' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-base-octave';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_BASE_OCTAVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-base-octave';
@@ -1831,10 +2367,18 @@ class InvalidBaseOctave extends JSPrismarineRangeError {
  * field that is not a number.
  */
 class InvalidNoiseParameter extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_NOISE_PARAMETER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameter {field} must be a finite number';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-parameter';
+    public static get code(): 'WORLDGEN_INVALID_NOISE_PARAMETER' {
+        return 'WORLDGEN_INVALID_NOISE_PARAMETER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameter {field} must be a finite number' {
+        return 'Noise parameter {field} must be a finite number';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-parameter' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-parameter';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_NOISE_PARAMETER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-parameter';
@@ -1856,10 +2400,18 @@ class InvalidNoiseParameter extends JSPrismarineTypeError {
  * `normalize` is not `true`, `false` or `legacy`.
  */
 class InvalidNoiseNormalization extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_NOISE_NORMALIZATION';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameter normalize must be a boolean or "legacy", got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-normalization';
+    public static get code(): 'WORLDGEN_INVALID_NOISE_NORMALIZATION' {
+        return 'WORLDGEN_INVALID_NOISE_NORMALIZATION';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameter normalize must be a boolean or "legacy", got {value}' {
+        return 'Noise parameter normalize must be a boolean or "legacy", got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-normalization' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-normalization';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_NOISE_NORMALIZATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-noise-normalization';
@@ -1881,10 +2433,18 @@ class InvalidNoiseNormalization extends JSPrismarineTypeError {
  * octave count is not a whole number from 1 to 32.
  */
 class InvalidOctaveCount extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_INVALID_OCTAVE_COUNT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameter octave_count must be an integer in [1, 32], got {octaveCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-octave-count';
+    public static get code(): 'WORLDGEN_INVALID_OCTAVE_COUNT' {
+        return 'WORLDGEN_INVALID_OCTAVE_COUNT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameter octave_count must be an integer in [1, 32], got {octaveCount}' {
+        return 'Noise parameter octave_count must be an integer in [1, 32], got {octaveCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-octave-count' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-octave-count';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_OCTAVE_COUNT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-octave-count';
@@ -1909,10 +2469,18 @@ class InvalidOctaveCount extends JSPrismarineRangeError {
  * a field it needs.
  */
 class MissingNoiseParameter extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_MISSING_NOISE_PARAMETER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameters are missing the required field {field}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-missing-noise-parameter';
+    public static get code(): 'WORLDGEN_MISSING_NOISE_PARAMETER' {
+        return 'WORLDGEN_MISSING_NOISE_PARAMETER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameters are missing the required field {field}' {
+        return 'Noise parameters are missing the required field {field}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-missing-noise-parameter' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-missing-noise-parameter';
+    }
 
     public override readonly code = 'WORLDGEN_MISSING_NOISE_PARAMETER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-missing-noise-parameter';
@@ -1934,10 +2502,18 @@ class MissingNoiseParameter extends JSPrismarineTypeError {
  * not a JSON object.
  */
 class NoiseParametersNotObject extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_NOISE_PARAMETERS_NOT_OBJECT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Noise parameters must be a JSON object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-parameters-not-object';
+    public static get code(): 'WORLDGEN_NOISE_PARAMETERS_NOT_OBJECT' {
+        return 'WORLDGEN_NOISE_PARAMETERS_NOT_OBJECT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Noise parameters must be a JSON object' {
+        return 'Noise parameters must be a JSON object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-parameters-not-object' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-parameters-not-object';
+    }
 
     public override readonly code = 'WORLDGEN_NOISE_PARAMETERS_NOT_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-noise-parameters-not-object';
@@ -1958,10 +2534,18 @@ class NoiseParametersNotObject extends JSPrismarineTypeError {
  * not three numbers.
  */
 class ExpectedThreeCoordinates extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EXPECTED_THREE_COORDINATES';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.point: expected three coordinates';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-three-coordinates';
+    public static get code(): 'WORLDGEN_EXPECTED_THREE_COORDINATES' {
+        return 'WORLDGEN_EXPECTED_THREE_COORDINATES';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.point: expected three coordinates' {
+        return '{path}.point: expected three coordinates';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-three-coordinates' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-three-coordinates';
+    }
 
     public override readonly code = 'WORLDGEN_EXPECTED_THREE_COORDINATES';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-expected-three-coordinates';
@@ -1983,10 +2567,18 @@ class ExpectedThreeCoordinates extends JSPrismarineTypeError {
  * points.
  */
 class EmptySplinePoints extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EMPTY_SPLINE_POINTS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.points: expected a non-empty array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-spline-points';
+    public static get code(): 'WORLDGEN_EMPTY_SPLINE_POINTS' {
+        return 'WORLDGEN_EMPTY_SPLINE_POINTS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.points: expected a non-empty array' {
+        return '{path}.points: expected a non-empty array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-spline-points' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-spline-points';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_SPLINE_POINTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-spline-points';
@@ -2008,10 +2600,18 @@ class EmptySplinePoints extends JSPrismarineTypeError {
  * bug in world generation; report it with the stack trace.
  */
 class LegacyNoisePositiveOctave extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_LEGACY_NOISE_POSITIVE_OCTAVE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Positive octaves are not supported by the legacy nether noise';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-legacy-noise-positive-octave';
+    public static get code(): 'WORLDGEN_LEGACY_NOISE_POSITIVE_OCTAVE' {
+        return 'WORLDGEN_LEGACY_NOISE_POSITIVE_OCTAVE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Positive octaves are not supported by the legacy nether noise' {
+        return 'Positive octaves are not supported by the legacy nether noise';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-legacy-noise-positive-octave' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-legacy-noise-positive-octave';
+    }
 
     public override readonly code = 'WORLDGEN_LEGACY_NOISE_POSITIVE_OCTAVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-legacy-noise-positive-octave';
@@ -2032,10 +2632,18 @@ class LegacyNoisePositiveOctave extends JSPrismarineRangeError {
  * list preset that does not exist.
  */
 class UnknownBiomeParameterPreset extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_BIOME_PARAMETER_PRESET';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.preset: no multi_noise_biome_source_parameter_list named {preset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-parameter-preset';
+    public static get code(): 'WORLDGEN_UNKNOWN_BIOME_PARAMETER_PRESET' {
+        return 'WORLDGEN_UNKNOWN_BIOME_PARAMETER_PRESET';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.preset: no multi_noise_biome_source_parameter_list named {preset}' {
+        return '{path}.preset: no multi_noise_biome_source_parameter_list named {preset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-parameter-preset' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-parameter-preset';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_BIOME_PARAMETER_PRESET';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-parameter-preset';
@@ -2060,10 +2668,18 @@ class UnknownBiomeParameterPreset extends JSPrismarineTypeError {
  * whose `raw_ore_chance` is not a number.
  */
 class InvalidRawOreChance extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_RAW_ORE_CHANCE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.raw_ore_chance: expected a finite number';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-raw-ore-chance';
+    public static get code(): 'WORLDGEN_INVALID_RAW_ORE_CHANCE' {
+        return 'WORLDGEN_INVALID_RAW_ORE_CHANCE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.raw_ore_chance: expected a finite number' {
+        return '{path}.raw_ore_chance: expected a finite number';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-raw-ore-chance' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-raw-ore-chance';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_RAW_ORE_CHANCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-raw-ore-chance';
@@ -2085,10 +2701,18 @@ class InvalidRawOreChance extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class EmptyClimateTreeNode extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_EMPTY_CLIMATE_TREE_NODE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'A search tree node needs at least one child';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-tree-node';
+    public static get code(): 'WORLDGEN_EMPTY_CLIMATE_TREE_NODE' {
+        return 'WORLDGEN_EMPTY_CLIMATE_TREE_NODE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'A search tree node needs at least one child' {
+        return 'A search tree node needs at least one child';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-tree-node' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-tree-node';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_CLIMATE_TREE_NODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-climate-tree-node';
@@ -2109,10 +2733,18 @@ class EmptyClimateTreeNode extends JSPrismarineRangeError {
  * sequence without rules.
  */
 class EmptySurfaceSequence extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_EMPTY_SURFACE_SEQUENCE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.sequence: expected a non-empty array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-surface-sequence';
+    public static get code(): 'WORLDGEN_EMPTY_SURFACE_SEQUENCE' {
+        return 'WORLDGEN_EMPTY_SURFACE_SEQUENCE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.sequence: expected a non-empty array' {
+        return '{path}.sequence: expected a non-empty array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-surface-sequence' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-surface-sequence';
+    }
 
     public override readonly code = 'WORLDGEN_EMPTY_SURFACE_SEQUENCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-empty-surface-sequence';
@@ -2134,10 +2766,18 @@ class EmptySurfaceSequence extends JSPrismarineTypeError {
  * whose `width_smoothness` is not a positive whole number.
  */
 class InvalidWidthSmoothness extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_WIDTH_SMOOTHNESS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.shape.width_smoothness: expected a positive integer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-width-smoothness';
+    public static get code(): 'WORLDGEN_INVALID_WIDTH_SMOOTHNESS' {
+        return 'WORLDGEN_INVALID_WIDTH_SMOOTHNESS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.shape.width_smoothness: expected a positive integer' {
+        return '{path}.shape.width_smoothness: expected a positive integer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-width-smoothness' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-width-smoothness';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_WIDTH_SMOOTHNESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-width-smoothness';
@@ -2159,11 +2799,18 @@ class InvalidWidthSmoothness extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class SharedClimateTableInvalidValues extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_INVALID_VALUES';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table contains an invalid value dictionary';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-invalid-values';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_INVALID_VALUES' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_INVALID_VALUES';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table contains an invalid value dictionary' {
+        return 'Shared climate table contains an invalid value dictionary';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-invalid-values' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-invalid-values';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_INVALID_VALUES';
     public override readonly docs =
@@ -2185,11 +2832,18 @@ class SharedClimateTableInvalidValues extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class SharedClimateTableHasBadMagic extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_BAD_MAGIC';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table has bad magic';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-bad-magic';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_BAD_MAGIC' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_BAD_MAGIC';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table has bad magic' {
+        return 'Shared climate table has bad magic';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-bad-magic' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-bad-magic';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_BAD_MAGIC';
     public override readonly docs =
@@ -2211,11 +2865,18 @@ class SharedClimateTableHasBadMagic extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class SharedClimateTableHasEmptyDimensions extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_EMPTY_DIMENSIONS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table has empty dimensions';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-empty-dimensions';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_EMPTY_DIMENSIONS' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_EMPTY_DIMENSIONS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table has empty dimensions' {
+        return 'Shared climate table has empty dimensions';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-empty-dimensions' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-empty-dimensions';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_EMPTY_DIMENSIONS';
     public override readonly docs =
@@ -2237,11 +2898,18 @@ class SharedClimateTableHasEmptyDimensions extends JSPrismarineTypeError {
  * bug in world generation; report it with the stack trace.
  */
 class SharedClimateTableHasInconsistentLengths extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_INCONSISTENT_LENGTHS';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table has inconsistent lengths or offsets';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-inconsistent-lengths';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_INCONSISTENT_LENGTHS' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_INCONSISTENT_LENGTHS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table has inconsistent lengths or offsets' {
+        return 'Shared climate table has inconsistent lengths or offsets';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-inconsistent-lengths' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-inconsistent-lengths';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_INCONSISTENT_LENGTHS';
     public override readonly docs =
@@ -2263,10 +2931,18 @@ class SharedClimateTableHasInconsistentLengths extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class SharedClimateTableHasNoValue extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_NO_VALUE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table has no value at index {index}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-no-value';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_NO_VALUE' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_NO_VALUE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table has no value at index {index}' {
+        return 'Shared climate table has no value at index {index}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-no-value' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-has-no-value';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_HAS_NO_VALUE';
     public override readonly docs =
@@ -2289,10 +2965,18 @@ class SharedClimateTableHasNoValue extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class SharedClimateTableIsShorter extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_IS_SHORTER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table is shorter than its header';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-is-shorter';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_IS_SHORTER' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_IS_SHORTER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table is shorter than its header' {
+        return 'Shared climate table is shorter than its header';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-is-shorter' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-is-shorter';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_IS_SHORTER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-is-shorter';
@@ -2313,10 +2997,18 @@ class SharedClimateTableIsShorter extends JSPrismarineTypeError {
  * This is a bug in world generation; report it with the stack trace.
  */
 class SharedClimateTableValueCount extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_VALUE_COUNT';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table value count does not match';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-value-count';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_VALUE_COUNT' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_VALUE_COUNT';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table value count does not match' {
+        return 'Shared climate table value count does not match';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-value-count' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-value-count';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_VALUE_COUNT';
     public override readonly docs =
@@ -2338,11 +3030,18 @@ class SharedClimateTableValueCount extends JSPrismarineTypeError {
  * its workers run different versions. Restart the server.
  */
 class SharedClimateTableVersionIsUnsupported extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_VERSION_IS_UNSUPPORTED';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Shared climate table version {uint32} is unsupported';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-version-is-unsupported';
+    public static get code(): 'WORLDGEN_SHARED_CLIMATE_TABLE_VERSION_IS_UNSUPPORTED' {
+        return 'WORLDGEN_SHARED_CLIMATE_TABLE_VERSION_IS_UNSUPPORTED';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Shared climate table version {uint32} is unsupported' {
+        return 'Shared climate table version {uint32} is unsupported';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-version-is-unsupported' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-climate-table-version-is-unsupported';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_CLIMATE_TABLE_VERSION_IS_UNSUPPORTED';
     public override readonly docs =
@@ -2365,10 +3064,18 @@ class SharedClimateTableVersionIsUnsupported extends JSPrismarineTypeError {
  * does not provide. Run the server on Node.js.
  */
 class SharedArrayBufferUnavailable extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_SHARED_ARRAY_BUFFER_UNAVAILABLE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'SharedArrayBuffer is not available in this runtime';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-array-buffer-unavailable';
+    public static get code(): 'WORLDGEN_SHARED_ARRAY_BUFFER_UNAVAILABLE' {
+        return 'WORLDGEN_SHARED_ARRAY_BUFFER_UNAVAILABLE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'SharedArrayBuffer is not available in this runtime' {
+        return 'SharedArrayBuffer is not available in this runtime';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-array-buffer-unavailable' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-array-buffer-unavailable';
+    }
 
     public override readonly code = 'WORLDGEN_SHARED_ARRAY_BUFFER_UNAVAILABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-shared-array-buffer-unavailable';
@@ -2389,11 +3096,18 @@ class SharedArrayBufferUnavailable extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class SkippedCellMismatch extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_SKIPPED_CELL_MISMATCH';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        'Skipped cell differed from scalar sampling at {x},{y},{z}: global={expectedState}/{expectedScheduleFluidUpdate}, scalar={scalarState}/{scalarScheduleFluidUpdate}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-mismatch';
+    public static get code(): 'WORLDGEN_SKIPPED_CELL_MISMATCH' {
+        return 'WORLDGEN_SKIPPED_CELL_MISMATCH';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Skipped cell differed from scalar sampling at {x},{y},{z}: global={expectedState}/{expectedScheduleFluidUpdate}, scalar={scalarState}/{scalarScheduleFluidUpdate}' {
+        return 'Skipped cell differed from scalar sampling at {x},{y},{z}: global={expectedState}/{expectedScheduleFluidUpdate}, scalar={scalarState}/{scalarScheduleFluidUpdate}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-mismatch' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-mismatch';
+    }
 
     public override readonly code = 'WORLDGEN_SKIPPED_CELL_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-mismatch';
@@ -2445,10 +3159,18 @@ class SkippedCellMismatch extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class SkippedCellWasSolid extends JSPrismarineError {
-    public static readonly code = 'WORLDGEN_SKIPPED_CELL_WAS_SOLID';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Skipped cell had positive scalar density {density} at {x},{y},{z}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-was-solid';
+    public static get code(): 'WORLDGEN_SKIPPED_CELL_WAS_SOLID' {
+        return 'WORLDGEN_SKIPPED_CELL_WAS_SOLID';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Skipped cell had positive scalar density {density} at {x},{y},{z}' {
+        return 'Skipped cell had positive scalar density {density} at {x},{y},{z}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-was-solid' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-was-solid';
+    }
 
     public override readonly code = 'WORLDGEN_SKIPPED_CELL_WAS_SOLID';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-skipped-cell-was-solid';
@@ -2481,10 +3203,18 @@ class SkippedCellWasSolid extends JSPrismarineError {
  * points are not in ascending order of location.
  */
 class SplinePointsOutOfOrder extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_SPLINE_POINTS_OUT_OF_ORDER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{pointPath}: spline points must be in ascending location order';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-points-out-of-order';
+    public static get code(): 'WORLDGEN_SPLINE_POINTS_OUT_OF_ORDER' {
+        return 'WORLDGEN_SPLINE_POINTS_OUT_OF_ORDER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{pointPath}: spline points must be in ascending location order' {
+        return '{pointPath}: spline points must be in ascending location order';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-points-out-of-order' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-points-out-of-order';
+    }
 
     public override readonly code = 'WORLDGEN_SPLINE_POINTS_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-spline-points-out-of-order';
@@ -2506,10 +3236,18 @@ class SplinePointsOutOfOrder extends JSPrismarineTypeError {
  * `temperature` is not a number.
  */
 class InvalidTemperature extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_TEMPERATURE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.temperature: expected a finite number, got {temperature}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature';
+    public static get code(): 'WORLDGEN_INVALID_TEMPERATURE' {
+        return 'WORLDGEN_INVALID_TEMPERATURE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.temperature: expected a finite number, got {temperature}' {
+        return '{path}.temperature: expected a finite number, got {temperature}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_TEMPERATURE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature';
@@ -2534,10 +3272,18 @@ class InvalidTemperature extends JSPrismarineTypeError {
  * `temperature_modifier` is not `none` or `frozen`.
  */
 class InvalidTemperatureModifier extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_INVALID_TEMPERATURE_MODIFIER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.temperature_modifier: expected "none" or "frozen", got {modifier}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature-modifier';
+    public static get code(): 'WORLDGEN_INVALID_TEMPERATURE_MODIFIER' {
+        return 'WORLDGEN_INVALID_TEMPERATURE_MODIFIER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.temperature_modifier: expected "none" or "frozen", got {modifier}' {
+        return '{path}.temperature_modifier: expected "none" or "frozen", got {modifier}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature-modifier' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature-modifier';
+    }
 
     public override readonly code = 'WORLDGEN_INVALID_TEMPERATURE_MODIFIER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-invalid-temperature-modifier';
@@ -2562,10 +3308,18 @@ class InvalidTemperatureModifier extends JSPrismarineTypeError {
  * `interval_select` density function whose `thresholds` is not a list.
  */
 class ThresholdsNotList extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_THRESHOLDS_NOT_LIST';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.thresholds: expected an array';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-not-list';
+    public static get code(): 'WORLDGEN_THRESHOLDS_NOT_LIST' {
+        return 'WORLDGEN_THRESHOLDS_NOT_LIST';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.thresholds: expected an array' {
+        return '{path}.thresholds: expected an array';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-not-list' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-not-list';
+    }
 
     public override readonly code = 'WORLDGEN_THRESHOLDS_NOT_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-not-list';
@@ -2587,10 +3341,18 @@ class ThresholdsNotList extends JSPrismarineTypeError {
  * `interval_select` density function whose thresholds are not in ascending order.
  */
 class ThresholdsOutOfOrder extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_THRESHOLDS_OUT_OF_ORDER';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.thresholds: threshold values must be ordered from smallest to largest';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-out-of-order';
+    public static get code(): 'WORLDGEN_THRESHOLDS_OUT_OF_ORDER' {
+        return 'WORLDGEN_THRESHOLDS_OUT_OF_ORDER';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.thresholds: threshold values must be ordered from smallest to largest' {
+        return '{path}.thresholds: threshold values must be ordered from smallest to largest';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-out-of-order' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-out-of-order';
+    }
 
     public override readonly code = 'WORLDGEN_THRESHOLDS_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-thresholds-out-of-order';
@@ -2612,10 +3374,18 @@ class ThresholdsOutOfOrder extends JSPrismarineTypeError {
  * `type` is not a string.
  */
 class TypeNotString extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_TYPE_NOT_STRING';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}.type: expected a string, got {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-type-not-string';
+    public static get code(): 'WORLDGEN_TYPE_NOT_STRING' {
+        return 'WORLDGEN_TYPE_NOT_STRING';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}.type: expected a string, got {type}' {
+        return '{path}.type: expected a string, got {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-type-not-string' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-type-not-string';
+    }
 
     public override readonly code = 'WORLDGEN_TYPE_NOT_STRING';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-type-not-string';
@@ -2637,10 +3407,18 @@ class TypeNotString extends JSPrismarineTypeError {
  * this server does not implement.
  */
 class UnknownBiomeSourceType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_BIOME_SOURCE_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown biome source type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-source-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_BIOME_SOURCE_TYPE' {
+        return 'WORLDGEN_UNKNOWN_BIOME_SOURCE_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown biome source type {type}' {
+        return '{path}: unknown biome source type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-source-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-source-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_BIOME_SOURCE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-biome-source-type';
@@ -2662,10 +3440,18 @@ class UnknownBiomeSourceType extends JSPrismarineTypeError {
  * server does not implement.
  */
 class UnknownCarverType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_CARVER_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown carver type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-carver-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_CARVER_TYPE' {
+        return 'WORLDGEN_UNKNOWN_CARVER_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown carver type {type}' {
+        return '{path}: unknown carver type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-carver-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-carver-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_CARVER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-carver-type';
@@ -2687,10 +3473,18 @@ class UnknownCarverType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownDensityFunctionType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_DENSITY_FUNCTION_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown density function type minecraft:{type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-density-function-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_DENSITY_FUNCTION_TYPE' {
+        return 'WORLDGEN_UNKNOWN_DENSITY_FUNCTION_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown density function type minecraft:{type}' {
+        return '{path}: unknown density function type minecraft:{type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-density-function-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-density-function-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_DENSITY_FUNCTION_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-density-function-type';
@@ -2713,10 +3507,18 @@ class UnknownDensityFunctionType extends JSPrismarineTypeError {
  * change the axis's `mode` to `interpolate_linear` or leave the function out.
  */
 class UnsupportedUpscaleMode extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNSUPPORTED_UPSCALE_MODE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: upscale mode {mode} is not implemented; only "interpolate_linear" is';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unsupported-upscale-mode';
+    public static get code(): 'WORLDGEN_UNSUPPORTED_UPSCALE_MODE' {
+        return 'WORLDGEN_UNSUPPORTED_UPSCALE_MODE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: upscale mode {mode} is not implemented; only "interpolate_linear" is' {
+        return '{path}: upscale mode {mode} is not implemented; only "interpolate_linear" is';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unsupported-upscale-mode' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unsupported-upscale-mode';
+    }
 
     public override readonly code = 'WORLDGEN_UNSUPPORTED_UPSCALE_MODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unsupported-upscale-mode';
@@ -2742,11 +3544,18 @@ class UnsupportedUpscaleMode extends JSPrismarineTypeError {
  * the same `cell_size`.
  */
 class UnevenUpscaleCells extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNEVEN_UPSCALE_CELLS';
-    public static readonly domain = 'worldgen';
-    public static readonly template =
-        '{path}: upscale cell sizes differ across x ({x}) and z ({z}); only equal sizes are implemented';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-uneven-upscale-cells';
+    public static get code(): 'WORLDGEN_UNEVEN_UPSCALE_CELLS' {
+        return 'WORLDGEN_UNEVEN_UPSCALE_CELLS';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: upscale cell sizes differ across x ({x}) and z ({z}); only equal sizes are implemented' {
+        return '{path}: upscale cell sizes differ across x ({x}) and z ({z}); only equal sizes are implemented';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-uneven-upscale-cells' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-uneven-upscale-cells';
+    }
 
     public override readonly code = 'WORLDGEN_UNEVEN_UPSCALE_CELLS';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-uneven-upscale-cells';
@@ -2777,10 +3586,18 @@ class UnevenUpscaleCells extends JSPrismarineTypeError {
  * `upscale` does.
  */
 class NonPositiveUpscaleCell extends JSPrismarineRangeError {
-    public static readonly code = 'WORLDGEN_NON_POSITIVE_UPSCALE_CELL';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: expected a positive upscale cell size, got {size}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-non-positive-upscale-cell';
+    public static get code(): 'WORLDGEN_NON_POSITIVE_UPSCALE_CELL' {
+        return 'WORLDGEN_NON_POSITIVE_UPSCALE_CELL';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: expected a positive upscale cell size, got {size}' {
+        return '{path}: expected a positive upscale cell size, got {size}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-non-positive-upscale-cell' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-non-positive-upscale-cell';
+    }
 
     public override readonly code = 'WORLDGEN_NON_POSITIVE_UPSCALE_CELL';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-non-positive-upscale-cell';
@@ -2802,10 +3619,18 @@ class NonPositiveUpscaleCell extends JSPrismarineRangeError {
  * type this server does not implement.
  */
 class UnknownFloatProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_FLOAT_PROVIDER_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown float provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-float-provider-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_FLOAT_PROVIDER_TYPE' {
+        return 'WORLDGEN_UNKNOWN_FLOAT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown float provider type {type}' {
+        return '{path}: unknown float provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-float-provider-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-float-provider-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_FLOAT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-float-provider-type';
@@ -2827,10 +3652,18 @@ class UnknownFloatProviderType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownHeightProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_HEIGHT_PROVIDER_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown height provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-height-provider-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_HEIGHT_PROVIDER_TYPE' {
+        return 'WORLDGEN_UNKNOWN_HEIGHT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown height provider type {type}' {
+        return '{path}: unknown height provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-height-provider-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-height-provider-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_HEIGHT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-height-provider-type';
@@ -2852,10 +3685,18 @@ class UnknownHeightProviderType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownIntProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_INT_PROVIDER_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown int provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-int-provider-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_INT_PROVIDER_TYPE' {
+        return 'WORLDGEN_UNKNOWN_INT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown int provider type {type}' {
+        return '{path}: unknown int provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-int-provider-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-int-provider-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_INT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-int-provider-type';
@@ -2877,10 +3718,18 @@ class UnknownIntProviderType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownMaterialConditionType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_MATERIAL_CONDITION_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown material condition type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-condition-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_MATERIAL_CONDITION_TYPE' {
+        return 'WORLDGEN_UNKNOWN_MATERIAL_CONDITION_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown material condition type {type}' {
+        return '{path}: unknown material condition type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-condition-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-condition-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_MATERIAL_CONDITION_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-condition-type';
@@ -2902,10 +3751,18 @@ class UnknownMaterialConditionType extends JSPrismarineTypeError {
  * this server does not implement.
  */
 class UnknownMaterialRuleType extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_MATERIAL_RULE_TYPE';
-    public static readonly domain = 'worldgen';
-    public static readonly template = '{path}: unknown material rule type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-rule-type';
+    public static get code(): 'WORLDGEN_UNKNOWN_MATERIAL_RULE_TYPE' {
+        return 'WORLDGEN_UNKNOWN_MATERIAL_RULE_TYPE';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): '{path}: unknown material rule type {type}' {
+        return '{path}: unknown material rule type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-rule-type' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-rule-type';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_MATERIAL_RULE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-material-rule-type';
@@ -2927,10 +3784,18 @@ class UnknownMaterialRuleType extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class UnknownUnaryDensityFunction extends JSPrismarineTypeError {
-    public static readonly code = 'WORLDGEN_UNKNOWN_UNARY_DENSITY_FUNCTION';
-    public static readonly domain = 'worldgen';
-    public static readonly template = 'Unknown unary density function {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-unary-density-function';
+    public static get code(): 'WORLDGEN_UNKNOWN_UNARY_DENSITY_FUNCTION' {
+        return 'WORLDGEN_UNKNOWN_UNARY_DENSITY_FUNCTION';
+    }
+    public static get domain(): 'worldgen' {
+        return 'worldgen';
+    }
+    public static get template(): 'Unknown unary density function {type}' {
+        return 'Unknown unary density function {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-unary-density-function' {
+        return 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-unary-density-function';
+    }
 
     public override readonly code = 'WORLDGEN_UNKNOWN_UNARY_DENSITY_FUNCTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/worldgen#worldgen-unknown-unary-density-function';

@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * code that caught it needed an `Error`. The message is the value as text.
  */
 class ThrownValue extends JSPrismarineError {
-    public static readonly code = 'COMMON_THROWN_VALUE';
-    public static readonly domain = 'common';
-    public static readonly template = '{value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/common#common-thrown-value';
+    public static get code(): 'COMMON_THROWN_VALUE' {
+        return 'COMMON_THROWN_VALUE';
+    }
+    public static get domain(): 'common' {
+        return 'common';
+    }
+    public static get template(): '{value}' {
+        return '{value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/common#common-thrown-value' {
+        return 'https://jsprismarine.dev/errors/common#common-thrown-value';
+    }
 
     public override readonly code = 'COMMON_THROWN_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/common#common-thrown-value';

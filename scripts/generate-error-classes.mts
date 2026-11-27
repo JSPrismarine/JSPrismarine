@@ -227,6 +227,12 @@ const messageExpression = (template: string) => {
     return `\`${body}\``;
 };
 
+/** The lines of a static getter that returns a catalog value, typed as that literal. */
+const staticGetter = (name: string, value: string) => {
+    const literal = JSON.stringify(value);
+    return [`public static get ${name}(): ${literal} {`, `return ${literal};`, '}'];
+};
+
 /** The class an entry becomes. */
 const classOf = (entry: Entry, domain: string, module: string | undefined) => {
     const code = `${constantCase(domain)}_${constantCase(entry.key)}`;
@@ -239,11 +245,14 @@ const classOf = (entry: Entry, domain: string, module: string | undefined) => {
     const lines: (string | undefined)[] = [
         entry.doc || undefined,
         `class ${entry.key} extends ${entry.base} {`,
-        `public static readonly code = ${JSON.stringify(code)};`,
-        `public static readonly domain = ${JSON.stringify(domain)};`,
-        module === undefined ? undefined : `public static readonly module = ${JSON.stringify(module)};`,
-        `public static readonly template = ${JSON.stringify(entry.template)};`,
-        `public static readonly docs = ${JSON.stringify(docs)};`,
+        // Getters rather than static fields: Bun's AOT compiler counts each static field as a
+        // property added to the class by name, about 6,000 in the catalog, where a getter is part
+        // of the class it compiles. The return types keep each value's literal type.
+        ...staticGetter('code', code),
+        ...staticGetter('domain', domain),
+        ...(module === undefined ? [] : staticGetter('module', module)),
+        ...staticGetter('template', entry.template),
+        ...staticGetter('docs', docs),
         '',
         `public override readonly code = ${JSON.stringify(code)};`,
         `public override readonly docs = ${JSON.stringify(docs)};`,

@@ -8,10 +8,18 @@ import { JSPrismarineRangeError } from '@jsprismarine/errors/JSPrismarineError';
  * caller.
  */
 class LightOutsideSection extends JSPrismarineRangeError {
-    public static readonly code = 'LIGHTING_LIGHT_OUTSIDE_SECTION';
-    public static readonly domain = 'lighting';
-    public static readonly template = 'Light coordinates ({x}, {z}, {y}) fall outside the section';
-    public static readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-light-outside-section';
+    public static get code(): 'LIGHTING_LIGHT_OUTSIDE_SECTION' {
+        return 'LIGHTING_LIGHT_OUTSIDE_SECTION';
+    }
+    public static get domain(): 'lighting' {
+        return 'lighting';
+    }
+    public static get template(): 'Light coordinates ({x}, {z}, {y}) fall outside the section' {
+        return 'Light coordinates ({x}, {z}, {y}) fall outside the section';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/lighting#lighting-light-outside-section' {
+        return 'https://jsprismarine.dev/errors/lighting#lighting-light-outside-section';
+    }
 
     public override readonly code = 'LIGHTING_LIGHT_OUTSIDE_SECTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-light-outside-section';
@@ -38,10 +46,18 @@ class LightOutsideSection extends JSPrismarineRangeError {
 
 /** The light engine was given a budget that is not a whole, non-negative number of nodes. */
 class InvalidFlushBudget extends JSPrismarineRangeError {
-    public static readonly code = 'LIGHTING_INVALID_FLUSH_BUDGET';
-    public static readonly domain = 'lighting';
-    public static readonly template = 'Light flush budget {budget} is not a count of nodes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-flush-budget';
+    public static get code(): 'LIGHTING_INVALID_FLUSH_BUDGET' {
+        return 'LIGHTING_INVALID_FLUSH_BUDGET';
+    }
+    public static get domain(): 'lighting' {
+        return 'lighting';
+    }
+    public static get template(): 'Light flush budget {budget} is not a count of nodes' {
+        return 'Light flush budget {budget} is not a count of nodes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/lighting#lighting-invalid-flush-budget' {
+        return 'https://jsprismarine.dev/errors/lighting#lighting-invalid-flush-budget';
+    }
 
     public override readonly code = 'LIGHTING_INVALID_FLUSH_BUDGET';
     public override readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-flush-budget';
@@ -60,10 +76,18 @@ class InvalidFlushBudget extends JSPrismarineRangeError {
 
 /** Code tried to store a light level that is not a whole number from 0 to the highest level. */
 class InvalidLightLevel extends JSPrismarineRangeError {
-    public static readonly code = 'LIGHTING_INVALID_LIGHT_LEVEL';
-    public static readonly domain = 'lighting';
-    public static readonly template = 'Light level {level} is not an integer between 0 and {maxLightLevel}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-light-level';
+    public static get code(): 'LIGHTING_INVALID_LIGHT_LEVEL' {
+        return 'LIGHTING_INVALID_LIGHT_LEVEL';
+    }
+    public static get domain(): 'lighting' {
+        return 'lighting';
+    }
+    public static get template(): 'Light level {level} is not an integer between 0 and {maxLightLevel}' {
+        return 'Light level {level} is not an integer between 0 and {maxLightLevel}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/lighting#lighting-invalid-light-level' {
+        return 'https://jsprismarine.dev/errors/lighting#lighting-invalid-light-level';
+    }
 
     public override readonly code = 'LIGHTING_INVALID_LIGHT_LEVEL';
     public override readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-light-level';
@@ -85,10 +109,18 @@ class InvalidLightLevel extends JSPrismarineRangeError {
 
 /** The light engine was given a budget that is not a whole, non-negative number of nodes. */
 class InvalidSettleBudget extends JSPrismarineRangeError {
-    public static readonly code = 'LIGHTING_INVALID_SETTLE_BUDGET';
-    public static readonly domain = 'lighting';
-    public static readonly template = 'Light settle budget {budget} is not a count of nodes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-settle-budget';
+    public static get code(): 'LIGHTING_INVALID_SETTLE_BUDGET' {
+        return 'LIGHTING_INVALID_SETTLE_BUDGET';
+    }
+    public static get domain(): 'lighting' {
+        return 'lighting';
+    }
+    public static get template(): 'Light settle budget {budget} is not a count of nodes' {
+        return 'Light settle budget {budget} is not a count of nodes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/lighting#lighting-invalid-settle-budget' {
+        return 'https://jsprismarine.dev/errors/lighting#lighting-invalid-settle-budget';
+    }
 
     public override readonly code = 'LIGHTING_INVALID_SETTLE_BUDGET';
     public override readonly docs = 'https://jsprismarine.dev/errors/lighting#lighting-invalid-settle-budget';

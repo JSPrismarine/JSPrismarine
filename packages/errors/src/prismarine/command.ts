@@ -8,11 +8,21 @@ import { JSPrismarineError, JSPrismarineTypeError } from '@jsprismarine/errors/J
  * `config.json` and restart.
  */
 class StartupOnlySetting extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STARTUP_ONLY_SETTING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Config key "{key}" can\'t be set at runtime';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-startup-only-setting';
+    public static get code(): 'PRISMARINE_STARTUP_ONLY_SETTING' {
+        return 'PRISMARINE_STARTUP_ONLY_SETTING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Config key "{key}" can\'t be set at runtime' {
+        return 'Config key "{key}" can\'t be set at runtime';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-startup-only-setting' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-startup-only-setting';
+    }
 
     public override readonly code = 'PRISMARINE_STARTUP_ONLY_SETTING';
     public override readonly docs =
@@ -35,12 +45,21 @@ class StartupOnlySetting extends JSPrismarineError {
  * that holds it is damaged.
  */
 class DuplicateCommandRandomSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_COMMAND_RANDOM_SEQUENCE_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Duplicate command random sequence state: {entry}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-duplicate-command-random-sequence-state';
+    public static get code(): 'PRISMARINE_DUPLICATE_COMMAND_RANDOM_SEQUENCE_STATE' {
+        return 'PRISMARINE_DUPLICATE_COMMAND_RANDOM_SEQUENCE_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Duplicate command random sequence state: {entry}' {
+        return 'Duplicate command random sequence state: {entry}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-duplicate-command-random-sequence-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-duplicate-command-random-sequence-state';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_COMMAND_RANDOM_SEQUENCE_STATE';
     public override readonly docs =
@@ -60,11 +79,21 @@ class DuplicateCommandRandomSequenceState extends JSPrismarineTypeError {
 
 /** `/debug` was given an action it does not have. */
 class UnknownDebugAction extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_DEBUG_ACTION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid action!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-debug-action';
+    public static get code(): 'PRISMARINE_UNKNOWN_DEBUG_ACTION' {
+        return 'PRISMARINE_UNKNOWN_DEBUG_ACTION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid action!' {
+        return 'Invalid action!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-debug-action' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-debug-action';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_DEBUG_ACTION';
     public override readonly docs =
@@ -86,12 +115,21 @@ class UnknownDebugAction extends JSPrismarineError {
  * or the replay that holds it is damaged.
  */
 class InvalidCommandRandomSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_COMMAND_RANDOM_SEQUENCE_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid command random sequence state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-command-random-sequence-state';
+    public static get code(): 'PRISMARINE_INVALID_COMMAND_RANDOM_SEQUENCE_STATE' {
+        return 'PRISMARINE_INVALID_COMMAND_RANDOM_SEQUENCE_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid command random sequence state' {
+        return 'Invalid command random sequence state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-command-random-sequence-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-command-random-sequence-state';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_COMMAND_RANDOM_SEQUENCE_STATE';
     public override readonly docs =
@@ -113,12 +151,21 @@ class InvalidCommandRandomSequenceState extends JSPrismarineTypeError {
  * replay that holds it is damaged.
  */
 class InvalidNamedCommandRandomSequenceState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_NAMED_COMMAND_RANDOM_SEQUENCE_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid named command random sequence state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-command-random-sequence-state';
+    public static get code(): 'PRISMARINE_INVALID_NAMED_COMMAND_RANDOM_SEQUENCE_STATE' {
+        return 'PRISMARINE_INVALID_NAMED_COMMAND_RANDOM_SEQUENCE_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid named command random sequence state' {
+        return 'Invalid named command random sequence state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-command-random-sequence-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-command-random-sequence-state';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_NAMED_COMMAND_RANDOM_SEQUENCE_STATE';
     public override readonly docs =
@@ -140,12 +187,21 @@ class InvalidNamedCommandRandomSequenceState extends JSPrismarineTypeError {
  * that holds it is damaged.
  */
 class InvalidRandomSequenceSeed extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_RANDOM_SEQUENCE_SEED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid random sequence seed';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-sequence-seed';
+    public static get code(): 'PRISMARINE_INVALID_RANDOM_SEQUENCE_SEED' {
+        return 'PRISMARINE_INVALID_RANDOM_SEQUENCE_SEED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid random sequence seed' {
+        return 'Invalid random sequence seed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-sequence-seed' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-sequence-seed';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_RANDOM_SEQUENCE_SEED';
     public override readonly docs =
@@ -167,12 +223,21 @@ class InvalidRandomSequenceSeed extends JSPrismarineTypeError {
  * that holds it is damaged.
  */
 class InvalidRandomStreamState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_RANDOM_STREAM_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid random stream state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-stream-state';
+    public static get code(): 'PRISMARINE_INVALID_RANDOM_STREAM_STATE' {
+        return 'PRISMARINE_INVALID_RANDOM_STREAM_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid random stream state' {
+        return 'Invalid random stream state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-stream-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-random-stream-state';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_RANDOM_STREAM_STATE';
     public override readonly docs =
@@ -194,12 +259,21 @@ class InvalidRandomStreamState extends JSPrismarineTypeError {
  * the replay that holds it is damaged.
  */
 class InvalidNamedRandomStreamState extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_NAMED_RANDOM_STREAM_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'Invalid {sequence} random stream state';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-random-stream-state';
+    public static get code(): 'PRISMARINE_INVALID_NAMED_RANDOM_STREAM_STATE' {
+        return 'PRISMARINE_INVALID_NAMED_RANDOM_STREAM_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'Invalid {sequence} random stream state' {
+        return 'Invalid {sequence} random stream state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-random-stream-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-invalid-named-random-stream-state';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_NAMED_RANDOM_STREAM_STATE';
     public override readonly docs =
@@ -219,12 +293,21 @@ class InvalidNamedRandomStreamState extends JSPrismarineTypeError {
 
 /** `/debug` named a world `config.json` does not list. */
 class UnknownConfiguredWorld extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_CONFIGURED_WORLD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'No world {data} in config';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-configured-world';
+    public static get code(): 'PRISMARINE_UNKNOWN_CONFIGURED_WORLD' {
+        return 'PRISMARINE_UNKNOWN_CONFIGURED_WORLD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'No world {data} in config' {
+        return 'No world {data} in config';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-configured-world' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unknown-configured-world';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_CONFIGURED_WORLD';
     public override readonly docs =
@@ -244,11 +327,21 @@ class UnknownConfiguredWorld extends JSPrismarineError {
 
 /** `/debug` named a world that is not loaded. */
 class WorldNotLoaded extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_WORLD_NOT_LOADED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'No world {data} is loaded';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-world-not-loaded';
+    public static get code(): 'PRISMARINE_WORLD_NOT_LOADED' {
+        return 'PRISMARINE_WORLD_NOT_LOADED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'No world {data} is loaded' {
+        return 'No world {data} is loaded';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-world-not-loaded' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-world-not-loaded';
+    }
 
     public override readonly code = 'PRISMARINE_WORLD_NOT_LOADED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-world-not-loaded';
@@ -267,12 +360,21 @@ class WorldNotLoaded extends JSPrismarineError {
 
 /** `/return` was run outside an `.mcfunction` file, where it has nothing to return from. */
 class ReturnOutsideFunction extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RETURN_OUTSIDE_FUNCTION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = '/return can only be used inside a function';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-return-outside-function';
+    public static get code(): 'PRISMARINE_RETURN_OUTSIDE_FUNCTION' {
+        return 'PRISMARINE_RETURN_OUTSIDE_FUNCTION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): '/return can only be used inside a function' {
+        return '/return can only be used inside a function';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-return-outside-function' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-return-outside-function';
+    }
 
     public override readonly code = 'PRISMARINE_RETURN_OUTSIDE_FUNCTION';
     public override readonly docs =
@@ -294,11 +396,21 @@ class ReturnOutsideFunction extends JSPrismarineError {
  * before this line says which part.
  */
 class UncleanShutdown extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNCLEAN_SHUTDOWN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = 'The server did not shut down cleanly';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unclean-shutdown';
+    public static get code(): 'PRISMARINE_UNCLEAN_SHUTDOWN' {
+        return 'PRISMARINE_UNCLEAN_SHUTDOWN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): 'The server did not shut down cleanly' {
+        return 'The server did not shut down cleanly';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unclean-shutdown' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unclean-shutdown';
+    }
 
     public override readonly code = 'PRISMARINE_UNCLEAN_SHUTDOWN';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/command#prismarine-unclean-shutdown';
@@ -319,12 +431,21 @@ class UncleanShutdown extends JSPrismarineError {
  * use `/execute as` with a player.
  */
 class CommandCannotRunFromConsole extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_COMMAND_CANNOT_RUN_FROM_CONSOLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'command';
-    public static readonly template = "This command can't be run from the console";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-cannot-run-from-console';
+    public static get code(): 'PRISMARINE_COMMAND_CANNOT_RUN_FROM_CONSOLE' {
+        return 'PRISMARINE_COMMAND_CANNOT_RUN_FROM_CONSOLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'command' {
+        return 'command';
+    }
+    public static get template(): "This command can't be run from the console" {
+        return "This command can't be run from the console";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-cannot-run-from-console' {
+        return 'https://jsprismarine.dev/errors/prismarine/command#prismarine-command-cannot-run-from-console';
+    }
 
     public override readonly code = 'PRISMARINE_COMMAND_CANNOT_RUN_FROM_CONSOLE';
     public override readonly docs =

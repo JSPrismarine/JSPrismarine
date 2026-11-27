@@ -16,10 +16,18 @@ export abstract class KernelError extends JSPrismarineError {
  * `start()`.
  */
 class LateModuleRegistration extends KernelError {
-    public static readonly code = 'KERNEL_LATE_MODULE_REGISTRATION';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Cannot register module "{id}" after the kernel has run registerAll()';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-late-module-registration';
+    public static get code(): 'KERNEL_LATE_MODULE_REGISTRATION' {
+        return 'KERNEL_LATE_MODULE_REGISTRATION';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Cannot register module "{id}" after the kernel has run registerAll()' {
+        return 'Cannot register module "{id}" after the kernel has run registerAll()';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-late-module-registration' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-late-module-registration';
+    }
 
     public override readonly code = 'KERNEL_LATE_MODULE_REGISTRATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-late-module-registration';
@@ -40,10 +48,18 @@ class LateModuleRegistration extends KernelError {
  * Modules depend on each other in a loop, so none can start first. The message lists the loop.
  */
 class DependencyCycle extends KernelError {
-    public static readonly code = 'KERNEL_DEPENDENCY_CYCLE';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Dependency cycle between modules: {cycle}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-dependency-cycle';
+    public static get code(): 'KERNEL_DEPENDENCY_CYCLE' {
+        return 'KERNEL_DEPENDENCY_CYCLE';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Dependency cycle between modules: {cycle}' {
+        return 'Dependency cycle between modules: {cycle}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-dependency-cycle' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-dependency-cycle';
+    }
 
     public override readonly code = 'KERNEL_DEPENDENCY_CYCLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-dependency-cycle';
@@ -62,10 +78,18 @@ class DependencyCycle extends KernelError {
 
 /** `start()` was called on a kernel that is already starting or started. */
 class AlreadyStarted extends KernelError {
-    public static readonly code = 'KERNEL_ALREADY_STARTED';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Kernel is already {phase}; stop() it before starting again';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-already-started';
+    public static get code(): 'KERNEL_ALREADY_STARTED' {
+        return 'KERNEL_ALREADY_STARTED';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Kernel is already {phase}; stop() it before starting again' {
+        return 'Kernel is already {phase}; stop() it before starting again';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-already-started' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-already-started';
+    }
 
     public override readonly code = 'KERNEL_ALREADY_STARTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-already-started';
@@ -87,11 +111,18 @@ class AlreadyStarted extends KernelError {
  * providing module, or drop the dependency.
  */
 class MissingServiceProvider extends KernelError {
-    public static readonly code = 'KERNEL_MISSING_SERVICE_PROVIDER';
-    public static readonly domain = 'kernel';
-    public static readonly template =
-        'Module "{id}" depends on service "{tokenId}" but no registered module provides it';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-missing-service-provider';
+    public static get code(): 'KERNEL_MISSING_SERVICE_PROVIDER' {
+        return 'KERNEL_MISSING_SERVICE_PROVIDER';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Module "{id}" depends on service "{tokenId}" but no registered module provides it' {
+        return 'Module "{id}" depends on service "{tokenId}" but no registered module provides it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-missing-service-provider' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-missing-service-provider';
+    }
 
     public override readonly code = 'KERNEL_MISSING_SERVICE_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-missing-service-provider';
@@ -113,10 +144,18 @@ class MissingServiceProvider extends KernelError {
 
 /** A module provided a service outside its own `register()`. Provide services there. */
 class ProvideOutsideRegister extends KernelError {
-    public static readonly code = 'KERNEL_PROVIDE_OUTSIDE_REGISTER';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Module "{moduleId}" may only provide "{id}" during its register() phase';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-provide-outside-register';
+    public static get code(): 'KERNEL_PROVIDE_OUTSIDE_REGISTER' {
+        return 'KERNEL_PROVIDE_OUTSIDE_REGISTER';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Module "{moduleId}" may only provide "{id}" during its register() phase' {
+        return 'Module "{moduleId}" may only provide "{id}" during its register() phase';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-provide-outside-register' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-provide-outside-register';
+    }
 
     public override readonly code = 'KERNEL_PROVIDE_OUTSIDE_REGISTER';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-provide-outside-register';
@@ -141,10 +180,18 @@ class ProvideOutsideRegister extends KernelError {
  * order it after the provider. Add the service to its dependencies.
  */
 class UndeclaredServiceUse extends KernelError {
-    public static readonly code = 'KERNEL_UNDECLARED_SERVICE_USE';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Module "{moduleId}" used service "{id}" without declaring it as a dependency';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-service-use';
+    public static get code(): 'KERNEL_UNDECLARED_SERVICE_USE' {
+        return 'KERNEL_UNDECLARED_SERVICE_USE';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Module "{moduleId}" used service "{id}" without declaring it as a dependency' {
+        return 'Module "{moduleId}" used service "{id}" without declaring it as a dependency';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-service-use' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-service-use';
+    }
 
     public override readonly code = 'KERNEL_UNDECLARED_SERVICE_USE';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-service-use';
@@ -166,10 +213,18 @@ class UndeclaredServiceUse extends KernelError {
 
 /** Two modules share an id. */
 class DuplicateModule extends KernelError {
-    public static readonly code = 'KERNEL_DUPLICATE_MODULE';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'A module with id "{id}" is already registered';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-module';
+    public static get code(): 'KERNEL_DUPLICATE_MODULE' {
+        return 'KERNEL_DUPLICATE_MODULE';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'A module with id "{id}" is already registered' {
+        return 'A module with id "{id}" is already registered';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-module' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-module';
+    }
 
     public override readonly code = 'KERNEL_DUPLICATE_MODULE';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-module';
@@ -188,10 +243,18 @@ class DuplicateModule extends KernelError {
 
 /** A service was resolved that no module provides. */
 class NoProviderForService extends KernelError {
-    public static readonly code = 'KERNEL_NO_PROVIDER_FOR_SERVICE';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'No provider for service "{id}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-no-provider-for-service';
+    public static get code(): 'KERNEL_NO_PROVIDER_FOR_SERVICE' {
+        return 'KERNEL_NO_PROVIDER_FOR_SERVICE';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'No provider for service "{id}"' {
+        return 'No provider for service "{id}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-no-provider-for-service' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-no-provider-for-service';
+    }
 
     public override readonly code = 'KERNEL_NO_PROVIDER_FOR_SERVICE';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-no-provider-for-service';
@@ -213,11 +276,18 @@ class NoProviderForService extends KernelError {
  * replacing it is intended.
  */
 class DuplicateServiceProvider extends KernelError {
-    public static readonly code = 'KERNEL_DUPLICATE_SERVICE_PROVIDER';
-    public static readonly domain = 'kernel';
-    public static readonly template =
-        'Service "{id}" is already provided by module "{existing}"; pass override: true to replace it';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-service-provider';
+    public static get code(): 'KERNEL_DUPLICATE_SERVICE_PROVIDER' {
+        return 'KERNEL_DUPLICATE_SERVICE_PROVIDER';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Service "{id}" is already provided by module "{existing}"; pass override: true to replace it' {
+        return 'Service "{id}" is already provided by module "{existing}"; pass override: true to replace it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-service-provider' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-service-provider';
+    }
 
     public override readonly code = 'KERNEL_DUPLICATE_SERVICE_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-duplicate-service-provider';
@@ -242,11 +312,18 @@ class DuplicateServiceProvider extends KernelError {
  * `start()`.
  */
 class ServiceNotProvidedYet extends KernelError {
-    public static readonly code = 'KERNEL_SERVICE_NOT_PROVIDED_YET';
-    public static readonly domain = 'kernel';
-    public static readonly template =
-        'Service "{id}" is not provided yet; resolve dependencies in start(), not register()';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-service-not-provided-yet';
+    public static get code(): 'KERNEL_SERVICE_NOT_PROVIDED_YET' {
+        return 'KERNEL_SERVICE_NOT_PROVIDED_YET';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Service "{id}" is not provided yet; resolve dependencies in start(), not register()' {
+        return 'Service "{id}" is not provided yet; resolve dependencies in start(), not register()';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-service-not-provided-yet' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-service-not-provided-yet';
+    }
 
     public override readonly code = 'KERNEL_SERVICE_NOT_PROVIDED_YET';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-service-not-provided-yet';
@@ -268,10 +345,18 @@ class ServiceNotProvidedYet extends KernelError {
 
 /** A service token's id is not written as `namespace:name`. */
 class TokenIdNotNamespaced extends JSPrismarineError {
-    public static readonly code = 'KERNEL_TOKEN_ID_NOT_NAMESPACED';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Service token id must be namespaced as "namespace:name", got "{id}"';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-token-id-not-namespaced';
+    public static get code(): 'KERNEL_TOKEN_ID_NOT_NAMESPACED' {
+        return 'KERNEL_TOKEN_ID_NOT_NAMESPACED';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Service token id must be namespaced as "namespace:name", got "{id}"' {
+        return 'Service token id must be namespaced as "namespace:name", got "{id}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-token-id-not-namespaced' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-token-id-not-namespaced';
+    }
 
     public override readonly code = 'KERNEL_TOKEN_ID_NOT_NAMESPACED';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-token-id-not-namespaced';
@@ -293,10 +378,18 @@ class TokenIdNotNamespaced extends JSPrismarineError {
  * declare the dependency.
  */
 class UndeclaredStub extends KernelError {
-    public static readonly code = 'KERNEL_UNDECLARED_STUB';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Stub for "{id}" is not in module "{moduleId}"\'s declared dependencies';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-stub';
+    public static get code(): 'KERNEL_UNDECLARED_STUB' {
+        return 'KERNEL_UNDECLARED_STUB';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Stub for "{id}" is not in module "{moduleId}"\'s declared dependencies' {
+        return 'Stub for "{id}" is not in module "{moduleId}"\'s declared dependencies';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-stub' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-stub';
+    }
 
     public override readonly code = 'KERNEL_UNDECLARED_STUB';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-undeclared-stub';
@@ -318,10 +411,18 @@ class UndeclaredStub extends KernelError {
 
 /** The kernel was stopped while it was still starting, so the start gave up. */
 class StoppedDuringStart extends KernelError {
-    public static readonly code = 'KERNEL_STOPPED_DURING_START';
-    public static readonly domain = 'kernel';
-    public static readonly template = 'Kernel was stopped before start() finished';
-    public static readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-stopped-during-start';
+    public static get code(): 'KERNEL_STOPPED_DURING_START' {
+        return 'KERNEL_STOPPED_DURING_START';
+    }
+    public static get domain(): 'kernel' {
+        return 'kernel';
+    }
+    public static get template(): 'Kernel was stopped before start() finished' {
+        return 'Kernel was stopped before start() finished';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/kernel#kernel-stopped-during-start' {
+        return 'https://jsprismarine.dev/errors/kernel#kernel-stopped-during-start';
+    }
 
     public override readonly code = 'KERNEL_STOPPED_DURING_START';
     public override readonly docs = 'https://jsprismarine.dev/errors/kernel#kernel-stopped-during-start';

@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * in the caller of Brigadier.
  */
 class CannotFindNodeBeforeCursor extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_CANNOT_FIND_NODE_BEFORE_CURSOR';
-    public static readonly domain = 'brigadier';
-    public static readonly template = "Can't find node before cursor";
-    public static readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-find-node-before-cursor';
+    public static get code(): 'BRIGADIER_CANNOT_FIND_NODE_BEFORE_CURSOR' {
+        return 'BRIGADIER_CANNOT_FIND_NODE_BEFORE_CURSOR';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): "Can't find node before cursor" {
+        return "Can't find node before cursor";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-find-node-before-cursor' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-find-node-before-cursor';
+    }
 
     public override readonly code = 'BRIGADIER_CANNOT_FIND_NODE_BEFORE_CURSOR';
     public override readonly docs =
@@ -33,11 +41,18 @@ class CannotFindNodeBeforeCursor extends JSPrismarineError {
  * reaches. Build the children on the target node.
  */
 class CannotAddChildrenToRedirectedNode extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_CANNOT_ADD_CHILDREN_TO_REDIRECTED_NODE';
-    public static readonly domain = 'brigadier';
-    public static readonly template = 'Cannot add children to a redirected node';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-add-children-to-redirected-node';
+    public static get code(): 'BRIGADIER_CANNOT_ADD_CHILDREN_TO_REDIRECTED_NODE' {
+        return 'BRIGADIER_CANNOT_ADD_CHILDREN_TO_REDIRECTED_NODE';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): 'Cannot add children to a redirected node' {
+        return 'Cannot add children to a redirected node';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-add-children-to-redirected-node' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-add-children-to-redirected-node';
+    }
 
     public override readonly code = 'BRIGADIER_CANNOT_ADD_CHILDREN_TO_REDIRECTED_NODE';
     public override readonly docs =
@@ -56,10 +71,18 @@ class CannotAddChildrenToRedirectedNode extends JSPrismarineError {
 
 /** A root node was added as another node's child. A command tree has one root. */
 class RootNodeAsChild extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_ROOT_NODE_AS_CHILD';
-    public static readonly domain = 'brigadier';
-    public static readonly template = 'Cannot add a RootCommandNode as a child to any other CommandNode';
-    public static readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-root-node-as-child';
+    public static get code(): 'BRIGADIER_ROOT_NODE_AS_CHILD' {
+        return 'BRIGADIER_ROOT_NODE_AS_CHILD';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): 'Cannot add a RootCommandNode as a child to any other CommandNode' {
+        return 'Cannot add a RootCommandNode as a child to any other CommandNode';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-root-node-as-child' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-root-node-as-child';
+    }
 
     public override readonly code = 'BRIGADIER_ROOT_NODE_AS_CHILD';
     public override readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-root-node-as-child';
@@ -77,11 +100,18 @@ class RootNodeAsChild extends JSPrismarineError {
 
 /** Code asked the root node for a builder; only literal and argument nodes have one. */
 class CannotConvertRootIntoBuilder extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_CANNOT_CONVERT_ROOT_INTO_BUILDER';
-    public static readonly domain = 'brigadier';
-    public static readonly template = 'Cannot convert root into a builder';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-convert-root-into-builder';
+    public static get code(): 'BRIGADIER_CANNOT_CONVERT_ROOT_INTO_BUILDER' {
+        return 'BRIGADIER_CANNOT_CONVERT_ROOT_INTO_BUILDER';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): 'Cannot convert root into a builder' {
+        return 'Cannot convert root into a builder';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-convert-root-into-builder' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-convert-root-into-builder';
+    }
 
     public override readonly code = 'BRIGADIER_CANNOT_CONVERT_ROOT_INTO_BUILDER';
     public override readonly docs =
@@ -103,11 +133,18 @@ class CannotConvertRootIntoBuilder extends JSPrismarineError {
  * either runs its children or forwards, not both.
  */
 class CannotForwardNodeWithChildren extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_CANNOT_FORWARD_NODE_WITH_CHILDREN';
-    public static readonly domain = 'brigadier';
-    public static readonly template = 'Cannot forward a node with children';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-forward-node-with-children';
+    public static get code(): 'BRIGADIER_CANNOT_FORWARD_NODE_WITH_CHILDREN' {
+        return 'BRIGADIER_CANNOT_FORWARD_NODE_WITH_CHILDREN';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): 'Cannot forward a node with children' {
+        return 'Cannot forward a node with children';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-forward-node-with-children' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-cannot-forward-node-with-children';
+    }
 
     public override readonly code = 'BRIGADIER_CANNOT_FORWARD_NODE_WITH_CHILDREN';
     public override readonly docs =
@@ -129,10 +166,18 @@ class CannotForwardNodeWithChildren extends JSPrismarineError {
  * and the name in the command's definition differ.
  */
 class UnknownArgument extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_UNKNOWN_ARGUMENT';
-    public static readonly domain = 'brigadier';
-    public static readonly template = "No such argument '{name}' exists on this command";
-    public static readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-unknown-argument';
+    public static get code(): 'BRIGADIER_UNKNOWN_ARGUMENT' {
+        return 'BRIGADIER_UNKNOWN_ARGUMENT';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): "No such argument '{name}' exists on this command" {
+        return "No such argument '{name}' exists on this command";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-unknown-argument' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-unknown-argument';
+    }
 
     public override readonly code = 'BRIGADIER_UNKNOWN_ARGUMENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-unknown-argument';
@@ -151,10 +196,18 @@ class UnknownArgument extends JSPrismarineError {
 
 /** A command did not parse. The message is Brigadier's own, such as `Expected integer`, followed by where in the input it stopped, and is shown to whoever ran the command. */
 class CommandSyntax extends JSPrismarineError {
-    public static readonly code = 'BRIGADIER_COMMAND_SYNTAX';
-    public static readonly domain = 'brigadier';
-    public static readonly template = '{message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-command-syntax';
+    public static get code(): 'BRIGADIER_COMMAND_SYNTAX' {
+        return 'BRIGADIER_COMMAND_SYNTAX';
+    }
+    public static get domain(): 'brigadier' {
+        return 'brigadier';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/brigadier#brigadier-command-syntax' {
+        return 'https://jsprismarine.dev/errors/brigadier#brigadier-command-syntax';
+    }
 
     public override readonly code = 'BRIGADIER_COMMAND_SYNTAX';
     public override readonly docs = 'https://jsprismarine.dev/errors/brigadier#brigadier-command-syntax';

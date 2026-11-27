@@ -9,11 +9,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * library's.
  */
 class RaknetRingsNotAttached extends JSPrismarineError {
-    public static readonly code = 'NATIVE_NETWORK_RAKNET_RINGS_NOT_ATTACHED';
-    public static readonly domain = 'native-network';
-    public static readonly template = "Attaching RakNet's IPv{family} rings failed (error {result})";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-raknet-rings-not-attached';
+    public static get code(): 'NATIVE_NETWORK_RAKNET_RINGS_NOT_ATTACHED' {
+        return 'NATIVE_NETWORK_RAKNET_RINGS_NOT_ATTACHED';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): "Attaching RakNet's IPv{family} rings failed (error {result})" {
+        return "Attaching RakNet's IPv{family} rings failed (error {result})";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-raknet-rings-not-attached' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-raknet-rings-not-attached';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_RAKNET_RINGS_NOT_ATTACHED';
     public override readonly docs =
@@ -36,11 +43,18 @@ class RaknetRingsNotAttached extends JSPrismarineError {
 
 /** A WebRTC call in the native library failed. The error number is libdatachannel's. */
 class LibdatachannelCallFailed extends JSPrismarineError {
-    public static readonly code = 'NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED';
-    public static readonly domain = 'native-network';
-    public static readonly template = '{what} failed (libdatachannel error {result})';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-libdatachannel-call-failed';
+    public static get code(): 'NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED' {
+        return 'NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): '{what} failed (libdatachannel error {result})' {
+        return '{what} failed (libdatachannel error {result})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-libdatachannel-call-failed' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-libdatachannel-call-failed';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED';
     public override readonly docs =
@@ -64,11 +78,18 @@ class LibdatachannelCallFailed extends JSPrismarineError {
  * reason.
  */
 class LibraryDoesNotLoad extends NativeLibraryError {
-    public static readonly code = 'NATIVE_NETWORK_LIBRARY_DOES_NOT_LOAD';
-    public static readonly domain = 'native-network';
-    public static readonly template =
-        'The native networking library at {path} does not load on {platform}-{arch}: {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-network#native-network-library-does-not-load';
+    public static get code(): 'NATIVE_NETWORK_LIBRARY_DOES_NOT_LOAD' {
+        return 'NATIVE_NETWORK_LIBRARY_DOES_NOT_LOAD';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): 'The native networking library at {path} does not load on {platform}-{arch}: {value}' {
+        return 'The native networking library at {path} does not load on {platform}-{arch}: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-library-does-not-load' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-library-does-not-load';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_LIBRARY_DOES_NOT_LOAD';
     public override readonly docs =
@@ -102,12 +123,18 @@ class LibraryDoesNotLoad extends NativeLibraryError {
  * so the two match, or rebuild the library.
  */
 class LibraryInterfaceMismatch extends NativeLibraryError {
-    public static readonly code = 'NATIVE_NETWORK_LIBRARY_INTERFACE_MISMATCH';
-    public static readonly domain = 'native-network';
-    public static readonly template =
-        'The native networking library at {path} speaks interface {version}; this package needs {abiVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-library-interface-mismatch';
+    public static get code(): 'NATIVE_NETWORK_LIBRARY_INTERFACE_MISMATCH' {
+        return 'NATIVE_NETWORK_LIBRARY_INTERFACE_MISMATCH';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): 'The native networking library at {path} speaks interface {version}; this package needs {abiVersion}' {
+        return 'The native networking library at {path} speaks interface {version}; this package needs {abiVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-library-interface-mismatch' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-library-interface-mismatch';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_LIBRARY_INTERFACE_MISMATCH';
     public override readonly docs =
@@ -135,11 +162,18 @@ class LibraryInterfaceMismatch extends NativeLibraryError {
 
 /** The native library could not start its event queue. The number is its error code. */
 class EventQueueNotOpened extends NativeLibraryError {
-    public static readonly code = 'NATIVE_NETWORK_EVENT_QUEUE_NOT_OPENED';
-    public static readonly domain = 'native-network';
-    public static readonly template = 'The native networking library could not open its event queue ({opened})';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-event-queue-not-opened';
+    public static get code(): 'NATIVE_NETWORK_EVENT_QUEUE_NOT_OPENED' {
+        return 'NATIVE_NETWORK_EVENT_QUEUE_NOT_OPENED';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): 'The native networking library could not open its event queue ({opened})' {
+        return 'The native networking library could not open its event queue ({opened})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-event-queue-not-opened' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-event-queue-not-opened';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_EVENT_QUEUE_NOT_OPENED';
     public override readonly docs =
@@ -162,12 +196,18 @@ class EventQueueNotOpened extends NativeLibraryError {
  * usually because another process holds the port.
  */
 class SharedUdpPortNotBound extends JSPrismarineError {
-    public static readonly code = 'NATIVE_NETWORK_SHARED_UDP_PORT_NOT_BOUND';
-    public static readonly domain = 'native-network';
-    public static readonly template =
-        'UDP port {port} cannot be bound for RakNet and NetherNet together (error {handle})';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-shared-udp-port-not-bound';
+    public static get code(): 'NATIVE_NETWORK_SHARED_UDP_PORT_NOT_BOUND' {
+        return 'NATIVE_NETWORK_SHARED_UDP_PORT_NOT_BOUND';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): 'UDP port {port} cannot be bound for RakNet and NetherNet together (error {handle})' {
+        return 'UDP port {port} cannot be bound for RakNet and NetherNet together (error {handle})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-shared-udp-port-not-bound' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-shared-udp-port-not-bound';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_SHARED_UDP_PORT_NOT_BOUND';
     public override readonly docs =
@@ -190,11 +230,18 @@ class SharedUdpPortNotBound extends JSPrismarineError {
 
 /** The native library reported an error on a peer connection. The message is the library's own. */
 class PeerConnectionFailed extends JSPrismarineError {
-    public static readonly code = 'NATIVE_NETWORK_PEER_CONNECTION_FAILED';
-    public static readonly domain = 'native-network';
-    public static readonly template = '{message}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-network#native-network-peer-connection-failed';
+    public static get code(): 'NATIVE_NETWORK_PEER_CONNECTION_FAILED' {
+        return 'NATIVE_NETWORK_PEER_CONNECTION_FAILED';
+    }
+    public static get domain(): 'native-network' {
+        return 'native-network';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-network#native-network-peer-connection-failed' {
+        return 'https://jsprismarine.dev/errors/native-network#native-network-peer-connection-failed';
+    }
 
     public override readonly code = 'NATIVE_NETWORK_PEER_CONNECTION_FAILED';
     public override readonly docs =

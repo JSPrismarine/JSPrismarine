@@ -5,10 +5,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
 /** A game mode was given by a name or a number that names none of the four. */
 class GametypeInvalid extends JSPrismarineError {
-    public static readonly code = 'MINECRAFT_GAMETYPE_INVALID';
-    public static readonly domain = 'minecraft';
-    public static readonly template = 'Gametype "{gametype}" is not a valid game type.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/minecraft#minecraft-gametype-invalid';
+    public static get code(): 'MINECRAFT_GAMETYPE_INVALID' {
+        return 'MINECRAFT_GAMETYPE_INVALID';
+    }
+    public static get domain(): 'minecraft' {
+        return 'minecraft';
+    }
+    public static get template(): 'Gametype "{gametype}" is not a valid game type.' {
+        return 'Gametype "{gametype}" is not a valid game type.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/minecraft#minecraft-gametype-invalid' {
+        return 'https://jsprismarine.dev/errors/minecraft#minecraft-gametype-invalid';
+    }
 
     public override readonly code = 'MINECRAFT_GAMETYPE_INVALID';
     public override readonly docs = 'https://jsprismarine.dev/errors/minecraft#minecraft-gametype-invalid';

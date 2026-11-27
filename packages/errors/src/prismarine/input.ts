@@ -8,12 +8,21 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * to an intent appends its handler instead of registering a second one.
  */
 class DuplicateIntentHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_INTENT_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'input';
-    public static readonly template = 'An intent handler for {kind} already exists';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/input#prismarine-duplicate-intent-handler';
+    public static get code(): 'PRISMARINE_DUPLICATE_INTENT_HANDLER' {
+        return 'PRISMARINE_DUPLICATE_INTENT_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'input' {
+        return 'input';
+    }
+    public static get template(): 'An intent handler for {kind} already exists' {
+        return 'An intent handler for {kind} already exists';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/input#prismarine-duplicate-intent-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/input#prismarine-duplicate-intent-handler';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_INTENT_HANDLER';
     public override readonly docs =
@@ -36,11 +45,21 @@ class DuplicateIntentHandler extends JSPrismarineError {
  * built-in handler, so this is a bug in the server; report it with the stack trace.
  */
 class NoIntentHandler extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_INTENT_HANDLER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'input';
-    public static readonly template = 'No handler is registered for the {kind} intent';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-no-intent-handler';
+    public static get code(): 'PRISMARINE_NO_INTENT_HANDLER' {
+        return 'PRISMARINE_NO_INTENT_HANDLER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'input' {
+        return 'input';
+    }
+    public static get template(): 'No handler is registered for the {kind} intent' {
+        return 'No handler is registered for the {kind} intent';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/input#prismarine-no-intent-handler' {
+        return 'https://jsprismarine.dev/errors/prismarine/input#prismarine-no-intent-handler';
+    }
 
     public override readonly code = 'PRISMARINE_NO_INTENT_HANDLER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-no-intent-handler';
@@ -62,11 +81,21 @@ class NoIntentHandler extends JSPrismarineError {
  * bug in the server or a plugin; the decoder's `intents` list names the kinds it returns.
  */
 class UnknownIntentKind extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_INTENT_KIND';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'input';
-    public static readonly template = '{kind} is not an intent kind';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-unknown-intent-kind';
+    public static get code(): 'PRISMARINE_UNKNOWN_INTENT_KIND' {
+        return 'PRISMARINE_UNKNOWN_INTENT_KIND';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'input' {
+        return 'input';
+    }
+    public static get template(): '{kind} is not an intent kind' {
+        return '{kind} is not an intent kind';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/input#prismarine-unknown-intent-kind' {
+        return 'https://jsprismarine.dev/errors/prismarine/input#prismarine-unknown-intent-kind';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_INTENT_KIND';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-unknown-intent-kind';
@@ -89,11 +118,21 @@ class UnknownIntentKind extends JSPrismarineError {
  * to name every kind it returns.
  */
 class UndeclaredIntent extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNDECLARED_INTENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'input';
-    public static readonly template = 'The {packetName} decoder returned a {kind} intent it did not declare';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-undeclared-intent';
+    public static get code(): 'PRISMARINE_UNDECLARED_INTENT' {
+        return 'PRISMARINE_UNDECLARED_INTENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'input' {
+        return 'input';
+    }
+    public static get template(): 'The {packetName} decoder returned a {kind} intent it did not declare' {
+        return 'The {packetName} decoder returned a {kind} intent it did not declare';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/input#prismarine-undeclared-intent' {
+        return 'https://jsprismarine.dev/errors/prismarine/input#prismarine-undeclared-intent';
+    }
 
     public override readonly code = 'PRISMARINE_UNDECLARED_INTENT';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/input#prismarine-undeclared-intent';
@@ -118,12 +157,21 @@ class UndeclaredIntent extends JSPrismarineError {
  * nowhere to hand a send. This is a bug in the server; report it with the stack trace.
  */
 class InputContextWithoutStep extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INPUT_CONTEXT_WITHOUT_STEP';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'input';
-    public static readonly template = 'An input-lane intent handler was run outside an input step';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/input#prismarine-input-context-without-step';
+    public static get code(): 'PRISMARINE_INPUT_CONTEXT_WITHOUT_STEP' {
+        return 'PRISMARINE_INPUT_CONTEXT_WITHOUT_STEP';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'input' {
+        return 'input';
+    }
+    public static get template(): 'An input-lane intent handler was run outside an input step' {
+        return 'An input-lane intent handler was run outside an input step';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/input#prismarine-input-context-without-step' {
+        return 'https://jsprismarine.dev/errors/prismarine/input#prismarine-input-context-without-step';
+    }
 
     public override readonly code = 'PRISMARINE_INPUT_CONTEXT_WITHOUT_STEP';
     public override readonly docs =

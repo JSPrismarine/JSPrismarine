@@ -8,10 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * support it. Run the server with `--headless` for plain log output.
  */
 class RendererFailed extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_RENDERER_FAILED';
-    public static readonly domain = 'console';
-    public static readonly template = 'The console could not start its renderer: {errorText}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-renderer-failed';
+    public static get code(): 'CONSOLE_RENDERER_FAILED' {
+        return 'CONSOLE_RENDERER_FAILED';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'The console could not start its renderer: {errorText}' {
+        return 'The console could not start its renderer: {errorText}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-renderer-failed' {
+        return 'https://jsprismarine.dev/errors/console#console-renderer-failed';
+    }
 
     public override readonly code = 'CONSOLE_RENDERER_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-renderer-failed';
@@ -33,10 +41,18 @@ class RendererFailed extends JSPrismarineError {
  * cannot split it into a command and its arguments.
  */
 class EditorUnmatchedQuote extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_EDITOR_UNMATCHED_QUOTE';
-    public static readonly domain = 'console';
-    public static readonly template = 'EDITOR contains an unmatched quote';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-unmatched-quote';
+    public static get code(): 'CONSOLE_EDITOR_UNMATCHED_QUOTE' {
+        return 'CONSOLE_EDITOR_UNMATCHED_QUOTE';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'EDITOR contains an unmatched quote' {
+        return 'EDITOR contains an unmatched quote';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-editor-unmatched-quote' {
+        return 'https://jsprismarine.dev/errors/console#console-editor-unmatched-quote';
+    }
 
     public override readonly code = 'CONSOLE_EDITOR_UNMATCHED_QUOTE';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-unmatched-quote';
@@ -56,10 +72,18 @@ class EditorUnmatchedQuote extends JSPrismarineError {
  * `VISUAL` or `EDITOR` is set but empty. Set it to the editor command, such as `code --wait`.
  */
 class EditorIsEmpty extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_EDITOR_IS_EMPTY';
-    public static readonly domain = 'console';
-    public static readonly template = 'EDITOR is empty';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-is-empty';
+    public static get code(): 'CONSOLE_EDITOR_IS_EMPTY' {
+        return 'CONSOLE_EDITOR_IS_EMPTY';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'EDITOR is empty' {
+        return 'EDITOR is empty';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-editor-is-empty' {
+        return 'https://jsprismarine.dev/errors/console#console-editor-is-empty';
+    }
 
     public override readonly code = 'CONSOLE_EDITOR_IS_EMPTY';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-is-empty';
@@ -80,10 +104,18 @@ class EditorIsEmpty extends JSPrismarineError {
  * console and the server are from different versions.
  */
 class UnexpectedReply extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_UNEXPECTED_REPLY';
-    public static readonly domain = 'console';
-    public static readonly template = 'expected {type}, got {messageType}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-unexpected-reply';
+    public static get code(): 'CONSOLE_UNEXPECTED_REPLY' {
+        return 'CONSOLE_UNEXPECTED_REPLY';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'expected {type}, got {messageType}' {
+        return 'expected {type}, got {messageType}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-unexpected-reply' {
+        return 'https://jsprismarine.dev/errors/console#console-unexpected-reply';
+    }
 
     public override readonly code = 'CONSOLE_UNEXPECTED_REPLY';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-unexpected-reply';
@@ -105,10 +137,18 @@ class UnexpectedReply extends JSPrismarineError {
  * log store.
  */
 class HiddenRecordIndexOutOfSync extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_HIDDEN_RECORD_INDEX_OUT_OF_SYNC';
-    public static readonly domain = 'console';
-    public static readonly template = 'hidden log record index is out of sync';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-index-out-of-sync';
+    public static get code(): 'CONSOLE_HIDDEN_RECORD_INDEX_OUT_OF_SYNC' {
+        return 'CONSOLE_HIDDEN_RECORD_INDEX_OUT_OF_SYNC';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'hidden log record index is out of sync' {
+        return 'hidden log record index is out of sync';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-hidden-record-index-out-of-sync' {
+        return 'https://jsprismarine.dev/errors/console#console-hidden-record-index-out-of-sync';
+    }
 
     public override readonly code = 'CONSOLE_HIDDEN_RECORD_INDEX_OUT_OF_SYNC';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-index-out-of-sync';
@@ -129,10 +169,18 @@ class HiddenRecordIndexOutOfSync extends JSPrismarineError {
  * console's log store.
  */
 class HiddenRecordMissing extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_HIDDEN_RECORD_MISSING';
-    public static readonly domain = 'console';
-    public static readonly template = 'hidden log record is missing';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-missing';
+    public static get code(): 'CONSOLE_HIDDEN_RECORD_MISSING' {
+        return 'CONSOLE_HIDDEN_RECORD_MISSING';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'hidden log record is missing' {
+        return 'hidden log record is missing';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-hidden-record-missing' {
+        return 'https://jsprismarine.dev/errors/console#console-hidden-record-missing';
+    }
 
     public override readonly code = 'CONSOLE_HIDDEN_RECORD_MISSING';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-missing';
@@ -153,10 +201,18 @@ class HiddenRecordMissing extends JSPrismarineError {
  * console's log store.
  */
 class LogHistoryEmptyAtCapacity extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_LOG_HISTORY_EMPTY_AT_CAPACITY';
-    public static readonly domain = 'console';
-    public static readonly template = 'log history is empty at capacity';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-log-history-empty-at-capacity';
+    public static get code(): 'CONSOLE_LOG_HISTORY_EMPTY_AT_CAPACITY' {
+        return 'CONSOLE_LOG_HISTORY_EMPTY_AT_CAPACITY';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'log history is empty at capacity' {
+        return 'log history is empty at capacity';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-log-history-empty-at-capacity' {
+        return 'https://jsprismarine.dev/errors/console#console-log-history-empty-at-capacity';
+    }
 
     public override readonly code = 'CONSOLE_LOG_HISTORY_EMPTY_AT_CAPACITY';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-log-history-empty-at-capacity';
@@ -177,10 +233,18 @@ class LogHistoryEmptyAtCapacity extends JSPrismarineError {
  * server's log shows what it is doing.
  */
 class RequestTimedOut extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_REQUEST_TIMED_OUT';
-    public static readonly domain = 'console';
-    public static readonly template = 'no answer from the server after {value} s';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-request-timed-out';
+    public static get code(): 'CONSOLE_REQUEST_TIMED_OUT' {
+        return 'CONSOLE_REQUEST_TIMED_OUT';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'no answer from the server after {value} s' {
+        return 'no answer from the server after {value} s';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-request-timed-out' {
+        return 'https://jsprismarine.dev/errors/console#console-request-timed-out';
+    }
 
     public override readonly code = 'CONSOLE_REQUEST_TIMED_OUT';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-request-timed-out';
@@ -202,10 +266,18 @@ class RequestTimedOut extends JSPrismarineError {
  * console's log store.
  */
 class HiddenRecordNotIndexed extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_HIDDEN_RECORD_NOT_INDEXED';
-    public static readonly domain = 'console';
-    public static readonly template = 'oldest log record is hidden without an index';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-not-indexed';
+    public static get code(): 'CONSOLE_HIDDEN_RECORD_NOT_INDEXED' {
+        return 'CONSOLE_HIDDEN_RECORD_NOT_INDEXED';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'oldest log record is hidden without an index' {
+        return 'oldest log record is hidden without an index';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-hidden-record-not-indexed' {
+        return 'https://jsprismarine.dev/errors/console#console-hidden-record-not-indexed';
+    }
 
     public override readonly code = 'CONSOLE_HIDDEN_RECORD_NOT_INDEXED';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-hidden-record-not-indexed';
@@ -225,10 +297,18 @@ class HiddenRecordNotIndexed extends JSPrismarineError {
  * The console sent a request while no server process was attached, such as during a restart.
  */
 class ServerIsNotRunning extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_SERVER_IS_NOT_RUNNING';
-    public static readonly domain = 'console';
-    public static readonly template = 'server is not running';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-server-is-not-running';
+    public static get code(): 'CONSOLE_SERVER_IS_NOT_RUNNING' {
+        return 'CONSOLE_SERVER_IS_NOT_RUNNING';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'server is not running' {
+        return 'server is not running';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-server-is-not-running' {
+        return 'https://jsprismarine.dev/errors/console#console-server-is-not-running';
+    }
 
     public override readonly code = 'CONSOLE_SERVER_IS_NOT_RUNNING';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-server-is-not-running';
@@ -249,10 +329,18 @@ class ServerIsNotRunning extends JSPrismarineError {
  * `EDITOR` is set. Set one, such as `EDITOR="code --wait"`.
  */
 class NoEditorSet extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_NO_EDITOR_SET';
-    public static readonly domain = 'console';
-    public static readonly template = 'set VISUAL or EDITOR to open source locations';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-no-editor-set';
+    public static get code(): 'CONSOLE_NO_EDITOR_SET' {
+        return 'CONSOLE_NO_EDITOR_SET';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'set VISUAL or EDITOR to open source locations' {
+        return 'set VISUAL or EDITOR to open source locations';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-no-editor-set' {
+        return 'https://jsprismarine.dev/errors/console#console-no-editor-set';
+    }
 
     public override readonly code = 'CONSOLE_NO_EDITOR_SET';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-no-editor-set';
@@ -270,10 +358,18 @@ class NoEditorSet extends JSPrismarineError {
 
 /** The source file a log line points at does not exist from the server's working directory. */
 class SourceFileNotFound extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_SOURCE_FILE_NOT_FOUND';
-    public static readonly domain = 'console';
-    public static readonly template = 'source file not found: {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-source-file-not-found';
+    public static get code(): 'CONSOLE_SOURCE_FILE_NOT_FOUND' {
+        return 'CONSOLE_SOURCE_FILE_NOT_FOUND';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'source file not found: {source}' {
+        return 'source file not found: {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-source-file-not-found' {
+        return 'https://jsprismarine.dev/errors/console#console-source-file-not-found';
+    }
 
     public override readonly code = 'CONSOLE_SOURCE_FILE_NOT_FOUND';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-source-file-not-found';
@@ -295,10 +391,18 @@ class SourceFileNotFound extends JSPrismarineError {
  * version.
  */
 class SourceFileNotFoundInWorkspace extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_SOURCE_FILE_NOT_FOUND_IN_WORKSPACE';
-    public static readonly domain = 'console';
-    public static readonly template = 'source file not found in workspace: {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-source-file-not-found-in-workspace';
+    public static get code(): 'CONSOLE_SOURCE_FILE_NOT_FOUND_IN_WORKSPACE' {
+        return 'CONSOLE_SOURCE_FILE_NOT_FOUND_IN_WORKSPACE';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'source file not found in workspace: {source}' {
+        return 'source file not found in workspace: {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-source-file-not-found-in-workspace' {
+        return 'https://jsprismarine.dev/errors/console#console-source-file-not-found-in-workspace';
+    }
 
     public override readonly code = 'CONSOLE_SOURCE_FILE_NOT_FOUND_IN_WORKSPACE';
     public override readonly docs =
@@ -318,10 +422,18 @@ class SourceFileNotFoundInWorkspace extends JSPrismarineError {
 
 /** The editor the console opened was killed by a signal. */
 class EditorExitedFromSignal extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_EDITOR_EXITED_FROM_SIGNAL';
-    public static readonly domain = 'console';
-    public static readonly template = 'EDITOR exited from {signal}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-exited-from-signal';
+    public static get code(): 'CONSOLE_EDITOR_EXITED_FROM_SIGNAL' {
+        return 'CONSOLE_EDITOR_EXITED_FROM_SIGNAL';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'EDITOR exited from {signal}' {
+        return 'EDITOR exited from {signal}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-editor-exited-from-signal' {
+        return 'https://jsprismarine.dev/errors/console#console-editor-exited-from-signal';
+    }
 
     public override readonly code = 'CONSOLE_EDITOR_EXITED_FROM_SIGNAL';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-exited-from-signal';
@@ -343,10 +455,18 @@ class EditorExitedFromSignal extends JSPrismarineError {
  * working command.
  */
 class EditorExitedWithCode extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_EDITOR_EXITED_WITH_CODE';
-    public static readonly domain = 'console';
-    public static readonly template = 'EDITOR exited with code {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-exited-with-code';
+    public static get code(): 'CONSOLE_EDITOR_EXITED_WITH_CODE' {
+        return 'CONSOLE_EDITOR_EXITED_WITH_CODE';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'EDITOR exited with code {code}' {
+        return 'EDITOR exited with code {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-editor-exited-with-code' {
+        return 'https://jsprismarine.dev/errors/console#console-editor-exited-with-code';
+    }
 
     public override readonly code = 'CONSOLE_EDITOR_EXITED_WITH_CODE';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-editor-exited-with-code';
@@ -368,10 +488,18 @@ class EditorExitedWithCode extends JSPrismarineError {
  * server stopped or restarted.
  */
 class ServerLinkClosed extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_SERVER_LINK_CLOSED';
-    public static readonly domain = 'console';
-    public static readonly template = 'server link closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-server-link-closed';
+    public static get code(): 'CONSOLE_SERVER_LINK_CLOSED' {
+        return 'CONSOLE_SERVER_LINK_CLOSED';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'server link closed' {
+        return 'server link closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-server-link-closed' {
+        return 'https://jsprismarine.dev/errors/console#console-server-link-closed';
+    }
 
     public override readonly code = 'CONSOLE_SERVER_LINK_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-server-link-closed';
@@ -389,10 +517,18 @@ class ServerLinkClosed extends JSPrismarineError {
 
 /** The console closed while a request waited for its answer. */
 class ConsoleClosed extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_CONSOLE_CLOSED';
-    public static readonly domain = 'console';
-    public static readonly template = 'console closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console#console-console-closed';
+    public static get code(): 'CONSOLE_CONSOLE_CLOSED' {
+        return 'CONSOLE_CONSOLE_CLOSED';
+    }
+    public static get domain(): 'console' {
+        return 'console';
+    }
+    public static get template(): 'console closed' {
+        return 'console closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console#console-console-closed' {
+        return 'https://jsprismarine.dev/errors/console#console-console-closed';
+    }
 
     public override readonly code = 'CONSOLE_CONSOLE_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/console#console-console-closed';

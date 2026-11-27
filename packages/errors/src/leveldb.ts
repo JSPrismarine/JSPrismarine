@@ -40,10 +40,18 @@ export abstract class DatabaseLockedError extends JSPrismarineError {
  * bug in the database's write path.
  */
 class LogAppendInProgress extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_LOG_APPEND_IN_PROGRESS';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'An append is still running on this log';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-append-in-progress';
+    public static get code(): 'LEVELDB_LOG_APPEND_IN_PROGRESS' {
+        return 'LEVELDB_LOG_APPEND_IN_PROGRESS';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'An append is still running on this log' {
+        return 'An append is still running on this log';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-log-append-in-progress' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-log-append-in-progress';
+    }
 
     public override readonly code = 'LEVELDB_LOG_APPEND_IN_PROGRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-append-in-progress';
@@ -64,10 +72,18 @@ class LogAppendInProgress extends JSPrismarineError {
  * or comes from a tool that writes another format.
  */
 class UnreadableBlockCompression extends CorruptionError {
-    public static readonly code = 'LEVELDB_UNREADABLE_BLOCK_COMPRESSION';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Block at offset {offset} has compression type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unreadable-block-compression';
+    public static get code(): 'LEVELDB_UNREADABLE_BLOCK_COMPRESSION' {
+        return 'LEVELDB_UNREADABLE_BLOCK_COMPRESSION';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block at offset {offset} has compression type {type}' {
+        return 'Block at offset {offset} has compression type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-unreadable-block-compression' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-unreadable-block-compression';
+    }
 
     public override readonly code = 'LEVELDB_UNREADABLE_BLOCK_COMPRESSION';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unreadable-block-compression';
@@ -86,11 +102,18 @@ class UnreadableBlockCompression extends CorruptionError {
 
 /** The database was opened with a block cache size that is negative or not a whole number. */
 class BlockCacheSizeMustBeNonNegative extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Block cache size must be a non-negative safe integer: {byteBudget}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-block-cache-size-must-be-non-negative';
+    public static get code(): 'LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE' {
+        return 'LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block cache size must be a non-negative safe integer: {byteBudget}' {
+        return 'Block cache size must be a non-negative safe integer: {byteBudget}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-block-cache-size-must-be-non-negative' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-block-cache-size-must-be-non-negative';
+    }
 
     public override readonly code = 'LEVELDB_BLOCK_CACHE_SIZE_MUST_BE_NON_NEGATIVE';
     public override readonly docs =
@@ -113,11 +136,18 @@ class BlockCacheSizeMustBeNonNegative extends JSPrismarineRangeError {
  * Restore the world from a backup, or open it in the game to let it repair what it can.
  */
 class BlockChecksumMismatch extends CorruptionError {
-    public static readonly code = 'LEVELDB_BLOCK_CHECKSUM_MISMATCH';
-    public static readonly domain = 'leveldb';
-    public static readonly template =
-        'Block checksum mismatch at offset {offset}: stored {expected}, computed {actual}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-checksum-mismatch';
+    public static get code(): 'LEVELDB_BLOCK_CHECKSUM_MISMATCH' {
+        return 'LEVELDB_BLOCK_CHECKSUM_MISMATCH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block checksum mismatch at offset {offset}: stored {expected}, computed {actual}' {
+        return 'Block checksum mismatch at offset {offset}: stored {expected}, computed {actual}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-block-checksum-mismatch' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-block-checksum-mismatch';
+    }
 
     public override readonly code = 'LEVELDB_BLOCK_CHECKSUM_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-checksum-mismatch';
@@ -144,10 +174,18 @@ class BlockChecksumMismatch extends CorruptionError {
 
 /** A table block claims more restart points than it has room for, so the table is damaged. */
 class BlockRestartCountTooLarge extends CorruptionError {
-    public static readonly code = 'LEVELDB_BLOCK_RESTART_COUNT_TOO_LARGE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Block declares {restartCount} restart points it cannot hold';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-restart-count-too-large';
+    public static get code(): 'LEVELDB_BLOCK_RESTART_COUNT_TOO_LARGE' {
+        return 'LEVELDB_BLOCK_RESTART_COUNT_TOO_LARGE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block declares {restartCount} restart points it cannot hold' {
+        return 'Block declares {restartCount} restart points it cannot hold';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-block-restart-count-too-large' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-block-restart-count-too-large';
+    }
 
     public override readonly code = 'LEVELDB_BLOCK_RESTART_COUNT_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-restart-count-too-large';
@@ -166,10 +204,18 @@ class BlockRestartCountTooLarge extends CorruptionError {
 
 /** A table's index handles are too large for its footer. This is a bug in the table writer. */
 class FooterHandlesTooLarge extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_FOOTER_HANDLES_TOO_LARGE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Block handles do not fit in the footer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-handles-too-large';
+    public static get code(): 'LEVELDB_FOOTER_HANDLES_TOO_LARGE' {
+        return 'LEVELDB_FOOTER_HANDLES_TOO_LARGE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block handles do not fit in the footer' {
+        return 'Block handles do not fit in the footer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-handles-too-large' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-handles-too-large';
+    }
 
     public override readonly code = 'LEVELDB_FOOTER_HANDLES_TOO_LARGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-handles-too-large';
@@ -187,10 +233,18 @@ class FooterHandlesTooLarge extends JSPrismarineRangeError {
 
 /** A table block is shorter than its own trailer, so the table is damaged. */
 class BlockTooShort extends CorruptionError {
-    public static readonly code = 'LEVELDB_BLOCK_TOO_SHORT';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Block is too short to hold a restart count';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-too-short';
+    public static get code(): 'LEVELDB_BLOCK_TOO_SHORT' {
+        return 'LEVELDB_BLOCK_TOO_SHORT';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Block is too short to hold a restart count' {
+        return 'Block is too short to hold a restart count';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-block-too-short' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-block-too-short';
+    }
 
     public override readonly code = 'LEVELDB_BLOCK_TOO_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-block-too-short';
@@ -208,10 +262,18 @@ class BlockTooShort extends CorruptionError {
 
 /** The database was opened with a bloom filter size that is not a positive whole number. */
 class InvalidBloomFilterBitsPerKey extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_INVALID_BLOOM_FILTER_BITS_PER_KEY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Bloom filter bits per key must be a positive safe integer: {bitsPerKey}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-invalid-bloom-filter-bits-per-key';
+    public static get code(): 'LEVELDB_INVALID_BLOOM_FILTER_BITS_PER_KEY' {
+        return 'LEVELDB_INVALID_BLOOM_FILTER_BITS_PER_KEY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Bloom filter bits per key must be a positive safe integer: {bitsPerKey}' {
+        return 'Bloom filter bits per key must be a positive safe integer: {bitsPerKey}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-invalid-bloom-filter-bits-per-key' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-invalid-bloom-filter-bits-per-key';
+    }
 
     public override readonly code = 'LEVELDB_INVALID_BLOOM_FILTER_BITS_PER_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-invalid-bloom-filter-bits-per-key';
@@ -233,10 +295,18 @@ class InvalidBloomFilterBitsPerKey extends JSPrismarineRangeError {
  * writer.
  */
 class CannotAddToFinishedBlock extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_CANNOT_ADD_TO_FINISHED_BLOCK';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Cannot add to a finished block';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-cannot-add-to-finished-block';
+    public static get code(): 'LEVELDB_CANNOT_ADD_TO_FINISHED_BLOCK' {
+        return 'LEVELDB_CANNOT_ADD_TO_FINISHED_BLOCK';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Cannot add to a finished block' {
+        return 'Cannot add to a finished block';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-cannot-add-to-finished-block' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-cannot-add-to-finished-block';
+    }
 
     public override readonly code = 'LEVELDB_CANNOT_ADD_TO_FINISHED_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-cannot-add-to-finished-block';
@@ -258,10 +328,18 @@ class CannotAddToFinishedBlock extends JSPrismarineError {
  * the server.
  */
 class WritesRefusedAfterCommitFailure extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_WRITES_REFUSED_AFTER_COMMIT_FAILURE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'A commit failed to reach the log, so the database refuses further writes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-commit-failure';
+    public static get code(): 'LEVELDB_WRITES_REFUSED_AFTER_COMMIT_FAILURE' {
+        return 'LEVELDB_WRITES_REFUSED_AFTER_COMMIT_FAILURE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'A commit failed to reach the log, so the database refuses further writes' {
+        return 'A commit failed to reach the log, so the database refuses further writes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-commit-failure' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-commit-failure';
+    }
 
     public override readonly code = 'LEVELDB_WRITES_REFUSED_AFTER_COMMIT_FAILURE';
     public override readonly docs =
@@ -283,10 +361,18 @@ class WritesRefusedAfterCommitFailure extends JSPrismarineError {
  * write with `commit` instead.
  */
 class CommitInProgress extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_COMMIT_IN_PROGRESS';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'A commit is still appending; queue this write behind it with commit';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-commit-in-progress';
+    public static get code(): 'LEVELDB_COMMIT_IN_PROGRESS' {
+        return 'LEVELDB_COMMIT_IN_PROGRESS';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'A commit is still appending; queue this write behind it with commit' {
+        return 'A commit is still appending; queue this write behind it with commit';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-commit-in-progress' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-commit-in-progress';
+    }
 
     public override readonly code = 'LEVELDB_COMMIT_IN_PROGRESS';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-commit-in-progress';
@@ -307,10 +393,18 @@ class CommitInProgress extends JSPrismarineError {
  * It was cut short when the game or a server stopped; restore the world from a backup.
  */
 class CurrentIsEmpty extends CorruptionError {
-    public static readonly code = 'LEVELDB_CURRENT_IS_EMPTY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'CURRENT is empty';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-current-is-empty';
+    public static get code(): 'LEVELDB_CURRENT_IS_EMPTY' {
+        return 'LEVELDB_CURRENT_IS_EMPTY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'CURRENT is empty' {
+        return 'CURRENT is empty';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-current-is-empty' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-current-is-empty';
+    }
 
     public override readonly code = 'LEVELDB_CURRENT_IS_EMPTY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-current-is-empty';
@@ -331,10 +425,18 @@ class CurrentIsEmpty extends CorruptionError {
  * in part. Restore the world from a backup.
  */
 class CurrentNamesMissingManifest extends CorruptionError {
-    public static readonly code = 'LEVELDB_CURRENT_NAMES_MISSING_MANIFEST';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'CURRENT names {current}, which does not exist';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-current-names-missing-manifest';
+    public static get code(): 'LEVELDB_CURRENT_NAMES_MISSING_MANIFEST' {
+        return 'LEVELDB_CURRENT_NAMES_MISSING_MANIFEST';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'CURRENT names {current}, which does not exist' {
+        return 'CURRENT names {current}, which does not exist';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-current-names-missing-manifest' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-current-names-missing-manifest';
+    }
 
     public override readonly code = 'LEVELDB_CURRENT_NAMES_MISSING_MANIFEST';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-current-names-missing-manifest';
@@ -353,10 +455,18 @@ class CurrentNamesMissingManifest extends CorruptionError {
 
 /** The database was opened with `errorIfExists`, and a database is already there. */
 class DatabaseAlreadyExists extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_DATABASE_ALREADY_EXISTS';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'A database already exists at {directory}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-already-exists';
+    public static get code(): 'LEVELDB_DATABASE_ALREADY_EXISTS' {
+        return 'LEVELDB_DATABASE_ALREADY_EXISTS';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'A database already exists at {directory}' {
+        return 'A database already exists at {directory}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-database-already-exists' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-database-already-exists';
+    }
 
     public override readonly code = 'LEVELDB_DATABASE_ALREADY_EXISTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-already-exists';
@@ -378,10 +488,18 @@ class DatabaseAlreadyExists extends JSPrismarineError {
  * database.
  */
 class TableWorkerBusy extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_BUSY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'The database already has a table worker request in flight';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-busy';
+    public static get code(): 'LEVELDB_TABLE_WORKER_BUSY' {
+        return 'LEVELDB_TABLE_WORKER_BUSY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'The database already has a table worker request in flight' {
+        return 'The database already has a table worker request in flight';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-busy' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-busy';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_BUSY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-busy';
@@ -399,10 +517,18 @@ class TableWorkerBusy extends JSPrismarineError {
 
 /** Code used the database after closing it. */
 class DatabaseIsClosed extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_DATABASE_IS_CLOSED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Database is closed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-closed';
+    public static get code(): 'LEVELDB_DATABASE_IS_CLOSED' {
+        return 'LEVELDB_DATABASE_IS_CLOSED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Database is closed' {
+        return 'Database is closed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-closed' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-closed';
+    }
 
     public override readonly code = 'LEVELDB_DATABASE_IS_CLOSED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-closed';
@@ -423,10 +549,18 @@ class DatabaseIsClosed extends JSPrismarineError {
  * not a Bedrock world.
  */
 class UnknownComparator extends CorruptionError {
-    public static readonly code = 'LEVELDB_UNKNOWN_COMPARATOR';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Database uses the {comparator} comparator, whose ordering is unknown here';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-comparator';
+    public static get code(): 'LEVELDB_UNKNOWN_COMPARATOR' {
+        return 'LEVELDB_UNKNOWN_COMPARATOR';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Database uses the {comparator} comparator, whose ordering is unknown here' {
+        return 'Database uses the {comparator} comparator, whose ordering is unknown here';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-comparator' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-comparator';
+    }
 
     public override readonly code = 'LEVELDB_UNKNOWN_COMPARATOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-comparator';
@@ -445,10 +579,18 @@ class UnknownComparator extends CorruptionError {
 
 /** Code wrote to a database opened read-only. */
 class DatabaseIsReadOnly extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_DATABASE_IS_READ_ONLY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Database was opened read-only';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-read-only';
+    public static get code(): 'LEVELDB_DATABASE_IS_READ_ONLY' {
+        return 'LEVELDB_DATABASE_IS_READ_ONLY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Database was opened read-only' {
+        return 'Database was opened read-only';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-read-only' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-read-only';
+    }
 
     public override readonly code = 'LEVELDB_DATABASE_IS_READ_ONLY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-is-read-only';
@@ -469,10 +611,18 @@ class DatabaseIsReadOnly extends JSPrismarineError {
  * usually a full disk.
  */
 class LogFailed extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_LOG_FAILED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'An earlier append to this log failed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-failed';
+    public static get code(): 'LEVELDB_LOG_FAILED' {
+        return 'LEVELDB_LOG_FAILED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'An earlier append to this log failed' {
+        return 'An earlier append to this log failed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-log-failed' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-log-failed';
+    }
 
     public override readonly code = 'LEVELDB_LOG_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-failed';
@@ -493,11 +643,18 @@ class LogFailed extends JSPrismarineError {
  * bug in how the worker is chosen.
  */
 class EmbeddedTableWorkerOutsideExecutable extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_EMBEDDED_TABLE_WORKER_OUTSIDE_EXECUTABLE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'The embedded LevelDB table worker requires a Node single executable';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-embedded-table-worker-outside-executable';
+    public static get code(): 'LEVELDB_EMBEDDED_TABLE_WORKER_OUTSIDE_EXECUTABLE' {
+        return 'LEVELDB_EMBEDDED_TABLE_WORKER_OUTSIDE_EXECUTABLE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'The embedded LevelDB table worker requires a Node single executable' {
+        return 'The embedded LevelDB table worker requires a Node single executable';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-embedded-table-worker-outside-executable' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-embedded-table-worker-outside-executable';
+    }
 
     public override readonly code = 'LEVELDB_EMBEDDED_TABLE_WORKER_OUTSIDE_EXECUTABLE';
     public override readonly docs =
@@ -516,10 +673,18 @@ class EmbeddedTableWorkerOutsideExecutable extends JSPrismarineError {
 
 /** A table entry's lengths run past its block, so the table is damaged. */
 class EntryRunsPastBlock extends CorruptionError {
-    public static readonly code = 'LEVELDB_ENTRY_RUNS_PAST_BLOCK';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Entry runs past its block or shares too many key bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-runs-past-block';
+    public static get code(): 'LEVELDB_ENTRY_RUNS_PAST_BLOCK' {
+        return 'LEVELDB_ENTRY_RUNS_PAST_BLOCK';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Entry runs past its block or shares too many key bytes' {
+        return 'Entry runs past its block or shares too many key bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-runs-past-block' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-runs-past-block';
+    }
 
     public override readonly code = 'LEVELDB_ENTRY_RUNS_PAST_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-runs-past-block';
@@ -540,10 +705,18 @@ class EntryRunsPastBlock extends CorruptionError {
  * table is damaged.
  */
 class EntrySharesTooManyKeyBytes extends CorruptionError {
-    public static readonly code = 'LEVELDB_ENTRY_SHARES_TOO_MANY_KEY_BYTES';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Entry shares {shared} bytes with a {byteLength} byte key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-shares-too-many-key-bytes';
+    public static get code(): 'LEVELDB_ENTRY_SHARES_TOO_MANY_KEY_BYTES' {
+        return 'LEVELDB_ENTRY_SHARES_TOO_MANY_KEY_BYTES';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Entry shares {shared} bytes with a {byteLength} byte key' {
+        return 'Entry shares {shared} bytes with a {byteLength} byte key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-shares-too-many-key-bytes' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-shares-too-many-key-bytes';
+    }
 
     public override readonly code = 'LEVELDB_ENTRY_SHARES_TOO_MANY_KEY_BYTES';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-shares-too-many-key-bytes';
@@ -562,10 +735,18 @@ class EntrySharesTooManyKeyBytes extends CorruptionError {
 
 /** A length in a table entry is malformed, so the table is damaged. */
 class EntryVarintUnterminated extends CorruptionError {
-    public static readonly code = 'LEVELDB_ENTRY_VARINT_UNTERMINATED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Entry varint does not terminate within 5 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-unterminated';
+    public static get code(): 'LEVELDB_ENTRY_VARINT_UNTERMINATED' {
+        return 'LEVELDB_ENTRY_VARINT_UNTERMINATED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Entry varint does not terminate within 5 bytes' {
+        return 'Entry varint does not terminate within 5 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-unterminated' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-unterminated';
+    }
 
     public override readonly code = 'LEVELDB_ENTRY_VARINT_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-unterminated';
@@ -583,10 +764,18 @@ class EntryVarintUnterminated extends CorruptionError {
 
 /** A length in a table entry runs past its block, so the table is damaged. */
 class EntryVarintRunsPastBlock extends CorruptionError {
-    public static readonly code = 'LEVELDB_ENTRY_VARINT_RUNS_PAST_BLOCK';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Entry varint runs past its block';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-runs-past-block';
+    public static get code(): 'LEVELDB_ENTRY_VARINT_RUNS_PAST_BLOCK' {
+        return 'LEVELDB_ENTRY_VARINT_RUNS_PAST_BLOCK';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Entry varint runs past its block' {
+        return 'Entry varint runs past its block';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-runs-past-block' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-runs-past-block';
+    }
 
     public override readonly code = 'LEVELDB_ENTRY_VARINT_RUNS_PAST_BLOCK';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-entry-varint-runs-past-block';
@@ -604,10 +793,18 @@ class EntryVarintRunsPastBlock extends CorruptionError {
 
 /** A record is shorter than its own layout says, so the file is truncated or damaged. */
 class RecordTruncated extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_RECORD_TRUNCATED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Expected {bytes} more bytes, {remaining} left';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-record-truncated';
+    public static get code(): 'LEVELDB_RECORD_TRUNCATED' {
+        return 'LEVELDB_RECORD_TRUNCATED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Expected {bytes} more bytes, {remaining} left' {
+        return 'Expected {bytes} more bytes, {remaining} left';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-record-truncated' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-record-truncated';
+    }
 
     public override readonly code = 'LEVELDB_RECORD_TRUNCATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-record-truncated';
@@ -626,10 +823,18 @@ class RecordTruncated extends JSPrismarineRangeError {
 
 /** The table writer added filter data out of order. This is a bug in the table writer. */
 class FilterBlockOffsetsOutOfOrder extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_FILTER_BLOCK_OFFSETS_OUT_OF_ORDER';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Filter block offsets must be nondecreasing: {blockOffset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-filter-block-offsets-out-of-order';
+    public static get code(): 'LEVELDB_FILTER_BLOCK_OFFSETS_OUT_OF_ORDER' {
+        return 'LEVELDB_FILTER_BLOCK_OFFSETS_OUT_OF_ORDER';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Filter block offsets must be nondecreasing: {blockOffset}' {
+        return 'Filter block offsets must be nondecreasing: {blockOffset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-filter-block-offsets-out-of-order' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-filter-block-offsets-out-of-order';
+    }
 
     public override readonly code = 'LEVELDB_FILTER_BLOCK_OFFSETS_OUT_OF_ORDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-filter-block-offsets-out-of-order';
@@ -648,10 +853,18 @@ class FilterBlockOffsetsOutOfOrder extends JSPrismarineRangeError {
 
 /** A table footer has the wrong size. This is a bug in the table writer. */
 class FooterWrongSize extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_FOOTER_WRONG_SIZE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Footer is {byteLength} bytes, expected {footerLength}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-wrong-size';
+    public static get code(): 'LEVELDB_FOOTER_WRONG_SIZE' {
+        return 'LEVELDB_FOOTER_WRONG_SIZE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Footer is {byteLength} bytes, expected {footerLength}' {
+        return 'Footer is {byteLength} bytes, expected {footerLength}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-wrong-size' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-wrong-size';
+    }
 
     public override readonly code = 'LEVELDB_FOOTER_WRONG_SIZE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-footer-wrong-size';
@@ -678,10 +891,18 @@ class FooterWrongSize extends JSPrismarineRangeError {
  * is damaged.
  */
 class UnknownInternalKeyType extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_UNKNOWN_INTERNAL_KEY_TYPE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Internal key has value type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-internal-key-type';
+    public static get code(): 'LEVELDB_UNKNOWN_INTERNAL_KEY_TYPE' {
+        return 'LEVELDB_UNKNOWN_INTERNAL_KEY_TYPE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Internal key has value type {type}' {
+        return 'Internal key has value type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-internal-key-type' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-internal-key-type';
+    }
 
     public override readonly code = 'LEVELDB_UNKNOWN_INTERNAL_KEY_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-internal-key-type';
@@ -700,10 +921,18 @@ class UnknownInternalKeyType extends JSPrismarineRangeError {
 
 /** A stored key is shorter than the trailer every key carries, so the record is damaged. */
 class InternalKeyTooShort extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_INTERNAL_KEY_TOO_SHORT';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Internal key is {byteLength} bytes, the trailer alone is 8';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-internal-key-too-short';
+    public static get code(): 'LEVELDB_INTERNAL_KEY_TOO_SHORT' {
+        return 'LEVELDB_INTERNAL_KEY_TOO_SHORT';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Internal key is {byteLength} bytes, the trailer alone is 8' {
+        return 'Internal key is {byteLength} bytes, the trailer alone is 8';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-internal-key-too-short' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-internal-key-too-short';
+    }
 
     public override readonly code = 'LEVELDB_INTERNAL_KEY_TOO_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-internal-key-too-short';
@@ -725,10 +954,18 @@ class InternalKeyTooShort extends JSPrismarineRangeError {
  * in the world's `db` folder.
  */
 class FileIsNotRegular extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_FILE_IS_NOT_REGULAR';
-    public static readonly domain = 'leveldb';
-    public static readonly template = '{file} is not a regular file';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-not-regular';
+    public static get code(): 'LEVELDB_FILE_IS_NOT_REGULAR' {
+        return 'LEVELDB_FILE_IS_NOT_REGULAR';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): '{file} is not a regular file' {
+        return '{file} is not a regular file';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-not-regular' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-not-regular';
+    }
 
     public override readonly code = 'LEVELDB_FILE_IS_NOT_REGULAR';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-not-regular';
@@ -750,10 +987,18 @@ class FileIsNotRegular extends JSPrismarineError {
  * the world folder. Replace the link with the file.
  */
 class FileIsSymbolicLink extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_FILE_IS_SYMBOLIC_LINK';
-    public static readonly domain = 'leveldb';
-    public static readonly template = '{file} is a symbolic link';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-symbolic-link';
+    public static get code(): 'LEVELDB_FILE_IS_SYMBOLIC_LINK' {
+        return 'LEVELDB_FILE_IS_SYMBOLIC_LINK';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): '{file} is a symbolic link' {
+        return '{file} is a symbolic link';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-symbolic-link' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-symbolic-link';
+    }
 
     public override readonly code = 'LEVELDB_FILE_IS_SYMBOLIC_LINK';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-file-is-symbolic-link';
@@ -775,10 +1020,18 @@ class FileIsSymbolicLink extends JSPrismarineError {
  * world from a backup, or open it in the game.
  */
 class OverlappingLevelFiles extends CorruptionError {
-    public static readonly code = 'LEVELDB_OVERLAPPING_LEVEL_FILES';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Level {level} files {number} and {iNumber} overlap';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-overlapping-level-files';
+    public static get code(): 'LEVELDB_OVERLAPPING_LEVEL_FILES' {
+        return 'LEVELDB_OVERLAPPING_LEVEL_FILES';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Level {level} files {number} and {iNumber} overlap' {
+        return 'Level {level} files {number} and {iNumber} overlap';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-overlapping-level-files' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-overlapping-level-files';
+    }
 
     public override readonly code = 'LEVELDB_OVERLAPPING_LEVEL_FILES';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-overlapping-level-files';
@@ -808,10 +1061,18 @@ class OverlappingLevelFiles extends CorruptionError {
  * says what was wrong.
  */
 class LogDamaged extends CorruptionError {
-    public static readonly code = 'LEVELDB_LOG_DAMAGED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Log is damaged: {reason} ({bytes} bytes)';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-damaged';
+    public static get code(): 'LEVELDB_LOG_DAMAGED' {
+        return 'LEVELDB_LOG_DAMAGED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Log is damaged: {reason} ({bytes} bytes)' {
+        return 'Log is damaged: {reason} ({bytes} bytes)';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-log-damaged' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-log-damaged';
+    }
 
     public override readonly code = 'LEVELDB_LOG_DAMAGED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-log-damaged';
@@ -830,10 +1091,18 @@ class LogDamaged extends CorruptionError {
 
 /** A Snappy block copies from before its own start, so it is damaged. */
 class SnappyCopyOffsetOutOfRange extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_COPY_OFFSET_OUT_OF_RANGE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: copy offset {offset} points outside the output';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-offset-out-of-range';
+    public static get code(): 'LEVELDB_SNAPPY_COPY_OFFSET_OUT_OF_RANGE' {
+        return 'LEVELDB_SNAPPY_COPY_OFFSET_OUT_OF_RANGE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: copy offset {offset} points outside the output' {
+        return 'Malformed snappy stream: copy offset {offset} points outside the output';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-offset-out-of-range' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-offset-out-of-range';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_COPY_OFFSET_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-offset-out-of-range';
@@ -852,10 +1121,18 @@ class SnappyCopyOffsetOutOfRange extends SnappyError {
 
 /** A Snappy block copies past the length its header declares, so it is damaged. */
 class SnappyCopyPastDeclaredLength extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_COPY_PAST_DECLARED_LENGTH';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: copy runs past the declared length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-past-declared-length';
+    public static get code(): 'LEVELDB_SNAPPY_COPY_PAST_DECLARED_LENGTH' {
+        return 'LEVELDB_SNAPPY_COPY_PAST_DECLARED_LENGTH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: copy runs past the declared length' {
+        return 'Malformed snappy stream: copy runs past the declared length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-past-declared-length' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-past-declared-length';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_COPY_PAST_DECLARED_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-copy-past-declared-length';
@@ -873,10 +1150,18 @@ class SnappyCopyPastDeclaredLength extends SnappyError {
 
 /** A Snappy block's length header is malformed, so it is damaged. */
 class SnappyLengthPrefixUnterminated extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: length prefix did not terminate';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-prefix-unterminated';
+    public static get code(): 'LEVELDB_SNAPPY_LENGTH_PREFIX_UNTERMINATED' {
+        return 'LEVELDB_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: length prefix did not terminate' {
+        return 'Malformed snappy stream: length prefix did not terminate';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-prefix-unterminated' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-prefix-unterminated';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_LENGTH_PREFIX_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-prefix-unterminated';
@@ -894,10 +1179,18 @@ class SnappyLengthPrefixUnterminated extends SnappyError {
 
 /** A Snappy block's literal run goes past the length its header declares, so it is damaged. */
 class SnappyLiteralPastDeclaredLength extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_LITERAL_PAST_DECLARED_LENGTH';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: literal runs past the declared length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-literal-past-declared-length';
+    public static get code(): 'LEVELDB_SNAPPY_LITERAL_PAST_DECLARED_LENGTH' {
+        return 'LEVELDB_SNAPPY_LITERAL_PAST_DECLARED_LENGTH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: literal runs past the declared length' {
+        return 'Malformed snappy stream: literal runs past the declared length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-literal-past-declared-length' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-literal-past-declared-length';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_LITERAL_PAST_DECLARED_LENGTH';
     public override readonly docs =
@@ -918,10 +1211,18 @@ class SnappyLiteralPastDeclaredLength extends SnappyError {
  * A Snappy block decompressed to a different size than its header declares, so it is damaged.
  */
 class SnappyLengthMismatch extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_LENGTH_MISMATCH';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: produced {out} bytes, the header declared {expected}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-mismatch';
+    public static get code(): 'LEVELDB_SNAPPY_LENGTH_MISMATCH' {
+        return 'LEVELDB_SNAPPY_LENGTH_MISMATCH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: produced {out} bytes, the header declared {expected}' {
+        return 'Malformed snappy stream: produced {out} bytes, the header declared {expected}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-mismatch' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-mismatch';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_LENGTH_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-length-mismatch';
@@ -943,10 +1244,18 @@ class SnappyLengthMismatch extends SnappyError {
 
 /** A Snappy block ends inside a copy instruction, so it is truncated. */
 class SnappyTruncatedOneByteCopy extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated 1 byte copy';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-one-byte-copy';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_ONE_BYTE_COPY' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated 1 byte copy' {
+        return 'Malformed snappy stream: truncated 1 byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-one-byte-copy' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-one-byte-copy';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_ONE_BYTE_COPY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-one-byte-copy';
@@ -964,10 +1273,18 @@ class SnappyTruncatedOneByteCopy extends SnappyError {
 
 /** A Snappy block ends inside a copy instruction, so it is truncated. */
 class SnappyTruncatedTwoByteCopy extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated 2 byte copy';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-two-byte-copy';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_TWO_BYTE_COPY' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated 2 byte copy' {
+        return 'Malformed snappy stream: truncated 2 byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-two-byte-copy' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-two-byte-copy';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_TWO_BYTE_COPY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-two-byte-copy';
@@ -985,10 +1302,18 @@ class SnappyTruncatedTwoByteCopy extends SnappyError {
 
 /** A Snappy block ends inside a copy instruction, so it is truncated. */
 class SnappyTruncatedFourByteCopy extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated 4 byte copy';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-four-byte-copy';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_FOUR_BYTE_COPY' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated 4 byte copy' {
+        return 'Malformed snappy stream: truncated 4 byte copy';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-four-byte-copy' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-four-byte-copy';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_FOUR_BYTE_COPY';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-four-byte-copy';
@@ -1006,10 +1331,18 @@ class SnappyTruncatedFourByteCopy extends SnappyError {
 
 /** A Snappy block ends inside its length header, so it is truncated. */
 class SnappyTruncatedLengthPrefix extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LENGTH_PREFIX';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated length prefix';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-length-prefix';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_LENGTH_PREFIX' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_LENGTH_PREFIX';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated length prefix' {
+        return 'Malformed snappy stream: truncated length prefix';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-length-prefix' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-length-prefix';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LENGTH_PREFIX';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-length-prefix';
@@ -1027,10 +1360,18 @@ class SnappyTruncatedLengthPrefix extends SnappyError {
 
 /** A Snappy block ends inside a literal run, so it is truncated. */
 class SnappyTruncatedLiteral extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LITERAL';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated literal';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_LITERAL' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_LITERAL';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated literal' {
+        return 'Malformed snappy stream: truncated literal';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LITERAL';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal';
@@ -1048,10 +1389,18 @@ class SnappyTruncatedLiteral extends SnappyError {
 
 /** A Snappy block ends inside a literal's length, so it is truncated. */
 class SnappyTruncatedLiteralLength extends SnappyError {
-    public static readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LITERAL_LENGTH';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Malformed snappy stream: truncated literal length';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal-length';
+    public static get code(): 'LEVELDB_SNAPPY_TRUNCATED_LITERAL_LENGTH' {
+        return 'LEVELDB_SNAPPY_TRUNCATED_LITERAL_LENGTH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Malformed snappy stream: truncated literal length' {
+        return 'Malformed snappy stream: truncated literal length';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal-length' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal-length';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_TRUNCATED_LITERAL_LENGTH';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-truncated-literal-length';
@@ -1073,11 +1422,18 @@ class SnappyTruncatedLiteralLength extends SnappyError {
  * disk; free space and restart the server.
  */
 class WritesRefusedAfterManifestFailure extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_WRITES_REFUSED_AFTER_MANIFEST_FAILURE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'The manifest could not record a change, so the database refuses further writes';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-manifest-failure';
+    public static get code(): 'LEVELDB_WRITES_REFUSED_AFTER_MANIFEST_FAILURE' {
+        return 'LEVELDB_WRITES_REFUSED_AFTER_MANIFEST_FAILURE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'The manifest could not record a change, so the database refuses further writes' {
+        return 'The manifest could not record a change, so the database refuses further writes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-manifest-failure' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-writes-refused-after-manifest-failure';
+    }
 
     public override readonly code = 'LEVELDB_WRITES_REFUSED_AFTER_MANIFEST_FAILURE';
     public override readonly docs =
@@ -1099,11 +1455,18 @@ class WritesRefusedAfterManifestFailure extends JSPrismarineError {
  * than reuse table numbers the manifest may hold. Free space and restart the server.
  */
 class FlushRefusedAfterManifestFailure extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_FLUSH_REFUSED_AFTER_MANIFEST_FAILURE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'The manifest could not record a change, so the database refuses to flush';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-flush-refused-after-manifest-failure';
+    public static get code(): 'LEVELDB_FLUSH_REFUSED_AFTER_MANIFEST_FAILURE' {
+        return 'LEVELDB_FLUSH_REFUSED_AFTER_MANIFEST_FAILURE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'The manifest could not record a change, so the database refuses to flush' {
+        return 'The manifest could not record a change, so the database refuses to flush';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-flush-refused-after-manifest-failure' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-flush-refused-after-manifest-failure';
+    }
 
     public override readonly code = 'LEVELDB_FLUSH_REFUSED_AFTER_MANIFEST_FAILURE';
     public override readonly docs =
@@ -1122,10 +1485,18 @@ class FlushRefusedAfterManifestFailure extends JSPrismarineError {
 
 /** The manifest puts a table on a level that does not exist, so it is damaged. */
 class ManifestLevelOutOfRange extends CorruptionError {
-    public static readonly code = 'LEVELDB_MANIFEST_LEVEL_OUT_OF_RANGE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Manifest names level {level}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-level-out-of-range';
+    public static get code(): 'LEVELDB_MANIFEST_LEVEL_OUT_OF_RANGE' {
+        return 'LEVELDB_MANIFEST_LEVEL_OUT_OF_RANGE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Manifest names level {level}' {
+        return 'Manifest names level {level}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-level-out-of-range' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-level-out-of-range';
+    }
 
     public override readonly code = 'LEVELDB_MANIFEST_LEVEL_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-level-out-of-range';
@@ -1147,10 +1518,18 @@ class ManifestLevelOutOfRange extends CorruptionError {
  * LevelDB.
  */
 class ManifestNeverNamesComparator extends CorruptionError {
-    public static readonly code = 'LEVELDB_MANIFEST_NEVER_NAMES_COMPARATOR';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Manifest never names a comparator';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-never-names-comparator';
+    public static get code(): 'LEVELDB_MANIFEST_NEVER_NAMES_COMPARATOR' {
+        return 'LEVELDB_MANIFEST_NEVER_NAMES_COMPARATOR';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Manifest never names a comparator' {
+        return 'Manifest never names a comparator';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-never-names-comparator' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-never-names-comparator';
+    }
 
     public override readonly code = 'LEVELDB_MANIFEST_NEVER_NAMES_COMPARATOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-never-names-comparator';
@@ -1171,10 +1550,18 @@ class ManifestNeverNamesComparator extends CorruptionError {
  * newer LevelDB.
  */
 class ManifestRecordHasUnknownTag extends CorruptionError {
-    public static readonly code = 'LEVELDB_MANIFEST_RECORD_HAS_UNKNOWN_TAG';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Manifest record has unknown tag {tag}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-record-has-unknown-tag';
+    public static get code(): 'LEVELDB_MANIFEST_RECORD_HAS_UNKNOWN_TAG' {
+        return 'LEVELDB_MANIFEST_RECORD_HAS_UNKNOWN_TAG';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Manifest record has unknown tag {tag}' {
+        return 'Manifest record has unknown tag {tag}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-record-has-unknown-tag' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-record-has-unknown-tag';
+    }
 
     public override readonly code = 'LEVELDB_MANIFEST_RECORD_HAS_UNKNOWN_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-manifest-record-has-unknown-tag';
@@ -1193,10 +1580,18 @@ class ManifestRecordHasUnknownTag extends CorruptionError {
 
 /** There is no database at the path, and it was opened without `createIfMissing`. */
 class NoDatabase extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_NO_DATABASE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'No database at {directory}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-no-database';
+    public static get code(): 'LEVELDB_NO_DATABASE' {
+        return 'LEVELDB_NO_DATABASE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'No database at {directory}' {
+        return 'No database at {directory}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-no-database' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-no-database';
+    }
 
     public override readonly code = 'LEVELDB_NO_DATABASE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-no-database';
@@ -1218,10 +1613,18 @@ class NoDatabase extends JSPrismarineError {
  * replaced.
  */
 class NotLeveldbTable extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_NOT_LEVELDB_TABLE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Not a LevelDB table: the footer magic does not match';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-not-leveldb-table';
+    public static get code(): 'LEVELDB_NOT_LEVELDB_TABLE' {
+        return 'LEVELDB_NOT_LEVELDB_TABLE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Not a LevelDB table: the footer magic does not match' {
+        return 'Not a LevelDB table: the footer magic does not match';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-not-leveldb-table' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-not-leveldb-table';
+    }
 
     public override readonly code = 'LEVELDB_NOT_LEVELDB_TABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-not-leveldb-table';
@@ -1239,10 +1642,18 @@ class NotLeveldbTable extends JSPrismarineError {
 
 /** A reader seeked outside the record it reads. This is a bug in the reader. */
 class SeekOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_SEEK_OUT_OF_RANGE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Position {value} is outside the readable range';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-seek-out-of-range';
+    public static get code(): 'LEVELDB_SEEK_OUT_OF_RANGE' {
+        return 'LEVELDB_SEEK_OUT_OF_RANGE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Position {value} is outside the readable range' {
+        return 'Position {value} is outside the readable range';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-seek-out-of-range' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-seek-out-of-range';
+    }
 
     public override readonly code = 'LEVELDB_SEEK_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-seek-out-of-range';
@@ -1261,10 +1672,18 @@ class SeekOutOfRange extends JSPrismarineRangeError {
 
 /** A table's index points past the end of the file, so the table is truncated or damaged. */
 class ReadOutsideTable extends CorruptionError {
-    public static readonly code = 'LEVELDB_READ_OUTSIDE_TABLE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Read of {length} bytes at {offset} is outside the table';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-read-outside-table';
+    public static get code(): 'LEVELDB_READ_OUTSIDE_TABLE' {
+        return 'LEVELDB_READ_OUTSIDE_TABLE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Read of {length} bytes at {offset} is outside the table' {
+        return 'Read of {length} bytes at {offset} is outside the table';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-read-outside-table' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-read-outside-table';
+    }
 
     public override readonly code = 'LEVELDB_READ_OUTSIDE_TABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-read-outside-table';
@@ -1286,10 +1705,18 @@ class ReadOutsideTable extends CorruptionError {
  * it, or the disk failed.
  */
 class ShortRead extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_SHORT_READ';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Read {read} of {length} bytes at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-short-read';
+    public static get code(): 'LEVELDB_SHORT_READ' {
+        return 'LEVELDB_SHORT_READ';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Read {read} of {length} bytes at offset {offset}' {
+        return 'Read {read} of {length} bytes at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-short-read' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-short-read';
+    }
 
     public override readonly code = 'LEVELDB_SHORT_READ';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-short-read';
@@ -1316,10 +1743,18 @@ class ShortRead extends JSPrismarineError {
 
 /** A table block's first key is malformed, so the table is damaged. */
 class RestartKeyIsMalformed extends CorruptionError {
-    public static readonly code = 'LEVELDB_RESTART_KEY_IS_MALFORMED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Restart key is malformed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-restart-key-is-malformed';
+    public static get code(): 'LEVELDB_RESTART_KEY_IS_MALFORMED' {
+        return 'LEVELDB_RESTART_KEY_IS_MALFORMED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Restart key is malformed' {
+        return 'Restart key is malformed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-restart-key-is-malformed' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-restart-key-is-malformed';
+    }
 
     public override readonly code = 'LEVELDB_RESTART_KEY_IS_MALFORMED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-restart-key-is-malformed';
@@ -1340,10 +1775,18 @@ class RestartKeyIsMalformed extends CorruptionError {
  * and so does this package.
  */
 class SnappyCompressionUnsupported extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_SNAPPY_COMPRESSION_UNSUPPORTED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Snappy compression is not implemented; blocks are written as ZlibRaw';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-compression-unsupported';
+    public static get code(): 'LEVELDB_SNAPPY_COMPRESSION_UNSUPPORTED' {
+        return 'LEVELDB_SNAPPY_COMPRESSION_UNSUPPORTED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Snappy compression is not implemented; blocks are written as ZlibRaw' {
+        return 'Snappy compression is not implemented; blocks are written as ZlibRaw';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-compression-unsupported' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-compression-unsupported';
+    }
 
     public override readonly code = 'LEVELDB_SNAPPY_COMPRESSION_UNSUPPORTED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-snappy-compression-unsupported';
@@ -1364,10 +1807,18 @@ class SnappyCompressionUnsupported extends JSPrismarineError {
  * a write.
  */
 class TableShorterThanFooter extends CorruptionError {
-    public static readonly code = 'LEVELDB_TABLE_SHORTER_THAN_FOOTER';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Table is {sourceCount} bytes, shorter than its own footer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-shorter-than-footer';
+    public static get code(): 'LEVELDB_TABLE_SHORTER_THAN_FOOTER' {
+        return 'LEVELDB_TABLE_SHORTER_THAN_FOOTER';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Table is {sourceCount} bytes, shorter than its own footer' {
+        return 'Table is {sourceCount} bytes, shorter than its own footer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-shorter-than-footer' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-shorter-than-footer';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_SHORTER_THAN_FOOTER';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-shorter-than-footer';
@@ -1386,10 +1837,18 @@ class TableShorterThanFooter extends CorruptionError {
 
 /** The worker thread that writes tables exited mid-task, often because it ran out of memory. */
 class TableWorkerExited extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_EXITED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Table worker exited before replying with code {code}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-exited';
+    public static get code(): 'LEVELDB_TABLE_WORKER_EXITED' {
+        return 'LEVELDB_TABLE_WORKER_EXITED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Table worker exited before replying with code {code}' {
+        return 'Table worker exited before replying with code {code}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-exited' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-exited';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_EXITED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-exited';
@@ -1410,11 +1869,18 @@ class TableWorkerExited extends JSPrismarineError {
  * The table worker answered a flush with a compaction result. This is a bug in the database.
  */
 class TableWorkerAnsweredFlushWithCompaction extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_ANSWERED_FLUSH_WITH_COMPACTION';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Table worker returned a compaction result for a flush';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-flush-with-compaction';
+    public static get code(): 'LEVELDB_TABLE_WORKER_ANSWERED_FLUSH_WITH_COMPACTION' {
+        return 'LEVELDB_TABLE_WORKER_ANSWERED_FLUSH_WITH_COMPACTION';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Table worker returned a compaction result for a flush' {
+        return 'Table worker returned a compaction result for a flush';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-flush-with-compaction' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-flush-with-compaction';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_ANSWERED_FLUSH_WITH_COMPACTION';
     public override readonly docs =
@@ -1435,11 +1901,18 @@ class TableWorkerAnsweredFlushWithCompaction extends JSPrismarineError {
  * The table worker answered a compaction with a flush result. This is a bug in the database.
  */
 class TableWorkerAnsweredCompactionWithFlush extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_ANSWERED_COMPACTION_WITH_FLUSH';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Table worker returned a flush result for compaction';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-compaction-with-flush';
+    public static get code(): 'LEVELDB_TABLE_WORKER_ANSWERED_COMPACTION_WITH_FLUSH' {
+        return 'LEVELDB_TABLE_WORKER_ANSWERED_COMPACTION_WITH_FLUSH';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Table worker returned a flush result for compaction' {
+        return 'Table worker returned a flush result for compaction';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-compaction-with-flush' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-answered-compaction-with-flush';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_ANSWERED_COMPACTION_WITH_FLUSH';
     public override readonly docs =
@@ -1458,10 +1931,18 @@ class TableWorkerAnsweredCompactionWithFlush extends JSPrismarineError {
 
 /** The table worker module was run as a main thread. Only the database starts it. */
 class TableWorkerOutsideWorkerThread extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_OUTSIDE_WORKER_THREAD';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'TableBuilderWorker must run in a worker thread';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-outside-worker-thread';
+    public static get code(): 'LEVELDB_TABLE_WORKER_OUTSIDE_WORKER_THREAD' {
+        return 'LEVELDB_TABLE_WORKER_OUTSIDE_WORKER_THREAD';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'TableBuilderWorker must run in a worker thread' {
+        return 'TableBuilderWorker must run in a worker thread';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-outside-worker-thread' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-outside-worker-thread';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_OUTSIDE_WORKER_THREAD';
     public override readonly docs =
@@ -1483,10 +1964,18 @@ class TableWorkerOutsideWorkerThread extends JSPrismarineError {
  * comes from another LevelDB fork.
  */
 class UnknownBlockCompressionType extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_UNKNOWN_BLOCK_COMPRESSION_TYPE';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Unknown block compression type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-block-compression-type';
+    public static get code(): 'LEVELDB_UNKNOWN_BLOCK_COMPRESSION_TYPE' {
+        return 'LEVELDB_UNKNOWN_BLOCK_COMPRESSION_TYPE';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Unknown block compression type {type}' {
+        return 'Unknown block compression type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-block-compression-type' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-block-compression-type';
+    }
 
     public override readonly code = 'LEVELDB_UNKNOWN_BLOCK_COMPRESSION_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-block-compression-type';
@@ -1505,10 +1994,18 @@ class UnknownBlockCompressionType extends JSPrismarineError {
 
 /** A length in a database record is malformed, so the record is damaged. */
 class Varint32Unterminated extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_VARINT32_UNTERMINATED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Varint32 did not terminate within 5 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-varint32-unterminated';
+    public static get code(): 'LEVELDB_VARINT32_UNTERMINATED' {
+        return 'LEVELDB_VARINT32_UNTERMINATED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Varint32 did not terminate within 5 bytes' {
+        return 'Varint32 did not terminate within 5 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-varint32-unterminated' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-varint32-unterminated';
+    }
 
     public override readonly code = 'LEVELDB_VARINT32_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-varint32-unterminated';
@@ -1526,10 +2023,18 @@ class Varint32Unterminated extends JSPrismarineRangeError {
 
 /** A number in a database record is malformed, so the record is damaged. */
 class Varint64Unterminated extends JSPrismarineRangeError {
-    public static readonly code = 'LEVELDB_VARINT64_UNTERMINATED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Varint64 did not terminate within 10 bytes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-varint64-unterminated';
+    public static get code(): 'LEVELDB_VARINT64_UNTERMINATED' {
+        return 'LEVELDB_VARINT64_UNTERMINATED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Varint64 did not terminate within 10 bytes' {
+        return 'Varint64 did not terminate within 10 bytes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-varint64-unterminated' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-varint64-unterminated';
+    }
 
     public override readonly code = 'LEVELDB_VARINT64_UNTERMINATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-varint64-unterminated';
@@ -1547,10 +2052,18 @@ class Varint64Unterminated extends JSPrismarineRangeError {
 
 /** A write batch in the log is shorter than its header, so the log is damaged. */
 class WriteBatchTooShort extends CorruptionError {
-    public static readonly code = 'LEVELDB_WRITE_BATCH_TOO_SHORT';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Write batch is {byteLength} bytes, the header alone is 12';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-write-batch-too-short';
+    public static get code(): 'LEVELDB_WRITE_BATCH_TOO_SHORT' {
+        return 'LEVELDB_WRITE_BATCH_TOO_SHORT';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Write batch is {byteLength} bytes, the header alone is 12' {
+        return 'Write batch is {byteLength} bytes, the header alone is 12';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-write-batch-too-short' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-write-batch-too-short';
+    }
 
     public override readonly code = 'LEVELDB_WRITE_BATCH_TOO_SHORT';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-write-batch-too-short';
@@ -1572,10 +2085,18 @@ class WriteBatchTooShort extends CorruptionError {
  * damaged.
  */
 class UnknownWriteBatchOperation extends CorruptionError {
-    public static readonly code = 'LEVELDB_UNKNOWN_WRITE_BATCH_OPERATION';
-    public static readonly domain = 'leveldb';
-    public static readonly template = 'Write batch operation has type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-write-batch-operation';
+    public static get code(): 'LEVELDB_UNKNOWN_WRITE_BATCH_OPERATION' {
+        return 'LEVELDB_UNKNOWN_WRITE_BATCH_OPERATION';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): 'Write batch operation has type {type}' {
+        return 'Write batch operation has type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-write-batch-operation' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-write-batch-operation';
+    }
 
     public override readonly code = 'LEVELDB_UNKNOWN_WRITE_BATCH_OPERATION';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-unknown-write-batch-operation';
@@ -1594,10 +2115,18 @@ class UnknownWriteBatchOperation extends CorruptionError {
 
 /** The worker that builds tables failed. The message is the worker's own. */
 class TableWorkerFailed extends JSPrismarineError {
-    public static readonly code = 'LEVELDB_TABLE_WORKER_FAILED';
-    public static readonly domain = 'leveldb';
-    public static readonly template = '{message}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-failed';
+    public static get code(): 'LEVELDB_TABLE_WORKER_FAILED' {
+        return 'LEVELDB_TABLE_WORKER_FAILED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): '{message}' {
+        return '{message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-failed' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-failed';
+    }
 
     public override readonly code = 'LEVELDB_TABLE_WORKER_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-table-worker-failed';
@@ -1619,11 +2148,18 @@ class TableWorkerFailed extends JSPrismarineError {
  * the other server that has the world open, then start again.
  */
 class DatabaseLocked extends DatabaseLockedError {
-    public static readonly code = 'LEVELDB_DATABASE_LOCKED';
-    public static readonly domain = 'leveldb';
-    public static readonly template =
-        "The world at {path} is already open. Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it.";
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked';
+    public static get code(): 'LEVELDB_DATABASE_LOCKED' {
+        return 'LEVELDB_DATABASE_LOCKED';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): "The world at {path} is already open. Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it." {
+        return "The world at {path} is already open. Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it.";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked';
+    }
 
     public override readonly code = 'LEVELDB_DATABASE_LOCKED';
     public override readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked';
@@ -1648,11 +2184,18 @@ class DatabaseLocked extends DatabaseLockedError {
  * lock left by a process that has exited is taken over on its own.
  */
 class DatabaseLockedByRunningProcess extends DatabaseLockedError {
-    public static readonly code = 'LEVELDB_DATABASE_LOCKED_BY_RUNNING_PROCESS';
-    public static readonly domain = 'leveldb';
-    public static readonly template =
-        "The world at {path} is already open (held by process {pid}, which is still running). Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it.";
-    public static readonly docs = 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked-by-running-process';
+    public static get code(): 'LEVELDB_DATABASE_LOCKED_BY_RUNNING_PROCESS' {
+        return 'LEVELDB_DATABASE_LOCKED_BY_RUNNING_PROCESS';
+    }
+    public static get domain(): 'leveldb' {
+        return 'leveldb';
+    }
+    public static get template(): "The world at {path} is already open (held by process {pid}, which is still running). Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it." {
+        return "The world at {path} is already open (held by process {pid}, which is still running). Close Minecraft, or the other server, before starting: two writers on one LevelDB do not race for a stale read, they delete each other's files and the world does not survive it.";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked-by-running-process' {
+        return 'https://jsprismarine.dev/errors/leveldb#leveldb-database-locked-by-running-process';
+    }
 
     public override readonly code = 'LEVELDB_DATABASE_LOCKED_BY_RUNNING_PROCESS';
     public override readonly docs =

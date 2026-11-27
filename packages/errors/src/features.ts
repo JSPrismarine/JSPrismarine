@@ -12,10 +12,18 @@ import {
  * `biased_to_bottom` int provider whose maximum is below its minimum. The path names the field.
  */
 class BiasedToBottomMaxBelowMin extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
-    public static readonly domain = 'features';
-    public static readonly template = 'biased_to_bottom int max {max} is below min {min}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-biased-to-bottom-max-below-min';
+    public static get code(): 'FEATURES_BIASED_TO_BOTTOM_MAX_BELOW_MIN' {
+        return 'FEATURES_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'biased_to_bottom int max {max} is below min {min}' {
+        return 'biased_to_bottom int max {max} is below min {min}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-biased-to-bottom-max-below-min' {
+        return 'https://jsprismarine.dev/errors/features#features-biased-to-bottom-max-below-min';
+    }
 
     public override readonly code = 'FEATURES_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-biased-to-bottom-max-below-min';
@@ -37,10 +45,18 @@ class BiasedToBottomMaxBelowMin extends JSPrismarineRangeError {
  * drew it.
  */
 class BoundMustBePositive extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_BOUND_MUST_BE_POSITIVE';
-    public static readonly domain = 'features';
-    public static readonly template = 'Bound must be positive';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-bound-must-be-positive';
+    public static get code(): 'FEATURES_BOUND_MUST_BE_POSITIVE' {
+        return 'FEATURES_BOUND_MUST_BE_POSITIVE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Bound must be positive' {
+        return 'Bound must be positive';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-bound-must-be-positive' {
+        return 'https://jsprismarine.dev/errors/features#features-bound-must-be-positive';
+    }
 
     public override readonly code = 'FEATURES_BOUND_MUST_BE_POSITIVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-bound-must-be-positive';
@@ -61,10 +77,18 @@ class BoundMustBePositive extends JSPrismarineRangeError {
  * Check the feature's data for an empty list.
  */
 class CannotPickFromEmptyList extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_CANNOT_PICK_FROM_EMPTY_LIST';
-    public static readonly domain = 'features';
-    public static readonly template = 'Cannot pick from an empty list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-cannot-pick-from-empty-list';
+    public static get code(): 'FEATURES_CANNOT_PICK_FROM_EMPTY_LIST' {
+        return 'FEATURES_CANNOT_PICK_FROM_EMPTY_LIST';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Cannot pick from an empty list' {
+        return 'Cannot pick from an empty list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-cannot-pick-from-empty-list' {
+        return 'https://jsprismarine.dev/errors/features#features-cannot-pick-from-empty-list';
+    }
 
     public override readonly code = 'FEATURES_CANNOT_PICK_FROM_EMPTY_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-cannot-pick-from-empty-list';
@@ -85,10 +109,18 @@ class CannotPickFromEmptyList extends JSPrismarineRangeError {
  * a list where a list belongs. The path names the field.
  */
 class ExpectedArray extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_ARRAY';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected an array, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-array';
+    public static get code(): 'FEATURES_EXPECTED_ARRAY' {
+        return 'FEATURES_EXPECTED_ARRAY';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected an array, got {value}' {
+        return '{path}: expected an array, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-array' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-array';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_ARRAY';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-array';
@@ -110,10 +142,18 @@ class ExpectedArray extends JSPrismarineTypeError {
  * is not a block identifier, a `#tag` or a list of identifiers.
  */
 class ExpectedBlockSet extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_BLOCK_SET';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a block identifier, a tag reference or a list, got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-block-set';
+    public static get code(): 'FEATURES_EXPECTED_BLOCK_SET' {
+        return 'FEATURES_EXPECTED_BLOCK_SET';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a block identifier, a tag reference or a list, got {source}' {
+        return '{path}: expected a block identifier, a tag reference or a list, got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-block-set' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-block-set';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_BLOCK_SET';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-block-set';
@@ -138,10 +178,18 @@ class ExpectedBlockSet extends JSPrismarineTypeError {
  * `true` or `false` where a boolean belongs.
  */
 class ExpectedBoolean extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_BOOLEAN';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a boolean, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-boolean';
+    public static get code(): 'FEATURES_EXPECTED_BOOLEAN' {
+        return 'FEATURES_EXPECTED_BOOLEAN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a boolean, got {value}' {
+        return '{path}: expected a boolean, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-boolean' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-boolean';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_BOOLEAN';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-boolean';
@@ -163,10 +211,18 @@ class ExpectedBoolean extends JSPrismarineTypeError {
  * is not one of `up`, `down`, `north`, `south`, `east` or `west`.
  */
 class ExpectedDirection extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_DIRECTION';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a direction, got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-direction';
+    public static get code(): 'FEATURES_EXPECTED_DIRECTION' {
+        return 'FEATURES_EXPECTED_DIRECTION';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a direction, got {source}' {
+        return '{path}: expected a direction, got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-direction' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-direction';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_DIRECTION';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-direction';
@@ -188,10 +244,18 @@ class ExpectedDirection extends JSPrismarineTypeError {
  * a number where a number belongs.
  */
 class ExpectedFiniteNumber extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_FINITE_NUMBER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a finite number, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-finite-number';
+    public static get code(): 'FEATURES_EXPECTED_FINITE_NUMBER' {
+        return 'FEATURES_EXPECTED_FINITE_NUMBER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a finite number, got {value}' {
+        return '{path}: expected a finite number, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-finite-number' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-finite-number';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_FINITE_NUMBER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-finite-number';
@@ -213,10 +277,18 @@ class ExpectedFiniteNumber extends JSPrismarineTypeError {
  * whole number belongs.
  */
 class ExpectedInteger extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_INTEGER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected an integer, got {parsed}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-integer';
+    public static get code(): 'FEATURES_EXPECTED_INTEGER' {
+        return 'FEATURES_EXPECTED_INTEGER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected an integer, got {parsed}' {
+        return '{path}: expected an integer, got {parsed}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-integer' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-integer';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_INTEGER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-integer';
@@ -238,10 +310,18 @@ class ExpectedInteger extends JSPrismarineTypeError {
  * list, so nothing can be drawn from it.
  */
 class EmptyWeightedList extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EMPTY_WEIGHTED_LIST';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a non-empty weighted list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-list';
+    public static get code(): 'FEATURES_EMPTY_WEIGHTED_LIST' {
+        return 'FEATURES_EMPTY_WEIGHTED_LIST';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a non-empty weighted list' {
+        return '{path}: expected a non-empty weighted list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-empty-weighted-list' {
+        return 'https://jsprismarine.dev/errors/features#features-empty-weighted-list';
+    }
 
     public override readonly code = 'FEATURES_EMPTY_WEIGHTED_LIST';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-list';
@@ -263,10 +343,18 @@ class EmptyWeightedList extends JSPrismarineTypeError {
  * an object where an object belongs.
  */
 class ExpectedObject extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_OBJECT';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected an object, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-object';
+    public static get code(): 'FEATURES_EXPECTED_OBJECT' {
+        return 'FEATURES_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected an object, got {value}' {
+        return '{path}: expected an object, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-object' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-object';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-object';
@@ -288,10 +376,18 @@ class ExpectedObject extends JSPrismarineTypeError {
  * set the field allows. The message lists the allowed values.
  */
 class ExpectedOne extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_ONE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected one of {allowed}, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-one';
+    public static get code(): 'FEATURES_EXPECTED_ONE' {
+        return 'FEATURES_EXPECTED_ONE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected one of {allowed}, got {value}' {
+        return '{path}: expected one of {allowed}, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-one' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-one';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_ONE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-one';
@@ -322,11 +418,18 @@ class ExpectedOne extends JSPrismarineTypeError {
  * `relative_to_sea_level`.
  */
 class ExpectedVerticalAnchor extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_VERTICAL_ANCHOR';
-    public static readonly domain = 'features';
-    public static readonly template =
-        '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-vertical-anchor';
+    public static get code(): 'FEATURES_EXPECTED_VERTICAL_ANCHOR' {
+        return 'FEATURES_EXPECTED_VERTICAL_ANCHOR';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level' {
+        return '{path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-vertical-anchor' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-vertical-anchor';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_VERTICAL_ANCHOR';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-vertical-anchor';
@@ -351,10 +454,18 @@ class ExpectedVerticalAnchor extends JSPrismarineTypeError {
  * a string where a registry identifier belongs.
  */
 class ExpectedRegistryIdentifier extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_REGISTRY_IDENTIFIER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a registry identifier, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-registry-identifier';
+    public static get code(): 'FEATURES_EXPECTED_REGISTRY_IDENTIFIER' {
+        return 'FEATURES_EXPECTED_REGISTRY_IDENTIFIER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a registry identifier, got {value}' {
+        return '{path}: expected a registry identifier, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-registry-identifier' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-registry-identifier';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_REGISTRY_IDENTIFIER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-registry-identifier';
@@ -376,10 +487,18 @@ class ExpectedRegistryIdentifier extends JSPrismarineTypeError {
  * a string where a string belongs.
  */
 class ExpectedString extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_STRING';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected a string, got {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-string';
+    public static get code(): 'FEATURES_EXPECTED_STRING' {
+        return 'FEATURES_EXPECTED_STRING';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected a string, got {value}' {
+        return '{path}: expected a string, got {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-string' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-string';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_STRING';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-string';
@@ -401,10 +520,18 @@ class ExpectedString extends JSPrismarineTypeError {
  * not three whole numbers.
  */
 class ExpectedThreeIntegers extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_THREE_INTEGERS';
-    public static readonly domain = 'features';
-    public static readonly template = '{entryPath}: expected three integers';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-three-integers';
+    public static get code(): 'FEATURES_EXPECTED_THREE_INTEGERS' {
+        return 'FEATURES_EXPECTED_THREE_INTEGERS';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{entryPath}: expected three integers' {
+        return '{entryPath}: expected three integers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-three-integers' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-three-integers';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_THREE_INTEGERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-three-integers';
@@ -426,10 +553,18 @@ class ExpectedThreeIntegers extends JSPrismarineTypeError {
  * wrong number of values; it takes three.
  */
 class WrongIntegerCount extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_WRONG_INTEGER_COUNT';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected three integers, got {valuesCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-wrong-integer-count';
+    public static get code(): 'FEATURES_WRONG_INTEGER_COUNT' {
+        return 'FEATURES_WRONG_INTEGER_COUNT';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected three integers, got {valuesCount}' {
+        return '{path}: expected three integers, got {valuesCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-wrong-integer-count' {
+        return 'https://jsprismarine.dev/errors/features#features-wrong-integer-count';
+    }
 
     public override readonly code = 'FEATURES_WRONG_INTEGER_COUNT';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-wrong-integer-count';
@@ -451,10 +586,18 @@ class WrongIntegerCount extends JSPrismarineTypeError {
  * direction that is not `up` or `down`.
  */
 class ExpectedUpOrDown extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EXPECTED_UP_OR_DOWN';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: expected up or down, got {source}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-up-or-down';
+    public static get code(): 'FEATURES_EXPECTED_UP_OR_DOWN' {
+        return 'FEATURES_EXPECTED_UP_OR_DOWN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: expected up or down, got {source}' {
+        return '{path}: expected up or down, got {source}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-expected-up-or-down' {
+        return 'https://jsprismarine.dev/errors/features#features-expected-up-or-down';
+    }
 
     public override readonly code = 'FEATURES_EXPECTED_UP_OR_DOWN';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-expected-up-or-down';
@@ -477,10 +620,18 @@ class ExpectedUpOrDown extends JSPrismarineTypeError {
  * biome.
  */
 class FeatureOrderCycle extends JSPrismarineError {
-    public static readonly code = 'FEATURES_FEATURE_ORDER_CYCLE';
-    public static readonly domain = 'features';
-    public static readonly template = 'Feature order cycle found, reached again at {reference}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-order-cycle';
+    public static get code(): 'FEATURES_FEATURE_ORDER_CYCLE' {
+        return 'FEATURES_FEATURE_ORDER_CYCLE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Feature order cycle found, reached again at {reference}' {
+        return 'Feature order cycle found, reached again at {reference}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-feature-order-cycle' {
+        return 'https://jsprismarine.dev/errors/features#features-feature-order-cycle';
+    }
 
     public override readonly code = 'FEATURES_FEATURE_ORDER_CYCLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-order-cycle';
@@ -502,10 +653,18 @@ class FeatureOrderCycle extends JSPrismarineError {
  * read.
  */
 class FeatureReferenceCycle extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_FEATURE_REFERENCE_CYCLE';
-    public static readonly domain = 'features';
-    public static readonly template = '{full}: feature reference cycle';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-reference-cycle';
+    public static get code(): 'FEATURES_FEATURE_REFERENCE_CYCLE' {
+        return 'FEATURES_FEATURE_REFERENCE_CYCLE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{full}: feature reference cycle' {
+        return '{full}: feature reference cycle';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-feature-reference-cycle' {
+        return 'https://jsprismarine.dev/errors/features#features-feature-reference-cycle';
+    }
 
     public override readonly code = 'FEATURES_FEATURE_REFERENCE_CYCLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-reference-cycle';
@@ -526,10 +685,18 @@ class FeatureReferenceCycle extends JSPrismarineTypeError {
  * A feature type is known but no reader handles it. This is a bug in `@jsprismarine/features`.
  */
 class FeatureTypeHasNoReader extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_FEATURE_TYPE_HAS_NO_READER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: feature type {type} is registered but has no reader';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-type-has-no-reader';
+    public static get code(): 'FEATURES_FEATURE_TYPE_HAS_NO_READER' {
+        return 'FEATURES_FEATURE_TYPE_HAS_NO_READER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: feature type {type} is registered but has no reader' {
+        return '{path}: feature type {type} is registered but has no reader';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-feature-type-has-no-reader' {
+        return 'https://jsprismarine.dev/errors/features#features-feature-type-has-no-reader';
+    }
 
     public override readonly code = 'FEATURES_FEATURE_TYPE_HAS_NO_READER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-feature-type-has-no-reader';
@@ -551,10 +718,18 @@ class FeatureTypeHasNoReader extends JSPrismarineTypeError {
  * is damaged.
  */
 class InvalidRandomState extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_INVALID_RANDOM_STATE';
-    public static readonly domain = 'features';
-    public static readonly template = 'Invalid WorldgenRandom state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-invalid-random-state';
+    public static get code(): 'FEATURES_INVALID_RANDOM_STATE' {
+        return 'FEATURES_INVALID_RANDOM_STATE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Invalid WorldgenRandom state' {
+        return 'Invalid WorldgenRandom state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-invalid-random-state' {
+        return 'https://jsprismarine.dev/errors/features#features-invalid-random-state';
+    }
 
     public override readonly code = 'FEATURES_INVALID_RANDOM_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-invalid-random-state';
@@ -575,10 +750,18 @@ class InvalidRandomState extends JSPrismarineTypeError {
  * characters registry identifiers do not allow, such as capitals or spaces.
  */
 class InvalidRegistryIdentifier extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_INVALID_REGISTRY_IDENTIFIER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: {value} is not a valid registry identifier';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-invalid-registry-identifier';
+    public static get code(): 'FEATURES_INVALID_REGISTRY_IDENTIFIER' {
+        return 'FEATURES_INVALID_REGISTRY_IDENTIFIER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: {value} is not a valid registry identifier' {
+        return '{path}: {value} is not a valid registry identifier';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-invalid-registry-identifier' {
+        return 'https://jsprismarine.dev/errors/features#features-invalid-registry-identifier';
+    }
 
     public override readonly code = 'FEATURES_INVALID_REGISTRY_IDENTIFIER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-invalid-registry-identifier';
@@ -600,10 +783,18 @@ class InvalidRegistryIdentifier extends JSPrismarineTypeError {
  * provider no loaded file defines.
  */
 class NoSuchBlockStateProvider extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_NO_SUCH_BLOCK_STATE_PROVIDER';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: no such block state provider {full}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-block-state-provider';
+    public static get code(): 'FEATURES_NO_SUCH_BLOCK_STATE_PROVIDER' {
+        return 'FEATURES_NO_SUCH_BLOCK_STATE_PROVIDER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: no such block state provider {full}' {
+        return '{path}: no such block state provider {full}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-no-such-block-state-provider' {
+        return 'https://jsprismarine.dev/errors/features#features-no-such-block-state-provider';
+    }
 
     public override readonly code = 'FEATURES_NO_SUCH_BLOCK_STATE_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-block-state-provider';
@@ -622,10 +813,18 @@ class NoSuchBlockStateProvider extends JSPrismarineTypeError {
 
 /** A placed feature or biome refers to a configured feature no loaded file defines. */
 class NoSuchConfiguredFeature extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_NO_SUCH_CONFIGURED_FEATURE';
-    public static readonly domain = 'features';
-    public static readonly template = '{full}: no such configured feature';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-configured-feature';
+    public static get code(): 'FEATURES_NO_SUCH_CONFIGURED_FEATURE' {
+        return 'FEATURES_NO_SUCH_CONFIGURED_FEATURE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{full}: no such configured feature' {
+        return '{full}: no such configured feature';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-no-such-configured-feature' {
+        return 'https://jsprismarine.dev/errors/features#features-no-such-configured-feature';
+    }
 
     public override readonly code = 'FEATURES_NO_SUCH_CONFIGURED_FEATURE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-configured-feature';
@@ -644,10 +843,18 @@ class NoSuchConfiguredFeature extends JSPrismarineTypeError {
 
 /** A biome refers to a placed feature no loaded file defines. */
 class NoSuchPlacedFeature extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_NO_SUCH_PLACED_FEATURE';
-    public static readonly domain = 'features';
-    public static readonly template = '{full}: no such placed feature';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-placed-feature';
+    public static get code(): 'FEATURES_NO_SUCH_PLACED_FEATURE' {
+        return 'FEATURES_NO_SUCH_PLACED_FEATURE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{full}: no such placed feature' {
+        return '{full}: no such placed feature';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-no-such-placed-feature' {
+        return 'https://jsprismarine.dev/errors/features#features-no-such-placed-feature';
+    }
 
     public override readonly code = 'FEATURES_NO_SUCH_PLACED_FEATURE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-no-such-placed-feature';
@@ -669,10 +876,18 @@ class NoSuchPlacedFeature extends JSPrismarineTypeError {
  * sampling.
  */
 class NoiseStateIndexOutOfRange extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_NOISE_STATE_INDEX_OUT_OF_RANGE';
-    public static readonly domain = 'features';
-    public static readonly template = 'Noise state index fell outside the state list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-noise-state-index-out-of-range';
+    public static get code(): 'FEATURES_NOISE_STATE_INDEX_OUT_OF_RANGE' {
+        return 'FEATURES_NOISE_STATE_INDEX_OUT_OF_RANGE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Noise state index fell outside the state list' {
+        return 'Noise state index fell outside the state list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-noise-state-index-out-of-range' {
+        return 'https://jsprismarine.dev/errors/features#features-noise-state-index-out-of-range';
+    }
 
     public override readonly code = 'FEATURES_NOISE_STATE_INDEX_OUT_OF_RANGE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-noise-state-index-out-of-range';
@@ -693,10 +908,18 @@ class NoiseStateIndexOutOfRange extends JSPrismarineRangeError {
  * provider with no states.
  */
 class EmptyNoiseStateProvider extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_EMPTY_NOISE_STATE_PROVIDER';
-    public static readonly domain = 'features';
-    public static readonly template = 'A noise state provider needs at least one state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-noise-state-provider';
+    public static get code(): 'FEATURES_EMPTY_NOISE_STATE_PROVIDER' {
+        return 'FEATURES_EMPTY_NOISE_STATE_PROVIDER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'A noise state provider needs at least one state' {
+        return 'A noise state provider needs at least one state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-empty-noise-state-provider' {
+        return 'https://jsprismarine.dev/errors/features#features-empty-noise-state-provider';
+    }
 
     public override readonly code = 'FEATURES_EMPTY_NOISE_STATE_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-noise-state-provider';
@@ -717,10 +940,18 @@ class EmptyNoiseStateProvider extends JSPrismarineRangeError {
  * modifier list that is empty where one entry is needed.
  */
 class EmptyPlacements extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_EMPTY_PLACEMENTS';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}.placements: expected a non-empty list';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-placements';
+    public static get code(): 'FEATURES_EMPTY_PLACEMENTS' {
+        return 'FEATURES_EMPTY_PLACEMENTS';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}.placements: expected a non-empty list' {
+        return '{path}.placements: expected a non-empty list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-empty-placements' {
+        return 'https://jsprismarine.dev/errors/features#features-empty-placements';
+    }
 
     public override readonly code = 'FEATURES_EMPTY_PLACEMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-placements';
@@ -742,10 +973,18 @@ class EmptyPlacements extends JSPrismarineTypeError {
  * provider whose maximum is below its minimum.
  */
 class TrapezoidMaxBelowMin extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_TRAPEZOID_MAX_BELOW_MIN';
-    public static readonly domain = 'features';
-    public static readonly template = 'trapezoid int max {max} is below min {min}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-trapezoid-max-below-min';
+    public static get code(): 'FEATURES_TRAPEZOID_MAX_BELOW_MIN' {
+        return 'FEATURES_TRAPEZOID_MAX_BELOW_MIN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'trapezoid int max {max} is below min {min}' {
+        return 'trapezoid int max {max} is below min {min}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-trapezoid-max-below-min' {
+        return 'https://jsprismarine.dev/errors/features#features-trapezoid-max-below-min';
+    }
 
     public override readonly code = 'FEATURES_TRAPEZOID_MAX_BELOW_MIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-trapezoid-max-below-min';
@@ -767,10 +1006,18 @@ class TrapezoidMaxBelowMin extends JSPrismarineRangeError {
  * provider whose plateau is wider than its range.
  */
 class TrapezoidPlateauTooWide extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_TRAPEZOID_PLATEAU_TOO_WIDE';
-    public static readonly domain = 'features';
-    public static readonly template = 'trapezoid int plateau {plateau} exceeds the span';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-trapezoid-plateau-too-wide';
+    public static get code(): 'FEATURES_TRAPEZOID_PLATEAU_TOO_WIDE' {
+        return 'FEATURES_TRAPEZOID_PLATEAU_TOO_WIDE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'trapezoid int plateau {plateau} exceeds the span' {
+        return 'trapezoid int plateau {plateau} exceeds the span';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-trapezoid-plateau-too-wide' {
+        return 'https://jsprismarine.dev/errors/features#features-trapezoid-plateau-too-wide';
+    }
 
     public override readonly code = 'FEATURES_TRAPEZOID_PLATEAU_TOO_WIDE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-trapezoid-plateau-too-wide';
@@ -792,10 +1039,18 @@ class TrapezoidPlateauTooWide extends JSPrismarineRangeError {
  * provider whose maximum is below its minimum.
  */
 class UniformMaxBelowMin extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_UNIFORM_MAX_BELOW_MIN';
-    public static readonly domain = 'features';
-    public static readonly template = 'uniform int max {max} is below min {min}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-uniform-max-below-min';
+    public static get code(): 'FEATURES_UNIFORM_MAX_BELOW_MIN' {
+        return 'FEATURES_UNIFORM_MAX_BELOW_MIN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'uniform int max {max} is below min {min}' {
+        return 'uniform int max {max} is below min {min}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-uniform-max-below-min' {
+        return 'https://jsprismarine.dev/errors/features#features-uniform-max-below-min';
+    }
 
     public override readonly code = 'FEATURES_UNIFORM_MAX_BELOW_MIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-uniform-max-below-min';
@@ -817,10 +1072,18 @@ class UniformMaxBelowMin extends JSPrismarineRangeError {
  * type this server does not implement.
  */
 class UnknownBlockPredicateType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_BLOCK_PREDICATE_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown block predicate type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-block-predicate-type';
+    public static get code(): 'FEATURES_UNKNOWN_BLOCK_PREDICATE_TYPE' {
+        return 'FEATURES_UNKNOWN_BLOCK_PREDICATE_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown block predicate type {type}' {
+        return '{path}: unknown block predicate type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-block-predicate-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-block-predicate-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_BLOCK_PREDICATE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-block-predicate-type';
@@ -842,10 +1105,18 @@ class UnknownBlockPredicateType extends JSPrismarineTypeError {
  * provider type this server does not implement.
  */
 class UnknownBlockStateProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_BLOCK_STATE_PROVIDER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown block state provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-block-state-provider-type';
+    public static get code(): 'FEATURES_UNKNOWN_BLOCK_STATE_PROVIDER_TYPE' {
+        return 'FEATURES_UNKNOWN_BLOCK_STATE_PROVIDER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown block state provider type {type}' {
+        return '{path}: unknown block state provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-block-state-provider-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-block-state-provider-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_BLOCK_STATE_PROVIDER_TYPE';
     public override readonly docs =
@@ -868,10 +1139,18 @@ class UnknownBlockStateProviderType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownFeatureSizeType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_FEATURE_SIZE_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown feature size type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-feature-size-type';
+    public static get code(): 'FEATURES_UNKNOWN_FEATURE_SIZE_TYPE' {
+        return 'FEATURES_UNKNOWN_FEATURE_SIZE_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown feature size type {type}' {
+        return '{path}: unknown feature size type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-feature-size-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-feature-size-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_FEATURE_SIZE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-feature-size-type';
@@ -893,10 +1172,18 @@ class UnknownFeatureSizeType extends JSPrismarineTypeError {
  * server does not implement.
  */
 class UnknownFeatureType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_FEATURE_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown feature type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-feature-type';
+    public static get code(): 'FEATURES_UNKNOWN_FEATURE_TYPE' {
+        return 'FEATURES_UNKNOWN_FEATURE_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown feature type {type}' {
+        return '{path}: unknown feature type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-feature-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-feature-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_FEATURE_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-feature-type';
@@ -918,10 +1205,18 @@ class UnknownFeatureType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownFloatProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_FLOAT_PROVIDER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown float provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-float-provider-type';
+    public static get code(): 'FEATURES_UNKNOWN_FLOAT_PROVIDER_TYPE' {
+        return 'FEATURES_UNKNOWN_FLOAT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown float provider type {type}' {
+        return '{path}: unknown float provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-float-provider-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-float-provider-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_FLOAT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-float-provider-type';
@@ -943,10 +1238,18 @@ class UnknownFloatProviderType extends JSPrismarineTypeError {
  * water, lava or empty.
  */
 class UnknownFluid extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_FLUID';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown fluid {name}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-fluid';
+    public static get code(): 'FEATURES_UNKNOWN_FLUID' {
+        return 'FEATURES_UNKNOWN_FLUID';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown fluid {name}' {
+        return '{path}: unknown fluid {name}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-fluid' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-fluid';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_FLUID';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-fluid';
@@ -968,10 +1271,18 @@ class UnknownFluid extends JSPrismarineTypeError {
  * placer type this server does not implement.
  */
 class UnknownFoliagePlacerType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_FOLIAGE_PLACER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown foliage placer type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-foliage-placer-type';
+    public static get code(): 'FEATURES_UNKNOWN_FOLIAGE_PLACER_TYPE' {
+        return 'FEATURES_UNKNOWN_FOLIAGE_PLACER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown foliage placer type {type}' {
+        return '{path}: unknown foliage placer type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-foliage-placer-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-foliage-placer-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_FOLIAGE_PLACER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-foliage-placer-type';
@@ -993,10 +1304,18 @@ class UnknownFoliagePlacerType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownHeightProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_HEIGHT_PROVIDER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown height provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-height-provider-type';
+    public static get code(): 'FEATURES_UNKNOWN_HEIGHT_PROVIDER_TYPE' {
+        return 'FEATURES_UNKNOWN_HEIGHT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown height provider type {type}' {
+        return '{path}: unknown height provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-height-provider-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-height-provider-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_HEIGHT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-height-provider-type';
@@ -1018,10 +1337,18 @@ class UnknownHeightProviderType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownIntProviderType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_INT_PROVIDER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown int provider type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-int-provider-type';
+    public static get code(): 'FEATURES_UNKNOWN_INT_PROVIDER_TYPE' {
+        return 'FEATURES_UNKNOWN_INT_PROVIDER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown int provider type {type}' {
+        return '{path}: unknown int provider type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-int-provider-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-int-provider-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_INT_PROVIDER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-int-provider-type';
@@ -1043,10 +1370,18 @@ class UnknownIntProviderType extends JSPrismarineTypeError {
  * modifier type this server does not implement.
  */
 class UnknownPlacementModifierType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_PLACEMENT_MODIFIER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown placement modifier type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-placement-modifier-type';
+    public static get code(): 'FEATURES_UNKNOWN_PLACEMENT_MODIFIER_TYPE' {
+        return 'FEATURES_UNKNOWN_PLACEMENT_MODIFIER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown placement modifier type {type}' {
+        return '{path}: unknown placement modifier type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-placement-modifier-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-placement-modifier-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_PLACEMENT_MODIFIER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-placement-modifier-type';
@@ -1068,10 +1403,18 @@ class UnknownPlacementModifierType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownRootPlacerType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_ROOT_PLACER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown root placer type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-root-placer-type';
+    public static get code(): 'FEATURES_UNKNOWN_ROOT_PLACER_TYPE' {
+        return 'FEATURES_UNKNOWN_ROOT_PLACER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown root placer type {type}' {
+        return '{path}: unknown root placer type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-root-placer-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-root-placer-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_ROOT_PLACER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-root-placer-type';
@@ -1093,10 +1436,18 @@ class UnknownRootPlacerType extends JSPrismarineTypeError {
  * this server does not implement.
  */
 class UnknownRuleTestType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_RULE_TEST_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown rule test type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-rule-test-type';
+    public static get code(): 'FEATURES_UNKNOWN_RULE_TEST_TYPE' {
+        return 'FEATURES_UNKNOWN_RULE_TEST_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown rule test type {type}' {
+        return '{path}: unknown rule test type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-rule-test-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-rule-test-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_RULE_TEST_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-rule-test-type';
@@ -1118,10 +1469,18 @@ class UnknownRuleTestType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownTreeDecoratorType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_TREE_DECORATOR_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown tree decorator type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-tree-decorator-type';
+    public static get code(): 'FEATURES_UNKNOWN_TREE_DECORATOR_TYPE' {
+        return 'FEATURES_UNKNOWN_TREE_DECORATOR_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown tree decorator type {type}' {
+        return '{path}: unknown tree decorator type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-tree-decorator-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-tree-decorator-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_TREE_DECORATOR_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-tree-decorator-type';
@@ -1143,10 +1502,18 @@ class UnknownTreeDecoratorType extends JSPrismarineTypeError {
  * type this server does not implement.
  */
 class UnknownTrunkPlacerType extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNKNOWN_TRUNK_PLACER_TYPE';
-    public static readonly domain = 'features';
-    public static readonly template = '{path}: unknown trunk placer type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-trunk-placer-type';
+    public static get code(): 'FEATURES_UNKNOWN_TRUNK_PLACER_TYPE' {
+        return 'FEATURES_UNKNOWN_TRUNK_PLACER_TYPE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): '{path}: unknown trunk placer type {type}' {
+        return '{path}: unknown trunk placer type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unknown-trunk-placer-type' {
+        return 'https://jsprismarine.dev/errors/features#features-unknown-trunk-placer-type';
+    }
 
     public override readonly code = 'FEATURES_UNKNOWN_TRUNK_PLACER_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unknown-trunk-placer-type';
@@ -1168,11 +1535,18 @@ class UnknownTrunkPlacerType extends JSPrismarineTypeError {
  * `very_biased_to_bottom` int provider whose maximum is below its minimum.
  */
 class VeryBiasedToBottomMaxBelowMin extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_VERY_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
-    public static readonly domain = 'features';
-    public static readonly template = 'very_biased_to_bottom int max {max} is below min {min}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/features#features-very-biased-to-bottom-max-below-min';
+    public static get code(): 'FEATURES_VERY_BIASED_TO_BOTTOM_MAX_BELOW_MIN' {
+        return 'FEATURES_VERY_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'very_biased_to_bottom int max {max} is below min {min}' {
+        return 'very_biased_to_bottom int max {max} is below min {min}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-very-biased-to-bottom-max-below-min' {
+        return 'https://jsprismarine.dev/errors/features#features-very-biased-to-bottom-max-below-min';
+    }
 
     public override readonly code = 'FEATURES_VERY_BIASED_TO_BOTTOM_MAX_BELOW_MIN';
     public override readonly docs =
@@ -1192,10 +1566,18 @@ class VeryBiasedToBottomMaxBelowMin extends JSPrismarineRangeError {
 
 /** A feature drew from a weighted list with no entries. */
 class WeightedListHasNoElements extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_WEIGHTED_LIST_HAS_NO_ELEMENTS';
-    public static readonly domain = 'features';
-    public static readonly template = 'Weighted list has no elements';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-weighted-list-has-no-elements';
+    public static get code(): 'FEATURES_WEIGHTED_LIST_HAS_NO_ELEMENTS' {
+        return 'FEATURES_WEIGHTED_LIST_HAS_NO_ELEMENTS';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Weighted list has no elements' {
+        return 'Weighted list has no elements';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-weighted-list-has-no-elements' {
+        return 'https://jsprismarine.dev/errors/features#features-weighted-list-has-no-elements';
+    }
 
     public override readonly code = 'FEATURES_WEIGHTED_LIST_HAS_NO_ELEMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-weighted-list-has-no-elements';
@@ -1216,10 +1598,18 @@ class WeightedListHasNoElements extends JSPrismarineRangeError {
  * `weighted_list` int provider with no entries.
  */
 class EmptyWeightedListInt extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_EMPTY_WEIGHTED_LIST_INT';
-    public static readonly domain = 'features';
-    public static readonly template = 'weighted_list int needs at least one entry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-list-int';
+    public static get code(): 'FEATURES_EMPTY_WEIGHTED_LIST_INT' {
+        return 'FEATURES_EMPTY_WEIGHTED_LIST_INT';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'weighted_list int needs at least one entry' {
+        return 'weighted_list int needs at least one entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-empty-weighted-list-int' {
+        return 'https://jsprismarine.dev/errors/features#features-empty-weighted-list-int';
+    }
 
     public override readonly code = 'FEATURES_EMPTY_WEIGHTED_LIST_INT';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-list-int';
@@ -1240,10 +1630,18 @@ class EmptyWeightedListInt extends JSPrismarineRangeError {
  * This is a bug.
  */
 class WeightedSelectionPastEnd extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_WEIGHTED_SELECTION_PAST_END';
-    public static readonly domain = 'features';
-    public static readonly template = 'Weighted list selection fell past the end';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-weighted-selection-past-end';
+    public static get code(): 'FEATURES_WEIGHTED_SELECTION_PAST_END' {
+        return 'FEATURES_WEIGHTED_SELECTION_PAST_END';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'Weighted list selection fell past the end' {
+        return 'Weighted list selection fell past the end';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-weighted-selection-past-end' {
+        return 'https://jsprismarine.dev/errors/features#features-weighted-selection-past-end';
+    }
 
     public override readonly code = 'FEATURES_WEIGHTED_SELECTION_PAST_END';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-weighted-selection-past-end';
@@ -1264,10 +1662,18 @@ class WeightedSelectionPastEnd extends JSPrismarineRangeError {
  * provider with no entries.
  */
 class EmptyWeightedStateProvider extends JSPrismarineRangeError {
-    public static readonly code = 'FEATURES_EMPTY_WEIGHTED_STATE_PROVIDER';
-    public static readonly domain = 'features';
-    public static readonly template = 'A weighted state provider needs at least one entry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-state-provider';
+    public static get code(): 'FEATURES_EMPTY_WEIGHTED_STATE_PROVIDER' {
+        return 'FEATURES_EMPTY_WEIGHTED_STATE_PROVIDER';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'A weighted state provider needs at least one entry' {
+        return 'A weighted state provider needs at least one entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-empty-weighted-state-provider' {
+        return 'https://jsprismarine.dev/errors/features#features-empty-weighted-state-provider';
+    }
 
     public override readonly code = 'FEATURES_EMPTY_WEIGHTED_STATE_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-empty-weighted-state-provider';
@@ -1288,10 +1694,18 @@ class EmptyWeightedStateProvider extends JSPrismarineRangeError {
  * in the code that built the source.
  */
 class UnsupportedRandomSource extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_UNSUPPORTED_RANDOM_SOURCE';
-    public static readonly domain = 'features';
-    public static readonly template = 'WorldgenRandom has an unsupported random source';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-unsupported-random-source';
+    public static get code(): 'FEATURES_UNSUPPORTED_RANDOM_SOURCE' {
+        return 'FEATURES_UNSUPPORTED_RANDOM_SOURCE';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'WorldgenRandom has an unsupported random source' {
+        return 'WorldgenRandom has an unsupported random source';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-unsupported-random-source' {
+        return 'https://jsprismarine.dev/errors/features#features-unsupported-random-source';
+    }
 
     public override readonly code = 'FEATURES_UNSUPPORTED_RANDOM_SOURCE';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-unsupported-random-source';
@@ -1312,10 +1726,18 @@ class UnsupportedRandomSource extends JSPrismarineTypeError {
  * different world or the save is damaged.
  */
 class RandomStateAlgorithmMismatch extends JSPrismarineTypeError {
-    public static readonly code = 'FEATURES_RANDOM_STATE_ALGORITHM_MISMATCH';
-    public static readonly domain = 'features';
-    public static readonly template = 'WorldgenRandom state does not match its algorithm';
-    public static readonly docs = 'https://jsprismarine.dev/errors/features#features-random-state-algorithm-mismatch';
+    public static get code(): 'FEATURES_RANDOM_STATE_ALGORITHM_MISMATCH' {
+        return 'FEATURES_RANDOM_STATE_ALGORITHM_MISMATCH';
+    }
+    public static get domain(): 'features' {
+        return 'features';
+    }
+    public static get template(): 'WorldgenRandom state does not match its algorithm' {
+        return 'WorldgenRandom state does not match its algorithm';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/features#features-random-state-algorithm-mismatch' {
+        return 'https://jsprismarine.dev/errors/features#features-random-state-algorithm-mismatch';
+    }
 
     public override readonly code = 'FEATURES_RANDOM_STATE_ALGORITHM_MISMATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/features#features-random-state-algorithm-mismatch';

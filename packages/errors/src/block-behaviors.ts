@@ -8,11 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * This is a bug in `@jsprismarine/block-behaviors`; report it with the message.
  */
 class BlockPropertiesDefaultsRejected extends JSPrismarineError {
-    public static readonly code = 'BLOCK_BEHAVIORS_BLOCK_PROPERTIES_DEFAULTS_REJECTED';
-    public static readonly domain = 'block-behaviors';
-    public static readonly template = 'the block properties schema rejected its own defaults: {message}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/block-behaviors#block-behaviors-block-properties-defaults-rejected';
+    public static get code(): 'BLOCK_BEHAVIORS_BLOCK_PROPERTIES_DEFAULTS_REJECTED' {
+        return 'BLOCK_BEHAVIORS_BLOCK_PROPERTIES_DEFAULTS_REJECTED';
+    }
+    public static get domain(): 'block-behaviors' {
+        return 'block-behaviors';
+    }
+    public static get template(): 'the block properties schema rejected its own defaults: {message}' {
+        return 'the block properties schema rejected its own defaults: {message}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/block-behaviors#block-behaviors-block-properties-defaults-rejected' {
+        return 'https://jsprismarine.dev/errors/block-behaviors#block-behaviors-block-properties-defaults-rejected';
+    }
 
     public override readonly code = 'BLOCK_BEHAVIORS_BLOCK_PROPERTIES_DEFAULTS_REJECTED';
     public override readonly docs =

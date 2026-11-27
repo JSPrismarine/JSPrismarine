@@ -17,10 +17,18 @@ export abstract class MolangSyntaxError extends JSPrismarineError {
  * A Molang expression, or one statement of it, is empty. The pack that defines it needs fixing.
  */
 class EmptyExpressionAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_EMPTY_EXPRESSION_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'empty expression at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-empty-expression-at-offset';
+    public static get code(): 'MOLANG_EMPTY_EXPRESSION_AT_OFFSET' {
+        return 'MOLANG_EMPTY_EXPRESSION_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'empty expression at offset {offset}' {
+        return 'empty expression at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-empty-expression-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-empty-expression-at-offset';
+    }
 
     public override readonly code = 'MOLANG_EMPTY_EXPRESSION_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-empty-expression-at-offset';
@@ -39,10 +47,18 @@ class EmptyExpressionAtOffset extends MolangSyntaxError {
 
 /** A Molang expression ended where it needed another token, such as a closing parenthesis. */
 class ExpectedAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_EXPECTED_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'expected {expected} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-at-offset';
+    public static get code(): 'MOLANG_EXPECTED_AT_OFFSET' {
+        return 'MOLANG_EXPECTED_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'expected {expected} at offset {offset}' {
+        return 'expected {expected} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-expected-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-expected-at-offset';
+    }
 
     public override readonly code = 'MOLANG_EXPECTED_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-at-offset';
@@ -64,10 +80,18 @@ class ExpectedAtOffset extends MolangSyntaxError {
  * parenthesis.
  */
 class ExpectedFoundAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_EXPECTED_FOUND_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'expected {expected}, found {found} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-found-at-offset';
+    public static get code(): 'MOLANG_EXPECTED_FOUND_AT_OFFSET' {
+        return 'MOLANG_EXPECTED_FOUND_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'expected {expected}, found {found} at offset {offset}' {
+        return 'expected {expected}, found {found} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-expected-found-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-expected-found-at-offset';
+    }
 
     public override readonly code = 'MOLANG_EXPECTED_FOUND_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-found-at-offset';
@@ -94,10 +118,18 @@ class ExpectedFoundAtOffset extends MolangSyntaxError {
 
 /** A Molang expression has something other than a name after a scope such as `query.`. */
 class ExpectedIdentifierAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_EXPECTED_IDENTIFIER_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'expected an identifier at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-identifier-at-offset';
+    public static get code(): 'MOLANG_EXPECTED_IDENTIFIER_AT_OFFSET' {
+        return 'MOLANG_EXPECTED_IDENTIFIER_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'expected an identifier at offset {offset}' {
+        return 'expected an identifier at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-expected-identifier-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-expected-identifier-at-offset';
+    }
 
     public override readonly code = 'MOLANG_EXPECTED_IDENTIFIER_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-expected-identifier-at-offset';
@@ -119,11 +151,18 @@ class ExpectedIdentifierAtOffset extends MolangSyntaxError {
  * `temp.*` can be assigned.
  */
 class OnlyVariableAndTempCanBeAssigned extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_ONLY_VARIABLE_AND_TEMP_CAN_BE_ASSIGNED';
-    public static readonly domain = 'molang';
-    public static readonly template = 'only variable.* and temp.* can be assigned at offset {offset}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/molang#molang-only-variable-and-temp-can-be-assigned';
+    public static get code(): 'MOLANG_ONLY_VARIABLE_AND_TEMP_CAN_BE_ASSIGNED' {
+        return 'MOLANG_ONLY_VARIABLE_AND_TEMP_CAN_BE_ASSIGNED';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'only variable.* and temp.* can be assigned at offset {offset}' {
+        return 'only variable.* and temp.* can be assigned at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-only-variable-and-temp-can-be-assigned' {
+        return 'https://jsprismarine.dev/errors/molang#molang-only-variable-and-temp-can-be-assigned';
+    }
 
     public override readonly code = 'MOLANG_ONLY_VARIABLE_AND_TEMP_CAN_BE_ASSIGNED';
     public override readonly docs =
@@ -143,10 +182,18 @@ class OnlyVariableAndTempCanBeAssigned extends MolangSyntaxError {
 
 /** A Molang expression contains a character the language does not use. */
 class UnexpectedCharacterAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNEXPECTED_CHARACTER_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unexpected character {char} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-character-at-offset';
+    public static get code(): 'MOLANG_UNEXPECTED_CHARACTER_AT_OFFSET' {
+        return 'MOLANG_UNEXPECTED_CHARACTER_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unexpected character {char} at offset {offset}' {
+        return 'unexpected character {char} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unexpected-character-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unexpected-character-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNEXPECTED_CHARACTER_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-character-at-offset';
@@ -165,11 +212,18 @@ class UnexpectedCharacterAtOffset extends MolangSyntaxError {
 
 /** A Molang expression stops in the middle, such as after an operator. */
 class UnexpectedEndOfExpressionAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNEXPECTED_END_OF_EXPRESSION_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unexpected end of expression at offset {offset}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/molang#molang-unexpected-end-of-expression-at-offset';
+    public static get code(): 'MOLANG_UNEXPECTED_END_OF_EXPRESSION_AT_OFFSET' {
+        return 'MOLANG_UNEXPECTED_END_OF_EXPRESSION_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unexpected end of expression at offset {offset}' {
+        return 'unexpected end of expression at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unexpected-end-of-expression-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unexpected-end-of-expression-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNEXPECTED_END_OF_EXPRESSION_AT_OFFSET';
     public override readonly docs =
@@ -189,10 +243,18 @@ class UnexpectedEndOfExpressionAtOffset extends MolangSyntaxError {
 
 /** A Molang keyword such as `return` or `loop` sits where it cannot be used. */
 class UnexpectedKeywordAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNEXPECTED_KEYWORD_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unexpected keyword {value} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-keyword-at-offset';
+    public static get code(): 'MOLANG_UNEXPECTED_KEYWORD_AT_OFFSET' {
+        return 'MOLANG_UNEXPECTED_KEYWORD_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unexpected keyword {value} at offset {offset}' {
+        return 'unexpected keyword {value} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unexpected-keyword-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unexpected-keyword-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNEXPECTED_KEYWORD_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-keyword-at-offset';
@@ -214,10 +276,18 @@ class UnexpectedKeywordAtOffset extends MolangSyntaxError {
  * them.
  */
 class UnexpectedTokenAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNEXPECTED_TOKEN_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unexpected token {value} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-token-at-offset';
+    public static get code(): 'MOLANG_UNEXPECTED_TOKEN_AT_OFFSET' {
+        return 'MOLANG_UNEXPECTED_TOKEN_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unexpected token {value} at offset {offset}' {
+        return 'unexpected token {value} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unexpected-token-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unexpected-token-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNEXPECTED_TOKEN_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unexpected-token-at-offset';
@@ -239,10 +309,18 @@ class UnexpectedTokenAtOffset extends MolangSyntaxError {
  * `temp`, `context` and `math`, and their short forms `q`, `v`, `t` and `c`.
  */
 class UnknownScopeAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNKNOWN_SCOPE_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unknown scope {head} at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unknown-scope-at-offset';
+    public static get code(): 'MOLANG_UNKNOWN_SCOPE_AT_OFFSET' {
+        return 'MOLANG_UNKNOWN_SCOPE_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unknown scope {head} at offset {offset}' {
+        return 'unknown scope {head} at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unknown-scope-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unknown-scope-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNKNOWN_SCOPE_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unknown-scope-at-offset';
@@ -261,10 +339,18 @@ class UnknownScopeAtOffset extends MolangSyntaxError {
 
 /** A Molang string opens a quote it never closes. */
 class UnterminatedStringAtOffset extends MolangSyntaxError {
-    public static readonly code = 'MOLANG_UNTERMINATED_STRING_AT_OFFSET';
-    public static readonly domain = 'molang';
-    public static readonly template = 'unterminated string at offset {offset}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unterminated-string-at-offset';
+    public static get code(): 'MOLANG_UNTERMINATED_STRING_AT_OFFSET' {
+        return 'MOLANG_UNTERMINATED_STRING_AT_OFFSET';
+    }
+    public static get domain(): 'molang' {
+        return 'molang';
+    }
+    public static get template(): 'unterminated string at offset {offset}' {
+        return 'unterminated string at offset {offset}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/molang#molang-unterminated-string-at-offset' {
+        return 'https://jsprismarine.dev/errors/molang#molang-unterminated-string-at-offset';
+    }
 
     public override readonly code = 'MOLANG_UNTERMINATED_STRING_AT_OFFSET';
     public override readonly docs = 'https://jsprismarine.dev/errors/molang#molang-unterminated-string-at-offset';

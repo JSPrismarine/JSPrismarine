@@ -13,10 +13,18 @@ export abstract class NumberProviderError extends JSPrismarineError {
  * that defines it.
  */
 class DivProviderDividesByZero extends NumberProviderError {
-    public static readonly code = 'ITEMS_DIV_PROVIDER_DIVIDES_BY_ZERO';
-    public static readonly domain = 'items';
-    public static readonly template = 'a div provider divides by zero';
-    public static readonly docs = 'https://jsprismarine.dev/errors/items#items-div-provider-divides-by-zero';
+    public static get code(): 'ITEMS_DIV_PROVIDER_DIVIDES_BY_ZERO' {
+        return 'ITEMS_DIV_PROVIDER_DIVIDES_BY_ZERO';
+    }
+    public static get domain(): 'items' {
+        return 'items';
+    }
+    public static get template(): 'a div provider divides by zero' {
+        return 'a div provider divides by zero';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/items#items-div-provider-divides-by-zero' {
+        return 'https://jsprismarine.dev/errors/items#items-div-provider-divides-by-zero';
+    }
 
     public override readonly code = 'ITEMS_DIV_PROVIDER_DIVIDES_BY_ZERO';
     public override readonly docs = 'https://jsprismarine.dev/errors/items#items-div-provider-divides-by-zero';
@@ -37,10 +45,18 @@ class DivProviderDividesByZero extends NumberProviderError {
  * provider belongs.
  */
 class IsNotNumberProvider extends NumberProviderError {
-    public static readonly code = 'ITEMS_IS_NOT_NUMBER_PROVIDER';
-    public static readonly domain = 'items';
-    public static readonly template = '{node} is not a number provider';
-    public static readonly docs = 'https://jsprismarine.dev/errors/items#items-is-not-number-provider';
+    public static get code(): 'ITEMS_IS_NOT_NUMBER_PROVIDER' {
+        return 'ITEMS_IS_NOT_NUMBER_PROVIDER';
+    }
+    public static get domain(): 'items' {
+        return 'items';
+    }
+    public static get template(): '{node} is not a number provider' {
+        return '{node} is not a number provider';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/items#items-is-not-number-provider' {
+        return 'https://jsprismarine.dev/errors/items#items-is-not-number-provider';
+    }
 
     public override readonly code = 'ITEMS_IS_NOT_NUMBER_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/items#items-is-not-number-provider';
@@ -59,10 +75,18 @@ class IsNotNumberProvider extends NumberProviderError {
 
 /** A pack names a context value that no number provider reads, such as a misspelled name. */
 class NoContextProviderIsKnown extends NumberProviderError {
-    public static readonly code = 'ITEMS_NO_CONTEXT_PROVIDER_IS_KNOWN';
-    public static readonly domain = 'items';
-    public static readonly template = 'no context provider is known as {node}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/items#items-no-context-provider-is-known';
+    public static get code(): 'ITEMS_NO_CONTEXT_PROVIDER_IS_KNOWN' {
+        return 'ITEMS_NO_CONTEXT_PROVIDER_IS_KNOWN';
+    }
+    public static get domain(): 'items' {
+        return 'items';
+    }
+    public static get template(): 'no context provider is known as {node}' {
+        return 'no context provider is known as {node}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/items#items-no-context-provider-is-known' {
+        return 'https://jsprismarine.dev/errors/items#items-no-context-provider-is-known';
+    }
 
     public override readonly code = 'ITEMS_NO_CONTEXT_PROVIDER_IS_KNOWN';
     public override readonly docs = 'https://jsprismarine.dev/errors/items#items-no-context-provider-is-known';
@@ -81,10 +105,18 @@ class NoContextProviderIsKnown extends NumberProviderError {
 
 /** A number provider's `type` is one this server does not implement. */
 class UnknownNumberProviderKind extends NumberProviderError {
-    public static readonly code = 'ITEMS_UNKNOWN_NUMBER_PROVIDER_KIND';
-    public static readonly domain = 'items';
-    public static readonly template = 'unknown number provider kind {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/items#items-unknown-number-provider-kind';
+    public static get code(): 'ITEMS_UNKNOWN_NUMBER_PROVIDER_KIND' {
+        return 'ITEMS_UNKNOWN_NUMBER_PROVIDER_KIND';
+    }
+    public static get domain(): 'items' {
+        return 'items';
+    }
+    public static get template(): 'unknown number provider kind {type}' {
+        return 'unknown number provider kind {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/items#items-unknown-number-provider-kind' {
+        return 'https://jsprismarine.dev/errors/items#items-unknown-number-provider-kind';
+    }
 
     public override readonly code = 'ITEMS_UNKNOWN_NUMBER_PROVIDER_KIND';
     public override readonly docs = 'https://jsprismarine.dev/errors/items#items-unknown-number-provider-kind';
@@ -103,10 +135,18 @@ class UnknownNumberProviderKind extends NumberProviderError {
 
 /** A weighted list number provider's weights add up to zero, so it cannot pick anything. */
 class WeightedListProviderHasNoWeight extends NumberProviderError {
-    public static readonly code = 'ITEMS_WEIGHTED_LIST_PROVIDER_HAS_NO_WEIGHT';
-    public static readonly domain = 'items';
-    public static readonly template = 'a weighted list provider has no weight';
-    public static readonly docs = 'https://jsprismarine.dev/errors/items#items-weighted-list-provider-has-no-weight';
+    public static get code(): 'ITEMS_WEIGHTED_LIST_PROVIDER_HAS_NO_WEIGHT' {
+        return 'ITEMS_WEIGHTED_LIST_PROVIDER_HAS_NO_WEIGHT';
+    }
+    public static get domain(): 'items' {
+        return 'items';
+    }
+    public static get template(): 'a weighted list provider has no weight' {
+        return 'a weighted list provider has no weight';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/items#items-weighted-list-provider-has-no-weight' {
+        return 'https://jsprismarine.dev/errors/items#items-weighted-list-provider-has-no-weight';
+    }
 
     public override readonly code = 'ITEMS_WEIGHTED_LIST_PROVIDER_HAS_NO_WEIGHT';
     public override readonly docs = 'https://jsprismarine.dev/errors/items#items-weighted-list-provider-has-no-weight';

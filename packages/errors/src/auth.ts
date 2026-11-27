@@ -22,10 +22,18 @@ export abstract class LoginRefused extends JSPrismarineError {
  * own Minecraft.
  */
 class ChainNamesNoAccount extends JSPrismarineError {
-    public static readonly code = 'AUTH_CHAIN_NAMES_NO_ACCOUNT';
-    public static readonly domain = 'auth';
-    public static readonly template = 'The chain Minecraft services issued names no account';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-chain-names-no-account';
+    public static get code(): 'AUTH_CHAIN_NAMES_NO_ACCOUNT' {
+        return 'AUTH_CHAIN_NAMES_NO_ACCOUNT';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'The chain Minecraft services issued names no account' {
+        return 'The chain Minecraft services issued names no account';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-chain-names-no-account' {
+        return 'https://jsprismarine.dev/errors/auth#auth-chain-names-no-account';
+    }
 
     public override readonly code = 'AUTH_CHAIN_NAMES_NO_ACCOUNT';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-chain-names-no-account';
@@ -47,10 +55,18 @@ class ChainNamesNoAccount extends JSPrismarineError {
  * Xbox privacy settings.
  */
 class NoMultiplayerToken extends JSPrismarineError {
-    public static readonly code = 'AUTH_NO_MULTIPLAYER_TOKEN';
-    public static readonly domain = 'auth';
-    public static readonly template = 'Minecraft services issued no multiplayer token for this account';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-no-multiplayer-token';
+    public static get code(): 'AUTH_NO_MULTIPLAYER_TOKEN' {
+        return 'AUTH_NO_MULTIPLAYER_TOKEN';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'Minecraft services issued no multiplayer token for this account' {
+        return 'Minecraft services issued no multiplayer token for this account';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-no-multiplayer-token' {
+        return 'https://jsprismarine.dev/errors/auth#auth-no-multiplayer-token';
+    }
 
     public override readonly code = 'AUTH_NO_MULTIPLAYER_TOKEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-no-multiplayer-token';
@@ -71,11 +87,18 @@ class NoMultiplayerToken extends JSPrismarineError {
  * installed. Add it to the project that uses `@jsprismarine/auth`.
  */
 class PrismarineAuthNotInstalled extends JSPrismarineError {
-    public static readonly code = 'AUTH_PRISMARINE_AUTH_NOT_INSTALLED';
-    public static readonly domain = 'auth';
-    public static readonly template =
-        'XboxAuthProvider signs in through prismarine-auth; install it beside @jsprismarine/auth';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-not-installed';
+    public static get code(): 'AUTH_PRISMARINE_AUTH_NOT_INSTALLED' {
+        return 'AUTH_PRISMARINE_AUTH_NOT_INSTALLED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'XboxAuthProvider signs in through prismarine-auth; install it beside @jsprismarine/auth' {
+        return 'XboxAuthProvider signs in through prismarine-auth; install it beside @jsprismarine/auth';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-not-installed' {
+        return 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-not-installed';
+    }
 
     public override readonly code = 'AUTH_PRISMARINE_AUTH_NOT_INSTALLED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-prismarine-auth-not-installed';
@@ -93,10 +116,18 @@ class PrismarineAuthNotInstalled extends JSPrismarineError {
 
 /** The player's login token has expired. The cause says which token. */
 class LoginExpired extends LoginRefused {
-    public static readonly code = 'AUTH_LOGIN_EXPIRED';
-    public static readonly domain = 'auth';
-    public static readonly template = 'Your login has expired.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-login-expired';
+    public static get code(): 'AUTH_LOGIN_EXPIRED' {
+        return 'AUTH_LOGIN_EXPIRED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'Your login has expired.' {
+        return 'Your login has expired.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-login-expired' {
+        return 'https://jsprismarine.dev/errors/auth#auth-login-expired';
+    }
 
     public override readonly code = 'AUTH_LOGIN_EXPIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-login-expired';
@@ -114,10 +145,18 @@ class LoginExpired extends LoginRefused {
 
 /** The login failed a signature or a claim check. The cause says which. */
 class InvalidLogin extends LoginRefused {
-    public static readonly code = 'AUTH_INVALID_LOGIN';
-    public static readonly domain = 'auth';
-    public static readonly template = 'Invalid login!';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-invalid-login';
+    public static get code(): 'AUTH_INVALID_LOGIN' {
+        return 'AUTH_INVALID_LOGIN';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'Invalid login!' {
+        return 'Invalid login!';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-invalid-login' {
+        return 'https://jsprismarine.dev/errors/auth#auth-invalid-login';
+    }
 
     public override readonly code = 'AUTH_INVALID_LOGIN';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-invalid-login';
@@ -135,10 +174,18 @@ class InvalidLogin extends LoginRefused {
 
 /** The client joined without an Xbox Live token while the server runs in online mode. */
 class XboxSignInRequired extends LoginRefused {
-    public static readonly code = 'AUTH_XBOX_SIGN_IN_REQUIRED';
-    public static readonly domain = 'auth';
-    public static readonly template = 'Please sign in to Xbox Live to join.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-xbox-sign-in-required';
+    public static get code(): 'AUTH_XBOX_SIGN_IN_REQUIRED' {
+        return 'AUTH_XBOX_SIGN_IN_REQUIRED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'Please sign in to Xbox Live to join.' {
+        return 'Please sign in to Xbox Live to join.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-xbox-sign-in-required' {
+        return 'https://jsprismarine.dev/errors/auth#auth-xbox-sign-in-required';
+    }
 
     public override readonly code = 'AUTH_XBOX_SIGN_IN_REQUIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-xbox-sign-in-required';
@@ -156,10 +203,18 @@ class XboxSignInRequired extends LoginRefused {
 
 /** The login names an account, but the connection does not prove it holds the account's key. */
 class XboxLoginRequired extends LoginRefused {
-    public static readonly code = 'AUTH_XBOX_LOGIN_REQUIRED';
-    public static readonly domain = 'auth';
-    public static readonly template = 'You must be logged in with Xbox Live to join.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-xbox-login-required';
+    public static get code(): 'AUTH_XBOX_LOGIN_REQUIRED' {
+        return 'AUTH_XBOX_LOGIN_REQUIRED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'You must be logged in with Xbox Live to join.' {
+        return 'You must be logged in with Xbox Live to join.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-xbox-login-required' {
+        return 'https://jsprismarine.dev/errors/auth#auth-xbox-login-required';
+    }
 
     public override readonly code = 'AUTH_XBOX_LOGIN_REQUIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-xbox-login-required';
@@ -177,10 +232,18 @@ class XboxLoginRequired extends LoginRefused {
 
 /** The issuer's signing keys could not be fetched, so no login can be checked right now. */
 class AccountUnverifiable extends LoginRefused {
-    public static readonly code = 'AUTH_ACCOUNT_UNVERIFIABLE';
-    public static readonly domain = 'auth';
-    public static readonly template = 'Could not verify your account right now. Please try again.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-account-unverifiable';
+    public static get code(): 'AUTH_ACCOUNT_UNVERIFIABLE' {
+        return 'AUTH_ACCOUNT_UNVERIFIABLE';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'Could not verify your account right now. Please try again.' {
+        return 'Could not verify your account right now. Please try again.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-account-unverifiable' {
+        return 'https://jsprismarine.dev/errors/auth#auth-account-unverifiable';
+    }
 
     public override readonly code = 'AUTH_ACCOUNT_UNVERIFIABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-account-unverifiable';
@@ -201,10 +264,18 @@ class AccountUnverifiable extends LoginRefused {
  * rejoins with a fresh login; a server whose clock is far off refuses every login this way.
  */
 class TokenExpired extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_EXPIRED';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} has expired';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-expired';
+    public static get code(): 'AUTH_TOKEN_EXPIRED' {
+        return 'AUTH_TOKEN_EXPIRED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} has expired' {
+        return '{what} has expired';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-expired' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-expired';
+    }
 
     public override readonly code = 'AUTH_TOKEN_EXPIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-expired';
@@ -225,10 +296,18 @@ class TokenExpired extends JSPrismarineError {
  * The token's `nbf` claim is in the future. Usually the server's clock is behind; set it right.
  */
 class TokenNotValidYet extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_NOT_VALID_YET';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} is not valid yet';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-not-valid-yet';
+    public static get code(): 'AUTH_TOKEN_NOT_VALID_YET' {
+        return 'AUTH_TOKEN_NOT_VALID_YET';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} is not valid yet' {
+        return '{what} is not valid yet';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-not-valid-yet' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-not-valid-yet';
+    }
 
     public override readonly code = 'AUTH_TOKEN_NOT_VALID_YET';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-not-valid-yet';
@@ -250,10 +329,18 @@ class TokenNotValidYet extends JSPrismarineError {
  * Minecraft services did not issue for this server.
  */
 class TokenHasWrongClaim extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_HAS_WRONG_CLAIM';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} has the wrong {claim}: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-has-wrong-claim';
+    public static get code(): 'AUTH_TOKEN_HAS_WRONG_CLAIM' {
+        return 'AUTH_TOKEN_HAS_WRONG_CLAIM';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} has the wrong {claim}: {reason}' {
+        return '{what} has the wrong {claim}: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-has-wrong-claim' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-has-wrong-claim';
+    }
 
     public override readonly code = 'AUTH_TOKEN_HAS_WRONG_CLAIM';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-has-wrong-claim';
@@ -280,10 +367,18 @@ class TokenHasWrongClaim extends JSPrismarineError {
  * service.
  */
 class TokenNamesAnotherIssuer extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_NAMES_ANOTHER_ISSUER';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} names another issuer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-another-issuer';
+    public static get code(): 'AUTH_TOKEN_NAMES_ANOTHER_ISSUER' {
+        return 'AUTH_TOKEN_NAMES_ANOTHER_ISSUER';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} names another issuer' {
+        return '{what} names another issuer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-names-another-issuer' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-names-another-issuer';
+    }
 
     public override readonly code = 'AUTH_TOKEN_NAMES_ANOTHER_ISSUER';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-another-issuer';
@@ -305,10 +400,18 @@ class TokenNamesAnotherIssuer extends JSPrismarineError {
  * a forged login.
  */
 class TokenUsesRefusedAlgorithm extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_USES_REFUSED_ALGORITHM';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} uses a refused algorithm';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-uses-refused-algorithm';
+    public static get code(): 'AUTH_TOKEN_USES_REFUSED_ALGORITHM' {
+        return 'AUTH_TOKEN_USES_REFUSED_ALGORITHM';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} uses a refused algorithm' {
+        return '{what} uses a refused algorithm';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-uses-refused-algorithm' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-uses-refused-algorithm';
+    }
 
     public override readonly code = 'AUTH_TOKEN_USES_REFUSED_ALGORITHM';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-uses-refused-algorithm';
@@ -327,10 +430,18 @@ class TokenUsesRefusedAlgorithm extends JSPrismarineError {
 
 /** The token's signature does not match the issuer's key, so it was altered or forged. */
 class TokenSignatureDoesNotMatch extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_SIGNATURE_DOES_NOT_MATCH';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} signature does not match';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-signature-does-not-match';
+    public static get code(): 'AUTH_TOKEN_SIGNATURE_DOES_NOT_MATCH' {
+        return 'AUTH_TOKEN_SIGNATURE_DOES_NOT_MATCH';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} signature does not match' {
+        return '{what} signature does not match';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-signature-does-not-match' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-signature-does-not-match';
+    }
 
     public override readonly code = 'AUTH_TOKEN_SIGNATURE_DOES_NOT_MATCH';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-signature-does-not-match';
@@ -352,10 +463,18 @@ class TokenSignatureDoesNotMatch extends JSPrismarineError {
  * damaged in transit.
  */
 class TokenIsNotValidJws extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_IS_NOT_VALID_JWS';
-    public static readonly domain = 'auth';
-    public static readonly template = '{what} is not a valid JWS: {reason}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-is-not-valid-jws';
+    public static get code(): 'AUTH_TOKEN_IS_NOT_VALID_JWS' {
+        return 'AUTH_TOKEN_IS_NOT_VALID_JWS';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): '{what} is not a valid JWS: {reason}' {
+        return '{what} is not a valid JWS: {reason}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-is-not-valid-jws' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-is-not-valid-jws';
+    }
 
     public override readonly code = 'AUTH_TOKEN_IS_NOT_VALID_JWS';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-is-not-valid-jws';
@@ -377,10 +496,18 @@ class TokenIsNotValidJws extends JSPrismarineError {
  * modified or broken.
  */
 class ConnectionRequestIsNotJsonObject extends JSPrismarineError {
-    public static readonly code = 'AUTH_CONNECTION_REQUEST_IS_NOT_JSON_OBJECT';
-    public static readonly domain = 'auth';
-    public static readonly template = 'the connection request is not a JSON object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-connection-request-is-not-json-object';
+    public static get code(): 'AUTH_CONNECTION_REQUEST_IS_NOT_JSON_OBJECT' {
+        return 'AUTH_CONNECTION_REQUEST_IS_NOT_JSON_OBJECT';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'the connection request is not a JSON object' {
+        return 'the connection request is not a JSON object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-connection-request-is-not-json-object' {
+        return 'https://jsprismarine.dev/errors/auth#auth-connection-request-is-not-json-object';
+    }
 
     public override readonly code = 'AUTH_CONNECTION_REQUEST_IS_NOT_JSON_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-connection-request-is-not-json-object';
@@ -401,10 +528,18 @@ class ConnectionRequestIsNotJsonObject extends JSPrismarineError {
  * online mode. Sign in to Xbox Live, or turn online mode off for a LAN server.
  */
 class UnsupportedAuthenticationType extends JSPrismarineError {
-    public static readonly code = 'AUTH_UNSUPPORTED_AUTHENTICATION_TYPE';
-    public static readonly domain = 'auth';
-    public static readonly template = 'authentication type {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-unsupported-authentication-type';
+    public static get code(): 'AUTH_UNSUPPORTED_AUTHENTICATION_TYPE' {
+        return 'AUTH_UNSUPPORTED_AUTHENTICATION_TYPE';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'authentication type {type}' {
+        return 'authentication type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-unsupported-authentication-type' {
+        return 'https://jsprismarine.dev/errors/auth#auth-unsupported-authentication-type';
+    }
 
     public override readonly code = 'AUTH_UNSUPPORTED_AUTHENTICATION_TYPE';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-unsupported-authentication-type';
@@ -426,10 +561,18 @@ class UnsupportedAuthenticationType extends JSPrismarineError {
  * signed in to Xbox Live.
  */
 class NoToken extends JSPrismarineError {
-    public static readonly code = 'AUTH_NO_TOKEN';
-    public static readonly domain = 'auth';
-    public static readonly template = 'no token';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-no-token';
+    public static get code(): 'AUTH_NO_TOKEN' {
+        return 'AUTH_NO_TOKEN';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'no token' {
+        return 'no token';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-no-token' {
+        return 'https://jsprismarine.dev/errors/auth#auth-no-token';
+    }
 
     public override readonly code = 'AUTH_NO_TOKEN';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-no-token';
@@ -450,10 +593,18 @@ class NoToken extends JSPrismarineError {
  * signed it.
  */
 class TokenNamesNoKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_NAMES_NO_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = 'the token names no key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-no-key';
+    public static get code(): 'AUTH_TOKEN_NAMES_NO_KEY' {
+        return 'AUTH_TOKEN_NAMES_NO_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'the token names no key' {
+        return 'the token names no key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-names-no-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-names-no-key';
+    }
 
     public override readonly code = 'AUTH_TOKEN_NAMES_NO_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-no-key';
@@ -474,10 +625,18 @@ class TokenNamesNoKey extends JSPrismarineError {
  * can. Check that the server reaches the internet; the reason says what the request hit.
  */
 class IssuerKeysCouldNotBeFetched extends JSPrismarineError {
-    public static readonly code = 'AUTH_ISSUER_KEYS_COULD_NOT_BE_FETCHED';
-    public static readonly domain = 'auth';
-    public static readonly template = "the issuer's keys could not be fetched: {reason}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-issuer-keys-could-not-be-fetched';
+    public static get code(): 'AUTH_ISSUER_KEYS_COULD_NOT_BE_FETCHED' {
+        return 'AUTH_ISSUER_KEYS_COULD_NOT_BE_FETCHED';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): "the issuer's keys could not be fetched: {reason}" {
+        return "the issuer's keys could not be fetched: {reason}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-issuer-keys-could-not-be-fetched' {
+        return 'https://jsprismarine.dev/errors/auth#auth-issuer-keys-could-not-be-fetched';
+    }
 
     public override readonly code = 'AUTH_ISSUER_KEYS_COULD_NOT_BE_FETCHED';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-issuer-keys-could-not-be-fetched';
@@ -499,10 +658,18 @@ class IssuerKeysCouldNotBeFetched extends JSPrismarineError {
  * with a key that has been withdrawn.
  */
 class UnknownTokenKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_UNKNOWN_TOKEN_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = 'unknown token key {kid}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-unknown-token-key';
+    public static get code(): 'AUTH_UNKNOWN_TOKEN_KEY' {
+        return 'AUTH_UNKNOWN_TOKEN_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'unknown token key {kid}' {
+        return 'unknown token key {kid}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-unknown-token-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-unknown-token-key';
+    }
 
     public override readonly code = 'AUTH_UNKNOWN_TOKEN_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-unknown-token-key';
@@ -524,10 +691,18 @@ class UnknownTokenKey extends JSPrismarineError {
  * key, all of which a Minecraft multiplayer token carries.
  */
 class TokenLacksAccountOrClientKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_LACKS_ACCOUNT_OR_CLIENT_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = 'the token lacks an account or a client key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-lacks-account-or-client-key';
+    public static get code(): 'AUTH_TOKEN_LACKS_ACCOUNT_OR_CLIENT_KEY' {
+        return 'AUTH_TOKEN_LACKS_ACCOUNT_OR_CLIENT_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'the token lacks an account or a client key' {
+        return 'the token lacks an account or a client key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-lacks-account-or-client-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-lacks-account-or-client-key';
+    }
 
     public override readonly code = 'AUTH_TOKEN_LACKS_ACCOUNT_OR_CLIENT_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-lacks-account-or-client-key';
@@ -548,10 +723,18 @@ class TokenLacksAccountOrClientKey extends JSPrismarineError {
  * data cannot be checked against it.
  */
 class TokenNamesUnusableClientKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_TOKEN_NAMES_UNUSABLE_CLIENT_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = 'the token names an unusable client key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-unusable-client-key';
+    public static get code(): 'AUTH_TOKEN_NAMES_UNUSABLE_CLIENT_KEY' {
+        return 'AUTH_TOKEN_NAMES_UNUSABLE_CLIENT_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'the token names an unusable client key' {
+        return 'the token names an unusable client key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-token-names-unusable-client-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-token-names-unusable-client-key';
+    }
 
     public override readonly code = 'AUTH_TOKEN_NAMES_UNUSABLE_CLIENT_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-token-names-unusable-client-key';
@@ -572,10 +755,18 @@ class TokenNamesUnusableClientKey extends JSPrismarineError {
  * replaced the client data of a real login.
  */
 class ClientDataNotSignedByAccountKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_CLIENT_DATA_NOT_SIGNED_BY_ACCOUNT_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = 'the client data is not signed by the account key';
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-client-data-not-signed-by-account-key';
+    public static get code(): 'AUTH_CLIENT_DATA_NOT_SIGNED_BY_ACCOUNT_KEY' {
+        return 'AUTH_CLIENT_DATA_NOT_SIGNED_BY_ACCOUNT_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): 'the client data is not signed by the account key' {
+        return 'the client data is not signed by the account key';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-client-data-not-signed-by-account-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-client-data-not-signed-by-account-key';
+    }
 
     public override readonly code = 'AUTH_CLIENT_DATA_NOT_SIGNED_BY_ACCOUNT_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-client-data-not-signed-by-account-key';
@@ -596,10 +787,18 @@ class ClientDataNotSignedByAccountKey extends JSPrismarineError {
  * The login was recorded from somebody else's session and replayed.
  */
 class IdentityDoesNotProveLoginKey extends JSPrismarineError {
-    public static readonly code = 'AUTH_IDENTITY_DOES_NOT_PROVE_LOGIN_KEY';
-    public static readonly domain = 'auth';
-    public static readonly template = "the connection's identity does not prove the login's key";
-    public static readonly docs = 'https://jsprismarine.dev/errors/auth#auth-identity-does-not-prove-login-key';
+    public static get code(): 'AUTH_IDENTITY_DOES_NOT_PROVE_LOGIN_KEY' {
+        return 'AUTH_IDENTITY_DOES_NOT_PROVE_LOGIN_KEY';
+    }
+    public static get domain(): 'auth' {
+        return 'auth';
+    }
+    public static get template(): "the connection's identity does not prove the login's key" {
+        return "the connection's identity does not prove the login's key";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/auth#auth-identity-does-not-prove-login-key' {
+        return 'https://jsprismarine.dev/errors/auth#auth-identity-does-not-prove-login-key';
+    }
 
     public override readonly code = 'AUTH_IDENTITY_DOES_NOT_PROVE_LOGIN_KEY';
     public override readonly docs = 'https://jsprismarine.dev/errors/auth#auth-identity-does-not-prove-login-key';

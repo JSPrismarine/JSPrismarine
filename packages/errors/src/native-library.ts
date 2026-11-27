@@ -16,11 +16,18 @@ export abstract class NativeLibraryError extends JSPrismarineError {
  * a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
  */
 class FfiUnavailable extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_FFI_UNAVAILABLE';
-    public static readonly domain = 'native-library';
-    public static readonly template =
-        'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-ffi-unavailable';
+    public static get code(): 'NATIVE_LIBRARY_FFI_UNAVAILABLE' {
+        return 'NATIVE_LIBRARY_FFI_UNAVAILABLE';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): 'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.' {
+        return 'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-ffi-unavailable' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-ffi-unavailable';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_FFI_UNAVAILABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-ffi-unavailable';
@@ -45,10 +52,18 @@ class FfiUnavailable extends NativeLibraryError {
  * package's `_LIBRARY` environment variable at a library you built.
  */
 class DownloadFailed extends JSPrismarineError {
-    public static readonly code = 'NATIVE_LIBRARY_DOWNLOAD_FAILED';
-    public static readonly domain = 'native-library';
-    public static readonly template = '{url} answered {status}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-download-failed';
+    public static get code(): 'NATIVE_LIBRARY_DOWNLOAD_FAILED' {
+        return 'NATIVE_LIBRARY_DOWNLOAD_FAILED';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{url} answered {status}' {
+        return '{url} answered {status}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-download-failed' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-download-failed';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_DOWNLOAD_FAILED';
     public override readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-download-failed';
@@ -70,12 +85,18 @@ class DownloadFailed extends JSPrismarineError {
  * corrupted in transit or replaced. Retry the install.
  */
 class DownloadDigestMismatch extends JSPrismarineError {
-    public static readonly code = 'NATIVE_LIBRARY_DOWNLOAD_DIGEST_MISMATCH';
-    public static readonly domain = 'native-library';
-    public static readonly template =
-        '{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-download-digest-mismatch';
+    public static get code(): 'NATIVE_LIBRARY_DOWNLOAD_DIGEST_MISMATCH' {
+        return 'NATIVE_LIBRARY_DOWNLOAD_DIGEST_MISMATCH';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}' {
+        return '{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-download-digest-mismatch' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-download-digest-mismatch';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_DOWNLOAD_DIGEST_MISMATCH';
     public override readonly docs =
@@ -122,10 +143,18 @@ class DownloadDigestMismatch extends JSPrismarineError {
  * run, or in a checkout, `build:native` has not. The message says how to get it.
  */
 class LibraryNotInstalled extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_LIBRARY_NOT_INSTALLED';
-    public static readonly domain = 'native-library';
-    public static readonly template = '{packageName} has no build for {platform} at {installed}. {advice}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-library-not-installed';
+    public static get code(): 'NATIVE_LIBRARY_LIBRARY_NOT_INSTALLED' {
+        return 'NATIVE_LIBRARY_LIBRARY_NOT_INSTALLED';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{packageName} has no build for {platform} at {installed}. {advice}' {
+        return '{packageName} has no build for {platform} at {installed}. {advice}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-library-not-installed' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-library-not-installed';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_LIBRARY_NOT_INSTALLED';
     public override readonly docs =
@@ -169,11 +198,18 @@ class LibraryNotInstalled extends NativeLibraryError {
  * not exist. Point it at a build of the library, or unset it to use the installed one.
  */
 class LibraryOverrideMissing extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_LIBRARY_OVERRIDE_MISSING';
-    public static readonly domain = 'native-library';
-    public static readonly template = '{libraryEnv} names {override}, which does not exist';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-library-override-missing';
+    public static get code(): 'NATIVE_LIBRARY_LIBRARY_OVERRIDE_MISSING' {
+        return 'NATIVE_LIBRARY_LIBRARY_OVERRIDE_MISSING';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{libraryEnv} names {override}, which does not exist' {
+        return '{libraryEnv} names {override}, which does not exist';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-library-override-missing' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-library-override-missing';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_LIBRARY_OVERRIDE_MISSING';
     public override readonly docs =
@@ -196,10 +232,18 @@ class LibraryOverrideMissing extends NativeLibraryError {
  * with the package's `build:native` script and point its `_LIBRARY` environment variable at it.
  */
 class NoBuildForPlatform extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_NO_BUILD_FOR_PLATFORM';
-    public static readonly domain = 'native-library';
-    public static readonly template = '{packageName} publishes no build for {platform}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-library#native-library-no-build-for-platform';
+    public static get code(): 'NATIVE_LIBRARY_NO_BUILD_FOR_PLATFORM' {
+        return 'NATIVE_LIBRARY_NO_BUILD_FOR_PLATFORM';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{packageName} publishes no build for {platform}.' {
+        return '{packageName} publishes no build for {platform}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-no-build-for-platform' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-no-build-for-platform';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_NO_BUILD_FOR_PLATFORM';
     public override readonly docs =
@@ -222,12 +266,18 @@ class NoBuildForPlatform extends NativeLibraryError {
  * was not built locally either, so it is refused.
  */
 class NoPublishedBuildToCheck extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_NO_PUBLISHED_BUILD_TO_CHECK';
-    public static readonly domain = 'native-library';
-    public static readonly template =
-        '{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-no-published-build-to-check';
+    public static get code(): 'NATIVE_LIBRARY_NO_PUBLISHED_BUILD_TO_CHECK' {
+        return 'NATIVE_LIBRARY_NO_PUBLISHED_BUILD_TO_CHECK';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against' {
+        return '{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-no-published-build-to-check' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-no-published-build-to-check';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_NO_PUBLISHED_BUILD_TO_CHECK';
     public override readonly docs =
@@ -266,12 +316,18 @@ class NoPublishedBuildToCheck extends NativeLibraryError {
  * from another version. Reinstall the package.
  */
 class DigestDoesNotMatchPublishedBuild extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD';
-    public static readonly domain = 'native-library';
-    public static readonly template =
-        '{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-digest-does-not-match-published-build';
+    public static get code(): 'NATIVE_LIBRARY_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD' {
+        return 'NATIVE_LIBRARY_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): '{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}' {
+        return '{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-digest-does-not-match-published-build' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-digest-does-not-match-published-build';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD';
     public override readonly docs =
@@ -318,11 +374,18 @@ class DigestDoesNotMatchPublishedBuild extends NativeLibraryError {
  * it, or report it.
  */
 class InvalidNativeManifest extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST';
-    public static readonly domain = 'native-library';
-    public static readonly template = 'The native manifest needs `build` and `baseUrl` strings';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest';
+    public static get code(): 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST' {
+        return 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): 'The native manifest needs `build` and `baseUrl` strings' {
+        return 'The native manifest needs `build` and `baseUrl` strings';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST';
     public override readonly docs =
@@ -344,11 +407,18 @@ class InvalidNativeManifest extends NativeLibraryError {
  * broken. Reinstall it, or report it.
  */
 class InvalidNativeManifestEntry extends NativeLibraryError {
-    public static readonly code = 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST_ENTRY';
-    public static readonly domain = 'native-library';
-    public static readonly template = "The native manifest's entry for {key} is malformed";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest-entry';
+    public static get code(): 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST_ENTRY' {
+        return 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST_ENTRY';
+    }
+    public static get domain(): 'native-library' {
+        return 'native-library';
+    }
+    public static get template(): "The native manifest's entry for {key} is malformed" {
+        return "The native manifest's entry for {key} is malformed";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest-entry' {
+        return 'https://jsprismarine.dev/errors/native-library#native-library-invalid-native-manifest-entry';
+    }
 
     public override readonly code = 'NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST_ENTRY';
     public override readonly docs =

@@ -8,12 +8,21 @@ import { JSPrismarineError, JSPrismarineTypeError } from '@jsprismarine/errors/J
  * restore it. Use the default random source to record replays.
  */
 class ConfiguredRandomNotRestorable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONFIGURED_RANDOM_NOT_RESTORABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'The configured content random source cannot be restored for replay';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-configured-random-not-restorable';
+    public static get code(): 'PRISMARINE_CONFIGURED_RANDOM_NOT_RESTORABLE' {
+        return 'PRISMARINE_CONFIGURED_RANDOM_NOT_RESTORABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'The configured content random source cannot be restored for replay' {
+        return 'The configured content random source cannot be restored for replay';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-configured-random-not-restorable' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-configured-random-not-restorable';
+    }
 
     public override readonly code = 'PRISMARINE_CONFIGURED_RANDOM_NOT_RESTORABLE';
     public override readonly docs =
@@ -35,12 +44,21 @@ class ConfiguredRandomNotRestorable extends JSPrismarineError {
  * reproduced. This is a bug in the server; report it with the stack trace.
  */
 class RandomSourceNotRestorable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RANDOM_SOURCE_NOT_RESTORABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'The {key} content random source cannot be restored for replay';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-restorable';
+    public static get code(): 'PRISMARINE_RANDOM_SOURCE_NOT_RESTORABLE' {
+        return 'PRISMARINE_RANDOM_SOURCE_NOT_RESTORABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'The {key} content random source cannot be restored for replay' {
+        return 'The {key} content random source cannot be restored for replay';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-restorable' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-restorable';
+    }
 
     public override readonly code = 'PRISMARINE_RANDOM_SOURCE_NOT_RESTORABLE';
     public override readonly docs =
@@ -63,12 +81,21 @@ class RandomSourceNotRestorable extends JSPrismarineError {
  * for replay. This is a bug in the server; report it with the stack trace.
  */
 class RandomSourceNotSavable extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_RANDOM_SOURCE_NOT_SAVABLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'The {key} content random source cannot be saved for replay';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-savable';
+    public static get code(): 'PRISMARINE_RANDOM_SOURCE_NOT_SAVABLE' {
+        return 'PRISMARINE_RANDOM_SOURCE_NOT_SAVABLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'The {key} content random source cannot be saved for replay' {
+        return 'The {key} content random source cannot be saved for replay';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-savable' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-random-source-not-savable';
+    }
 
     public override readonly code = 'PRISMARINE_RANDOM_SOURCE_NOT_SAVABLE';
     public override readonly docs =
@@ -92,12 +119,21 @@ class RandomSourceNotSavable extends JSPrismarineError {
  * lists, or clear it to run the default release.
  */
 class UnknownJavaRelease extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_JAVA_RELEASE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template =
-        'content-java-version names Java {release}, which is not pinned; the pinned releases are {pinned}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-java-release';
+    public static get code(): 'PRISMARINE_UNKNOWN_JAVA_RELEASE' {
+        return 'PRISMARINE_UNKNOWN_JAVA_RELEASE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'content-java-version names Java {release}, which is not pinned; the pinned releases are {pinned}' {
+        return 'content-java-version names Java {release}, which is not pinned; the pinned releases are {pinned}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-java-release' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-java-release';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_JAVA_RELEASE';
     public override readonly docs =
@@ -124,13 +160,21 @@ class UnknownJavaRelease extends JSPrismarineError {
  * message gives, or set `content-java-version` to a release that is generated.
  */
 class JavaReleaseNotGenerated extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_JAVA_RELEASE_NOT_GENERATED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template =
-        'the Java {release} vanilla datapack is not generated at {path}; run `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java {release}` (pinned releases: {pinned})';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-java-release-not-generated';
+    public static get code(): 'PRISMARINE_JAVA_RELEASE_NOT_GENERATED' {
+        return 'PRISMARINE_JAVA_RELEASE_NOT_GENERATED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the Java {release} vanilla datapack is not generated at {path}; run `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java {release}` (pinned releases: {pinned})' {
+        return 'the Java {release} vanilla datapack is not generated at {path}; run `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java {release}` (pinned releases: {pinned})';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-java-release-not-generated' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-java-release-not-generated';
+    }
 
     public override readonly code = 'PRISMARINE_JAVA_RELEASE_NOT_GENERATED';
     public override readonly docs =
@@ -161,12 +205,21 @@ class JavaReleaseNotGenerated extends JSPrismarineError {
  * the server; report it with the stack trace.
  */
 class ContentWorldReadDuringBuild extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_CONTENT_WORLD_READ_DURING_BUILD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'the content world was read before the content finished building';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-content-world-read-during-build';
+    public static get code(): 'PRISMARINE_CONTENT_WORLD_READ_DURING_BUILD' {
+        return 'PRISMARINE_CONTENT_WORLD_READ_DURING_BUILD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the content world was read before the content finished building' {
+        return 'the content world was read before the content finished building';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-content-world-read-during-build' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-content-world-read-during-build';
+    }
 
     public override readonly code = 'PRISMARINE_CONTENT_WORLD_READ_DURING_BUILD';
     public override readonly docs =
@@ -188,12 +241,21 @@ class ContentWorldReadDuringBuild extends JSPrismarineError {
  * replay that holds it is damaged.
  */
 class InvalidContentRandomStateEntry extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_CONTENT_RANDOM_STATE_ENTRY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'Invalid content random state entry';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-state-entry';
+    public static get code(): 'PRISMARINE_INVALID_CONTENT_RANDOM_STATE_ENTRY' {
+        return 'PRISMARINE_INVALID_CONTENT_RANDOM_STATE_ENTRY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'Invalid content random state entry' {
+        return 'Invalid content random state entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-state-entry' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-state-entry';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_CONTENT_RANDOM_STATE_ENTRY';
     public override readonly docs =
@@ -215,12 +277,21 @@ class InvalidContentRandomStateEntry extends JSPrismarineTypeError {
  * replay that holds it is damaged.
  */
 class InvalidContentRandomStates extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_CONTENT_RANDOM_STATES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'Invalid content random states';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-states';
+    public static get code(): 'PRISMARINE_INVALID_CONTENT_RANDOM_STATES' {
+        return 'PRISMARINE_INVALID_CONTENT_RANDOM_STATES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'Invalid content random states' {
+        return 'Invalid content random states';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-states' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-invalid-content-random-states';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_CONTENT_RANDOM_STATES';
     public override readonly docs =
@@ -239,11 +310,21 @@ class InvalidContentRandomStates extends JSPrismarineTypeError {
 
 /** Code asked for a game rule the Java registry does not have, such as a misspelled name. */
 class UnknownGameRule extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_GAME_RULE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = '{name} is not a game rule of the 26.3 registry';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-game-rule';
+    public static get code(): 'PRISMARINE_UNKNOWN_GAME_RULE' {
+        return 'PRISMARINE_UNKNOWN_GAME_RULE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): '{name} is not a game rule of the 26.3 registry' {
+        return '{name} is not a game rule of the 26.3 registry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-game-rule' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-game-rule';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_GAME_RULE';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unknown-game-rule';
@@ -265,12 +346,21 @@ class UnknownGameRule extends JSPrismarineError {
  * server; report it with the stack trace.
  */
 class FlammableDefaultsRejected extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_FLAMMABLE_DEFAULTS_REJECTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'the minecraft:flammable schema rejected its own defaults';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-flammable-defaults-rejected';
+    public static get code(): 'PRISMARINE_FLAMMABLE_DEFAULTS_REJECTED' {
+        return 'PRISMARINE_FLAMMABLE_DEFAULTS_REJECTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the minecraft:flammable schema rejected its own defaults' {
+        return 'the minecraft:flammable schema rejected its own defaults';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-flammable-defaults-rejected' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-flammable-defaults-rejected';
+    }
 
     public override readonly code = 'PRISMARINE_FLAMMABLE_DEFAULTS_REJECTED';
     public override readonly docs =
@@ -289,11 +379,21 @@ class FlammableDefaultsRejected extends JSPrismarineError {
 
 /** Game content tried to act in a dimension that has no loaded world. */
 class NoWorldToPlayIn extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_WORLD_TO_PLAY_IN';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'no {dimension} world is loaded, so nothing can be played in it';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-no-world-to-play-in';
+    public static get code(): 'PRISMARINE_NO_WORLD_TO_PLAY_IN' {
+        return 'PRISMARINE_NO_WORLD_TO_PLAY_IN';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'no {dimension} world is loaded, so nothing can be played in it' {
+        return 'no {dimension} world is loaded, so nothing can be played in it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-no-world-to-play-in' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-no-world-to-play-in';
+    }
 
     public override readonly code = 'PRISMARINE_NO_WORLD_TO_PLAY_IN';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-no-world-to-play-in';
@@ -315,12 +415,21 @@ class NoWorldToPlayIn extends JSPrismarineError {
  * version or set of packs.
  */
 class ReplayMissingRandomStreams extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_REPLAY_MISSING_RANDOM_STREAMS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'Replay state has no content random stream for: {missing}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-replay-missing-random-streams';
+    public static get code(): 'PRISMARINE_REPLAY_MISSING_RANDOM_STREAMS' {
+        return 'PRISMARINE_REPLAY_MISSING_RANDOM_STREAMS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'Replay state has no content random stream for: {missing}' {
+        return 'Replay state has no content random stream for: {missing}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-replay-missing-random-streams' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-replay-missing-random-streams';
+    }
 
     public override readonly code = 'PRISMARINE_REPLAY_MISSING_RANDOM_STREAMS';
     public override readonly docs =
@@ -343,12 +452,21 @@ class ReplayMissingRandomStreams extends JSPrismarineError {
  * a bug in the server; report it with the stack trace.
  */
 class WorldSourceMemberReplaced extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_WORLD_SOURCE_MEMBER_REPLACED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = 'World source member {property} changed from an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-world-source-member-replaced';
+    public static get code(): 'PRISMARINE_WORLD_SOURCE_MEMBER_REPLACED' {
+        return 'PRISMARINE_WORLD_SOURCE_MEMBER_REPLACED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'World source member {property} changed from an object' {
+        return 'World source member {property} changed from an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-world-source-member-replaced' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-world-source-member-replaced';
+    }
 
     public override readonly code = 'PRISMARINE_WORLD_SOURCE_MEMBER_REPLACED';
     public override readonly docs =
@@ -371,11 +489,21 @@ class WorldSourceMemberReplaced extends JSPrismarineTypeError {
  * the part and the subsystem that will provide it.
  */
 class NotWired extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NOT_WIRED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template = '{member} is not wired yet; the {area} subsystem owns it';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-not-wired';
+    public static get code(): 'PRISMARINE_NOT_WIRED' {
+        return 'PRISMARINE_NOT_WIRED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): '{member} is not wired yet; the {area} subsystem owns it' {
+        return '{member} is not wired yet; the {area} subsystem owns it';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-not-wired' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-not-wired';
+    }
 
     public override readonly code = 'PRISMARINE_NOT_WIRED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/content#prismarine-not-wired';
@@ -398,13 +526,21 @@ class NotWired extends JSPrismarineError {
  * they are left out.
  */
 class UnmappedJavaIdentifiers extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNMAPPED_JAVA_IDENTIFIERS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'content';
-    public static readonly template =
-        'the pack stack references {count} Java identifier(s) with no Bedrock mapping and no reviewed loss entry, first: {id} ({registry}) in pack "{pack}" at {path}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/content#prismarine-unmapped-java-identifiers';
+    public static get code(): 'PRISMARINE_UNMAPPED_JAVA_IDENTIFIERS' {
+        return 'PRISMARINE_UNMAPPED_JAVA_IDENTIFIERS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'content' {
+        return 'content';
+    }
+    public static get template(): 'the pack stack references {count} Java identifier(s) with no Bedrock mapping and no reviewed loss entry, first: {id} ({registry}) in pack "{pack}" at {path}' {
+        return 'the pack stack references {count} Java identifier(s) with no Bedrock mapping and no reviewed loss entry, first: {id} ({registry}) in pack "{pack}" at {path}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unmapped-java-identifiers' {
+        return 'https://jsprismarine.dev/errors/prismarine/content#prismarine-unmapped-java-identifiers';
+    }
 
     public override readonly code = 'PRISMARINE_UNMAPPED_JAVA_IDENTIFIERS';
     public override readonly docs =

@@ -17,12 +17,21 @@ export abstract class LoggedFieldError extends JSPrismarineTypeError {
  * it is damaged.
  */
 class InvalidSavedGameMode extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SAVED_GAME_MODE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'abilities.gamemode cannot hold {value}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-game-mode';
+    public static get code(): 'PRISMARINE_INVALID_SAVED_GAME_MODE' {
+        return 'PRISMARINE_INVALID_SAVED_GAME_MODE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'abilities.gamemode cannot hold {value}' {
+        return 'abilities.gamemode cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-game-mode' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-game-mode';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SAVED_GAME_MODE';
     public override readonly docs =
@@ -45,11 +54,21 @@ class InvalidSavedGameMode extends JSPrismarineTypeError {
  * holds it is damaged.
  */
 class InvalidLoggedField extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_INVALID_LOGGED_FIELD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{field} cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-logged-field';
+    public static get code(): 'PRISMARINE_INVALID_LOGGED_FIELD' {
+        return 'PRISMARINE_INVALID_LOGGED_FIELD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{field} cannot hold {value}' {
+        return '{field} cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-logged-field' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-logged-field';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_LOGGED_FIELD';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-logged-field';
@@ -71,11 +90,21 @@ class InvalidLoggedField extends LoggedFieldError {
  * it is damaged.
  */
 class InvalidPlayerField extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_PLAYER_FIELD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{field} cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-player-field';
+    public static get code(): 'PRISMARINE_INVALID_PLAYER_FIELD' {
+        return 'PRISMARINE_INVALID_PLAYER_FIELD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{field} cannot hold {value}' {
+        return '{field} cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-player-field' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-player-field';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_PLAYER_FIELD';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-player-field';
@@ -94,11 +123,21 @@ class InvalidPlayerField extends JSPrismarineTypeError {
 
 /** An entity has a status effect Bedrock has no id for, so it cannot be saved or sent. */
 class UnsupportedMobEffect extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_MOB_EFFECT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = "Cannot serialize unsupported mob effect '{id}'";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-unsupported-mob-effect';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_MOB_EFFECT' {
+        return 'PRISMARINE_UNSUPPORTED_MOB_EFFECT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): "Cannot serialize unsupported mob effect '{id}'" {
+        return "Cannot serialize unsupported mob effect '{id}'";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-unsupported-mob-effect' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-unsupported-mob-effect';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_MOB_EFFECT';
     public override readonly docs =
@@ -121,11 +160,21 @@ class UnsupportedMobEffect extends JSPrismarineError {
  * that holds it is damaged.
  */
 class InvalidSavedMeal extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SAVED_MEAL';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'consumption.meal cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-meal';
+    public static get code(): 'PRISMARINE_INVALID_SAVED_MEAL' {
+        return 'PRISMARINE_INVALID_SAVED_MEAL';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'consumption.meal cannot hold {value}' {
+        return 'consumption.meal cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-meal' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-meal';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SAVED_MEAL';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-meal';
@@ -147,11 +196,21 @@ class InvalidSavedMeal extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class EntityNotRestored extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_ENTITY_NOT_RESTORED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{identifier} {id} could not be added back';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-restored';
+    public static get code(): 'PRISMARINE_ENTITY_NOT_RESTORED' {
+        return 'PRISMARINE_ENTITY_NOT_RESTORED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{identifier} {id} could not be added back' {
+        return '{identifier} {id} could not be added back';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-restored' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-restored';
+    }
 
     public override readonly code = 'PRISMARINE_ENTITY_NOT_RESTORED';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-restored';
@@ -173,11 +232,21 @@ class EntityNotRestored extends LoggedFieldError {
  * server.
  */
 class RuntimeIdsExhausted extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_RUNTIME_IDS_EXHAUSTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-runtime-ids-exhausted';
+    public static get code(): 'PRISMARINE_RUNTIME_IDS_EXHAUSTED' {
+        return 'PRISMARINE_RUNTIME_IDS_EXHAUSTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER' {
+        return 'Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-runtime-ids-exhausted' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-runtime-ids-exhausted';
+    }
 
     public override readonly code = 'PRISMARINE_RUNTIME_IDS_EXHAUSTED';
     public override readonly docs =
@@ -196,12 +265,21 @@ class RuntimeIdsExhausted extends JSPrismarineRangeError {
 
 /** A test read the entity runtime before its content was built. */
 class EntityRuntimeReadTooEarly extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ENTITY_RUNTIME_READ_TOO_EARLY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'the entity runtime was read before the content was built';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-runtime-read-too-early';
+    public static get code(): 'PRISMARINE_ENTITY_RUNTIME_READ_TOO_EARLY' {
+        return 'PRISMARINE_ENTITY_RUNTIME_READ_TOO_EARLY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'the entity runtime was read before the content was built' {
+        return 'the entity runtime was read before the content was built';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-runtime-read-too-early' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-runtime-read-too-early';
+    }
 
     public override readonly code = 'PRISMARINE_ENTITY_RUNTIME_READ_TOO_EARLY';
     public override readonly docs =
@@ -223,11 +301,21 @@ class EntityRuntimeReadTooEarly extends JSPrismarineError {
  * the loaded packs is incomplete.
  */
 class MissingItemComponent extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_MISSING_ITEM_COMPONENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{identifier} has no {itemComponent} component';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-missing-item-component';
+    public static get code(): 'PRISMARINE_MISSING_ITEM_COMPONENT' {
+        return 'PRISMARINE_MISSING_ITEM_COMPONENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{identifier} has no {itemComponent} component' {
+        return '{identifier} has no {itemComponent} component';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-missing-item-component' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-missing-item-component';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_ITEM_COMPONENT';
     public override readonly docs =
@@ -255,12 +343,21 @@ class MissingItemComponent extends JSPrismarineTypeError {
  * server; report it with the stack trace.
  */
 class EntityHasNoPlainRecord extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_ENTITY_HAS_NO_PLAIN_RECORD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{identifier} {id} has no plain record';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-has-no-plain-record';
+    public static get code(): 'PRISMARINE_ENTITY_HAS_NO_PLAIN_RECORD' {
+        return 'PRISMARINE_ENTITY_HAS_NO_PLAIN_RECORD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{identifier} {id} has no plain record' {
+        return '{identifier} {id} has no plain record';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-has-no-plain-record' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-has-no-plain-record';
+    }
 
     public override readonly code = 'PRISMARINE_ENTITY_HAS_NO_PLAIN_RECORD';
     public override readonly docs =
@@ -283,12 +380,21 @@ class EntityHasNoPlainRecord extends LoggedFieldError {
  * server; report it with the stack trace.
  */
 class EntityNotInDimension extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_ENTITY_NOT_IN_DIMENSION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = "{identifier} is not in this dimension's entity index, so it has no actuator";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-in-dimension';
+    public static get code(): 'PRISMARINE_ENTITY_NOT_IN_DIMENSION' {
+        return 'PRISMARINE_ENTITY_NOT_IN_DIMENSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): "{identifier} is not in this dimension's entity index, so it has no actuator" {
+        return "{identifier} is not in this dimension's entity index, so it has no actuator";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-in-dimension' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-entity-not-in-dimension';
+    }
 
     public override readonly code = 'PRISMARINE_ENTITY_NOT_IN_DIMENSION';
     public override readonly docs =
@@ -311,12 +417,21 @@ class EntityNotInDimension extends JSPrismarineError {
  * instance. This is a bug in the server; report it with the stack trace.
  */
 class ValueHasNoPlainForm extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_VALUE_HAS_NO_PLAIN_FORM';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'A logged value has no plain form: {value}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-value-has-no-plain-form';
+    public static get code(): 'PRISMARINE_VALUE_HAS_NO_PLAIN_FORM' {
+        return 'PRISMARINE_VALUE_HAS_NO_PLAIN_FORM';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'A logged value has no plain form: {value}' {
+        return 'A logged value has no plain form: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-value-has-no-plain-form' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-value-has-no-plain-form';
+    }
 
     public override readonly code = 'PRISMARINE_VALUE_HAS_NO_PLAIN_FORM';
     public override readonly docs =
@@ -339,12 +454,21 @@ class ValueHasNoPlainForm extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class MembershipEntryHasNoRecord extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_MEMBERSHIP_ENTRY_HAS_NO_RECORD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'a membership entry carries no record to add the entity back from';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-membership-entry-has-no-record';
+    public static get code(): 'PRISMARINE_MEMBERSHIP_ENTRY_HAS_NO_RECORD' {
+        return 'PRISMARINE_MEMBERSHIP_ENTRY_HAS_NO_RECORD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'a membership entry carries no record to add the entity back from' {
+        return 'a membership entry carries no record to add the entity back from';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-membership-entry-has-no-record' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-membership-entry-has-no-record';
+    }
 
     public override readonly code = 'PRISMARINE_MEMBERSHIP_ENTRY_HAS_NO_RECORD';
     public override readonly docs =
@@ -366,11 +490,21 @@ class MembershipEntryHasNoRecord extends LoggedFieldError {
  * holds it is damaged.
  */
 class InvalidSavedMerchant extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_INVALID_SAVED_MERCHANT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'merchant cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-merchant';
+    public static get code(): 'PRISMARINE_INVALID_SAVED_MERCHANT' {
+        return 'PRISMARINE_INVALID_SAVED_MERCHANT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'merchant cannot hold {value}' {
+        return 'merchant cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-merchant' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-merchant';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SAVED_MERCHANT';
     public override readonly docs =
@@ -393,12 +527,21 @@ class InvalidSavedMerchant extends LoggedFieldError {
  * it with the stack trace.
  */
 class MerchantHasNoPlainForm extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_MERCHANT_HAS_NO_PLAIN_FORM';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'a merchant snapshot has no plain form';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-merchant-has-no-plain-form';
+    public static get code(): 'PRISMARINE_MERCHANT_HAS_NO_PLAIN_FORM' {
+        return 'PRISMARINE_MERCHANT_HAS_NO_PLAIN_FORM';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'a merchant snapshot has no plain form' {
+        return 'a merchant snapshot has no plain form';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-merchant-has-no-plain-form' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-merchant-has-no-plain-form';
+    }
 
     public override readonly code = 'PRISMARINE_MERCHANT_HAS_NO_PLAIN_FORM';
     public override readonly docs =
@@ -420,11 +563,21 @@ class MerchantHasNoPlainForm extends LoggedFieldError {
  * that holds it is damaged.
  */
 class InvalidSavedMining extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SAVED_MINING';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'mining.block cannot hold {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-mining';
+    public static get code(): 'PRISMARINE_INVALID_SAVED_MINING' {
+        return 'PRISMARINE_INVALID_SAVED_MINING';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'mining.block cannot hold {value}' {
+        return 'mining.block cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-mining' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-mining';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SAVED_MINING';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-mining';
@@ -446,12 +599,21 @@ class InvalidSavedMining extends JSPrismarineTypeError {
  * loaded packs is malformed.
  */
 class ItemComponentFieldNotNumber extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_ITEM_COMPONENT_FIELD_NOT_NUMBER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{itemComponent} needs a number for {key}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-item-component-field-not-number';
+    public static get code(): 'PRISMARINE_ITEM_COMPONENT_FIELD_NOT_NUMBER' {
+        return 'PRISMARINE_ITEM_COMPONENT_FIELD_NOT_NUMBER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{itemComponent} needs a number for {key}' {
+        return '{itemComponent} needs a number for {key}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-item-component-field-not-number' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-item-component-field-not-number';
+    }
 
     public override readonly code = 'PRISMARINE_ITEM_COMPONENT_FIELD_NOT_NUMBER';
     public override readonly docs =
@@ -474,12 +636,21 @@ class ItemComponentFieldNotNumber extends JSPrismarineTypeError {
  * the loaded packs is malformed.
  */
 class InvalidHangingComponent extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_HANGING_COMPONENT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = '{hangingComponent} needs a support of wall or fence and a check_interval';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-hanging-component';
+    public static get code(): 'PRISMARINE_INVALID_HANGING_COMPONENT' {
+        return 'PRISMARINE_INVALID_HANGING_COMPONENT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): '{hangingComponent} needs a support of wall or fence and a check_interval' {
+        return '{hangingComponent} needs a support of wall or fence and a check_interval';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-hanging-component' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-hanging-component';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_HANGING_COMPONENT';
     public override readonly docs =
@@ -501,11 +672,21 @@ class InvalidHangingComponent extends JSPrismarineTypeError {
  * Content reached for entities while no world is loaded, such as during startup or shutdown.
  */
 class NoWorldForEntities extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_WORLD_FOR_ENTITIES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'no world is loaded, so its entities cannot be read or changed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-world-for-entities';
+    public static get code(): 'PRISMARINE_NO_WORLD_FOR_ENTITIES' {
+        return 'PRISMARINE_NO_WORLD_FOR_ENTITIES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'no world is loaded, so its entities cannot be read or changed' {
+        return 'no world is loaded, so its entities cannot be read or changed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-world-for-entities' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-world-for-entities';
+    }
 
     public override readonly code = 'PRISMARINE_NO_WORLD_FOR_ENTITIES';
     public override readonly docs =
@@ -527,11 +708,21 @@ class NoWorldForEntities extends JSPrismarineError {
  * with the stack trace.
  */
 class NoFieldWriter extends LoggedFieldError {
-    public static readonly code = 'PRISMARINE_NO_FIELD_WRITER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'no writer for {field}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-field-writer';
+    public static get code(): 'PRISMARINE_NO_FIELD_WRITER' {
+        return 'PRISMARINE_NO_FIELD_WRITER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'no writer for {field}' {
+        return 'no writer for {field}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-field-writer' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-field-writer';
+    }
 
     public override readonly code = 'PRISMARINE_NO_FIELD_WRITER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-field-writer';
@@ -553,11 +744,21 @@ class NoFieldWriter extends LoggedFieldError {
  * report it with the stack trace.
  */
 class NoEntityWriter extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_ENTITY_WRITER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'No writer knows {addressed}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-entity-writer';
+    public static get code(): 'PRISMARINE_NO_ENTITY_WRITER' {
+        return 'PRISMARINE_NO_ENTITY_WRITER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'No writer knows {addressed}' {
+        return 'No writer knows {addressed}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-entity-writer' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-entity-writer';
+    }
 
     public override readonly code = 'PRISMARINE_NO_ENTITY_WRITER';
     public override readonly docs = 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-no-entity-writer';
@@ -579,12 +780,21 @@ class NoEntityWriter extends JSPrismarineError {
  * holds it is damaged.
  */
 class InvalidSavedSpawnPoint extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SAVED_SPAWN_POINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'respawn.spawnPoint cannot hold {value}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-spawn-point';
+    public static get code(): 'PRISMARINE_INVALID_SAVED_SPAWN_POINT' {
+        return 'PRISMARINE_INVALID_SAVED_SPAWN_POINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'respawn.spawnPoint cannot hold {value}' {
+        return 'respawn.spawnPoint cannot hold {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-spawn-point' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-invalid-saved-spawn-point';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SAVED_SPAWN_POINT';
     public override readonly docs =
@@ -607,12 +817,21 @@ class InvalidSavedSpawnPoint extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class StorePlayerEntityMismatch extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STORE_PLAYER_ENTITY_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'store player {id} cannot take entity {entityId}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-entity-mismatch';
+    public static get code(): 'PRISMARINE_STORE_PLAYER_ENTITY_MISMATCH' {
+        return 'PRISMARINE_STORE_PLAYER_ENTITY_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'store player {id} cannot take entity {entityId}' {
+        return 'store player {id} cannot take entity {entityId}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-entity-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-entity-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_STORE_PLAYER_ENTITY_MISMATCH';
     public override readonly docs =
@@ -635,12 +854,21 @@ class StorePlayerEntityMismatch extends JSPrismarineError {
  * trace.
  */
 class StorePlayerAlreadyAttached extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STORE_PLAYER_ALREADY_ATTACHED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'entity';
-    public static readonly template = 'store player {id} is already in a store';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-already-attached';
+    public static get code(): 'PRISMARINE_STORE_PLAYER_ALREADY_ATTACHED' {
+        return 'PRISMARINE_STORE_PLAYER_ALREADY_ATTACHED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'entity' {
+        return 'entity';
+    }
+    public static get template(): 'store player {id} is already in a store' {
+        return 'store player {id} is already in a store';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-already-attached' {
+        return 'https://jsprismarine.dev/errors/prismarine/entity#prismarine-store-player-already-attached';
+    }
 
     public override readonly code = 'PRISMARINE_STORE_PLAYER_ALREADY_ATTACHED';
     public override readonly docs =

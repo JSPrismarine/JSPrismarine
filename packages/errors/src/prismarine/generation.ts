@@ -17,12 +17,21 @@ export abstract class RegistryBundleFormatError extends JSPrismarineError {
  * it with the stack trace.
  */
 class BiomeCellOutOfPalette extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BIOME_CELL_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Biome cell index {index} is outside its palette';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-out-of-palette';
+    public static get code(): 'PRISMARINE_BIOME_CELL_OUT_OF_PALETTE' {
+        return 'PRISMARINE_BIOME_CELL_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Biome cell index {index} is outside its palette' {
+        return 'Biome cell index {index} is outside its palette';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_CELL_OUT_OF_PALETTE';
     public override readonly docs =
@@ -46,12 +55,21 @@ class BiomeCellOutOfPalette extends JSPrismarineRangeError {
  * the stack trace.
  */
 class RegionPaletteFull extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_REGION_PALETTE_FULL';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature view cannot record more than 65534 distinct block states';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-palette-full';
+    public static get code(): 'PRISMARINE_REGION_PALETTE_FULL' {
+        return 'PRISMARINE_REGION_PALETTE_FULL';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature view cannot record more than 65534 distinct block states' {
+        return 'A feature view cannot record more than 65534 distinct block states';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-palette-full' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-palette-full';
+    }
 
     public override readonly code = 'PRISMARINE_REGION_PALETTE_FULL';
     public override readonly docs =
@@ -73,12 +91,21 @@ class RegionPaletteFull extends JSPrismarineRangeError {
  * bug in world generation; report it with the stack trace.
  */
 class InvalidBiomeSectionSize extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_BIOME_SECTION_SIZE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Biome section {section} must hold one or 4096 IDs, got {length}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-biome-section-size';
+    public static get code(): 'PRISMARINE_INVALID_BIOME_SECTION_SIZE' {
+        return 'PRISMARINE_INVALID_BIOME_SECTION_SIZE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Biome section {section} must hold one or 4096 IDs, got {length}' {
+        return 'Biome section {section} must hold one or 4096 IDs, got {length}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-biome-section-size' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-biome-section-size';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BIOME_SECTION_SIZE';
     public override readonly docs =
@@ -104,12 +131,21 @@ class InvalidBiomeSectionSize extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class BiomeSectionOffsetsMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BIOME_SECTION_OFFSETS_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Biome section offsets must span the biome ID buffer';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-section-offsets-mismatch';
+    public static get code(): 'PRISMARINE_BIOME_SECTION_OFFSETS_MISMATCH' {
+        return 'PRISMARINE_BIOME_SECTION_OFFSETS_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Biome section offsets must span the biome ID buffer' {
+        return 'Biome section offsets must span the biome ID buffer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-section-offsets-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-section-offsets-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_SECTION_OFFSETS_MISMATCH';
     public override readonly docs =
@@ -131,12 +167,21 @@ class BiomeSectionOffsetsMismatch extends JSPrismarineRangeError {
  * bug in world generation; report it with the stack trace.
  */
 class InvalidBlockPassResult extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_BLOCK_PASS_RESULT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The block pass for the chunk at {cx}, {cz} came back in an unexpected shape.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-block-pass-result';
+    public static get code(): 'PRISMARINE_INVALID_BLOCK_PASS_RESULT' {
+        return 'PRISMARINE_INVALID_BLOCK_PASS_RESULT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The block pass for the chunk at {cx}, {cz} came back in an unexpected shape.' {
+        return 'The block pass for the chunk at {cx}, {cz} came back in an unexpected shape.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-block-pass-result' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-block-pass-result';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_BLOCK_PASS_RESULT';
     public override readonly docs =
@@ -162,12 +207,21 @@ class InvalidBlockPassResult extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class RegionHeightMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_REGION_HEIGHT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Cannot combine generation regions with different vertical extents';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-height-mismatch';
+    public static get code(): 'PRISMARINE_REGION_HEIGHT_MISMATCH' {
+        return 'PRISMARINE_REGION_HEIGHT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Cannot combine generation regions with different vertical extents' {
+        return 'Cannot combine generation regions with different vertical extents';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-height-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-region-height-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REGION_HEIGHT_MISMATCH';
     public override readonly docs =
@@ -189,12 +243,21 @@ class RegionHeightMismatch extends JSPrismarineRangeError {
  * with the stack trace.
  */
 class MissingSectionBiomes extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_SECTION_BIOMES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The chunk at {cx}, {cz} has no biome IDs for section {section}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-section-biomes';
+    public static get code(): 'PRISMARINE_MISSING_SECTION_BIOMES' {
+        return 'PRISMARINE_MISSING_SECTION_BIOMES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The chunk at {cx}, {cz} has no biome IDs for section {section}' {
+        return 'The chunk at {cx}, {cz} has no biome IDs for section {section}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-section-biomes' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-section-biomes';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_SECTION_BIOMES';
     public override readonly docs =
@@ -226,11 +289,21 @@ class MissingSectionBiomes extends JSPrismarineError {
  * the stack trace.
  */
 class MissingCellBiome extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_CELL_BIOME';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = "The tile's biome cells have no biome for cell {quartX}, {quartY}, {quartZ}";
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-cell-biome';
+    public static get code(): 'PRISMARINE_MISSING_CELL_BIOME' {
+        return 'PRISMARINE_MISSING_CELL_BIOME';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): "The tile's biome cells have no biome for cell {quartX}, {quartY}, {quartZ}" {
+        return "The tile's biome cells have no biome for cell {quartX}, {quartY}, {quartZ}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-cell-biome' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-cell-biome';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_CELL_BIOME';
     public override readonly docs =
@@ -261,12 +334,21 @@ class MissingCellBiome extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class MissingMergeInputs extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_MERGE_INPUTS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The chunk at {cx}, {cz} reached full without leaving its merge inputs.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-merge-inputs';
+    public static get code(): 'PRISMARINE_MISSING_MERGE_INPUTS' {
+        return 'PRISMARINE_MISSING_MERGE_INPUTS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The chunk at {cx}, {cz} reached full without leaving its merge inputs.' {
+        return 'The chunk at {cx}, {cz} reached full without leaving its merge inputs.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-merge-inputs' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-merge-inputs';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_MERGE_INPUTS';
     public override readonly docs =
@@ -292,12 +374,21 @@ class MissingMergeInputs extends JSPrismarineError {
  * report it with the stack trace.
  */
 class BiomeCellCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_BIOME_CELL_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A chunk of height {height} has {value} biome cells, not {indicesCount}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-count-mismatch';
+    public static get code(): 'PRISMARINE_BIOME_CELL_COUNT_MISMATCH' {
+        return 'PRISMARINE_BIOME_CELL_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A chunk of height {height} has {value} biome cells, not {indicesCount}' {
+        return 'A chunk of height {height} has {value} biome cells, not {indicesCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-biome-cell-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_BIOME_CELL_COUNT_MISMATCH';
     public override readonly docs =
@@ -328,13 +419,21 @@ class BiomeCellCountMismatch extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class IncompleteChunkTask extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INCOMPLETE_CHUNK_TASK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The chunk task at {chunkX}, {chunkZ} carries no seed, pipeline key and valid start plans.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-chunk-task';
+    public static get code(): 'PRISMARINE_INCOMPLETE_CHUNK_TASK' {
+        return 'PRISMARINE_INCOMPLETE_CHUNK_TASK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The chunk task at {chunkX}, {chunkZ} carries no seed, pipeline key and valid start plans.' {
+        return 'The chunk task at {chunkX}, {chunkZ} carries no seed, pipeline key and valid start plans.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-chunk-task' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-chunk-task';
+    }
 
     public override readonly code = 'PRISMARINE_INCOMPLETE_CHUNK_TASK';
     public override readonly docs =
@@ -360,12 +459,21 @@ class IncompleteChunkTask extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class EndCityMarkerWithoutRotation extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_END_CITY_MARKER_WITHOUT_ROTATION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The end-city marker action needs a rotation.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-end-city-marker-without-rotation';
+    public static get code(): 'PRISMARINE_END_CITY_MARKER_WITHOUT_ROTATION' {
+        return 'PRISMARINE_END_CITY_MARKER_WITHOUT_ROTATION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The end-city marker action needs a rotation.' {
+        return 'The end-city marker action needs a rotation.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-end-city-marker-without-rotation' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-end-city-marker-without-rotation';
+    }
 
     public override readonly code = 'PRISMARINE_END_CITY_MARKER_WITHOUT_ROTATION';
     public override readonly docs =
@@ -387,13 +495,21 @@ class EndCityMarkerWithoutRotation extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class IncompleteFeatureTask extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INCOMPLETE_FEATURE_TASK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The feature task at {chunkX}, {chunkZ} carries no terrain view, seed and pipeline key.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-feature-task';
+    public static get code(): 'PRISMARINE_INCOMPLETE_FEATURE_TASK' {
+        return 'PRISMARINE_INCOMPLETE_FEATURE_TASK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The feature task at {chunkX}, {chunkZ} carries no terrain view, seed and pipeline key.' {
+        return 'The feature task at {chunkX}, {chunkZ} carries no terrain view, seed and pipeline key.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-feature-task' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-feature-task';
+    }
 
     public override readonly code = 'PRISMARINE_INCOMPLETE_FEATURE_TASK';
     public override readonly docs =
@@ -419,12 +535,21 @@ class IncompleteFeatureTask extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class FeatureTaskTileCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_FEATURE_TASK_TILE_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature task needs {tileCount} terrain tiles.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-task-tile-count-mismatch';
+    public static get code(): 'PRISMARINE_FEATURE_TASK_TILE_COUNT_MISMATCH' {
+        return 'PRISMARINE_FEATURE_TASK_TILE_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature task needs {tileCount} terrain tiles.' {
+        return 'A feature task needs {tileCount} terrain tiles.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-task-tile-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-task-tile-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_FEATURE_TASK_TILE_COUNT_MISMATCH';
     public override readonly docs =
@@ -447,12 +572,21 @@ class FeatureTaskTileCountMismatch extends JSPrismarineRangeError {
  * with the stack trace.
  */
 class DuplicateFeatureTiles extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_FEATURE_TILES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature view needs distinct terrain tiles.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-feature-tiles';
+    public static get code(): 'PRISMARINE_DUPLICATE_FEATURE_TILES' {
+        return 'PRISMARINE_DUPLICATE_FEATURE_TILES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature view needs distinct terrain tiles.' {
+        return 'A feature view needs distinct terrain tiles.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-feature-tiles' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-feature-tiles';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_FEATURE_TILES';
     public override readonly docs =
@@ -474,12 +608,21 @@ class DuplicateFeatureTiles extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class MissingFeatureTile extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_MISSING_FEATURE_TILE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature view needs every terrain tile in its three by three window.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-feature-tile';
+    public static get code(): 'PRISMARINE_MISSING_FEATURE_TILE' {
+        return 'PRISMARINE_MISSING_FEATURE_TILE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature view needs every terrain tile in its three by three window.' {
+        return 'A feature view needs every terrain tile in its three by three window.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-feature-tile' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-feature-tile';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_FEATURE_TILE';
     public override readonly docs =
@@ -501,12 +644,21 @@ class MissingFeatureTile extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class FeatureViewTileCountMismatch extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_FEATURE_VIEW_TILE_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature view needs nine terrain tiles.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-view-tile-count-mismatch';
+    public static get code(): 'PRISMARINE_FEATURE_VIEW_TILE_COUNT_MISMATCH' {
+        return 'PRISMARINE_FEATURE_VIEW_TILE_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature view needs nine terrain tiles.' {
+        return 'A feature view needs nine terrain tiles.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-view-tile-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-view-tile-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_FEATURE_VIEW_TILE_COUNT_MISMATCH';
     public override readonly docs =
@@ -528,12 +680,21 @@ class FeatureViewTileCountMismatch extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class InvalidFeatureTile extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_FEATURE_TILE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Feature-view terrain tiles must be radius-zero and match its vertical extent.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-tile';
+    public static get code(): 'PRISMARINE_INVALID_FEATURE_TILE' {
+        return 'PRISMARINE_INVALID_FEATURE_TILE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Feature-view terrain tiles must be radius-zero and match its vertical extent.' {
+        return 'Feature-view terrain tiles must be radius-zero and match its vertical extent.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-tile' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-tile';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_FEATURE_TILE';
     public override readonly docs =
@@ -555,12 +716,21 @@ class InvalidFeatureTile extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class FeatureTileOutOfWindow extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_FEATURE_TILE_OUT_OF_WINDOW';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Feature-view terrain tiles must fit its three by three window.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-tile-out-of-window';
+    public static get code(): 'PRISMARINE_FEATURE_TILE_OUT_OF_WINDOW' {
+        return 'PRISMARINE_FEATURE_TILE_OUT_OF_WINDOW';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Feature-view terrain tiles must fit its three by three window.' {
+        return 'Feature-view terrain tiles must fit its three by three window.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-tile-out-of-window' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-feature-tile-out-of-window';
+    }
 
     public override readonly code = 'PRISMARINE_FEATURE_TILE_OUT_OF_WINDOW';
     public override readonly docs =
@@ -582,12 +752,21 @@ class FeatureTileOutOfWindow extends JSPrismarineRangeError {
  * bug in world generation; report it with the stack trace.
  */
 class InvalidFeaturePatchList extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_FEATURE_PATCH_LIST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A feature worker returned an invalid patch list.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-patch-list';
+    public static get code(): 'PRISMARINE_INVALID_FEATURE_PATCH_LIST' {
+        return 'PRISMARINE_INVALID_FEATURE_PATCH_LIST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A feature worker returned an invalid patch list.' {
+        return 'A feature worker returned an invalid patch list.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-patch-list' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-feature-patch-list';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_FEATURE_PATCH_LIST';
     public override readonly docs =
@@ -609,12 +788,21 @@ class InvalidFeaturePatchList extends JSPrismarineTypeError {
  * it with the stack trace.
  */
 class PartialBiomeSections extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_PARTIAL_BIOME_SECTIONS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A generation region must carry both biome section buffers or neither';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-partial-biome-sections';
+    public static get code(): 'PRISMARINE_PARTIAL_BIOME_SECTIONS' {
+        return 'PRISMARINE_PARTIAL_BIOME_SECTIONS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A generation region must carry both biome section buffers or neither' {
+        return 'A generation region must carry both biome section buffers or neither';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-partial-biome-sections' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-partial-biome-sections';
+    }
 
     public override readonly code = 'PRISMARINE_PARTIAL_BIOME_SECTIONS';
     public override readonly docs =
@@ -636,12 +824,21 @@ class PartialBiomeSections extends JSPrismarineRangeError {
  * world generation; report it with the stack trace.
  */
 class WorkerWithoutRegistryBundle extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_WORKER_WITHOUT_REGISTRY_BUNDLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A generation worker needs a registry bundle in shared memory.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-worker-without-registry-bundle';
+    public static get code(): 'PRISMARINE_WORKER_WITHOUT_REGISTRY_BUNDLE' {
+        return 'PRISMARINE_WORKER_WITHOUT_REGISTRY_BUNDLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A generation worker needs a registry bundle in shared memory.' {
+        return 'A generation worker needs a registry bundle in shared memory.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-worker-without-registry-bundle' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-worker-without-registry-bundle';
+    }
 
     public override readonly code = 'PRISMARINE_WORKER_WITHOUT_REGISTRY_BUNDLE';
     public override readonly docs =
@@ -663,12 +860,21 @@ class WorkerWithoutRegistryBundle extends JSPrismarineTypeError {
  * The download is damaged or is a different version; fetch the sources again.
  */
 class NoInnerServerJar extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_NO_INNER_SERVER_JAR';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = '{jarPath} holds no inner server jar';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-inner-server-jar';
+    public static get code(): 'PRISMARINE_NO_INNER_SERVER_JAR' {
+        return 'PRISMARINE_NO_INNER_SERVER_JAR';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): '{jarPath} holds no inner server jar' {
+        return '{jarPath} holds no inner server jar';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-inner-server-jar' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-inner-server-jar';
+    }
 
     public override readonly code = 'PRISMARINE_NO_INNER_SERVER_JAR';
     public override readonly docs =
@@ -691,12 +897,21 @@ class NoInnerServerJar extends JSPrismarineError {
  * report it with the stack trace.
  */
 class IglooMarkerWithoutPosition extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_IGLOO_MARKER_WITHOUT_POSITION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The igloo snow-cap action needs an x, y, z position.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-igloo-marker-without-position';
+    public static get code(): 'PRISMARINE_IGLOO_MARKER_WITHOUT_POSITION' {
+        return 'PRISMARINE_IGLOO_MARKER_WITHOUT_POSITION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The igloo snow-cap action needs an x, y, z position.' {
+        return 'The igloo snow-cap action needs an x, y, z position.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-igloo-marker-without-position' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-igloo-marker-without-position';
+    }
 
     public override readonly code = 'PRISMARINE_IGLOO_MARKER_WITHOUT_POSITION';
     public override readonly docs =
@@ -718,13 +933,21 @@ class IglooMarkerWithoutPosition extends JSPrismarineTypeError {
  * height range that includes them.
  */
 class DebugGridOutOfRange extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DEBUG_GRID_OUT_OF_RANGE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        "{debugGeneratorKind} lays its grid at y {debugFloorY} to {debugGridY}, outside the {id} stem's y {minY} to {maxY}";
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-debug-grid-out-of-range';
+    public static get code(): 'PRISMARINE_DEBUG_GRID_OUT_OF_RANGE' {
+        return 'PRISMARINE_DEBUG_GRID_OUT_OF_RANGE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): "{debugGeneratorKind} lays its grid at y {debugFloorY} to {debugGridY}, outside the {id} stem's y {minY} to {maxY}" {
+        return "{debugGeneratorKind} lays its grid at y {debugFloorY} to {debugGridY}, outside the {id} stem's y {minY} to {maxY}";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-debug-grid-out-of-range' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-debug-grid-out-of-range';
+    }
 
     public override readonly code = 'PRISMARINE_DEBUG_GRID_OUT_OF_RANGE';
     public override readonly docs =
@@ -774,12 +997,21 @@ class DebugGridOutOfRange extends JSPrismarineError {
  * bug in world generation; report it with the stack trace.
  */
 class InvalidMergeResult extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_MERGE_RESULT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The merge for the chunk at {cx}, {cz} came back in an unexpected shape.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-merge-result';
+    public static get code(): 'PRISMARINE_INVALID_MERGE_RESULT' {
+        return 'PRISMARINE_INVALID_MERGE_RESULT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The merge for the chunk at {cx}, {cz} came back in an unexpected shape.' {
+        return 'The merge for the chunk at {cx}, {cz} came back in an unexpected shape.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-merge-result' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-merge-result';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_MERGE_RESULT';
     public override readonly docs =
@@ -805,12 +1037,21 @@ class InvalidMergeResult extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class UntranslatedMergeBlock extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_UNTRANSLATED_MERGE_BLOCK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The merge produced {key}, which its translation does not hold';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untranslated-merge-block';
+    public static get code(): 'PRISMARINE_UNTRANSLATED_MERGE_BLOCK' {
+        return 'PRISMARINE_UNTRANSLATED_MERGE_BLOCK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The merge produced {key}, which its translation does not hold' {
+        return 'The merge produced {key}, which its translation does not hold';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untranslated-merge-block' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untranslated-merge-block';
+    }
 
     public override readonly code = 'PRISMARINE_UNTRANSLATED_MERGE_BLOCK';
     public override readonly docs =
@@ -833,12 +1074,21 @@ class UntranslatedMergeBlock extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class UnknownTemplateMarker extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_TEMPLATE_MARKER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'No template marker handler is registered for {type}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-template-marker';
+    public static get code(): 'PRISMARINE_UNKNOWN_TEMPLATE_MARKER' {
+        return 'PRISMARINE_UNKNOWN_TEMPLATE_MARKER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'No template marker handler is registered for {type}.' {
+        return 'No template marker handler is registered for {type}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-template-marker' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-template-marker';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_TEMPLATE_MARKER';
     public override readonly docs =
@@ -861,12 +1111,21 @@ class UnknownTemplateMarker extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class UnknownPostPlacementStep extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_POST_PLACEMENT_STEP';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'No template post-placement handler is registered for {type}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-post-placement-step';
+    public static get code(): 'PRISMARINE_UNKNOWN_POST_PLACEMENT_STEP' {
+        return 'PRISMARINE_UNKNOWN_POST_PLACEMENT_STEP';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'No template post-placement handler is registered for {type}.' {
+        return 'No template post-placement handler is registered for {type}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-post-placement-step' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-post-placement-step';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_POST_PLACEMENT_STEP';
     public override readonly docs =
@@ -889,11 +1148,21 @@ class UnknownPostPlacementStep extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class NoTransferCodec extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_NO_TRANSFER_CODEC';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'No transfer codec is registered for {name}.';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-transfer-codec';
+    public static get code(): 'PRISMARINE_NO_TRANSFER_CODEC' {
+        return 'PRISMARINE_NO_TRANSFER_CODEC';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'No transfer codec is registered for {name}.' {
+        return 'No transfer codec is registered for {name}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-transfer-codec' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-no-transfer-codec';
+    }
 
     public override readonly code = 'PRISMARINE_NO_TRANSFER_CODEC';
     public override readonly docs =
@@ -916,12 +1185,21 @@ class NoTransferCodec extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class DimensionNotLoadedOnThread extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DIMENSION_NOT_LOADED_ON_THREAD';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'No view of {id} was built on this thread, so its chunks have no type';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-dimension-not-loaded-on-thread';
+    public static get code(): 'PRISMARINE_DIMENSION_NOT_LOADED_ON_THREAD' {
+        return 'PRISMARINE_DIMENSION_NOT_LOADED_ON_THREAD';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'No view of {id} was built on this thread, so its chunks have no type' {
+        return 'No view of {id} was built on this thread, so its chunks have no type';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-dimension-not-loaded-on-thread' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-dimension-not-loaded-on-thread';
+    }
 
     public override readonly code = 'PRISMARINE_DIMENSION_NOT_LOADED_ON_THREAD';
     public override readonly docs =
@@ -944,13 +1222,21 @@ class DimensionNotLoadedOnThread extends JSPrismarineError {
  * Run the commands in the message, or `pnpm dev`, which fetches it.
  */
 class MissingJavaWorldgenData extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_JAVA_WORLDGEN_DATA';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The noise generator needs Java Edition 26.3 world generation data. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set {datapack} and {reports}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-java-worldgen-data';
+    public static get code(): 'PRISMARINE_MISSING_JAVA_WORLDGEN_DATA' {
+        return 'PRISMARINE_MISSING_JAVA_WORLDGEN_DATA';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The noise generator needs Java Edition 26.3 world generation data. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set {datapack} and {reports}.' {
+        return 'The noise generator needs Java Edition 26.3 world generation data. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set {datapack} and {reports}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-java-worldgen-data' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-java-worldgen-data';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_JAVA_WORLDGEN_DATA';
     public override readonly docs =
@@ -976,12 +1262,21 @@ class MissingJavaWorldgenData extends JSPrismarineError {
  * report it with the stack trace.
  */
 class OceanRuinMarkerWithoutSize extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_OCEAN_RUIN_MARKER_WITHOUT_SIZE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The ocean-ruin marker action needs its large flag.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ocean-ruin-marker-without-size';
+    public static get code(): 'PRISMARINE_OCEAN_RUIN_MARKER_WITHOUT_SIZE' {
+        return 'PRISMARINE_OCEAN_RUIN_MARKER_WITHOUT_SIZE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The ocean-ruin marker action needs its large flag.' {
+        return 'The ocean-ruin marker action needs its large flag.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ocean-ruin-marker-without-size' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ocean-ruin-marker-without-size';
+    }
 
     public override readonly code = 'PRISMARINE_OCEAN_RUIN_MARKER_WITHOUT_SIZE';
     public override readonly docs =
@@ -1003,12 +1298,21 @@ class OceanRuinMarkerWithoutSize extends JSPrismarineTypeError {
  * resolve there. Write the function inline.
  */
 class OreVeinDensityReference extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_ORE_VEIN_DENSITY_REFERENCE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = '{path}: an ore vein rule names a density function by identifier';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ore-vein-density-reference';
+    public static get code(): 'PRISMARINE_ORE_VEIN_DENSITY_REFERENCE' {
+        return 'PRISMARINE_ORE_VEIN_DENSITY_REFERENCE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): '{path}: an ore vein rule names a density function by identifier' {
+        return '{path}: an ore vein rule names a density function by identifier';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ore-vein-density-reference' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-ore-vein-density-reference';
+    }
 
     public override readonly code = 'PRISMARINE_ORE_VEIN_DENSITY_REFERENCE';
     public override readonly docs =
@@ -1031,12 +1335,21 @@ class OreVeinDensityReference extends JSPrismarineTypeError {
  * in world generation; report it with the stack trace.
  */
 class PackedWriteCountMismatch extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_PACKED_WRITE_COUNT_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A packed write list has a position per write';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-count-mismatch';
+    public static get code(): 'PRISMARINE_PACKED_WRITE_COUNT_MISMATCH' {
+        return 'PRISMARINE_PACKED_WRITE_COUNT_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A packed write list has a position per write' {
+        return 'A packed write list has a position per write';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-count-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_PACKED_WRITE_COUNT_MISMATCH';
     public override readonly docs =
@@ -1058,12 +1371,21 @@ class PackedWriteCountMismatch extends JSPrismarineTypeError {
  * with the stack trace.
  */
 class PackedWriteOutOfPalette extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_PACKED_WRITE_OUT_OF_PALETTE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A packed write names a block its palette does not hold';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-out-of-palette';
+    public static get code(): 'PRISMARINE_PACKED_WRITE_OUT_OF_PALETTE' {
+        return 'PRISMARINE_PACKED_WRITE_OUT_OF_PALETTE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A packed write names a block its palette does not hold' {
+        return 'A packed write names a block its palette does not hold';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-out-of-palette' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-out-of-palette';
+    }
 
     public override readonly code = 'PRISMARINE_PACKED_WRITE_OUT_OF_PALETTE';
     public override readonly docs =
@@ -1086,12 +1408,21 @@ class PackedWriteOutOfPalette extends JSPrismarineTypeError {
  * the stack trace.
  */
 class PackedWriteOutsideChunk extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_PACKED_WRITE_OUTSIDE_CHUNK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A packed write at {x} {y} {z} lies outside its chunk';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-outside-chunk';
+    public static get code(): 'PRISMARINE_PACKED_WRITE_OUTSIDE_CHUNK' {
+        return 'PRISMARINE_PACKED_WRITE_OUTSIDE_CHUNK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A packed write at {x} {y} {z} lies outside its chunk' {
+        return 'A packed write at {x} {y} {z} lies outside its chunk';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-outside-chunk' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-packed-write-outside-chunk';
+    }
 
     public override readonly code = 'PRISMARINE_PACKED_WRITE_OUTSIDE_CHUNK';
     public override readonly docs =
@@ -1123,12 +1454,21 @@ class PackedWriteOutsideChunk extends JSPrismarineRangeError {
  * stack trace.
  */
 class DiskCacheWithoutRegistryFingerprint extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DISK_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain cache has no registry fingerprint';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-without-registry-fingerprint';
+    public static get code(): 'PRISMARINE_DISK_CACHE_WITHOUT_REGISTRY_FINGERPRINT' {
+        return 'PRISMARINE_DISK_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain cache has no registry fingerprint' {
+        return 'Persistent terrain cache has no registry fingerprint';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-without-registry-fingerprint' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-without-registry-fingerprint';
+    }
 
     public override readonly code = 'PRISMARINE_DISK_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
     public override readonly docs =
@@ -1150,11 +1490,21 @@ class DiskCacheWithoutRegistryFingerprint extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class UncacheableInput extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNCACHEABLE_INPUT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain cache inputs must contain only JSON values and maps';
-    public static readonly docs = 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-uncacheable-input';
+    public static get code(): 'PRISMARINE_UNCACHEABLE_INPUT' {
+        return 'PRISMARINE_UNCACHEABLE_INPUT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain cache inputs must contain only JSON values and maps' {
+        return 'Persistent terrain cache inputs must contain only JSON values and maps';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-uncacheable-input' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-uncacheable-input';
+    }
 
     public override readonly code = 'PRISMARINE_UNCACHEABLE_INPUT';
     public override readonly docs =
@@ -1176,12 +1526,21 @@ class UncacheableInput extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class NonFiniteCacheInput extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_NON_FINITE_CACHE_INPUT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain cache inputs must use finite numbers';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-finite-cache-input';
+    public static get code(): 'PRISMARINE_NON_FINITE_CACHE_INPUT' {
+        return 'PRISMARINE_NON_FINITE_CACHE_INPUT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain cache inputs must use finite numbers' {
+        return 'Persistent terrain cache inputs must use finite numbers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-finite-cache-input' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-finite-cache-input';
+    }
 
     public override readonly code = 'PRISMARINE_NON_FINITE_CACHE_INPUT';
     public override readonly docs =
@@ -1203,12 +1562,21 @@ class NonFiniteCacheInput extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class NonPlainCacheInput extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_NON_PLAIN_CACHE_INPUT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain cache inputs must use plain objects';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-plain-cache-input';
+    public static get code(): 'PRISMARINE_NON_PLAIN_CACHE_INPUT' {
+        return 'PRISMARINE_NON_PLAIN_CACHE_INPUT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain cache inputs must use plain objects' {
+        return 'Persistent terrain cache inputs must use plain objects';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-plain-cache-input' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-plain-cache-input';
+    }
 
     public override readonly code = 'PRISMARINE_NON_PLAIN_CACHE_INPUT';
     public override readonly docs =
@@ -1230,12 +1598,21 @@ class NonPlainCacheInput extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class NonStringCacheKey extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_NON_STRING_CACHE_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain cache maps must use string keys';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-string-cache-key';
+    public static get code(): 'PRISMARINE_NON_STRING_CACHE_KEY' {
+        return 'PRISMARINE_NON_STRING_CACHE_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain cache maps must use string keys' {
+        return 'Persistent terrain cache maps must use string keys';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-string-cache-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-non-string-cache-key';
+    }
 
     public override readonly code = 'PRISMARINE_NON_STRING_CACHE_KEY';
     public override readonly docs =
@@ -1257,12 +1634,21 @@ class NonStringCacheKey extends JSPrismarineTypeError {
  * drop the option.
  */
 class DiskCacheWithCustomStructures extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_STRUCTURES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain caching does not support custom structure builders';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-structures';
+    public static get code(): 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_STRUCTURES' {
+        return 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_STRUCTURES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain caching does not support custom structure builders' {
+        return 'Persistent terrain caching does not support custom structure builders';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-structures' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-structures';
+    }
 
     public override readonly code = 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_STRUCTURES';
     public override readonly docs =
@@ -1284,12 +1670,21 @@ class DiskCacheWithCustomStructures extends JSPrismarineTypeError {
  * drop the option.
  */
 class DiskCacheWithCustomPipeline extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_PIPELINE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain caching does not support custom worker pipelines';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-pipeline';
+    public static get code(): 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_PIPELINE' {
+        return 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_PIPELINE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain caching does not support custom worker pipelines' {
+        return 'Persistent terrain caching does not support custom worker pipelines';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-pipeline' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-with-custom-pipeline';
+    }
 
     public override readonly code = 'PRISMARINE_DISK_CACHE_WITH_CUSTOM_PIPELINE';
     public override readonly docs =
@@ -1311,12 +1706,21 @@ class DiskCacheWithCustomPipeline extends JSPrismarineTypeError {
  * bug in world generation; report it with the stack trace.
  */
 class DiskCacheNeedsTemplateFingerprint extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_DISK_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Persistent terrain caching requires a template source worldgenFingerprint';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-needs-template-fingerprint';
+    public static get code(): 'PRISMARINE_DISK_CACHE_NEEDS_TEMPLATE_FINGERPRINT' {
+        return 'PRISMARINE_DISK_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Persistent terrain caching requires a template source worldgenFingerprint' {
+        return 'Persistent terrain caching requires a template source worldgenFingerprint';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-needs-template-fingerprint' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-disk-cache-needs-template-fingerprint';
+    }
 
     public override readonly code = 'PRISMARINE_DISK_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
     public override readonly docs =
@@ -1338,12 +1742,21 @@ class DiskCacheNeedsTemplateFingerprint extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class InvalidHorizontalDirection extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_INVALID_HORIZONTAL_DIRECTION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The random source drew an index outside the four horizontal directions';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-horizontal-direction';
+    public static get code(): 'PRISMARINE_INVALID_HORIZONTAL_DIRECTION' {
+        return 'PRISMARINE_INVALID_HORIZONTAL_DIRECTION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The random source drew an index outside the four horizontal directions' {
+        return 'The random source drew an index outside the four horizontal directions';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-horizontal-direction' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-horizontal-direction';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_HORIZONTAL_DIRECTION';
     public override readonly docs =
@@ -1365,12 +1778,21 @@ class InvalidHorizontalDirection extends JSPrismarineError {
  * drop the option.
  */
 class SharedCacheWithCustomStructures extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_STRUCTURES';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain caching does not support custom structure builders';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-structures';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_STRUCTURES' {
+        return 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_STRUCTURES';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain caching does not support custom structure builders' {
+        return 'Shared terrain caching does not support custom structure builders';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-structures' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-structures';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_STRUCTURES';
     public override readonly docs =
@@ -1392,12 +1814,21 @@ class SharedCacheWithCustomStructures extends JSPrismarineTypeError {
  * drop the option.
  */
 class SharedCacheWithCustomPipeline extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_PIPELINE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain caching does not support custom worker pipelines';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-pipeline';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_PIPELINE' {
+        return 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_PIPELINE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain caching does not support custom worker pipelines' {
+        return 'Shared terrain caching does not support custom worker pipelines';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-pipeline' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-with-custom-pipeline';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WITH_CUSTOM_PIPELINE';
     public override readonly docs =
@@ -1419,12 +1850,21 @@ class SharedCacheWithCustomPipeline extends JSPrismarineTypeError {
  * This is a bug in world generation; report it with the stack trace.
  */
 class SharedCacheNeedsTemplateFingerprint extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain caching requires a template source worldgenFingerprint';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-needs-template-fingerprint';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_NEEDS_TEMPLATE_FINGERPRINT' {
+        return 'PRISMARINE_SHARED_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain caching requires a template source worldgenFingerprint' {
+        return 'Shared terrain caching requires a template source worldgenFingerprint';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-needs-template-fingerprint' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-needs-template-fingerprint';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_NEEDS_TEMPLATE_FINGERPRINT';
     public override readonly docs =
@@ -1446,12 +1886,21 @@ class SharedCacheNeedsTemplateFingerprint extends JSPrismarineTypeError {
  * cache off.
  */
 class SharedCacheWithoutWholeChunkPool extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_WHOLE_CHUNK_POOL';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain caching requires the whole-chunk worker pool';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-whole-chunk-pool';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WITHOUT_WHOLE_CHUNK_POOL' {
+        return 'PRISMARINE_SHARED_CACHE_WITHOUT_WHOLE_CHUNK_POOL';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain caching requires the whole-chunk worker pool' {
+        return 'Shared terrain caching requires the whole-chunk worker pool';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-whole-chunk-pool' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-whole-chunk-pool';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_WHOLE_CHUNK_POOL';
     public override readonly docs =
@@ -1473,12 +1922,21 @@ class SharedCacheWithoutWholeChunkPool extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class FingerprintWithoutSharedCache extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_FINGERPRINT_WITHOUT_SHARED_CACHE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A shared terrain registry fingerprint requires a shared terrain tile store';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-fingerprint-without-shared-cache';
+    public static get code(): 'PRISMARINE_FINGERPRINT_WITHOUT_SHARED_CACHE' {
+        return 'PRISMARINE_FINGERPRINT_WITHOUT_SHARED_CACHE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A shared terrain registry fingerprint requires a shared terrain tile store' {
+        return 'A shared terrain registry fingerprint requires a shared terrain tile store';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-fingerprint-without-shared-cache' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-fingerprint-without-shared-cache';
+    }
 
     public override readonly code = 'PRISMARINE_FINGERPRINT_WITHOUT_SHARED_CACHE';
     public override readonly docs =
@@ -1500,12 +1958,21 @@ class FingerprintWithoutSharedCache extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class InvalidSharedTile extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SHARED_TILE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A shared terrain tile builder returned an invalid payload';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile';
+    public static get code(): 'PRISMARINE_INVALID_SHARED_TILE' {
+        return 'PRISMARINE_INVALID_SHARED_TILE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A shared terrain tile builder returned an invalid payload' {
+        return 'A shared terrain tile builder returned an invalid payload';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SHARED_TILE';
     public override readonly docs =
@@ -1527,12 +1994,21 @@ class InvalidSharedTile extends JSPrismarineTypeError {
  * the stack trace.
  */
 class InvalidSharedTileKey extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_SHARED_TILE_KEY';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile keys must be SHA-256 hex digests';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-key';
+    public static get code(): 'PRISMARINE_INVALID_SHARED_TILE_KEY' {
+        return 'PRISMARINE_INVALID_SHARED_TILE_KEY';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile keys must be SHA-256 hex digests' {
+        return 'Shared terrain tile keys must be SHA-256 hex digests';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-key' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-key';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SHARED_TILE_KEY';
     public override readonly docs =
@@ -1554,12 +2030,21 @@ class InvalidSharedTileKey extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class InvalidSharedTileOwner extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_SHARED_TILE_OWNER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile owner thread IDs must fit a positive Int32 owner token';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-owner';
+    public static get code(): 'PRISMARINE_INVALID_SHARED_TILE_OWNER' {
+        return 'PRISMARINE_INVALID_SHARED_TILE_OWNER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile owner thread IDs must fit a positive Int32 owner token' {
+        return 'Shared terrain tile owner thread IDs must fit a positive Int32 owner token';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-owner' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-tile-owner';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SHARED_TILE_OWNER';
     public override readonly docs =
@@ -1581,12 +2066,21 @@ class InvalidSharedTileOwner extends JSPrismarineRangeError {
  * report it with the stack trace.
  */
 class SharedCacheWrongSize extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WRONG_SIZE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile store buffer has an invalid size';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-wrong-size';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WRONG_SIZE' {
+        return 'PRISMARINE_SHARED_CACHE_WRONG_SIZE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile store buffer has an invalid size' {
+        return 'Shared terrain tile store buffer has an invalid size';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-wrong-size' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-wrong-size';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WRONG_SIZE';
     public override readonly docs =
@@ -1608,12 +2102,21 @@ class SharedCacheWrongSize extends JSPrismarineRangeError {
  * workers run different versions. Restart the server.
  */
 class SharedCacheUnsupportedHeader extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_UNSUPPORTED_HEADER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile store buffer has an unsupported header';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-unsupported-header';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_UNSUPPORTED_HEADER' {
+        return 'PRISMARINE_SHARED_CACHE_UNSUPPORTED_HEADER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile store buffer has an unsupported header' {
+        return 'Shared terrain tile store buffer has an unsupported header';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-unsupported-header' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-unsupported-header';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_UNSUPPORTED_HEADER';
     public override readonly docs =
@@ -1635,12 +2138,21 @@ class SharedCacheUnsupportedHeader extends JSPrismarineRangeError {
  * world generation; report it with the stack trace.
  */
 class SharedCacheWithoutRegistryFingerprint extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The shared terrain tile store has no registry fingerprint';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-registry-fingerprint';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WITHOUT_REGISTRY_FINGERPRINT' {
+        return 'PRISMARINE_SHARED_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The shared terrain tile store has no registry fingerprint' {
+        return 'The shared terrain tile store has no registry fingerprint';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-registry-fingerprint' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-registry-fingerprint';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_REGISTRY_FINGERPRINT';
     public override readonly docs =
@@ -1662,12 +2174,21 @@ class SharedCacheWithoutRegistryFingerprint extends JSPrismarineError {
  * world generation; report it with the stack trace.
  */
 class SharedCacheWithoutTemplateFingerprint extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_TEMPLATE_FINGERPRINT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The shared terrain tile store has no template fingerprint';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-template-fingerprint';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_WITHOUT_TEMPLATE_FINGERPRINT' {
+        return 'PRISMARINE_SHARED_CACHE_WITHOUT_TEMPLATE_FINGERPRINT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The shared terrain tile store has no template fingerprint' {
+        return 'The shared terrain tile store has no template fingerprint';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-template-fingerprint' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-without-template-fingerprint';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_WITHOUT_TEMPLATE_FINGERPRINT';
     public override readonly docs =
@@ -1686,12 +2207,21 @@ class SharedCacheWithoutTemplateFingerprint extends JSPrismarineError {
 
 /** The shared terrain cache was given a size limit that is not a positive whole number. */
 class InvalidSharedCacheLimits extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_SHARED_CACHE_LIMITS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile store limits must be positive safe integers';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-cache-limits';
+    public static get code(): 'PRISMARINE_INVALID_SHARED_CACHE_LIMITS' {
+        return 'PRISMARINE_INVALID_SHARED_CACHE_LIMITS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile store limits must be positive safe integers' {
+        return 'Shared terrain tile store limits must be positive safe integers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-cache-limits' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-shared-cache-limits';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_SHARED_CACHE_LIMITS';
     public override readonly docs =
@@ -1710,12 +2240,21 @@ class InvalidSharedCacheLimits extends JSPrismarineRangeError {
 
 /** The shared terrain cache's size limit is too small for a single chunk. Raise it. */
 class SharedCacheTooSmall extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_SHARED_CACHE_TOO_SMALL';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Shared terrain tile store maxBytes cannot hold one tile slot';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-too-small';
+    public static get code(): 'PRISMARINE_SHARED_CACHE_TOO_SMALL' {
+        return 'PRISMARINE_SHARED_CACHE_TOO_SMALL';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Shared terrain tile store maxBytes cannot hold one tile slot' {
+        return 'Shared terrain tile store maxBytes cannot hold one tile slot';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-too-small' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-shared-cache-too-small';
+    }
 
     public override readonly code = 'PRISMARINE_SHARED_CACHE_TOO_SMALL';
     public override readonly docs =
@@ -1734,12 +2273,21 @@ class SharedCacheTooSmall extends JSPrismarineRangeError {
 
 /** A flat dimension has no flat world settings. Check its preset or its `dimensions` entry. */
 class MissingFlatSettings extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_MISSING_FLAT_SETTINGS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The {id} stem carries no flat generator settings';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-flat-settings';
+    public static get code(): 'PRISMARINE_MISSING_FLAT_SETTINGS' {
+        return 'PRISMARINE_MISSING_FLAT_SETTINGS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The {id} stem carries no flat generator settings' {
+        return 'The {id} stem carries no flat generator settings';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-flat-settings' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-flat-settings';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_FLAT_SETTINGS';
     public override readonly docs =
@@ -1759,12 +2307,21 @@ class MissingFlatSettings extends JSPrismarineTypeError {
 
 /** A noise dimension has no noise settings. Check its preset or its `dimensions` entry. */
 class MissingNoiseSettings extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_MISSING_NOISE_SETTINGS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The {id} stem carries no noise generator settings';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-noise-settings';
+    public static get code(): 'PRISMARINE_MISSING_NOISE_SETTINGS' {
+        return 'PRISMARINE_MISSING_NOISE_SETTINGS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The {id} stem carries no noise generator settings' {
+        return 'The {id} stem carries no noise generator settings';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-noise-settings' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-noise-settings';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_NOISE_SETTINGS';
     public override readonly docs =
@@ -1787,13 +2344,21 @@ class MissingNoiseSettings extends JSPrismarineTypeError {
  * datapack that defines it.
  */
 class UnknownFlatPreset extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_FLAT_PRESET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The {dimensionType} stem names the flat preset {preset}, which no worldgen/flat_level_generator_preset document defines';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-flat-preset';
+    public static get code(): 'PRISMARINE_UNKNOWN_FLAT_PRESET' {
+        return 'PRISMARINE_UNKNOWN_FLAT_PRESET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The {dimensionType} stem names the flat preset {preset}, which no worldgen/flat_level_generator_preset document defines' {
+        return 'The {dimensionType} stem names the flat preset {preset}, which no worldgen/flat_level_generator_preset document defines';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-flat-preset' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-flat-preset';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_FLAT_PRESET';
     public override readonly docs =
@@ -1819,13 +2384,21 @@ class UnknownFlatPreset extends JSPrismarineError {
  * that defines it.
  */
 class UnknownNoiseSettings extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_NOISE_SETTINGS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The {dimensionType} stem names the noise settings {settings}, which no worldgen/noise_settings document defines';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-noise-settings';
+    public static get code(): 'PRISMARINE_UNKNOWN_NOISE_SETTINGS' {
+        return 'PRISMARINE_UNKNOWN_NOISE_SETTINGS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The {dimensionType} stem names the noise settings {settings}, which no worldgen/noise_settings document defines' {
+        return 'The {dimensionType} stem names the noise settings {settings}, which no worldgen/noise_settings document defines';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-noise-settings' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-noise-settings';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_NOISE_SETTINGS';
     public override readonly docs =
@@ -1856,12 +2429,21 @@ class UnknownNoiseSettings extends JSPrismarineError {
  * report it with the stack trace.
  */
 class PiecePlanWithoutFields extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_PIECE_PLAN_WITHOUT_FIELDS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The {type} structure-piece plan has no field record.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-piece-plan-without-fields';
+    public static get code(): 'PRISMARINE_PIECE_PLAN_WITHOUT_FIELDS' {
+        return 'PRISMARINE_PIECE_PLAN_WITHOUT_FIELDS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The {type} structure-piece plan has no field record.' {
+        return 'The {type} structure-piece plan has no field record.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-piece-plan-without-fields' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-piece-plan-without-fields';
+    }
 
     public override readonly code = 'PRISMARINE_PIECE_PLAN_WITHOUT_FIELDS';
     public override readonly docs =
@@ -1881,12 +2463,21 @@ class PiecePlanWithoutFields extends JSPrismarineTypeError {
 
 /** Two codecs were registered for one structure piece type. */
 class DuplicatePieceCodec extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_PIECE_CODEC';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The structure-piece transfer codec {type} is already registered.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-piece-codec';
+    public static get code(): 'PRISMARINE_DUPLICATE_PIECE_CODEC' {
+        return 'PRISMARINE_DUPLICATE_PIECE_CODEC';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The structure-piece transfer codec {type} is already registered.' {
+        return 'The structure-piece transfer codec {type} is already registered.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-piece-codec' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-piece-codec';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_PIECE_CODEC';
     public override readonly docs =
@@ -1909,12 +2500,21 @@ class DuplicatePieceCodec extends JSPrismarineError {
  * world generation; report it with the stack trace.
  */
 class StructureStartOmitted extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STRUCTURE_START_OMITTED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The structure-start owner omitted {structureStartKeyOf}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-omitted';
+    public static get code(): 'PRISMARINE_STRUCTURE_START_OMITTED' {
+        return 'PRISMARINE_STRUCTURE_START_OMITTED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The structure-start owner omitted {structureStartKeyOf}.' {
+        return 'The structure-start owner omitted {structureStartKeyOf}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-omitted' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-omitted';
+    }
 
     public override readonly code = 'PRISMARINE_STRUCTURE_START_OMITTED';
     public override readonly docs =
@@ -1937,12 +2537,21 @@ class StructureStartOmitted extends JSPrismarineError {
  * bug in world generation; report it with the stack trace.
  */
 class StructureStartMismatch extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_STRUCTURE_START_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The structure-start plan does not match {key}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-mismatch';
+    public static get code(): 'PRISMARINE_STRUCTURE_START_MISMATCH' {
+        return 'PRISMARINE_STRUCTURE_START_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The structure-start plan does not match {key}.' {
+        return 'The structure-start plan does not match {key}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_STRUCTURE_START_MISMATCH';
     public override readonly docs =
@@ -1965,12 +2574,21 @@ class StructureStartMismatch extends JSPrismarineTypeError {
  * the stack trace.
  */
 class StructureStartRequestLost extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_STRUCTURE_START_REQUEST_LOST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The structure-start request lost {key}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-request-lost';
+    public static get code(): 'PRISMARINE_STRUCTURE_START_REQUEST_LOST' {
+        return 'PRISMARINE_STRUCTURE_START_REQUEST_LOST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The structure-start request lost {key}.' {
+        return 'The structure-start request lost {key}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-request-lost' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-structure-start-request-lost';
+    }
 
     public override readonly code = 'PRISMARINE_STRUCTURE_START_REQUEST_LOST';
     public override readonly docs =
@@ -1993,13 +2611,21 @@ class StructureStartRequestLost extends JSPrismarineError {
  * generation; report it with the stack trace.
  */
 class IncompleteStructureStartTask extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INCOMPLETE_STRUCTURE_START_TASK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The structure-start task at {chunkX}, {chunkZ} carries no candidate list, seed and pipeline key.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-structure-start-task';
+    public static get code(): 'PRISMARINE_INCOMPLETE_STRUCTURE_START_TASK' {
+        return 'PRISMARINE_INCOMPLETE_STRUCTURE_START_TASK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The structure-start task at {chunkX}, {chunkZ} carries no candidate list, seed and pipeline key.' {
+        return 'The structure-start task at {chunkX}, {chunkZ} carries no candidate list, seed and pipeline key.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-structure-start-task' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-structure-start-task';
+    }
 
     public override readonly code = 'PRISMARINE_INCOMPLETE_STRUCTURE_START_TASK';
     public override readonly docs =
@@ -2025,12 +2651,21 @@ class IncompleteStructureStartTask extends JSPrismarineTypeError {
  * world generation; report it with the stack trace.
  */
 class InvalidStructureStartList extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_STRUCTURE_START_LIST';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A structure-start worker returned an invalid plan list.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-structure-start-list';
+    public static get code(): 'PRISMARINE_INVALID_STRUCTURE_START_LIST' {
+        return 'PRISMARINE_INVALID_STRUCTURE_START_LIST';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A structure-start worker returned an invalid plan list.' {
+        return 'A structure-start worker returned an invalid plan list.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-structure-start-list' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-structure-start-list';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_STRUCTURE_START_LIST';
     public override readonly docs =
@@ -2049,12 +2684,21 @@ class InvalidStructureStartList extends JSPrismarineTypeError {
 
 /** Two handlers were registered for one structure template marker. */
 class DuplicateTemplateMarker extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_TEMPLATE_MARKER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The template marker handler {type} is already registered.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-template-marker';
+    public static get code(): 'PRISMARINE_DUPLICATE_TEMPLATE_MARKER' {
+        return 'PRISMARINE_DUPLICATE_TEMPLATE_MARKER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The template marker handler {type} is already registered.' {
+        return 'The template marker handler {type} is already registered.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-template-marker' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-template-marker';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_TEMPLATE_MARKER';
     public override readonly docs =
@@ -2074,12 +2718,21 @@ class DuplicateTemplateMarker extends JSPrismarineError {
 
 /** Two handlers were registered for one structure template post-placement step. */
 class DuplicatePostPlacementStep extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_DUPLICATE_POST_PLACEMENT_STEP';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The template post-placement handler {type} is already registered.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-post-placement-step';
+    public static get code(): 'PRISMARINE_DUPLICATE_POST_PLACEMENT_STEP' {
+        return 'PRISMARINE_DUPLICATE_POST_PLACEMENT_STEP';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The template post-placement handler {type} is already registered.' {
+        return 'The template post-placement handler {type} is already registered.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-post-placement-step' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-duplicate-post-placement-step';
+    }
 
     public override readonly code = 'PRISMARINE_DUPLICATE_POST_PLACEMENT_STEP';
     public override readonly docs =
@@ -2102,12 +2755,21 @@ class DuplicatePostPlacementStep extends JSPrismarineError {
  * world generation; report it with the stack trace.
  */
 class InvalidTemplatePiece extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INVALID_TEMPLATE_PIECE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The template structure-piece plan is invalid.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-template-piece';
+    public static get code(): 'PRISMARINE_INVALID_TEMPLATE_PIECE' {
+        return 'PRISMARINE_INVALID_TEMPLATE_PIECE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The template structure-piece plan is invalid.' {
+        return 'The template structure-piece plan is invalid.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-template-piece' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-template-piece';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_TEMPLATE_PIECE';
     public override readonly docs =
@@ -2129,12 +2791,21 @@ class InvalidTemplatePiece extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class UntransferableTemplateCallback extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNTRANSFERABLE_TEMPLATE_CALLBACK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Template {template} uses a callback that has no transfer action.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untransferable-template-callback';
+    public static get code(): 'PRISMARINE_UNTRANSFERABLE_TEMPLATE_CALLBACK' {
+        return 'PRISMARINE_UNTRANSFERABLE_TEMPLATE_CALLBACK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Template {template} uses a callback that has no transfer action.' {
+        return 'Template {template} uses a callback that has no transfer action.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untransferable-template-callback' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-untransferable-template-callback';
+    }
 
     public override readonly code = 'PRISMARINE_UNTRANSFERABLE_TEMPLATE_CALLBACK';
     public override readonly docs =
@@ -2157,12 +2828,21 @@ class UntransferableTemplateCallback extends JSPrismarineTypeError {
  * report it with the stack trace.
  */
 class TerrainNamesIntoUsedRegion extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TERRAIN_NAMES_INTO_USED_REGION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A terrain name writer requires a fresh, untracked region';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-names-into-used-region';
+    public static get code(): 'PRISMARINE_TERRAIN_NAMES_INTO_USED_REGION' {
+        return 'PRISMARINE_TERRAIN_NAMES_INTO_USED_REGION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A terrain name writer requires a fresh, untracked region' {
+        return 'A terrain name writer requires a fresh, untracked region';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-names-into-used-region' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-names-into-used-region';
+    }
 
     public override readonly code = 'PRISMARINE_TERRAIN_NAMES_INTO_USED_REGION';
     public override readonly docs =
@@ -2184,12 +2864,21 @@ class TerrainNamesIntoUsedRegion extends JSPrismarineError {
  * after the data changes. This is a bug in world generation; report it with the stack trace.
  */
 class TerrainCacheWithoutFingerprints extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_TERRAIN_CACHE_WITHOUT_FINGERPRINTS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The terrain proto cache has no worldgen fingerprints';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-cache-without-fingerprints';
+    public static get code(): 'PRISMARINE_TERRAIN_CACHE_WITHOUT_FINGERPRINTS' {
+        return 'PRISMARINE_TERRAIN_CACHE_WITHOUT_FINGERPRINTS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The terrain proto cache has no worldgen fingerprints' {
+        return 'The terrain proto cache has no worldgen fingerprints';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-cache-without-fingerprints' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-cache-without-fingerprints';
+    }
 
     public override readonly code = 'PRISMARINE_TERRAIN_CACHE_WITHOUT_FINGERPRINTS';
     public override readonly docs =
@@ -2208,12 +2897,21 @@ class TerrainCacheWithoutFingerprints extends JSPrismarineError {
 
 /** The terrain cache was given a size limit that is not a positive whole number. */
 class InvalidTerrainCacheLimit extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_TERRAIN_CACHE_LIMIT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Terrain proto cache maxBytes must be a positive safe integer';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-cache-limit';
+    public static get code(): 'PRISMARINE_INVALID_TERRAIN_CACHE_LIMIT' {
+        return 'PRISMARINE_INVALID_TERRAIN_CACHE_LIMIT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Terrain proto cache maxBytes must be a positive safe integer' {
+        return 'Terrain proto cache maxBytes must be a positive safe integer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-cache-limit' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-cache-limit';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_TERRAIN_CACHE_LIMIT';
     public override readonly docs =
@@ -2235,12 +2933,21 @@ class InvalidTerrainCacheLimit extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class IncompleteTerrainTask extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_INCOMPLETE_TERRAIN_TASK';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The terrain task at {chunkX}, {chunkZ} carries no seed and pipeline key.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-terrain-task';
+    public static get code(): 'PRISMARINE_INCOMPLETE_TERRAIN_TASK' {
+        return 'PRISMARINE_INCOMPLETE_TERRAIN_TASK';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The terrain task at {chunkX}, {chunkZ} carries no seed and pipeline key.' {
+        return 'The terrain task at {chunkX}, {chunkZ} carries no seed and pipeline key.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-terrain-task' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-incomplete-terrain-task';
+    }
 
     public override readonly code = 'PRISMARINE_INCOMPLETE_TERRAIN_TASK';
     public override readonly docs =
@@ -2266,12 +2973,21 @@ class IncompleteTerrainTask extends JSPrismarineTypeError {
  * it with the stack trace.
  */
 class InvalidTerrainStatsBuffer extends JSPrismarineRangeError {
-    public static readonly code = 'PRISMARINE_INVALID_TERRAIN_STATS_BUFFER';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Terrain tile build stats need one Int32 counter';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-stats-buffer';
+    public static get code(): 'PRISMARINE_INVALID_TERRAIN_STATS_BUFFER' {
+        return 'PRISMARINE_INVALID_TERRAIN_STATS_BUFFER';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Terrain tile build stats need one Int32 counter' {
+        return 'Terrain tile build stats need one Int32 counter';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-stats-buffer' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-invalid-terrain-stats-buffer';
+    }
 
     public override readonly code = 'PRISMARINE_INVALID_TERRAIN_STATS_BUFFER';
     public override readonly docs =
@@ -2293,12 +3009,21 @@ class InvalidTerrainStatsBuffer extends JSPrismarineRangeError {
  * generation; report it with the stack trace.
  */
 class TerrainWorkerWithoutRegistryBundle extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_TERRAIN_WORKER_WITHOUT_REGISTRY_BUNDLE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A terrain worker needs a registry bundle in shared memory.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-worker-without-registry-bundle';
+    public static get code(): 'PRISMARINE_TERRAIN_WORKER_WITHOUT_REGISTRY_BUNDLE' {
+        return 'PRISMARINE_TERRAIN_WORKER_WITHOUT_REGISTRY_BUNDLE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A terrain worker needs a registry bundle in shared memory.' {
+        return 'A terrain worker needs a registry bundle in shared memory.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-worker-without-registry-bundle' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-terrain-worker-without-registry-bundle';
+    }
 
     public override readonly code = 'PRISMARINE_TERRAIN_WORKER_WITHOUT_REGISTRY_BUNDLE';
     public override readonly docs =
@@ -2320,13 +3045,21 @@ class TerrainWorkerWithoutRegistryBundle extends JSPrismarineTypeError {
  * Restart the server so it writes the bundle again.
  */
 class RegistryBundleTooShort extends RegistryBundleFormatError {
-    public static readonly code = 'PRISMARINE_REGISTRY_BUNDLE_TOO_SHORT';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'This is not a world generation registry bundle this build reads: it is shorter than a header.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-too-short';
+    public static get code(): 'PRISMARINE_REGISTRY_BUNDLE_TOO_SHORT' {
+        return 'PRISMARINE_REGISTRY_BUNDLE_TOO_SHORT';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'This is not a world generation registry bundle this build reads: it is shorter than a header.' {
+        return 'This is not a world generation registry bundle this build reads: it is shorter than a header.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-too-short' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-too-short';
+    }
 
     public override readonly code = 'PRISMARINE_REGISTRY_BUNDLE_TOO_SHORT';
     public override readonly docs =
@@ -2348,13 +3081,21 @@ class RegistryBundleTooShort extends RegistryBundleFormatError {
  * Restart the server so it writes the bundle again.
  */
 class RegistryBundleBadMagic extends RegistryBundleFormatError {
-    public static readonly code = 'PRISMARINE_REGISTRY_BUNDLE_BAD_MAGIC';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'This is not a world generation registry bundle this build reads: it does not start with JPRB.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-bad-magic';
+    public static get code(): 'PRISMARINE_REGISTRY_BUNDLE_BAD_MAGIC' {
+        return 'PRISMARINE_REGISTRY_BUNDLE_BAD_MAGIC';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'This is not a world generation registry bundle this build reads: it does not start with JPRB.' {
+        return 'This is not a world generation registry bundle this build reads: it does not start with JPRB.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-bad-magic' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-bad-magic';
+    }
 
     public override readonly code = 'PRISMARINE_REGISTRY_BUNDLE_BAD_MAGIC';
     public override readonly docs =
@@ -2376,13 +3117,21 @@ class RegistryBundleBadMagic extends RegistryBundleFormatError {
  * Restart the server so it writes the bundle again.
  */
 class RegistryBundleVersionMismatch extends RegistryBundleFormatError {
-    public static readonly code = 'PRISMARINE_REGISTRY_BUNDLE_VERSION_MISMATCH';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'This is not a world generation registry bundle this build reads: it is format version {version} and this build reads {formatVersion}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-version-mismatch';
+    public static get code(): 'PRISMARINE_REGISTRY_BUNDLE_VERSION_MISMATCH' {
+        return 'PRISMARINE_REGISTRY_BUNDLE_VERSION_MISMATCH';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'This is not a world generation registry bundle this build reads: it is format version {version} and this build reads {formatVersion}.' {
+        return 'This is not a world generation registry bundle this build reads: it is format version {version} and this build reads {formatVersion}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-version-mismatch' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-version-mismatch';
+    }
 
     public override readonly code = 'PRISMARINE_REGISTRY_BUNDLE_VERSION_MISMATCH';
     public override readonly docs =
@@ -2410,13 +3159,21 @@ class RegistryBundleVersionMismatch extends RegistryBundleFormatError {
  * Restart the server so it writes the bundle again.
  */
 class RegistryBundleIndexTruncated extends RegistryBundleFormatError {
-    public static readonly code = 'PRISMARINE_REGISTRY_BUNDLE_INDEX_TRUNCATED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'This is not a world generation registry bundle this build reads: its index runs past the end.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-index-truncated';
+    public static get code(): 'PRISMARINE_REGISTRY_BUNDLE_INDEX_TRUNCATED' {
+        return 'PRISMARINE_REGISTRY_BUNDLE_INDEX_TRUNCATED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'This is not a world generation registry bundle this build reads: its index runs past the end.' {
+        return 'This is not a world generation registry bundle this build reads: its index runs past the end.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-index-truncated' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-index-truncated';
+    }
 
     public override readonly code = 'PRISMARINE_REGISTRY_BUNDLE_INDEX_TRUNCATED';
     public override readonly docs =
@@ -2438,13 +3195,21 @@ class RegistryBundleIndexTruncated extends RegistryBundleFormatError {
  * Restart the server so it writes the bundle again.
  */
 class RegistryBundleDocumentTruncated extends RegistryBundleFormatError {
-    public static readonly code = 'PRISMARINE_REGISTRY_BUNDLE_DOCUMENT_TRUNCATED';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'This is not a world generation registry bundle this build reads: the document {id} runs past the end.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-document-truncated';
+    public static get code(): 'PRISMARINE_REGISTRY_BUNDLE_DOCUMENT_TRUNCATED' {
+        return 'PRISMARINE_REGISTRY_BUNDLE_DOCUMENT_TRUNCATED';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'This is not a world generation registry bundle this build reads: the document {id} runs past the end.' {
+        return 'This is not a world generation registry bundle this build reads: the document {id} runs past the end.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-document-truncated' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-registry-bundle-document-truncated';
+    }
 
     public override readonly code = 'PRISMARINE_REGISTRY_BUNDLE_DOCUMENT_TRUNCATED';
     public override readonly docs =
@@ -2470,12 +3235,21 @@ class RegistryBundleDocumentTruncated extends RegistryBundleFormatError {
  * generation; report it with the stack trace.
  */
 class UnknownStructureSet extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_UNKNOWN_STRUCTURE_SET';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'Unknown structure set {set}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-structure-set';
+    public static get code(): 'PRISMARINE_UNKNOWN_STRUCTURE_SET' {
+        return 'PRISMARINE_UNKNOWN_STRUCTURE_SET';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'Unknown structure set {set}.' {
+        return 'Unknown structure set {set}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-structure-set' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unknown-structure-set';
+    }
 
     public override readonly code = 'PRISMARINE_UNKNOWN_STRUCTURE_SET';
     public override readonly docs =
@@ -2498,12 +3272,21 @@ class UnknownStructureSet extends JSPrismarineTypeError {
  * generation; report it with the stack trace.
  */
 class MansionMarkerWithoutRotation extends JSPrismarineTypeError {
-    public static readonly code = 'PRISMARINE_MANSION_MARKER_WITHOUT_ROTATION';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'The woodland-mansion marker action needs a rotation.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-mansion-marker-without-rotation';
+    public static get code(): 'PRISMARINE_MANSION_MARKER_WITHOUT_ROTATION' {
+        return 'PRISMARINE_MANSION_MARKER_WITHOUT_ROTATION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The woodland-mansion marker action needs a rotation.' {
+        return 'The woodland-mansion marker action needs a rotation.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-mansion-marker-without-rotation' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-mansion-marker-without-rotation';
+    }
 
     public override readonly code = 'PRISMARINE_MANSION_MARKER_WITHOUT_ROTATION';
     public override readonly docs =
@@ -2525,13 +3308,21 @@ class MansionMarkerWithoutRotation extends JSPrismarineTypeError {
  * ran out of order. This is a bug in world generation; report it with the stack trace.
  */
 class MissingGenerationState extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_MISSING_GENERATION_STATE';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'The chunk at {chunkX}, {chunkZ} has no {what} at {status}, so a status body ran out of order.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-generation-state';
+    public static get code(): 'PRISMARINE_MISSING_GENERATION_STATE' {
+        return 'PRISMARINE_MISSING_GENERATION_STATE';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'The chunk at {chunkX}, {chunkZ} has no {what} at {status}, so a status body ran out of order.' {
+        return 'The chunk at {chunkX}, {chunkZ} has no {what} at {status}, so a status body ran out of order.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-generation-state' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-missing-generation-state';
+    }
 
     public override readonly code = 'PRISMARINE_MISSING_GENERATION_STATE';
     public override readonly docs =
@@ -2570,12 +3361,21 @@ class MissingGenerationState extends JSPrismarineError {
  * report it with the stack trace.
  */
 class UnsupportedChunkStatus extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_CHUNK_STATUS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template = 'A generation worker has no body for {status}.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-chunk-status';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_CHUNK_STATUS' {
+        return 'PRISMARINE_UNSUPPORTED_CHUNK_STATUS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A generation worker has no body for {status}.' {
+        return 'A generation worker has no body for {status}.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-chunk-status' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-chunk-status';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_CHUNK_STATUS';
     public override readonly docs =
@@ -2598,13 +3398,21 @@ class UnsupportedChunkStatus extends JSPrismarineError {
  * bug in world generation; report it with the stack trace.
  */
 class UnsupportedWorkerStatus extends JSPrismarineError {
-    public static readonly code = 'PRISMARINE_UNSUPPORTED_WORKER_STATUS';
-    public static readonly domain = 'prismarine';
-    public static readonly module = 'generation';
-    public static readonly template =
-        'A generation worker runs terrain and nothing else, so it cannot run {status}. Every other status either writes into its neighbors or needs state the main thread keeps.';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-worker-status';
+    public static get code(): 'PRISMARINE_UNSUPPORTED_WORKER_STATUS' {
+        return 'PRISMARINE_UNSUPPORTED_WORKER_STATUS';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'generation' {
+        return 'generation';
+    }
+    public static get template(): 'A generation worker runs terrain and nothing else, so it cannot run {status}. Every other status either writes into its neighbors or needs state the main thread keeps.' {
+        return 'A generation worker runs terrain and nothing else, so it cannot run {status}. Every other status either writes into its neighbors or needs state the main thread keeps.';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-worker-status' {
+        return 'https://jsprismarine.dev/errors/prismarine/generation#prismarine-unsupported-worker-status';
+    }
 
     public override readonly code = 'PRISMARINE_UNSUPPORTED_WORKER_STATUS';
     public override readonly docs =

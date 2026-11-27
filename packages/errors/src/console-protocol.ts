@@ -8,11 +8,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * with `child_process.fork`, or give `spawn` an `ipc` stdio entry.
  */
 class NoIpcChannel extends JSPrismarineError {
-    public static readonly code = 'CONSOLE_PROTOCOL_NO_IPC_CHANNEL';
-    public static readonly domain = 'console-protocol';
-    public static readonly template =
-        'childProcessLink needs an IPC channel; start the process with child_process.fork or a stdio entry of "ipc".';
-    public static readonly docs = 'https://jsprismarine.dev/errors/console-protocol#console-protocol-no-ipc-channel';
+    public static get code(): 'CONSOLE_PROTOCOL_NO_IPC_CHANNEL' {
+        return 'CONSOLE_PROTOCOL_NO_IPC_CHANNEL';
+    }
+    public static get domain(): 'console-protocol' {
+        return 'console-protocol';
+    }
+    public static get template(): 'childProcessLink needs an IPC channel; start the process with child_process.fork or a stdio entry of "ipc".' {
+        return 'childProcessLink needs an IPC channel; start the process with child_process.fork or a stdio entry of "ipc".';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/console-protocol#console-protocol-no-ipc-channel' {
+        return 'https://jsprismarine.dev/errors/console-protocol#console-protocol-no-ipc-channel';
+    }
 
     public override readonly code = 'CONSOLE_PROTOCOL_NO_IPC_CHANNEL';
     public override readonly docs = 'https://jsprismarine.dev/errors/console-protocol#console-protocol-no-ipc-channel';

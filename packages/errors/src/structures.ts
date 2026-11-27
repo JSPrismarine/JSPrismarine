@@ -13,10 +13,18 @@ export abstract class StructureFormatError extends JSPrismarineError {
  * without a `loot_table`.
  */
 class AppendLootNoLootTable extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_APPEND_LOOT_NO_LOOT_TABLE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'append_loot: no loot_table';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-append-loot-no-loot-table';
+    public static get code(): 'STRUCTURES_APPEND_LOOT_NO_LOOT_TABLE' {
+        return 'STRUCTURES_APPEND_LOOT_NO_LOOT_TABLE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'append_loot: no loot_table' {
+        return 'append_loot: no loot_table';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-append-loot-no-loot-table' {
+        return 'https://jsprismarine.dev/errors/structures#structures-append-loot-no-loot-table';
+    }
 
     public override readonly code = 'STRUCTURES_APPEND_LOOT_NO_LOOT_TABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-append-loot-no-loot-table';
@@ -37,11 +45,18 @@ class AppendLootNoLootTable extends StructureFormatError {
  * that is not an object.
  */
 class BlockEntityModifierExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_BLOCK_ENTITY_MODIFIER_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'block entity modifier: expected an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-expected-object';
+    public static get code(): 'STRUCTURES_BLOCK_ENTITY_MODIFIER_EXPECTED_OBJECT' {
+        return 'STRUCTURES_BLOCK_ENTITY_MODIFIER_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'block entity modifier: expected an object' {
+        return 'block entity modifier: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_BLOCK_ENTITY_MODIFIER_EXPECTED_OBJECT';
     public override readonly docs =
@@ -63,11 +78,18 @@ class BlockEntityModifierExpectedObject extends StructureFormatError {
  * type this server does not implement.
  */
 class BlockEntityModifierUnknownType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_BLOCK_ENTITY_MODIFIER_UNKNOWN_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'block entity modifier: unknown type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-unknown-type';
+    public static get code(): 'STRUCTURES_BLOCK_ENTITY_MODIFIER_UNKNOWN_TYPE' {
+        return 'STRUCTURES_BLOCK_ENTITY_MODIFIER_UNKNOWN_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'block entity modifier: unknown type {type}' {
+        return 'block entity modifier: unknown type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-unknown-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-block-entity-modifier-unknown-type';
+    }
 
     public override readonly code = 'STRUCTURES_BLOCK_ENTITY_MODIFIER_UNKNOWN_TYPE';
     public override readonly docs =
@@ -90,10 +112,18 @@ class BlockEntityModifierUnknownType extends StructureFormatError {
  * without a `blocks` list.
  */
 class BlockIgnoreNoBlocks extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_BLOCK_IGNORE_NO_BLOCKS';
-    public static readonly domain = 'structures';
-    public static readonly template = 'block_ignore: no blocks';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-block-ignore-no-blocks';
+    public static get code(): 'STRUCTURES_BLOCK_IGNORE_NO_BLOCKS' {
+        return 'STRUCTURES_BLOCK_IGNORE_NO_BLOCKS';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'block_ignore: no blocks' {
+        return 'block_ignore: no blocks';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-block-ignore-no-blocks' {
+        return 'https://jsprismarine.dev/errors/structures#structures-block-ignore-no-blocks';
+    }
 
     public override readonly code = 'STRUCTURES_BLOCK_IGNORE_NO_BLOCKS';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-block-ignore-no-blocks';
@@ -111,10 +141,18 @@ class BlockIgnoreNoBlocks extends StructureFormatError {
 
 /** Structure code drew a random integer below a bound of zero or less. This is a bug. */
 class BoundMustBePositive extends JSPrismarineRangeError {
-    public static readonly code = 'STRUCTURES_BOUND_MUST_BE_POSITIVE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'bound must be positive, got {bound}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-bound-must-be-positive';
+    public static get code(): 'STRUCTURES_BOUND_MUST_BE_POSITIVE' {
+        return 'STRUCTURES_BOUND_MUST_BE_POSITIVE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'bound must be positive, got {bound}' {
+        return 'bound must be positive, got {bound}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-bound-must-be-positive' {
+        return 'https://jsprismarine.dev/errors/structures#structures-bound-must-be-positive';
+    }
 
     public override readonly code = 'STRUCTURES_BOUND_MUST_BE_POSITIVE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-bound-must-be-positive';
@@ -136,10 +174,18 @@ class BoundMustBePositive extends JSPrismarineRangeError {
  * block state where one belongs.
  */
 class ExpectedBlockState extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_EXPECTED_BLOCK_STATE';
-    public static readonly domain = 'structures';
-    public static readonly template = '{what}: expected a block state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-block-state';
+    public static get code(): 'STRUCTURES_EXPECTED_BLOCK_STATE' {
+        return 'STRUCTURES_EXPECTED_BLOCK_STATE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{what}: expected a block state' {
+        return '{what}: expected a block state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-expected-block-state' {
+        return 'https://jsprismarine.dev/errors/structures#structures-expected-block-state';
+    }
 
     public override readonly code = 'STRUCTURES_EXPECTED_BLOCK_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-block-state';
@@ -161,10 +207,18 @@ class ExpectedBlockState extends StructureFormatError {
  * number or an int provider where one belongs.
  */
 class ExpectedIntProvider extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_EXPECTED_INT_PROVIDER';
-    public static readonly domain = 'structures';
-    public static readonly template = '{what}: expected an int provider';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-int-provider';
+    public static get code(): 'STRUCTURES_EXPECTED_INT_PROVIDER' {
+        return 'STRUCTURES_EXPECTED_INT_PROVIDER';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{what}: expected an int provider' {
+        return '{what}: expected an int provider';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-expected-int-provider' {
+        return 'https://jsprismarine.dev/errors/structures#structures-expected-int-provider';
+    }
 
     public override readonly code = 'STRUCTURES_EXPECTED_INT_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-int-provider';
@@ -186,10 +240,18 @@ class ExpectedIntProvider extends StructureFormatError {
  * of rule tests where one belongs.
  */
 class ExpectedListOfTests extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_EXPECTED_LIST_OF_TESTS';
-    public static readonly domain = 'structures';
-    public static readonly template = '{what}: expected a list of tests';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-list-of-tests';
+    public static get code(): 'STRUCTURES_EXPECTED_LIST_OF_TESTS' {
+        return 'STRUCTURES_EXPECTED_LIST_OF_TESTS';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{what}: expected a list of tests' {
+        return '{what}: expected a list of tests';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-expected-list-of-tests' {
+        return 'https://jsprismarine.dev/errors/structures#structures-expected-list-of-tests';
+    }
 
     public override readonly code = 'STRUCTURES_EXPECTED_LIST_OF_TESTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-list-of-tests';
@@ -211,10 +273,18 @@ class ExpectedListOfTests extends StructureFormatError {
  * damaged.
  */
 class ExpectedThreeNumbers extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_EXPECTED_THREE_NUMBERS';
-    public static readonly domain = 'structures';
-    public static readonly template = '{context}: expected {key} to be three numbers, found {valuesCount}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-three-numbers';
+    public static get code(): 'STRUCTURES_EXPECTED_THREE_NUMBERS' {
+        return 'STRUCTURES_EXPECTED_THREE_NUMBERS';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{context}: expected {key} to be three numbers, found {valuesCount}' {
+        return '{context}: expected {key} to be three numbers, found {valuesCount}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-expected-three-numbers' {
+        return 'https://jsprismarine.dev/errors/structures#structures-expected-three-numbers';
+    }
 
     public override readonly code = 'STRUCTURES_EXPECTED_THREE_NUMBERS';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-expected-three-numbers';
@@ -244,10 +314,18 @@ class ExpectedThreeNumbers extends StructureFormatError {
  * not exist in the Java version this server maps from.
  */
 class UnknownJavaBlockState extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_UNKNOWN_JAVA_BLOCK_STATE';
-    public static readonly domain = 'structures';
-    public static readonly template = '{what}: {javaId} is not a Java 26.3 block state';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-unknown-java-block-state';
+    public static get code(): 'STRUCTURES_UNKNOWN_JAVA_BLOCK_STATE' {
+        return 'STRUCTURES_UNKNOWN_JAVA_BLOCK_STATE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{what}: {javaId} is not a Java 26.3 block state' {
+        return '{what}: {javaId} is not a Java 26.3 block state';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-unknown-java-block-state' {
+        return 'https://jsprismarine.dev/errors/structures#structures-unknown-java-block-state';
+    }
 
     public override readonly code = 'STRUCTURES_UNKNOWN_JAVA_BLOCK_STATE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-unknown-java-block-state';
@@ -266,10 +344,18 @@ class UnknownJavaBlockState extends StructureFormatError {
 
 /** A Java `.nbt` structure template could not be read as NBT. The message says why. */
 class JavaTemplateUnreadable extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_JAVA_TEMPLATE_UNREADABLE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'java structure template: {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-java-template-unreadable';
+    public static get code(): 'STRUCTURES_JAVA_TEMPLATE_UNREADABLE' {
+        return 'STRUCTURES_JAVA_TEMPLATE_UNREADABLE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'java structure template: {value}' {
+        return 'java structure template: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-java-template-unreadable' {
+        return 'https://jsprismarine.dev/errors/structures#structures-java-template-unreadable';
+    }
 
     public override readonly code = 'STRUCTURES_JAVA_TEMPLATE_UNREADABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-java-template-unreadable';
@@ -288,10 +374,18 @@ class JavaTemplateUnreadable extends StructureFormatError {
 
 /** A Java structure template has no block palette, so it is damaged. */
 class JavaTemplateNoPalette extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_JAVA_TEMPLATE_NO_PALETTE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'java structure template: no palette';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-java-template-no-palette';
+    public static get code(): 'STRUCTURES_JAVA_TEMPLATE_NO_PALETTE' {
+        return 'STRUCTURES_JAVA_TEMPLATE_NO_PALETTE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'java structure template: no palette' {
+        return 'java structure template: no palette';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-java-template-no-palette' {
+        return 'https://jsprismarine.dev/errors/structures#structures-java-template-no-palette';
+    }
 
     public override readonly code = 'STRUCTURES_JAVA_TEMPLATE_NO_PALETTE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-java-template-no-palette';
@@ -309,11 +403,18 @@ class JavaTemplateNoPalette extends StructureFormatError {
 
 /** A Java structure template's palette has an entry without a block name, so it is damaged. */
 class JavaTemplatePaletteEntryUnnamed extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_JAVA_TEMPLATE_PALETTE_ENTRY_UNNAMED';
-    public static readonly domain = 'structures';
-    public static readonly template = 'java structure template: palette entry {index} has no block identifier';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-java-template-palette-entry-unnamed';
+    public static get code(): 'STRUCTURES_JAVA_TEMPLATE_PALETTE_ENTRY_UNNAMED' {
+        return 'STRUCTURES_JAVA_TEMPLATE_PALETTE_ENTRY_UNNAMED';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'java structure template: palette entry {index} has no block identifier' {
+        return 'java structure template: palette entry {index} has no block identifier';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-java-template-palette-entry-unnamed' {
+        return 'https://jsprismarine.dev/errors/structures#structures-java-template-palette-entry-unnamed';
+    }
 
     public override readonly code = 'STRUCTURES_JAVA_TEMPLATE_PALETTE_ENTRY_UNNAMED';
     public override readonly docs =
@@ -333,10 +434,18 @@ class JavaTemplatePaletteEntryUnnamed extends StructureFormatError {
 
 /** A Bedrock `.mcstructure` file could not be read as NBT. The message says why. */
 class McstructureUnreadable extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_UNREADABLE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: {value}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unreadable';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_UNREADABLE' {
+        return 'STRUCTURES_MCSTRUCTURE_UNREADABLE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: {value}' {
+        return 'mcstructure: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unreadable' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unreadable';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_UNREADABLE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unreadable';
@@ -355,11 +464,18 @@ class McstructureUnreadable extends StructureFormatError {
 
 /** A `.mcstructure` file's block list does not match its size, so it is damaged. */
 class McstructureBlockCountMismatch extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_COUNT_MISMATCH';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: block_indices holds {primaryCount} entries for a {size} template';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-count-mismatch';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_BLOCK_COUNT_MISMATCH' {
+        return 'STRUCTURES_MCSTRUCTURE_BLOCK_COUNT_MISMATCH';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: block_indices holds {primaryCount} entries for a {size} template' {
+        return 'mcstructure: block_indices holds {primaryCount} entries for a {size} template';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-count-mismatch' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-count-mismatch';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_COUNT_MISMATCH';
     public override readonly docs =
@@ -382,11 +498,18 @@ class McstructureBlockCountMismatch extends StructureFormatError {
 
 /** A `.mcstructure` file's block list holds something other than numbers, so it is damaged. */
 class McstructureBlockIndexNotNumeric extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_INDEX_NOT_NUMERIC';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: block_indices holds a non-numeric entry';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-index-not-numeric';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_BLOCK_INDEX_NOT_NUMERIC' {
+        return 'STRUCTURES_MCSTRUCTURE_BLOCK_INDEX_NOT_NUMERIC';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: block_indices holds a non-numeric entry' {
+        return 'mcstructure: block_indices holds a non-numeric entry';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-index-not-numeric' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-index-not-numeric';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_INDEX_NOT_NUMERIC';
     public override readonly docs =
@@ -405,11 +528,18 @@ class McstructureBlockIndexNotNumeric extends StructureFormatError {
 
 /** A `.mcstructure` file's block layer is not a list, so it is damaged. */
 class McstructureBlockLayerNotList extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: block_indices layer is not a list';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-layer-not-list';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST' {
+        return 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: block_indices layer is not a list' {
+        return 'mcstructure: block_indices layer is not a list';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-layer-not-list' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-layer-not-list';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST';
     public override readonly docs =
@@ -428,10 +558,18 @@ class McstructureBlockLayerNotList extends StructureFormatError {
 
 /** A `.mcstructure` file has no block list, so it is damaged. */
 class McstructureNoBlockIndices extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_NO_BLOCK_INDICES';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: no block_indices';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-block-indices';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_NO_BLOCK_INDICES' {
+        return 'STRUCTURES_MCSTRUCTURE_NO_BLOCK_INDICES';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: no block_indices' {
+        return 'mcstructure: no block_indices';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-block-indices' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-block-indices';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_NO_BLOCK_INDICES';
     public override readonly docs =
@@ -450,11 +588,18 @@ class McstructureNoBlockIndices extends StructureFormatError {
 
 /** A `.mcstructure` file has no default palette, so it is damaged. */
 class McstructureNoDefaultPalette extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_NO_DEFAULT_PALETTE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: no default palette';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-default-palette';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_NO_DEFAULT_PALETTE' {
+        return 'STRUCTURES_MCSTRUCTURE_NO_DEFAULT_PALETTE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: no default palette' {
+        return 'mcstructure: no default palette';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-default-palette' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-default-palette';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_NO_DEFAULT_PALETTE';
     public override readonly docs =
@@ -473,11 +618,18 @@ class McstructureNoDefaultPalette extends StructureFormatError {
 
 /** A `.mcstructure` file has no `structure` compound, so it is damaged or not a structure. */
 class McstructureNoStructureCompound extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_NO_STRUCTURE_COMPOUND';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: no structure compound';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-structure-compound';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_NO_STRUCTURE_COMPOUND' {
+        return 'STRUCTURES_MCSTRUCTURE_NO_STRUCTURE_COMPOUND';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: no structure compound' {
+        return 'mcstructure: no structure compound';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-structure-compound' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-no-structure-compound';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_NO_STRUCTURE_COMPOUND';
     public override readonly docs =
@@ -496,11 +648,18 @@ class McstructureNoStructureCompound extends StructureFormatError {
 
 /** A `.mcstructure` file's palette has an entry without a block name, so it is damaged. */
 class McstructurePaletteEntryHasNoName extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_PALETTE_ENTRY_HAS_NO_NAME';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: palette entry has no name';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-palette-entry-has-no-name';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_PALETTE_ENTRY_HAS_NO_NAME' {
+        return 'STRUCTURES_MCSTRUCTURE_PALETTE_ENTRY_HAS_NO_NAME';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: palette entry has no name' {
+        return 'mcstructure: palette entry has no name';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-palette-entry-has-no-name' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-palette-entry-has-no-name';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_PALETTE_ENTRY_HAS_NO_NAME';
     public override readonly docs =
@@ -519,11 +678,18 @@ class McstructurePaletteEntryHasNoName extends StructureFormatError {
 
 /** A `.mcstructure` file uses a format version this server does not read. */
 class McstructureUnsupportedFormatVersion extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_MCSTRUCTURE_UNSUPPORTED_FORMAT_VERSION';
-    public static readonly domain = 'structures';
-    public static readonly template = 'mcstructure: unsupported format_version {formatVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-mcstructure-unsupported-format-version';
+    public static get code(): 'STRUCTURES_MCSTRUCTURE_UNSUPPORTED_FORMAT_VERSION' {
+        return 'STRUCTURES_MCSTRUCTURE_UNSUPPORTED_FORMAT_VERSION';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'mcstructure: unsupported format_version {formatVersion}' {
+        return 'mcstructure: unsupported format_version {formatVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unsupported-format-version' {
+        return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-unsupported-format-version';
+    }
 
     public override readonly code = 'STRUCTURES_MCSTRUCTURE_UNSUPPORTED_FORMAT_VERSION';
     public override readonly docs =
@@ -546,10 +712,18 @@ class McstructureUnsupportedFormatVersion extends StructureFormatError {
  * object.
  */
 class PoolElementExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_POOL_ELEMENT_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'pool element: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-pool-element-expected-object';
+    public static get code(): 'STRUCTURES_POOL_ELEMENT_EXPECTED_OBJECT' {
+        return 'STRUCTURES_POOL_ELEMENT_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'pool element: expected an object' {
+        return 'pool element: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-pool-element-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-pool-element-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_POOL_ELEMENT_EXPECTED_OBJECT';
     public override readonly docs =
@@ -568,11 +742,18 @@ class PoolElementExpectedObject extends StructureFormatError {
 
 /** A template pool uses an element type this server does not implement. */
 class PoolElementUnknownElementType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_POOL_ELEMENT_UNKNOWN_ELEMENT_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'pool element: unknown element_type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-pool-element-unknown-element-type';
+    public static get code(): 'STRUCTURES_POOL_ELEMENT_UNKNOWN_ELEMENT_TYPE' {
+        return 'STRUCTURES_POOL_ELEMENT_UNKNOWN_ELEMENT_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'pool element: unknown element_type {type}' {
+        return 'pool element: unknown element_type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-pool-element-unknown-element-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-pool-element-unknown-element-type';
+    }
 
     public override readonly code = 'STRUCTURES_POOL_ELEMENT_UNKNOWN_ELEMENT_TYPE';
     public override readonly docs =
@@ -595,10 +776,18 @@ class PoolElementUnknownElementType extends StructureFormatError {
  * an object.
  */
 class PositionTestExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_POSITION_TEST_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'position test: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-position-test-expected-object';
+    public static get code(): 'STRUCTURES_POSITION_TEST_EXPECTED_OBJECT' {
+        return 'STRUCTURES_POSITION_TEST_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'position test: expected an object' {
+        return 'position test: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-position-test-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-position-test-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_POSITION_TEST_EXPECTED_OBJECT';
     public override readonly docs =
@@ -620,11 +809,18 @@ class PositionTestExpectedObject extends StructureFormatError {
  * server does not implement.
  */
 class PositionTestUnknownPredicateType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_POSITION_TEST_UNKNOWN_PREDICATE_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'position test: unknown predicate_type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-position-test-unknown-predicate-type';
+    public static get code(): 'STRUCTURES_POSITION_TEST_UNKNOWN_PREDICATE_TYPE' {
+        return 'STRUCTURES_POSITION_TEST_UNKNOWN_PREDICATE_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'position test: unknown predicate_type {type}' {
+        return 'position test: unknown predicate_type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-position-test-unknown-predicate-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-position-test-unknown-predicate-type';
+    }
 
     public override readonly code = 'STRUCTURES_POSITION_TEST_UNKNOWN_PREDICATE_TYPE';
     public override readonly docs =
@@ -647,10 +843,18 @@ class PositionTestUnknownPredicateType extends StructureFormatError {
  * object.
  */
 class ProcessorExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_PROCESSOR_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'processor: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-processor-expected-object';
+    public static get code(): 'STRUCTURES_PROCESSOR_EXPECTED_OBJECT' {
+        return 'STRUCTURES_PROCESSOR_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'processor: expected an object' {
+        return 'processor: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-processor-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-processor-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_PROCESSOR_EXPECTED_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-processor-expected-object';
@@ -671,10 +875,18 @@ class ProcessorExpectedObject extends StructureFormatError {
  * `processors` array.
  */
 class ProcessorListNoProcessors extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_PROCESSOR_LIST_NO_PROCESSORS';
-    public static readonly domain = 'structures';
-    public static readonly template = 'processor list: no processors';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-processor-list-no-processors';
+    public static get code(): 'STRUCTURES_PROCESSOR_LIST_NO_PROCESSORS' {
+        return 'STRUCTURES_PROCESSOR_LIST_NO_PROCESSORS';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'processor list: no processors' {
+        return 'processor list: no processors';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-processor-list-no-processors' {
+        return 'https://jsprismarine.dev/errors/structures#structures-processor-list-no-processors';
+    }
 
     public override readonly code = 'STRUCTURES_PROCESSOR_LIST_NO_PROCESSORS';
     public override readonly docs =
@@ -696,11 +908,18 @@ class ProcessorListNoProcessors extends StructureFormatError {
  * server does not implement.
  */
 class ProcessorUnknownProcessorType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_PROCESSOR_UNKNOWN_PROCESSOR_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'processor: unknown processor_type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-processor-unknown-processor-type';
+    public static get code(): 'STRUCTURES_PROCESSOR_UNKNOWN_PROCESSOR_TYPE' {
+        return 'STRUCTURES_PROCESSOR_UNKNOWN_PROCESSOR_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'processor: unknown processor_type {type}' {
+        return 'processor: unknown processor_type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-processor-unknown-processor-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-processor-unknown-processor-type';
+    }
 
     public override readonly code = 'STRUCTURES_PROCESSOR_UNKNOWN_PROCESSOR_TYPE';
     public override readonly docs =
@@ -723,10 +942,18 @@ class ProcessorUnknownProcessorType extends StructureFormatError {
  * processor without the tag it protects.
  */
 class ProtectedBlocksNoValue extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_PROTECTED_BLOCKS_NO_VALUE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'protected_blocks: no value';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-protected-blocks-no-value';
+    public static get code(): 'STRUCTURES_PROTECTED_BLOCKS_NO_VALUE' {
+        return 'STRUCTURES_PROTECTED_BLOCKS_NO_VALUE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'protected_blocks: no value' {
+        return 'protected_blocks: no value';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-protected-blocks-no-value' {
+        return 'https://jsprismarine.dev/errors/structures#structures-protected-blocks-no-value';
+    }
 
     public override readonly code = 'STRUCTURES_PROTECTED_BLOCKS_NO_VALUE';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-protected-blocks-no-value';
@@ -747,10 +974,18 @@ class ProtectedBlocksNoValue extends StructureFormatError {
  * `rules` list.
  */
 class RuleProcessorNoRules extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_RULE_PROCESSOR_NO_RULES';
-    public static readonly domain = 'structures';
-    public static readonly template = 'rule processor: no rules';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-rule-processor-no-rules';
+    public static get code(): 'STRUCTURES_RULE_PROCESSOR_NO_RULES' {
+        return 'STRUCTURES_RULE_PROCESSOR_NO_RULES';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'rule processor: no rules' {
+        return 'rule processor: no rules';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-rule-processor-no-rules' {
+        return 'https://jsprismarine.dev/errors/structures#structures-rule-processor-no-rules';
+    }
 
     public override readonly code = 'STRUCTURES_RULE_PROCESSOR_NO_RULES';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-rule-processor-no-rules';
@@ -771,11 +1006,18 @@ class RuleProcessorNoRules extends StructureFormatError {
  * rules include something other than an object.
  */
 class RuleProcessorRuleIsNotObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_RULE_PROCESSOR_RULE_IS_NOT_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'rule processor: a rule is not an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-rule-processor-rule-is-not-object';
+    public static get code(): 'STRUCTURES_RULE_PROCESSOR_RULE_IS_NOT_OBJECT' {
+        return 'STRUCTURES_RULE_PROCESSOR_RULE_IS_NOT_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'rule processor: a rule is not an object' {
+        return 'rule processor: a rule is not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-rule-processor-rule-is-not-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-rule-processor-rule-is-not-object';
+    }
 
     public override readonly code = 'STRUCTURES_RULE_PROCESSOR_RULE_IS_NOT_OBJECT';
     public override readonly docs =
@@ -797,10 +1039,18 @@ class RuleProcessorRuleIsNotObject extends StructureFormatError {
  * object.
  */
 class RuleTestExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_RULE_TEST_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'rule test: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-rule-test-expected-object';
+    public static get code(): 'STRUCTURES_RULE_TEST_EXPECTED_OBJECT' {
+        return 'STRUCTURES_RULE_TEST_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'rule test: expected an object' {
+        return 'rule test: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-rule-test-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-rule-test-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_RULE_TEST_EXPECTED_OBJECT';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-rule-test-expected-object';
@@ -821,11 +1071,18 @@ class RuleTestExpectedObject extends StructureFormatError {
  * server does not implement.
  */
 class RuleTestUnknownPredicateType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_RULE_TEST_UNKNOWN_PREDICATE_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'rule test: unknown predicate_type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-rule-test-unknown-predicate-type';
+    public static get code(): 'STRUCTURES_RULE_TEST_UNKNOWN_PREDICATE_TYPE' {
+        return 'STRUCTURES_RULE_TEST_UNKNOWN_PREDICATE_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'rule test: unknown predicate_type {type}' {
+        return 'rule test: unknown predicate_type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-rule-test-unknown-predicate-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-rule-test-unknown-predicate-type';
+    }
 
     public override readonly code = 'STRUCTURES_RULE_TEST_UNKNOWN_PREDICATE_TYPE';
     public override readonly docs =
@@ -848,11 +1105,18 @@ class RuleTestUnknownPredicateType extends StructureFormatError {
  * object.
  */
 class StructurePlacementExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_STRUCTURE_PLACEMENT_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'structure placement: expected an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-structure-placement-expected-object';
+    public static get code(): 'STRUCTURES_STRUCTURE_PLACEMENT_EXPECTED_OBJECT' {
+        return 'STRUCTURES_STRUCTURE_PLACEMENT_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'structure placement: expected an object' {
+        return 'structure placement: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-structure-placement-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-structure-placement-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_STRUCTURE_PLACEMENT_EXPECTED_OBJECT';
     public override readonly docs =
@@ -871,11 +1135,18 @@ class StructurePlacementExpectedObject extends StructureFormatError {
 
 /** A structure set uses a placement type this server does not implement. */
 class StructurePlacementUnknownType extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_STRUCTURE_PLACEMENT_UNKNOWN_TYPE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'structure placement: unknown type {type}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-structure-placement-unknown-type';
+    public static get code(): 'STRUCTURES_STRUCTURE_PLACEMENT_UNKNOWN_TYPE' {
+        return 'STRUCTURES_STRUCTURE_PLACEMENT_UNKNOWN_TYPE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'structure placement: unknown type {type}' {
+        return 'structure placement: unknown type {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-structure-placement-unknown-type' {
+        return 'https://jsprismarine.dev/errors/structures#structures-structure-placement-unknown-type';
+    }
 
     public override readonly code = 'STRUCTURES_STRUCTURE_PLACEMENT_UNKNOWN_TYPE';
     public override readonly docs =
@@ -895,11 +1166,18 @@ class StructurePlacementUnknownType extends StructureFormatError {
 
 /** A structure set has an entry without a `structure`. */
 class StructureSetEntryNamesNoStructure extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_STRUCTURE_SET_ENTRY_NAMES_NO_STRUCTURE';
-    public static readonly domain = 'structures';
-    public static readonly template = 'structure set: an entry names no structure';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-structure-set-entry-names-no-structure';
+    public static get code(): 'STRUCTURES_STRUCTURE_SET_ENTRY_NAMES_NO_STRUCTURE' {
+        return 'STRUCTURES_STRUCTURE_SET_ENTRY_NAMES_NO_STRUCTURE';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'structure set: an entry names no structure' {
+        return 'structure set: an entry names no structure';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-structure-set-entry-names-no-structure' {
+        return 'https://jsprismarine.dev/errors/structures#structures-structure-set-entry-names-no-structure';
+    }
 
     public override readonly code = 'STRUCTURES_STRUCTURE_SET_ENTRY_NAMES_NO_STRUCTURE';
     public override readonly docs =
@@ -918,10 +1196,18 @@ class StructureSetEntryNamesNoStructure extends StructureFormatError {
 
 /** A structure set file is not a JSON object. */
 class StructureSetExpectedObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_STRUCTURE_SET_EXPECTED_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'structure set: expected an object';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-structure-set-expected-object';
+    public static get code(): 'STRUCTURES_STRUCTURE_SET_EXPECTED_OBJECT' {
+        return 'STRUCTURES_STRUCTURE_SET_EXPECTED_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'structure set: expected an object' {
+        return 'structure set: expected an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-structure-set-expected-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-structure-set-expected-object';
+    }
 
     public override readonly code = 'STRUCTURES_STRUCTURE_SET_EXPECTED_OBJECT';
     public override readonly docs =
@@ -940,10 +1226,18 @@ class StructureSetExpectedObject extends StructureFormatError {
 
 /** A structure set lists no structures. */
 class StructureSetNoStructures extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_STRUCTURE_SET_NO_STRUCTURES';
-    public static readonly domain = 'structures';
-    public static readonly template = 'structure set: no structures';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-structure-set-no-structures';
+    public static get code(): 'STRUCTURES_STRUCTURE_SET_NO_STRUCTURES' {
+        return 'STRUCTURES_STRUCTURE_SET_NO_STRUCTURES';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'structure set: no structures' {
+        return 'structure set: no structures';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-structure-set-no-structures' {
+        return 'https://jsprismarine.dev/errors/structures#structures-structure-set-no-structures';
+    }
 
     public override readonly code = 'STRUCTURES_STRUCTURE_SET_NO_STRUCTURES';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-structure-set-no-structures';
@@ -964,10 +1258,18 @@ class StructureSetNoStructures extends StructureFormatError {
  * a tag.
  */
 class TagMatchNoTag extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_TAG_MATCH_NO_TAG';
-    public static readonly domain = 'structures';
-    public static readonly template = 'tag_match: no tag';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-tag-match-no-tag';
+    public static get code(): 'STRUCTURES_TAG_MATCH_NO_TAG' {
+        return 'STRUCTURES_TAG_MATCH_NO_TAG';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'tag_match: no tag' {
+        return 'tag_match: no tag';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-tag-match-no-tag' {
+        return 'https://jsprismarine.dev/errors/structures#structures-tag-match-no-tag';
+    }
 
     public override readonly code = 'STRUCTURES_TAG_MATCH_NO_TAG';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-tag-match-no-tag';
@@ -985,11 +1287,18 @@ class TagMatchNoTag extends StructureFormatError {
 
 /** A template pool has an entry that is not an object. */
 class TemplatePoolEntryIsNotObject extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_TEMPLATE_POOL_ENTRY_IS_NOT_OBJECT';
-    public static readonly domain = 'structures';
-    public static readonly template = 'template pool: an entry is not an object';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/structures#structures-template-pool-entry-is-not-object';
+    public static get code(): 'STRUCTURES_TEMPLATE_POOL_ENTRY_IS_NOT_OBJECT' {
+        return 'STRUCTURES_TEMPLATE_POOL_ENTRY_IS_NOT_OBJECT';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'template pool: an entry is not an object' {
+        return 'template pool: an entry is not an object';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-template-pool-entry-is-not-object' {
+        return 'https://jsprismarine.dev/errors/structures#structures-template-pool-entry-is-not-object';
+    }
 
     public override readonly code = 'STRUCTURES_TEMPLATE_POOL_ENTRY_IS_NOT_OBJECT';
     public override readonly docs =
@@ -1008,10 +1317,18 @@ class TemplatePoolEntryIsNotObject extends StructureFormatError {
 
 /** A template pool has no `elements` list. */
 class TemplatePoolNoElements extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_TEMPLATE_POOL_NO_ELEMENTS';
-    public static readonly domain = 'structures';
-    public static readonly template = 'template pool: no elements';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-template-pool-no-elements';
+    public static get code(): 'STRUCTURES_TEMPLATE_POOL_NO_ELEMENTS' {
+        return 'STRUCTURES_TEMPLATE_POOL_NO_ELEMENTS';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): 'template pool: no elements' {
+        return 'template pool: no elements';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-template-pool-no-elements' {
+        return 'https://jsprismarine.dev/errors/structures#structures-template-pool-no-elements';
+    }
 
     public override readonly code = 'STRUCTURES_TEMPLATE_POOL_NO_ELEMENTS';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-template-pool-no-elements';
@@ -1032,10 +1349,18 @@ class TemplatePoolNoElements extends StructureFormatError {
  * server does not implement.
  */
 class UnsupportedIntProvider extends StructureFormatError {
-    public static readonly code = 'STRUCTURES_UNSUPPORTED_INT_PROVIDER';
-    public static readonly domain = 'structures';
-    public static readonly template = '{what}: unsupported int provider {type}';
-    public static readonly docs = 'https://jsprismarine.dev/errors/structures#structures-unsupported-int-provider';
+    public static get code(): 'STRUCTURES_UNSUPPORTED_INT_PROVIDER' {
+        return 'STRUCTURES_UNSUPPORTED_INT_PROVIDER';
+    }
+    public static get domain(): 'structures' {
+        return 'structures';
+    }
+    public static get template(): '{what}: unsupported int provider {type}' {
+        return '{what}: unsupported int provider {type}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-unsupported-int-provider' {
+        return 'https://jsprismarine.dev/errors/structures#structures-unsupported-int-provider';
+    }
 
     public override readonly code = 'STRUCTURES_UNSUPPORTED_INT_PROVIDER';
     public override readonly docs = 'https://jsprismarine.dev/errors/structures#structures-unsupported-int-provider';

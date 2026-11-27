@@ -10,12 +10,18 @@ import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
  * reason.
  */
 class LibraryDoesNotLoad extends NativeLibraryError {
-    public static readonly code = 'NATIVE_WORLDGEN_LIBRARY_DOES_NOT_LOAD';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template =
-        'The native worldgen library at {path} does not load on {platform}-{arch}: {value}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-does-not-load';
+    public static get code(): 'NATIVE_WORLDGEN_LIBRARY_DOES_NOT_LOAD' {
+        return 'NATIVE_WORLDGEN_LIBRARY_DOES_NOT_LOAD';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library at {path} does not load on {platform}-{arch}: {value}' {
+        return 'The native worldgen library at {path} does not load on {platform}-{arch}: {value}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-does-not-load' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-does-not-load';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_LIBRARY_DOES_NOT_LOAD';
     public override readonly docs =
@@ -50,12 +56,18 @@ class LibraryDoesNotLoad extends NativeLibraryError {
  * in `packages/native-worldgen`.
  */
 class LibraryInterfaceMismatch extends NativeLibraryError {
-    public static readonly code = 'NATIVE_WORLDGEN_LIBRARY_INTERFACE_MISMATCH';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template =
-        'The native worldgen library at {path} speaks interface {version}; this package needs {abiVersion}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-interface-mismatch';
+    public static get code(): 'NATIVE_WORLDGEN_LIBRARY_INTERFACE_MISMATCH' {
+        return 'NATIVE_WORLDGEN_LIBRARY_INTERFACE_MISMATCH';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library at {path} speaks interface {version}; this package needs {abiVersion}' {
+        return 'The native worldgen library at {path} speaks interface {version}; this package needs {abiVersion}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-interface-mismatch' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-library-interface-mismatch';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_LIBRARY_INTERFACE_MISMATCH';
     public override readonly docs =
@@ -86,10 +98,18 @@ class LibraryInterfaceMismatch extends NativeLibraryError {
  * it got does not fit in the handle a call passes back.
  */
 class StackNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_STACK_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create a noise stack of {layers} layers';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_STACK_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_STACK_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create a noise stack of {layers} layers' {
+        return 'The native worldgen library could not create a noise stack of {layers} layers';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_STACK_NOT_CREATED';
     public override readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-not-created';
@@ -111,11 +131,18 @@ class StackNotCreated extends JSPrismarineError {
 
 /** A noise layer's permutation table must hold exactly 256 entries, as Java's does. */
 class InvalidPermutationTable extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_INVALID_PERMUTATION_TABLE';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'Layer {layer} has a permutation table of {length} entries; a layer needs 256';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-invalid-permutation-table';
+    public static get code(): 'NATIVE_WORLDGEN_INVALID_PERMUTATION_TABLE' {
+        return 'NATIVE_WORLDGEN_INVALID_PERMUTATION_TABLE';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'Layer {layer} has a permutation table of {length} entries; a layer needs 256' {
+        return 'Layer {layer} has a permutation table of {length} entries; a layer needs 256';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-invalid-permutation-table' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-invalid-permutation-table';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_INVALID_PERMUTATION_TABLE';
     public override readonly docs =
@@ -138,10 +165,18 @@ class InvalidPermutationTable extends JSPrismarineError {
 
 /** A noise stack or density program was used after `destroy()` freed it. */
 class StackDestroyed extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_STACK_DESTROYED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The noise stack or density program was destroyed';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-destroyed';
+    public static get code(): 'NATIVE_WORLDGEN_STACK_DESTROYED' {
+        return 'NATIVE_WORLDGEN_STACK_DESTROYED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The noise stack or density program was destroyed' {
+        return 'The noise stack or density program was destroyed';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-destroyed' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-destroyed';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_STACK_DESTROYED';
     public override readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-stack-destroyed';
@@ -163,12 +198,18 @@ class StackDestroyed extends JSPrismarineError {
  * and `size`.
  */
 class CellBufferTooSmall extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template =
-        'A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-buffer-too-small';
+    public static get code(): 'NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL' {
+        return 'NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}' {
+        return 'A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-buffer-too-small' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-buffer-too-small';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL';
     public override readonly docs =
@@ -208,11 +249,18 @@ class CellBufferTooSmall extends JSPrismarineError {
  * bug; report it.
  */
 class ClimateTreeNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create a climate tree of {nodes} nodes';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-climate-tree-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create a climate tree of {nodes} nodes' {
+        return 'The native worldgen library could not create a climate tree of {nodes} nodes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-climate-tree-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-climate-tree-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED';
     public override readonly docs =
@@ -236,10 +284,18 @@ class ClimateTreeNotCreated extends JSPrismarineError {
  * encoded is never malformed, so this is a bug; report it.
  */
 class ProgramNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_PROGRAM_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create a density program of {nodes} nodes';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-program-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_PROGRAM_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_PROGRAM_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create a density program of {nodes} nodes' {
+        return 'The native worldgen library could not create a density program of {nodes} nodes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-program-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-program-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_PROGRAM_NOT_CREATED';
     public override readonly docs =
@@ -267,11 +323,18 @@ class ProgramNotCreated extends JSPrismarineError {
  * is a bug; report it.
  */
 class CellProgramNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_CELL_PROGRAM_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create a cell program of {nodes} nodes';
-    public static readonly docs =
-        'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-program-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_CELL_PROGRAM_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_CELL_PROGRAM_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create a cell program of {nodes} nodes' {
+        return 'The native worldgen library could not create a cell program of {nodes} nodes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-program-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-cell-program-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_CELL_PROGRAM_NOT_CREATED';
     public override readonly docs =
@@ -295,10 +358,18 @@ class CellProgramNotCreated extends JSPrismarineError {
  * hands over live programs and real extents, so this is a bug; report it.
  */
 class AquiferNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_AQUIFER_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create an aquifer';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-aquifer-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_AQUIFER_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_AQUIFER_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create an aquifer' {
+        return 'The native worldgen library could not create an aquifer';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-aquifer-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-aquifer-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_AQUIFER_NOT_CREATED';
     public override readonly docs =
@@ -322,10 +393,18 @@ class AquiferNotCreated extends JSPrismarineError {
  * so this is a bug; report it.
  */
 class SurfaceNotCreated extends JSPrismarineError {
-    public static readonly code = 'NATIVE_WORLDGEN_SURFACE_NOT_CREATED';
-    public static readonly domain = 'native-worldgen';
-    public static readonly template = 'The native worldgen library could not create a surface program';
-    public static readonly docs = 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-surface-not-created';
+    public static get code(): 'NATIVE_WORLDGEN_SURFACE_NOT_CREATED' {
+        return 'NATIVE_WORLDGEN_SURFACE_NOT_CREATED';
+    }
+    public static get domain(): 'native-worldgen' {
+        return 'native-worldgen';
+    }
+    public static get template(): 'The native worldgen library could not create a surface program' {
+        return 'The native worldgen library could not create a surface program';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-surface-not-created' {
+        return 'https://jsprismarine.dev/errors/native-worldgen#native-worldgen-surface-not-created';
+    }
 
     public override readonly code = 'NATIVE_WORLDGEN_SURFACE_NOT_CREATED';
     public override readonly docs =
