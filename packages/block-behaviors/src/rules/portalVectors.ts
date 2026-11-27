@@ -10,19 +10,19 @@
  * suite's `blocks.portals` row both read the vectors through it.
  *
  * Java names map to Bedrock through `@jsprismarine/mapping`. Each block's push reaction comes
- * from the same Java-sourced table the server's overlay is generated from, and the
- * `MOTION_BLOCKING` heightmap tag from Java's own answer for the block, so the replay sees the
- * blocks the way the server does.
+ * from the same Java-sourced table the server's overlay is generated from, its solid flag from the
+ * mapping's support table the server's block world reads, and the `MOTION_BLOCKING` heightmap tag
+ * from Java's own answer for the block, so the replay sees the blocks the way the server does.
  */
-import type { BlockPosition, BlockStateValue } from '@jsprismarine/blocks';
-import { bedrockBlockPropertiesOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import type { BlockPosition, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
+import { bedrockBlockPropertiesOf, bedrockBlockSupportOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
 import { isLiquid, isReplaceable } from '../identifiers';
 import { VoxelDimension } from '../voxelWorld';
 import type { BlockStates } from '../world';
 import type { PortalAxis, PortalCreationBounds, PortalWorldBorder } from './portal';
 import { BLOCKS_MOTION_IN_HEIGHTMAP_TAG, NETHERRACK, portalCreationSite, writeNetherPortal } from './portal';
-import { isSolidSupport } from './support';
+import { isSolidAt, isSolidSupport } from './support';
 
 /** The block rules Java's search reads for one block, as the dump records them. */
 export interface JavaPortalBlockRules {
@@ -107,9 +107,16 @@ const bedrockOf = (
 
 const isPortalAxis = (axis: string): axis is PortalAxis => axis === 'x' || axis === 'z';
 
-/** A voxel dimension that remembers the last block written to each position. */
+/**
+ * A voxel dimension that remembers the last block written to each position, and answers Java's
+ * solid flag from the mapping's support table, as the server's block world does.
+ */
 class RecordingDimension extends VoxelDimension {
     public readonly written = new Map<string, string>();
+
+    public isSolid(block: HookBlock): boolean {
+        return bedrockBlockSupportOf(block.identifier, block.states)?.solid ?? isSolidSupport(this, block.position);
+    }
 
     public override setBlock(position: BlockPosition, identifier: string, states: BlockStates = {}): void {
         this.written.set(keyOf(position), describe(identifier, states));
@@ -119,7 +126,8 @@ class RecordingDimension extends VoxelDimension {
 
 /**
  * A world that classifies blocks as the server does: each block's push reaction from the
- * Java-sourced property table, and the heightmap tag from Java's rules.
+ * Java-sourced property table, its solid flag from the support table, and the heightmap tag from
+ * Java's rules.
  */
 const ruledWorld = (dimension: string, rules: PortalVectorFile['blockRules']): RecordingDimension => {
     const world = new RecordingDimension(dimension);
@@ -197,7 +205,7 @@ export const replayPortalVector = (
 /**
  * Each block whose rules the port answers differently from Java, as `<java name>#<rule>`: whether
  * a portal may replace it (`canBeReplaced` without a fluid), and whether it is a floor
- * (`isSolid`), which the port reads as `isSolidSupport`.
+ * (`isSolid`).
  */
 export const portalBlockRuleDifferences = (file: PortalVectorFile): string[] => {
     const world = ruledWorld('minecraft:overworld', file.blockRules);
@@ -212,7 +220,7 @@ export const portalBlockRuleDifferences = (file: PortalVectorFile): string[] => 
         world.set(at, bedrock.name, bedrock.states);
         const replaceable = isReplaceable(bedrock.name) && !isLiquid(bedrock.name);
         if (replaceable !== (rule.canBeReplaced && !rule.hasFluid)) differences.push(`${javaName}#canBeReplaced`);
-        if (isSolidSupport(world, at) !== rule.isSolid) differences.push(`${javaName}#isSolid`);
+        if (isSolidAt(world, at) !== rule.isSolid) differences.push(`${javaName}#isSolid`);
     }
     return differences;
 };

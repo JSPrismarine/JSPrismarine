@@ -16,7 +16,7 @@ import type { HorizontalFace } from '../geometry';
 import { FACE_STEPS, HORIZONTAL_FACES, isVertical, offset, opposite, spiralAround } from '../geometry';
 import { AIR, isAir, isLiquid, isReplaceable, OBSIDIAN } from '../identifiers';
 import { bareName, stateBoolean } from '../state';
-import { isSolidSupport } from './support';
+import { isSolidAt, isSolidSupport } from './support';
 import type { WorldActions } from '../world';
 import { difficultyIdOf } from '../world';
 
@@ -466,13 +466,14 @@ const canPortalReplace = (world: WorldActions, position: BlockPosition): boolean
 
 /**
  * Java's `canHostFrame`: the 4 by 5 frame footprint at an offset across the
- * axis is replaceable, and the row under it is solid.
+ * axis is replaceable, and the row under it is solid by the legacy flag, which
+ * a cobweb is and a nether portal block is not.
  */
 const canHostFrame = (world: WorldActions, at: BlockPosition, axis: PortalAxis, sideOffset: number): boolean => {
     for (let a = -1; a <= 2; a += 1) {
         for (let dy = -1; dy <= 3; dy += 1) {
             const position = up(across(alongPortalAxis(at, axis, a), axis, sideOffset), dy);
-            if (dy < 0 ? !isSolidSupport(world, position) : !canPortalReplace(world, position)) return false;
+            if (dy < 0 ? !isSolidAt(world, position) : !canPortalReplace(world, position)) return false;
         }
     }
     return true;
