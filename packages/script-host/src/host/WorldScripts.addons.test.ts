@@ -3,8 +3,6 @@
  * runtime over a memory world, with a server whose figures the test sets tick by tick.
  */
 import { rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -18,35 +16,16 @@ import type { ScriptPack } from './pack';
 import { readScriptConfig } from './pack';
 import type { ScriptCommandOutcome } from './world';
 import { WorldScripts } from './WorldScripts';
+// The addon's source, which its pack's `placeholders.js` is compiled from. Importing the source
+// lets `--since-last-run` record it, where the compiled copy lives in a temporary folder.
+import {
+    clockOf,
+    PLACEHOLDERS as PLACEHOLDER_TABLE,
+    uptimeOf
+} from '../../../../addons/standard-placeholders/src/placeholders';
 
 const TPS_BAR = await addonDirectory('tps-bar');
 const PLACEHOLDERS = await addonDirectory('standard-placeholders');
-
-/** What the standard placeholders addon's table module exports, checked, since the module is plain JavaScript. */
-interface PlaceholdersModule {
-    readonly PLACEHOLDERS: Readonly<Record<string, Readonly<Record<string, string>>>>;
-    clockOf(timeOfDay: number): string;
-    uptimeOf(ticks: number): string;
-}
-
-const isPlaceholdersModule = (value: unknown): value is PlaceholdersModule =>
-    typeof value === 'object' &&
-    value !== null &&
-    'PLACEHOLDERS' in value &&
-    typeof value.PLACEHOLDERS === 'object' &&
-    'clockOf' in value &&
-    typeof value.clockOf === 'function' &&
-    'uptimeOf' in value &&
-    typeof value.uptimeOf === 'function';
-
-/** The addon's table module, loaded by path as the docs build loads it. */
-const loadPlaceholdersModule = async (): Promise<PlaceholdersModule> => {
-    const module: unknown = await import(pathToFileURL(join(PLACEHOLDERS, 'scripts', 'placeholders.js')).href);
-    if (!isPlaceholdersModule(module)) throw new TypeError('placeholders.js does not export its table and formats');
-    return module;
-};
-
-const { clockOf, PLACEHOLDERS: PLACEHOLDER_TABLE, uptimeOf } = await loadPlaceholdersModule();
 
 const directories: string[] = [];
 afterAll(() => {

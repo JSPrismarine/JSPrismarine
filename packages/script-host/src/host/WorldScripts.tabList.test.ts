@@ -1,11 +1,11 @@
 /**
  * The tab list addon, run as a server runs it: the pack's real files in a runtime over a memory
  * world, with a server double that keeps the name each player's entry shows. The addon's own
- * decisions, in `templates.js`, are tested first, loaded straight from the pack.
+ * decisions, in `templates.ts`, are tested first, loaded from the addon's source, which the pack's
+ * `templates.js` is compiled from. Loading the source lets `--since-last-run` record it, where the
+ * compiled copy lives in a temporary folder the tests remove.
  */
 import { rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -23,7 +23,7 @@ import { WorldScripts } from './WorldScripts';
 
 const TAB_LIST = await addonDirectory('tab-list');
 
-/** The functions `templates.js` exports, typed as the tests call them. */
+/** The functions `templates.ts` exports, typed as the tests call them. */
 interface Templates {
     readonly DEFAULT_INTERVAL: number;
     readonly EVENTS: Readonly<Record<string, string>>;
@@ -48,8 +48,11 @@ interface Templates {
     ): { ok: true; request: Record<string, unknown> } | { ok: false; reason: string };
 }
 
-// The pack's module is plain JavaScript, so the import is the one untyped boundary of these tests.
-const templates: Templates = await import(pathToFileURL(join(TAB_LIST, 'scripts', 'templates.js')).href);
+// The source imports the script runtime's `@jsprismarine/placeholders`, whose types only the addon's
+// build sees, so the import is the one untyped boundary of these tests.
+const templates: Templates = await import(
+    new URL('../../../../addons/tab-list/src/templates.ts', import.meta.url).href
+);
 
 describe('the tab list templates module', () => {
     const { readConfig, configFile, pickTemplate, parseMessage, EVENTS, DEFAULT_INTERVAL } = templates;
