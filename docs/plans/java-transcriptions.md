@@ -225,7 +225,8 @@ default matters, and its own regression test either way.
    The family reports the tags by `@javaVerified` kind and by package as dashboard measurements;
    all 418 are plain today. The copies large enough to deserve vectors or extraction have issues:
    the dragon's flight ([#3761](https://github.com/JSPrismarine/JSPrismarine/issues/3761)), portal
-   placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762)), fluid spread
+   placement ([#3762](https://github.com/JSPrismarine/JSPrismarine/issues/3762), done:
+   `PortalForcer.createPortal` is `@javaVerified vectors` against layouts Java built portals in), fluid spread
    ([#3763](https://github.com/JSPrismarine/JSPrismarine/issues/3763)), static-initializer constants
    ([#3764](https://github.com/JSPrismarine/JSPrismarine/issues/3764)) and block placement states
    ([#3765](https://github.com/JSPrismarine/JSPrismarine/issues/3765)).
