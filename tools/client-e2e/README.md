@@ -60,7 +60,9 @@ The gameplay and dimension scenarios run in four suites of about 14, each on a s
 its own and a fresh world, so CI can play them on four runners at once. Natural spawning uses a
 separate server because it needs a cow spawn fixture that could affect gameplay checks. The
 `level-isolation` scenario gets a server of its own with a second `worlds` entry, whose mobs and
-world every other scenario would also have to tick. The runner resets
+world every other scenario would also have to tick. `resource-pack-download` gets one too, since
+the resource pack it installs is required and every client joining that server downloads it. The
+runner resets
 the player, inventory, drops, and controls between scenarios, then stops each server and removes
 its temporary data. Two suites run at once by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's

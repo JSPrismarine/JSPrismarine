@@ -78,6 +78,7 @@ import { tpsBar } from './scenarios/tps-bar.mts';
 import { keepAlive } from './scenarios/keep-alive.mts';
 import { multiverse } from './scenarios/multiverse.mts';
 import { tabList } from './scenarios/tab-list.mts';
+import { resourcePackDownload } from './scenarios/resource-pack-download.mts';
 
 export interface ScenarioSuite {
     name: string;
@@ -192,5 +193,7 @@ export const suites: ScenarioSuite[] = [
     { name: 'kick', scenarios: [kick] },
     // On its own: the short interval it runs with would drop the client of a scenario that stalls
     // the server for longer than one interval.
-    { name: 'keep-alive', scenarios: [keepAlive] }
+    { name: 'keep-alive', scenarios: [keepAlive] },
+    // On its own: the pack it installs is required, so every client joining its server downloads it.
+    { name: 'resource-packs', scenarios: [resourcePackDownload] }
 ];
