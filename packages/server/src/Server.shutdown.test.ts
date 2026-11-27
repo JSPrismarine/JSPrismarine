@@ -15,6 +15,15 @@ interface ChildExit {
 
 const INSPECTOR_LINE = 'JSPrismarine inspector target: ';
 
+/** How long the stopped server gets to exit. */
+const STOP_EXIT_MS = 5000;
+/**
+ * How long the console stop test's server gets to start listening: the test's 40-second budget
+ * less the stop. Startup transpiles the server's source through tsx and loads the pack stack,
+ * which a busy CI runner slows a lot, so the wait takes all the time the stop leaves.
+ */
+const STARTUP_MS = 40_000 - STOP_EXIT_MS;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -121,7 +130,7 @@ describe('server shutdown', () => {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                const timer = setTimeout(() => reject(new Error(`server did not listen: ${output}`)), 25_000);
+                const timer = setTimeout(() => reject(new Error(`server did not listen: ${output}`)), STARTUP_MS);
                 const onExit = (code: number | null, signal: NodeJS.Signals | null): void => {
                     clearTimeout(timer);
                     reject(new Error(`server exited before listening (${code ?? signal}): ${output}`));
@@ -140,7 +149,7 @@ describe('server shutdown', () => {
                 check();
             });
 
-            const exit = waitForExit(child, 5000).catch((error: unknown) => {
+            const exit = waitForExit(child, STOP_EXIT_MS).catch((error: unknown) => {
                 throw new Error(`${error instanceof Error ? error.message : String(error)}\n${output}`);
             });
             const closed = once(child, 'close');
