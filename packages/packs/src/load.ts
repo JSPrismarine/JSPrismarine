@@ -9,7 +9,7 @@ import type { JavaRegistryId } from './javaRegistries';
 import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
-import { identifierForDefinition, isPathAddressedRegistry, routeForPath } from './registries';
+import { identifierForDefinition, isPathAddressedRegistry, isPerPackRegistry, routeForPath } from './registries';
 import type { PrefixCacheOptions } from './prefixCache';
 import { prefixCacheKeyFor, readPrefixCache, writePrefixCache } from './prefixCache';
 import type { PackFileFilter, PackFiles, PackStack } from './sources';
@@ -251,8 +251,12 @@ const composeUnits = (
 
             for (const [path, bytes] of pack.files) {
                 const provider = lastProvider.get(path);
-                const superseded = provider !== undefined && provider !== pack;
                 const registry = routeForPath(path);
+                // Each pack's copy of a per-pack registry's path counts, so a later one hides none.
+                const superseded =
+                    provider !== undefined &&
+                    provider !== pack &&
+                    !(registry !== undefined && isPerPackRegistry(registry));
                 // Path-addressed registries use the file path as their identifier, so an
                 // earlier copy can be skipped once a later loadable pack provides that path.
                 if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
@@ -317,7 +321,11 @@ const loadCachedPrefix = (
     for (const diagnostic of prefixResult.diagnostics) {
         const path = diagnostic.path;
         const registry = path === undefined ? undefined : routeForPath(path);
-        const superseded = diagnostic.code.startsWith('definition.') && path !== undefined && suffixPaths.has(path);
+        const superseded =
+            diagnostic.code.startsWith('definition.') &&
+            path !== undefined &&
+            suffixPaths.has(path) &&
+            !(registry !== undefined && isPerPackRegistry(registry));
         if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
         collector.add(
             superseded
@@ -432,6 +440,7 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
 /** What a definition takes from its pack's manifest. */
 interface PackHeader {
     readonly name: string;
+    readonly uuid: string;
     readonly minEngineVersion: FormatVersion | undefined;
 }
 
@@ -469,7 +478,11 @@ const loadManifest = (
     for (const diagnostic of diagnostics) collector.add(diagnostic);
     return manifest === undefined
         ? undefined
-        : { name: manifest.header.name, minEngineVersion: manifest.header.minEngineVersion };
+        : {
+              name: manifest.header.name,
+              uuid: manifest.header.uuid,
+              minEngineVersion: manifest.header.minEngineVersion
+          };
 };
 
 /**
@@ -479,7 +492,7 @@ const loadManifest = (
  */
 const loadDefinitionFile = (
     registries: DefinitionRegistries,
-    { name: pack, minEngineVersion }: PackHeader,
+    { name: pack, uuid, minEngineVersion }: PackHeader,
     path: string,
     bytes: Uint8Array,
     superseded: boolean,
@@ -527,7 +540,7 @@ const loadDefinitionFile = (
     }
     if (failed) return;
 
-    const identifier = identifierForDefinition(registry, path, data);
+    const identifier = identifierForDefinition(registry, path, data, uuid);
     if (identifier === undefined) {
         collector.add({
             severity: severityOf('error'),

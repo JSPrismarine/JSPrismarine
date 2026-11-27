@@ -3,8 +3,9 @@ import { isRecord } from './isRecord';
 /**
  * The registries a behavior pack fills and how a file routes into them. A
  * file's top-level folder picks the registry; the identifier is either the
- * definition's `description.identifier` or, for the path-addressed registries
- * (loot tables, trade tables, the item catalog), the pack-relative path.
+ * definition's `description.identifier`, the pack-relative path for the
+ * path-addressed registries (loot tables, trade tables), or the pack and the
+ * path for the item catalog, which every pack adds to rather than replaces.
  */
 
 /** The registries a loaded pack stack fills. */
@@ -27,8 +28,13 @@ export type RegistryId = (typeof REGISTRY_IDS)[number];
 
 interface RegistryRoute {
     registry: RegistryId;
-    /** How this registry names definitions; path-addressed registries use their pack-relative path. */
-    identifierFrom?: 'path';
+    /**
+     * How this registry names definitions. Path-addressed registries use their pack-relative path,
+     * so a later pack's file replaces an earlier one's. A `packAndPath` registry also prefixes the
+     * pack's header UUID, so each pack's copy of a path is kept and only another layer of the same
+     * pack replaces it.
+     */
+    identifierFrom?: 'path' | 'packAndPath';
     /**
      * The wrapper keys a file of this registry may use, such as
      * `minecraft:entity`. Registries addressed by path have none.
@@ -59,7 +65,8 @@ const ROUTES: Record<string, RegistryRoute> = {
     biomes: { registry: 'biomes', wrapperKeys: ['minecraft:biome'] },
     features: { registry: 'features' },
     feature_rules: { registry: 'featureRules', wrapperKeys: ['minecraft:feature_rules'] },
-    item_catalog: { registry: 'itemCatalog', identifierFrom: 'path' }
+    // The Bedrock Dedicated Server merges every pack's catalog into the menu, in pack order.
+    item_catalog: { registry: 'itemCatalog', identifierFrom: 'packAndPath' }
 };
 
 /**
@@ -82,17 +89,34 @@ export const isPathAddressedRegistry = (registry: RegistryId): boolean =>
     Object.values(ROUTES).some((route) => route.registry === registry && route.identifierFrom === 'path');
 
 /**
+ * Whether every pack's copy of a path counts in a registry, so a later pack
+ * does not supersede an earlier pack's file there.
+ *
+ * @param registry - The registry a file routes to.
+ */
+export const isPerPackRegistry = (registry: RegistryId): boolean =>
+    Object.values(ROUTES).some((route) => route.registry === registry && route.identifierFrom === 'packAndPath');
+
+/**
  * The identifier a definition is registered under: `description.identifier`
  * from the file's wrapper object where the registry has one, otherwise the
- * pack-relative path. Features declare their wrapper per feature type, so any
- * single `minecraft:*` wrapper key counts for them.
+ * pack-relative path, prefixed with `packUuid` and a slash for a
+ * {@link isPerPackRegistry per-pack registry}. Features declare their wrapper
+ * per feature type, so any single `minecraft:*` wrapper key counts for them.
  *
+ * @param packUuid - The header UUID of the pack the file comes from.
  * @returns The identifier, or undefined when the file declares none.
  */
-export const identifierForDefinition = (registry: RegistryId, path: string, data: unknown): string | undefined => {
+export const identifierForDefinition = (
+    registry: RegistryId,
+    path: string,
+    data: unknown,
+    packUuid: string
+): string | undefined => {
     const route = Object.values(ROUTES).find((candidate) => candidate.registry === registry)!;
 
     if (route.identifierFrom === 'path') return path;
+    if (route.identifierFrom === 'packAndPath') return `${packUuid}/${path}`;
     if (!isRecord(data)) return undefined;
 
     const wrapperKey = route.wrapperKeys
