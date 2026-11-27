@@ -1,0 +1,17 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Pack item catalog",
+        "description": "A second pack's item catalog, merged after the first's",
+        "uuid": "7d4c2a10-3e5f-4b6a-8c9d-0000000000d1",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "7d4c2a10-3e5f-4b6a-8c9d-0000000000d2",
+            "version": [1, 0, 0]
+        }
+    ]
+}

@@ -155,31 +155,18 @@ try {
     const { menu } = received;
     if (menu === undefined) throw new Error('The server sent no CreativeContentPacket.');
 
-    // The vanilla headings are the catalog `@jsprismarine/bedrock-data` captured from this server.
-    const { creative_groups } = await tsImport(
-        join(packages, 'bedrock-data', 'src', 'generated', 'creativeitems.ts'),
-        import.meta.url
-    );
-    const vanillaGroups: number = creative_groups.length;
-
-    const isPack = (stack: Stack): boolean =>
-        names.get(stack.runtimeId)?.startsWith(`${PACK_BLOCK_NAMESPACE}:`) ?? false;
-    const firstPackEntry = menu.entries.findIndex((entry) => isPack(entry.item));
-    const vanillaEntries = firstPackEntry === -1 ? menu.entries.length : firstPackEntry;
     const entries: Record<string, PackCreativeEntry> = {};
-    for (const entry of menu.entries.slice(vanillaEntries)) {
+    for (const entry of menu.entries) {
         const name = names.get(entry.item.runtimeId);
-        if (name === undefined || !isPack(entry.item))
-            throw new Error(`A vanilla entry, ${name}, follows the packs' entries.`);
+        if (name === undefined || !name.startsWith(`${PACK_BLOCK_NAMESPACE}:`)) continue;
+        if (name in entries) throw new Error(`The menu lists ${name} twice.`);
         entries[name] = { group: entry.group, blockRuntimeId: entry.item.blockRuntimeId };
     }
     creative = {
-        vanillaGroups,
-        vanillaEntries,
-        groups: menu.groups.slice(vanillaGroups).map((group) => ({
+        groups: menu.groups.map((group) => ({
             category: group.category,
             name: group.name,
-            iconRuntimeId: group.icon.runtimeId
+            icon: names.get(group.icon.runtimeId) ?? ''
         })),
         entries,
         items
@@ -219,8 +206,8 @@ await writeFile(
     renderPackCreativeGolden({
         $comment: [
             'Where the pinned Bedrock Dedicated Server files the blocks and items of scenarios/pack-blocks/ in',
-            'CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. A group below',
-            'vanillaGroups is a vanilla heading; the rest are listed in groups, in packet order.',
+            'CreativeContentPacket, and the creative keys of their ItemRegistryPacket entries. An entry names',
+            'its heading by its index in groups, the whole heading list in packet order.',
             'Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand.'
         ],
         server: { protocolVersion, serverVersion: pinnedServer.serverVersion },

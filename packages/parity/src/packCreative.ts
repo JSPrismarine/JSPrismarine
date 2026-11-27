@@ -4,9 +4,10 @@
  * `ItemRegistryPacket` entries carry.
  *
  * The server walks a pack's content in an order of its own, so the golden records each entry's
- * heading rather than its position. A heading is named by its index: below
- * {@link PackCreativeGolden.vanillaGroups} it is one of the vanilla catalog's, and from there
- * on it is one the packs opened, listed in {@link PackCreativeGolden.groups}.
+ * heading rather than its position. A heading is named by its index in
+ * {@link PackCreativeGolden.groups}, the packet's whole heading list, which shows where the
+ * packs' headings sit among the vanilla ones: a pack's item catalog can file a heading inside a
+ * tab, where a `menu_category` heading goes after every vanilla one.
  *
  * This module imports nothing beyond node and relative paths, so the capture script runs it
  * under plain node.
@@ -19,13 +20,13 @@ import { isRecord } from './isRecord.ts';
 /** Where the capture writes the server's creative menu. */
 export const PACK_CREATIVE_GOLDEN = join(import.meta.dirname, '..', 'goldens', 'pack-creative.json');
 
-/** A heading the packs opened. */
+/** A heading of the menu. */
 export interface PackCreativeGroup {
     /** The wire's `Creative Category`, 1 construction through 4 items. */
     readonly category: number;
     readonly name: string;
-    /** The icon's `Item Id`; 0 is the empty slot. */
-    readonly iconRuntimeId: number;
+    /** The icon's item identifier, or the empty string for the empty slot. */
+    readonly icon: string;
 }
 
 /** One pack entry of the menu. */
@@ -46,11 +47,7 @@ export interface PackCreativeItemProperties {
 export interface PackCreativeGolden {
     readonly $comment: readonly string[];
     readonly server: { readonly protocolVersion: number; readonly serverVersion: string };
-    /** How many headings came before the packs' own, which is the vanilla catalog's count. */
-    readonly vanillaGroups: number;
-    /** How many entries came before the packs' own. */
-    readonly vanillaEntries: number;
-    /** The headings the packs opened, in packet order. */
+    /** Every heading of the menu, vanilla and pack, in packet order. */
     readonly groups: readonly PackCreativeGroup[];
     /** Every pack entry, by identifier. A pack block or item absent here is not in the menu. */
     readonly entries: Readonly<Record<string, PackCreativeEntry>>;
@@ -114,12 +111,10 @@ export const readPackCreativeGolden = (): PackCreativeGolden => {
             protocolVersion: numberAt(server, 'protocolVersion'),
             serverVersion: stringAt(server, 'serverVersion')
         },
-        vanillaGroups: numberAt(golden, 'vanillaGroups'),
-        vanillaEntries: numberAt(golden, 'vanillaEntries'),
         groups: golden.groups.map(recordOf).map((group) => ({
             category: numberAt(group, 'category'),
             name: stringAt(group, 'name'),
-            iconRuntimeId: numberAt(group, 'iconRuntimeId')
+            icon: stringAt(group, 'icon')
         })),
         entries: mapRecord(golden.entries, (entry) => ({
             group: numberAt(entry, 'group'),

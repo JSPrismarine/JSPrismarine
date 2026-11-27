@@ -1,0 +1,41 @@
+{
+    "format_version": "1.21.60",
+    "minecraft:crafting_items_catalog": {
+        "categories": [
+            {
+                "category_name": "construction",
+                "groups": [
+                    {
+                        "group_identifier": {
+                            "icon": "parity:catalog_item_construction",
+                            "name": "parity:itemGroup.name.catalog_construction"
+                        },
+                        "items": ["parity:catalog_item_construction"]
+                    }
+                ]
+            },
+            {
+                "category_name": "items",
+                "groups": [
+                    {
+                        "group_identifier": {
+                            "icon": "parity:catalog_item_a",
+                            "name": "parity:itemGroup.name.catalog_a"
+                        },
+                        "items": ["parity:catalog_item_a"]
+                    },
+                    {
+                        "group_identifier": {
+                            "icon": "parity:catalog_item_shared_a",
+                            "name": "parity:itemGroup.name.catalog_shared"
+                        },
+                        "items": ["parity:catalog_item_shared_a"]
+                    },
+                    {
+                        "items": ["parity:catalog_item_loose"]
+                    }
+                ]
+            }
+        ]
+    }
+}

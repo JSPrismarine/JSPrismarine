@@ -345,6 +345,18 @@
                 "material": "string:dirt"
             }
         },
+        "parity:catalog_block_b": {
+            "menu_category": {
+                "category": "string:none",
+                "group": "string:",
+                "is_hidden_in_commands": "byte:0"
+            },
+            "molangVersion": "int:12",
+            "vanilla_block_data": {
+                "block_id": "int:10048",
+                "material": "string:dirt"
+            }
+        },
         "parity:collision_false": {
             "components": {
                 "minecraft:collision_box": {

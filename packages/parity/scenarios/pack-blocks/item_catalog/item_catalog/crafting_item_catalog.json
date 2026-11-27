@@ -1,0 +1,38 @@
+{
+    "format_version": "1.21.60",
+    "minecraft:crafting_items_catalog": {
+        "categories": [
+            {
+                "category_name": "items",
+                "groups": [
+                    {
+                        "group_identifier": {
+                            "icon": "parity:catalog_item_b",
+                            "name": "parity:itemGroup.name.catalog_b"
+                        },
+                        "items": ["parity:catalog_item_b"]
+                    },
+                    {
+                        "group_identifier": {
+                            "icon": "parity:catalog_item_shared_b",
+                            "name": "parity:itemGroup.name.catalog_shared"
+                        },
+                        "items": ["parity:catalog_item_shared_b"]
+                    }
+                ]
+            },
+            {
+                "category_name": "construction",
+                "groups": [
+                    {
+                        "group_identifier": {
+                            "icon": "minecraft:oak_planks",
+                            "name": "minecraft:itemGroup.name.planks"
+                        },
+                        "items": ["parity:catalog_block_b"]
+                    }
+                ]
+            }
+        ]
+    }
+}

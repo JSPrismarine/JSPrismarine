@@ -23,12 +23,14 @@ describeFamily(
 
         // Composing the vanilla behavior pack with the fixtures takes minutes.
         beforeAll(() => {
+            // The capture lists the packs in `world_behavior_packs.json` in fixture order, and the
+            // server's first entry is the top of its stack. A stack here applies the last pack on
+            // top, so the same priority is the reverse order.
             const content = buildServerContent({
                 packs: {
-                    worldPacks: packBlockFixtures().packs.map((pack) => ({
-                        kind: 'directory' as const,
-                        path: pack.directory
-                    }))
+                    worldPacks: packBlockFixtures()
+                        .packs.toReversed()
+                        .map((pack) => ({ kind: 'directory' as const, path: pack.directory }))
                 }
             });
             payloads = buildNetworkContentPayloads(content);
@@ -38,13 +40,11 @@ describeFamily(
             const golden = readPackCreativeGolden();
             const { creative, creativeItems, items } = payloads;
 
-            // The packs' headings follow every vanilla one, so the vanilla indexes still mean
-            // the same heading on both sides.
-            const vanillaGroups = creative.groups.length - golden.groups.length;
-            const packGroups = creative.groups.slice(vanillaGroups).map((group) => ({
+            const itemNames = new Map(items.map((item) => [item.runtimeId, item.name]));
+            const groups = creative.groups.map((group) => ({
                 category: group.category,
                 name: group.name,
-                iconRuntimeId: group.icon.runtimeId
+                icon: itemNames.get(group.icon.runtimeId) ?? ''
             }));
 
             const entries: Record<string, PackCreativeEntry> = {};
@@ -53,8 +53,6 @@ describeFamily(
                 if (name === undefined || !isPack(name)) return;
                 entries[name] = { group: entry.group, blockRuntimeId: entry.item.blockRuntimeId };
             });
-            const firstPackEntry = creativeItems.findIndex((item) => isPack(item.name));
-            const trailing = creativeItems.slice(firstPackEntry).filter((item) => !isPack(item.name));
 
             const registry: Record<string, PackCreativeItemProperties> = {};
             for (const item of items) {
@@ -65,19 +63,13 @@ describeFamily(
 
             const context = `CreativeContentPacket against BDS ${golden.server.serverVersion}`;
             const names = [...new Set([...Object.keys(golden.entries), ...Object.keys(entries)])].sort();
-            const itemNames = [...new Set([...Object.keys(golden.items), ...Object.keys(registry)])].sort();
+            const registryNames = [...new Set([...Object.keys(golden.items), ...Object.keys(registry)])].sort();
             const cases = [
                 parityCase(
                     'pack-creative:groups',
-                    'the headings the packs open',
+                    'every heading, with those the packs open among the vanilla ones',
                     context,
-                    vanillaGroups === golden.vanillaGroups && isDeepStrictEqual(packGroups, golden.groups)
-                ),
-                parityCase(
-                    'pack-creative:order',
-                    "the packs' entries follow every vanilla entry",
-                    context,
-                    firstPackEntry !== -1 && trailing.length === 0
+                    isDeepStrictEqual(groups, golden.groups)
                 ),
                 ...names.map((name) =>
                     parityCase(
@@ -87,7 +79,7 @@ describeFamily(
                         isDeepStrictEqual(entries[name], golden.entries[name])
                     )
                 ),
-                ...itemNames.map((name) =>
+                ...registryNames.map((name) =>
                     parityCase(
                         `pack-creative-registry:${name}`,
                         name,
@@ -101,11 +93,7 @@ describeFamily(
                 'pack creative placements matching BDS': cases.filter((record) => record.status === 'passed').length
             });
 
-            expect({ vanillaGroups, groups: packGroups }).toEqual({
-                vanillaGroups: golden.vanillaGroups,
-                groups: golden.groups
-            });
-            expect(trailing.map((item) => item.name)).toEqual([]);
+            expect(groups).toEqual(golden.groups);
             expect(entries).toEqual(golden.entries);
             expect(registry).toEqual(golden.items);
         });
