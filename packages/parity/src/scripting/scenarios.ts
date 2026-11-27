@@ -476,6 +476,55 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         }
     },
     {
+        id: 'data-driven-forms',
+        family: 'scripting.ui',
+        description:
+            'A CustomForm or MessageBox reaches the client as one minecraft data store property, whose layout the ' +
+            'builder calls fix, and a screen to show. A bound observable updates one path of it, a client write to a ' +
+            "path runs the button's callback or sets the observable, and show() settles only once the client reports " +
+            'the screen closed, with a reason for each close the client can report.',
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3751',
+        packs: ['ui'],
+        needs: 'world',
+        client: {
+            answers: [],
+            screens: [
+                {
+                    actions: [
+                        { write: 'layout[4].onClick', value: 1 },
+                        { write: 'layout[5].onClick', value: 1 },
+                        { write: 'layout[6].toggled', value: false },
+                        { write: 'layout[7].value', value: 6 },
+                        { write: 'layout[8].value', value: 0 },
+                        { write: 'layout[9].text', value: 'Alex' }
+                    ]
+                },
+                { actions: [{ close: 'clientcanceled' }] },
+                { actions: [] },
+                { actions: [{ write: 'layout[1].image_onClick', value: 1 }] },
+                { actions: [{ close: 'clientcanceled' }] },
+                { actions: [{ write: 'closeButton.onClick', value: 1 }, { close: 'clientcanceled' }] },
+                { actions: [{ close: 'userbusy' }] },
+                { actions: [{ close: 'invalidform' }] },
+                { actions: [{ close: 'programmaticcloseall' }] },
+                { actions: [{ write: 'button1.onClick', value: 1 }, { close: 'clientcanceled' }] },
+                {
+                    actions: [
+                        { write: 'button1.onClick', value: 1 },
+                        { write: 'button2.onClick', value: 1 },
+                        { close: 'clientcanceled' }
+                    ]
+                },
+                { actions: [{ close: 'clientcanceled' }] },
+                { actions: [{ close: 'userbusy' }] },
+                { actions: [] },
+                { actions: [], acknowledge: false },
+                { actions: [] },
+                { actions: [{ leave: true }] }
+            ]
+        }
+    },
+    {
         id: 'form-json',
         family: 'scripting.ui',
         description:

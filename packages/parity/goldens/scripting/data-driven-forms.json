@@ -1,0 +1,1238 @@
+{
+    "$comment": [
+        "What the scripts of scenario `data-driven-forms` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.ui",
+    "scenario": "data-driven-forms",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "ui",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "ui",
+            "seq": 2,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "ui",
+            "seq": 3,
+            "tick": 0,
+            "event": "custom written",
+            "value": {
+                "clicks": [
+                    "Press",
+                    "Raw"
+                ],
+                "calls": [
+                    "amount=6",
+                    "name=\"Alex\"",
+                    "picked=0",
+                    "toggled=false"
+                ],
+                "toggled": false,
+                "amount": 6,
+                "picked": 0,
+                "name": "Alex"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 4,
+            "tick": 0,
+            "event": "custom isShowing after close",
+            "value": true
+        },
+        {
+            "pack": "ui",
+            "seq": 5,
+            "tick": 0,
+            "event": "custom",
+            "value": "ServerClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 6,
+            "tick": 0,
+            "event": "custom isShowing after settling",
+            "value": false
+        },
+        {
+            "pack": "ui",
+            "seq": 7,
+            "tick": 0,
+            "event": "custom defaults",
+            "value": "ClientClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 8,
+            "tick": 0,
+            "event": "custom bound closed twice"
+        },
+        {
+            "pack": "ui",
+            "seq": 9,
+            "tick": 0,
+            "event": "custom bound",
+            "value": "ServerClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 10,
+            "tick": 0,
+            "event": "custom images clicked",
+            "value": [
+                "apple"
+            ]
+        },
+        {
+            "pack": "ui",
+            "seq": 11,
+            "tick": 0,
+            "event": "custom images",
+            "value": "ServerClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 12,
+            "tick": 0,
+            "event": "custom client closes",
+            "value": "ClientClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 13,
+            "tick": 0,
+            "event": "custom close button",
+            "value": "ClientClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 14,
+            "tick": 0,
+            "event": "custom busy",
+            "value": "UserBusy"
+        },
+        {
+            "pack": "ui",
+            "seq": 15,
+            "tick": 0,
+            "event": "custom invalid",
+            "value": {
+                "error": "InvalidFormError: 'minecraft:custom_form' is not valid and could not be shown."
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 16,
+            "tick": 0,
+            "event": "custom closed with every screen",
+            "value": "ServerClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 17,
+            "tick": 0,
+            "event": "message button1",
+            "value": {
+                "closeReason": "ClientClosed",
+                "selection": 1
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 18,
+            "tick": 0,
+            "event": "message button2",
+            "value": {
+                "closeReason": "ClientClosed",
+                "selection": 2
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 19,
+            "tick": 0,
+            "event": "message defaults",
+            "value": {
+                "closeReason": "ClientClosed"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 20,
+            "tick": 0,
+            "event": "message busy",
+            "value": {
+                "closeReason": "UserBusy"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 21,
+            "tick": 0,
+            "event": "uiManager.closeAllForms",
+            "value": "undefined"
+        },
+        {
+            "pack": "ui",
+            "seq": 22,
+            "tick": 0,
+            "event": "closeAllForms isShowing",
+            "value": true
+        },
+        {
+            "pack": "ui",
+            "seq": 23,
+            "tick": 0,
+            "event": "closeAllForms",
+            "value": "ServerClosed"
+        },
+        {
+            "pack": "ui",
+            "seq": 24,
+            "tick": 0,
+            "event": "unacknowledged",
+            "value": {
+                "pending": true,
+                "isShowing": true
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 25,
+            "tick": 0,
+            "event": "second screen",
+            "value": {
+                "pending": true,
+                "isShowing": true
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 26,
+            "tick": 0,
+            "event": "player leaves",
+            "value": {
+                "error": "PlayerLeftError: 'minecraft:custom_form' was rejected because the player left."
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 27,
+            "tick": 0,
+            "event": "second screen settled late",
+            "value": {
+                "error": "PlayerLeftError: 'minecraft:custom_form' was rejected because the player left."
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 28,
+            "tick": 0,
+            "event": "unacknowledged settled late",
+            "value": {
+                "error": "PlayerLeftError: 'minecraft:custom_form' was rejected because the player left."
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 29,
+            "tick": 0,
+            "event": "form after leaving",
+            "error": "InvalidEntityError: Failed to call function 'CustomFormConstructor' due to Entity being invalid (has the Entity been removed?)."
+        }
+    ],
+    "client": [
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_157019772",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "layout": {
+                    "0": {
+                        "header_visible": true,
+                        "text": "A header",
+                        "visible": true
+                    },
+                    "1": {
+                        "label_visible": true,
+                        "text": {
+                            "rawtext": [
+                                {
+                                    "translate": "gui.ok"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    },
+                    "2": {
+                        "divider_visible": true,
+                        "visible": true
+                    },
+                    "3": {
+                        "spacer_visible": true,
+                        "visible": true
+                    },
+                    "4": {
+                        "button_visible": true,
+                        "label": "Press",
+                        "onClick": 0,
+                        "tooltip": "tip",
+                        "visible": true
+                    },
+                    "5": {
+                        "button_visible": true,
+                        "disabled": true,
+                        "label": {
+                            "rawtext": [
+                                {
+                                    "text": "Raw"
+                                }
+                            ]
+                        },
+                        "onClick": 0,
+                        "visible": true
+                    },
+                    "6": {
+                        "description": "flip",
+                        "label": "On",
+                        "toggle_visible": true,
+                        "toggled": true,
+                        "visible": true
+                    },
+                    "7": {
+                        "label": "Amount",
+                        "maxValue": 10,
+                        "minValue": 0,
+                        "slider_visible": true,
+                        "step": 2,
+                        "value": 3,
+                        "visible": true
+                    },
+                    "8": {
+                        "dropdown_visible": true,
+                        "items": {
+                            "0": {
+                                "label": "a",
+                                "value": 0
+                            },
+                            "1": {
+                                "description": "bee",
+                                "label": "b",
+                                "value": 1
+                            },
+                            "length": {
+                                "$int64": "2"
+                            }
+                        },
+                        "label": "Pick",
+                        "value": 1,
+                        "visible": true
+                    },
+                    "9": {
+                        "description": "your name",
+                        "label": "Name",
+                        "text": "Steve",
+                        "textfield_visible": true,
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "10"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Bound title"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 1,
+            "instance": 157019772
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_157019772",
+            "path": "title",
+            "value": "Changed title",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_157019772",
+            "path": "layout[7].value",
+            "value": 4,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 2
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 1
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_157019772",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4223365310",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "l",
+                        "visible": true
+                    },
+                    "1": {
+                        "header_visible": true,
+                        "text": "h",
+                        "visible": true
+                    },
+                    "2": {
+                        "button_visible": true,
+                        "label": "b",
+                        "onClick": 0,
+                        "visible": true
+                    },
+                    "3": {
+                        "label": "t",
+                        "toggle_visible": true,
+                        "toggled": false,
+                        "visible": true
+                    },
+                    "4": {
+                        "label": "s",
+                        "maxValue": 9,
+                        "minValue": 1,
+                        "slider_visible": true,
+                        "step": 1,
+                        "value": 5,
+                        "visible": true
+                    },
+                    "5": {
+                        "dropdown_visible": true,
+                        "items": {
+                            "0": {
+                                "label": "x",
+                                "value": 5
+                            },
+                            "length": {
+                                "$int64": "1"
+                            }
+                        },
+                        "label": "d",
+                        "value": 5,
+                        "visible": true
+                    },
+                    "6": {
+                        "label": "f",
+                        "text": "",
+                        "textfield_visible": true,
+                        "visible": true
+                    },
+                    "7": {
+                        "divider_visible": true,
+                        "visible": true
+                    },
+                    "8": {
+                        "spacer_visible": true,
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "9"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Defaults"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 2,
+            "instance": 4223365310
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4223365310",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "label a",
+                        "visible": true
+                    },
+                    "1": {
+                        "button_visible": true,
+                        "disabled": false,
+                        "label": "b",
+                        "onClick": 0,
+                        "tooltip": "tip a",
+                        "visible": true
+                    },
+                    "2": {
+                        "label": "s",
+                        "maxValue": 5,
+                        "minValue": 0,
+                        "slider_visible": true,
+                        "step": 1,
+                        "value": 2,
+                        "visible": true
+                    },
+                    "3": {
+                        "dropdown_visible": true,
+                        "items": {
+                            "0": {
+                                "description": "tip a",
+                                "label": "label a",
+                                "value": 0
+                            },
+                            "length": {
+                                "$int64": "1"
+                            }
+                        },
+                        "label": "d",
+                        "value": 2,
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "4"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": {
+                    "rawtext": [
+                        {
+                            "text": "A"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "title",
+            "value": "{\"rawtext\":[{\"text\":\"A\"}]}\n",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 3,
+            "instance": 1896293521
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[0].visible",
+            "value": false,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[1].visible",
+            "value": false,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[1].disabled",
+            "value": true,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[1].tooltip",
+            "value": "tip b",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[2].step",
+            "value": 3,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[2].maxValue",
+            "value": 9,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "title",
+            "value": "{\"rawtext\":[{\"text\":\"B\"}]}\n",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 2
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "path": "layout[0].text",
+            "value": "label b",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 3
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 3
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_1896293521",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3673882970",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "image_pack": "vanilla",
+                        "image_src": "textures/items/bread",
+                        "image_visible": true,
+                        "image_width": 1,
+                        "visible": true
+                    },
+                    "1": {
+                        "image_clickable": true,
+                        "image_onClick": 0,
+                        "image_pack": "vanilla",
+                        "image_src": "textures/items/apple",
+                        "image_tooltip": "an apple",
+                        "image_visible": true,
+                        "image_width": 20,
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "2"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Images"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 4,
+            "instance": 3673882970
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3673882970",
+            "path": "layout[1].image_src",
+            "value": "textures/items/carrot",
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "DataStoreUpdate",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3673882970",
+            "path": "layout[1].image_width",
+            "value": 40,
+            "propertyUpdateCount": 1,
+            "pathUpdateCount": 1
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 4
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3673882970",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_2807887435",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "button_visible": true,
+                        "label": "x",
+                        "onClick": 0,
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Client closes"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 5,
+            "instance": 2807887435
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_2807887435",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4123852105",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "layout": {
+                    "length": {
+                        "$int64": "0"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Close button"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 6,
+            "instance": 4123852105
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4123852105",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3828669555",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "l",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Busy"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 7,
+            "instance": 3828669555
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3828669555",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_164689230",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "l",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Invalid"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 8,
+            "instance": 164689230
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_164689230",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4191242507",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "l",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Every screen"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 9,
+            "instance": 4191242507
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_4191242507",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_586751814",
+            "updateCount": 1,
+            "value": {
+                "body": "Pick one",
+                "button1": {
+                    "label": "Yes",
+                    "onClick": 0,
+                    "tooltip": "tip yes",
+                    "visible": true
+                },
+                "button2": {
+                    "label": "No",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button3": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "is_horizontal": false,
+                "is_vertical": true,
+                "style_id": "modalForm",
+                "title": "Message"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:message_box",
+            "formId": 10,
+            "instance": 586751814
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_586751814",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_2475673042",
+            "updateCount": 1,
+            "value": {
+                "body": "Pick one",
+                "button1": {
+                    "label": "Yes",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button2": {
+                    "label": "No",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button3": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "is_horizontal": false,
+                "is_vertical": true,
+                "style_id": "modalForm",
+                "title": "Message"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:message_box",
+            "formId": 11,
+            "instance": 2475673042
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_2475673042",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_3614609119",
+            "updateCount": 1,
+            "value": {
+                "body": "",
+                "button1": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button2": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button3": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "is_horizontal": false,
+                "is_vertical": true,
+                "style_id": "modalForm",
+                "title": "Empty"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:message_box",
+            "formId": 12,
+            "instance": 3614609119
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_3614609119",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_2854909752",
+            "updateCount": 1,
+            "value": {
+                "body": "b",
+                "button1": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button2": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": true
+                },
+                "button3": {
+                    "label": "",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "is_horizontal": false,
+                "is_vertical": true,
+                "style_id": "modalForm",
+                "title": "Busy"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:message_box",
+            "formId": 13,
+            "instance": 2854909752
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "message_box_data_2854909752",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3611437101",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "x",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Untouched"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 14,
+            "instance": 3611437101
+        },
+        {
+            "packet": "ClientboundCloseForm"
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 14
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_3611437101",
+            "updateCount": 2,
+            "value": null
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_790460320",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "x",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Unacknowledged"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 15,
+            "instance": 790460320
+        },
+        {
+            "packet": "CloseScreen",
+            "formId": 15
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_2199490304",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "x",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Second"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 16,
+            "instance": 2199490304
+        },
+        {
+            "packet": "DataStoreChange",
+            "dataStore": "minecraft",
+            "property": "custom_form_data_466160054",
+            "updateCount": 1,
+            "value": {
+                "closeButton": {
+                    "button_visible": true,
+                    "label": "Close",
+                    "onClick": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "0": {
+                        "label_visible": true,
+                        "text": "x",
+                        "visible": true
+                    },
+                    "length": {
+                        "$int64": "1"
+                    }
+                },
+                "style_id": "modalForm",
+                "title": "Goodbye"
+            }
+        },
+        {
+            "packet": "ShowScreen",
+            "screenId": "minecraft:custom_form",
+            "formId": 17,
+            "instance": 466160054
+        }
+    ]
+}
