@@ -8,9 +8,14 @@ import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 import type { ClimateEntry } from '@jsprismarine/worldgen';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
+import { readCraftingData } from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
+import type { CraftingData } from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 
 import type { GenerationCorpusGolden } from './generation/golden.ts';
 import { GENERATION_CORPUS_FORMAT } from './generation/golden.ts';
+import { isRecord } from './isRecord.ts';
+import { unpackVanillaDatapack } from './javaDatapack.ts';
 import { GENERATION_CORPUS_PATH, REFERENCES, REFERENCE_WORLD_PATH, pinnedJavaDataVersion } from './references.ts';
 
 /**
@@ -604,3 +609,69 @@ export const loadGenerationCorpus = (): GenerationCorpusGolden => {
 
     return golden;
 };
+
+/** The cooking recipe types a furnace, blast furnace or smoker makes. */
+const FURNACE_RECIPE_TYPES = ['minecraft:smelting', 'minecraft:blasting', 'minecraft:smoking'] as const;
+
+/** One furnace recipe of Java's vanilla datapack, read from its own file. */
+export interface JavaFurnaceRecipe {
+    /** The recipe id, as `minecraft:<file name>`. */
+    readonly id: string;
+    readonly type: (typeof FURNACE_RECIPE_TYPES)[number];
+    /** The recipe's `experience`, which Java's codec defaults to 0 when the file leaves it out. */
+    readonly experience: number;
+    /** Every Java item the ingredient accepts, with each `#tag` read from the datapack's item tags. */
+    readonly items: readonly string[];
+}
+
+/** The items an item tag of the vanilla datapack lists, following the tags it names. */
+const javaItemTagMembers = (datapack: string, tag: string, seen = new Set<string>()): string[] => {
+    if (seen.has(tag)) return [];
+    seen.add(tag);
+    const parsed = readJson(
+        join(datapack, 'data', 'minecraft', 'tags', 'item', `${tag.replace(/^minecraft:/, '')}.json`)
+    );
+    const values = isRecord(parsed) && Array.isArray(parsed['values']) ? parsed['values'] : [];
+    return values.flatMap((value: unknown) => {
+        const entry = isRecord(value) ? value['id'] : value;
+        if (typeof entry !== 'string') return [];
+        return entry.startsWith('#') ? javaItemTagMembers(datapack, entry.slice(1), seen) : [entry];
+    });
+};
+
+/**
+ * Reads every furnace, blast furnace and smoker recipe out of the pinned Java release's vanilla
+ * datapack, independently of the server's own recipe loader.
+ */
+export const loadJavaFurnaceRecipes = (): JavaFurnaceRecipe[] => {
+    const datapack = unpackVanillaDatapack();
+    const root = join(datapack, 'data', 'minecraft', 'recipe');
+    return readdirSync(root)
+        .filter((file) => file.endsWith('.json'))
+        .sort()
+        .flatMap((file): JavaFurnaceRecipe[] => {
+            const parsed = readJson(join(root, file));
+            if (!isRecord(parsed)) return [];
+            const type = FURNACE_RECIPE_TYPES.find((candidate) => candidate === parsed['type']);
+            if (type === undefined) return [];
+            const ingredient = parsed['ingredient'];
+            const names = (Array.isArray(ingredient) ? ingredient : [ingredient]).filter(
+                (name): name is string => typeof name === 'string'
+            );
+            const experience = parsed['experience'];
+            return [
+                {
+                    id: `minecraft:${file.slice(0, -'.json'.length)}`,
+                    type,
+                    experience: typeof experience === 'number' ? experience : 0,
+                    items: names.flatMap((name) =>
+                        name.startsWith('#') ? javaItemTagMembers(datapack, name.slice(1)) : [name]
+                    )
+                }
+            ];
+        });
+};
+
+/** The `CraftingData` the pinned Bedrock Dedicated Server sent a joining client. */
+export const loadCraftingDataCapture = (): CraftingData =>
+    readCraftingData(new NetworkBinaryStream(readFileSync(bedrockCapture('wire/0x34.bin'))));
