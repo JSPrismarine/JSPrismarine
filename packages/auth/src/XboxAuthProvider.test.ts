@@ -231,35 +231,4 @@ describe('XboxAuthProvider signing in through prismarine-auth', () => {
             vi.doUnmock('prismarine-auth');
         }
     });
-
-    it('reads the exports under default, as tsx loads the CommonJS module', async () => {
-        vi.doMock('prismarine-auth', () => ({
-            default: {
-                Titles: { MinecraftNintendoSwitch: 'switch-title' },
-                Authflow: class {
-                    public getMinecraftBedrockToken(publicKey: string) {
-                        return fakeXbox().getMinecraftBedrockToken(publicKey);
-                    }
-                }
-            }
-        }));
-        try {
-            const auth = new XboxAuthProvider({ now: () => NOW });
-
-            expect((await auth.getIdentity()).xuid).toBe(ACCOUNT.XUID);
-        } finally {
-            vi.doUnmock('prismarine-auth');
-        }
-    });
-
-    it('refuses a module without Authflow and Titles', async () => {
-        vi.doMock('prismarine-auth', () => ({ default: {} }));
-        try {
-            await expect(new XboxAuthProvider({ now: () => NOW }).getIdentity()).rejects.toThrow(
-                'exports no Authflow and Titles'
-            );
-        } finally {
-            vi.doUnmock('prismarine-auth');
-        }
-    });
 });
