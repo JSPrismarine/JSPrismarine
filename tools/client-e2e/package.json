@@ -13,6 +13,7 @@
     },
     "devDependencies": {
         "@jridgewell/trace-mapping": "^0.3.31",
+        "@jsprismarine/packs": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.0.0"
     }
 }
