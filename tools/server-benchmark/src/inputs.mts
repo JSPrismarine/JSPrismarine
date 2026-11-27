@@ -29,7 +29,8 @@ export const INPUT_GLOBS = [
     'scripts/native/**',
     'pnpm-lock.yaml',
     '.nvmrc',
-    '.github/workflows/benchmark.yml'
+    '.github/workflows/benchmark.yml',
+    '.github/workflows/executables.yml'
 ] as const;
 
 /** A glob as GitHub reads one: `**` crosses directories, `*` does not. */

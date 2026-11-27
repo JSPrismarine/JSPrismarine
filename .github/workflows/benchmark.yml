@@ -38,6 +38,7 @@ on:
             - 'pnpm-lock.yaml'
             - '.nvmrc'
             - '.github/workflows/benchmark.yml'
+            - '.github/workflows/executables.yml'
     workflow_dispatch:
         inputs:
             rounds:
@@ -59,16 +60,11 @@ permissions:
     contents: read
 
 jobs:
-    benchmark:
-        name: ⏱️ Benchmark the servers
-        # A fixed image rather than `ubuntu-latest`, so runs compare on the same system. The CPU
-        # model still varies between GitHub's machines; every results file records the one it got.
+    gate:
+        name: 🚦 Decide whether to measure
         runs-on: ubuntu-26.04
-        timeout-minutes: 300
-        env:
-            ROUNDS: ${{ inputs.rounds || '5' }}
         outputs:
-            measured: ${{ steps.bench.outcome == 'success' }}
+            measure: ${{ steps.inputs.outputs.measure == 'true' }}
         steps:
             # A push or scheduled run that benchmarked uploads the `server-benchmark` artifact, and a
             # dispatch uploads `server-benchmark-dispatch`, so the `server-benchmark` artifacts made in
@@ -100,13 +96,15 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: 📦 Install
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               if: steps.limit.outputs.run == 'true'
-              uses: ./.github/common/install
+              with:
+                  node-version-file: '.nvmrc'
 
             # The history keeps one point per change, so a run whose inputs match the newest
             # results file on master would only measure what is already there. `inputs.mts` holds
-            # the list of inputs, the same globs as the push `paths` above. A dispatch always measures.
+            # the list of inputs, the same globs as the push `paths` above, and needs nothing but
+            # Node.js and Git. A dispatch always measures.
             - name: 🔎 Compare the inputs with the newest results
               id: inputs
               if: steps.limit.outputs.run == 'true'
@@ -114,27 +112,56 @@ jobs:
                   EVENT: ${{ github.event_name }}
               run: |
                   set -euo pipefail
+                  if [ "$EVENT" = "workflow_dispatch" ]; then
+                      echo "measure=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
                   changed="$(node tools/server-benchmark/src/inputs.mts docs/research/benchmarks)"
                   echo "$changed"
-                  if [ "$EVENT" = "workflow_dispatch" ] || [ "$changed" = "changed=true" ]; then
+                  if [ "$changed" = "changed=true" ]; then
                       echo "measure=true" >> "$GITHUB_OUTPUT"
                   else
                       echo "measure=false" >> "$GITHUB_OUTPUT"
                       echo "::notice::Skipped: nothing that can move a figure changed since the newest results file."
                   fi
 
-            # JSPrismarine's default overworld needs Mojang's world generation data, which the Java
-            # data generator writes. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
-            - name: ☕ Setup JDK
-              if: steps.inputs.outputs.measure == 'true'
-              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
-              with:
-                  distribution: temurin
-                  java-version: '25'
+    # Users run the executable, so the benchmark measures the Linux x64 executable the nightly
+    # ships, built from this commit by the workflow that builds the nightly's.
+    executable:
+        name: 🚚 Build the executable
+        needs: gate
+        if: needs.gate.outputs.measure == 'true'
+        permissions:
+            contents: read
+        uses: ./.github/workflows/executables.yml
+        secrets: inherit
+        with:
+            build-type: nightly
+            version: 0.0.0-benchmark.${{ github.sha }}
+            targets: '["bun-linux-x64"]'
 
-            # The test workflow's keys, so a master run reuses what it stored.
+    benchmark:
+        name: ⏱️ Benchmark the servers
+        needs: executable
+        # A fixed image rather than `ubuntu-latest`, so runs compare on the same system. The CPU
+        # model still varies between GitHub's machines; every results file records the one it got.
+        runs-on: ubuntu-26.04
+        timeout-minutes: 300
+        env:
+            ROUNDS: ${{ inputs.rounds || '5' }}
+        outputs:
+            measured: ${{ steps.bench.outcome == 'success' }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # The test workflow's keys, so a master run reuses what it stored. The harness runs the
+            # pinned Bedrock Dedicated Server and hands its behavior packs to the executable.
             - name: Cache the fetched sources
-              if: steps.inputs.outputs.measure == 'true'
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/jsprismarine
@@ -143,49 +170,28 @@ jobs:
                       ${{ runner.os }}-jsp-sources-
 
             - name: ⬇️ Fetch the pinned sources
-              if: steps.inputs.outputs.measure == 'true'
               run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 
-            # What `pnpm run dev` prepares before it starts a server: the world generation data and
-            # the pack of entities and other content from the pinned Bedrock Dedicated Server.
-            - name: 🌍 Prepare the server's data
-              if: steps.inputs.outputs.measure == 'true'
-              run: |
-                  pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
-                  pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack
-
+            # The bots run on the built client.
             - name: 🔨 Build
-              if: steps.inputs.outputs.measure == 'true'
-              run: pnpm exec turbo run build --filter=@jsprismarine/server --filter=@jsprismarine/client --env-mode=loose
+              run: pnpm exec turbo run build --filter=@jsprismarine/client --env-mode=loose
 
-            # Users run the executable, so the benchmark measures the Bun AOT build the nightly ships,
-            # compiled from this commit with the same Bun the executables workflow uses.
-            - name: 🐰 Setup Bun
-              if: steps.inputs.outputs.measure == 'true'
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+            - name: 📥 Download the executable
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
-                  bun-version: canary
+                  name: prismarine-bun-linux-x64
+                  path: ${{ runner.temp }}/executable
 
-            # Writes the BUILD_* stamps to the environment of the steps after it.
-            - name: 🏷️ Set build metadata
-              if: steps.inputs.outputs.measure == 'true'
-              env:
-                  BUILD_TYPE: nightly
-                  BUILD_VERSION: 0.0.0-benchmark.${{ github.sha }}
-              run: node .github/scripts/set-build-metadata.mjs
-
-            - name: 🗃️ Compile the executable
-              if: steps.inputs.outputs.measure == 'true'
+            # An artifact loses the execute bit.
+            - name: 🗃️ Install the executable
               run: |
-                  bun --version
-                  node .github/scripts/build-aot.mjs bun-linux-x64 "$RUNNER_TEMP/prismarine"
+                  install -m 755 "$RUNNER_TEMP/executable/prismarine-linux-x64" "$RUNNER_TEMP/prismarine"
 
             # Outside the checkout, so an upload never picks up a results file already in the repository.
             # JSPrismarine runs over NetherNet only: one process serves both transports, and a RakNet
             # run would add a third to every round for figures the NetherNet run already gives.
             - name: ⏱️ Run the benchmark
               id: bench
-              if: steps.inputs.outputs.measure == 'true'
               run: pnpm run bench:servers --rounds "$ROUNDS" --servers jsprismarine-nethernet,bds,pumpkin --jsp-executable "$RUNNER_TEMP/prismarine" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
 
             # Only a run whose benchmark step started uploads the artifact the run limit counts, so a
