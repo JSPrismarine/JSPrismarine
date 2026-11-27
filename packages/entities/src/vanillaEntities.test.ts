@@ -97,7 +97,7 @@ const JAVA_STAT_DISAGREEMENTS = 151;
  * phantom's attack damage is one such exception: Java's dump holds the monster
  * default of 2, and `Phantom.updatePhantomSizeInfo` sets 6 plus the size.
  */
-const RESOLVED_TO_JAVA = 32;
+const RESOLVED_TO_JAVA = 33;
 
 /**
  * Components the host reads without a component hook.
