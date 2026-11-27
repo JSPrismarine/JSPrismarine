@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->75<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->76<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -17,7 +17,7 @@ commands the server registers, so it lists exactly what a server of this version
 A player needs two things to run a command, and the table shows both.
 
 The **permission** column is the node in `permissions.json`. A fresh `permissions.json` lets every
-player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/tps`, `/unlink` and `/version`<!-- /fact -->, through the `default` group every player
+player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/plugins`, `/tps`, `/unlink` and `/version`<!-- /fact -->, through the `default` group every player
 holds, and grants every operator `*` through the `operator` group, which covers every node. To let
 a player run something else, add the node to their user record or to a group they hold; the
 [permissions section of the running guide](running.md#permissions) explains the file. A node
@@ -119,6 +119,10 @@ remote console, so nobody adds code to a server from inside the game.
   linked rather than copied, so an edit to it shows after `/reload`. An `.mcaddon` installs its
   behavior pack.
 
+Players see what is installed with `/plugins`, or `/pl`, as on Spigot and Paper. It prints the
+count and then the installed addons under an `Addons` heading, each name in green. Like Spigot and
+Paper, every player may run it.
+
 An `.mcaddon` or `.mcpack` you place in the `addons/` folder installs at the next start, `/reload`
 or `addon sync`, as if you had installed its path.
 
@@ -189,6 +193,7 @@ does the same thing.
 | `/perms`                   | Manages the groups and users of permissions.json.                                                         | `jsprismarine.command.perms`      | 0     | Operators   |
 | `/playanimation`           | Makes one or more entities play a one-off animation.                                                      | `minecraft.command.playanimation` | 1     | Operators   |
 | `/playsound`               | Plays a sound.                                                                                            | `minecraft.command.playsound`     | 1     | Operators   |
+| `/plugins`, `/pl`          | Lists the plugins and addons running on the server.                                                       | `jsprismarine.command.plugins`    | 0     | Everyone    |
 | `/random`                  | Draws from a reproducible random sequence.                                                                | `minecraft.command.random`        | 0     | Operators   |
 | `/recipe`                  | Unlocks or locks recipes.                                                                                 | `minecraft.command.recipe`        | 1     | Operators   |
 | `/reload`                  | Reloads the server data.                                                                                  | `minecraft.command.reload`        | 2     | Operators   |

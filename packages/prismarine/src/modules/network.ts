@@ -501,8 +501,8 @@ export class ServerNetworking implements Networking {
                 : { gameId: 'MINECRAFTPE', version: serverName.getVersion(), hostPort: serverName.getPort() }),
             software: softwareLabel(),
             plugins: server
-                .getAddons()
-                .loadedAddons()
+                .getPlugins()
+                .plugins()
                 .map(({ name, version }) => `${name} ${version}`),
             map: config.getLevelName(),
             onlinePlayers: serverName.getOnlinePlayerCount(),
