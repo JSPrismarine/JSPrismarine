@@ -2784,11 +2784,6 @@
             "reason": "BlockPos.rotate changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructureEndCity.ts, packages/prismarine/src/world/generators/datadriven/javaStructureMansion.ts then.",
             "reference": "Java 26.4-pre-1"
         },
-        "preview:BlockPos.spiralAround": {
-            "kind": "deferred",
-            "reason": "BlockPos.spiralAround changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/biomeSearch.ts then.",
-            "reference": "Java 26.4-pre-1"
-        },
         "preview:Blocks.SNOW": {
             "kind": "deferred",
             "reason": "Blocks.SNOW changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/data/EntityRuntime.ts then.",

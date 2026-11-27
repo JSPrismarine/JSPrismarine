@@ -240,7 +240,7 @@ Written by `pnpm run bringup:java --java 26.4-pre-1`, which fingerprints every m
 
 | Tagged members | Changed | Gone or moved | Unchanged |
 | -------------- | ------- | ------------- | --------- |
-| 657 | 81 | 8 | 568 |
+| 672 | 84 | 8 | 580 |
 
 Read each change against the code that tags it, fix the copy where Java changed, and
 restamp with `java:sources --update --java 26.4-pre-1 --reviewed <spelling>`. The
@@ -550,7 +550,7 @@ Tagged at `packages/prismarine/src/world/generators/datadriven/javaStructureEndC
 
 #### `BlockPos.spiralAround`
 
-Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:124`.
+Tagged at `packages/block-behaviors/src/geometry.ts:101`.
 
 ```diff
     areturn
@@ -950,7 +950,7 @@ Tagged at `packages/block-behaviors/src/families/redstone.ts:525`.
 
 #### `DragonSittingScanningPhase.doServerTick`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:663`.
+Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:745`.
 
 ```diff
     ldc2_w double -100
@@ -1105,7 +1105,7 @@ Tagged at `packages/block-behaviors/src/rules/javaPlacement.ts:364`.
 
 #### `EnderDragon.aiStep`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:787`, `packages/entity-goals/src/goals/dragonPhases.ts:844`.
+Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:863`, `packages/entity-goals/src/goals/dragonPhases.ts:917`, `packages/entity-goals/src/goals/dragonPhases.ts:956`.
 
 ```diff
     invokevirtual net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.getCurrentPhase ()Lnet/minecraft/world/entity/boss/enderdragon/phases/DragonPhaseInstance;
@@ -1174,7 +1174,7 @@ Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:787`, `packages/entit
 
 #### `EnderDragon.findPath`
 
-Tagged at `packages/entity-goals/src/goals/dragonPhases.ts:1051`.
+Tagged at `packages/entity-goals/src/goals/dragonNodes.ts:232`.
 
 ```diff
     areturn
@@ -1479,7 +1479,7 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:8039`.
 
 #### `FlowingFluid.getSpread`
 
-Tagged at `packages/block-behaviors/src/rules/fluid.ts:373`.
+Tagged at `packages/block-behaviors/src/rules/fluid.ts:477`.
 
 ```diff
     sipush 1000
@@ -1582,7 +1582,7 @@ Tagged at `packages/prismarine/src/entity/playerHunger.ts:14`, `packages/prismar
 
 #### `Fox$DefendTrustedTargetGoal.start`
 
-Tagged at `packages/entity-goals/src/goals/targeting.ts:440`.
+Tagged at `packages/entity-goals/src/goals/targeting.ts:439`.
 
 ```diff
     getfield net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.this$0 Lnet/minecraft/world/entity/animal/fox/Fox;
@@ -2415,9 +2415,48 @@ Tagged at `packages/prismarine/src/world/savedMap.ts:73`, `packages/prismarine/s
     aload_0
 ```
 
+#### `Mth.cos`
+
+Tagged at `packages/entity-goals/src/javaMth.ts:36`.
+
+```diff
+  method net/minecraft/util/Mth.cos(D)F
++   dload_0
++   dconst_0
++   dcmpl
++   iflt L18
+    getstatic net/minecraft/util/Mth.SIN [F
+    dload_0
+…
+    ldc2_w double 16384
+    dadd
++   ldc2_w double 0.5
++   dadd
+    d2l
+    ldc2_w long 65535
+…
+    faload
+    freturn
++   getstatic net/minecraft/util/Mth.SIN [F
++   dload_0
++   dneg
++   ldc2_w double 10430.378350470453
++   dmul
++   ldc2_w double 16384
++   dadd
++   ldc2_w double 0.5
++   dadd
++   d2l
++   ldc2_w long 65535
++   land
++   l2i
++   faload
++   freturn
+```
+
 #### `Mth.outFromOrigin(IIII)Ljava/util/stream/IntStream;`
 
-Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:93`.
+Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:94`.
 
 ```diff
     athrow
@@ -2429,6 +2468,43 @@ Tagged at `packages/prismarine/src/world/generators/datadriven/biomeSearch.ts:93
 +   invokestatic java/lang/Math.clamp (JII)I
     istore 4
     iload 4
+```
+
+#### `Mth.sin`
+
+Tagged at `packages/entity-goals/src/javaMth.ts:28`.
+
+```diff
+  method net/minecraft/util/Mth.sin(D)F
++   dload_0
++   dconst_0
++   dcmpl
++   iflt L16
+    getstatic net/minecraft/util/Mth.SIN [F
+    dload_0
+    ldc2_w double 10430.378350470453
+    dmul
++   ldc2_w double 0.5
++   dadd
+    d2l
+    ldc2_w long 65535
+…
+    faload
+    freturn
++   getstatic net/minecraft/util/Mth.SIN [F
++   dload_0
++   dneg
++   ldc2_w double 10430.378350470453
++   dmul
++   ldc2_w double 0.5
++   dadd
++   d2l
++   ldc2_w long 65535
++   land
++   l2i
++   faload
++   fneg
++   freturn
 ```
 
 #### `MushroomBlock.canSurvive`
@@ -2647,7 +2723,7 @@ Tagged at `packages/prismarine/src/entity/data/poi.ts:140`.
 
 #### `PortalForcer.createPortal`
 
-Tagged at `packages/block-behaviors/src/rules/portal.ts:466`, `packages/prismarine/src/world/portal/create.ts:28`.
+Tagged at `packages/block-behaviors/src/rules/portal.ts:561`, `packages/prismarine/src/world/portal/create.ts:28`.
 
 ```diff
     ldc2_w double -1
@@ -3396,6 +3472,26 @@ Tagged at `packages/prismarine/src/entity/data/EntityRuntime.ts:3246`.
 
 22 more lines. `java:sources --list 'Warden$VibrationUser.onReceiveVibration'` prints the listing under each `--java`.
 
+#### `WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;`
+
+Tagged at `packages/block-behaviors/src/rules/portal.ts:537`.
+
+```diff
+    ldc2_w double 0.000009999999747378752
+    dsub
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    dload_3
+    dload 5
+…
+    ldc2_w double 0.000009999999747378752
+    dsub
+-   invokestatic net/minecraft/util/Mth.clamp (DDD)D
++   invokestatic java/lang/Math.clamp (DDD)D
+    invokespecial net/minecraft/world/phys/Vec3.<init> (DDD)V
+    areturn
+```
+
 #### `Zombie.DOOR_BREAKING_PREDICATE`
 
 Tagged at `packages/entity-goals/src/goals/movement.ts:2274`.
@@ -3443,12 +3539,10 @@ bytecode changed in 26.4-pre-1. Read each one and tag it, or note why it does no
 - `net/minecraft/tags/TagKey.create(Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/tags/TagKey;`, called by `BiomeTags.WATER_ON_MAP_OUTLINES`, `BlockTags.DOORS`, `PaintingVariantTags.PLACEABLE`
 - `net/minecraft/util/BlockUtil.clampedPackDifferenceInPosition(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;III)I`, called by `Enderman.teleport(DDD)Z`
 - `net/minecraft/util/ByIdMap.continuous(Ljava/util/function/ToIntFunction;[Ljava/lang/Object;Lnet/minecraft/util/ByIdMap$OutOfBoundsStrategy;)Ljava/util/function/IntFunction;`, called by `DyeColor.BLACK`, `EquipmentSlot.SADDLE`
-- `net/minecraft/util/Mth.clamp(DDD)D`, called by `DragonSittingScanningPhase.doServerTick`, `EnderDragon.aiStep`, `LivingEntity.handleOnClimbable`, `LivingEntity.travel`, `PortalShape.getRelativePosition`, `ShulkerBullet.tick`
+- `net/minecraft/util/Mth.clamp(DDD)D`, called by `DragonSittingScanningPhase.doServerTick`, `EnderDragon.aiStep`, `LivingEntity.handleOnClimbable`, `LivingEntity.travel`, `PortalShape.getRelativePosition`, `ShulkerBullet.tick`, `WorldBorder.clampVec3ToBound(DDD)Lnet/minecraft/world/phys/Vec3;`
 - `net/minecraft/util/Mth.clamp(FFF)F`, called by `BlocksAttacks.resolveBlockedDamage`, `CombatRules.getDamageAfterMagicAbsorb`, `EnderDragon.aiStep`, `LivingEntity.computeModifiedFriction`, `LivingEntity.travel`, `ServerPlayer.setExperiencePoints`, `SulfurCube.knockback`
 - `net/minecraft/util/Mth.clamp(III)I`, called by `PortalForcer.createPortal`
-- `net/minecraft/util/Mth.cos(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `Entity.calculateViewVector`, `LivingEntity.causeExtraKnockback`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
 - `net/minecraft/util/Mth.rotateIfNecessary(FFF)F`, called by `BackUpIfTooClose.create`
-- `net/minecraft/util/Mth.sin(D)F`, called by `Direction.orderedByNearest`, `DragonSittingScanningPhase.doServerTick`, `DragonStrafePlayerPhase.doServerTick`, `EnderDragon.aiStep`, `EnderDragon.findClosestNode()I`, `Entity.calculateViewVector`, `LivingEntity.causeExtraKnockback`, `LivingEntity.travel`, `MapItem.renderBiomePreviewMap`, `Panda$PandaRollGoal.canUse`, `Panda.handleRoll`
 - `net/minecraft/util/ProblemReporter$ScopedCollector.close()V`, called by `FallingBlockEntity.tick`
 - `net/minecraft/util/Util.pauseInIde(Ljava/lang/Throwable;)Ljava/lang/Throwable;`, called by `Entity.move`
 - `net/minecraft/world/damagesource/DamageSources.explosion(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/damagesource/DamageSource;`, called by `EndCrystal.hurtServer`, `EnderDragon.onCrystalDestroyed`

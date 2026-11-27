@@ -495,6 +495,29 @@ export const allowList: readonly AllowListEntry[] = [
         reason: 'The portal stands, as Java keeps a command-written block whose shape update would remove it. The Bedrock Dedicated Server clears it.',
         reference: 'docs/research/portals-and-dimension-travel.md section 1, "Command-written portal blocks"'
     })),
+    // Bedrock writes four netherrack on each side of a forced portal's obsidian platform; Java
+    // writes only the obsidian and the air above it.
+    {
+        family: 'blocks.portals',
+        id: 'bedrock-forced-portal-netherrack',
+        kind: 'intentional',
+        reason: 'A forced portal gets netherrack flanking its platform, as Bedrock builds it. Java writes none.',
+        reference: 'docs/research/portals-and-dimension-travel.md section 1, "Bedrock differs in two places"'
+    },
+    // The portal search asks `isSolidSupport` for a floor where Java asks `BlockState.isSolid`.
+    ...(
+        [
+            'portal-creation:cobweb-cave',
+            'portal-block-rule:minecraft:cobweb#isSolid',
+            'portal-block-rule:minecraft:nether_portal#isSolid'
+        ] as const
+    ).map((id) => ({
+        family: 'blocks.portals' as const,
+        id,
+        kind: 'defect' as const,
+        reason: 'The portal search reads a floor through isSolidSupport, which refuses a cobweb and accepts a portal block, where Java reads the legacy solid flag.',
+        reference: 'issue #3784'
+    })),
 
     ...engineActorEntries(),
     ...experimentalActorEntries(),

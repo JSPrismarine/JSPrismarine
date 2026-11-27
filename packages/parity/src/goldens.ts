@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 import BinaryStream from '@jsprismarine/binaryutils';
+import type { PortalVectorFile } from '@jsprismarine/block-behaviors/rules/portalVectors';
 import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 import type { ClimateEntry } from '@jsprismarine/worldgen';
@@ -252,6 +253,15 @@ export const loadNetworkBiomes = (): NetworkBiome[] => {
 };
 
 const worldgenRoot = packageRoot('@jsprismarine/worldgen');
+const blockBehaviorsRoot = packageRoot('@jsprismarine/block-behaviors');
+
+/**
+ * Reads the layouts `packages/block-behaviors/utils/oracle` ran Java's `PortalForcer.createPortal`
+ * in, with the origin and blocks Java chose in each.
+ */
+export const loadJavaPortalCreationVectors = (): PortalVectorFile =>
+    // Parsed JSON boundary; PortalVectorFile is the dumper's documented shape.
+    readJson(join(blockBehaviorsRoot, 'vectors', javaServerCacheFolder, 'portal-creation.json')) as PortalVectorFile;
 
 /** The Java-sourced properties of one block, as the 26.3 jar dumper wrote them. */
 export interface JavaBlockPropertyRow {

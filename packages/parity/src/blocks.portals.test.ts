@@ -19,6 +19,7 @@ import {
 } from '@jsprismarine/block-behaviors';
 import type { BlockPosition } from '@jsprismarine/blocks';
 import { BLOCK_FACES, PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
+import { portalBlockRuleDifferences, replayPortalVector } from '@jsprismarine/block-behaviors/rules/portalVectors';
 import { bedrockDimensionOverlay } from '@jsprismarine/mapping';
 import { PORTAL_COOLDOWN_TICKS } from '@jsprismarine/prismarine/entity/PortalContact';
 import { DIMENSION_TRAVEL, PORTAL_SEARCH_RADIUS, PORTALS } from '@jsprismarine/prismarine/world/portal/rules';
@@ -28,7 +29,7 @@ import { expect, it } from 'vitest';
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import type { BlockPaletteCapture } from './goldens.ts';
-import { loadBlockPaletteCapture } from './goldens.ts';
+import { loadBlockPaletteCapture, loadJavaPortalCreationVectors } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
@@ -59,6 +60,12 @@ import { parityCase, reportParityCases } from './trackerCases.ts';
  * `DIMENSION_TRAVEL` has no entry for a vanilla id, `constant:<name>` when a table value
  * differs from the number the research note quotes, and `command-portal:<case>` when a nether
  * portal a command writes into a frame does not stand.
+ *
+ * The row also replays the layouts `packages/block-behaviors/utils/oracle` ran Java's
+ * `PortalForcer.createPortal` in: `portal-creation:<layout>` when the port builds somewhere else
+ * or writes other blocks, and `portal-block-rule:<block>#<rule>` when it classifies a block the
+ * layouts use differently from Java. `bedrock-forced-portal-netherrack` records that the port
+ * adds Bedrock's netherrack beside a forced portal's platform, which Java does not write.
  *
  * `bedrock-clears-command-portal:<case>` records a decision rather than a fault. The Bedrock
  * Dedicated Server clears a portal a command writes with an axis other than its frame's, and
@@ -347,6 +354,26 @@ const compareCommandPortals = (): { gaps: string[]; cases: ReturnType<typeof par
     return { gaps, cases };
 };
 
+/**
+ * The port's portal creation in each layout Java's `PortalForcer.createPortal` was run in, and the
+ * block rules its search reads for the layouts' blocks.
+ */
+const comparePortalCreation = (): { gaps: string[]; layouts: number; cases: ReturnType<typeof parityCase>[] } => {
+    const vectors = loadJavaPortalCreationVectors();
+    const gaps: string[] = [];
+    const cases = vectors.cases.map((vector) => {
+        const replay = replayPortalVector(vector, vectors.blockRules);
+        const matched = replay.differences.length === 0;
+        if (!matched) gaps.push(`portal-creation:${vector.name}`);
+        if (replay.netherrackFlanks.length > 0 && !gaps.includes('bedrock-forced-portal-netherrack')) {
+            gaps.push('bedrock-forced-portal-netherrack');
+        }
+        return parityCase(`portal-creation:${vector.name}`, vector.name, 'Nether portal Java creates', matched);
+    });
+    for (const rule of portalBlockRuleDifferences(vectors)) gaps.push(`portal-block-rule:${rule}`);
+    return { gaps, layouts: vectors.cases.length, cases };
+};
+
 describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
     const capture = loadBlockPaletteCapture();
     const portalBlockComparison = comparePortalBlocks(capture);
@@ -355,6 +382,7 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
     const travelComparison = compareTravelRules();
     const constantComparison = compareConstants();
     const commandPortalComparison = compareCommandPortals();
+    const creationComparison = comparePortalCreation();
     const { gaps: linkGaps, links } = linkComparison;
     const { gaps: travelGaps, travelRules } = travelComparison;
     const { gaps: constantGaps, constants, detail: constantDetail } = constantComparison;
@@ -363,14 +391,16 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
         ...linkGaps,
         ...travelGaps,
         ...constantGaps,
-        ...commandPortalComparison.gaps
+        ...commandPortalComparison.gaps,
+        ...creationComparison.gaps
     ]);
     reportParityCases(FAMILIES.blocksPortals, import.meta.filename, [
         ...portalBlockComparison.cases,
         ...linkComparison.cases,
         ...travelComparison.cases,
         ...constantComparison.cases,
-        ...commandPortalComparison.cases
+        ...commandPortalComparison.cases,
+        ...creationComparison.cases
     ]);
     const unexpected = (prefix: string): string[] => verdict.unexpected.filter((gap) => gap.startsWith(prefix));
 
@@ -403,6 +433,14 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
         expect(unexpected('bedrock-clears-command-portal:')).toEqual([]);
     });
 
+    it('creates a nether portal where Java does in every recorded layout', () => {
+        expect([...unexpected('portal-creation:'), ...unexpected('portal-block-rule:')]).toEqual([]);
+    });
+
+    it("records Bedrock's netherrack beside a forced portal as an intentional difference", () => {
+        expect(unexpected('bedrock-forced-portal-netherrack')).toEqual([]);
+    });
+
     it('carries no stale allow-list entry', () => {
         expect(verdict.stale).toEqual([]);
     });
@@ -414,6 +452,7 @@ describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
             links,
             travelRules,
             constants,
+            portalLayouts: creationComparison.layouts,
             paletteBlocks: Object.keys(capture.states).length
         });
         expect(blocks).toBeGreaterThan(0);
