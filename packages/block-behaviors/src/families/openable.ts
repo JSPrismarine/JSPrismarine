@@ -143,9 +143,11 @@ export const doorFamily = defineFamily(
  * face it was clicked against, and a click on the top or bottom of a block
  * opposes the placer's horizontal direction instead. Java skips the clicked
  * face when the placement replaced the clicked block itself, which the event
- * cannot tell apart, so a click on the side of tall grass keeps the face.
+ * cannot tell apart, so a click on the side of tall grass keeps the face
+ * (#3787). A trapdoor placed where redstone power reaches it starts open.
  *
  * @javaSource TrapDoorBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const trapdoorFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => {
     const clicked = HORIZONTAL_FACES.find((face) => face === event.face);
@@ -173,6 +175,10 @@ export const trapdoorFamily = defineFamily(
             const half = placedHalf(event);
             if (half !== undefined && hasState(event.block, 'upside_down_bit')) {
                 patch['upside_down_bit'] = half === 'top';
+            }
+            // Java's placement opens a trapdoor that power reaches, as it does a powered one.
+            if (event.placedBy !== undefined && world.redstonePower(event.block.position) > 0) {
+                patch['open_bit'] = true;
             }
             if (Object.keys(patch).length > 0) setStates(world, event.block, patch);
         },

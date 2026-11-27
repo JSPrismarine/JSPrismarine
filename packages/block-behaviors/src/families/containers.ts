@@ -103,6 +103,7 @@ const singleChestAt = (world: WorldActions, position: BlockPosition, identifier:
  * faces the same way. A sneaking placer never joins a chest beside the one clicked.
  *
  * @javaSource ChestBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const chestPartnerOf = (
     world: WorldActions,

@@ -17,13 +17,16 @@
  * @javaSee Block.getStateForPlacement
  */
 import type { BlockFace, BlockPosition, BlockStateValue, FaceLocation } from '@jsprismarine/blocks';
+import { BLOCK_FACES } from '@jsprismarine/blocks';
 import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
 
 import type { HorizontalFace } from '../geometry';
 import { offset, opposite } from '../geometry';
 import { isReplaceable } from '../identifiers';
+import { mthCos, mthSin } from '../mth';
 import type { WorldActions } from '../world';
+import { isLogName } from './growth';
 import { placedHalf } from './placement';
 import { isSolidSupport } from './support';
 
@@ -66,6 +69,7 @@ const isHorizontal = (face: BlockFace): face is HorizontalFace => HORIZONTAL.som
  * The placer's horizontal direction, Java's `Direction.fromYRot`.
  *
  * @javaSource Direction.fromYRot
+ * @javaVerified vectors
  */
 const horizontalDirection = (yaw: number): HorizontalFace => {
     const quarter = Math.floor(yaw / 90 + 0.5) & 3;
@@ -76,31 +80,38 @@ const horizontalDirection = (yaw: number): HorizontalFace => {
  * The face a quarter turn clockwise, seen from above, Java's `Direction.getClockWise`.
  *
  * @javaSource Direction.getClockWise()Lnet/minecraft/core/Direction;
+ * @javaVerified vectors
  */
 const clockwise = (face: HorizontalFace): HorizontalFace =>
     (({ north: 'east', east: 'south', south: 'west', west: 'north' }) as const)[face];
+
+/** Java's `(float) (Math.PI / 180.0)`, the degrees-to-radians factor `orderedByNearest` multiplies by. */
+const RADIANS_PER_DEGREE = Math.fround(Math.PI / 180);
 
 /**
  * The six directions ordered by how near each is to where the placer looks, Java's
  * `Direction.orderedByNearest`.
  *
  * @javaSource Direction.orderedByNearest
+ * @javaVerified vectors
  */
 export const orderedByNearest = (yaw: number, pitch: number): readonly BlockFace[] => {
-    const xRot = (pitch * Math.PI) / 180;
-    const yRot = (-yaw * Math.PI) / 180;
-    const pitchSin = Math.sin(xRot);
-    const pitchCos = Math.cos(xRot);
-    const yawSin = Math.sin(yRot);
-    const yawCos = Math.cos(yRot);
+    // Java works in single precision and reads its sine table, which is what settles a look
+    // exactly between two directions.
+    const xRot = Math.fround(Math.fround(pitch) * RADIANS_PER_DEGREE);
+    const yRot = Math.fround(-Math.fround(yaw) * RADIANS_PER_DEGREE);
+    const pitchSin = mthSin(xRot);
+    const pitchCos = mthCos(xRot);
+    const yawSin = mthSin(yRot);
+    const yawCos = mthCos(yRot);
     const xPos = yawSin > 0;
     const yPos = pitchSin < 0;
     const zPos = yawCos > 0;
     const xYaw = xPos ? yawSin : -yawSin;
     const yMag = yPos ? -pitchSin : pitchSin;
     const zYaw = zPos ? yawCos : -yawCos;
-    const xMag = xYaw * pitchCos;
-    const zMag = zYaw * pitchCos;
+    const xMag = Math.fround(xYaw * pitchCos);
+    const zMag = Math.fround(zYaw * pitchCos);
     const axisX: BlockFace = xPos ? 'east' : 'west';
     const axisY: BlockFace = yPos ? 'up' : 'down';
     const axisZ: BlockFace = zPos ? 'south' : 'north';
@@ -125,6 +136,7 @@ export const orderedByNearest = (yaw: number, pitch: number): readonly BlockFace
  * block moved to the front unless the placement replaces the clicked block.
  *
  * @javaSource BlockPlaceContext.getNearestLookingDirections
+ * @javaVerified vectors
  */
 export const nearestLookingDirections = (input: PlacementInput): readonly BlockFace[] => {
     const ordered = orderedByNearest(input.yaw, input.pitch);
@@ -137,6 +149,7 @@ export const nearestLookingDirections = (input: PlacementInput): readonly BlockF
  * Java's `RotationSegment.convertToSegment`, sixteen segments of a turn.
  *
  * @javaSource RotationSegment.convertToSegment(F)I
+ * @javaVerified vectors
  */
 const rotationSegment = (degrees: number): number => Math.floor((degrees * 16) / 360 + 0.5) & 15;
 
@@ -164,6 +177,13 @@ const supports = (input: PlacementInput, face: BlockFace): boolean => {
     }
     return isSolidSupport(input.world, position);
 };
+
+/**
+ * Whether redstone power reaches the position, as Java's placement asks of the level.
+ *
+ * @javaSee SignalGetter.hasNeighborSignal
+ */
+const powered = (input: PlacementInput): boolean => input.world.redstonePower(input.position) > 0;
 
 const withProperties = (java: JavaState, properties: Readonly<Record<string, string>>): JavaState => ({
     name: java.name,
@@ -210,6 +230,7 @@ const wallSupported = (input: PlacementInput, toward: HorizontalFace): boolean =
  * the floor or ceiling turned the way the placer looks, or a wall faced away from.
  *
  * @javaSource FaceAttachedHorizontalDirectionalBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const faceAttached: PlacementRule = (input, java) => {
     for (const direction of nearestLookingDirections(input)) {
@@ -231,6 +252,7 @@ const faceAttached: PlacementRule = (input, java) => {
  * hung between two walls when both sides hold it.
  *
  * @javaSource BellBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const bell: PlacementRule = (input, java) => {
     const clicked = input.face;
@@ -258,6 +280,7 @@ const bell: PlacementRule = (input, java) => {
  * nearest the look.
  *
  * @javaSource LadderBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const ladder: PlacementRule = (input, java) => {
     if (!input.replacingClicked) {
@@ -276,6 +299,7 @@ const ladder: PlacementRule = (input, java) => {
  * already pointing that way.
  *
  * @javaSource EndRodBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const endRod: PlacementRule = (input, java) => {
     const behind = input.world.getBlock(offset(input.position, opposite(input.face)));
@@ -285,21 +309,24 @@ const endRod: PlacementRule = (input, java) => {
 };
 
 /**
- * A crafter's front faces the placer, and its top is up unless the front is.
+ * A crafter's front faces the placer, and its top is up unless the front is. It starts triggered
+ * when it is placed powered.
  *
  * @javaSource CrafterBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const crafter: PlacementRule = (input, java) => {
     const front = opposite(orderedByNearest(input.yaw, input.pitch)[0] ?? 'north');
     const horizontal = horizontalDirection(input.yaw);
     const top = front === 'down' ? opposite(horizontal) : front === 'up' ? horizontal : 'up';
-    return withProperties(java, { orientation: `${front}_${top}` });
+    return withProperties(java, { orientation: `${front}_${top}`, triggered: String(powered(input)) });
 };
 
 /**
- * The rotation a standing sign, banner or head takes: the segment the placer looks away from.
+ * The rotation a standing sign or banner takes: the segment the placer looks away from.
  *
  * @javaSource StandingSignBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const rotation = (input: PlacementInput, java: JavaState): JavaState =>
     withProperties(java, { rotation: String(placedRotationSegment(input.yaw)) });
@@ -308,17 +335,61 @@ const rotation = (input: PlacementInput, java: JavaState): JavaState =>
 const standingOnGround: PlacementRule = (input, java) => (supports(input, 'down') ? rotation(input, java) : null);
 
 /**
- * A ceiling hanging sign hangs from the block above, turned to face the placer.
+ * The compass direction a sixteenth of a turn points, for the four that point one.
+ *
+ * @javaSource RotationSegment.convertToDirection
+ * @javaVerified vectors
+ */
+const SEGMENT_DIRECTIONS: Readonly<Record<string, HorizontalFace>> = { 0: 'north', 4: 'east', 8: 'south', 12: 'west' };
+
+/**
+ * The sixteenth of a turn a compass direction points.
+ *
+ * @javaSource RotationSegment.convertToSegment(Lnet/minecraft/core/Direction;)I
+ * @javaVerified vectors
+ */
+const SEGMENT_OF: Readonly<Record<HorizontalFace, number>> = { south: 0, west: 4, north: 8, east: 12 };
+
+/** Whether two horizontal directions lie on one axis. */
+const sameAxis = (a: HorizontalFace, b: HorizontalFace): boolean => a === b || a === opposite(b);
+
+/**
+ * A ceiling hanging sign hangs from the block above. It hangs from a chain on each side,
+ * squared to the four directions and facing the placer, under a block with a full underside;
+ * under anything else, or for a sneaking placer, it is attached by one chain and turns to any of
+ * the sixteenth turns. It also hangs under another hanging sign, and keeps the two chains under
+ * one on the same axis.
  *
  * @javaSource CeilingHangingSignBlock.getStateForPlacement
+ * @javaVerified vectors
  */
-const ceilingHangingSign: PlacementRule = (input, java) =>
-    supports(input, 'up') ? withProperties(rotation(input, java), { attached: 'false' }) : null;
+const ceilingHangingSign: PlacementRule = (input, java) => {
+    const abovePosition = offset(input.position, 'up');
+    const aboveBlock = input.world.getBlock(abovePosition);
+    const above = aboveBlock === undefined ? undefined : javaStateOf(aboveBlock.identifier, aboveBlock.states);
+    // A hanging sign holds another below it, which Java's center-sturdy underside test allows.
+    if (!supports(input, 'up') && above?.name.endsWith('_hanging_sign') !== true) return null;
+    const direction = horizontalDirection(input.yaw);
+    const fullUnderside =
+        aboveBlock !== undefined &&
+        (input.world.isFullCube?.(aboveBlock) ?? isSolidSupport(input.world, abovePosition));
+    let attached = !fullUnderside || input.sneaking;
+    if (above?.name.endsWith('_hanging_sign') === true && !input.sneaking) {
+        const facing = above.properties['facing'];
+        const facingAbove = HORIZONTAL.find((side) => side === facing);
+        const rotated = SEGMENT_DIRECTIONS[above.properties['rotation'] ?? ''];
+        const along = facing === undefined ? rotated : facingAbove;
+        if (along !== undefined && sameAxis(along, direction)) attached = false;
+    }
+    const segment = attached ? placedRotationSegment(input.yaw) : SEGMENT_OF[opposite(direction)];
+    return withProperties(java, { attached: String(attached), rotation: String(segment) });
+};
 
 /**
  * A bed faces the way the placer looks, and needs room for its head in that direction.
  *
  * @javaSource AbstractBedBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const bed: PlacementRule = (input, java) => {
     const facing = horizontalDirection(input.yaw);
@@ -327,20 +398,152 @@ const bed: PlacementRule = (input, java) => {
 };
 
 /**
+ * Whether a wall hanging sign facing a way can hang from the block on one side: another wall
+ * hanging sign on the same axis, or a block whose face toward the sign is sturdy, which the
+ * world answers as a full cube.
+ *
+ * @javaSource WallHangingSignBlock.canAttachTo
+ * @javaVerified vectors
+ */
+const hangsFrom = (input: PlacementInput, facing: HorizontalFace, side: HorizontalFace): boolean => {
+    const position = offset(input.position, side);
+    const block = input.world.getBlock(position);
+    if (block === undefined) return false;
+    const java = javaStateOf(block.identifier, block.states);
+    if (java?.name.endsWith('_wall_hanging_sign') === true) {
+        const along = HORIZONTAL.find((face) => face === java.properties['facing']);
+        return along !== undefined && sameAxis(along, facing);
+    }
+    return input.world.isFullCube?.(block) ?? isSolidSupport(input.world, position);
+};
+
+/**
  * A wall hanging sign hangs from a wall beside it, on an axis across the clicked face.
  *
  * @javaSource WallHangingSignBlock.getStateForPlacement
+ * @javaSource WallHangingSignBlock.canPlace
+ * @javaVerified vectors
  */
 const wallHangingSign: PlacementRule = (input, java) => {
     for (const direction of nearestLookingDirections(input)) {
         if (!isHorizontal(direction)) continue;
-        if (isHorizontal(input.face) && (direction === input.face || direction === opposite(input.face))) continue;
+        if (isHorizontal(input.face) && sameAxis(direction, input.face)) continue;
         const facing = opposite(direction);
-        if (supports(input, clockwise(facing)) || supports(input, opposite(clockwise(facing)))) {
+        if (hangsFrom(input, facing, clockwise(facing)) || hangsFrom(input, facing, opposite(clockwise(facing)))) {
             return withProperties(java, { facing });
         }
     }
     return null;
+};
+
+/** The Java state of the block beside a position, or undefined for one no Java block maps onto. */
+const javaNeighbor = (input: PlacementInput, face: BlockFace): JavaState | undefined => {
+    const block = input.world.getBlock(offset(input.position, face));
+    return block === undefined ? undefined : javaStateOf(block.identifier, block.states);
+};
+
+/**
+ * A big dripleaf continues the facing of the dripleaf or stem it grows on, and otherwise faces
+ * the placer.
+ *
+ * @javaSource BigDripleafBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const bigDripleaf: PlacementRule = (input, java) => {
+    const below = javaNeighbor(input, 'down');
+    const continued =
+        below?.name === 'minecraft:big_dripleaf' || below?.name === 'minecraft:big_dripleaf_stem'
+            ? HORIZONTAL.find((side) => side === below.properties['facing'])
+            : undefined;
+    return withProperties(java, { facing: continued ?? opposite(horizontalDirection(input.yaw)) });
+};
+
+/**
+ * A small dripleaf is two blocks tall, so it needs room above for its top, as Java's
+ * `DoublePlantBlock` asks, and faces the placer.
+ *
+ * @javaSource SmallDripleafBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const smallDripleaf: PlacementRule = (input, java) => {
+    const above = input.world.getBlock(offset(input.position, 'up'));
+    if (above === undefined || !isReplaceable(above.identifier)) return null;
+    return withProperties(java, { facing: opposite(horizontalDirection(input.yaw)) });
+};
+
+/**
+ * A head or skull on the ground turns with the placer's yaw, unlike a sign, and is powered when
+ * redstone reaches it.
+ *
+ * @javaSource SkullBlock.getStateForPlacement
+ * @javaSource AbstractSkullBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const skull: PlacementRule = (input, java) =>
+    withProperties(java, { rotation: String(rotationSegment(input.yaw)), powered: String(powered(input)) });
+
+/** A wall head hangs on the first wall nearest the look with a block that is not replaceable. */
+const wallHeadFirstWall = firstWall(opposite, (input, toward) => {
+    const behind = input.world.getBlock(offset(input.position, toward));
+    return behind !== undefined && !isReplaceable(behind.identifier);
+});
+
+/**
+ * A head or skull on a wall faces away from the first wall nearest the look that is not
+ * replaceable, and is powered when redstone reaches it.
+ *
+ * @javaSource WallSkullBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const wallSkull: PlacementRule = (input, java) =>
+    wallHeadFirstWall(input, withProperties(java, { powered: String(powered(input)) }));
+
+/** The distance Java gives a log, and the one it gives a block that is neither log nor leaves. */
+const LOG_DISTANCE = 0;
+const NO_DISTANCE = 7;
+
+/**
+ * Placed leaves are persistent, and take their distance from the log or leaves beside them: one
+ * more than the nearest, a log counting as 0 and anything else as 7.
+ *
+ * @javaSource LeavesBlock.getStateForPlacement
+ * @javaSource LeavesBlock.updateDistance
+ * @javaSource LeavesBlock.getOptionalDistanceAt
+ * @javaVerified vectors
+ */
+const leaves: PlacementRule = (input, java) => {
+    let distance = NO_DISTANCE;
+    for (const face of BLOCK_FACES) {
+        const neighbor = javaNeighbor(input, face);
+        if (neighbor === undefined) continue;
+        const own = isLogName(neighbor.name) ? LOG_DISTANCE : Number(neighbor.properties['distance'] ?? NO_DISTANCE);
+        distance = Math.min(distance, own + 1);
+        if (distance === 1) break;
+    }
+    return withProperties(java, { persistent: 'true', distance: String(distance) });
+};
+
+/** The properties that count a flower bed's flowers and leaf litter's leaves. */
+const SEGMENT_AMOUNTS = ['flower_amount', 'segment_amount'] as const;
+
+/**
+ * A flower bed or leaf litter placed into one of its own kind adds a segment to it, up to four,
+ * and otherwise faces the placer.
+ *
+ * @javaSource SegmentableBlock.getStateForPlacement
+ * @javaVerified vectors
+ */
+const segmented: PlacementRule = (input, java) => {
+    const here = input.world.getBlock(input.position);
+    const existing = here === undefined ? undefined : javaStateOf(here.identifier, here.states);
+    if (existing?.name === java.name) {
+        const amount = SEGMENT_AMOUNTS.find((name) => existing.properties[name] !== undefined);
+        if (amount !== undefined) {
+            const count = Math.min(4, Number(existing.properties[amount]) + 1);
+            return withProperties(existing, { [amount]: String(count) });
+        }
+    }
+    return withProperties(java, { facing: opposite(horizontalDirection(input.yaw)) });
 };
 
 /**
@@ -349,7 +552,6 @@ const wallHangingSign: PlacementRule = (input, java) => {
  * @javaSource AnvilBlock.getStateForPlacement
  * @javaSource BarrelBlock.getStateForPlacement
  * @javaSource BeehiveBlock.getStateForPlacement
- * @javaSource BigDripleafBlock.getStateForPlacement
  * @javaSource CalibratedSculkSensorBlock.getStateForPlacement
  * @javaSource CarvedPumpkinBlock.getStateForPlacement
  * @javaSource ChiseledBookShelfBlock.getStateForPlacement
@@ -364,7 +566,6 @@ const wallHangingSign: PlacementRule = (input, java) => {
  * @javaSource EnderChestBlock.getStateForPlacement
  * @javaSource GlazedTerracottaBlock.getStateForPlacement
  * @javaSource HopperBlock.getStateForPlacement
- * @javaSource LeavesBlock.getStateForPlacement
  * @javaSource LecternBlock.getStateForPlacement
  * @javaSource LightningRodBlock.getStateForPlacement
  * @javaSource AmethystClusterBlock.getStateForPlacement
@@ -375,8 +576,6 @@ const wallHangingSign: PlacementRule = (input, java) => {
  * @javaSource LeafLitterBlock.getStateForPlacement
  * @javaSource ShelfBlock.getStateForPlacement
  * @javaSource ShelfMushroomBlock.getStateForPlacement
- * @javaSource SkullBlock.getStateForPlacement
- * @javaSource SmallDripleafBlock.getStateForPlacement
  * @javaSource StonecutterBlock.getStateForPlacement
  * @javaSource TripWireHookBlock.getStateForPlacement
  * @javaSource VaultBlock.getStateForPlacement
@@ -384,15 +583,15 @@ const wallHangingSign: PlacementRule = (input, java) => {
  * @javaSource BaseCoralPlantTypeBlock.getStateForPlacement
  * @javaSource WallBannerBlock.getStateForPlacement
  * @javaSource WallSignBlock.getStateForPlacement
- * @javaSource WallSkullBlock.getStateForPlacement
  * @javaSource MangrovePropaguleBlock.getStateForPlacement
+ * @javaVerified vectors
  */
 const RULES = {
     AnvilBlock: horizontalFacing(clockwise),
     BarrelBlock: nearestFacing(opposite),
     BeehiveBlock: horizontalFacing(opposite),
     BellBlock: bell,
-    BigDripleafBlock: horizontalFacing(opposite),
+    BigDripleafBlock: bigDripleaf,
     CalibratedSculkSensorBlock: horizontalFacing((face) => face),
     CarvedPumpkinBlock: horizontalFacing(opposite),
     CeilingHangingSignBlock: ceilingHangingSign,
@@ -419,19 +618,20 @@ const RULES = {
     HopperBlock: (input, java) =>
         withProperties(java, { facing: isHorizontal(input.face) ? opposite(input.face) : 'down' }),
     LadderBlock: ladder,
-    LeavesBlock: (_input, java) => withProperties(java, { persistent: 'true' }),
+    LeavesBlock: leaves,
     LecternBlock: horizontalFacing(opposite),
     LightningRodBlock: (input, java) => withProperties(java, { facing: input.face }),
     AmethystClusterBlock: (input, java) => withProperties(java, { facing: input.face }),
     LoomBlock: horizontalFacing(opposite),
     ObserverBlock: nearestFacing((face) => face),
     BannerBlock: standingOnGround,
-    FlowerBedBlock: horizontalFacing(opposite),
-    LeafLitterBlock: horizontalFacing(opposite),
-    ShelfBlock: horizontalFacing(opposite),
+    FlowerBedBlock: segmented,
+    LeafLitterBlock: segmented,
+    ShelfBlock: (input, java) =>
+        withProperties(java, { facing: opposite(horizontalDirection(input.yaw)), powered: String(powered(input)) }),
     ShelfMushroomBlock: firstWall(opposite, wallSupported),
-    SkullBlock: rotation,
-    SmallDripleafBlock: horizontalFacing(opposite),
+    SkullBlock: skull,
+    SmallDripleafBlock: smallDripleaf,
     StandingSignBlock: standingOnGround,
     StonecutterBlock: horizontalFacing(opposite),
     TripWireHookBlock: firstWall(opposite, wallSupported),
@@ -440,10 +640,7 @@ const RULES = {
     WallBannerBlock: firstWall(opposite, wallSupported),
     WallHangingSignBlock: wallHangingSign,
     WallSignBlock: firstWall(opposite, wallSupported),
-    WallSkullBlock: firstWall(opposite, (input, toward) => {
-        const behind = input.world.getBlock(offset(input.position, toward));
-        return behind !== undefined && !isReplaceable(behind.identifier);
-    }),
+    WallSkullBlock: wallSkull,
     AbstractBedBlock: bed,
     BaseCoralPlantTypeBlock: (input, java) => (supports(input, 'down') ? java : null),
     MangrovePropaguleBlock: (_input, java) => withProperties(java, { age: '4' })
@@ -571,6 +768,7 @@ const defaultJavaState = (javaId: string): JavaState => ({ name: javaId, propert
  * the standing block toward that attachment and the wall block anywhere else.
  *
  * @javaSource StandingAndWallBlockItem.getPlacementState
+ * @javaVerified vectors
  */
 const standingOrWall = (input: PlacementInput, standing: JavaState, wallId: string): JavaState | null => {
     const attachment: BlockFace = standing.name.endsWith('_hanging_sign') ? 'up' : 'down';
@@ -581,6 +779,20 @@ const standingOrWall = (input: PlacementInput, standing: JavaState, wallId: stri
         if (state !== null && state !== undefined) return state;
     }
     return null;
+};
+
+/**
+ * The Java state a player's placement puts a Java block in, before it is mapped to Bedrock: the
+ * block's own rule, or for a standing-and-wall item the standing or wall block it picks.
+ *
+ * @returns The state, null when Java would refuse the placement, or undefined for a block whose
+ *   placement no rule here decides.
+ */
+export const placedJavaStateOf = (java: JavaState, input: PlacementInput): JavaState | null | undefined => {
+    const wallId = wallBlockOf(java.name);
+    return wallId !== undefined && placementRuleOf(wallId) !== undefined
+        ? standingOrWall(input, java, wallId)
+        : runRule(input, java);
 };
 
 /**
@@ -596,11 +808,7 @@ export const placedStateOf = (
 ): PlacedState | null | undefined => {
     const java = javaStateOf(identifier, states);
     if (java === undefined) return undefined;
-    const wallId = wallBlockOf(java.name);
-    const placed =
-        wallId !== undefined && placementRuleOf(wallId) !== undefined
-            ? standingOrWall(input, java, wallId)
-            : runRule(input, java);
+    const placed = placedJavaStateOf(java, input);
     if (placed === undefined) return undefined;
     if (placed === null) return null;
     const bedrock = javaBlockStateToBedrock(placed.name, placed.properties);

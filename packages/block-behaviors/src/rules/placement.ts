@@ -77,6 +77,7 @@ export const placementFacing = (event: BlockPlaceEvent): HorizontalFace | undefi
  *
  * @returns Undefined when the placer's pitch is unknown or there is no placer.
  * @javaSource BlockPlaceContext.getNearestLookingVerticalDirection
+ * @javaVerified vectors
  */
 export const placementLookingVertical = (placer: HookActor | undefined): 'up' | 'down' | undefined => {
     const pitch = placer?.pitch;

@@ -173,6 +173,29 @@ Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vector
 `-- --java <release>` for a pinned release other than the default. The command prepares the
 pinned jar and needs the JDK the jar's `version.json` declares.
 
+## Placement against Java
+
+`javaPlacement` and the chest, lantern, dripstone and trapdoor families copy Java's
+`getStateForPlacement`. `src/rules/javaPlacement.vectors.test.ts` checks each copy against what
+Java's own method returns, recorded in `vectors/<release>/placement.json`. `utils/oracle/` compiles
+a small Java program against the pinned server jar. It runs every block whose placement resolves to
+a class this package tags with `@javaSource <Class>.getStateForPlacement`, over a grid of clicked
+faces, click positions, looks, neighbor layouts, water at the position and sneaking. No server
+starts: Java's real `BlockPlaceContext` reads a `Level` that holds the layout in a map and a player
+whose look and sneak flag the program sets, with the vanilla block tags bound from the jar.
+
+The dump also records what the port's world is asked about each neighbor: its push reaction,
+whether it is a full cube and whether its top is sturdy. `vectors/placement.ts` builds each layout
+in a voxel world that gives those answers, places the block through the port, and compares the
+Bedrock block it puts down with the one Java's answer maps to. A rule's own Java state is compared
+too, for what Bedrock keeps elsewhere, such as a head's rotation. Blocks that answer every placement
+alike share one entry, and the test places each of them. `PLACEMENT_GAPS` lists the differences that
+stay open, each with its issue, and the parity suite's `placement-vectors` row shows them.
+
+Refresh the vectors with `pnpm --filter @jsprismarine/block-behaviors run vectors:placement`, adding
+`-- --java <release>` for a pinned release other than the default. The command prepares the pinned
+jar and needs the JDK the jar's `version.json` declares.
+
 ## Values come from the block
 
 Where a behavior needs a number, it reads it off the block rather than carrying its own copy.
