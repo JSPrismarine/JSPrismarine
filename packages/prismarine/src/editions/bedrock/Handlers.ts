@@ -38,6 +38,8 @@ import ResourcePackChunkRequestHandler from './handler/ResourcePackChunkRequestH
 import ResourcePackClientResponseHandler from './handler/ResourcePackClientResponseHandler';
 import ResourcePacksReadyForValidationHandler from './handler/ResourcePacksReadyForValidationHandler';
 import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
+import ServerboundDataDrivenScreenClosedHandler from './handler/ServerboundDataDrivenScreenClosedHandler';
+import ServerboundDataStoreHandler from './handler/ServerboundDataStoreHandler';
 import ServerboundDiagnosticsHandler from './handler/ServerboundDiagnosticsHandler';
 import ServerboundLoadingScreenHandler from './handler/ServerboundLoadingScreenHandler';
 import ServerboundPackSettingChangeHandler from './handler/ServerboundPackSettingChangeHandler';
@@ -94,6 +96,8 @@ export {
     ResourcePackClientResponseHandler,
     ResourcePacksReadyForValidationHandler,
     ServerSettingsRequestHandler,
+    ServerboundDataDrivenScreenClosedHandler,
+    ServerboundDataStoreHandler,
     ServerboundDiagnosticsHandler,
     ServerboundLoadingScreenHandler,
     ServerboundPackSettingChangeHandler,

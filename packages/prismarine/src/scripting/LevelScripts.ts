@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import type { ScriptPack } from '@jsprismarine/script-host/host/pack';
 import type { GameTestReply } from '@jsprismarine/script-host/host/gametest';
 import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
-import type { ScriptAdminServer, ScriptFormResponse } from '@jsprismarine/script-host/host/world';
+import type { DataDrivenResponse, ScriptAdminServer, ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { DebuggerStat } from '@jsprismarine/script-host/debugger/protocol';
 import type { JsprismarineServerMembers } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { AddonConfigStore } from '@jsprismarine/script-host/host/addonConfig';
@@ -307,6 +307,15 @@ export class LevelScripts {
      */
     public answerForm(response: ScriptFormResponse): void {
         this.world.answerForm(response);
+    }
+
+    /**
+     * Takes a client's write to, or close of, a data-driven screen one of the level's scripts
+     * showed. The next script flush applies it; one for a screen the scripts did not show is
+     * dropped there.
+     */
+    public answerDataDriven(response: DataDrivenResponse): void {
+        this.world.answerDataDriven(response);
     }
 
     /**

@@ -12,6 +12,7 @@ import type {
     BlockInteractIntent,
     EntityInteractIntent,
     ChatSendIntent,
+    DataDrivenResponse,
     ItemUseIntent,
     Guard,
     ScriptCommandResult,
@@ -39,6 +40,7 @@ import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entitie
 import { shapeVisibleTo } from '@jsprismarine/script-host/host/world';
 
 import type { ChatManager } from '../chat/ChatManager';
+import type { DataDrivenScreens } from './DataDrivenScreens';
 import { legacyStatesOf } from './blocksItems/levelCatalog';
 import { Scoreboard } from '../world/Scoreboard';
 import type { ScriptEntityEvent } from './scriptEntityEvents';
@@ -145,6 +147,11 @@ export interface ScriptWorldPlayer {
     showForm?(formId: number, json: string): void;
     /** Closes every form the player has open, as a `ClientboundCloseFormPacket`. */
     closeForms?(): void;
+    /**
+     * The player's data-driven `@minecraft/server-ui` screens, as `DataDrivenScreens` sends them.
+     * A player without them is shown none, and `show()` settles as `UserBusy`.
+     */
+    readonly screens?: Pick<DataDrivenScreens, 'show' | 'update' | 'close'>;
     /** Sends the player to another server, as a `TransferPacket`. A player without it stays. */
     transfer?(target: ScriptTransferTarget): void;
     /** Draws, redraws or removes debug shapes, as a `PrimitiveShapesPacket`. A player without it sees none. */
@@ -256,6 +263,7 @@ export class LevelScriptWorld implements ScriptWorld {
     private readonly access: ScriptLevelAccess;
     private readonly committed: ScriptWorldEvent[] = [];
     private readonly answers: ScriptFormResponse[] = [];
+    private readonly dataDrivenAnswers: DataDrivenResponse[] = [];
     private readonly stopListening: () => void;
     /** The players the scripts were last told about, by id, with their names. */
     private known = new Map<string, string>();
@@ -336,7 +344,15 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly forms: ScriptFormChannel = {
         show: (player, formId, json) => this.player(player)?.showForm?.(formId, json),
         closeAll: (player) => this.player(player)?.closeForms?.(),
-        takeResponses: () => this.answers.splice(0)
+        takeResponses: () => this.answers.splice(0),
+        showDataDriven: (player, formId, screen) => {
+            const screens = this.player(player)?.screens;
+            screens?.show(formId, screen);
+            return screens !== undefined;
+        },
+        updateDataDriven: (player, property, change) => this.player(player)?.screens?.update(property, change),
+        closeDataDriven: (player, formId) => this.player(player)?.screens?.close(formId),
+        takeDataDrivenResponses: () => this.dataDrivenAnswers.splice(0)
     };
 
     /** Starts recording the level's weather changes for the scripts' after-events. */
@@ -584,6 +600,14 @@ export class LevelScriptWorld implements ScriptWorld {
      */
     public answerForm(response: ScriptFormResponse): void {
         this.answers.push(response);
+    }
+
+    /**
+     * Takes a client's write to, or close of, a data-driven screen, as an input the input step
+     * admits; the next script flush applies it.
+     */
+    public answerDataDriven(response: DataDrivenResponse): void {
+        this.dataDrivenAnswers.push(response);
     }
 
     /** The level's weather, in the Script API's names. */

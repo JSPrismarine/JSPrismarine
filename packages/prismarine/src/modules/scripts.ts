@@ -8,6 +8,7 @@ import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 import { customDimensionData } from '../editions/bedrock/customDimensionData';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
+import { dataDrivenScreensOf } from '../scripting/DataDrivenScreens';
 import { primitiveShapes } from '../scripting/debugShapes';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { levelEntitySystems } from '../scripting/entities/levelEntitySystems';
@@ -152,6 +153,7 @@ export const startLevelScripts = async (
                                 session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
                             ),
                         closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({}))),
+                        screens: dataDrivenScreensOf(session),
                         drawDebugShapes: (changes) =>
                             session.released(
                                 session.send(
