@@ -85,6 +85,7 @@
         "dump:java-protocol": "node utils/java-protocol/run.ts",
         "dump:java-goals": "node utils/java-goals/run.ts",
         "java:sources": "node utils/java-sources/run.ts",
+        "java:transcriptions": "node utils/java-sources/transcriptions.ts",
         "extract:lang": "node utils/java/extract-lang.ts",
         "extract:structures": "node utils/java/extract-structures.ts",
         "ensure:java-server": "node utils/java-dump/ensure-server.ts",

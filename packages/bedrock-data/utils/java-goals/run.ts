@@ -39,9 +39,13 @@ export const capturePath = (release: string): string => join(packageDir, 'src/js
  * The pinned Java server jar: `JSP_JAVA_SERVER_JAR` when set, otherwise the copy
  * `fetch:sources` caches.
  *
+ * @param argv - The arguments whose `--java <release>` picks the release, the command line's by
+ *   default.
  * @returns The jar's path and whether it exists, with the pin it was checked against.
  */
-export const pinnedServerJar = async (): Promise<{
+export const pinnedServerJar = async (
+    argv: readonly string[] = process.argv
+): Promise<{
     readonly path: string;
     readonly exists: boolean;
     readonly version: string;
@@ -49,7 +53,7 @@ export const pinnedServerJar = async (): Promise<{
     readonly envOverride: string;
 }> => {
     const cacheRoot = resolve(packageDir, '../../node_modules/.cache/jsprismarine');
-    const javaServer = await resolveJavaRelease(process.argv);
+    const javaServer = await resolveJavaRelease(argv);
     const override = process.env[javaServer.envOverride];
     const path =
         override !== undefined && override !== ''
