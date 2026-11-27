@@ -25,6 +25,10 @@ describe('lintTargets', () => {
         expect(lintTargets(['src/a.ts', file], everywhere)).toBe('all');
     });
 
+    it.each(['package.json', 'pnpm-lock.yaml'])('scopes the root %s to itself', (file) => {
+        expect(lintTargets(['src/a.ts', file], everywhere)).toEqual([file, 'src/a.ts'].sort());
+    });
+
     it('scopes a package manifest to itself', () => {
         expect(lintTargets(['packages/raknet/package.json'], everywhere)).toEqual(['packages/raknet/package.json']);
     });

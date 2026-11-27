@@ -7,8 +7,10 @@
  *
  * A changed file is one that differs from the merge base with the default branch: committed on this
  * branch, staged, unstaged or untracked. The command gets those paths in place of `.`, or nothing
- * runs when there are none. A change to a formatter's own configuration or version restyles every
- * file, so it runs the command on everything, as `JSP_LINT_ALL=1` does. The lint workflow sets it.
+ * runs when there are none. A change to a formatter's own configuration restyles every file, so it
+ * runs the command on everything, as `JSP_LINT_ALL=1` does. CI's plan job runs `lint:all`, which
+ * sets it, so a formatter upgrade in `package.json` or the lockfile is checked against every file
+ * there; locally those two files are linted like any other.
  * `JSP_LINT_BASE` names another commit to compare against; the agent lint gate sets it to `HEAD`.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -17,16 +19,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Files whose change can restyle any file: the formatters' configuration, and the manifest and
- * lockfile that pin their versions.
+ * Files whose change can restyle any file: the formatters' configuration. The manifest and lockfile
+ * that pin the formatters' versions are left out, since nearly every dependency change touches
+ * them; CI's `lint:all` checks a formatter upgrade.
  */
-export const LINT_INPUTS: readonly string[] = [
-    '.editorconfig',
-    '.prettierignore',
-    'biome.json',
-    'package.json',
-    'pnpm-lock.yaml'
-];
+export const LINT_INPUTS: readonly string[] = ['.editorconfig', '.prettierignore', 'biome.json'];
 
 /**
  * Chooses what a lint command runs on.
