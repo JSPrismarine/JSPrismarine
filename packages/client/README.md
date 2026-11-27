@@ -25,3 +25,20 @@ client.move({ x: 10, z: 4 });
 
 A server in online mode needs `joinSession`, which is given the server hash to post to Mojang's
 session server with the player's access token. Without it, the client joins offline servers only.
+
+## Script screens
+
+`client.getScreens()` follows the data-driven `@minecraft/server-ui` screens a behavior pack
+shows, a `CustomForm` or a `MessageBox`. Each open screen has the values of its data store
+property by path, such as `title` or `layout[0].toggled`, kept up to date as the server changes
+them. The client reports a screen closed when the server asks it to, as a player's client does.
+
+```typescript
+const screens = client.getScreens();
+screens.on('show', async (screen) => {
+    console.log(screen.values.get('title'));
+    await screens.write(screen.formId, 'layout[0].toggled', true);
+    await screens.click(screen.formId, 'layout[1].onClick');
+    await screens.close(screen.formId);
+});
+```
