@@ -1,5 +1,13 @@
 import { afterEach, beforeAll, vi, beforeEach } from 'vitest';
 
+import { JAVA_PORT_ENV } from '../packages/prismarine/src/config/javaPortEnv';
+
+// Java Edition is on by default and listens on 25565, so two servers booted in one run took the
+// same port and the second failed to start. Port 0 lets the operating system give each its own.
+// Set directly rather than with `vi.stubEnv`, which `vi.unstubAllEnvs` in a test would undo before
+// the next file's `beforeAll` boots its server. A test that needs a fixed port stubs over it.
+process.env[JAVA_PORT_ENV] ??= '0';
+
 // Default the server's state root to the gitignored `jsp/` so a test that writes one leaves it
 // out of the tree. Only when nothing has chosen a root already: this runs after a suite's
 // `beforeAll`, so setting it unconditionally used to overwrite the temp directory a suite had

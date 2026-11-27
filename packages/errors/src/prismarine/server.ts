@@ -2571,6 +2571,44 @@ class JavaPortNotBound extends JSPrismarineError {
 }
 
 /**
+ * The `JSP_JAVA_PORT` environment variable is not a TCP port. Set it to a whole number from 0
+ * to 65535, where 0 lets the operating system choose a free port, or unset it to use
+ * `java-port` from `config.json`.
+ */
+class JavaPortEnvInvalid extends JSPrismarineError {
+    public static get code(): 'PRISMARINE_JAVA_PORT_ENV_INVALID' {
+        return 'PRISMARINE_JAVA_PORT_ENV_INVALID';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'server' {
+        return 'server';
+    }
+    public static get template(): 'JSP_JAVA_PORT must be a TCP port from 0 to 65535, not "{value}"' {
+        return 'JSP_JAVA_PORT must be a TCP port from 0 to 65535, not "{value}"';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-env-invalid' {
+        return 'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-env-invalid';
+    }
+
+    public override readonly code = 'PRISMARINE_JAVA_PORT_ENV_INVALID';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/prismarine/server#prismarine-java-port-env-invalid';
+    readonly #params: { readonly value: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly value: unknown }, options?: ErrorOptions) {
+        super(`JSP_JAVA_PORT must be a TCP port from 0 to 65535, not "${String(params?.value)}"`, options);
+        this.#params = params ?? { value: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
  * RakNet could not bind the IPv6 UDP port, usually because another server holds it or the
  * machine has IPv6 turned off. Free the port, or change `server-portv6` in `config.json`.
  */
@@ -2750,6 +2788,7 @@ export const PrismarineServerErrors = Object.freeze({
     TimerStillRunning,
     RaknetPortNotBound,
     JavaPortNotBound,
+    JavaPortEnvInvalid,
     RaknetIpv6PortNotBound,
     ListenersFailedToStart,
     ContentSettingsReadBeforeBuild

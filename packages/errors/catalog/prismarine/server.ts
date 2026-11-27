@@ -296,6 +296,12 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
      */
     JavaPortNotBound: 'Java Edition cannot listen on TCP port {port}: {reason}',
     /**
+     * The `JSP_JAVA_PORT` environment variable is not a TCP port. Set it to a whole number from 0
+     * to 65535, where 0 lets the operating system choose a free port, or unset it to use
+     * `java-port` from `config.json`.
+     */
+    JavaPortEnvInvalid: 'JSP_JAVA_PORT must be a TCP port from 0 to 65535, not "{value}"',
+    /**
      * RakNet could not bind the IPv6 UDP port, usually because another server holds it or the
      * machine has IPv6 turned off. Free the port, or change `server-portv6` in `config.json`.
      */

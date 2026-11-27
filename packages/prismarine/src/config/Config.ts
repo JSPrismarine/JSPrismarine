@@ -8,6 +8,7 @@ import { readPlayerDataGroups } from '../world/playerDataGroups';
 import type { PlayerDataGroup } from '../world/playerDataGroups';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
+import { javaPortFromEnv } from './javaPortEnv';
 import type { FileMigrations, MigrationLogger } from './FileMigrations';
 import { migrateFile } from './FileMigrations';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
@@ -663,7 +664,9 @@ export class Config {
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
         this.javaEnabled = read('java-enabled', DEFAULTS['java-enabled']);
-        this.javaPort = read('java-port', DEFAULTS['java-port']);
+        // Read first, so a fresh file still gains the key and its comment.
+        const fileJavaPort = read('java-port', DEFAULTS['java-port']);
+        this.javaPort = javaPortFromEnv() ?? fileJavaPort;
         this.accountLinking = read('account-linking', DEFAULTS['account-linking']);
         // Unset, NetherNet's UDP and query follow the server port, as Bedrock Dedicated Server's
         // server-udp-ports does; reading them writes nothing.

@@ -272,6 +272,16 @@ Thrown as `PrismarineServerErrors.InvalidServerReplayRandomState`, which extends
 A replay's saved server random state does not have the shape the server writes, so the save
 or the replay that holds it is damaged.
 
+## `PRISMARINE_JAVA_PORT_ENV_INVALID`
+
+`JSP_JAVA_PORT must be a TCP port from 0 to 65535, not "{value}"`
+
+Thrown as `PrismarineServerErrors.JavaPortEnvInvalid`, which extends `Error`.
+
+The `JSP_JAVA_PORT` environment variable is not a TCP port. Set it to a whole number from 0
+to 65535, where 0 lets the operating system choose a free port, or unset it to use
+`java-port` from `config.json`.
+
 ## `PRISMARINE_JAVA_PORT_NOT_BOUND`
 
 `Java Edition cannot listen on TCP port {port}: {reason}`

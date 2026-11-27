@@ -607,6 +607,10 @@ yet move items in a survival inventory or see their experience or status effects
 When another program holds `java-port`, the server does not start, and its error names the port.
 Free it, change `java-port`, or set `java-enabled` to `false`.
 
+The `JSP_JAVA_PORT` environment variable takes the place of `java-port` without changing
+`config.json`, as when several servers run on one machine. `0` lets the operating system choose a
+free port.
+
 ### Linked accounts
 
 With `account-linking` on, as it is by default, a player who owns both editions can link their
