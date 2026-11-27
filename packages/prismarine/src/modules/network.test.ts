@@ -27,6 +27,7 @@ import type { Connection } from '@jsprismarine/nethernet';
 import { UnconnectedPing, UnconnectedPong } from '@jsprismarine/raknet';
 import { about } from '../about';
 import type { AddonManager, LoadedAddon } from '../addons/AddonManager';
+import { PluginRegistry, addonPluginSource } from '../plugins/PluginRegistry';
 import type AllowList from '../allowlist/AllowList';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
@@ -41,6 +42,13 @@ import { networkToken } from './tokens';
 
 /** A kernel whose only part is its event bus, which the transports raise the RakNet events on. */
 const kernelDouble = () => testKernel();
+
+/** A server's extensions when the addons are its only kind. */
+const addonPlugins = (addons: readonly LoadedAddon[]): PluginRegistry => {
+    const plugins = new PluginRegistry();
+    plugins.register(addonPluginSource(() => stub<AddonManager>({ loadedAddons: () => addons })));
+    return plugins;
+};
 
 /** The native WebRTC stack, or undefined on a machine with no build of it. */
 const driver = await loadNativeDriver().catch(() => undefined);
@@ -573,7 +581,7 @@ describe('modules/network', () => {
                     getServerPublicIp: () => publicIp,
                     getUseRakNetWorker: () => false
                 }),
-            getAddons: () => stub<AddonManager>({ loadedAddons: () => addons }),
+            getPlugins: () => addonPlugins(addons),
             getAllowList: () => stub<AllowList>({ isEnabled: () => allowList }),
             getLogger: () =>
                 stub<Logger>({
@@ -832,7 +840,7 @@ describe('modules/network', () => {
                     getEnableServerPublicIpLookup: () => false,
                     getLevelName: () => 'world'
                 }),
-            getAddons: () => stub<AddonManager>({ loadedAddons: () => [] }),
+            getPlugins: () => addonPlugins([]),
             getAllowList: () => stub<AllowList>({ isEnabled: () => false }),
             getLogger: () =>
                 stub<Logger>({

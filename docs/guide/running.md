@@ -776,7 +776,7 @@ the migration succeeds.
 
 `permissions.json` holds two sections, `groups` and `users`. Every player holds the `default`
 group, and every operator holds `operator` as well, so a fresh file is enough to run a server: it
-lets every player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/tps`, `/unlink` and `/version`<!-- /fact -->, and gives
+lets every player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/plugins`, `/tps`, `/unlink` and `/version`<!-- /fact -->, and gives
 operators <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->, which is every node. A file with a rank looks like this:
 
 <!-- fact:permissions.example -->

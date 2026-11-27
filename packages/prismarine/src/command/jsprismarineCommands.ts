@@ -1,5 +1,5 @@
 /**
- * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
+ * The commands this server adds to the vanilla set: `/tps`, `/version`, `/plugins`, `/debug`, `/ban`,
  * `/pardon`, `/perms`, the console's `addon`, `update` and `restart`, and Bedrock Dedicated
  * Server's `/script debugger`, `/gametest` and `/scriptevent`, which the shared command set
  * leaves out because only a server that runs behavior pack scripts has a debugger to attach,
@@ -42,6 +42,7 @@ import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
 import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
+import { PLUGINS_COMMAND_PERMISSION, registerPluginsCommand } from './pluginsCommand';
 import { WORLD_COMMAND_PERMISSION, registerWorldCommand } from './worldCommand';
 import { commandLevelOf, playerSessionOf } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
@@ -56,6 +57,7 @@ import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command
 export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> = {
     tps: 'jsprismarine.command.tps',
     version: 'jsprismarine.command.version',
+    plugins: PLUGINS_COMMAND_PERMISSION,
     debug: 'jsprismarine.command.debug',
     ban: 'minecraft.command.ban',
     pardon: 'minecraft.command.pardon',
@@ -414,6 +416,7 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
         { description: 'Pardon a player.', permissionLevel: CommandPermissionLevel.ADMIN }
     );
 
+    registerPluginsCommand(registry, server);
     registerGametestCommand(registry, server);
     registerAddonCommand(registry, server);
     registerUpdateCommands(registry, server);

@@ -63,6 +63,7 @@ import { serverMetrics } from './stats/serverMetrics';
 import type { StatsProvider } from './stats/StatsProvider';
 import { scriptsModule, startLevelScripts } from './modules/scripts';
 import { AddonManager } from './addons/AddonManager';
+import { PluginRegistry, addonPluginSource } from './plugins/PluginRegistry';
 import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
 import { ScriptSlot } from './scripting/ScriptSlot';
@@ -147,6 +148,8 @@ export default class Server {
     private readonly scriptSlots = new Map<string, ScriptSlot<LevelScripts>>();
     /** The server's addons, made on first use; see {@link Server.getAddons}. */
     private addons: AddonManager | undefined;
+    /** The server's kinds of extension, made on first use; see {@link Server.getPlugins}. */
+    private plugins: PluginRegistry | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
     private contentSettings: ContentSettings | undefined;
 
@@ -1092,6 +1095,18 @@ export default class Server {
             reload: (options) => this.reloadScripts(options)
         });
         return this.addons;
+    }
+
+    /**
+     * The extensions the server runs, by kind, which `/plugins` and query report. It starts with
+     * the installed addons; a loader for another kind registers its own source.
+     */
+    public getPlugins(): PluginRegistry {
+        if (this.plugins === undefined) {
+            this.plugins = new PluginRegistry();
+            this.plugins.register(addonPluginSource(() => this.getAddons()));
+        }
+        return this.plugins;
     }
 
     /**
