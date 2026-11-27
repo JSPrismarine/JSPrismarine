@@ -375,7 +375,7 @@ describe('edge-chunk-block-change', () => {
     });
 });
 
-describe('creative-break-container', () => {
+describe('creative-break-container', { tags: ['real-data'] }, () => {
     /** A spot on the flat surface, clear of what the other scenarios build. */
     const STAND = { x: 140.5, y: -60, z: 140.5 };
 
