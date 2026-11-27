@@ -1215,8 +1215,9 @@ const HOLD_DOOR_DISTANCE = 2;
 
 /**
  * The doors a villager or piglin opens and closes, Java's `BlockTags.MOB_INTERACTABLE_DOORS`.
+ * Only the tag's name is Java's code; the doors it holds come from the vanilla datapack.
  *
- * @javaSource BlockTags.MOB_INTERACTABLE_DOORS
+ * @javaSee BlockTags.MOB_INTERACTABLE_DOORS
  */
 const MOB_INTERACTABLE_DOORS = 'minecraft:mob_interactable_doors';
 

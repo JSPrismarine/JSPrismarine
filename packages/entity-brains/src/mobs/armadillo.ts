@@ -52,9 +52,9 @@ export const ARMADILLO = {
     dangerDetectedRecentlyDangerThreshold: 75,
     peekTimer: uniformInt(100, 400),
     /**
-     * Java's `SensorType.ARMADILLO_SCARE_DETECTED` arguments.
+     * Java's `SensorType.ARMADILLO_SCARE_DETECTED` arguments, as {@link ARMADILLO_SCARE_SENSOR} holds them.
      *
-     * @javaSource SensorType.ARMADILLO_SCARE_DETECTED
+     * @javaSee SensorType.ARMADILLO_SCARE_DETECTED
      */
     scareScanRate: ARMADILLO_SCARE_SENSOR.scanRate,
     scareMemoryTimeToLive: ARMADILLO_SCARE_SENSOR.memoryTimeToLive
