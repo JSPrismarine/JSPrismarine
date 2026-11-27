@@ -1126,6 +1126,155 @@ class NethernetConnectionFailed extends JSPrismarineError {
     }
 }
 
+/**
+ * A Java Edition server sent a packet at a point of the conversation that has no place for it,
+ * such as a status answer that is not the one asked for. The server speaks the protocol
+ * differently than this client reads it.
+ */
+class UnexpectedJavaPacket extends JSPrismarineError {
+    public static get code(): 'CLIENT_UNEXPECTED_JAVA_PACKET' {
+        return 'CLIENT_UNEXPECTED_JAVA_PACKET';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'Expected {expected} in the {phase} phase, got packet {id}' {
+        return 'Expected {expected} in the {phase} phase, got packet {id}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-unexpected-java-packet' {
+        return 'https://jsprismarine.dev/errors/client#client-unexpected-java-packet';
+    }
+
+    public override readonly code = 'CLIENT_UNEXPECTED_JAVA_PACKET';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-unexpected-java-packet';
+    readonly #params: { readonly expected: unknown; readonly phase: unknown; readonly id: unknown } & Readonly<
+        Record<string, unknown>
+    >;
+
+    public constructor(
+        params: { readonly expected: unknown; readonly phase: unknown; readonly id: unknown },
+        options?: ErrorOptions
+    ) {
+        super(
+            `Expected ${String(params?.expected)} in the ${String(params?.phase)} phase, got packet ${String(params?.id)}`,
+            options
+        );
+        this.#params = params ?? { expected: undefined, phase: undefined, id: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * A Java Edition server sent a packet id the client has no layout for in that phase, so it cannot
+ * read the rest of the conversation. The server speaks another release than the client.
+ */
+class UnknownJavaPacket extends JSPrismarineError {
+    public static get code(): 'CLIENT_UNKNOWN_JAVA_PACKET' {
+        return 'CLIENT_UNKNOWN_JAVA_PACKET';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'No {phase} packet has id {id} in Java Edition {release}' {
+        return 'No {phase} packet has id {id} in Java Edition {release}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-unknown-java-packet' {
+        return 'https://jsprismarine.dev/errors/client#client-unknown-java-packet';
+    }
+
+    public override readonly code = 'CLIENT_UNKNOWN_JAVA_PACKET';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-unknown-java-packet';
+    readonly #params: { readonly phase: unknown; readonly id: unknown; readonly release: unknown } & Readonly<
+        Record<string, unknown>
+    >;
+
+    public constructor(
+        params: { readonly phase: unknown; readonly id: unknown; readonly release: unknown },
+        options?: ErrorOptions
+    ) {
+        super(
+            `No ${String(params?.phase)} packet has id ${String(params?.id)} in Java Edition ${String(params?.release)}`,
+            options
+        );
+        this.#params = params ?? { phase: undefined, id: undefined, release: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * A Java Edition server in online mode asked the client to log in through Mojang's session
+ * server, and the client was made without a `joinSession` to do it. Pass one, or join a server
+ * with `online-mode` off.
+ */
+class JavaSessionJoinRequired extends JSPrismarineError {
+    public static get code(): 'CLIENT_JAVA_SESSION_JOIN_REQUIRED' {
+        return 'CLIENT_JAVA_SESSION_JOIN_REQUIRED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server is in online mode, and this client has no session to join it with' {
+        return 'The server is in online mode, and this client has no session to join it with';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-java-session-join-required' {
+        return 'https://jsprismarine.dev/errors/client#client-java-session-join-required';
+    }
+
+    public override readonly code = 'CLIENT_JAVA_SESSION_JOIN_REQUIRED';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-java-session-join-required';
+    readonly #params: Readonly<Record<string, unknown>> = {};
+
+    public constructor(options?: ErrorOptions) {
+        super('The server is in online mode, and this client has no session to join it with', options);
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * The Java Edition server sent a frame that is longer than any frame may be or ends inside its
+ * length. The connection is closed.
+ */
+class JavaFrameMalformed extends JSPrismarineError {
+    public static get code(): 'CLIENT_JAVA_FRAME_MALFORMED' {
+        return 'CLIENT_JAVA_FRAME_MALFORMED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The server sent {malformed}' {
+        return 'The server sent {malformed}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-java-frame-malformed' {
+        return 'https://jsprismarine.dev/errors/client#client-java-frame-malformed';
+    }
+
+    public override readonly code = 'CLIENT_JAVA_FRAME_MALFORMED';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-java-frame-malformed';
+    readonly #params: { readonly malformed: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly malformed: unknown }, options?: ErrorOptions) {
+        super(`The server sent ${String(params?.malformed)}`, options);
+        this.#params = params ?? { malformed: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The errors `@jsprismarine/client` throws. */
 export const ClientErrors = Object.freeze({
     AlreadyConnected,
@@ -1163,5 +1312,9 @@ export const ClientErrors = Object.freeze({
     InvalidCommandLineArguments,
     CommandLineRejected,
     NethernetConnectionTimedOut,
-    NethernetConnectionFailed
+    NethernetConnectionFailed,
+    UnexpectedJavaPacket,
+    UnknownJavaPacket,
+    JavaSessionJoinRequired,
+    JavaFrameMalformed
 });

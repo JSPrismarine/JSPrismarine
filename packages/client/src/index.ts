@@ -1,6 +1,7 @@
 import Client, { MINECRAFT_VERSION, PROTOCOL_VERSION } from './Client';
 import ClientWorld from './ClientWorld';
 import Credits from './Credits';
+import { JAVA_DEFAULT_PORT, JavaClient, isJavaPacket } from './java/JavaClient';
 import DimensionChange from './DimensionChange';
 import Bot, { TICK_INTERVAL_MS } from './bot/Bot';
 import Fleet from './bot/Fleet';
@@ -30,6 +31,9 @@ export {
     Credits,
     DimensionChange,
     Fleet,
+    JAVA_DEFAULT_PORT,
+    JavaClient,
+    isJavaPacket,
     LoginSequence,
     LoginStage,
     MINECRAFT_VERSION,
@@ -48,6 +52,14 @@ export {
 export default Client;
 
 export type { ClientOptions } from './Client';
+export type {
+    JavaClientEvents,
+    JavaClientOptions,
+    JavaPose,
+    JavaReceived,
+    JavaServerStatus,
+    PlayLoginPayload
+} from './java/JavaClient';
 export type { WorldActor, WorldCommandOutput, WorldContainer, WorldPosition, WorldTitles } from './ClientWorld';
 export type { PendingDimensionChange } from './DimensionChange';
 export type { LoginResult, LoginSequenceOptions } from './login/LoginSequence';

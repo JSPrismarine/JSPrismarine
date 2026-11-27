@@ -159,6 +159,25 @@ Thrown as `ClientErrors.InvalidWholeNumber`, which extends `UsageError`.
 
 A count option is not a whole, non-negative number.
 
+## `CLIENT_JAVA_FRAME_MALFORMED`
+
+`The server sent {malformed}`
+
+Thrown as `ClientErrors.JavaFrameMalformed`, which extends `Error`.
+
+The Java Edition server sent a frame that is longer than any frame may be or ends inside its
+length. The connection is closed.
+
+## `CLIENT_JAVA_SESSION_JOIN_REQUIRED`
+
+`The server is in online mode, and this client has no session to join it with`
+
+Thrown as `ClientErrors.JavaSessionJoinRequired`, which extends `Error`.
+
+A Java Edition server in online mode asked the client to log in through Mojang's session
+server, and the client was made without a `joinSession` to do it. Pass one, or join a server
+with `online-mode` off.
+
 ## `CLIENT_LINK_ALREADY_CONDITIONED`
 
 `This process is already sending over a conditioned link`
@@ -296,6 +315,16 @@ Thrown as `ClientErrors.TransportNotConnected`, which extends `Error`.
 
 A packet was sent before the NetherNet connection opened or after it closed.
 
+## `CLIENT_UNEXPECTED_JAVA_PACKET`
+
+`Expected {expected} in the {phase} phase, got packet {id}`
+
+Thrown as `ClientErrors.UnexpectedJavaPacket`, which extends `Error`.
+
+A Java Edition server sent a packet at a point of the conversation that has no place for it,
+such as a status answer that is not the one asked for. The server speaks the protocol
+differently than this client reads it.
+
 ## `CLIENT_UNKNOWN_BEHAVIOR`
 
 `Unknown behavior "{name}". Known behaviors: {behaviorNames}`
@@ -303,6 +332,15 @@ A packet was sent before the NetherNet connection opened or after it closed.
 Thrown as `ClientErrors.UnknownBehavior`, which extends `Error`.
 
 A bot was given a behavior name that does not exist. The message lists the ones that do.
+
+## `CLIENT_UNKNOWN_JAVA_PACKET`
+
+`No {phase} packet has id {id} in Java Edition {release}`
+
+Thrown as `ClientErrors.UnknownJavaPacket`, which extends `Error`.
+
+A Java Edition server sent a packet id the client has no layout for in that phase, so it cannot
+read the rest of the conversation. The server speaks another release than the client.
 
 ## `CLIENT_UNKNOWN_NETWORK`
 
