@@ -44,6 +44,11 @@ export interface GoalMob {
     shareables?(): ShareablesParams | undefined;
     /** Its current health, for the attack goals that stop at a threshold. */
     health?(): number | undefined;
+    /**
+     * Its hitbox, Java's `getBbWidth` and `getBbHeight`, for the goals that strike what a box
+     * meets, such as the dragon's wings.
+     */
+    size?(): { readonly width: number; readonly height: number } | undefined;
     /** What it is attacking, which is what the owner-revenge goals read. */
     target?(): GoalMob | undefined;
     /** Who last damaged it, which is what `owner_hurt_by_target` reads. */

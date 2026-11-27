@@ -70,6 +70,46 @@ const isDraw = (row: (number | string)[]): row is Draw =>
     typeof row[2] === 'number' &&
     typeof row[3] === 'number';
 
+/** A Java block state as the vector file writes it: the name, then the properties. */
+type JavaState = [string, Record<string, string>];
+
+const isJavaState = (value: unknown): value is JavaState =>
+    Array.isArray(value) &&
+    typeof value[0] === 'string' &&
+    typeof value[1] === 'object' &&
+    value[1] !== null &&
+    Object.values(value[1]).every((property) => typeof property === 'string');
+
+/** One block of `pillars`'s palette: its state, then whether it is air, `dragon_immune` and `dragon_transparent`. */
+const palette = fightVectors.palette.flatMap(([state, air, immune, transparent]) =>
+    isJavaState(state) && typeof air === 'boolean' && typeof immune === 'boolean' && typeof transparent === 'boolean'
+        ? [{ state, air, immune, transparent }]
+        : []
+);
+
+const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
+
+/**
+ * The blocks of the `pillars` layout, `DumpDragonVectors.Layout`: a column from y 60 to 150 on
+ * every sixth x and z between 24 and 110 blocks from the origin, but those within two blocks of a
+ * path node, each block `palette[floorMod(3x + 5y + 11z, palette.length)]`.
+ */
+const pillars = (): Map<string, (typeof palette)[number]> => {
+    const blocks = new Map<string, (typeof palette)[number]>();
+    for (let x = -110; x <= 110; x += 6)
+        for (let z = -110; z <= 110; z += 6) {
+            const away = x * x + z * z;
+            if (away < 24 * 24 || away > 110 * 110) continue;
+            if (nodeVectors.nodes.some(([nx = 0, , nz = 0]) => Math.abs(nx - x) <= 2 && Math.abs(nz - z) <= 2))
+                continue;
+            for (let y = 60; y <= 150; y += 1) {
+                const block = palette[(((3 * x + 5 * y + 11 * z) % palette.length) + palette.length) % palette.length];
+                if (block !== undefined) blocks.set(key(x, y, z), block);
+            }
+        }
+    return blocks;
+};
+
 /** What the port did on the first tick it stopped matching Java, or undefined when it never did. */
 interface Divergence {
     readonly tick: number;
@@ -82,10 +122,20 @@ interface Divergence {
  * Flies one fight through the dragon's goals and compares each tick with Java's. The dragon's
  * random source hands back the values Java's drew, in order, and the run stops at the first draw
  * the port makes that Java did not, since every tick after that one would differ too.
+ *
+ * The world answers as Java's did: the blocks of the fight's layout with their tags, the players
+ * and the zombies with their hitboxes, the blows Java dealt the dragon as the health it left, each
+ * line of sight as Java's `hasLineOfSight` answered it, and for each standing entity the blow its
+ * `getLastHurtByMob` remembers, as Java's own `hurtServer` and `baseTick` left it after each blow
+ * the port deals and each tick.
  */
 const fly = (fight: Fight): Divergence | undefined => {
     let tick = 0;
     let divergence: Divergence | undefined;
+    const differ = (what: string, java: unknown, port: unknown): void => {
+        if (divergence === undefined && JSON.stringify(java) !== JSON.stringify(port))
+            divergence = { tick, what, java, port };
+    };
     const draws = fight.draws.filter(isDraw);
     let drawn = 0;
     const draw = (bound: number): number => {
@@ -96,9 +146,38 @@ const fly = (fight: Fight): Divergence | undefined => {
         return next?.[3] ?? 0;
     };
 
-    const players = fight.players.map(([x = 0, y = 0, z = 0], index) =>
-        testMob(`player${index}`, { x, y, z }, { identifier: 'minecraft:player' })
-    );
+    // The players, then the zombies, in the order Java's level lists them; `marks` is the blow each
+    // one's `getLastHurtByMob` remembers, as a game tick, or null.
+    const dragonMob = testMob('dragon', { x: 0, y: 0, z: 0 }, { identifier: 'minecraft:ender_dragon' });
+    const marks: (number | null)[] = [];
+    const standingMob = (identifier: string, [x = 0, y = 0, z = 0]: number[], index: number): GoalMob => {
+        const [width = 0, height = 0] =
+            Object.entries(fightVectors.sizes).find(([type]) => type === identifier)?.[1] ?? [];
+        marks.push(null);
+        return {
+            ...testMob(`${identifier}${index}`, { x, y, z }, { identifier, health: fightVectors.standingHealth }),
+            size: () => ({ width, height }),
+            lastHurtBy: () => {
+                const mark = marks[index];
+                return mark === null || mark === undefined ? undefined : { mob: dragonMob, tick: mark };
+            }
+        };
+    };
+    const players = fight.players.map((at, index) => standingMob('minecraft:player', at, index));
+    const standing = [
+        ...players,
+        ...fight.zombies.map((at, index) => standingMob('minecraft:zombie', at, players.length + index))
+    ];
+    const indexOf = (mob: GoalMob): number => standing.indexOf(mob);
+
+    const blocks = fight.layout === 'pillars' ? pillars() : new Map<string, (typeof palette)[number]>();
+    const blockChanges: unknown[] = [];
+    const pushes: unknown[] = [];
+    const javaBlows = fight.blows.filter((row) => row[2] === 'minecraft:mob_attack');
+    const blows: unknown[] = [];
+    let forgotten = 0;
+    let sighted = 0;
+
     // The tick and the type of each thing the dragon spawns, and where a breath cloud stands; the
     // port's `shoot` leaves where a fireball starts to the server.
     const spawned: (number | string)[][] = [];
@@ -108,6 +187,7 @@ const fly = (fight: Fight): Divergence | undefined => {
         const [at, there] = [here(), mob.position()];
         return (there.x - at.x) ** 2 + (there.y - at.y) ** 2 + (there.z - at.z) ** 2;
     };
+    const [originX = 0, originY = 0, originZ = 0] = fight.origin;
     let yaw: number | undefined;
     let attackTarget: GoalMob | undefined;
     const world: GoalWorld = {
@@ -115,9 +195,19 @@ const fly = (fight: Fight): Divergence | undefined => {
         // Java's `getNearestPlayer`: within the range, nearest first, the earlier player on a tie.
         players: (radius) =>
             players.filter((player) => away(player) <= radius * radius).sort((a, b) => away(a) - away(b)),
+        // Java's entity storage, in the order the oracle's level keeps it.
+        mobs: (radius) => standing.filter((mob) => away(mob) <= radius * radius),
+        // Each line of sight the port checks is the next one Java's dragon checked, answered as Java's was.
+        hasLineOfSight: (mob) => {
+            const java = fight.sights[sighted];
+            sighted += 1;
+            differ('line of sight', java?.slice(0, 2), [tick, indexOf(mob)]);
+            return java?.[2] === true;
+        },
         surfaceY: surface,
-        fightOrigin: () => ({ x: 0, y: 0, z: 0 }),
+        fightOrigin: () => ({ x: originX, y: originY, z: originZ }),
         endCrystalsAlive: () => fight.crystals ?? undefined,
+        gameRule: (name) => (name === 'mobGriefing' ? fight.mobGriefing : undefined),
         target: () => attackTarget,
         setTarget: (mob) => {
             attackTarget = mob;
@@ -132,6 +222,42 @@ const fly = (fight: Fight): Divergence | undefined => {
         spawn: (identifier, position) => {
             spawned.push([tick, identifier, position.x, position.y, position.z]);
             return testMob(`${identifier}-${spawned.length}`, position, { identifier });
+        },
+        pushMob: (mob, velocity) => {
+            const row = [tick, indexOf(mob), velocity.x, velocity.y, velocity.z];
+            differ('push', fight.pushes[pushes.length], row);
+            pushes.push(row);
+        },
+        // Each blow the port deals is the next one Java's dragon dealt, and leaves the mob
+        // remembering what Java's `hurtServer` left it remembering.
+        attack: (mob, damage) => {
+            const java = javaBlows[blows.length];
+            const row = [tick, indexOf(mob), 'minecraft:mob_attack', damage];
+            differ('blow', java?.slice(0, 4), row);
+            blows.push(row);
+            const mark = java?.[5];
+            const index = indexOf(mob);
+            if (typeof mark === 'number' || mark === null) marks[index] = mark;
+        },
+        javaBlockAt: (at) => {
+            const block = blocks.get(key(at.x, at.y, at.z));
+            return block === undefined
+                ? { name: 'minecraft:air', properties: {} }
+                : { name: block.state[0], properties: block.state[1] };
+        },
+        setJavaBlock: (at, state) => {
+            const row = [tick, at.x, at.y, at.z, [state.name, state.properties]];
+            differ('block change', fight.blockChanges[blockChanges.length], row);
+            blockChanges.push(row);
+            const block = palette.find(({ state: [name] }) => name === state.name);
+            if (state.name === 'minecraft:air') blocks.delete(key(at.x, at.y, at.z));
+            else if (block !== undefined) blocks.set(key(at.x, at.y, at.z), block);
+        },
+        blockHasTag: (at, tag) => {
+            const block = blocks.get(key(at.x, at.y, at.z));
+            return tag === 'minecraft:dragon_immune'
+                ? block?.immune === true
+                : tag === 'minecraft:dragon_transparent' && block?.transparent === true;
         }
     };
     const [x = 0, y = 0, z = 0] = fight.start;
@@ -145,6 +271,7 @@ const fly = (fight: Fight): Divergence | undefined => {
             'minecraft:behavior.dragonflaming': { priority: 1 },
             'minecraft:behavior.dragonscanning': { priority: 2 }
         },
+        components: { 'minecraft:health': { value: 200, max: 200 } },
         world,
         random: () => draw(-1),
         randomInt: draw,
@@ -153,8 +280,19 @@ const fly = (fight: Fight): Divergence | undefined => {
     const phases = dragonPhasesOf(new GoalSupport(harness.entity, world));
     const targets = new Map(fight.targets.map(([at, ...target]) => [at, target]));
     let target: readonly (number | null)[] = [];
+    const healthAfter = new Map(fight.hits.map((hit) => [hit[0], hit[5]]));
+    const walls = new Set<number>();
+    for (const wall of fight.inWall) walls.add(wall);
 
     for (; tick < fight.ticks && divergence === undefined; tick += 1) {
+        // What Java's standing entities forgot on their own tick, the tick before.
+        for (; forgotten < fight.forgets.length; forgotten += 1) {
+            const [at, index, mark] = fight.forgets[forgotten] ?? [];
+            if (typeof at !== 'number' || typeof index !== 'number' || at >= tick) break;
+            marks[index] = mark ?? null;
+        }
+        const health = healthAfter.get(tick);
+        if (typeof health === 'number') harness.entity.attributes.set('health', health);
         harness.tick();
         const phase: DragonPhaseName = harness.entity.componentState.get(dragonPhaseState)?.phase ?? 'holding_pattern';
         const at = here();
@@ -163,21 +301,26 @@ const fly = (fight: Fight): Divergence | undefined => {
         const portTarget = phases.flyTargetLocation;
         // The file writes Java's `float` yaw as its shortest decimal, which reads back as a `double`.
         const yRot = Math.fround(fight.yRot[tick] ?? Number.NaN);
-        const checks: [string, unknown, unknown][] = [
-            ['phase', DRAGON_PHASES[fight.phase[tick] ?? -1], phase],
-            ['position', [fight.x[tick], fight.y[tick], fight.z[tick]], [at.x, at.y, at.z]],
-            ['yRot', yRot, phases.javaYRot],
-            ['yaw', wrapDegrees(yRot + 180), yaw],
-            ['target', javaTarget, portTarget === undefined ? undefined : [portTarget.x, portTarget.y, portTarget.z]]
-        ];
-        for (const [what, java, port] of checks)
-            if (divergence === undefined && JSON.stringify(java) !== JSON.stringify(port))
-                divergence = { tick, what, java, port };
+        differ('phase', DRAGON_PHASES[fight.phase[tick] ?? -1], phase);
+        differ('position', [fight.x[tick], fight.y[tick], fight.z[tick]], [at.x, at.y, at.z]);
+        differ('yRot', yRot, phases.javaYRot);
+        differ('yaw', wrapDegrees(yRot + 180), yaw);
+        differ('inWall', walls.has(tick), phases.inWall);
+        differ('target', javaTarget, portTarget === undefined ? undefined : [portTarget.x, portTarget.y, portTarget.z]);
     }
     if (divergence !== undefined) return divergence;
     if (drawn !== draws.length) return { tick, what: 'draws left', java: draws.slice(drawn), port: [] };
+    differ('lines of sight', fight.sights.length, sighted);
+    differ('pushes', fight.pushes, pushes);
+    differ(
+        'blows',
+        javaBlows.map((row) => row.slice(0, 4)),
+        blows
+    );
+    differ('block changes', fight.blockChanges, blockChanges);
     const java = fight.spawns.map((row) => (row[1] === 'minecraft:dragon_fireball' ? row.slice(0, 2) : row));
-    return JSON.stringify(java) === JSON.stringify(spawned) ? undefined : { tick, what: 'spawns', java, port: spawned };
+    differ('spawns', java, spawned);
+    return divergence;
 };
 
 describe("the ender dragon's flight against Java's", () => {
@@ -196,6 +339,53 @@ describe("the ender dragon's flight against Java's", () => {
                 'charging_player'
             ].sort()
         );
+    });
+
+    it('records fights that run the walls, the wings, the head, the blows and the fight origin', () => {
+        const fights = fightVectors.fights;
+        const phaseId = (name: DragonPhaseName): number => DRAGON_PHASES.indexOf(name);
+        const sittingPhases: readonly DragonPhaseName[] = ['sitting_scanning', 'sitting_attacking', 'sitting_flaming'];
+        const sitting = sittingPhases.map(phaseId);
+        // `checkWalls` breaks blocks with mob griefing on, and meets the ones it may not break either way.
+        expect(fights.some((fight) => fight.blockChanges.length > 0)).toBe(true);
+        expect(fights.some((fight) => fight.mobGriefing && fight.inWall.length > 0)).toBe(true);
+        expect(fights.some((fight) => !fight.mobGriefing && fight.inWall.length > 0)).toBe(true);
+        // The wings push and strike, and the head and the neck strike, some blows landing and some not.
+        const blows = fights.flatMap((fight) => fight.blows);
+        expect(fights.some((fight) => fight.pushes.length > 0)).toBe(true);
+        for (const damage of [5, 10])
+            for (const landed of [true, false])
+                expect(blows.some((row) => row[3] === damage && row[4] === landed)).toBe(true);
+        expect(fights.some((fight) => fight.forgets.length > 0)).toBe(true);
+        // Blows land on the head and on the body, while the dragon flies and while it sits, and the
+        // ones it takes sitting make it take off.
+        const hits = fights.flatMap((fight) => fight.hits.map((hit) => ({ fight, hit })));
+        for (const part of ['head', 'body'])
+            for (const sits of [true, false])
+                expect(
+                    hits.some(({ fight, hit: [tick, hitPart] }) => {
+                        const before = typeof tick === 'number' ? fight.phase[tick - 1] : undefined;
+                        return hitPart === part && sitting.includes(before ?? phaseId('holding_pattern')) === sits;
+                    })
+                ).toBe(true);
+        expect(
+            hits.some(
+                ({ fight, hit: [tick] }) =>
+                    typeof tick === 'number' &&
+                    sitting.includes(fight.phase[tick - 1] ?? -1) &&
+                    fight.phase[tick] === phaseId('takeoff')
+            )
+        ).toBe(true);
+        // A dragon takes off after its fourth flame.
+        expect(
+            fights.some((fight) =>
+                fight.phase.some(
+                    (id, tick) => id === phaseId('takeoff') && fight.phase[tick - 1] === phaseId('sitting_flaming')
+                )
+            )
+        ).toBe(true);
+        // A fight centered away from the world's origin.
+        expect(fights.some((fight) => fight.origin.some((coordinate) => coordinate !== 0))).toBe(true);
     });
 
     it.each(fightVectors.fights.map((fight) => [fight.name, fight] as const))(

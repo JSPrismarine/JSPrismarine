@@ -84,6 +84,7 @@
         "Blocks.SNOW": "net/minecraft/world/level/block/Blocks.SNOW",
         "BlocksAttacks.resolveBlockedDamage": "net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F",
         "BlockTags.DOORS": "net/minecraft/tags/BlockTags.DOORS",
+        "BodyRotationControl.clientTick": "net/minecraft/world/entity/ai/control/BodyRotationControl.clientTick()V",
         "BoundingBox.fromCorners": "net/minecraft/world/level/levelgen/structure/BoundingBox.fromCorners(Lnet/minecraft/core/Vec3i;Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
         "BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z": "net/minecraft/world/level/levelgen/structure/BoundingBox.intersects(Lnet/minecraft/world/level/levelgen/structure/BoundingBox;)Z",
         "BoundingBox.orientBox": "net/minecraft/world/level/levelgen/structure/BoundingBox.orientBox(IIIIIIIIILnet/minecraft/core/Direction;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
@@ -234,6 +235,7 @@
         "EnderDragon.findPath": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.findPath(IILnet/minecraft/world/level/pathfinder/Node;)Lnet/minecraft/world/level/pathfinder/Path;",
         "EnderDragon.getFightOrigin": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.getFightOrigin()Lnet/minecraft/core/BlockPos;",
         "EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.hurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EnderDragonPart;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+        "EnderDragon.knockBack": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockBack(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V",
         "EnderDragon.onCrystalDestroyed": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.onCrystalDestroyed(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EndCrystal;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/damagesource/DamageSource;)V",
         "EnderDragon.tickDeath": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.tickDeath()V",
         "EnderDragonPhaseManager.setPhase": "net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.setPhase(Lnet/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhase;)V",
@@ -262,6 +264,7 @@
         "Entity.setAsInsidePortal": "net/minecraft/world/entity/Entity.setAsInsidePortal(Lnet/minecraft/world/level/block/Portal;Lnet/minecraft/core/BlockPos;)V",
         "Entity.thunderHit": "net/minecraft/world/entity/Entity.thunderHit(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LightningBolt;)V",
         "EntityDimensions.eyeHeight()F": "net/minecraft/world/entity/EntityDimensions.eyeHeight()F",
+        "EntityDimensions.makeBoundingBox(DDD)Lnet/minecraft/world/phys/AABB;": "net/minecraft/world/entity/EntityDimensions.makeBoundingBox(DDD)Lnet/minecraft/world/phys/AABB;",
         "EntityDimensions.scalable": "net/minecraft/world/entity/EntityDimensions.scalable(FF)Lnet/minecraft/world/entity/EntityDimensions;",
         "EquipmentSlot.$values": "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;",
         "EquipmentSlot.SADDLE": "net/minecraft/world/entity/EquipmentSlot.SADDLE",
@@ -422,6 +425,7 @@
         "Mob.checkDespawn": "net/minecraft/world/entity/Mob.checkDespawn()V",
         "Mob.createMobAttributes": "net/minecraft/world/entity/Mob.createMobAttributes()Lnet/minecraft/world/entity/ai/attributes/AttributeSupplier$Builder;",
         "Mob.getControllingPassenger": "net/minecraft/world/entity/Mob.getControllingPassenger()Lnet/minecraft/world/entity/LivingEntity;",
+        "Mob.getMaxHeadYRot": "net/minecraft/world/entity/Mob.getMaxHeadYRot()I",
         "Mob.updateControlFlags": "net/minecraft/world/entity/Mob.updateControlFlags()V",
         "MobEffectInstance.endsWithin": "net/minecraft/world/effect/MobEffectInstance.endsWithin(I)Z",
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
@@ -560,6 +564,7 @@
         "ScatteredFeaturePiece.updateAverageGroundHeight": "net/minecraft/world/level/levelgen/structure/ScatteredFeaturePiece.updateAverageGroundHeight(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;I)Z",
         "SecondaryPoiSensor.SCAN_RATE": "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE",
         "SegmentableBlock.getStateForPlacement": "net/minecraft/world/level/block/SegmentableBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/block/state/properties/IntegerProperty;Lnet/minecraft/world/level/block/state/properties/EnumProperty;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Sensing.hasLineOfSight": "net/minecraft/world/entity/ai/sensing/Sensing.hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z",
         "Sensor.DEFAULT_SCAN_RATE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE",
         "Sensor.DEFAULT_TARGETING_RANGE": "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_TARGETING_RANGE",
         "ServerboundAcceptTeleportationPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.STREAM_CODEC",
@@ -1458,6 +1463,10 @@
             "26.3": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9",
             "26.4-pre-1": "sha256:ad057064d3464ad9810c01a9ec3b1c080c90e574f0dcab208ca508e92aaf19a9"
         },
+        "net/minecraft/world/entity/ai/control/BodyRotationControl.clientTick()V": {
+            "26.3": "sha256:7c4f26fb87623596fe79b5f647025e900cc72da4e1e1c9d8e37e67afcffbc860",
+            "26.4-pre-1": "sha256:e0641c6c8b0e9a79c116ea6ea8778e2a6815a755095da4beb8b5338f3373410a"
+        },
         "net/minecraft/world/entity/ai/goal/AvoidEntityGoal.tick()V": {
             "26.3": "sha256:f548cdcb7bb64bdeb44b73a52dee3dadc5bed8ed362600f43bf19a2f70ee4b15",
             "26.4-pre-1": "sha256:f548cdcb7bb64bdeb44b73a52dee3dadc5bed8ed362600f43bf19a2f70ee4b15"
@@ -1593,6 +1602,10 @@
         "net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.SCAN_RATE": {
             "26.3": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521",
             "26.4-pre-1": "sha256:0918513d6aee985974d827981dc44a8a8ad65ad0037121595f1fc65adc2fa521"
+        },
+        "net/minecraft/world/entity/ai/sensing/Sensing.hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z": {
+            "26.3": "sha256:d5631d76e6fd95efa27dee368e9b3c6fa1bc8b15216348ef6253719c30cbf569",
+            "26.4-pre-1": "sha256:d5631d76e6fd95efa27dee368e9b3c6fa1bc8b15216348ef6253719c30cbf569"
         },
         "net/minecraft/world/entity/ai/sensing/Sensor.DEFAULT_SCAN_RATE": {
             "26.3": "sha256:f52e0210922ecf8d7a3417463766713dc082f6cffdc16454660183416b04e8ae",
@@ -1967,6 +1980,10 @@
             "26.3": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9",
             "26.4-pre-1": "sha256:42fb687650dc4f39b8bea35501bc33bf589217103a3b4fd8d26b6973d3a297a9"
         },
+        "net/minecraft/world/entity/boss/enderdragon/EnderDragon.knockBack(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V": {
+            "26.3": "sha256:17074325b6e8312a5a4d2b31603343ff62c63882d0d52582c41d4c060d7d047e",
+            "26.4-pre-1": "sha256:17074325b6e8312a5a4d2b31603343ff62c63882d0d52582c41d4c060d7d047e"
+        },
         "net/minecraft/world/entity/boss/enderdragon/EnderDragon.onCrystalDestroyed(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/boss/enderdragon/EndCrystal;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/damagesource/DamageSource;)V": {
             "26.3": "sha256:af637be3dfe77005f2e4a760c35759df1d44ad2b12d2d75619098bd5f0e34b0d",
             "26.4-pre-1": "sha256:af637be3dfe77005f2e4a760c35759df1d44ad2b12d2d75619098bd5f0e34b0d"
@@ -2122,6 +2139,10 @@
             "26.3": "sha256:3e1b498073fa682b3646a915b694d9385d2490f1e39f93fc35985594be5c37d8",
             "26.4-pre-1": "sha256:3e1b498073fa682b3646a915b694d9385d2490f1e39f93fc35985594be5c37d8"
         },
+        "net/minecraft/world/entity/EntityDimensions.makeBoundingBox(DDD)Lnet/minecraft/world/phys/AABB;": {
+            "26.3": "sha256:d24cf9b32d7b503f656e45887d228bb52978cf84615c63f26587daf395e7d6d3",
+            "26.4-pre-1": "sha256:d24cf9b32d7b503f656e45887d228bb52978cf84615c63f26587daf395e7d6d3"
+        },
         "net/minecraft/world/entity/EntityDimensions.scalable(FF)Lnet/minecraft/world/entity/EntityDimensions;": {
             "26.3": "sha256:66348f208aefa2adb8bdab0db8ea662fa2da68796d54b9a03e592b38d90d03a6",
             "26.4-pre-1": "sha256:66348f208aefa2adb8bdab0db8ea662fa2da68796d54b9a03e592b38d90d03a6"
@@ -2257,6 +2278,10 @@
         "net/minecraft/world/entity/Mob.getControllingPassenger()Lnet/minecraft/world/entity/LivingEntity;": {
             "26.3": "sha256:44239fb6feb389e9e1ccb9fdfd307572a90e67caea190bc18dfc9f8ae33f575a",
             "26.4-pre-1": "sha256:44239fb6feb389e9e1ccb9fdfd307572a90e67caea190bc18dfc9f8ae33f575a"
+        },
+        "net/minecraft/world/entity/Mob.getMaxHeadYRot()I": {
+            "26.3": "sha256:19095805e9d3e757c953003a26eb3fc6f8d52aab6c75f9e4ede45319acfae76e",
+            "26.4-pre-1": "sha256:19095805e9d3e757c953003a26eb3fc6f8d52aab6c75f9e4ede45319acfae76e"
         },
         "net/minecraft/world/entity/Mob.updateControlFlags()V": {
             "26.3": "sha256:f0465679dac7df579bbe70b6d1dfb7ca9d34d909ec21d0798bdfae97f720d3fd",
