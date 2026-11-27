@@ -22,6 +22,9 @@ describe('BlockStateSchema', () => {
     });
 
     it('ships one schema per block of the vanilla palette, with the same states', () => {
+        // The catalog is process-wide, and Vitest runs files in one worker without isolation, so
+        // a pack an earlier file loaded, such as the client's pack scenario, would still be here.
+        BlockStateSchemas.reset();
         const palette = vanillaBlockPalette();
 
         expect(BlockStateSchemas.names().sort()).toEqual(palette.entries.map(({ identifier }) => identifier).sort());
