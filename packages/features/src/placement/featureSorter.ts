@@ -10,7 +10,7 @@
 
 import { FeaturesErrors } from '@jsprismarine/errors/features';
 
-/** One feature of one step, the node the sort walks. Java's `FeatureSorter.FeatureData`. */
+/** One feature of one step, the node the sort walks. Java's `FeatureSorter$FeatureData`. */
 interface FeatureNode {
     /** The decoration step the biome listed the feature in. */
     readonly step: number;
@@ -20,7 +20,7 @@ interface FeatureNode {
     readonly reference: string;
 }
 
-/** Java's `Comparator.comparingInt(step).thenComparingInt(featureIndex)`. */
+/** The JDK's `Comparator.comparingInt(step).thenComparingInt(featureIndex)`. */
 const compareNodes = (a: FeatureNode, b: FeatureNode): number =>
     a.step === b.step ? a.featureIndex - b.featureIndex : a.step - b.step;
 

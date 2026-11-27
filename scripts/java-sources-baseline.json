@@ -98,39 +98,6 @@
     "packages/entities/src/javaTaming.ts": {
         "untaggedJavaCitation": 1
     },
-    "packages/features/src/features/caves.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/features/src/features/endSpikes.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/features/src/features/javaHashSet.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/features/src/features/simple.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/features/src/features/structural.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/features/src/features/support.ts": {
-        "untaggedJavaCitation": 4
-    },
-    "packages/features/src/features/tree/shared.ts": {
-        "untaggedJavaCitation": 4
-    },
-    "packages/features/src/placement/WorldgenRandom.ts": {
-        "untaggedJavaCitation": 6
-    },
-    "packages/features/src/placement/featureSorter.ts": {
-        "untaggedJavaCitation": 2
-    },
-    "packages/features/src/world/BlockState.ts": {
-        "untaggedJavaCitation": 1
-    },
-    "packages/features/src/world/FeatureWorld.ts": {
-        "untaggedJavaCitation": 8
-    },
     "packages/item-behaviors/src/behaviors/consume.ts": {
         "untaggedJavaCitation": 1
     },

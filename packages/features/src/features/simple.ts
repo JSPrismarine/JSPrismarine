@@ -326,6 +326,8 @@ export const underwaterMagma = (
  *
  * This is Java's `Column.scan` with water inside and anything else as the edge, so the value is
  * the floor block itself rather than the water above it.
+ *
+ * @javaSource Column.scan
  */
 const findWaterFloor = (
     world: Parameters<ConfiguredFeature['place']>[0],

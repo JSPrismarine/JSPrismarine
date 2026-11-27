@@ -46,7 +46,19 @@ export interface FoliageAttachment {
     readonly sizeZ: number;
 }
 
-/** Builds a {@link FoliageAttachment}, Java's `FoliagePlacer.FoliageAttachment`. */
+/**
+ * Builds a {@link FoliageAttachment}, Java's `FoliagePlacer$FoliageAttachment`.
+ *
+ * @javaSource FoliagePlacer$FoliageAttachment.doubleTrunk
+ * @javaSource FoliagePlacer$FoliageAttachment.toString
+ * @javaSource FoliagePlacer$FoliageAttachment.hashCode
+ * @javaSource FoliagePlacer$FoliageAttachment.equals
+ * @javaSource FoliagePlacer$FoliageAttachment.pos()Lnet/minecraft/core/BlockPos;
+ * @javaSource FoliagePlacer$FoliageAttachment.radiusOffsetXZ()I
+ * @javaSource FoliagePlacer$FoliageAttachment.foliageHeightOffset()I
+ * @javaSource FoliagePlacer$FoliageAttachment.sizeX()I
+ * @javaSource FoliagePlacer$FoliageAttachment.sizeZ()I
+ */
 export const attachment = (
     pos: BlockPos,
     radiusOffsetXZ: number,
@@ -159,13 +171,21 @@ export interface TreeConfig {
     readonly belowTrunkProvider: BlockStateProvider;
 }
 
-/** Whether a position holds air or leaves, Java's `TreeFeature.isAirOrLeaves`. */
+/**
+ * Whether a position holds air or leaves, Java's `TreeFeature.isAirOrLeaves`.
+ *
+ * @javaSource TreeFeature.isAirOrLeaves
+ */
 export const isAirOrLeaves = (world: FeatureWorld, position: BlockPos): boolean => {
     const state = world.getBlock(position);
     return world.blocks.isAir(state) || world.blocks.hasTag(state, LEAVES_TAG);
 };
 
-/** Answers Java's `TreeFeature.validTreePos`: air, or a block trees are allowed to grow through. */
+/**
+ * Answers Java's `TreeFeature.validTreePos`: air, or a block trees are allowed to grow through.
+ *
+ * @javaSource TreeFeature.validTreePos
+ */
 export const validTreePos = (world: FeatureWorld, position: BlockPos): boolean => {
     const state = world.getBlock(position);
     return world.blocks.isAir(state) || world.blocks.hasTag(state, REPLACEABLE_BY_TREES_TAG);
@@ -212,7 +232,11 @@ export const sidewaysAxis = (direction: Direction): ((state: BlockState) => Bloc
 /** Draws one of the four horizontal directions. */
 export const randomHorizontal = (random: RandomSource): Direction => randomElement(HORIZONTAL_DIRECTIONS, random);
 
-/** Each horizontal direction turned a quarter clockwise, Java's `Direction.getClockWise`. */
+/**
+ * Each horizontal direction turned a quarter clockwise, Java's `Direction.getClockWise`.
+ *
+ * @javaSource Direction.getClockWise()Lnet/minecraft/core/Direction;
+ */
 export const CLOCKWISE: Readonly<Record<Direction, Direction>> = {
     north: 'east',
     east: 'south',

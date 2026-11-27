@@ -56,13 +56,29 @@ export const HEIGHTMAPS = [
  * {@link FeatureWorld.blocks}, so a feature still takes one object.
  */
 export interface BlockOracle {
-    /** Answers Java's `BlockState.isAir()`. */
+    /**
+     * Answers Java's `BlockState.isAir()`.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isAir()Z
+     */
     isAir(state: BlockState): boolean;
-    /** Answers Java's `BlockState.isSolid()`: the block occupies its whole cell and blocks motion. */
+    /**
+     * Answers Java's `BlockState.isSolid()`: the block occupies its whole cell and blocks motion.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isSolid
+     */
     isSolid(state: BlockState): boolean;
-    /** Answers Java's `BlockState.isFaceSturdy(level, pos, direction)` for a full face. */
+    /**
+     * Answers Java's `BlockState.isFaceSturdy(level, pos, direction)` for a full face.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.isFaceSturdy(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z
+     */
     isSturdy(state: BlockState, direction: Direction): boolean;
-    /** Answers Java's `BlockState.canBeReplaced()`, which decides whether a feature may overwrite it. */
+    /**
+     * Answers Java's `BlockState.canBeReplaced()`, which decides whether a feature may overwrite it.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.canBeReplaced()Z
+     */
     isReplaceable(state: BlockState): boolean;
     /** Returns the fluid the state holds, counting both source blocks and waterlogging. */
     fluid(state: BlockState): FluidKind;
@@ -72,7 +88,11 @@ export interface BlockOracle {
      * @param tag - The tag identifier with no leading `#`, for example `minecraft:logs`.
      */
     hasTag(state: BlockState, tag: string): boolean;
-    /** Answers Java's `BlockState.canSurvive(level, pos)` for the `would_survive` predicate. */
+    /**
+     * Answers Java's `BlockState.canSurvive(level, pos)` for the `would_survive` predicate.
+     *
+     * @javaSee BlockBehaviour$BlockStateBase.canSurvive
+     */
     canSurvive(world: FeatureWorld, position: BlockPos, state: BlockState): boolean;
     /**
      * Answers Java's `isUnobstructed`: whether a block-shaped box at the position collides with
@@ -99,6 +119,8 @@ export interface BlockOracle {
  * Writes are expected to succeed or be dropped silently, as Java's `WorldGenLevel.setBlock` does
  * outside the region being generated; a feature treats {@link setBlock} as advisory and reads back
  * when it needs to know.
+ *
+ * @javaSee LevelWriter.setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z
  */
 export interface FeatureWorld {
     /** The lowest y the dimension generates, Java's `getMinY()`. */
@@ -131,6 +153,8 @@ export interface FeatureWorld {
      * Optional, because biome climate lives in the biome source rather than here. When absent
      * nothing freezes, which is the right answer for a warm world and a visible one for a cold
      * world rather than a silent miss.
+     *
+     * @javaSee Biome.getTemperature
      */
     isColdEnoughToSnow?(position: BlockPos): boolean;
     /**
@@ -171,6 +195,8 @@ export interface FeatureWorld {
      * places.
      *
      * Optional, for the same reason as {@link scheduleFluidTick}.
+     *
+     * @javaSee LevelChunk.postProcessGeneration
      */
     markForPostProcessing?(position: BlockPos): void;
 }

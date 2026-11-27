@@ -52,6 +52,7 @@
         "BigDripleafBlock.getStateForPlacement": "net/minecraft/world/level/block/BigDripleafBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "BlockPlaceContext.getNearestLookingDirections": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;",
         "BlockPlaceContext.getNearestLookingVerticalDirection": "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingVerticalDirection()Lnet/minecraft/core/Direction;",
+        "BlockPos.betweenClosed(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/lang/Iterable;": "net/minecraft/core/BlockPos.betweenClosed(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/lang/Iterable;",
         "BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;": "net/minecraft/core/BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;",
         "BlockPos.withinBoxByManhattanDistance": "net/minecraft/core/BlockPos.withinBoxByManhattanDistance(Lnet/minecraft/core/BlockPos;III)Ljava/lang/Iterable;",
         "BlockTags.MOB_INTERACTABLE_DOORS": "net/minecraft/tags/BlockTags.MOB_INTERACTABLE_DOORS",
@@ -73,6 +74,7 @@
         "ChestBlock.getStateForPlacement": "net/minecraft/world/level/block/ChestBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "ChiseledBookShelfBlock.getStateForPlacement": "net/minecraft/world/level/block/ChiseledBookShelfBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CocoaBlock.getStateForPlacement": "net/minecraft/world/level/block/CocoaBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Column.scan": "net/minecraft/world/level/levelgen/Column.scan(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;ILjava/util/function/Predicate;Ljava/util/function/Predicate;)Ljava/util/Optional;",
         "CommandBlock.getStateForPlacement": "net/minecraft/world/level/block/CommandBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CommandBlock.tick": "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
@@ -87,6 +89,8 @@
         "Direction.fromYRot": "net/minecraft/core/Direction.fromYRot(D)Lnet/minecraft/core/Direction;",
         "Direction.getClockWise()Lnet/minecraft/core/Direction;": "net/minecraft/core/Direction.getClockWise()Lnet/minecraft/core/Direction;",
         "Direction.orderedByNearest": "net/minecraft/core/Direction.orderedByNearest(Lnet/minecraft/world/entity/Entity;)[Lnet/minecraft/core/Direction;",
+        "Direction.values": "net/minecraft/core/Direction.values()[Lnet/minecraft/core/Direction;",
+        "Direction$Plane.HORIZONTAL": "net/minecraft/core/Direction$Plane.HORIZONTAL",
         "DismountOrSkipMounting.create": "net/minecraft/world/entity/ai/behavior/DismountOrSkipMounting.create(ILjava/util/function/BiPredicate;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
         "DispenserBlock.getStateForPlacement": "net/minecraft/world/level/block/DispenserBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "DragonChargePlayerPhase.CHARGE_RECOVERY_TIME": "net/minecraft/world/entity/boss/enderdragon/phases/DragonChargePlayerPhase.CHARGE_RECOVERY_TIME",
@@ -120,6 +124,7 @@
         "EndPlatformFeature.createEndPlatform": "net/minecraft/world/level/levelgen/feature/EndPlatformFeature.createEndPlatform(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Z)V",
         "EndPortalFrameBlock.getStateForPlacement": "net/minecraft/world/level/block/EndPortalFrameBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "EndRodBlock.getStateForPlacement": "net/minecraft/world/level/block/EndRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "EndSpikeFeature.getSpikesForLevel": "net/minecraft/world/level/levelgen/feature/EndSpikeFeature.getSpikesForLevel(Lnet/minecraft/world/level/WorldGenLevel;)Ljava/util/List;",
         "Entity.getBoundingBox": "net/minecraft/world/entity/Entity.getBoundingBox()Lnet/minecraft/world/phys/AABB;",
         "EquipmentSlot.$values": "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;",
         "Equippable.swapWithEquipmentSlot": "net/minecraft/world/item/equipment/Equippable.swapWithEquipmentSlot(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/InteractionResult;",
@@ -133,6 +138,15 @@
         "FlowerBedBlock.getStateForPlacement": "net/minecraft/world/level/block/FlowerBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "FlowingFluid.canPassThroughWall": "net/minecraft/world/level/material/FlowingFluid.canPassThroughWall(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z",
         "FlowingFluid.getSpread": "net/minecraft/world/level/material/FlowingFluid.getSpread(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Ljava/util/Map;",
+        "FoliagePlacer$FoliageAttachment.doubleTrunk": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.doubleTrunk()Z",
+        "FoliagePlacer$FoliageAttachment.equals": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.equals(Ljava/lang/Object;)Z",
+        "FoliagePlacer$FoliageAttachment.foliageHeightOffset()I": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.foliageHeightOffset()I",
+        "FoliagePlacer$FoliageAttachment.hashCode": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.hashCode()I",
+        "FoliagePlacer$FoliageAttachment.pos()Lnet/minecraft/core/BlockPos;": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.pos()Lnet/minecraft/core/BlockPos;",
+        "FoliagePlacer$FoliageAttachment.radiusOffsetXZ()I": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.radiusOffsetXZ()I",
+        "FoliagePlacer$FoliageAttachment.sizeX()I": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeX()I",
+        "FoliagePlacer$FoliageAttachment.sizeZ()I": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeZ()I",
+        "FoliagePlacer$FoliageAttachment.toString": "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.toString()Ljava/lang/String;",
         "FollowFlockLeaderGoal.nextStartTick(Lnet/minecraft/world/entity/animal/fish/AbstractSchoolingFish;)I": "net/minecraft/world/entity/ai/goal/FollowFlockLeaderGoal.nextStartTick(Lnet/minecraft/world/entity/animal/fish/AbstractSchoolingFish;)I",
         "FollowParentGoal.canContinueToUse": "net/minecraft/world/entity/ai/goal/FollowParentGoal.canContinueToUse()Z",
         "FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN": "net/minecraft/world/entity/ai/goal/FollowParentGoal.DONT_FOLLOW_IF_CLOSER_THAN",
@@ -176,6 +190,7 @@
         "LeavesBlock.DECAY_DISTANCE": "net/minecraft/world/level/block/LeavesBlock.DECAY_DISTANCE",
         "LeavesBlock.getStateForPlacement": "net/minecraft/world/level/block/LeavesBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LecternBlock.getStateForPlacement": "net/minecraft/world/level/block/LecternBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "LevelReader.isEmptyBlock": "net/minecraft/world/level/LevelReader.isEmptyBlock(Lnet/minecraft/core/BlockPos;)Z",
         "LightEngine.MAX_LEVEL": "net/minecraft/world/level/lighting/LightEngine.MAX_LEVEL",
         "LightningRodBlock.getStateForPlacement": "net/minecraft/world/level/block/LightningRodBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "LookAtPlayerGoal.canContinueToUse": "net/minecraft/world/entity/ai/goal/LookAtPlayerGoal.canContinueToUse()Z",
@@ -193,6 +208,10 @@
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
         "MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING",
         "Mth.atan2": "net/minecraft/util/Mth.atan2(DD)D",
+        "Mth.nextDouble": "net/minecraft/util/Mth.nextDouble(Lnet/minecraft/util/RandomSource;DD)D",
+        "Mth.normal": "net/minecraft/util/Mth.normal(Lnet/minecraft/util/RandomSource;FF)F",
+        "Mth.randomBetween": "net/minecraft/util/Mth.randomBetween(Lnet/minecraft/util/RandomSource;FF)F",
+        "Mth.randomBetweenInclusive": "net/minecraft/util/Mth.randomBetweenInclusive(Lnet/minecraft/util/RandomSource;II)I",
         "Mth.wrapDegrees(D)D": "net/minecraft/util/Mth.wrapDegrees(D)D",
         "MushroomBlock.canSurvive": "net/minecraft/world/level/block/MushroomBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "NautilusAi.findNearestValidAttackTarget": "net/minecraft/world/entity/animal/nautilus/NautilusAi.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/nautilus/AbstractNautilus;)Ljava/util/Optional;",
@@ -349,12 +368,17 @@
         "TemptingSensor.forAnimal": "net/minecraft/world/entity/ai/sensing/TemptingSensor.forAnimal()Lnet/minecraft/world/entity/ai/sensing/TemptingSensor;",
         "TimeUtil.rangeOfSeconds": "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;",
         "TrapDoorBlock.getStateForPlacement": "net/minecraft/world/level/block/TrapDoorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "TreeFeature.isAirOrLeaves": "net/minecraft/world/level/levelgen/feature/TreeFeature.isAirOrLeaves(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z",
+        "TreeFeature.validTreePos": "net/minecraft/world/level/levelgen/feature/TreeFeature.validTreePos(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z",
         "TriggerGate.triggerGate": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerGate(Ljava/util/List;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$OrderPolicy;Lnet/minecraft/world/entity/ai/behavior/GateBehavior$RunningPolicy;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "TriggerGate.triggerOneShuffled": "net/minecraft/world/entity/ai/behavior/TriggerGate.triggerOneShuffled(Ljava/util/List;)Lnet/minecraft/world/entity/ai/behavior/OneShot;",
         "TripWireHookBlock.getStateForPlacement": "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "UniformInt.of": "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;",
+        "Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": "net/minecraft/util/Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;",
+        "Util.shuffle": "net/minecraft/util/Util.shuffle(Ljava/util/List;Lnet/minecraft/util/RandomSource;)V",
         "VaultBlock.getStateForPlacement": "net/minecraft/world/level/block/VaultBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Vec3.atBottomCenterOf": "net/minecraft/world/phys/Vec3.atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;",
+        "Vec3i.hashCode": "net/minecraft/core/Vec3i.hashCode()I",
         "Villager.BRAIN_PROVIDER": "net/minecraft/world/entity/npc/villager/Villager.BRAIN_PROVIDER",
         "VillagerGoalPackages.getFullLookBehavior": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getFullLookBehavior()Lcom/mojang/datafixers/util/Pair;",
         "VillagerGoalPackages.getMinimalLookBehavior": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.getMinimalLookBehavior()Lcom/mojang/datafixers/util/Pair;",
@@ -375,6 +399,7 @@
         "Warden$VibrationUser.canReceiveVibration": "net/minecraft/world/entity/monster/warden/Warden$VibrationUser.canReceiveVibration(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/gameevent/GameEvent$Context;)Z",
         "WardenAi.setDigCooldown": "net/minecraft/world/entity/monster/warden/WardenAi.setDigCooldown(Lnet/minecraft/world/entity/LivingEntity;)V",
         "WardenAi.setDisturbanceLocation": "net/minecraft/world/entity/monster/warden/WardenAi.setDisturbanceLocation(Lnet/minecraft/world/entity/monster/warden/Warden;Lnet/minecraft/core/BlockPos;)V",
+        "WeightedList.getRandomOrThrow": "net/minecraft/util/random/WeightedList.getRandomOrThrow(Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;",
         "Witch.aiStep": "net/minecraft/world/entity/monster/Witch.aiStep()V",
         "Zoglin.findNearestValidAttackTarget": "net/minecraft/world/entity/monster/Zoglin.findNearestValidAttackTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;)Ljava/util/Optional;",
         "Zoglin.hurtServer": "net/minecraft/world/entity/monster/Zoglin.hurtServer(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z",
@@ -382,6 +407,9 @@
         "Zombie.DOOR_BREAKING_PREDICATE": "net/minecraft/world/entity/monster/zombie/Zombie.DOOR_BREAKING_PREDICATE"
     },
     "sources": {
+        "net/minecraft/core/BlockPos.betweenClosed(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/lang/Iterable;": {
+            "26.3": "sha256:cc5e38e3fc47c4580e9effaf6e224098ca202a11fd3126fa50dd994972af4d79"
+        },
         "net/minecraft/core/BlockPos.containing(DDD)Lnet/minecraft/core/BlockPos;": {
             "26.3": "sha256:8c0eab7a4b93b9df20288bad0a5069a8f1083f3688f1c333e7a2ef89570c3b7d"
         },
@@ -396,6 +424,15 @@
         },
         "net/minecraft/core/Direction.orderedByNearest(Lnet/minecraft/world/entity/Entity;)[Lnet/minecraft/core/Direction;": {
             "26.3": "sha256:58a51dfc10d49ff9c639743335cd7248999819075db67be1a52e07dcc429a46a"
+        },
+        "net/minecraft/core/Direction.values()[Lnet/minecraft/core/Direction;": {
+            "26.3": "sha256:7c1090f22089f8ccb5087e22511500071613447dc339bbeb50169f413f49014f"
+        },
+        "net/minecraft/core/Direction$Plane.HORIZONTAL": {
+            "26.3": "sha256:6087038607d82a2efdaa9c14b848efa6cc39f495382d5087d509d1971b7265a8"
+        },
+        "net/minecraft/core/Vec3i.hashCode()I": {
+            "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
         },
         "net/minecraft/server/level/ServerLevel.getFreeMapId()Lnet/minecraft/world/level/saveddata/maps/MapId;": {
             "26.3": "sha256:d9bd784d2e5a5b3e4c7c078ac43f72fd182152d0e76924e39dd0c638cd7b0a7a"
@@ -412,11 +449,32 @@
         "net/minecraft/util/Mth.atan2(DD)D": {
             "26.3": "sha256:f6506e0b0a4e18900028a2df3dd1c2a22f154a48c71a2e01f37c47eebd2b6321"
         },
+        "net/minecraft/util/Mth.nextDouble(Lnet/minecraft/util/RandomSource;DD)D": {
+            "26.3": "sha256:140617a4f1a0577e058450f83d1fa4a353488c7a66bb9aa31ad1480880216222"
+        },
+        "net/minecraft/util/Mth.normal(Lnet/minecraft/util/RandomSource;FF)F": {
+            "26.3": "sha256:15e4c71c6f99731ca9bd36020924f86000d3cd0292d05e3f7c696959213cb52e"
+        },
+        "net/minecraft/util/Mth.randomBetween(Lnet/minecraft/util/RandomSource;FF)F": {
+            "26.3": "sha256:861e6345e5e586a018b04b89924f3cb9b9e7b03f82b05a30d32a22fe0c20dea6"
+        },
+        "net/minecraft/util/Mth.randomBetweenInclusive(Lnet/minecraft/util/RandomSource;II)I": {
+            "26.3": "sha256:bca893515993381670bfbfd5d085686de6c41b96edefc5104a80c0d0f3ff04fc"
+        },
         "net/minecraft/util/Mth.wrapDegrees(D)D": {
             "26.3": "sha256:a98a5f88667bd13e64ee9e45869f57a599de9e907c8e1dc8281919fdbca13fdf"
         },
+        "net/minecraft/util/random/WeightedList.getRandomOrThrow(Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": {
+            "26.3": "sha256:8ee507911c14f55cf243e0c27990a2fd34939f960c7a2adcfa6119e4a39e8f1b"
+        },
         "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
             "26.3": "sha256:7648f46895b9feba5948f8c752b875cd30d0644a3469e167cf1b3c759b273103"
+        },
+        "net/minecraft/util/Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": {
+            "26.3": "sha256:1a059ab2961c53c66724ce9711dfeb1382e645a4d2581c6556e5a08e73fc45f8"
+        },
+        "net/minecraft/util/Util.shuffle(Ljava/util/List;Lnet/minecraft/util/RandomSource;)V": {
+            "26.3": "sha256:6157691aa53f49c1043ab374ae083aad6510e8ce0bd93d710f0aeef77076b9a3"
         },
         "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;": {
             "26.3": "sha256:5c16eacfbd67fc6dca18279961c72cd3f745ff8853db9ab9b3efa4894a5a8b6b"
@@ -1462,8 +1520,50 @@
         "net/minecraft/world/level/block/WallSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:4b8ab116950d903368f4ec0e44752710e9959f6f778b3a71df5467086f9ab9f7"
         },
+        "net/minecraft/world/level/levelgen/Column.scan(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;ILjava/util/function/Predicate;Ljava/util/function/Predicate;)Ljava/util/Optional;": {
+            "26.3": "sha256:66bb001dd1a0b7dcab2c5963ddc26e975bc0245ba6316444f4a3f0085cf6a17d"
+        },
         "net/minecraft/world/level/levelgen/feature/EndPlatformFeature.createEndPlatform(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Z)V": {
             "26.3": "sha256:ec7f4f154990d1d410e31a97a75941a840a6af22b3af1c4fb60e1dcb86ea26f1"
+        },
+        "net/minecraft/world/level/levelgen/feature/EndSpikeFeature.getSpikesForLevel(Lnet/minecraft/world/level/WorldGenLevel;)Ljava/util/List;": {
+            "26.3": "sha256:8a8f210f80f24ea259bacb05f5c4bd07c590686c8eb50e0f604ad57c856f2530"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.doubleTrunk()Z": {
+            "26.3": "sha256:bec3f5d03f74f45d59f5819932aef4f8bd0217e3e6a64678a9a9239c2bab63a4"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.equals(Ljava/lang/Object;)Z": {
+            "26.3": "sha256:0e83c8177967c94e50aaef6d62d0851f90622512b5589ae196141b0576a58fb9"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.foliageHeightOffset()I": {
+            "26.3": "sha256:70b1e134c26e4117c84e8263c3173c30394c5635b0bc0b82fa4c0177c2ae7f12"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.hashCode()I": {
+            "26.3": "sha256:f399ab9d8795d828d9fc241078adaef76aaf6a9da5d40bbebc2d0ce459864c7d"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.pos()Lnet/minecraft/core/BlockPos;": {
+            "26.3": "sha256:d1e89599c6add50c3780af627ce9c5e9d84d875f14b326db1e5f1ea63c879cfc"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.radiusOffsetXZ()I": {
+            "26.3": "sha256:dc940eccfa5a3fdac3fa05a25763326f53103fa5cc3ec53c30c812f5a1f0be57"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeX()I": {
+            "26.3": "sha256:e5437c4bc60ff95c41a76b8bdc739b3b546105884327c9b7bb48cb836d5a2d01"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.sizeZ()I": {
+            "26.3": "sha256:28fbcb56c1b2da475a9aa9f92c0e21070093453677c85430366577d74cefe2e2"
+        },
+        "net/minecraft/world/level/levelgen/feature/foliageplacers/FoliagePlacer$FoliageAttachment.toString()Ljava/lang/String;": {
+            "26.3": "sha256:d9cc4f607d206400ffce001cc9da065ca07706cc9b8ab8e901419133fe040b13"
+        },
+        "net/minecraft/world/level/levelgen/feature/TreeFeature.isAirOrLeaves(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:dc1d344fcf2fbe8e16a0b04f9a311601648d085b2c6b981c8c3c4b625258a822"
+        },
+        "net/minecraft/world/level/levelgen/feature/TreeFeature.validTreePos(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:0df168ffcc9a87be314dff2f84ab9b6112b8c0b198b6b2ed405f2eab2385104e"
+        },
+        "net/minecraft/world/level/LevelReader.isEmptyBlock(Lnet/minecraft/core/BlockPos;)Z": {
+            "26.3": "sha256:8fe1924c9822157eacf36055bd87fc1a327d2771f66846590ddecadf86e86c52"
         },
         "net/minecraft/world/level/lighting/LightEngine.MAX_LEVEL": {
             "26.3": "sha256:80b217090f15ca1e5b63c8ca5dae67c8bc0cc25149fc1ad6c145bbaad95b3f83"
