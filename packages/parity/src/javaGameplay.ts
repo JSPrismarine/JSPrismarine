@@ -106,6 +106,11 @@ export const JAVA_MECHANICS: readonly JavaMechanic[] = [
         id: 'smelting',
         description: 'furnaces, blast furnaces and smokers cooking with fuel (AbstractFurnaceBlockEntity.serverTick)'
     },
+    {
+        id: 'furnace-experience',
+        description:
+            'experience a furnace pays the player who takes its result, or pays out where it is broken (AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience)'
+    },
     { id: 'campfire-cooking', description: 'a campfire cooking up to four items (CampfireBlockEntity.cookTick)' },
     {
         id: 'brewing',
