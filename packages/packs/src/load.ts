@@ -12,7 +12,7 @@ import type { RegistryId } from './registries';
 import { identifierForDefinition, isPathAddressedRegistry, isPerPackRegistry, routeForPath } from './registries';
 import type { PrefixCacheOptions } from './prefixCache';
 import { prefixCacheKeyFor, readPrefixCache, writePrefixCache } from './prefixCache';
-import type { PackFileFilter, PackFiles, PackStack } from './sources';
+import type { BedrockPackSource, PackFileFilter, PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
 import { structuralValidator } from './validation';
@@ -97,6 +97,16 @@ type StackUnit =
  */
 const routable: PackFileFilter = (path) => routeForPath(path) !== undefined;
 
+/** {@link routable}, less the files of the registries a source skips. */
+const wantedFrom = (source: BedrockPackSource): PackFileFilter => {
+    const skipped = source.skipRegistries;
+    if (skipped === undefined || skipped.length === 0) return routable;
+    return (path) => {
+        const registry = routeForPath(path);
+        return registry !== undefined && !skipped.includes(registry);
+    };
+};
+
 /**
  * Expands the Bedrock members of a stack, keeping stack order and keeping
  * each member's own diagnostics with it, so the report reads in stack order
@@ -106,7 +116,7 @@ const expandStack = (stack: PackStack): StackUnit[] =>
     stack.map((source) => {
         if (source.kind === 'datapack') return { kind: 'datapack', path: source.path };
         const diagnostics: Diagnostic[] = [];
-        return { kind: 'bedrock', packs: expandSource(source, diagnostics, routable), diagnostics };
+        return { kind: 'bedrock', packs: expandSource(source, diagnostics, wantedFrom(source)), diagnostics };
     });
 
 /**

@@ -405,6 +405,42 @@ describe('load', () => {
         expect(definitions.recipes.get('fixture:layer_two')?.path).toBe('recipes/barrel.json');
     });
 
+    it('leaves out the registries a source skips, and only for that source', () => {
+        const skipping = temporaryDir();
+        const keeping = temporaryDir();
+        const manifest = readFileSync(join(basePack, 'manifest.json'));
+        for (const [pack, identifier] of [
+            [skipping, 'fixture:skipped'],
+            [keeping, 'fixture:kept']
+        ] as const) {
+            writeFileSync(join(pack, 'manifest.json'), manifest);
+            mkdirSync(join(pack, 'recipes'), { recursive: true });
+            mkdirSync(join(pack, 'loot_tables'), { recursive: true });
+            writeFileSync(
+                join(pack, 'recipes', `${identifier.split(':')[1]}.json`),
+                JSON.stringify({
+                    format_version: '1.26.0',
+                    'minecraft:recipe_shaped': { description: { identifier } }
+                })
+            );
+            writeFileSync(join(pack, 'loot_tables', `${identifier.split(':')[1]}.json`), '{"pools":[]}');
+        }
+
+        const { definitions } = load(
+            [
+                { kind: 'directory', path: skipping, skipRegistries: ['recipes'] },
+                { kind: 'directory', path: keeping }
+            ],
+            { validator: () => [] }
+        );
+
+        expect([...definitions.recipes.keys()]).toEqual(['fixture:kept']);
+        expect([...definitions.lootTables.keys()].sort()).toEqual([
+            'loot_tables/kept.json',
+            'loot_tables/skipped.json'
+        ]);
+    });
+
     it('fails the strict load when nothing supersedes the broken file', () => {
         const broken = packWithBrokenRobot();
         try {
