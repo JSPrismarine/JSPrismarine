@@ -288,7 +288,8 @@ const placeByFamily = (
         placedBy,
         face: placement.face,
         faceLocation: faceLocationOf(placement),
-        sneaking: placement.sneaking
+        sneaking: placement.sneaking,
+        replacingClicked: placement.layout.at !== 'air'
     });
     const block = harness.dimension.block(at);
     if (group.class !== 'ChestBlock') return { identifier: block.identifier, states: { ...block.states } };
@@ -416,12 +417,6 @@ export const PLACEMENT_GAPS: readonly PlacementGap[] = [
             'StandingSignBlock'
         ],
         covers: supportedByItsOwnKind
-    },
-    {
-        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3787',
-        reason: "A family's placement event does not say whether the clicked block was replaced, so a trapdoor or lantern placed into short grass is placed as if against the grass's face.",
-        classes: ['LanternBlock', 'TrapDoorBlock'],
-        covers: ({ layout }) => layout.at === 'short_grass'
     }
 ];
 

@@ -288,6 +288,24 @@ describe('lanternFamily', () => {
         expect(onlyAbove.block(block).states['hanging']).toBe(true);
     });
 
+    it('goes by the look alone when it replaced the clicked block', () => {
+        // Java's `getNearestLookingDirections` leaves the clicked face out of the order when the
+        // placement replaced the clicked block, so a level look into short grass clicked on its
+        // underside tries the block below first (#3787).
+        const level = { identifier: 'minecraft:player', position: { x: 0, y: 1, z: 0 }, pitch: 0 };
+        const placed = (replacingClicked: boolean) => {
+            const harness = bindFamily(lanternFamily, 'minecraft:lantern');
+            harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:stone');
+            harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:stone');
+            harness.dimension.set(block, 'minecraft:lantern', { hanging: false });
+            harness.place(block, { placedBy: level, face: 'down', replacingClicked });
+            return harness.block(block).states['hanging'];
+        };
+
+        expect(placed(true)).toBe(false);
+        expect(placed(false)).toBe(true);
+    });
+
     it('refuses a placement with nothing above or below to hold it', () => {
         const harness = bindFamily(lanternFamily, 'minecraft:lantern');
         harness.dimension.set(block, 'minecraft:lantern', { hanging: false });

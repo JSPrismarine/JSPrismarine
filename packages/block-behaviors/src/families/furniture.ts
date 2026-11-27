@@ -274,8 +274,8 @@ export const torchFamily = defineFamily(
  * Whether a lantern hangs, Java's `LanternBlock.getStateForPlacement`: it tries the block it was
  * placed against first when that is above or below, then the vertical direction the placer looks
  * nearest to, hanging when the one tried is up, and takes the first of the two with a block to
- * hold it. Java skips the clicked block when the placement replaced it, which the event cannot
- * tell apart, so a click on the top of tall grass tries below first (#3787).
+ * hold it. A placement that replaced the clicked block, such as short grass, goes by the look
+ * alone.
  *
  * @returns Undefined when neither the block above nor the one below can hold it.
  * @javaSource LanternBlock.getStateForPlacement
@@ -298,8 +298,9 @@ export const lanternFamily = defineFamily(
             const looking = placementLookingVertical(event.placedBy);
             if (looking === undefined || !hasState(event.block, 'hanging')) return;
             // Java's `BlockPlaceContext.getNearestLookingDirections` puts the direction into the
-            // clicked block first.
-            const first = event.face === 'up' ? 'down' : event.face === 'down' ? 'up' : looking;
+            // clicked block first, unless the placement replaced that block.
+            const into = event.replacingClicked === true ? undefined : event.face;
+            const first = into === 'up' ? 'down' : into === 'down' ? 'up' : looking;
             const hanging = placedLanternHanging(world, event.block, first);
             if (hanging !== undefined) setStates(world, event.block, { hanging });
         },
