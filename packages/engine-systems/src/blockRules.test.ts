@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isFullCube, isRedstoneConductor } from './blockRules';
+import { isFaceSturdy, isFullCube, isRedstoneConductor, isSolid } from './blockRules';
 import { block } from './world';
 
 const nonConducting = (name: string) => ({ ...block(name), redstoneConductor: false });
@@ -80,5 +80,33 @@ describe('redstone conductivity', () => {
         expect(isFullCube(block('minecraft:oak_stairs'))).toBe(false);
         expect(isFullCube(block('minecraft:hopper'))).toBe(false);
         expect(isFullCube(block('minecraft:air'))).toBe(false);
+    });
+});
+
+describe("Java's solid flag and sturdy faces", () => {
+    it('reads soul sand, a cactus and a slab as solid, though none is a full cube', () => {
+        for (const name of ['minecraft:soul_sand', 'minecraft:cactus', 'minecraft:normal_stone_slab']) {
+            expect(isSolid(block(name)), name).toBe(true);
+        }
+        expect(isFullCube(block('minecraft:normal_stone_slab'))).toBe(false);
+        expect(isSolid(block('minecraft:air'))).toBe(false);
+        expect(isSolid(block('minecraft:portal'))).toBe(false);
+    });
+
+    it('reads which face of a slab is sturdy from its half', () => {
+        const bottom = block('minecraft:normal_stone_slab', { 'minecraft:vertical_half': 'bottom' });
+        const top = block('minecraft:normal_stone_slab', { 'minecraft:vertical_half': 'top' });
+        expect([isFaceSturdy(bottom, 'down'), isFaceSturdy(bottom, 'up')]).toEqual([true, false]);
+        expect([isFaceSturdy(top, 'down'), isFaceSturdy(top, 'up')]).toEqual([false, true]);
+    });
+
+    it('tells a center support from a full one', () => {
+        const fence = block('minecraft:oak_fence');
+        expect(isFaceSturdy(fence, 'up', 'center')).toBe(true);
+        expect(isFaceSturdy(fence, 'up')).toBe(false);
+    });
+
+    it('falls back to the full cube test for a block with no Java source', () => {
+        expect(isSolid(block('minecraft:element_1'))).toBe(isFullCube(block('minecraft:element_1')));
     });
 });

@@ -1,4 +1,12 @@
-export { hasSturdyTopFace, isAir, isFullCube, isRandomlyTicking, isRedstoneConductor } from './blockRules';
+export {
+    hasSturdyTopFace,
+    isAir,
+    isFaceSturdy,
+    isFullCube,
+    isRandomlyTicking,
+    isRedstoneConductor,
+    isSolid
+} from './blockRules';
 export { createEngine, type Engine, type EngineOptions } from './engine';
 export {
     EXPLOSION_ABSORPTION_SCALE,
