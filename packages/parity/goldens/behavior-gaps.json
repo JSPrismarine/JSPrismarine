@@ -1067,18 +1067,13 @@
         },
         "placement-vectors:minecraft:lantern": {
             "kind": "defect",
-            "reason": "The port's support test reads push reaction and full cubes, where Java asks each block's survival rule, so a sign, ladder, bell, lantern, grindstone or coral fan against one of its own kind is placed where Java refuses it or refused where Java places it. A family's placement event does not say whether the clicked block was replaced, so a trapdoor or lantern placed into short grass is placed as if against the grass's face.",
-            "reference": "issue #3786, issue #3787"
+            "reason": "The port's support test reads push reaction and full cubes, where Java asks each block's survival rule, so a sign, ladder, bell, lantern, grindstone or coral fan against one of its own kind is placed where Java refuses it or refused where Java places it.",
+            "reference": "issue #3786"
         },
         "placement-vectors:minecraft:oak_sign": {
             "kind": "defect",
             "reason": "The port's support test reads push reaction and full cubes, where Java asks each block's survival rule, so a sign, ladder, bell, lantern, grindstone or coral fan against one of its own kind is placed where Java refuses it or refused where Java places it.",
             "reference": "issue #3786"
-        },
-        "placement-vectors:minecraft:oak_trapdoor": {
-            "kind": "defect",
-            "reason": "A family's placement event does not say whether the clicked block was replaced, so a trapdoor or lantern placed into short grass is placed as if against the grass's face.",
-            "reference": "issue #3787"
         },
         "placement-vectors:minecraft:white_banner": {
             "kind": "defect",
