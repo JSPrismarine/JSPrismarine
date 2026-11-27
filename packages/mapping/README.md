@@ -31,7 +31,7 @@ javaIdentifierToBedrock('enchantment', 'minecraft:infinity');
 // { kind: 'mapped', bedrock: 'minecraft:bow_infinity' }
 ```
 
-One inverse, for the one domain that has one. A chunk stores a numeric Bedrock biome id, so
+A biome inverse, for the domain where several Java entries share a Bedrock one. A chunk stores a numeric Bedrock biome id, so
 `bedrockBiomeToJava()` resolves that number, or the Bedrock biome identifier, back to the Bedrock
 biome and the Java biome behind it. It is total over the 89 biomes the pinned Bedrock data lists:
 62 carry a Java source, and the 27 legacy biomes Java 26.3 deleted in its 1.18 terrain rewrite are
@@ -45,6 +45,21 @@ bedrockBiomeToJava(37);
 
 bedrockBiomeToJava('minecraft:taiga_hills');
 // { kind: 'loss', bedrock: { id: 19, identifier: 'minecraft:taiga_hills' }, loss: { reason: ... } }
+```
+
+The enchantment, mob effect and potion tables map one to one, so `bedrockIdentifierToJava()` reads
+them backwards. A behavior pack's brewing recipe names Bedrock potions, which is where the server
+needs it. `mappedJavaIdentifiers()` lists the Java entries of a registry that have a Bedrock
+identifier.
+
+```ts
+import { bedrockIdentifierToJava } from '@jsprismarine/mapping';
+
+bedrockIdentifierToJava('potion', 'minecraft:long_nightvision');
+// 'minecraft:long_night_vision'
+
+bedrockIdentifierToJava('potion', 'minecraft:long_mundane');
+// undefined: Java has no such potion
 ```
 
 `bedrockDimensionOverlay()` is the edition boundary for dimensions. Keyed by Java `dimension_type`

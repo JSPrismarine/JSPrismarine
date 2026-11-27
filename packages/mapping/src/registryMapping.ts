@@ -42,6 +42,37 @@ export const javaIdentifierToBedrock = (registry: MappedRegistry, javaId: string
     return { kind: 'mapped', bedrock };
 };
 
+/**
+ * The mapped registries whose Bedrock identifiers each stand for one Java entry, so the table
+ * also reads backwards. Several Java biomes share one Bedrock biome; {@link bedrockBiomeToJava}
+ * answers for those.
+ */
+export type InvertibleRegistry = Exclude<MappedRegistry, 'biome'>;
+
+const javaIdByBedrock = new Map<InvertibleRegistry, ReadonlyMap<string, string>>();
+
+/**
+ * Maps a Bedrock identifier of the named registry back to the Java entry it stands for, such as
+ * the Bedrock potion `minecraft:long_nightvision` to Java's `minecraft:long_night_vision`.
+ * Non-`minecraft:` identifiers pass through untouched.
+ *
+ * @returns The Java identifier, or undefined for a Bedrock entry no Java entry maps onto, such
+ *   as the potion `minecraft:long_mundane`.
+ */
+export const bedrockIdentifierToJava = (registry: InvertibleRegistry, bedrockId: string): string | undefined => {
+    if (!bedrockId.startsWith('minecraft:')) return bedrockId;
+    let inverse = javaIdByBedrock.get(registry);
+    if (inverse === undefined) {
+        inverse = new Map(Object.entries(registriesTable[registry]).map(([java, bedrock]) => [bedrock, java]));
+        javaIdByBedrock.set(registry, inverse);
+    }
+    return inverse.get(bedrockId);
+};
+
+/** Every Java entry of the named registry that has a Bedrock identifier, in table order. */
+export const mappedJavaIdentifiers = (registry: MappedRegistry): readonly string[] =>
+    Object.keys(registriesTable[registry]);
+
 /** One Bedrock biome: what a chunk stores it as, and what the client calls it. */
 export interface BedrockBiome {
     /**

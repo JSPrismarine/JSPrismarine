@@ -57,7 +57,7 @@ omitted properties take the block's Java defaults. `javaIdentifierToBedrock` cov
 mapped registries, currently `biome` and `enchantment` (`MAPPED_REGISTRIES`). The pinned versions
 behind the tables are exported as `MAPPING_VERSIONS`.
 
-Plus one inverse, for the one domain that needs one. A chunk stores a numeric Bedrock biome id
+Plus a biome inverse. A chunk stores a numeric Bedrock biome id
 rather than an identifier, and block behaviors and spawn rules both ask what biome a position is
 in, so `bedrockBiomeToJava` reads that number back:
 
@@ -73,6 +73,13 @@ correspondence is not one to one in either direction. Five Java biomes share a B
 the inverse names the Java biome that is not on the loss list, so `minecraft:the_end` comes back
 as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, <!-- fact:mapping.bedrockBiomeLosses -->28<!-- /fact --> of
 Bedrock's <!-- fact:bedrock.biomes -->89<!-- /fact --> biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
+
+The enchantment, mob effect and potion tables map one to one, so `bedrockIdentifierToJava` reads
+them backwards: a behavior pack's brewing recipe names Bedrock potions, and
+`bedrockIdentifierToJava('potion', 'minecraft:long_nightvision')` answers
+`minecraft:long_night_vision`. A Bedrock entry no Java entry maps onto, such as the potion
+`minecraft:long_mundane`, answers `undefined`. `mappedJavaIdentifiers(registry)` lists the Java
+entries that have a Bedrock identifier.
 
 One more lookup is a Bedrock overlay rather than a translation. Java describes a dimension in its
 `dimension_type` JSON, and the Bedrock client has three built-in dimensions with fixed integer ids,
