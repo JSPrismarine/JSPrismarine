@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import fightVectors from '../../vectors/26.3/dragon-fights.json' with { type: 'json' };
 import nodeVectors from '../../vectors/26.3/dragon-nodes.json' with { type: 'json' };
+import wallVectors from '../../vectors/26.3/dragon-walls.json' with { type: 'json' };
 import { GoalHarness, testMob } from '../harness';
 import { wrapDegrees } from '../javaMth';
 import { GoalSupport } from '../support';
@@ -10,7 +11,7 @@ import type { GoalMob, GoalWorld } from '../world';
 import type { PathNode } from './dragonNodes';
 import { closestDragonNode, dragonPathNodes, findDragonPath, firstDragonNode } from './dragonNodes';
 import type { DragonPhaseName } from './dragonPhases';
-import { DRAGON_PHASES, dragonPhasesOf, dragonPhaseState } from './dragonPhases';
+import { checkDragonWalls, DRAGON_PHASES, dragonPhasesOf, dragonPhaseState } from './dragonPhases';
 
 /**
  * The dragon's flight against what Java 26.3 computes, from the vectors
@@ -417,6 +418,85 @@ describe("the ender dragon's flight against Java's", () => {
         'flies the fight with %s tick for tick',
         (_name, fight) => {
             expect(fly(fight)).toBeUndefined();
+        }
+    );
+});
+
+/** The blocks the wall cases are built of, as the vector file lists them with their tags. */
+const wallPalette = wallVectors.palette.flatMap(([state, air, immune, transparent]) =>
+    isJavaState(state) && typeof air === 'boolean' && typeof immune === 'boolean' && typeof transparent === 'boolean'
+        ? [{ state, air, immune, transparent }]
+        : []
+);
+
+describe("the ender dragon's walls against Java's, over fluids", () => {
+    it('records water, lava, waterlogged and always-wet blocks, and blocks with no fluid', () => {
+        const names = new Set(wallPalette.map(({ state: [name] }) => name));
+        for (const name of ['minecraft:water', 'minecraft:lava', 'minecraft:kelp', 'minecraft:stone'])
+            expect(names.has(name)).toBe(true);
+        expect(wallPalette.some(({ state: [, properties] }) => properties['waterlogged'] === 'true')).toBe(true);
+        // Java's removeBlock left some blocks as they were and changed others.
+        const removals = wallVectors.cases.flatMap((wall) => wall.removals);
+        for (const changed of [true, false]) expect(removals.some((row) => row[3] === changed)).toBe(true);
+    });
+
+    /**
+     * Runs the port's `checkWalls` over one case's box, in a world that answers as Java's level
+     * did: the blocks with their tags, and each `removeBlock` with what Java's answered and the
+     * block it left, which is the world's fluid rule rather than the dragon's.
+     */
+    const wallsOf = (wall: (typeof wallVectors.cases)[number]) => {
+        const blocks = new Map<string, JavaState>();
+        for (const [x = 0, y = 0, z = 0, index = -1] of wall.blocks) {
+            const block = wallPalette[index];
+            if (block !== undefined) blocks.set(key(x, y, z), block.state);
+        }
+        const tagged = (at: EntityPosition, tag: 'immune' | 'transparent'): boolean => {
+            const state = blocks.get(key(at.x, at.y, at.z));
+            return wallPalette.some((block) => block.state === state && block[tag]);
+        };
+        const removals: unknown[] = [];
+        const draws: unknown[] = [];
+        const world: GoalWorld = {
+            gameRule: (name) => (name === 'mobGriefing' ? wall.mobGriefing : undefined),
+            javaBlockAt: (at) => {
+                const [name, properties] = blocks.get(key(at.x, at.y, at.z)) ?? ['minecraft:air', {}];
+                return { name, properties };
+            },
+            blockHasTag: (at, tag) =>
+                tag === 'minecraft:dragon_immune'
+                    ? tagged(at, 'immune')
+                    : tag === 'minecraft:dragon_transparent' && tagged(at, 'transparent'),
+            removeBlock: (at) => {
+                const java = wall.removals.find(([x, y, z]) => x === at.x && y === at.y && z === at.z);
+                removals.push([at.x, at.y, at.z, java?.[3]]);
+                const left = wall.blockChanges.find(([, x, y, z]) => x === at.x && y === at.y && z === at.z)?.[4];
+                if (isJavaState(left)) blocks.set(key(at.x, at.y, at.z), left);
+                return java?.[3] === true;
+            }
+        };
+        const [minX = 0, minY = 0, minZ = 0, maxX = 0, maxY = 0, maxZ = 0] = wall.box;
+        const javaDraws = wall.draws.filter(isDraw);
+        const inWall = checkDragonWalls(
+            world,
+            { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } },
+            (bound) => {
+                draws.push(bound);
+                return javaDraws[draws.length - 1]?.[3] ?? 0;
+            }
+        );
+        return { inWall, removals, draws };
+    };
+
+    it.each(wallVectors.cases.map((wall, index) => [index, wall] as const))(
+        'breaks and meets the blocks of case %i as Java does',
+        (_index, wall) => {
+            const port = wallsOf(wall);
+            expect(port).toEqual({
+                inWall: wall.inWall,
+                removals: wall.removals,
+                draws: wall.draws.filter(isDraw).map(([, , bound]) => bound)
+            });
         }
     );
 });
