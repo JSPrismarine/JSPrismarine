@@ -213,6 +213,38 @@ export const transformPosition = (
 };
 
 /**
+ * Where a template's own block zero lands when Java turns it about a pivot.
+ *
+ * Java's `StructureTemplate.transform` turns a block position about
+ * `StructurePlaceSettings.rotationPivot`, which a legacy structure sets to a point of the
+ * building rather than to a corner, so the turned template spreads around that point and into
+ * negative coordinates. {@link transformPosition} keeps a turned template inside its own extent
+ * instead. The two differ by a translation and nothing else, so the corner is the one the
+ * translation puts the template's own zero block on.
+ *
+ * @javaSource StructureTemplate.transform(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Mirror;Lnet/minecraft/world/level/block/Rotation;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;
+ */
+export const pivotedCorner = (
+    position: TemplatePosition,
+    size: TemplatePosition,
+    placement: Placement,
+    pivot: TemplatePosition
+): TemplatePosition => {
+    const [pivotX, , pivotZ] = pivot;
+    const java: TemplatePosition =
+        placement.rotation === 'clockwise_90'
+            ? [pivotX + pivotZ, 0, pivotZ - pivotX]
+            : placement.rotation === 'clockwise_180'
+              ? [pivotX + pivotX, 0, pivotZ + pivotZ]
+              : placement.rotation === 'counterclockwise_90'
+                ? [pivotX - pivotZ, 0, pivotX + pivotZ]
+                : [0, 0, 0];
+
+    const ours = transformPosition(size, [0, 0, 0], placement);
+    return [position[0] + java[0] - ours[0], position[1], position[2] + java[2] - ours[2]];
+};
+
+/**
  * Moves a fractional entity position under a placement. Entities sit between
  * blocks, so the reflection is about the template edge rather than the last
  * block's index.

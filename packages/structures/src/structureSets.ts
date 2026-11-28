@@ -8,6 +8,7 @@
  * `random_spread` 20 times and `concentric_rings` once, with `triangular`
  * spread on three and a frequency below one on three.
  */
+import type { RandomSource } from './random';
 import { createLegacyRandom, largeFeatureSeed, largeFeatureWithSaltSeed } from './random';
 import { isRecord } from './isRecord';
 import { StructuresErrors } from '@jsprismarine/errors/structures';
@@ -188,29 +189,70 @@ export const potentialStructureChunk = (
     return { x: regionX * placement.spacing + offsetX, z: regionZ * placement.spacing + offsetZ };
 };
 
-/** Java's four frequency reduction rules, which thin a placement below frequency one. */
+/**
+ * Java's `default` reducer.
+ *
+ * Java passes the salt where the method expects x, and the chunk coordinates one slot along.
+ * Reproduced as written. `frequency` is a Java float, so the comparison is against its float.
+ *
+ * @javaSource AbstractSpreadingStructurePlacement.probabilityReducer
+ */
+const probabilityReducer = (seed: bigint, salt: number, chunkX: number, chunkZ: number, frequency: number): boolean =>
+    createLegacyRandom(largeFeatureWithSaltSeed(seed, salt, chunkX, chunkZ)).nextFloat() < Math.fround(frequency);
+
+/**
+ * Java's `legacy_type_1` reducer, which pillager outposts use.
+ *
+ * One draw covers a whole 16 by 16 block of chunks: the chunk coordinates are shifted down by
+ * four before they seed the source.
+ *
+ * @javaSource AbstractSpreadingStructurePlacement.legacyPillagerOutpostReducer
+ */
+const legacyPillagerOutpostReducer = (seed: bigint, chunkX: number, chunkZ: number, frequency: number): boolean => {
+    const random = createLegacyRandom(BigInt((chunkX >> 4) ^ ((chunkZ >> 4) << 4)) ^ seed);
+    random.nextInt();
+    return random.nextInt(Math.trunc(Math.fround(1 / Math.fround(frequency)))) === 0;
+};
+
+/**
+ * Java's `legacy_type_2` reducer, which buried treasure uses.
+ *
+ * @javaSource AbstractSpreadingStructurePlacement.legacyArbitrarySaltProbabilityReducer
+ */
+const legacyArbitrarySaltProbabilityReducer = (
+    seed: bigint,
+    chunkX: number,
+    chunkZ: number,
+    frequency: number
+): boolean =>
+    createLegacyRandom(largeFeatureWithSaltSeed(seed, chunkX, chunkZ, 10387320)).nextFloat() < Math.fround(frequency);
+
+/**
+ * Java's `legacy_type_3` reducer, which mineshafts use: one draw per chunk.
+ *
+ * @javaSource AbstractSpreadingStructurePlacement.legacyProbabilityReducerWithDouble
+ */
+const legacyProbabilityReducerWithDouble = (seed: bigint, chunkX: number, chunkZ: number, frequency: number): boolean =>
+    createLegacyRandom(largeFeatureSeed(seed, chunkX, chunkZ)).nextDouble() < Math.fround(frequency);
+
+/**
+ * Java's four frequency reduction rules, which thin a placement below frequency one.
+ *
+ * The method names do not describe the rules, so the mapping is easy to get backwards: it is
+ * the one `AbstractSpreadingStructurePlacement$FrequencyReductionMethod` binds in 26.3.
+ */
 const passesFrequency = (placement: StructurePlacement, seed: bigint, chunkX: number, chunkZ: number): boolean => {
     if (placement.frequency >= 1) return true;
 
     switch (placement.frequencyReductionMethod) {
-        case 'default': {
-            // Java passes the salt where the method expects x, and the chunk
-            // coordinates one slot along. Reproduced as written.
-            const random = createLegacyRandom(largeFeatureWithSaltSeed(seed, placement.salt, chunkX, chunkZ));
-            return random.nextFloat() < placement.frequency;
-        }
+        case 'default':
+            return probabilityReducer(seed, placement.salt, chunkX, chunkZ, placement.frequency);
         case 'legacy_type_1':
-            return createLegacyRandom(largeFeatureSeed(seed, chunkX, chunkZ)).nextDouble() < placement.frequency;
+            return legacyPillagerOutpostReducer(seed, chunkX, chunkZ, placement.frequency);
         case 'legacy_type_2':
-            return (
-                createLegacyRandom(largeFeatureWithSaltSeed(seed, chunkX, chunkZ, 10387320)).nextFloat() <
-                placement.frequency
-            );
-        case 'legacy_type_3': {
-            const random = createLegacyRandom(BigInt((chunkX >> 4) ^ ((chunkZ >> 4) << 4)) ^ seed);
-            random.nextInt();
-            return random.nextInt(Math.trunc(1 / placement.frequency)) === 0;
-        }
+            return legacyArbitrarySaltProbabilityReducer(seed, chunkX, chunkZ, placement.frequency);
+        case 'legacy_type_3':
+            return legacyProbabilityReducerWithDouble(seed, chunkX, chunkZ, placement.frequency);
     }
 };
 
@@ -259,17 +301,26 @@ export const structureSetCandidates = (
     return candidates;
 };
 
+/** A ring position, with the source Java hands that position's biome search. */
+export interface RingPosition extends ChunkPosition {
+    /** Forked from the ring source as the position is drawn, which advances the ring source too. */
+    readonly random: RandomSource;
+}
+
 /**
- * The ring positions a concentric rings placement produces, which is how
- * strongholds are laid out.
+ * The ring positions a concentric rings placement draws, which is how strongholds are laid out,
+ * each with the source its biome search draws from.
  *
- * Java then snaps each position to the nearest chunk whose biome is in
- * `preferred_biomes`. That search needs a biome source, so these are the
- * unsnapped positions and the caller moves them.
+ * Java then moves each position to a chunk whose biome is in `preferred_biomes`, found by
+ * `BiomeSource.findBiomeHorizontal` drawing from that source. That search needs a biome source,
+ * so these are the drawn positions and the caller moves them.
+ *
+ * @param seed - The world seed. Java seeds the ring source with it directly.
+ * @javaSource ChunkGeneratorStructureState.generateRingPositions
  */
-export const concentricRingChunks = (placement: ConcentricRingsPlacement, seed: bigint): ChunkPosition[] => {
-    const random = createLegacyRandom(largeFeatureSeed(seed, 0, 0));
-    const positions: ChunkPosition[] = [];
+export const concentricRingPositions = (placement: ConcentricRingsPlacement, seed: bigint): RingPosition[] => {
+    const random = createLegacyRandom(seed);
+    const positions: RingPosition[] = [];
     let angle = random.nextDouble() * Math.PI * 2;
     let inRing = 0;
     let ring = 0;
@@ -279,19 +330,28 @@ export const concentricRingChunks = (placement: ConcentricRingsPlacement, seed: 
         const radius =
             4 * placement.distance +
             placement.distance * ring * 6 +
-            (random.nextDouble() - 0.5) * placement.distance * 2.5;
-        positions.push({ x: Math.round(Math.cos(angle) * radius), z: Math.round(Math.sin(angle) * radius) });
+            (random.nextDouble() - 0.5) * (placement.distance * 2.5);
+        positions.push({
+            x: Math.round(Math.cos(angle) * radius),
+            z: Math.round(Math.sin(angle) * radius),
+            random: random.fork()
+        });
 
         angle += (Math.PI * 2) / spread;
         if (++inRing === spread) {
             ring++;
             inRing = 0;
-            spread = Math.min(spread + (2 * spread) / (ring + 1), placement.count - index);
+            // Java's integer division: the ring grows by a whole number of positions.
+            spread = Math.min(spread + Math.trunc((2 * spread) / (ring + 1)), placement.count - index);
             angle += random.nextDouble() * Math.PI * 2;
         }
     }
     return positions;
 };
+
+/** {@link concentricRingPositions} without the sources, before any biome moves them. */
+export const concentricRingChunks = (placement: ConcentricRingsPlacement, seed: bigint): ChunkPosition[] =>
+    concentricRingPositions(placement, seed).map(({ x, z }) => ({ x, z }));
 
 /**
  * The structure a set places in one chunk, drawn by weight.
@@ -308,4 +368,42 @@ export const pickStructure = (set: StructureSet, random: { nextInt(bound: number
         if (remaining < 0) return entry.structure;
     }
     return set.structures.at(-1)?.structure;
+};
+
+/**
+ * The order Java tries a set's structures in, for one chunk.
+ *
+ * Java draws a structure by weight, and when it cannot start there, such as when the biome at
+ * its generation point refuses it, removes it and draws again from what is left until one
+ * starts or none remain. Each draw depends only on the entries still in the list, so the whole
+ * order is fixed before any attempt is made. A set of one structure draws nothing.
+ *
+ * @param random - The source Java seeds with the chunk's large feature seed.
+ * @returns Every structure with weight, in the order Java tries them.
+ * @javaSource ChunkGenerator.lambda$createStructures$0
+ */
+export const structureAttemptOrder = (
+    set: StructureSet,
+    random: { nextInt(bound: number): number }
+): readonly string[] => {
+    const [only] = set.structures;
+    if (set.structures.length === 1 && only !== undefined) return [only.structure];
+
+    const remaining = [...set.structures];
+    let total = remaining.reduce((sum, entry) => sum + entry.weight, 0);
+    const order: string[] = [];
+    while (total > 0) {
+        let draw = random.nextInt(total);
+        let index = 0;
+        for (const entry of remaining) {
+            draw -= entry.weight;
+            if (draw < 0) break;
+            index++;
+        }
+        const [chosen] = remaining.splice(index, 1);
+        if (chosen === undefined) break;
+        order.push(chosen.structure);
+        total -= chosen.weight;
+    }
+    return order;
 };

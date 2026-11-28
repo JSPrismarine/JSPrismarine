@@ -24,7 +24,7 @@ import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { numberAt, stringAt } from './nbtAccess';
 import type { RandomSource } from './random';
 import type { Rotation } from './tableShape';
-import { transformPosition, transformedSize } from './transform';
+import { pivotedCorner, transformPosition, transformedSize } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
 import { isRecord } from './isRecord';
 import { StructuresErrors } from '@jsprismarine/errors/structures';
@@ -200,8 +200,24 @@ export interface JigsawConfig {
     readonly maxDepth: number;
     /** The world position the start piece is placed at. */
     readonly startPosition: TemplatePosition;
-    /** How far from the start position, in blocks, a piece may sit. */
+    /**
+     * How far from the start piece's center, in blocks, a piece may sit, horizontally and
+     * vertically. Java's default is 80.
+     */
     readonly maxDistanceFromCenter?: number;
+    /** The vertical part of {@link JigsawConfig.maxDistanceFromCenter}, when it differs. */
+    readonly maxVerticalDistanceFromCenter?: number;
+    /**
+     * The world's lowest and highest block y, and the rows Java's `dimension_padding` keeps
+     * clear at each end. A piece outside them is not placed. Absent means no vertical bound
+     * beyond the distance from the center.
+     */
+    readonly heightLimits?: {
+        readonly minY: number;
+        readonly maxY: number;
+        readonly paddingBottom?: number;
+        readonly paddingTop?: number;
+    };
     /**
      * The heightmap the start piece settles onto, Java's `project_start_to_heightmap`. The
      * structure's own start height is added to it, so a village lands on the surface and trail
@@ -216,6 +232,9 @@ export interface JigsawConfig {
 }
 
 const HORIZONTAL: readonly Direction[] = ['north', 'east', 'south', 'west'];
+
+/** Java's `max_distance_from_center` when a jigsaw structure names none. */
+const DEFAULT_MAX_DISTANCE_FROM_CENTER = 80;
 
 /** The rotations in Java's `Rotation.values()` order, which the shuffles depend on. */
 const ROTATIONS: readonly Rotation[] = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90'];
@@ -656,7 +675,15 @@ export const startJigsaw = (config: JigsawConfig, sources: JigsawSources): Jigsa
 
     const startSize = transformedSize(start.template.size, { rotation: startRotation });
 
-    let startPosition = config.startPosition;
+    // Java places the start piece with its rotation pivot, block zero, on the start position, so
+    // a turned piece spreads into negative x or z. Our pieces are placed by their lowest corner.
+    let startPosition = pivotedCorner(
+        config.startPosition,
+        start.template.size,
+        { rotation: startRotation },
+        [0, 0, 0]
+    );
+    let anchorY = 0;
     if (config.startJigsawName !== undefined) {
         const anchor = shuffledJigsaws(start.template, startRotation, [0, 0, 0], sources.random).find(
             (jigsaw) => jigsaw.name === config.startJigsawName
@@ -670,6 +697,7 @@ export const startJigsaw = (config: JigsawConfig, sources: JigsawSources): Jigsa
             config.startPosition[1] - anchor.pos[1],
             config.startPosition[2] - anchor.pos[2]
         ];
+        anchorY = anchor.pos[1];
     }
 
     const unsettled = boxOf(startPosition, startSize);
@@ -694,7 +722,9 @@ export const startJigsaw = (config: JigsawConfig, sources: JigsawSources): Jigsa
         groundLevelDelta: GROUND_LEVEL_DELTA,
         junctions: []
     };
-    const origin: TemplatePosition = [centerX, settledY, centerZ];
+    // Java's generation point is raised by the anchor's height in the piece, which is where the
+    // biome is read. An ancient city's anchor is high in its center, so this decides deep dark.
+    const origin: TemplatePosition = [centerX, settledY + anchorY, centerZ];
 
     return { origin, expand: () => expandJigsaw(config, sources, resolvePool, start.template, startPiece, origin) };
 };
@@ -716,16 +746,26 @@ const expandJigsaw = (
     let rejectedForCollision = 0;
     let unresolvedConnections = 0;
 
-    const withinRange = (box: BoundingBox): boolean => {
-        if (config.maxDistanceFromCenter === undefined) return true;
-        const limit = config.maxDistanceFromCenter;
-        return (
-            Math.abs(box.minX - config.startPosition[0]) <= limit &&
-            Math.abs(box.maxX - config.startPosition[0]) <= limit &&
-            Math.abs(box.minZ - config.startPosition[2]) <= limit &&
-            Math.abs(box.maxZ - config.startPosition[2]) <= limit
-        );
-    };
+    // Java's room for the whole structure: a box `max_distance_from_center` blocks out from the
+    // generation point on every axis, cut to the world's height less the dimension padding.
+    const limit = config.maxDistanceFromCenter ?? DEFAULT_MAX_DISTANCE_FROM_CENTER;
+    const vertical = config.maxVerticalDistanceFromCenter ?? limit;
+    const heights = config.heightLimits;
+    const lowestY =
+        heights === undefined
+            ? origin[1] - vertical
+            : Math.max(origin[1] - vertical, heights.minY + (heights.paddingBottom ?? 0));
+    const highestY =
+        heights === undefined
+            ? origin[1] + vertical
+            : Math.min(origin[1] + vertical, heights.maxY - (heights.paddingTop ?? 0));
+    const withinRange = (box: BoundingBox): boolean =>
+        box.minX >= origin[0] - limit &&
+        box.maxX <= origin[0] + limit &&
+        box.minZ >= origin[2] - limit &&
+        box.maxZ <= origin[2] + limit &&
+        box.minY >= lowestY &&
+        box.maxY <= highestY;
 
     /** Whether a candidate box is inside the room a space covers at all. */
     const insideSpace = (space: FreeSpace, box: BoundingBox): boolean =>

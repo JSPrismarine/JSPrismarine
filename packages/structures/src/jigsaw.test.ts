@@ -396,6 +396,40 @@ describe('parsePoolAliases', () => {
 describe('assembleJigsaw', () => {
     const config = { startPool: 'test:centers', maxDepth: 2, startPosition: [0, 64, 0] as const };
 
+    it('turns the start piece about the start position, as Java turns it about its pivot', () => {
+        // Five wide and two deep, so a quarter turn shows which way the box grows.
+        const long: BedrockStructureTemplate = { ...room([]), size: [5, 1, 2] };
+        const longs = parseTemplatePool({
+            elements: [
+                { element: { element_type: 'minecraft:single_pool_element', location: 'test:long' }, weight: 1 }
+            ],
+            fallback: 'test:empty'
+        });
+        const boxes = new Map<string, readonly number[]>();
+        // Neighboring seeds start a legacy random alike, so the seeds are spread out.
+        for (let draw = 0; draw < 64 && boxes.size < 4; draw++) {
+            const seed = draw * 104_729 + 7;
+            const { pieces } = assembleJigsaw(
+                { startPool: 'test:longs', maxDepth: 0, startPosition: [0, 64, 0] },
+                sources(seed, {
+                    pool: (identifier) => (identifier === 'test:longs' ? longs : POOLS[identifier]),
+                    template: (location) => (location === 'test:long' ? long : TEMPLATES[location])
+                })
+            );
+            const start = pieces[0]!;
+            const box = start.boundingBox;
+            boxes.set(start.rotation, [box.minX, box.maxX, box.minZ, box.maxZ]);
+        }
+
+        // Java's `StructureTemplate.getBoundingBox` with the pivot at the template's block zero.
+        expect(Object.fromEntries(boxes)).toEqual({
+            none: [0, 4, 0, 1],
+            clockwise_90: [-1, 0, 0, 4],
+            clockwise_180: [-4, 0, -1, 0],
+            counterclockwise_90: [0, 1, -4, 0]
+        });
+    });
+
     it('produces the same layout for the same seed', () => {
         expect(layout(assembleJigsaw(config, sources(2024)))).toEqual(layout(assembleJigsaw(config, sources(2024))));
     });
@@ -427,16 +461,18 @@ describe('assembleJigsaw', () => {
         // by the tests around this one: four streets leave the center, each
         // reaches one house, and nothing overlaps.
         const assembly = assembleJigsaw(config, sources(2024));
+        // The center is turned half way about the start position, as Java turns it about its
+        // pivot, so its three by three box covers -2 to 0 on both axes.
         expect(layout(assembly)).toEqual([
-            'test:center@0,63,0/clockwise_180',
-            'test:street@-3,63,0/clockwise_90',
-            'test:street@0,63,-3/clockwise_180',
-            'test:street@0,63,3/clockwise_180',
-            'test:street@3,63,0/clockwise_90',
-            'test:house_a@-6,63,0/clockwise_90',
-            'test:house_b@0,63,-6/none',
-            'test:house_a@0,63,6/none',
-            'test:house_a@6,63,0/counterclockwise_90'
+            'test:center@-2,63,-2/clockwise_180',
+            'test:street@-5,63,-2/clockwise_90',
+            'test:street@-2,63,-5/clockwise_180',
+            'test:street@-2,63,1/clockwise_180',
+            'test:street@1,63,-2/clockwise_90',
+            'test:house_a@-8,63,-2/clockwise_90',
+            'test:house_b@-2,63,-8/none',
+            'test:house_a@-2,63,4/none',
+            'test:house_a@4,63,-2/counterclockwise_90'
         ]);
     });
 
@@ -444,17 +480,17 @@ describe('assembleJigsaw', () => {
         const { pieces } = assembleJigsaw(config, sources(2024));
 
         expect(pieces[0]?.junctions).toEqual([
+            { sourceX: -3, sourceGroundY: 64, sourceZ: -1 },
+            { sourceX: -1, sourceGroundY: 64, sourceZ: -3 },
             { sourceX: -1, sourceGroundY: 64, sourceZ: 1 },
-            { sourceX: 1, sourceGroundY: 64, sourceZ: -1 },
-            { sourceX: 1, sourceGroundY: 64, sourceZ: 3 },
-            { sourceX: 3, sourceGroundY: 64, sourceZ: 1 }
+            { sourceX: 1, sourceGroundY: 64, sourceZ: -1 }
         ]);
         expect(pieces[1]?.groundLevelDelta).toBe(1);
         expect(pieces[1]?.junctions).toEqual([
-            { sourceX: 0, sourceGroundY: 64, sourceZ: 1 },
-            { sourceX: -4, sourceGroundY: 64, sourceZ: 1 }
+            { sourceX: -2, sourceGroundY: 64, sourceZ: -1 },
+            { sourceX: -6, sourceGroundY: 64, sourceZ: -1 }
         ]);
-        expect(pieces[5]?.junctions).toEqual([{ sourceX: -3, sourceGroundY: 64, sourceZ: 1 }]);
+        expect(pieces[5]?.junctions).toEqual([{ sourceX: -5, sourceGroundY: 64, sourceZ: -1 }]);
     });
 
     it('grows outward from the center, one street per side', () => {
@@ -464,7 +500,7 @@ describe('assembleJigsaw', () => {
         expect(pieces[0]?.location).toBe('test:center');
         expect(streets).toHaveLength(4);
         expect(new Set(streets.map((piece) => `${piece.position[0]},${piece.position[2]}`))).toEqual(
-            new Set(['-3,0', '3,0', '0,-3', '0,3'])
+            new Set(['-5,-2', '1,-2', '-2,-5', '-2,1'])
         );
         for (const piece of pieces.slice(1)) expect(piece.depth).toBeGreaterThan(0);
     });
@@ -543,13 +579,13 @@ describe('assembleJigsaw', () => {
 
         // Java moves the piece so its ground layer, one above its floor, lands on the terrain.
         expect(assembly.pieces[0]?.position[1]).toBe(63);
-        expect(assembly.origin).toEqual([1, 64, 1]);
+        expect(assembly.origin).toEqual([-1, 64, -1]);
     });
 
     it('reports the generation point the biome check is made at', () => {
         const assembly = assembleJigsaw(config, sources(2024));
 
-        expect(assembly.origin).toEqual([1, 64, 1]);
+        expect(assembly.origin).toEqual([-1, 64, -1]);
     });
 
     it('sits a terrain-matching element on the terrain rather than on its parent', () => {
@@ -579,9 +615,9 @@ describe('assembleJigsaw', () => {
         expect(streets).not.toHaveLength(0);
         for (const street of streets) expect(street.position[1]).toBe(40);
         expect(streets[0]?.junctions).toEqual([
-            { sourceX: 0, sourceGroundY: 64, sourceZ: 1 },
-            { sourceX: -4, sourceGroundY: 41, sourceZ: 1 },
-            { sourceX: 0, sourceGroundY: 41, sourceZ: 1 }
+            { sourceX: -2, sourceGroundY: 64, sourceZ: -1 },
+            { sourceX: -6, sourceGroundY: 41, sourceZ: -1 },
+            { sourceX: -2, sourceGroundY: 41, sourceZ: -1 }
         ]);
     });
 
@@ -621,10 +657,10 @@ describe('assembleJigsaw', () => {
         );
 
         expect(pieces[0]?.junctions).toEqual([
+            { sourceX: -3, sourceGroundY: 41, sourceZ: -1 },
+            { sourceX: -1, sourceGroundY: 41, sourceZ: -3 },
             { sourceX: -1, sourceGroundY: 41, sourceZ: 1 },
-            { sourceX: 1, sourceGroundY: 41, sourceZ: -1 },
-            { sourceX: 1, sourceGroundY: 41, sourceZ: 3 },
-            { sourceX: 3, sourceGroundY: 41, sourceZ: 1 }
+            { sourceX: 1, sourceGroundY: 41, sourceZ: -1 }
         ]);
     });
 
