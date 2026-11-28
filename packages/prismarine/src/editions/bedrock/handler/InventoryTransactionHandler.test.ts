@@ -5,6 +5,7 @@ import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attri
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { EntityRuntime } from '../../../entity/data/EntityRuntime';
+import { EntityStore } from '../../../entity/data/EntityStore';
 import type { LiveEntityRuntime } from '../../../entity/data/live';
 import { PlayerComponents } from '../../../entity/playerComponents';
 import * as archery from '../../../entity/Archery';
@@ -107,6 +108,7 @@ const fake = (
         },
         resendBlock: (x, y, z) => void resent.push(`${x},${y},${z}`),
         getActor: (runtimeId) => (runtimeId === 42n ? zombie : null),
+        getEntityStore: () => new EntityStore(),
         // Every chunk is loaded but those past x 1000, so a break there finds none.
         getLoadedChunk: (cx) => (cx < 1000 >> 4 ? stub<Chunk>({}) : null),
         getDimension: () => Dimensions.Overworld,

@@ -7,6 +7,7 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import { EntityStore } from '../../entity/data/EntityStore';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type { ServerItemActorPort } from '../../item/actorPort';
@@ -23,6 +24,7 @@ import UseItemOnBlockHandler from './UseItemOnBlockHandler';
 const scene = (gamemode: Gametype, { loaded = true, held }: { loaded?: boolean; held?: Item } = {}) => {
     const offered: string[] = [];
     const world = stub<World>({
+        getEntityStore: () => new EntityStore(),
         getLoadedChunk: () => (loaded ? stub<Chunk>({}) : null),
         getDimension: () => Dimensions.Overworld,
         getLevel: () => stub<Level>({ name: 'test' })

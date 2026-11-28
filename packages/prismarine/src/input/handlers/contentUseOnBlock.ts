@@ -5,6 +5,7 @@ import type {
     InteractionRotation
 } from '../../item/interaction';
 import { useItemOnBlock } from '../../item/interaction';
+import { runContentUse } from './contentUse';
 import type { HandlerLog, HandlerServices } from '../../player/context/HandlerContext';
 
 /** What the content hooks are offered a click through: the content, its actors and the log. */
@@ -22,7 +23,7 @@ export type BlockClick = Pick<BlockInteraction, 'position' | 'face' | 'faceLocat
  *
  * @param rotation - The view the click was made with, when the client reports one apart from its movement.
  * @returns Whether a behavior family or a placement consumed the click. A behavior that throws
- *   is logged and declines.
+ *   is logged and declines, and what it wrote is undone.
  */
 export const contentUseOnBlock = (
     { services, log }: ContentHooks,
@@ -31,17 +32,10 @@ export const contentUseOnBlock = (
     rotation?: InteractionRotation
 ): InteractionResult => {
     const { content } = services;
-    const actors = services.contentWorld.actorsAt(
-        player.getWorld().getDimension().name,
-        player.getWorld().getLevel().name
-    );
+    const world = player.getWorld();
+    const actors = services.contentWorld.actorsAt(world.getDimension().name, world.getLevel().name);
 
-    try {
-        return useItemOnBlock({ content, actors, player, ...click, ...(rotation === undefined ? {} : { rotation }) });
-    } catch (error: unknown) {
-        // A behavior that throws must not take the packet handler down with it, and it must
-        // not go unreported either. The throw reaches the log and the click goes unanswered.
-        log.error(error);
-        return 'declined';
-    }
+    return runContentUse(world, log, () =>
+        useItemOnBlock({ content, actors, player, ...click, ...(rotation === undefined ? {} : { rotation }) })
+    );
 };

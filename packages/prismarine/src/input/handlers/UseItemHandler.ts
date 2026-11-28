@@ -9,26 +9,21 @@ import type { InputContext } from '../../player/context/HandlerContext';
 import type PlayerSession from '../../player/PlayerSession';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
+import { runContentUse } from './contentUse';
 import { ENDER_EYE, enderEyeEcho } from './eyeOfEnderEcho';
 
 /**
  * One right click on nothing, offered to the item in hand.
  *
- * @returns Whether a behavior consumed the click. A behavior that throws is logged and declines.
+ * @returns Whether a behavior consumed the click. A behavior that throws is logged and declines,
+ *   and what it wrote is undone.
  */
 const contentUseInAir = ({ services, log }: InputContext, player: PlayerSession): InteractionResult => {
     const { content } = services;
-    const actors = services.contentWorld.actorsAt(
-        player.getWorld().getDimension().name,
-        player.getWorld().getLevel().name
-    );
+    const world = player.getWorld();
+    const actors = services.contentWorld.actorsAt(world.getDimension().name, world.getLevel().name);
 
-    try {
-        return useItemInAir({ content, actors, player });
-    } catch (error: unknown) {
-        log.error(error);
-        return 'declined';
-    }
+    return runContentUse(world, log, () => useItemInAir({ content, actors, player }));
 };
 
 /**

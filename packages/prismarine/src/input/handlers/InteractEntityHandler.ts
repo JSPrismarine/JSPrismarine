@@ -4,6 +4,7 @@ import { useItemOnEntity } from '../../item/interaction';
 import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
+import { runContentUse } from './contentUse';
 import { actorReachRefusal } from './entityReach';
 
 /**
@@ -32,8 +33,8 @@ export default class InteractEntityHandler implements IntentHandler<'interactEnt
             return;
         }
 
-        try {
-            // The content rules take the session, which answers for the player and its client.
+        // The content rules take the session, which answers for the player and its client.
+        runContentUse(world, log, () =>
             useItemOnEntity({
                 content: services.content,
                 actors: services.contentWorld.actorsAt(world.getDimension().name, world.getLevel().name),
@@ -43,9 +44,7 @@ export default class InteractEntityHandler implements IntentHandler<'interactEnt
                     runtimeId: Number(target.getRuntimeId()),
                     position: { x: position.getX(), y: position.getY(), z: position.getZ() }
                 }
-            });
-        } catch (error: unknown) {
-            log.error(error);
-        }
+            })
+        );
     }
 }
