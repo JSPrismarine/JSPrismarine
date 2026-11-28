@@ -52,6 +52,7 @@
     "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
     "devDependencies": {
+        "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@types/node": "26.6.11",
         "@types/yargs": "17.0.35",

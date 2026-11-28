@@ -123,7 +123,10 @@ export interface LoopbackServer {
      * the server put its player in it. The server needs `java-enabled`, and `java-port` 0 lets the
      * system pick a free port.
      */
-    joinJava(username: string, options?: Pick<JavaClientOptions, 'language' | 'viewDistance'>): Promise<JavaClient>;
+    joinJava(
+        username: string,
+        options?: Pick<JavaClientOptions, 'language' | 'viewDistance' | 'resourcePacks'>
+    ): Promise<JavaClient>;
     /**
      * Asks the Java Edition listener for its server list entry, as the multiplayer screen does,
      * ticking until it answers. The server needs `java-enabled`.
@@ -348,7 +351,7 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
 
     const joinJava = async (
         username: string,
-        options: Pick<JavaClientOptions, 'language' | 'viewDistance'> = {}
+        options: Pick<JavaClientOptions, 'language' | 'viewDistance' | 'resourcePacks'> = {}
     ): Promise<JavaClient> => {
         const port = server.getKernel().get(networkToken).getJavaPort();
         if (port === undefined) throw new Error('joinJava needs a server started with java-enabled');

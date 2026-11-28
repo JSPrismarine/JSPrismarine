@@ -1,4 +1,4 @@
-import { constants, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto';
+import { constants, createHash, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 
 import { ClientErrors } from '@jsprismarine/errors/client';
@@ -12,11 +12,15 @@ import {
     ConfigurationClientboundKeepAlive,
     ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationResourcePackPop,
+    ConfigurationResourcePackPush,
+    ConfigurationResourcePackResponse,
     ConfigurationServerboundKeepAlive,
     FinishConfiguration,
     JavaChatVisibility,
     JavaMainHand,
     JavaParticleStatus,
+    JavaResourcePackAction,
     ServerboundKnownPacks
 } from '@jsprismarine/protocol/java/packet/configuration';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
@@ -55,6 +59,9 @@ import {
     PlayerInfoAdd,
     PlayerInfoUpdateGameMode,
     PlayerLoaded,
+    PlayResourcePackPop,
+    PlayResourcePackPush,
+    PlayResourcePackResponse,
     Respawn,
     ServerboundKeepAlive,
     SetHealth,
@@ -94,6 +101,23 @@ export interface JavaClientOptions {
     readonly language?: string;
     /** The view distance in the client's settings, in chunks. Defaults to vanilla's, 12. */
     readonly viewDistance?: number;
+    /**
+     * What the player does with a resource pack the server pushes: `accept` downloads it, checks
+     * its SHA-1 and loads it, as a vanilla client whose player takes it does; `decline` refuses it.
+     * Defaults to `accept`.
+     */
+    readonly resourcePacks?: 'accept' | 'decline';
+    /** Downloads a pushed resource pack; the global `fetch` when absent, as through a proxy otherwise. */
+    readonly fetch?: typeof fetch;
+}
+
+/** A resource pack the client downloaded from the server and loaded. */
+export interface JavaLoadedResourcePack {
+    readonly id: string;
+    readonly url: string;
+    /** The SHA-1 of the bytes it downloaded, in lowercase hexadecimal. */
+    readonly sha1: string;
+    readonly bytes: Uint8Array;
 }
 
 /** Where the player is and where it looks. */
@@ -119,6 +143,8 @@ export interface JavaClientEvents {
     chat: [content: JavaText, overlay: boolean];
     /** The server moved the player, and the client accepted the move. */
     position: [pose: JavaPose];
+    /** The client finished with a resource pack the server pushed, loaded or not. */
+    resourcePack: [id: string, action: JavaResourcePackAction];
     /** The server ended the connection and said why. */
     disconnect: [reason: JavaText];
     /** The connection broke or the server sent what the client cannot read. */
@@ -200,6 +226,13 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
     private login: PlayLoginPayload | undefined;
     private health: JavaPayload<typeof SetHealth> | undefined;
     private brand: string | undefined;
+    private readonly resourcePacks = new Map<string, JavaLoadedResourcePack>();
+    /**
+     * How many times each pack was removed, and every pack at once, so a download a removal
+     * overtook knows to discard what it fetched.
+     */
+    private readonly packRemovals = new Map<string, number>();
+    private allPackRemovals = 0;
     private disconnectReason: JavaText | undefined;
 
     public constructor(private readonly options: JavaClientOptions) {
@@ -430,6 +463,11 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
         return this.brand;
     }
 
+    /** The resource packs the client loaded from the server and still has, by id. */
+    public getResourcePacks(): ReadonlyMap<string, JavaLoadedResourcePack> {
+        return this.resourcePacks;
+    }
+
     /** Whether the client holds the chunk column at chunk `x`, `z`: sent, and not unloaded since. */
     public hasChunk(x: number, z: number): boolean {
         return this.columns.has(`${x},${z}`);
@@ -528,6 +566,22 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
         } else if (isJavaPacket(received, ClientboundKnownPacks)) {
             // Every pack the server names is one a vanilla client of the same release has.
             socket.send(ServerboundKnownPacks, { packs: received.payload.packs });
+        } else if (isJavaPacket(received, ConfigurationResourcePackPush)) {
+            void this.takeResourcePack(received.payload, ConfigurationResourcePackResponse);
+        } else if (isJavaPacket(received, PlayResourcePackPush)) {
+            void this.takeResourcePack(received.payload, PlayResourcePackResponse);
+        } else if (
+            isJavaPacket(received, ConfigurationResourcePackPop) ||
+            isJavaPacket(received, PlayResourcePackPop)
+        ) {
+            const { id } = received.payload;
+            if (id === null) {
+                this.resourcePacks.clear();
+                this.allPackRemovals++;
+            } else {
+                this.resourcePacks.delete(id);
+                this.packRemovals.set(id, (this.packRemovals.get(id) ?? 0) + 1);
+            }
         } else if (isJavaPacket(received, FinishConfiguration)) {
             socket.send(AcknowledgeFinishConfiguration, {});
             this.phase = 'play';
@@ -560,6 +614,62 @@ export class JavaClient extends EventEmitter<JavaClientEvents> {
             this.disconnectReason = reason;
             this.emit('disconnect', reason);
         }
+    }
+
+    /**
+     * Answers a pushed resource pack as a vanilla client does: `Accepted`, then `Downloaded` and
+     * `Successfully Loaded` once the download's SHA-1 is the one the server named, or
+     * `Failed Download` when it is not; `Declined` when the player refuses packs. The download
+     * runs beside the conversation, as the client's own does, so the server's other packets are
+     * still read while it goes.
+     */
+    private async takeResourcePack(
+        push: JavaPayload<typeof ConfigurationResourcePackPush>,
+        response: typeof ConfigurationResourcePackResponse | typeof PlayResourcePackResponse
+    ): Promise<void> {
+        const answer = (action: JavaResourcePackAction): void => {
+            this.socket?.send(response, { id: push.id, action });
+            if (action !== JavaResourcePackAction.Accepted && action !== JavaResourcePackAction.Downloaded)
+                this.emit('resourcePack', push.id, action);
+        };
+        if ((this.options.resourcePacks ?? 'accept') === 'decline') {
+            answer(JavaResourcePackAction.Declined);
+            return;
+        }
+        answer(JavaResourcePackAction.Accepted);
+        const removals = { one: this.packRemovals.get(push.id) ?? 0, all: this.allPackRemovals };
+        const removed = (): boolean =>
+            (this.packRemovals.get(push.id) ?? 0) !== removals.one || this.allPackRemovals !== removals.all;
+        let bytes: Uint8Array | undefined;
+        try {
+            const download = await (this.options.fetch ?? fetch)(push.url, {
+                headers: {
+                    'X-Minecraft-Username': this.options.username,
+                    'X-Minecraft-Pack-Format': String(this.protocol.resourcePackFormat[0])
+                }
+            });
+            if (download.ok) bytes = new Uint8Array(await download.arrayBuffer());
+            else await download.body?.cancel();
+        } catch {
+            // A server that does not answer is a failed download, as it is to a vanilla client.
+        }
+        if (bytes === undefined) {
+            answer(JavaResourcePackAction.FailedDownload);
+            return;
+        }
+        const sha1 = createHash('sha1').update(bytes).digest('hex');
+        if (/^[0-9a-fA-F]{40}$/.test(push.hash) && sha1 !== push.hash.toLowerCase()) {
+            answer(JavaResourcePackAction.FailedDownload);
+            return;
+        }
+        // A pack the server removed while it downloaded is discarded, as a vanilla client does.
+        if (removed()) {
+            answer(JavaResourcePackAction.Discarded);
+            return;
+        }
+        answer(JavaResourcePackAction.Downloaded);
+        this.resourcePacks.set(push.id, { id: push.id, url: push.url, sha1, bytes });
+        answer(JavaResourcePackAction.SuccessfullyLoaded);
     }
 
     /**
