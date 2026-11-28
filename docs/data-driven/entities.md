@@ -427,8 +427,15 @@ Bedrock definitions.
 Movement goes through an A\* path finder over whole blocks. The profile comes from the entity's
 active `minecraft:navigation.*` component plus its collision height and step height, and the flags
 on that component decide which cells the search may enter: doors, water, lava, damaging blocks,
-portals, sunlight and the three media (ground, swim, fly). A search expands at most 512 nodes
-unless the caller raises the budget.
+portals, sunlight and the three media (ground, swim, fly). No path steps onto a fence or a wall,
+whose collision reaches half a block over its cell. A search expands at most 512 nodes unless the
+caller raises the budget.
+
+A mob's goals and its brain share one navigator, which follows Java's `PathNavigation`: it advances
+every tick, walks the closest route when no route reaches the target, gives up when the mob stops
+making progress, and plans again when a block closes the path ahead. A random stroll draws its
+destination on the ground, as Java's `LandRandomPos` does. A look turns the mob's head, which stays
+within 75 degrees of a walking body, so a mob that looks one way keeps to a path that goes another.
 
 The goals reach the world through `GoalWorld`, a 46-member interface covering sight, combat, items,
 blocks, relationships and reporting. Every member is optional, and a goal whose world cannot answer

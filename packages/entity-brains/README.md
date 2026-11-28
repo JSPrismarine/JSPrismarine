@@ -269,7 +269,10 @@ reachable position, sounds and game events.
 `BrainMob` is the body: its brain, its navigation, a condition writer, look, jump, attack, a sound,
 and an attribute lookup.
 
-`BrainNavigation` is path following: `moveTo`, `isDone`, `isStuck`, `canReach` and `stop`. This is
+`BrainNavigation` is path following: `moveTo`, `isDone`, `isStuck`, `canReach`, `stop`, and the
+optional `canApproach` and `pathStep`. As in Java, `moveTo` follows a route that only gets closer
+when none reaches the target, and `MoveToTargetSink` walks it while it records
+`CANT_REACH_WALK_TARGET_SINCE`. This is
 deliberately this package's own interface and not an import. `@jsprismarine/entity-goals` owns the
 170 Bedrock goals and an A\* path finder over its own `NavigationView`, and a server satisfies both
 interfaces with one adapter over that finder. Depending on `entity-goals` here would make the brain
