@@ -1026,7 +1026,7 @@ export class WorldScripts {
         );
         engine.inContext(context, () => {
             for (const shape of bindOrder) entry.modules.set(shape.module, api.bind(shape));
-            this.installConsole();
+            this.installConsole(entry);
             const installer = engine.evaluate(installInputsSource(), '<jsp inputs>');
             if (!(installer instanceof ScriptHandle))
                 throw new ScriptHostErrors.NotAFunction({ what: 'The inputs installer' });
@@ -1045,7 +1045,7 @@ export class WorldScripts {
     }
 
     /** Gives a pack's context `console`, whose lines go to the content log under the pack's name. */
-    private installConsole(): void {
+    private installConsole(loaded: LoadedPack): void {
         const engine = this.engine;
         const line = (args: readonly ScriptValue[]): string =>
             args.map((arg) => (arg instanceof ScriptHandle ? describeObject(engine, arg) : String(arg))).join(' ');
@@ -1060,13 +1060,28 @@ export class WorldScripts {
         ];
         for (const [name, write] of methods) {
             const fn = engine.hostFunction(name, (...args) => {
-                write(`[Scripting] ${line(args)}`);
+                const text = line(args);
+                // A call with nothing to print, such as a bare `console.error()`, would leave a
+                // line that says only `[Scripting]`, so it names the pack and where it was made.
+                write(
+                    text.trim() === ''
+                        ? `[Scripting] [${loaded.pack.name}] ${this.emptyConsoleLine(name)}`
+                        : `[Scripting] ${text}`
+                );
                 return undefined;
             });
             engine.set(target, name, fn);
             engine.free(fn);
         }
         engine.free(target);
+    }
+
+    /** What the content log shows for a `console` call that printed nothing: the call and its script stack. */
+    private emptyConsoleLine(method: string): string {
+        const stack = this.engine.evaluate('new Error().stack', '<jsp console>');
+        // The first two frames are this evaluation and the native console method.
+        const frames = typeof stack === 'string' ? stack.trim().split('\n').slice(2).join('\n').trim() : '';
+        return `console.${method}() printed nothing${frames === '' ? '' : `    ${frames}`}`;
     }
 
     /** Runs a pack's entry module, logging what it throws. */

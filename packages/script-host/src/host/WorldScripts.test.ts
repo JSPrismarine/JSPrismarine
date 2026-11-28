@@ -111,6 +111,23 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         expect(log.printed()).toEqual(['helper helper']);
     });
 
+    it('names the pack and the call site of a console call that prints nothing', () => {
+        const { log } = start([
+            writePack(
+                `function onDeath() {\n    console.error(\n    );\n}\nonDeath();\nconsole.warn('');\nconsole.warn('kept');`,
+                undefined,
+                'Ragdoll'
+            )
+        ]);
+        const [error, empty, kept] = log.lines.filter((line) => !line.startsWith('info '));
+        expect(error).toMatch(
+            /^error \[Scripting\] \[Ragdoll\] console\.error\(\) printed nothing {4}at onDeath \(.*main\.js:2/
+        );
+        expect(error).not.toContain('<jsp console>');
+        expect(empty).toMatch(/^warn \[Scripting\] \[Ragdoll\] console\.warn\(\) printed nothing/);
+        expect(kept).toBe('warn [Scripting] kept');
+    });
+
     it('gives a job the steps its world admits for the tick, and the fixed budget when it admits none', () => {
         /** How far a job that spins between yields gets in two ticks of a world that admits `steps`. */
         const progress = (steps: number | undefined): number => {
