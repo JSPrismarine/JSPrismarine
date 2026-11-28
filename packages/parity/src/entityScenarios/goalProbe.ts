@@ -123,6 +123,11 @@ export interface Probe {
     readonly statesAt: (x: number, y: number, z: number) => Readonly<Record<string, unknown>> | undefined;
     /** Puts a player in the world relative to the patch origin, and returns its runtime id. */
     readonly player: (x: number, y: number, z: number) => number;
+    /**
+     * Moves a player the probe put in the world, relative to the patch origin. The host hands out
+     * a new record, as the server's does each time it reads where a player stands.
+     */
+    readonly movePlayer: (id: number, x: number, y: number, z: number) => void;
     /** Spawns another entity relative to the patch origin, which the probe removes with its own. */
     readonly spawn: (identifier: string, x: number, y: number, z: number) => DataEntity;
     /** Runs the runtime for some ticks, advancing the world's clocks with it. */
@@ -206,6 +211,14 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
             players.push(player);
             world.players = [...world.players, player];
             return nextPlayer;
+        },
+        movePlayer: (id, x, y, z) => {
+            const index = players.findIndex((player) => player.id === id);
+            const player = players[index];
+            if (player === undefined) throw new Error(`the probe put no player ${id} in the world`);
+            const moved: ContentEntity = { ...player, position: at(x, y, z) };
+            players[index] = moved;
+            world.players = world.players.map((entry) => (entry === player ? moved : entry));
         },
         spawn: (identifier, x, y, z) => {
             const other = runtime.spawn(identifier, at(x, y, z));
