@@ -232,6 +232,32 @@ describe('mob-leaves-block', { tags: ['real-data'] }, () => {
     });
 });
 
+describe('mob-closes-in', { tags: ['real-data'] }, () => {
+    it('walks a zombie up to the foot of a pillar whose player it cannot reach', async () => {
+        // No path reaches a player on top of a three-block pillar. A zombie used to stand where it
+        // was summoned; Java's walks the closest route there, which ends beside the pillar.
+        const player = await joinWithChunks('Perched');
+        await jsp.command('fill 11 -60 6 11 -58 6 minecraft:stone');
+        await standAt(player, { x: 11.5, y: -57, z: 6.5 });
+        const before = player.world.actorsOfType('minecraft:zombie').length;
+        await jsp.command('summon minecraft:zombie 1.5 -60 6.5');
+        await jsp.until(
+            () => player.world.actorsOfType('minecraft:zombie').length > before,
+            'the client never saw the zombie'
+        );
+
+        await jsp.tick(200);
+        const zombie = player.world.actorsOfType('minecraft:zombie').at(-1);
+
+        await jsp.command('kill @e[type=minecraft:zombie]');
+        await jsp.command('fill 11 -60 6 11 -58 6 minecraft:air');
+        expect(zombie, 'the client lost the zombie').toBeDefined();
+        const away = Math.hypot((zombie?.position.x ?? 0) - 11.5, (zombie?.position.z ?? 0) - 6.5);
+        expect(away, `the zombie stopped ${away} blocks from the pillar`).toBeLessThan(3);
+        await leaveAndWait(jsp, player);
+    });
+});
+
 describe('player-knockback', { tags: ['real-data'] }, () => {
     /** Where the player stands, on a stone pad; the pig stands two blocks west of it. */
     const STAND = { x: 0.5, y: 64, z: 0.5 };
