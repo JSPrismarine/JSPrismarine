@@ -16,6 +16,11 @@ import { WindowIds } from '../../../inventory/WindowIds';
 import { WindowTypes } from '../../../inventory/WindowTypes';
 import type { Item } from '../../../item/Item';
 import { wireStackOf } from '../wireStack';
+import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
+import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
+import { commandDataOf, commandNameEnumOf } from '../../../command/availableCommands';
+import { PLAYER_SOFT_ENUM } from '../../../command/jsprismarineCommands';
 import type { BedrockChunkWire } from '../BedrockChunkWire';
 import { armorPackets } from '../../../network/replica/firstSight';
 import { Vector3 } from '@jsprismarine/math';
@@ -79,6 +84,7 @@ import type {
     ShownMessage,
     ShownMove,
     ShownObjective,
+    ShownCommands,
     ShownRespawnPoint,
     ShownScore,
     ShownTime,
@@ -726,6 +732,38 @@ export class BedrockPresenter implements SessionPresenter {
             );
         }
         return Promise.all(sends).then(() => undefined);
+    }
+
+    /** Sends `PlayStatus(PlayerSpawn)`, ahead of anything else queued, as the join's last word. */
+    public async showSpawned(): Promise<void> {
+        await this.connection.sendDataPacket(new PlayStatusPacket({ status: PlayStatus.PlayerSpawn }), true);
+    }
+
+    /** Sends `ShowCredits(Start)` for the player. */
+    public async showCredits(): Promise<void> {
+        const packet = new ShowCreditsPacket();
+        packet.playerRuntimeId = this.state.runtimeId;
+        packet.creditsState = CreditsState.Start;
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Sends `AvailableCommands`: one `CommandData` per command, each branch of its tree an
+     * overload, and the player names as a soft enum.
+     */
+    public async showCommands({ commands, players }: ShownCommands): Promise<void> {
+        const packet = new AvailableCommandsPacket();
+        // The names `/ban` and `/pardon` complete from. The packet keeps the first soft enum of a
+        // name it meets, so this one, with values, wins over the empty one a parameter names.
+        const names = new CommandEnum();
+        names.soft = true;
+        names.name = PLAYER_SOFT_ENUM;
+        names.values = [...players];
+        packet.softEnums = [names];
+        packet.commandData = commands.map(({ command, level }) => commandDataOf(command, level));
+        // Without it the client offers no namespaced command, such as a script's `jsp:tpsbar`.
+        packet.hardcodedEnums = [commandNameEnumOf(commands.map(({ command }) => command))];
+        await this.connection.sendDataPacket(packet);
     }
 
     /** The session's chunk wire, which a presenter built without a session lacks. */

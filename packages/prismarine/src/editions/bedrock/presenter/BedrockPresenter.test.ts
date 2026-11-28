@@ -46,7 +46,8 @@ import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPack
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
 import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
-import { PlayerActionType } from '@jsprismarine/protocol';
+import { PlayerActionType, PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -565,6 +566,27 @@ describe('BedrockPresenter', () => {
                 [PlayerRespawnState.READY_TO_SPAWN, 0n],
                 [PlayerRespawnState.READY_TO_SPAWN, 0n]
             ]);
+        });
+
+        it("closes the join with the player's spawn, ahead of the queue, and rolls the credits for the player", async () => {
+            const sent: [NetworkPacket, boolean | undefined][] = [];
+            const bedrock = new BedrockPresenter(
+                { sendDataPacket: async (packet, immediate) => void sent.push([packet, immediate]) },
+                undefined,
+                { runtimeId: 7n, lastInputTick: () => 0n }
+            );
+
+            await bedrock.showSpawned();
+            await bedrock.showCredits();
+
+            const [spawned, rolled] = sent;
+            const status = spawned?.[0];
+            const credits = rolled?.[0];
+            if (!(status instanceof PlayStatusPacket) || !(credits instanceof ShowCreditsPacket)) {
+                throw new Error('expected PlayStatus then ShowCredits');
+            }
+            expect([status.getPacketData()?.status, spawned?.[1]]).toEqual([PlayStatus.PlayerSpawn, true]);
+            expect([credits.playerRuntimeId, credits.creditsState]).toEqual([7n, CreditsState.Start]);
         });
 
         it('refuses a world change without a session to number its screen', () => {
