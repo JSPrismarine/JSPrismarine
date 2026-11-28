@@ -1,4 +1,5 @@
-import { rmSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -99,6 +100,16 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         scripts.startWorld();
         return { scripts, world, log };
     };
+
+    it('resolves an import without an extension to the .js file, as BDS does', () => {
+        const pack = writePack(`import { label } from './helper';
+            import { label as again } from './helper.js';
+            console.warn(label, again);`);
+        writeFileSync(join(pack.directory, 'scripts', 'helper.js'), "export const label = 'helper';");
+        const { log } = start([pack]);
+        expect(log.lines.filter((line) => line.startsWith('error'))).toEqual([]);
+        expect(log.printed()).toEqual(['helper helper']);
+    });
 
     it('costs one host call for each system.run a script makes', () => {
         const { scripts } = start([

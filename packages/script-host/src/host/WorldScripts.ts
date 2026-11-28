@@ -1068,7 +1068,10 @@ export class WorldScripts {
             return loaded.placeholders;
         }
         if (name.startsWith('@')) throw unrecognized(name);
-        return readPackFile(loaded.pack, name);
+        // BDS resolves an import without an extension, such as `./close_open_vent`, to the `.js`
+        // file beside it, and published packs rely on it. The engine keys the module by the name
+        // as imported, so a file imported both ways evaluates once per spelling.
+        return readPackFile(loaded.pack, name) ?? readPackFile(loaded.pack, `${name}.js`);
     }
 
     /**
