@@ -51,6 +51,34 @@ describe('findPath', () => {
         expect(steps(path).at(-1)).toBe('4,1,0');
     });
 
+    it('steps up onto a full block but not onto a fence, which is half a block taller', () => {
+        // A one-block step at x 2, and a fence across the same corridor at z 2.
+        const view = voxelGrid([
+            ['#####', '#####', '#####'],
+            ['..#..', '.....', '..F..'],
+            ['.....', '.....', '.....'],
+            ['.....', '.....', '.....']
+        ]);
+        const fenced = findPath(view, walker, { from: { x: 0, y: 1, z: 2 }, to: { x: 4, y: 1, z: 2 } });
+        const stepped = findPath(view, walker, { from: { x: 0, y: 1, z: 0 }, to: { x: 4, y: 1, z: 0 } });
+
+        expect(steps(stepped)).toContain('2,2,0');
+        expect(fenced?.reachedGoal).toBe(true);
+        expect(steps(fenced)).not.toContain('2,2,2');
+        expect(steps(fenced)).not.toContain('2,1,2');
+    });
+
+    it('finds no path over a fence that closes a pen', () => {
+        const view = voxelGrid([
+            ['#####', '#####', '#####'],
+            ['..F..', '..F..', '..F..'],
+            ['.....', '.....', '.....'],
+            ['.....', '.....', '.....']
+        ]);
+
+        expect(findPath(view, walker, { from: { x: 0, y: 1, z: 1 }, to: { x: 4, y: 1, z: 1 } })).toBeUndefined();
+    });
+
     it('climbs a staircase one block at a time', () => {
         const view = voxelGrid([['####'], ['.###'], ['..##'], ['...#'], ['....'], ['....']]);
 

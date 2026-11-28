@@ -4533,6 +4533,35 @@ describe('the data-driven entity runtime over a live world', () => {
                 }
             );
 
+            it('plans no path out of a fenced pen, though it steps over a stone ring as tall', () => {
+                useVanillaContent();
+
+                const chunk = world.getLoadedChunk(0, 0);
+                if (chunk === null) throw new Error('the vanilla pen test chunk was not loaded');
+                // Two rings around x and z 2 to 6: oak fence at y GROUND_Y, and stone one block out.
+                const ring = (inner: number, outer: number, block: string) => {
+                    for (let x = inner; x <= outer; x += 1)
+                        for (let z = inner; z <= outer; z += 1)
+                            if (x === inner || x === outer || z === inner || z === outer)
+                                chunk.setBlockRuntimeId(x, GROUND_Y, z, idOf(block));
+                };
+                ring(1, 7, 'minecraft:oak_fence');
+
+                const pig = live.runtime.spawn('minecraft:pig', { x: 4.5, y: GROUND_Y, z: 4.5 });
+                if (pig === undefined) throw new Error('the vanilla content declares no pig');
+                const navigator = new Navigator({
+                    actuator: live.runtime.actuatorFor(pig.instance),
+                    navigation: () => live.runtime.navigation(),
+                    profile: () => navigationProfile(pig.instance)
+                });
+                const outside = { x: 10.5, y: GROUND_Y, z: 4.5 };
+                expect(navigator.canReach(outside, 0)).toBe(false);
+
+                ring(1, 7, 'minecraft:stone');
+                live.runtime.invalidateBlockCaches();
+                expect(navigator.canReach(outside, 0)).toBe(true);
+            });
+
             it(
                 'does not choose water as a random stroll destination when vanilla data says avoid_water',
                 { timeout: 180_000 },

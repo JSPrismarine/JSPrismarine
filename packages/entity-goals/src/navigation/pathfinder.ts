@@ -303,6 +303,10 @@ class CellReader {
             }
         }
 
+        // A fence or a wall reaches half a block into the cell over it, so neither it nor that cell
+        // takes a body: Java's `PathType.FENCE` refuses both.
+        if (this.tooTall(x, y, z) || this.tooTall(x, y - 1, z)) return undefined;
+
         // Headroom: every block the entity occupies has to be free. A door the rule above let
         // through counts as free, the closed one Java's `WALKABLE_DOOR` included.
         for (let offset = 0; offset < profile.height; offset += 1) {
@@ -337,6 +341,11 @@ class CellReader {
         if (profile.avoidSun && view.isSunlit?.(this.cell(x, y, z)) === true) penalty += AVOIDED_CELL_COST;
 
         return penalty;
+    }
+
+    /** Whether the block's collision reaches above its cell, as a fence's and a wall's do. */
+    private tooTall(x: number, y: number, z: number): boolean {
+        return (this.view.collisionTop?.(this.cell(x, y, z)) ?? 0) > 1;
     }
 
     private readHolds(x: number, y: number, z: number): boolean {

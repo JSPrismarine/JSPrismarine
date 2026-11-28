@@ -23,6 +23,8 @@ export interface VoxelKind {
     readonly skyVisible?: boolean;
     readonly portal?: boolean;
     readonly climbable?: boolean;
+    /** How high the block's collision reaches, when it is not a full block's 1. */
+    readonly collisionTop?: number;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface VoxelKind {
  *
  * `.` air, `#` stone, `~` water, `!` lava, `D` a closed door, `d` an open
  * door, `I` a closed iron door, `*` fire, `L` a ladder, `o` a nether portal,
- * `s` air the sky reaches.
+ * `s` air the sky reaches, `F` a fence, whose collision reaches half a block over its cell.
  */
 export const VOXEL_KINDS: Readonly<Record<string, VoxelKind>> = {
     '.': { identifier: 'minecraft:air', passable: true, solid: false },
@@ -43,7 +45,8 @@ export const VOXEL_KINDS: Readonly<Record<string, VoxelKind>> = {
     '*': { identifier: 'minecraft:fire', passable: true, solid: false, damaging: true },
     L: { identifier: 'minecraft:ladder', passable: true, solid: false, climbable: true },
     o: { identifier: 'minecraft:portal', passable: true, solid: false, portal: true },
-    s: { identifier: 'minecraft:air', passable: true, solid: false, sunlit: true, skyVisible: true }
+    s: { identifier: 'minecraft:air', passable: true, solid: false, sunlit: true, skyVisible: true },
+    F: { identifier: 'minecraft:oak_fence', passable: false, solid: true, collisionTop: 1.5 }
 };
 
 /** The block outside the written world, which the path finder treats as unloaded. */
@@ -82,6 +85,10 @@ export const voxelGrid = (layers: readonly (readonly string[])[]): NavigationVie
         walkTargetValue: () => -0.5,
         isPortal: (position) => kindAt(position).portal === true,
         isClimbable: (position) => kindAt(position).climbable === true,
-        isLadder: (position) => kindAt(position).identifier === 'minecraft:ladder'
+        isLadder: (position) => kindAt(position).identifier === 'minecraft:ladder',
+        collisionTop: (position) => {
+            const kind = kindAt(position);
+            return kind.collisionTop ?? (kind.solid ? 1 : 0);
+        }
     };
 };
