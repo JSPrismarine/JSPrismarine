@@ -238,6 +238,12 @@ describe('NetworkWorldReplicator block changes', () => {
         const origin = only.data.subChunkBlockPosition;
         expect([origin.x, origin.y, origin.z]).toEqual([0, 64, 0]);
         expect(only.data.blocksChanged.extras).toEqual([]);
+        // No actor syncs a fill's changes, which BDS writes as an entity id of -1.
+        expect(
+            only.data.blocksChanged.standards.every(
+                (entry) => entry.syncMessageEntityUniqueId === 0xffff_ffff_ffff_ffffn && entry.syncMessageType === 0
+            )
+        ).toBe(true);
         expect(updatesIn(batches[0]!)).toEqual(
             changed.map((position) => ({
                 x: position.getX(),
