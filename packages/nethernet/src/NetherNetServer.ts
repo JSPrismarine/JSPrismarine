@@ -152,8 +152,7 @@ export class NetherNetServer extends EventEmitter {
         });
         connection.peer.onStateChange((state) => {
             if (state === 'connected') open();
-            if (state === 'disconnected' || state === 'failed' || state === 'closed')
-                connection.peerEnded('disconnected');
+            connection.peerStateChanged(state);
         });
 
         connection.identityProof = proof ?? identityProofOf(signal.data);

@@ -75,8 +75,7 @@ export class NetherNetClient extends EventEmitter {
         connection.once('close', (reason: string) => this.end(reason));
         peer.onStateChange((state) => {
             if (state === 'connected') this.open();
-            if (state === 'disconnected' || state === 'failed' || state === 'closed')
-                connection.peerEnded('disconnected');
+            connection.peerStateChanged(state);
         });
 
         const reliable = peer.createDataChannel('ReliableDataChannel');

@@ -1,10 +1,12 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
     Connection,
     MAX_MESSAGE_BYTES,
     MAX_SEGMENTS,
+    PEER_END_GRACE_MS,
+    PEER_RECOVERY_MS,
     Reassembler,
     SEGMENT_BYTES,
     segment,
@@ -198,5 +200,51 @@ describe('Connection', () => {
         connection.send(Buffer.from([1]));
 
         expect(closed).toStrictEqual(['sendfailed']);
+    });
+
+    it('keeps a peer that recovers from disconnected, as a phone back from the background does', () => {
+        vi.useFakeTimers();
+        try {
+            const { connection, closed } = connect();
+
+            connection.peerStateChanged('disconnected');
+            vi.advanceTimersByTime(PEER_RECOVERY_MS - 1);
+            connection.peerStateChanged('connected');
+            vi.advanceTimersByTime(PEER_RECOVERY_MS + PEER_END_GRACE_MS);
+
+            expect(closed).toStrictEqual([]);
+            expect(connection.closed).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('gives up on a peer that stays disconnected', () => {
+        vi.useFakeTimers();
+        try {
+            const { connection, closed } = connect();
+
+            connection.peerStateChanged('disconnected');
+            vi.advanceTimersByTime(PEER_RECOVERY_MS + PEER_END_GRACE_MS);
+
+            expect(closed).toStrictEqual(['disconnected']);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('ends at once on failed, without waiting out the recovery time', () => {
+        vi.useFakeTimers();
+        try {
+            const { connection, closed } = connect();
+
+            connection.peerStateChanged('disconnected');
+            connection.peerStateChanged('failed');
+            vi.advanceTimersByTime(PEER_END_GRACE_MS);
+
+            expect(closed).toStrictEqual(['disconnected']);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
