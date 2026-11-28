@@ -93,7 +93,6 @@ import { recipeBookEntriesOf } from '../editions/bedrock/contentPayloads';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../editions/bedrock/spawnPosition';
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import { playerListAddOf, playerListRemoveOf } from '../editions/bedrock/presenter/bedrockPlayerList';
 import { listedPlayerOf, setPlayerListName } from '../network/playerListEntry';
@@ -284,9 +283,6 @@ type PublishedView = CenteredView;
 /** The view in effect when a chunk went out, and how many views its flush had seen published by then. */
 type SentUnder = { readonly view: PublishedView | null; readonly later: number };
 
-/** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
-export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
-
 /** A message for {@link PlayerSession.sendMessage}: the text, and what to show it as where it is not a raw line. */
 export type SessionMessage = Pick<ShownMessage, 'message'> & Partial<Omit<ShownMessage, 'message'>>;
 
@@ -335,14 +331,6 @@ export default class PlayerSession {
 
     /** The player as the chat fan-out reaches them, held so the leave leaves with the same object. */
     private readonly chatRecipient: ChatRecipient;
-
-    /**
-     * Entity movement produced by this tick, waiting to go out as one batch.
-     *
-     * Keyed by runtime id rather than a list, so one entity contributes one packet however
-     * many times it moved within the tick - see {@link PlayerSession.queueMoveActor}.
-     */
-    private readonly queuedMoves: Map<number, MoveActorAbsolutePacket> = new Map();
 
     private readonly chunkSendQueue: WireChunk[] = [];
     private queuedChunkBytes = 0;
@@ -2773,92 +2761,6 @@ export default class PlayerSession {
      */
     public sendRemoveActorById(runtimeId: bigint): Promise<void> {
         return this.presenter.hideEntity(runtimeId);
-    }
-
-    /**
-     * Where an entity is, as the packet that says so.
-     *
-     * The rotation goes with it. Without it every field was left at zero, so a mob walking south
-     * faced north the whole way, and a herd of cows all faced the same direction whatever they were
-     * doing - which reads as broken however smooth the movement underneath it is.
-     *
-     * Ordinary movement stays interpolated. A teleport sets the snap flag so a client does not
-     * animate the actor across the distance between its old and new positions.
-     * @param {MovedActor} entity - The entity that moved.
-     * @param {boolean} teleport - Whether clients should snap to the new position.
-     * @returns {MoveActorAbsolutePacket} The packet, not yet sent.
-     */
-    private static movePacketFor(entity: MovedActor, teleport = false): MoveActorAbsolutePacket {
-        const packet = new MoveActorAbsolutePacket();
-        packet.runtimeEntityId = entity.getRuntimeId();
-        packet.position = entity.getPosition();
-
-        packet.pitch = entity.pitch;
-        packet.yaw = entity.yaw;
-        packet.headYaw = entity.headYaw;
-
-        // The on-ground flag, which was hardcoded clear because nothing tracked the state. The
-        // data runtime does: a mob is carried through the air only while an impulse is still
-        // spending itself, and `coast` ends that by landing it on the first cell it cannot fall
-        // into. Everything else reports false and is drawn from the client's own guess, which is
-        // what every entity got while the flag was never set.
-        packet.flags =
-            (entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0) |
-            (teleport ? MoveActorAbsolutePacket.FLAG_TELEPORT : 0);
-
-        return packet;
-    }
-
-    /**
-     * Tells this connection an entity has moved, on its own.
-     *
-     * For a move that happens outside the world tick - a teleport, a command. Movement produced by
-     * the tick goes through {@link queueMoveActor} instead.
-     * @param {MovedActor} entity - The entity that moved.
-     */
-    public async sendMoveActor(entity: MovedActor): Promise<void> {
-        await this.send(PlayerSession.movePacketFor(entity));
-    }
-
-    /**
-     * Adds an entity's movement to this tick's batch.
-     *
-     * Sending each one on its own is what made mobs move in fits and starts, and for two reasons.
-     * Every packet became its own compressed batch and its own RakNet frame, so thirty mobs cost
-     * thirty compressions and thirty frames a tick, per player. Worse, `sendDataPacket` queues
-     * behind any chunk still compressing - so while a walking player streams terrain, every mob's
-     * movement waited behind it and then arrived in a burst. Mobs froze and jumped in exactly the
-     * rhythm the chunks were arriving in.
-     *
-     * One batch a tick fixes both: one compression, one frame, and one place in the queue for the
-     * lot of them.
-     * @param {MovedActor} entity - The entity that moved.
-     */
-    public queueMoveActor(entity: MovedActor, teleport = false): void {
-        // Keyed by entity, so an entity that moved more than once this tick goes out once, at
-        // where it ended up, rather than one packet for each axis it moved along. A `Map` keeps
-        // insertion order, so the batch is ordered as the moves were.
-        this.queuedMoves.set(Number(entity.getRuntimeId()), PlayerSession.movePacketFor(entity, teleport));
-    }
-
-    /**
-     * Sends this tick's movement as one batch.
-     *
-     * Called once per world tick, after every entity has had its update.
-     * @returns {Promise<void>} Resolves once the batch has been framed.
-     */
-    public async flushQueuedMoves(): Promise<void> {
-        if (this.queuedMoves.size === 0) return;
-
-        const packets = [...this.queuedMoves.values()];
-        this.queuedMoves.clear();
-
-        // Not `direct`: movement is not urgent enough to force a datagram of its own, and letting
-        // RakNet coalesce it with whatever else is going out is the point of batching it at all.
-        this.connection.sendPackets(packets, { direct: false });
-        // The session queue can include other tick traffic; this method still resolves only after
-        // the batch holding the movement has been framed.
-        await this.connection.flushOutboundPackets();
     }
 
     /**
