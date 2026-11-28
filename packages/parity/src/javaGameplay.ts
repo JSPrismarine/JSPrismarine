@@ -7,12 +7,13 @@ import { OPCODES } from '@jsprismarine/java-classfile/instructions';
 import type { BehaviorAspect } from './behaviorScenarios.ts';
 import { pinnedJavaClassFile } from './javaClassFile.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
+import { scoreboardCriterionRows } from './scoreboardCriteriaScenarios.ts';
 
 /**
  * The Java gameplay a player meets outside any one block, item or mob, as rows of the
  * `gameplay.mechanics` family: every game rule's effect, every mob effect, every enchantment's
- * effect, every damage type, every recipe and advancement, and the player and world systems Java
- * runs in code.
+ * effect, every damage type, every recipe and advancement, every scoreboard criterion, and the
+ * player and world systems Java runs in code.
  *
  * The first four come from Java's own registries, so a Java release that adds an effect or a
  * damage type adds its row. The systems have no registry, so {@link JAVA_MECHANICS} lists them
@@ -249,7 +250,15 @@ const javaAdvancements = (): readonly string[] =>
 
 /** One gameplay row's identifier: the kind of Java gameplay, then its id, such as `mob_effect/minecraft:speed`. */
 export const gameplayId = (
-    kind: 'game_rule' | 'mob_effect' | 'enchantment' | 'damage_type' | 'recipe' | 'advancement' | 'mechanic',
+    kind:
+        | 'game_rule'
+        | 'mob_effect'
+        | 'enchantment'
+        | 'damage_type'
+        | 'recipe'
+        | 'advancement'
+        | 'mechanic'
+        | 'scoreboard_criterion',
     id: string
 ) => `${kind}/${id}`;
 
@@ -261,7 +270,8 @@ export const javaGameplayUniverse = (): readonly string[] => [
     ...javaDatapackEntries('damage_type').map((id) => gameplayId('damage_type', id)),
     ...javaDatapackEntries('recipe').map((id) => gameplayId('recipe', id)),
     ...javaAdvancements().map((id) => gameplayId('advancement', id)),
-    ...JAVA_MECHANICS.map((mechanic) => gameplayId('mechanic', mechanic.id))
+    ...JAVA_MECHANICS.map((mechanic) => gameplayId('mechanic', mechanic.id)),
+    ...scoreboardCriterionRows().map((row) => gameplayId('scoreboard_criterion', row))
 ];
 
 const mechanicDescriptions = new Map(JAVA_MECHANICS.map((mechanic) => [mechanic.id, mechanic.description]));
@@ -306,6 +316,10 @@ export const gameplayAspects = (identifier: string): readonly BehaviorAspect[] =
                     id: 'crafts',
                     description: "making it at its station: whether a player can, and whether it gives Java's result"
                 }
+            ];
+        case 'scoreboard_criterion':
+            return [
+                { id: 'raised', description: 'what raises a player’s score of an objective counting it, against Java' }
             ];
         case 'damage_type':
             return [

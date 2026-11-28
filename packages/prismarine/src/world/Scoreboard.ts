@@ -43,7 +43,10 @@ export interface ScoredEntity {
 /** One objective. */
 export interface Objective {
     readonly name: string;
-    /** Only `dummy` is tracked; nothing on this server raises a score by itself. */
+    /**
+     * What raises its scores, by the full name Java stores, such as `dummy` or
+     * `minecraft.custom:minecraft.play_time`; see `@jsprismarine/commands/criteria`.
+     */
     readonly criterion: string;
     /** What the client draws, which defaults to the objective's own name. */
     readonly displayName: string;
@@ -110,6 +113,25 @@ export class Scoreboard {
     /** The objective's display name, falling back to its own name. */
     public displayNameOf(objective: string): string {
         return this.objectiveList.get(objective)?.displayName ?? objective;
+    }
+
+    /** The name of every objective that counts a criterion, in the order they were added. */
+    public objectivesCounting(criterion: string): readonly string[] {
+        const names: string[] = [];
+        for (const objective of this.objectiveList.values())
+            if (objective.criterion === criterion) names.push(objective.name);
+        return names;
+    }
+
+    /**
+     * Renames an objective.
+     * @returns False when there is no such objective or it already had that name.
+     */
+    public setDisplayName(objective: string, displayName: string): boolean {
+        const known = this.objectiveList.get(objective);
+        if (known === undefined || known.displayName === displayName) return false;
+        this.objectiveList.set(objective, { ...known, displayName });
+        return true;
     }
 
     /** The objective's criterion, or `dummy` for a name the board does not hold. */

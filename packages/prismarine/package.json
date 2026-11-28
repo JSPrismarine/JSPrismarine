@@ -970,6 +970,11 @@
                 "import": "./dist/player/sessionPlayers.js",
                 "module": "./dist/player/sessionPlayers.js"
             },
+            "./player/playerScores": {
+                "types": "./dist/player/playerScores.d.ts",
+                "import": "./dist/player/playerScores.js",
+                "module": "./dist/player/playerScores.js"
+            },
             "./entity/DeathMessages": {
                 "types": "./dist/entity/DeathMessages.d.ts",
                 "import": "./dist/entity/DeathMessages.js",
@@ -2622,6 +2627,10 @@
         "./player/sessionPlayers": {
             "jsprismarine:dist": "./dist/player/sessionPlayers.js",
             "default": "./src/player/sessionPlayers.ts"
+        },
+        "./player/playerScores": {
+            "jsprismarine:dist": "./dist/player/playerScores.js",
+            "default": "./src/player/playerScores.ts"
         },
         "./entity/DeathMessages": {
             "jsprismarine:dist": "./dist/entity/DeathMessages.js",

@@ -20,6 +20,7 @@ import type { Registry } from '@jsprismarine/content';
 import type { EntityType } from '@jsprismarine/entities';
 
 import type { ServerContent } from '../content/ServerContent';
+import { JAVA_STATISTICS } from './javaStatistics';
 
 /**
  * The commands this server does not advertise, and what each one would need.
@@ -74,6 +75,9 @@ export const summonableEntityTypes = (registry: Registry<EntityType>): string[] 
  * by anybody: Bedrock publishes no enum for them, so they already reach a
  * command body as an unchecked string.
  *
+ * A scoreboard criterion's statistics come from Java's registries instead
+ * ({@link JAVA_STATISTICS}), since a criterion names Java's ids.
+ *
  * @param content - The server's content build.
  * @returns {ContentRegistryIds} One id list per validated registry.
  */
@@ -82,7 +86,8 @@ export const contentRegistryIds = (content: ServerContent): ContentRegistryIds =
     blocks: [...content.blocks.types.keys()],
     items: [...content.items.types.keys()],
     enchantments: content.enchantments.ids,
-    damageTypes: [...content.definitions.damageTypes.keys()]
+    damageTypes: [...content.definitions.damageTypes.keys()],
+    statistics: JAVA_STATISTICS
 });
 
 /**

@@ -247,8 +247,27 @@ either.
 
 `/scoreboard` works, and so do the two `/execute` subcommands that read and write it.
 
-Objectives are created with `scoreboard objectives add <name> <criterion> [display name]`. Only
-`dummy` is meaningful, because nothing on this server increments a score by itself. Scores are read
+Objectives are created with `scoreboard objectives add <name> <criterion> [display name]`, with
+any of Java's criteria: `dummy`, the vitals and kill criteria such as `health` and `deathCount`, and
+statistics such as `minecraft.custom:minecraft.play_time`, checked against Java's own statistics
+registries. A short statistic such as `custom:play_time` is stored under its full name. The display
+name is a text component, `"Play time"` or `{text:"Play time"}`, or plain text from a Bedrock client,
+and `scoreboard objectives modify <name> displayname <display name>` changes it.
+
+```
+scoreboard objectives add play_time minecraft.custom:minecraft.play_time
+scoreboard objectives setdisplay sidebar play_time
+```
+
+The server raises a player's score under the player's name: every tick for `play_time`,
+`total_world_time`, `time_since_death`, `sneak_time` and `time_since_rest`; on a death for `deaths`,
+`deathCount` and the killer's `totalKillCount`, `playerKillCount`, `player_kills`, `mob_kills`,
+`minecraft.killed:<entity>` and `minecraft.killed_by:<entity>`; and to the player's reading for
+`health`, `food`, `air` and `level`. As in Java, a statistic adds to the score rather than setting it
+to a total, so an objective counts from when it was added. The other criteria are accepted but not
+raised yet ([#3866](https://github.com/JSPrismarine/JSPrismarine/issues/3866)). The vitals criteria
+are read-only, as in Java: `scoreboard players set|add|remove|operation` refuses them, and
+`execute store` writes them anyway. Scores are read
 and written through `scoreboard players get|set|add|remove|reset|list` and combined through
 `scoreboard players operation`, which implements all nine of Java's operators, including `><` for
 swap and Java's two edge cases: a division or modulo by zero leaves the target alone, and a modulo
@@ -258,11 +277,12 @@ A score holder is a name rather than an entity. That is Java's `ScoreHolderArgum
 what makes a "fake player" work: `scoreboard players set #counter totals 0` tracks a number that is
 not about anybody, which is the normal way a datapack keeps global state.
 
-Three display slots are drawn, under the names Bedrock's `DisplaySlot` enum spells: `list`,
-`sidebar` and `belowname`. `scoreboard objectives setdisplay sidebar <objective>` puts an objective
-in a slot and the clients redraw it; a score change is only sent to clients while some slot is
-drawing its objective, because a Bedrock client rejects a score entry for an objective it was never
-given a header for.
+Three display slots are drawn: `list`, `sidebar` and `belowname`, which Java spells `below_name`
+and either spelling names. `scoreboard objectives setdisplay sidebar <objective>` puts an objective
+in a slot and the clients redraw it, and a player who joins or comes back is drawn every slot. A
+score change is only sent to clients while some slot is drawing its objective, because a Bedrock
+client rejects a score entry for an objective it was never given a header for. Java's
+`sidebar.team.<color>` slots need teams, which this server does not have.
 
 Both scoreboard-reading `/execute` subcommands are wired:
 
@@ -603,9 +623,10 @@ with no timer behind it here, and the command itself is not registered.
 **`scoreboard players enable` refuses.** It marks an objective as one a player may `/trigger`, and
 there is no `/trigger` in this set, so recording the grant would set a flag nothing reads.
 
-**The scoreboard does not survive a restart.** Java writes it to `scoreboard.dat`; this one lives
-as long as the process. Everything a running server can observe works, including display slots and
-a score surviving a player relogging.
+**Some of Java's scoreboard subcommands answer that they have no host implementation.**
+`scoreboard objectives modify <objective> rendertype|numberformat|displayautoupdate` and
+`scoreboard players display` are tracked in
+[#3866](https://github.com/JSPrismarine/JSPrismarine/issues/3866).
 
 **`/item` cannot run item modifiers or reach two of Java's slots.** See [Item slots](#item-slots).
 

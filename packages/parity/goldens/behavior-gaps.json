@@ -2780,6 +2780,561 @@
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3690"
         },
+        "scoreboard-criterion-raised:scoreboard_criterion/armor": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.aqua": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.black": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.blue": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_aqua": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_blue": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_gray": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_green": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_purple": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.dark_red": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.gold": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.gray": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.green": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.light_purple": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.red": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.white": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/killedByTeam.yellow": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.broken:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.crafted:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.animals_bred": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.aviate_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.bell_ring": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.boat_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.clean_armor": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.clean_banner": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.clean_shulker_box": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.climb_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.crouch_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_absorbed": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_blocked_by_shield": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_dealt": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_dealt_absorbed": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_dealt_resisted": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_resisted": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.damage_taken": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.drop": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.eat_cake_slice": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.enchant_item": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.fall_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.fill_cauldron": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.fish_caught": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.fly_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.happy_ghast_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.horse_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.inspect_dispenser": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.inspect_dropper": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.inspect_hopper": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_anvil": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_beacon": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_blast_furnace": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_brewingstand": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_campfire": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_cartography_table": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_crafting_table": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_furnace": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_grindstone": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_lectern": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_loom": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_smithing_table": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_smoker": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.interact_with_stonecutter": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.jump": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.leave_game": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.minecart_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.nautilus_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.open_barrel": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.open_chest": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.open_enderchest": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.open_shulker_box": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.pig_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.play_noteblock": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.play_record": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.pot_flower": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.raid_trigger": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.raid_win": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.sleep_in_bed": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.sleep_in_straw_bed": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.sprint_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.strider_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.swim_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.talked_to_villager": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.target_hit": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.traded_with_villager": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.trigger_trapped_chest": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.tune_noteblock": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.use_cauldron": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.walk_on_water_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.walk_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.custom:minecraft.walk_under_water_one_cm": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.dropped:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.mined:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.picked_up:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/minecraft.used:*": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.aqua": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.black": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.blue": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_aqua": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_blue": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_gray": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_green": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_purple": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.dark_red": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.gold": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.gray": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.green": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.light_purple": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.red": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.white": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/teamkill.yellow": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/trigger": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
+        "scoreboard-criterion-raised:scoreboard_criterion/xp": {
+            "kind": "deferred",
+            "reason": "The server does not award this statistic or criterion yet.",
+            "reference": "issue #3866"
+        },
         "villager-profession-trades:minecraft:mason": {
             "kind": "defect",
             "reason": "Every Java villager profession that trades has a trade table on the server. Observed: no trade table is named for the minecraft:mason profession.",

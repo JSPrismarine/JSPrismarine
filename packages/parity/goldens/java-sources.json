@@ -393,6 +393,7 @@
         "HoglinAi.wasHurtBy": "net/minecraft/world/entity/monster/hoglin/HoglinAi.wasHurtBy(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/monster/hoglin/Hoglin;Lnet/minecraft/world/entity/LivingEntity;)V",
         "HoglinBase.throwTarget": "net/minecraft/world/entity/monster/hoglin/HoglinBase.throwTarget(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;)V",
         "HopperBlock.getStateForPlacement": "net/minecraft/world/level/block/HopperBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Identifier.bySeparator": "net/minecraft/resources/Identifier.bySeparator(Ljava/lang/String;C)Lnet/minecraft/resources/Identifier;",
         "Identifier.read(Ljava/lang/String;)Lcom/mojang/serialization/DataResult;": "net/minecraft/resources/Identifier.read(Ljava/lang/String;)Lcom/mojang/serialization/DataResult;",
         "IronGolem.doHurtTarget": "net/minecraft/world/entity/animal/golem/IronGolem.doHurtTarget(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;)Z",
         "Item.DEFAULT_MAX_STACK_SIZE": "net/minecraft/world/item/Item.DEFAULT_MAX_STACK_SIZE",
@@ -517,6 +518,7 @@
         "NetherPortalBlock.randomTick": "net/minecraft/world/level/block/NetherPortalBlock.randomTick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "NetherPortalBlock.updateShape": "net/minecraft/world/level/block/NetherPortalBlock.updateShape(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/ScheduledTickAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/block/state/BlockState;",
         "NoiseSettings.clampToHeightAccessor": "net/minecraft/world/level/levelgen/NoiseSettings.clampToHeightAccessor(Lnet/minecraft/world/level/LevelHeightAccessor;)Lnet/minecraft/world/level/levelgen/NoiseSettings;",
+        "ObjectiveCriteria.byName": "net/minecraft/world/scores/criteria/ObjectiveCriteria.byName(Ljava/lang/String;)Ljava/util/Optional;",
         "ObserverBlock.getStateForPlacement": "net/minecraft/world/level/block/ObserverBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox": "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$RoomDefinition;III)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
         "OceanMonumentStructure.findGenerationPoint": "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.findGenerationPoint(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;)Ljava/util/Optional;",
@@ -724,6 +726,7 @@
         "StandingAndWallBlockItem.getPlacementState": "net/minecraft/world/item/StandingAndWallBlockItem.getPlacementState(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "StandingSignBlock.canSurvive": "net/minecraft/world/level/block/StandingSignBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "StandingSignBlock.getStateForPlacement": "net/minecraft/world/level/block/StandingSignBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "Stat.buildName": "net/minecraft/stats/Stat.buildName(Lnet/minecraft/stats/StatType;Ljava/lang/Object;)Ljava/lang/String;",
         "Stats.TIME_SINCE_REST": "net/minecraft/stats/Stats.TIME_SINCE_REST",
         "StonecutterBlock.getStateForPlacement": "net/minecraft/world/level/block/StonecutterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE": "net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE",
@@ -1327,6 +1330,9 @@
             "26.3": "sha256:4065a8acdad9115cd1111a959bd3bb43443734e3594ec80d51e1b09e5bf9dbbd",
             "26.4-pre-1": "sha256:4065a8acdad9115cd1111a959bd3bb43443734e3594ec80d51e1b09e5bf9dbbd"
         },
+        "net/minecraft/resources/Identifier.bySeparator(Ljava/lang/String;C)Lnet/minecraft/resources/Identifier;": {
+            "26.3": "sha256:d59709133df46aeeae5a7d2e34a9132c9e22d9b19a4053c5756a898430b59fcd"
+        },
         "net/minecraft/resources/Identifier.read(Ljava/lang/String;)Lcom/mojang/serialization/DataResult;": {
             "26.3": "sha256:50a139f7afc40210855669ea934cf12405e9c2ac842e3c09f47ee9696a772f5f",
             "26.4-pre-1": "sha256:50a139f7afc40210855669ea934cf12405e9c2ac842e3c09f47ee9696a772f5f"
@@ -1384,6 +1390,9 @@
         },
         "net/minecraft/server/players/PlayerList.respawn(Lnet/minecraft/server/level/ServerPlayer;ZLnet/minecraft/world/entity/Entity$RemovalReason;)Lnet/minecraft/server/level/ServerPlayer;": {
             "26.3": "sha256:133ebfeac17e96b5b6b2143e9f2bf47eea6d7d8c350602b4e156a03c0d9327b8"
+        },
+        "net/minecraft/stats/Stat.buildName(Lnet/minecraft/stats/StatType;Ljava/lang/Object;)Ljava/lang/String;": {
+            "26.3": "sha256:1844e1cdef72a63610e18943cee33e98f48b52d09098ba3de2157ad038eb6135"
         },
         "net/minecraft/stats/Stats.TIME_SINCE_REST": {
             "26.3": "sha256:dd8e37efeac92e3271712dcc1e09e80a8374eb7f70f6d83a5ed39dda3fc32a58",
@@ -3981,6 +3990,9 @@
         "net/minecraft/world/phys/Vec3.normalize()Lnet/minecraft/world/phys/Vec3;": {
             "26.3": "sha256:e2c374081d22c1e17f99dc0c8d30a4f814bc489322b7fca4f930616cfba8c620",
             "26.4-pre-1": "sha256:e2c374081d22c1e17f99dc0c8d30a4f814bc489322b7fca4f930616cfba8c620"
+        },
+        "net/minecraft/world/scores/criteria/ObjectiveCriteria.byName(Ljava/lang/String;)Ljava/util/Optional;": {
+            "26.3": "sha256:37ee68e802b6f1d872e6c2604a6f2421d7ecbfafc90f14f02ff9cc50000560a1"
         },
         "net/minecraft/world/ticks/LevelTicks.removeContainer(Lnet/minecraft/world/level/ChunkPos;)V": {
             "26.3": "sha256:c2ff39b1b939d5c7620c631601651235a0bd4a62ea66df88eceec058f1f6cefd",

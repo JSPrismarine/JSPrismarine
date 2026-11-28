@@ -106,6 +106,7 @@ import { ItemActor } from './itemActor';
 import { storedItemActorOf } from '../EntitySerializer';
 import type { StoredActor } from '../EntitySerializer';
 import { worldKeyOf } from '../../world/worldKey';
+import { scoreDeath } from '../../player/playerScores';
 
 /** What a player's filter view reads of the player. */
 interface FilteredPlayer {
@@ -429,6 +430,7 @@ const liveHost = (
             if (commit.died)
                 world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
             for (const raise of raises) raise();
+            if (commit.died) scoreDeath(victim, source.attacker);
             // Told only to a client that can earn achievements, which is what it counts kills for.
             if (commit.died && world.getServer().getConfig().getXboxAchievements())
                 reportKill(world, victim, source, options.report);
