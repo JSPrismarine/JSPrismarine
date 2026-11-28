@@ -116,7 +116,11 @@
             "checksum; the sha1 is also the object name in the URL. Each sha256 was measured on",
             "download. The jar is kept as a file, not unpacked. The data pack format, the data",
             "version and the JDK a release needs are read from the jar's `version.json`, not",
-            "written here."
+            "written here.",
+            "",
+            "An entry may also pin the release's `client` jar, which `dump:java-textures` reads the",
+            "vanilla Java textures from; it caches as `java-client/<release>/client.jar`. Nothing",
+            "else downloads it."
         ],
         "defaultVersion": "26.3",
         "versions": {
@@ -124,7 +128,13 @@
                 "url": "https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar",
                 "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
                 "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
-                "sizeInBytes": 62294556
+                "sizeInBytes": 62294556,
+                "client": {
+                    "url": "https://piston-data.mojang.com/v1/objects/e877b6a07acd633fb3bb475002175cec036e7b87/client.jar",
+                    "sha1": "e877b6a07acd633fb3bb475002175cec036e7b87",
+                    "sha256": "4508d006323f24fa02876310c192d739af56516eb259000ac50f0909a68c9a2d",
+                    "sizeInBytes": 41483720
+                }
             },
             "26.4-pre-1": {
                 "$comment": [
