@@ -6,9 +6,19 @@
 # `.coderabbit.yaml`. Leave `ai_apply_when` off a label a person or another bot manages. "Dependency"
 # starts the workflow that commits a changeset to the pull request, so CodeRabbit never applies it.
 
+- name: "Addons"
+  color: "c2e0c6"
+  description: "Addons, behavior and resource packs, and how the server loads them"
+  ai_apply_when: "Changes to addons/, packages/addon-tools/, packages/packs/, pack loading, .mcaddon or .mcpack installs, or the addon listings."
+
 - name: "Beginner"
   color: "fbca04"
   description: "Good issue for somewhat new contributors"
+
+- name: "Breaking Change"
+  color: "b60205"
+  description: "Changes a published package or server behavior in a way that needs a major bump or a migration"
+  ai_apply_when: "Removes or incompatibly changes a published package's export, a config key, a setting's default or a command's syntax; a conventional commit title with `!` also qualifies."
 
 - name: "Bug"
   color: "d73a4a"
@@ -16,8 +26,13 @@
   ai_apply_when: "Fixes incorrect or broken behavior."
 
 - name: "Client E2E"
-  color: "5319e7"
+  color: "8a63d2"
   description: "Plays every cinnabar client e2e scenario on this pull request"
+
+- name: "Commands"
+  color: "fef2c0"
+  description: "Slash commands, their parser and function files"
+  ai_apply_when: "Changes to packages/commands/, packages/brigadier/, packages/mcfunction/, or how a slash command parses or behaves."
 
 - name: "Dependants"
   color: "4ADECD"
@@ -25,7 +40,7 @@
   ai_apply_when: "Changes the public API or published behavior of an npm package that other projects consume."
 
 - name: "Dependency"
-  color: "ededed"
+  color: "0366d6"
   description: "PRs and issues related to the packages we depend on"
 
 - name: "Developer Experience"
@@ -52,6 +67,11 @@
   description: "New feature or request that aren’t blocking and would just be “nice to have”"
   ai_apply_when: "Adds a user-facing feature, gameplay behavior or capability."
 
+- name: "Flaky"
+  color: "f9d0c4"
+  description: "A test that passes or fails depending on order, timing or host"
+  ai_apply_when: "Fixes or quarantines a test that fails intermittently, or only in some orders, platforms or CI shards."
+
 - name: "Good First Issue"
   color: "7057ff"
   description: "Perfect for newcomers"
@@ -67,6 +87,11 @@
   color: "e4e669"
   description: "Something about this doesn't seem right"
 
+- name: "Java Edition"
+  color: "b07219"
+  description: "Java Edition clients, their protocol and resource pack conversion"
+  ai_apply_when: "Changes to Java Edition client support: the Java protocol and its packets, packages/java-packs/, or what Java players see and can do."
+
 - name: "Low Priority"
   color: "f3ffaf"
   description: "There are more pressing blockers to deal with first"
@@ -81,6 +106,11 @@
   color: "315478"
   description: "Raknet and general networking features or issues"
   ai_apply_when: "Changes to packages/raknet/, connection handling, sessions or other transport-level networking."
+
+- name: "Parity"
+  color: "006b75"
+  description: "Behavior that differs from Java Edition or the Bedrock Dedicated Server"
+  ai_apply_when: "Changes made to match Java Edition or Bedrock Dedicated Server behavior, changes to packages/parity/ or its behavior gaps, or changes to @javaSource transcriptions."
 
 - name: "Performance"
   color: "0E7F06"
@@ -99,6 +129,15 @@
 - name: "RFC"
   color: "1d76db"
   description: "Request for comments"
+
+- name: "Regression"
+  color: "e11d21"
+  description: "Something that used to work, or a check that fails on master"
+
+- name: "Script API"
+  color: "f1e05a"
+  description: "The script host, the @minecraft/server modules and @jsprismarine/server"
+  ai_apply_when: "Changes to packages/script-host/, packages/script-types/, the script debugger, the @minecraft/server modules or @jsprismarine/server."
 
 - name: "Security"
   color: "d93f0b"
@@ -127,6 +166,11 @@
   color: "5319e7"
   description: "We need more information from the original author"
   ai_apply_when: "Use only when the PR explicitly needs information or changes from its author."
+
+- name: "World Generation"
+  color: "3e7d1e"
+  description: "Terrain, biomes, carvers, features and structures"
+  ai_apply_when: "Changes to packages/worldgen/, packages/native-worldgen/, packages/chunkgen/, packages/structures/, packages/features/, or terrain, biome, structure placement or /locate behavior."
 
 - name: "wontfix"
   color: "ffffff"

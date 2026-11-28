@@ -36,8 +36,17 @@ reviews:
     suggested_labels: true
     # Generated from .github/labels.yml by scripts/coderabbit-labels.mts.
     labeling_instructions:
+        - label: Addons
+          instructions: Changes to addons/, packages/addon-tools/, packages/packs/, pack loading, .mcaddon or .mcpack
+            installs, or the addon listings.
+        - label: Breaking Change
+          instructions: Removes or incompatibly changes a published package's export, a config key, a setting's default or
+            a command's syntax; a conventional commit title with `!` also qualifies.
         - label: Bug
           instructions: Fixes incorrect or broken behavior.
+        - label: Commands
+          instructions: Changes to packages/commands/, packages/brigadier/, packages/mcfunction/, or how a slash command
+            parses or behaves.
         - label: Dependants
           instructions: Changes the public API or published behavior of an npm package that other projects consume.
         - label: Developer Experience
@@ -49,17 +58,28 @@ reviews:
           instructions: Documentation, guides, READMEs or generated references are a primary part of the change.
         - label: Enhancement
           instructions: Adds a user-facing feature, gameplay behavior or capability.
+        - label: Flaky
+          instructions: Fixes or quarantines a test that fails intermittently, or only in some orders, platforms or CI shards.
+        - label: Java Edition
+          instructions: "Changes to Java Edition client support: the Java protocol and its packets, packages/java-packs/,
+            or what Java players see and can do."
         - label: Low Priority
           instructions: Use only when low priority is explicitly established; do not infer it from the diff.
         - label: Nethernet
           instructions: Changes to packages/nethernet/ or the NetherNet (WebRTC) transport.
         - label: Networking
           instructions: Changes to packages/raknet/, connection handling, sessions or other transport-level networking.
+        - label: Parity
+          instructions: Changes made to match Java Edition or Bedrock Dedicated Server behavior, changes to
+            packages/parity/ or its behavior gaps, or changes to @javaSource transcriptions.
         - label: Performance
           instructions: Changes made to reduce CPU, memory, allocations, network traffic or tick cost; pair with Bug when
             fixing a performance regression.
         - label: Protocol
           instructions: Changes to packages/protocol/, packet wire layouts, or support for a Bedrock protocol version.
+        - label: Script API
+          instructions: Changes to packages/script-host/, packages/script-types/, the script debugger, the
+            @minecraft/server modules or @jsprismarine/server.
         - label: Security
           instructions: Fixes a vulnerability, unsafe input handling or authentication weakness, or hardens the server against one.
         - label: Slop
@@ -68,6 +88,9 @@ reviews:
           instructions: Tests, fixtures, the parity suite or client e2e scenarios are a primary part of the change.
         - label: Waiting On Author
           instructions: Use only when the PR explicitly needs information or changes from its author.
+        - label: World Generation
+          instructions: Changes to packages/worldgen/, packages/native-worldgen/, packages/chunkgen/,
+            packages/structures/, packages/features/, or terrain, biome, structure placement or /locate behavior.
         - label: ⛔ PR Is Blocked
           instructions: Use only when the PR is explicitly blocked by an unresolved decision or another change.
     mutually_exclusive_groups:
