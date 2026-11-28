@@ -1,11 +1,11 @@
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import type { Config } from '@jsprismarine/prismarine/config/Config';
 import { blockTargetRejection } from '@jsprismarine/prismarine/input/handlers/BlockTarget';
-import AnvilDamageHandler from '@jsprismarine/prismarine/editions/bedrock/handler/AnvilDamageHandler';
+import DamageAnvilHandler from '@jsprismarine/prismarine/input/handlers/DamageAnvilHandler';
 import type { SessionContext } from '@jsprismarine/prismarine/player/context/HandlerContext';
-import LabTableHandler from '@jsprismarine/prismarine/editions/bedrock/handler/LabTableHandler';
+import UseLabTableHandler from '@jsprismarine/prismarine/input/handlers/UseLabTableHandler';
 import TurnLecternPageHandler from '@jsprismarine/prismarine/input/handlers/TurnLecternPageHandler';
-import PlayerToggleCrafterSlotRequestHandler from '@jsprismarine/prismarine/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler';
+import ToggleCrafterSlotHandler from '@jsprismarine/prismarine/input/handlers/ToggleCrafterSlotHandler';
 import StructureBlockUpdateHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureTemplateDataRequestHandler';
 import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
@@ -22,12 +22,6 @@ import BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider'
 import BlockPosition from '@jsprismarine/prismarine/world/BlockPosition';
 import { Position } from '@jsprismarine/prismarine/world/Position';
 import { World } from '@jsprismarine/prismarine/world/World';
-import AnvilDamagePacket from '@jsprismarine/protocol/bedrock/packet/AnvilDamagePacket';
-import LabTablePacket, {
-    LabTableReactionType,
-    LabTableType
-} from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
-import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/bedrock/packet/PlayerToggleCrafterSlotRequestPacket';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
     StructureRedstoneSaveMode
@@ -104,6 +98,9 @@ const UNLOADED_IN_REACH = new BlockPosition(-1, 64, 0);
 /** Out of reach, in a chunk that is not loaded either. */
 const UNLOADED_OUT_OF_REACH = new BlockPosition(70, 64, 0);
 
+/** A position as an intent carries it. */
+const plain = (position: BlockPosition) => ({ x: position.getX(), y: position.getY(), z: position.getZ() });
+
 /** A position as the packets carry it. */
 const blockPos = (position: BlockPosition) => new BlockPos(position.getX(), position.getY(), position.getZ());
 
@@ -119,19 +116,15 @@ const HANDLERS: readonly {
         block: 'minecraft:anvil',
         at: new BlockPosition(2, 64, 0),
         handle: (position, context) =>
-            new AnvilDamageHandler().handle(new AnvilDamagePacket({ blockPosition: blockPos(position) }), context)
+            new DamageAnvilHandler().handle({ kind: 'damageAnvil', position: plain(position) }, context)
     },
     {
         packet: 'LabTablePacket',
         block: 'minecraft:lab_table',
         at: new BlockPosition(2, 64, 1),
         handle: (position, context) =>
-            new LabTableHandler().handle(
-                new LabTablePacket({
-                    type: LabTableType.StartCombine,
-                    position: blockPos(position),
-                    reaction: LabTableReactionType.None
-                }),
+            new UseLabTableHandler().handle(
+                { kind: 'useLabTable', position: plain(position), action: 'StartCombine' },
                 context
             )
     },
@@ -143,7 +136,7 @@ const HANDLERS: readonly {
             new TurnLecternPageHandler().handle(
                 {
                     kind: 'turnLecternPage',
-                    position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+                    position: plain(position),
                     page: 1,
                     totalPages: 3
                 },
@@ -155,14 +148,8 @@ const HANDLERS: readonly {
         block: 'minecraft:crafter',
         at: new BlockPosition(2, 64, 3),
         handle: (position, context) =>
-            new PlayerToggleCrafterSlotRequestHandler().handle(
-                Object.assign(new PlayerToggleCrafterSlotRequestPacket(), {
-                    posX: position.getX(),
-                    posY: position.getY(),
-                    posZ: position.getZ(),
-                    slotIndex: 4,
-                    isDisabled: true
-                }),
+            new ToggleCrafterSlotHandler().handle(
+                { kind: 'toggleCrafterSlot', position: plain(position), slot: 4, disabled: true },
                 context
             )
     },

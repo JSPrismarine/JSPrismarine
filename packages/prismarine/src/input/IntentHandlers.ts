@@ -3,6 +3,7 @@ import AttackEntityHandler from './handlers/AttackEntityHandler';
 import ChangeGameModeHandler from './handlers/ChangeGameModeHandler';
 import ChatHandler from './handlers/ChatHandler';
 import CloseContainerHandler from './handlers/CloseContainerHandler';
+import DamageAnvilHandler from './handlers/DamageAnvilHandler';
 import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
@@ -30,13 +31,16 @@ import DropHeldItemHandler from './handlers/DropHeldItemHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetFlyingHandler from './handlers/SetFlyingHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
+import SetRecipeBookHandler from './handlers/SetRecipeBookHandler';
 import SetSleepingHandler from './handlers/SetSleepingHandler';
 import SetSneakingHandler from './handlers/SetSneakingHandler';
 import SetSprintingHandler from './handlers/SetSprintingHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
+import ToggleCrafterSlotHandler from './handlers/ToggleCrafterSlotHandler';
 import TurnLecternPageHandler from './handlers/TurnLecternPageHandler';
 import UseItemHandler from './handlers/UseItemHandler';
 import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
+import UseLabTableHandler from './handlers/UseLabTableHandler';
 
 /**
  * The built-in handler of every intent kind, which `IntentHandlerRegistry.enable` registers. A
@@ -48,6 +52,7 @@ export {
     ChangeGameModeHandler,
     ChatHandler,
     CloseContainerHandler,
+    DamageAnvilHandler,
     EatHandler,
     EmoteHandler,
     FinishCreditsHandler,
@@ -75,11 +80,14 @@ export {
     SetDefaultGameModeHandler,
     SetFlyingHandler,
     SetPlayerPermissionHandler,
+    SetRecipeBookHandler,
     SetSleepingHandler,
     SetSneakingHandler,
     SetSprintingHandler,
     SetViewDistanceHandler,
+    ToggleCrafterSlotHandler,
     TurnLecternPageHandler,
     UseItemHandler,
-    UseItemOnBlockHandler
+    UseItemOnBlockHandler,
+    UseLabTableHandler
 };

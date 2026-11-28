@@ -40,6 +40,12 @@ export const MINING_STEPS = ['start', 'continue', 'abort', 'stop', 'swing', 'fin
 /** One of {@link MINING_STEPS}. */
 export type MiningStep = (typeof MINING_STEPS)[number];
 
+/** The recipe books a player keeps settings for, one per screen that shows one. */
+export const RECIPE_BOOKS = ['crafting', 'furnace', 'blastFurnace', 'smoker'] as const;
+
+/** One of {@link RECIPE_BOOKS}. */
+export type RecipeBook = (typeof RECIPE_BOOKS)[number];
+
 /**
  * What each intent carries beside its `kind`. Every field is plain data
  * ([ADR 0011](../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)), so an intent can
@@ -178,6 +184,24 @@ export interface IntentPayloads {
      * cut short, `consume` for a client saying the use ran its course.
      */
     readonly releaseItem: { readonly action: 'release' | 'consume' };
+    /** The player's anvil screen asked for the anvil it worked at to wear down. */
+    readonly damageAnvil: { readonly position: { readonly x: number; readonly y: number; readonly z: number } };
+    /** The player turned one of a crafter's nine slots off, or on again, by index from 0. */
+    readonly toggleCrafterSlot: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly slot: number;
+        readonly disabled: boolean;
+    };
+    /** An Education Edition player worked a lab table; `action` names the step, as the client does. */
+    readonly useLabTable: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly action: string;
+    };
+    /**
+     * The player changed a recipe book's settings: whether the book is open, or null when the
+     * client does not say, and whether it shows only the recipes the player can make.
+     */
+    readonly setRecipeBook: { readonly book: RecipeBook; readonly open: boolean | null; readonly filtering: boolean };
     /**
      * The player pressed the drop key: one item of the stack in its hand, or with `all` the whole
      * stack, which it throws ahead of itself.
@@ -302,6 +326,12 @@ export const Intents = {
     interactEntity: { lane: 'input' },
     // Ends a draw, which looses an arrow into the world.
     releaseItem: { lane: 'input' },
+    // The screens' requests read the block they name; none of them is stored yet.
+    damageAnvil: { lane: 'read' },
+    toggleCrafterSlot: { lane: 'read' },
+    useLabTable: { lane: 'read' },
+    // A preference the server does not keep yet, which a decoded packet cannot run on the connection lane.
+    setRecipeBook: { lane: 'read' },
     // Moves the player, which replication shows the players that see it.
     move: { lane: 'input' },
     // Tires the player.

@@ -12,6 +12,7 @@ describe('input/Intent', () => {
             'changeGameMode',
             'chat',
             'closeContainer',
+            'damageAnvil',
             'dropHeldItem',
             'eat',
             'emote',
@@ -39,13 +40,16 @@ describe('input/Intent', () => {
             'setDefaultGameMode',
             'setFlying',
             'setPlayerPermission',
+            'setRecipeBook',
             'setSleeping',
             'setSneaking',
             'setSprinting',
             'setViewDistance',
+            'toggleCrafterSlot',
             'turnLecternPage',
             'useItem',
-            'useItemOnBlock'
+            'useItemOnBlock',
+            'useLabTable'
         ]);
     });
 

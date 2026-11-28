@@ -19,6 +19,7 @@ import {
     ConfirmTeleportation,
     Interact,
     JavaHand,
+    JavaRecipeBookType,
     MOVE_ON_GROUND,
     MovePlayerPos,
     MovePlayerPosRot,
@@ -36,6 +37,7 @@ import {
     PlayPingRequest,
     PlayPongResponse,
     PlayServerboundPluginMessage,
+    RecipeBookChangeSettings,
     ServerboundKeepAlive,
     SetCarriedItem,
     SetCreativeModeSlot,
@@ -44,7 +46,7 @@ import {
 } from '@jsprismarine/protocol/java/packet/play';
 
 import { EYE_HEIGHT } from '../../../entity/playerEyes';
-import type { Intent, IntentKind } from '../../../input/Intent';
+import type { Intent, IntentKind, RecipeBook } from '../../../input/Intent';
 import type PlayerSession from '../../../player/PlayerSession';
 import { javaLocaleOf, javaViewDistanceOf } from '../javaClientInformation';
 import type { JavaWorldHost } from '../JavaConnections';
@@ -55,6 +57,14 @@ import { javaUseItemOnIntentOf } from '../javaUseItemOn';
 import { outOfTurn } from './loginHandlers';
 import type { JavaContext, JavaPacketHandler } from './JavaPacketHandler';
 import { javaHandler } from './JavaPacketHandler';
+
+/** The recipe book each of vanilla's `RecipeBookType`s is. */
+const RECIPE_BOOK_OF: ReadonlyMap<number, RecipeBook> = new Map([
+    [JavaRecipeBookType.Crafting, 'crafting'],
+    [JavaRecipeBookType.Furnace, 'furnace'],
+    [JavaRecipeBookType.BlastFurnace, 'blastFurnace'],
+    [JavaRecipeBookType.Smoker, 'smoker']
+]);
 
 /** The player's session and world, which every packet of a player in the world needs. */
 const inWorld = (
@@ -257,6 +267,11 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     intentHandler(Interact, ({ entityId, hand }) =>
         hand === JavaHand.Main ? { kind: 'interactEntity', target: BigInt(entityId) } : undefined
     ),
+    // A recipe book opened, closed or filtered. An ordinal past the four books is no book.
+    intentHandler(RecipeBookChangeSettings, ({ bookType, isOpen, isFiltering }) => {
+        const book = RECIPE_BOOK_OF.get(bookType);
+        return book === undefined ? undefined : { kind: 'setRecipeBook', book, open: isOpen, filtering: isFiltering };
+    }),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
         intent:

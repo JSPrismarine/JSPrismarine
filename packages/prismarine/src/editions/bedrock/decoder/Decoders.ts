@@ -1,14 +1,17 @@
 import ActorEventDecoder from './ActorEventDecoder';
 import ActorPickRequestDecoder from './ActorPickRequestDecoder';
 import AnimateDecoder from './AnimateDecoder';
+import AnvilDamageDecoder from './AnvilDamageDecoder';
 import BlockPickRequestDecoder from './BlockPickRequestDecoder';
 import BossEventDecoder from './BossEventDecoder';
 import ContainerCloseDecoder from './ContainerCloseDecoder';
 import EmoteDecoder from './EmoteDecoder';
 import InteractDecoder from './InteractDecoder';
+import LabTableDecoder from './LabTableDecoder';
 import LecternUpdateDecoder from './LecternUpdateDecoder';
 import LevelSoundEventDecoder from './LevelSoundEventDecoder';
 import MobEquipmentDecoder from './MobEquipmentDecoder';
+import PlayerToggleCrafterSlotRequestDecoder from './PlayerToggleCrafterSlotRequestDecoder';
 import RequestAbilityDecoder from './RequestAbilityDecoder';
 import RequestChunkRadiusDecoder from './RequestChunkRadiusDecoder';
 import RequestPermissionsDecoder from './RequestPermissionsDecoder';
@@ -16,7 +19,9 @@ import RespawnDecoder from './RespawnDecoder';
 import ScriptMessageDecoder from './ScriptMessageDecoder';
 import SetDefaultGameTypeDecoder from './SetDefaultGameTypeDecoder';
 import SetLocalPlayerAsInitializedDecoder from './SetLocalPlayerAsInitializedDecoder';
+import SetPlayerFurnaceOptionsDecoder from './SetPlayerFurnaceOptionsDecoder';
 import SetPlayerGameTypeDecoder from './SetPlayerGameTypeDecoder';
+import SetPlayerInventoryOptionsDecoder from './SetPlayerInventoryOptionsDecoder';
 import SettingsCommandDecoder from './SettingsCommandDecoder';
 import ShowCreditsDecoder from './ShowCreditsDecoder';
 import TextDecoder from './TextDecoder';
@@ -30,14 +35,17 @@ export {
     ActorEventDecoder,
     ActorPickRequestDecoder,
     AnimateDecoder,
+    AnvilDamageDecoder,
     BlockPickRequestDecoder,
     BossEventDecoder,
     ContainerCloseDecoder,
     EmoteDecoder,
     InteractDecoder,
+    LabTableDecoder,
     LecternUpdateDecoder,
     LevelSoundEventDecoder,
     MobEquipmentDecoder,
+    PlayerToggleCrafterSlotRequestDecoder,
     RequestAbilityDecoder,
     RequestChunkRadiusDecoder,
     RequestPermissionsDecoder,
@@ -45,7 +53,9 @@ export {
     ScriptMessageDecoder,
     SetDefaultGameTypeDecoder,
     SetLocalPlayerAsInitializedDecoder,
+    SetPlayerFurnaceOptionsDecoder,
     SetPlayerGameTypeDecoder,
+    SetPlayerInventoryOptionsDecoder,
     SettingsCommandDecoder,
     ShowCreditsDecoder,
     TextDecoder
