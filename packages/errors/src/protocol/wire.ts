@@ -2707,12 +2707,13 @@ class JavaVelocityNotAtRest extends JSPrismarineError {
 }
 
 /**
- * A Java Edition item stack the server sent carries data components, which this server's
- * reader does not read: it sends plain stacks. Seen when reading another server's inventory.
+ * A Java Edition item stack the server sent carries a data component this reader has no codec
+ * for, and the server's codec gives no length to skip it by. The reader knows the components
+ * this server sends; seen when reading another server's inventory, whose stacks carry others.
  */
-class JavaItemComponentsUnread extends JSPrismarineError {
-    public static get code(): 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD' {
-        return 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD';
+class JavaItemComponentUnread extends JSPrismarineError {
+    public static get code(): 'PROTOCOL_JAVA_ITEM_COMPONENT_UNREAD' {
+        return 'PROTOCOL_JAVA_ITEM_COMPONENT_UNREAD';
     }
     public static get domain(): 'protocol' {
         return 'protocol';
@@ -2720,24 +2721,62 @@ class JavaItemComponentsUnread extends JSPrismarineError {
     public static get module(): 'wire' {
         return 'wire';
     }
-    public static get template(): 'An item stack carries {count} data components, which this server does not read' {
-        return 'An item stack carries {count} data components, which this server does not read';
+    public static get template(): 'An item stack carries the data component {component}, which this server does not read' {
+        return 'An item stack carries the data component {component}, which this server does not read';
     }
-    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread' {
-        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread';
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-component-unread' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-component-unread';
     }
 
-    public override readonly code = 'PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD';
-    public override readonly docs =
-        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-components-unread';
-    readonly #params: { readonly count: unknown } & Readonly<Record<string, unknown>>;
+    public override readonly code = 'PROTOCOL_JAVA_ITEM_COMPONENT_UNREAD';
+    public override readonly docs = 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-item-component-unread';
+    readonly #params: { readonly component: unknown } & Readonly<Record<string, unknown>>;
 
-    public constructor(params: { readonly count: unknown }, options?: ErrorOptions) {
+    public constructor(params: { readonly component: unknown }, options?: ErrorOptions) {
         super(
-            `An item stack carries ${String(params?.count)} data components, which this server does not read`,
+            `An item stack carries the data component ${String(params?.component)}, which this server does not read`,
             options
         );
-        this.#params = params ?? { count: undefined };
+        this.#params = params ?? { component: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * A Java Edition packet names a registry entry the release's data lacks: an item component or
+ * an enchantment the server was asked to send that 26.3's registries do not have, or an id
+ * past the end of the registry in a packet another server sent. Check the name against the
+ * release's registries.
+ */
+class JavaRegistryEntryUnknown extends JSPrismarineError {
+    public static get code(): 'PROTOCOL_JAVA_REGISTRY_ENTRY_UNKNOWN' {
+        return 'PROTOCOL_JAVA_REGISTRY_ENTRY_UNKNOWN';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'wire' {
+        return 'wire';
+    }
+    public static get template(): 'The {registry} registry has no entry {entry}' {
+        return 'The {registry} registry has no entry {entry}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-unknown' {
+        return 'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-unknown';
+    }
+
+    public override readonly code = 'PROTOCOL_JAVA_REGISTRY_ENTRY_UNKNOWN';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/protocol/wire#protocol-java-registry-entry-unknown';
+    readonly #params: { readonly registry: unknown; readonly entry: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly registry: unknown; readonly entry: unknown }, options?: ErrorOptions) {
+        super(`The ${String(params?.registry)} registry has no entry ${String(params?.entry)}`, options);
+        this.#params = params ?? { registry: undefined, entry: undefined };
     }
 
     /** The placeholder values the message was built from. */
@@ -2971,7 +3010,8 @@ export const ProtocolWireErrors = Object.freeze({
     JavaPalettedContainerBits,
     JavaChunkHasBlockEntities,
     JavaVelocityNotAtRest,
-    JavaItemComponentsUnread,
+    JavaItemComponentUnread,
+    JavaRegistryEntryUnknown,
     JavaEntityDataSerializerUnread,
     JavaBossEventOperationUnknown,
     JavaObjectiveMethodUnknown,

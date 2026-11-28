@@ -1016,6 +1016,16 @@
                 "import": "./dist/java/versions/javaConfiguration.js",
                 "module": "./dist/java/versions/javaConfiguration.js"
             },
+            "./java/packet/itemBehavior": {
+                "types": "./dist/java/packet/itemBehavior.d.ts",
+                "import": "./dist/java/packet/itemBehavior.js",
+                "module": "./dist/java/packet/itemBehavior.js"
+            },
+            "./java/packet/itemStack": {
+                "types": "./dist/java/packet/itemStack.d.ts",
+                "import": "./dist/java/packet/itemStack.js",
+                "module": "./dist/java/packet/itemStack.js"
+            },
             "./java/packet/play": {
                 "types": "./dist/java/packet/play.d.ts",
                 "import": "./dist/java/packet/play.js",
@@ -1971,6 +1981,14 @@
         "./java/versions/javaConfiguration": {
             "jsprismarine:dist": "./dist/java/versions/javaConfiguration.js",
             "default": "./src/java/versions/javaConfiguration.ts"
+        },
+        "./java/packet/itemBehavior": {
+            "jsprismarine:dist": "./dist/java/packet/itemBehavior.js",
+            "default": "./src/java/packet/itemBehavior.ts"
+        },
+        "./java/packet/itemStack": {
+            "jsprismarine:dist": "./dist/java/packet/itemStack.js",
+            "default": "./src/java/packet/itemStack.ts"
         },
         "./java/packet/play": {
             "jsprismarine:dist": "./dist/java/packet/play.js",

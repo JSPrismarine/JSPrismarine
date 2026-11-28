@@ -10,7 +10,8 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import type { JavaEntityDataEntry, JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
+import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
+import type { JavaEntityDataEntry, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
     AddEntity,

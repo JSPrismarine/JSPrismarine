@@ -2,7 +2,7 @@
  * A Java client's inventory packets as the intents a Bedrock client's decode into
  * ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
-import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/play';
+import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
 
 import type { Intent } from '../../input/Intent';
 import type { ShownContainer } from '../../player/presenter/SessionPresenter';
