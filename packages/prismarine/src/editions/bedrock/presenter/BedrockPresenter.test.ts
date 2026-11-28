@@ -44,6 +44,9 @@ import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
+import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
+import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
+import { PlayerActionType } from '@jsprismarine/protocol';
 import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -486,6 +489,90 @@ describe('BedrockPresenter', () => {
             }
             expect([event.runtimeEntityId, event.event]).toEqual([7n, ActorEvent.SPAWN_ALIVE]);
             expect(health.getPacketData()).toEqual({ health: 20 });
+        });
+    });
+
+    describe('the world change and the respawn exchange', () => {
+        /** A presenter for player 7 whose session numbers loading screens from 5. */
+        const player7 = () => {
+            const sent: NetworkPacket[] = [];
+            let next = 5;
+            const bedrock = new BedrockPresenter(
+                { sendDataPacket: async (packet) => void sent.push(packet) },
+                undefined,
+                { runtimeId: 7n, lastInputTick: () => 0n, loadingScreens: { begin: () => next++ } }
+            );
+            return { sent, bedrock };
+        };
+        const overworld = { id: 'minecraft:overworld', seaLevel: 63, bedrockId: 0 };
+        const nether = { id: 'minecraft:the_nether', seaLevel: 32, bedrockId: 1 };
+        const change = (from: typeof overworld, dimension: typeof overworld) => ({
+            gamemode: Gametype.SURVIVAL,
+            dimension,
+            from,
+            feet: { x: 1, y: 70, z: 2 },
+            eyes: { x: 1, y: 71.62, z: 2 },
+            keepData: true,
+            replacesWorld: false
+        });
+
+        it('sends the change and the server ack, as the pinned servers do, and waits on its screen', async () => {
+            const { sent, bedrock } = player7();
+
+            const shown = bedrock.showWorldChange(change(overworld, nether));
+            await shown.sent;
+
+            expect(shown.loadingScreen).toBe(5);
+            const [dimension, ack, ...rest] = sent;
+            if (!(dimension instanceof ChangeDimensionPacket) || !(ack instanceof PlayerActionPacket)) {
+                throw new Error('expected ChangeDimension then PlayerAction');
+            }
+            expect(dimension.getPacketData()).toMatchObject({ dimension: 1, respawn: false, loadingScreenId: 5 });
+            expect(ack.getPacketData()).toMatchObject({
+                runtimeEntityId: 7n,
+                action: PlayerActionType.ChangeDimensionAck
+            });
+            expect(rest).toEqual([]);
+        });
+
+        it('goes through another dimension first between two worlds of one Bedrock id', async () => {
+            const { sent, bedrock } = player7();
+
+            const shown = bedrock.showWorldChange(change(nether, nether));
+            await shown.sent;
+
+            const dimensions = sent.flatMap((packet) =>
+                packet instanceof ChangeDimensionPacket ? [packet.getPacketData()?.dimension] : []
+            );
+            expect(dimensions).toEqual([1, 0, 0, 1]);
+            // The session waits on the last screen, the real change's.
+            expect(shown.loadingScreen).toBe(8);
+        });
+
+        it('tells a dead player the block, then the eyes, and a living one the eyes alone', async () => {
+            const { sent, bedrock } = player7();
+
+            await bedrock.showRespawnPoint({ block: { x: 1, y: 70, z: 2 }, eyes: { x: 1, y: 71.62, z: 2 } });
+            await bedrock.showRespawnPoint({ eyes: { x: 3, y: 65.62, z: 4 } });
+
+            const states = sent.map((packet) =>
+                packet instanceof RespawnPacket
+                    ? [packet.getPacketData()?.state, packet.getPacketData()?.runtimeEntityId]
+                    : undefined
+            );
+            expect(states).toEqual([
+                [PlayerRespawnState.SEARCHING_FOR_SPAWN, 0n],
+                [PlayerRespawnState.READY_TO_SPAWN, 0n],
+                [PlayerRespawnState.READY_TO_SPAWN, 0n]
+            ]);
+        });
+
+        it('refuses a world change without a session to number its screen', () => {
+            const { presenter: bedrock } = presenter();
+
+            expect(() => bedrock.showWorldChange(change(overworld, nether))).toThrow(
+                PrismarineNetworkErrors.PresenterHasNoSession
+            );
         });
     });
 

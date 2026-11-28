@@ -65,8 +65,8 @@ describe('JavaPresenter', () => {
         const java = new JavaPresenter(send, 7n);
         return { sent, java };
     };
-    const overworld = { id: 'minecraft:overworld', seaLevel: 63 };
-    const nether = { id: 'minecraft:the_nether', seaLevel: 32 };
+    const overworld = { id: 'minecraft:overworld', seaLevel: 63, bedrockId: 0 };
+    const nether = { id: 'minecraft:the_nether', seaLevel: 32, bedrockId: 1 };
     const dimensionTypes =
         CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
@@ -239,14 +239,19 @@ describe('JavaPresenter', () => {
         await java.chunkWire.center(0, 0);
         sent.length = 0;
 
-        await java.showRespawn({
+        const shown = java.showWorldChange({
             gamemode: Gametype.CREATIVE,
             dimension: nether,
+            from: overworld,
             feet: { x: 4.5, y: 70, z: -3.5 },
+            eyes: { x: 4.5, y: 71.62, z: -3.5 },
             keepData: true,
             replacesWorld: false
         });
+        await shown.sent;
 
+        // No loading screen to close: the change is complete once it is sent.
+        expect(shown.loadingScreen).toBeUndefined();
         expect(sent.map(({ name }) => name)).toEqual(['Respawn', 'Game Event']);
         expect(sent[0]?.value).toMatchObject({
             dimensionType: dimensionTypes.indexOf('minecraft:the_nether'),
@@ -829,7 +834,7 @@ describe('the world state', () => {
         await java.showWeather(undefined, 'rain');
         await java.showRespawn({
             gamemode: Gametype.SURVIVAL,
-            dimension: { id: 'minecraft:overworld', seaLevel: 63 },
+            dimension: { id: 'minecraft:overworld', seaLevel: 63, bedrockId: 0 },
             feet: { x: 0, y: 64, z: 0 },
             keepData: false,
             replacesWorld: false

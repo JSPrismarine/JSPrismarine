@@ -569,12 +569,14 @@ saved to the level being left so it carries that world's dimension, the player l
 world's roster, the old world's entities are removed from the client, the chunk bookkeeping is
 cleared, the position moves to the arrival and the player joins the new roster.
 
-Then comes the sequence Dragonfly, Geyser and Nukkit agree a Bedrock client expects. One
-`ChangeDimension` with the destination's Bedrock id, the arrival position, the respawn flag and a
-fresh loading screen id; `StopSound` for everything playing; `NetworkChunkPublisherUpdate` centered
-on the arrival; a `PlayerAction` of `ChangeDimensionAck` sent by the server, which since 1.19.50 is
-the server's to send and goes out before any chunk; the chunks around the arrival, queued in the
-new dimension and streamed from the middle outward; and `PlayStatus PlayerSpawn`.
+Then a Bedrock client is sent the sequence each protocol's pinned Bedrock Dedicated Server sends
+in the `change-dimension` exchange. One `ChangeDimension` with the destination's Bedrock id, the
+arrival position, the respawn flag and a fresh loading screen id; a `PlayerAction` of
+`ChangeDimensionAck` sent by the server, which since 1.19.50 is the server's to send; a
+`NetworkChunkPublisherUpdate` centered on the arrival; and the chunks around the arrival, queued
+in the new dimension and streamed from the middle outward. No `StopSound` and no `PlayStatus`
+go out, as none of the pinned servers sends them. A Java client is spawned again into the new
+world with `Respawn` instead, and has no loading screen to close.
 
 The change then stays pending until the client reports `ServerboundLoadingScreen EndLoadingScreen`
 with the id the server handed out. Until then the client's `PlayerAuthInput` positions are still

@@ -1,9 +1,9 @@
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
-import { CraftingDataPacket, CreativeContentPacket, PlayerActionType } from '@jsprismarine/protocol';
+import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Gametype } from '@jsprismarine/minecraft';
-import { CommandPermissionLevel, Dimension, DisconnectReason } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, DisconnectReason } from '@jsprismarine/minecraft';
 import { advancementChangedDimension, advancementPlayerTick } from '../advancement/triggers';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
@@ -104,7 +104,6 @@ import { sendCachedJoinPacket } from '../editions/bedrock/joinPacketCache';
 import { creativeContentFrom } from '../editions/bedrock/payloadAdapters';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../editions/bedrock/spawnPosition';
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
-import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/bedrock/packet/ChunkRadiusUpdatedPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
@@ -120,13 +119,9 @@ import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveA
 import type { ChunkCoord } from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
-import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 import { playerListAddOf, playerListRemoveOf } from '../editions/bedrock/presenter/bedrockPlayerList';
 import { listedPlayerOf, setPlayerListName } from '../network/playerListEntry';
-import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
-import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import type { MoveMode, SessionPresenter, ShownDimension, ShownMessage } from './presenter/SessionPresenter';
 import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
@@ -242,9 +237,6 @@ const LOADING_SCREEN_TIMEOUT_TICKS = 1200;
  * is dead and so shows no screen, gets its columns after this instead of not at all.
  */
 const ARRIVAL_HOLD_TICKS = 40;
-
-/** The block position a `PlayerActionPacket` carries when the action has no block. */
-const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
 /**
  * Experience points a death drops per level, Java's `Player.getBaseExperienceReward`.
@@ -602,6 +594,7 @@ export default class PlayerSession {
                 {
                     runtimeId: player.runtimeId,
                     lastInputTick: () => this.getLastInputTick(),
+                    loadingScreens: { begin: () => this.beginLoadingScreen() },
                     inventory: {
                         inventory: () => this.own().getInventory(),
                         codecContext: () => connection.codec.context,
@@ -2224,7 +2217,13 @@ export default class PlayerSession {
      * @returns The dimension.
      */
     public shownDimension(): ShownDimension {
-        return { id: this.world.getDimension().id, seaLevel: this.world.getSeaLevel() };
+        return this.dimensionShown(this.world);
+    }
+
+    /** A world's dimension, as a presenter is shown it. */
+    private dimensionShown(world: World): ShownDimension {
+        const dimension = world.getDimension();
+        return { id: dimension.id, seaLevel: world.getSeaLevel(), bedrockId: dimension.bedrockId };
     }
 
     /**
@@ -2362,10 +2361,11 @@ export default class PlayerSession {
         if (this.chunks.isLoading() || this.chunkSendQueue.length > 0) return allSent([]);
 
         this.pendingRespawnAnswer = undefined;
-        return allSent([
-            this.sendRespawn(at, PlayerRespawnState.SEARCHING_FOR_SPAWN),
-            this.sendRespawn(eyePositionAt(at), PlayerRespawnState.READY_TO_SPAWN)
-        ]);
+        const eyes = eyePositionAt(at);
+        return this.presenter.showRespawnPoint({
+            block: { x: at.getX(), y: at.getY(), z: at.getZ() },
+            eyes: { x: eyes.getX(), y: eyes.getY(), z: eyes.getZ() }
+        });
     }
 
     /**
@@ -2516,16 +2516,11 @@ export default class PlayerSession {
      * Server side first: the record is saved to the world being left, stamped with that
      * world's dimension, the player leaves its roster, the old world's entities come off the
      * client, the chunk bookkeeping is cleared, the position moves, and the player joins the
-     * new roster. Then the wire sequence Dragonfly, Geyser and Nukkit agree on: one
-     * `ChangeDimension` with the target's Bedrock id, `StopSound` for everything playing,
-     * `NetworkChunkPublisherUpdate` at the arrival, the server-sent `PlayerAction
-     * ChangeDimensionAck`, the arrival chunks, and `PlayStatus PlayerSpawn`. The change stays
-     * pending, and the client's `PlayerAuthInput` is dropped, until the client closes the
-     * screen with the id this handed out: see {@link PlayerSession.completeDimensionChange}.
-     *
-     * A client sent `ChangeDimension` to the dimension it is already in never closes the
-     * screen, so a move between two worlds of the same Bedrock id detours through another
-     * dimension first.
+     * new roster. Then the presenter shows the change ({@link SessionPresenter.showWorldChange}),
+     * and the publisher update at the arrival and the arrival chunks follow. A client the
+     * presenter gave a loading screen keeps the change pending, and its `PlayerAuthInput` is
+     * dropped, until it closes that screen: see {@link PlayerSession.completeDimensionChange}. A
+     * client with none is in the new world at once.
      *
      * A second arrival while a change is pending is held until the client closes the first
      * screen, then carried out; only the latest is kept. A caller whose arrival goes stale
@@ -2625,18 +2620,20 @@ export default class PlayerSession {
         );
         world.addPlayer(this);
 
-        // A client of another edition has no loading screen to close: it is spawned again into
-        // the new world, and the change is complete at once.
-        if (this.presenter.edition !== 'bedrock') {
-            sends.push(
-                this.presenter.showRespawn({
-                    gamemode: player.gamemode,
-                    dimension: this.shownDimension(),
-                    feet: { x: arrival.position.getX(), y: arrival.position.getY(), z: arrival.position.getZ() },
-                    keepData: arrival.respawn !== true,
-                    replacesWorld: left.id === target.id
-                })
-            );
+        const change = this.presenter.showWorldChange({
+            gamemode: player.gamemode,
+            dimension: this.shownDimension(),
+            from: this.dimensionShown(from),
+            feet: { x: arrival.position.getX(), y: arrival.position.getY(), z: arrival.position.getZ() },
+            eyes: { x: eyes.getX(), y: eyes.getY(), z: eyes.getZ() },
+            keepData: arrival.respawn !== true,
+            replacesWorld: left.id === target.id
+        });
+        sends.push(change.sent);
+
+        // A client with no loading screen to close is in the new world already, and the change
+        // is complete at once.
+        if (change.loadingScreen === undefined) {
             // A death's respawn is moved into place by the respawn that follows.
             if (arrival.closesLoadingScreen !== false) sends.push(this.arrived(world, left.name));
             this.postDimensionChanged(from, feetBefore, arrival, left.name);
@@ -2644,54 +2641,21 @@ export default class PlayerSession {
             return allSent(sends);
         }
 
-        if (left.bedrockId === target.bedrockId) sends.push(this.detourFrom(target.bedrockId, eyes));
-
-        const loadingScreenId = this.beginLoadingScreen();
         // A death's respawn change is not pending: the client does not close a loading screen for
         // it, the `Respawn` exchange that follows settles it. Held as pending, it blocked every
         // later change, a `/tp` into another dimension among them, for the whole timeout.
         if (arrival.closesLoadingScreen !== false) {
             this.pendingChange = {
-                loadingScreenId,
+                loadingScreenId: change.loadingScreen,
                 arrival,
                 left: left.name,
                 sinceTick: this.server.getTick(),
                 ...(options.holdArrival === true ? { awaitingArrival: true } : {})
             };
         }
-        sends.push(
-            this.send(
-                new ChangeDimensionPacket({
-                    dimension: target.bedrockId,
-                    position: eyes,
-                    respawn: arrival.respawn ?? false,
-                    loadingScreenId
-                })
-            )
-        );
-
-        const stopSound = new StopSoundPacket();
-        stopSound.stopAllSounds = true;
-        sends.push(this.send(stopSound));
 
         sends.push(this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []));
-
-        // Since 1.19.50 the server sends the acknowledgment that used to be the client's, and
-        // sends it before any chunk; the client still answers with its own copy afterwards.
-        sends.push(
-            this.send(
-                new PlayerActionPacket({
-                    runtimeEntityId: this.runtimeId,
-                    action: PlayerActionType.ChangeDimensionAck,
-                    blockPosition: NO_BLOCK,
-                    resultPosition: NO_BLOCK,
-                    blockFace: 0
-                })
-            )
-        );
-
         sends.push(this.sendInitialSpawnChunks());
-        sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
         this.postDimensionChanged(from, feetBefore, arrival, left.name);
         options.then?.();
         return allSent(sends);
@@ -2706,33 +2670,6 @@ export default class PlayerSession {
                 'playerDimensionChanged',
                 new PlayerDimensionChangedEvent(this, from, feetBefore, arrival.world, arrival.position)
             );
-    }
-
-    /**
-     * The four-step detour for a change between two worlds of the same Bedrock id: the
-     * current id, another, that other again, and back, each with its own screen and spawn
-     * status, ahead of the real `ChangeDimension`. It is what a change of world sent for every
-     * change before dimensions existed, kept for the one case where the client would
-     * otherwise never close the screen.
-     * @param position - The eyes the real `ChangeDimension` carries.
-     */
-    private detourFrom(bedrockId: number, position: Vector3): Promise<void> {
-        const away = bedrockId === Dimension.NETHER ? Dimension.OVERWORLD : Dimension.NETHER;
-        const sends: Promise<void>[] = [];
-        for (const dimension of [bedrockId, away, away]) {
-            sends.push(
-                this.send(
-                    new ChangeDimensionPacket({
-                        dimension,
-                        position,
-                        respawn: false,
-                        loadingScreenId: this.beginLoadingScreen()
-                    })
-                )
-            );
-            sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
-        }
-        return allSent(sends);
     }
 
     /**
@@ -3032,33 +2969,6 @@ export default class PlayerSession {
             this.sendAttributes(),
             this.sendMetadata()
         ]);
-    }
-
-    /**
-     * One of the server's two halves of the respawn exchange.
-     *
-     * The order matters and is not obvious. `SearchingForSpawn` goes out the moment
-     * the player dies, carrying where they will reappear; the client then shows its death
-     * screen. `ReadyToSpawn` is the *answer* to the client saying it has finished
-     * loading, and goes out only then.
-     *
-     * Sending the second in place of the first leaves the client on "Respawning" for ever:
-     * it is waiting to be told where it will come back before it will even offer the button.
-     *
-     * `Player Runtime Id` is always 0, as in every `Respawn` the pinned servers send, at the join,
-     * after a death and through the respawn, at every protocol.
-     * @bdsSee respawn
-     * @param {Vector3} position - Where the player will reappear.
-     * @param {PlayerRespawnState} state - Which half of the exchange this is.
-     * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
-     */
-    public async sendRespawn(position: Vector3, state: PlayerRespawnState): Promise<void> {
-        const packet = new RespawnPacket({
-            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
-            state,
-            runtimeEntityId: 0n
-        });
-        await this.connection.sendDataPacket(packet);
     }
 
     /**
@@ -4001,11 +3911,11 @@ export default class PlayerSession {
         if (player.getHealth() <= 0) {
             const destination = this.destinationOf(answer);
             const { eyes } = destination;
-            const bedrock = this.presenter.edition === 'bedrock';
-            // A Java client is spawned again before it is moved, into the world it comes back
-            // in; a Bedrock one came back at the `ReadyToSpawn` position already, after
+            const placed = this.presenter.placesItselfOnRespawn;
+            // A client that does not place itself is spawned again before it is moved, into the
+            // world it comes back in. One that does came back at the respawn point already, after
             // `RespawnHandler` moved it to that world.
-            if (!bedrock && destination.world !== this.world) {
+            if (!placed && destination.world !== this.world) {
                 this.released(
                     this.changeWorld({
                         world: destination.world,
@@ -4016,7 +3926,7 @@ export default class PlayerSession {
                         closesLoadingScreen: false
                     })
                 );
-            } else if (!bedrock) {
+            } else if (!placed) {
                 this.released(
                     this.presenter.showRespawn({
                         gamemode: player.gamemode,
@@ -4035,10 +3945,10 @@ export default class PlayerSession {
             this.inputs().revivePlayer(player);
             this.showOwnHealth();
 
-            // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
-            // Dedicated Server sends none here, and the client is already there. A Java client
-            // has no `ReadyToSpawn`, so it is told where it stands.
-            this.released(this.setPlayerPosition({ position: eyes, type: 'respawn' }, !bedrock));
+            // Where the respawn point put the client, and without a `MovePlayer` for one that
+            // placed itself: a Bedrock Dedicated Server sends none here, and the client is already
+            // there. Any other client is told where it stands.
+            this.released(this.setPlayerPosition({ position: eyes, type: 'respawn' }, !placed));
         }
 
         this.released(this.sendRespawned());

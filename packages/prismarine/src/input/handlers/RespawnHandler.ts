@@ -1,5 +1,3 @@
-import { PlayerRespawnState } from '@jsprismarine/minecraft';
-
 import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
@@ -60,8 +58,13 @@ export default class RespawnHandler implements IntentHandler<'respawn'> {
                         })
                     );
                 }
-                session.released(session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN));
-                session.released(session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN));
+                const { block, eyes } = point;
+                session.released(
+                    session.presenter.showRespawnPoint({
+                        block: { x: block.getX(), y: block.getY(), z: block.getZ() },
+                        eyes: { x: eyes.getX(), y: eyes.getY(), z: eyes.getZ() }
+                    })
+                );
             });
             return;
         }
@@ -72,7 +75,9 @@ export default class RespawnHandler implements IntentHandler<'respawn'> {
         const position = player.getPosition();
         step.output(
             (async () => {
-                await session.sendRespawn(position, PlayerRespawnState.READY_TO_SPAWN);
+                await session.presenter.showRespawnPoint({
+                    eyes: { x: position.getX(), y: position.getY(), z: position.getZ() }
+                });
                 await session.sendAttributes();
                 await session.sendMetadata();
                 await session.sendAbilities();

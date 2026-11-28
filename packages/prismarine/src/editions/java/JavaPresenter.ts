@@ -93,13 +93,13 @@ import type {
     ShownBossBarStyle,
     ShownContainer,
     ShownDeath,
+    ShownDimension,
     ShownEntityMove,
     ShownEntityState,
     ShownEquipment,
     ShownExperience,
     ShownInventory,
     ShownMessage,
-    ShownDimension,
     ShownMove,
     ShownObjective,
     ShownRespawn,
@@ -109,7 +109,9 @@ import type {
     ShownTime,
     ShownTitle,
     ShownVitals,
-    ShownWorldSpawn
+    ShownWorldChange,
+    ShownWorldSpawn,
+    WorldChangeShown
 } from '../../player/presenter/SessionPresenter';
 import type { ShownEntity, ShownProfile } from '../../world/ShownActor';
 import type { ChunkWire } from '../../player/ChunkView';
@@ -884,6 +886,20 @@ export class JavaPresenter implements SessionPresenter {
         this.center = undefined;
         // Nor its weather, which the world's resend of the current weather shows it again.
         this.weather = undefined;
+    }
+
+    /** False: the respawn spawns a Java client again, with {@link showRespawn}. */
+    public readonly placesItselfOnRespawn = false;
+
+    /** Sends nothing: a Java client is told where it comes back by the respawn itself. */
+    public async showRespawnPoint(): Promise<void> {}
+
+    /**
+     * Spawns the client again into the new world, with {@link showRespawn}: Java has no loading
+     * screen to close, so the change is complete once it is sent.
+     */
+    public showWorldChange(change: ShownWorldChange): WorldChangeShown {
+        return { sent: this.showRespawn(change), loadingScreen: undefined };
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */

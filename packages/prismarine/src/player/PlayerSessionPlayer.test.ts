@@ -996,7 +996,8 @@ describe("PlayerSession's player", () => {
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(0, 64, 0),
                 getKnownSpawnPosition: () => new Vector3(0, 64, 0),
-                getDimension: () => Dimensions.Nether
+                getDimension: () => Dimensions.Nether,
+                getSeaLevel: () => 32
             });
 
         it.each([
@@ -1071,7 +1072,8 @@ describe("PlayerSession's player", () => {
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(8.5, 70, -3.5),
                 getKnownSpawnPosition: () => new Vector3(8.5, 70, -3.5),
-                getDimension: () => Dimensions.Nether
+                getDimension: () => Dimensions.Nether,
+                getSeaLevel: () => 32
             });
 
         it('takes the old world entities off the client before the dimension change', async () => {

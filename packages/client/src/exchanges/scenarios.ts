@@ -214,8 +214,12 @@ const respawn: ExchangeScenario = {
 const toTheNether: ExchangeScenario = {
     id: 'change-dimension',
     description: 'A command teleports a player into the Nether.',
+    // Not `NetworkChunkPublisherUpdate`: a server sends one each tick until the chunks are in,
+    // so how many a capture holds depends on how fast that server and its host were.
     subjects: {
         ChangeDimensionPacket: ['dimension', 'respawn'],
+        StopSoundPacket: ['stopAllSounds'],
+        PlayerActionPacket: ['action'],
         PlayStatusPacket: ['status']
     },
     settleTicks: 20,

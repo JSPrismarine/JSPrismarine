@@ -117,8 +117,8 @@ const SETTINGS = {
     allowsListing: true,
     particleStatus: JavaParticleStatus.All
 };
-const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63 };
-const NETHER: ShownDimension = { id: 'minecraft:the_nether', seaLevel: 32 };
+const OVERWORLD: ShownDimension = { id: 'minecraft:overworld', seaLevel: 63, bedrockId: 0 };
+const NETHER: ShownDimension = { id: 'minecraft:the_nether', seaLevel: 32, bedrockId: 1 };
 /** The dimension types the client is configured with, in network id order. */
 const DIMENSION_TYPES =
     CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];

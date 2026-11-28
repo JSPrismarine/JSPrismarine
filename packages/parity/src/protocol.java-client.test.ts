@@ -1344,7 +1344,7 @@ const BEHAVIORS: readonly Behavior[] = [
             shown('play/clientbound/respawn', 'the respawn after death', (presenter) =>
                 presenter.showRespawn({
                     gamemode: Gametype.SURVIVAL,
-                    dimension: { id: 'minecraft:overworld', seaLevel: 63 },
+                    dimension: { id: 'minecraft:overworld', seaLevel: 63, bedrockId: 0 },
                     feet: { x: 0, y: 64, z: 0 },
                     keepData: false,
                     replacesWorld: false

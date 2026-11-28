@@ -104,6 +104,8 @@ export interface ShownDimension {
     readonly id: string;
     /** The world's sea level. */
     readonly seaLevel: number;
+    /** The Bedrock `Dimension ID`, 1 for the Nether, or a custom id the level announced. */
+    readonly bedrockId: number;
 }
 
 /** A player spawned again on its client: after a death, or into another world. */
@@ -124,6 +126,34 @@ export interface ShownRespawn {
      * another level, whose chunks the client still holds under the same name.
      */
     readonly replacesWorld: boolean;
+}
+
+/** A player moved into another world: what {@link ShownRespawn} carries, and where it came from. */
+export interface ShownWorldChange extends ShownRespawn {
+    /** The dimension the player left. */
+    readonly from: ShownDimension;
+    /** Where the player's eyes are from now on. */
+    readonly eyes: { readonly x: number; readonly y: number; readonly z: number };
+}
+
+/** How a client finishes a change of world. */
+export interface WorldChangeShown {
+    /** Settles once the transport has framed what the change sent. */
+    readonly sent: Promise<void>;
+    /**
+     * The loading screen the client shows until it has loaded into the new world, which the
+     * session waits for it to close; undefined for a client that is in the new world as soon as
+     * the packets go out.
+     */
+    readonly loadingScreen: number | undefined;
+}
+
+/** Where a dead player comes back, as the death screen is told it. */
+export interface ShownRespawnPoint {
+    /** The block the player comes back at, which the screen is told first; absent to send only the eyes. */
+    readonly block?: { readonly x: number; readonly y: number; readonly z: number };
+    /** Where the player's eyes are once it is back. */
+    readonly eyes: { readonly x: number; readonly y: number; readonly z: number };
 }
 
 /**
@@ -539,13 +569,36 @@ export interface SessionPresenter {
     reportKill(kill: ReportedKill): Promise<void>;
 
     /**
-     * Spawns the player again on its client, for a client the session's Bedrock respawn exchange
-     * and dimension change do not reach: after a death, before the session moves it to where it
-     * comes back, and on a change of world, after the session moved it there.
+     * Whether the client stands its player at the point {@link showRespawnPoint} named, so the
+     * respawn moves nothing and spawns nothing again. False for a client the respawn spawns again
+     * with {@link showRespawn}, which holds no chunks afterwards.
+     */
+    readonly placesItselfOnRespawn: boolean;
+
+    /**
+     * Spawns the player again on its client after a death, before the session moves it to where
+     * it comes back, for a client that does not place itself ({@link placesItselfOnRespawn}).
      *
      * @param respawn - The dimension the player is in and where it stands.
      */
     showRespawn(respawn: ShownRespawn): Promise<void>;
+
+    /**
+     * Tells a dead player's client where it comes back, which its death screen waits for before
+     * it offers the respawn button, and again once the button is pressed.
+     *
+     * @param point - The block and the eyes, or the eyes alone for a player already alive.
+     */
+    showRespawnPoint(point: ShownRespawnPoint): Promise<void>;
+
+    /**
+     * Moves the client into another world, after the session moved the player there. Every
+     * packet is queued before this returns, so the session's chunks follow it.
+     *
+     * @param change - The world the player is in now, the one it left and where it stands.
+     * @returns What was sent, and the loading screen the session waits on, if any.
+     */
+    showWorldChange(change: ShownWorldChange): WorldChangeShown;
 
     /**
      * Gives a joining client the whole player list.

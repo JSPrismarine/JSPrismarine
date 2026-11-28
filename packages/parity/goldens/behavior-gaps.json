@@ -3949,11 +3949,6 @@
         }
     },
     "protocol.bedrock-exchanges": {
-        "v2193:change-dimension": {
-            "kind": "deferred",
-            "reason": "packet 2 is an extra PlayStatusPacket",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3882"
-        },
         "v2193:open-chest": {
             "kind": "deferred",
             "reason": "InventoryContentPacket's containerId is 7 where BDS sends 0",
@@ -3964,11 +3959,6 @@
             "reason": "InventoryContentPacket's containerId is 12 where BDS sends 0",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3883"
         },
-        "v2225:change-dimension": {
-            "kind": "deferred",
-            "reason": "packet 2 is an extra PlayStatusPacket",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3882"
-        },
         "v2225:open-chest": {
             "kind": "deferred",
             "reason": "InventoryContentPacket's containerId is 7 where BDS sends 0",
@@ -3978,11 +3968,6 @@
             "kind": "deferred",
             "reason": "InventoryContentPacket's containerId is 12 where BDS sends 0",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3883"
-        },
-        "v2259:change-dimension": {
-            "kind": "deferred",
-            "reason": "packet 2 is an extra PlayStatusPacket",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3882"
         },
         "v2259:open-chest": {
             "kind": "deferred",
