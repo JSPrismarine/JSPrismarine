@@ -113,6 +113,7 @@ export interface NavigationView {
     isPortal?(position: EntityPosition): boolean;
     isClimbable?(position: EntityPosition): boolean;
     isLadder?(position: EntityPosition): boolean;
+    collisionTop?(position: EntityPosition): number;
 }
 ```
 
@@ -122,7 +123,8 @@ through, and fly when the cell is open air. `minecraft:navigation.climb` adds ve
 climbable blocks, while `minecraft:can_climb` enables vertical moves through ladder blocks for any
 navigation type. A ground move keeps its height, steps up one block when the profile jumps, or falls
 to the first supported cell within the fall limit. Diagonal moves cost `sqrt(2)` and may not cut a
-corner.
+corner. A block whose collision reaches above its cell, as a fence's or a wall's does by
+`collisionTop`, takes no body, and neither does the cell over it, so no path steps onto a fence.
 
 `NavigationProfile` comes from the entity's active `minecraft:navigation.*` component, which
 `@jsprismarine/entities` already parses, plus three facts that component does not carry: the height
@@ -146,16 +148,34 @@ The search expands at most 512 nodes unless the caller raises the budget, and re
 node it reached only when the request asks for a partial path.
 
 `Navigator` is the one place that calls the path finder. A goal says where it wants to be and the
-navigator feeds the actuator one waypoint at a time. With no `NavigationView` it hands the
-destination straight to `EntityActuator.moveTo` and tracks arrival by distance, which is the
-degraded mode a server gets before it implements the view.
+navigator feeds the actuator one waypoint at a time. It works the way Java's `PathNavigation` does:
+
+- All of an entity's goals share one navigator, from `navigatorOf`, so a goal that starts a walk
+  takes over the walk under way.
+- `moveTo` follows the closest route when no route reaches the destination, and returns false only
+  when no step gets the entity any closer. `plan` asks the same question without walking, and
+  `canReach` asks for a route that reaches the destination.
+- A host calls `sweepNavigation` once per entity per game tick, after the goals, so a walk advances
+  every tick even while its goal waits for the next selector tick.
+- The entity reaches a node once it is near the node's center across the ground, by Java's
+  `followThePath` rule, and within a block of its height.
+- A walk that moves the entity less than its speed allows over 100 ticks stops, and `stuck`
+  reports it.
+- Every 20 ticks the navigator checks the next nodes and plans again when a block closed them.
+
+With no `NavigationView` the navigator hands the destination straight to `EntityActuator.moveTo` and
+tracks arrival by distance, which is the degraded mode a server gets before it implements the view.
 
 ## The two seams a server satisfies
 
-`EntityActuator`, from `@jsprismarine/entities`, is unchanged: `position`, `moveTo`, `stopMoving`,
-`lookAt`, `jump`, `randomTarget` and `nearestPlayer`. The goals here use all seven. `randomTarget`
-is only consulted when no `NavigationView` is supplied; with one, the navigator draws candidates and
-keeps the first the path finder reaches.
+`EntityActuator`, from `@jsprismarine/entities`, is `position`, `moveTo`, `stopMoving`, `lookAt`,
+`jump`, `randomTarget` and `nearestPlayer`, which the goals here use, and the optional `width` and
+`movementSpeed`, which the navigator reads to decide when a node is reached and when a walk is
+stuck. `randomTarget` is only consulted when no `NavigationView` is supplied. With one, the
+navigator draws candidates itself and keeps the first the path finder gets the entity closer to. A
+walker draws as Java's `LandRandomPos` does: `landPositionAt` refuses a draw with no ground under it
+and lifts one inside the ground onto it, and `hasPathMalus` refuses one in a liquid the walker
+avoids.
 
 `GoalWorld` is this package's own seam, because the vanilla goals attack, search for blocks, pick up
 items, mount, trade, breed and teleport, and nothing in `EntityActuator` reaches any of that. Every
