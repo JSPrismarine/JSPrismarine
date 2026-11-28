@@ -9,8 +9,10 @@
  * `StartGame` declares a block the item registry has no item for, which is how an addon's blocks
  * kept players out. The pack also files a heading of its own in the creative menu through its
  * `item_catalog/crafting_item_catalog.json`, and adds a crafting recipe, a brewing mix and a
- * material reduction in Bedrock's own grammar.
+ * material reduction in Bedrock's own grammar, and an entity of its own, which the client draws only
+ * when the join's actor list names its type.
  */
+import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/bedrock/packet/AvailableActorIdentifiersPacket';
 import CraftingDataPacket from '@jsprismarine/protocol/bedrock/packet/CraftingDataPacket';
 import CreativeContentPacket from '@jsprismarine/protocol/bedrock/packet/CreativeContentPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
@@ -118,6 +120,15 @@ const REDUCTION = {
     }
 };
 
+/** An entity of the pack's own, in the shape Real Ragdoll's corpse takes: summonable, with no spawn egg. */
+const CORPSE = {
+    format_version: '1.21.0',
+    'minecraft:entity': {
+        description: { identifier: 'loopback:corpse', is_spawnable: false, is_summonable: true },
+        components: { 'minecraft:health': { value: 1, max: 1 } }
+    }
+};
+
 let jsp: LoopbackServer;
 
 // Booting the server builds its content, the slow part, so it happens once for the file.
@@ -128,6 +139,7 @@ beforeAll(async () => {
             'pack/manifest.json': JSON.stringify(MANIFEST),
             'pack/blocks/light.json': JSON.stringify(LIGHT),
             'pack/blocks/stone.json': JSON.stringify(STONE),
+            'pack/entities/corpse.json': JSON.stringify(CORPSE),
             'pack/item_catalog/crafting_item_catalog.json': JSON.stringify(CATALOG),
             'pack/recipes/dirt_to_cobblestone.json': JSON.stringify(RECIPE),
             'pack/recipes/awkward_from_dirt.json': JSON.stringify(BREW),
@@ -335,6 +347,44 @@ describe('pack recipes', () => {
             fromItemKey: (idOf('minecraft:andesite_slab') ?? -1) << 16,
             outputs: [{ itemId: idOf('minecraft:cobblestone'), itemCount: 2 }]
         });
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('pack entities', () => {
+    it("names the pack's entity type in the join's actor list and shows a summoned one", async () => {
+        const { player, joined } = jsp.connect('Undertaker');
+        const registry = player.client.getRegistry();
+        if (!registry.has(new AvailableActorIdentifiersPacket().getId()))
+            registry.register(AvailableActorIdentifiersPacket);
+        const lists: Buffer[] = [];
+        player.client.on('packet', ({ packet }: DecodedPacket) => {
+            if (packet instanceof AvailableActorIdentifiersPacket && packet.identifiers !== null)
+                lists.push(packet.identifiers);
+        });
+        let settled = false;
+        const done = (): void => {
+            settled = true;
+        };
+        void joined.then(done, done);
+        await jsp.until(() => settled, 'Undertaker never joined', 400);
+        await joined;
+
+        // A client creates no actor of a type this list leaves out, and says nothing about it.
+        const listed = nbtToPlain(readNetworkNbt(lists.at(-1) ?? Buffer.alloc(0)));
+        const idlist = recordOf(listed)?.idlist;
+        const corpse = (Array.isArray(idlist) ? idlist : [])
+            .map(recordOf)
+            .find((entry) => entry?.id === 'string:loopback:corpse');
+        // The plain form names each value's tag type.
+        expect(corpse).toMatchObject({ bid: 'string:minecraft:', hasspawnegg: 'byte:0', summonable: 'byte:1' });
+
+        await jsp.command('summon loopback:corpse 0 -59 3');
+        await jsp.until(
+            () => player.world.actorsOfType('loopback:corpse').length > 0,
+            'the corpse never reached the client'
+        );
         player.leave();
         await jsp.tick();
     });
