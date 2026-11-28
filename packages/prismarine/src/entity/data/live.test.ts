@@ -1664,10 +1664,16 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(villager.brain).toBeDefined();
 
-            await run(30);
+            // Each falls onto the ground. The zombie then goes for the villager, as Java's does, and
+            // a blow knocks the villager off the ground, so each landing is read as it happens.
+            const landed = new Set<string>();
+            for (let tick = 0; tick < 30 && landed.size < 2; tick += 1) {
+                await run(1);
+                for (const mob of [zombie, villager])
+                    if (mob.body.conditions.has('on_ground') && mob.position.y === GROUND_Y) landed.add(mob.identifier);
+            }
 
-            expect(zombie.position.y).toBe(GROUND_Y);
-            expect(villager.position.y).toBe(GROUND_Y);
+            expect([...landed].sort()).toEqual(['minecraft:villager_v2', 'minecraft:zombie']);
             expect(typesIn(world)).toContain('minecraft:zombie');
             expect(typesIn(world)).toContain('minecraft:villager_v2');
         });

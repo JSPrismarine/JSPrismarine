@@ -1,7 +1,7 @@
 import type { EntityActuator, EntityPosition } from '@jsprismarine/entities';
 
 import type { Path } from './navigation/pathfinder';
-import { findPath } from './navigation/pathfinder';
+import { canOccupy, findPath } from './navigation/pathfinder';
 import type { NavigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
 import { blockOf, centerOf, distanceBetween, entityPositionAtNode } from './navigation/view';
@@ -20,11 +20,33 @@ import { blockOf, centerOf, distanceBetween, entityPositionAtNode } from './navi
  * every movement goal still runs without one.
  */
 
-/** How close to a waypoint counts as standing on it, in blocks. */
-const WAYPOINT_RADIUS = 0.7;
+/**
+ * The width Java's waypoint test assumes for a body whose actuator does not say, a zombie's.
+ * {@link waypointReach} turns it into how close counts as standing on a node.
+ */
+const DEFAULT_BODY_WIDTH = 0.6;
 
-/** How many ticks a walk may make no progress before the navigator gives up. */
-const STUCK_TICKS = 100;
+/** The movement speed assumed for a body whose actuator does not say, in blocks per tick. */
+const DEFAULT_MOVEMENT_SPEED = 0.25;
+
+/**
+ * How many navigation ticks pass between two of Java's stuck checks.
+ *
+ * @javaSee PathNavigation.doStuckDetection
+ */
+const STUCK_CHECK_TICKS = 100;
+
+/** How many nodes ahead of the body a path is checked for a block that has since closed it. */
+const BLOCKED_LOOKAHEAD = 3;
+
+/**
+ * How near a node a body must be on each horizontal axis to have reached it, Java's
+ * `PathNavigation.maxDistanceToWaypoint`: half the body's width for one wider than 0.75 blocks,
+ * otherwise 0.75 less half its width.
+ *
+ * @javaSee PathNavigation.followThePath
+ */
+const waypointReach = (width: number): number => (width > 0.75 ? width / 2 : 0.75 - width / 2);
 
 /**
  * Java's `PathNavigation.MAX_TIME_RECOMPUTE` cadence, in goal ticks.
@@ -148,6 +170,41 @@ export const breaksHomeRestriction = (
     return squared >= home.radius * home.radius;
 };
 
+/**
+ * The navigator every goal and the brain of one entity share, keyed by
+ * {@link NavigatorContext.owner}: Java's mob has one `PathNavigation`, so a goal that starts a
+ * walk takes over the one the last goal started, and a goal that stops the walk stops it for all.
+ */
+const sharedNavigators = new WeakMap<object, Navigator>();
+
+/**
+ * The owner's navigator, built by `create` the first time the owner asks.
+ *
+ * @param owner - The entity the navigator moves.
+ * @param create - Builds the navigator when the owner has none yet.
+ */
+export const navigatorOf = (owner: object, create: () => Navigator): Navigator => {
+    const known = sharedNavigators.get(owner);
+    if (known !== undefined) return known;
+    const navigator = create();
+    sharedNavigators.set(owner, navigator);
+    return navigator;
+};
+
+/**
+ * Advances the owner's walk by one game tick unless a goal already did this tick, as Java's
+ * `Mob.serverAiStep` ticks the mob's `PathNavigation` every tick whatever its goals do. A host
+ * calls it once per entity per tick, after the goals and the brain.
+ *
+ * @param owner - The entity whose navigator to advance.
+ */
+export const sweepNavigation = (owner: object): void => {
+    sharedNavigators.get(owner)?.sweep();
+};
+
+/** What a path search toward a position found. */
+export type PathPlan = 'complete' | 'partial';
+
 /** Moves one entity along a path. */
 export class Navigator {
     private path: Path | undefined;
@@ -162,12 +219,27 @@ export class Navigator {
     private pathNeedsRecompute = false;
     private speed = 1;
     private radius = 1;
-    private idleTicks = 0;
-    private lastDistance = Number.POSITIVE_INFINITY;
+    /** Navigation ticks since the last stuck check, Java's `tick - lastStuckCheck`. */
+    private ticksSinceStuckCheck = 0;
+    /** Where the body stood at the last stuck check, Java's `lastStuckCheckPos`. */
+    private lastStuckCheckAt: EntityPosition | undefined;
+    /** Navigation ticks since the path ahead was last checked for a block that closed it. */
+    private ticksSinceBlockedCheck = 0;
+    /** Whether a host sweeps this navigator every game tick ({@link sweepNavigation}). */
+    private swept = false;
+    /** Whether the walk advanced since the last sweep, so the sweep does not advance it twice. */
+    private advancedSinceSweep = false;
+    /** What the last advance answered, which a second {@link tick} in one game tick repeats. */
+    private lastAdvance = false;
     /**
-     * The route {@link canReach} last found, which the next {@link moveTo} from the same block to
-     * the same block takes instead of searching again: Java's `MeleeAttackGoal` hands the path its
-     * `canUse` made to `moveTo` in `start`.
+     * Whether the last walk ended because the body stopped making progress, Java's
+     * `PathNavigation.isStuck`. A new walk clears it.
+     */
+    public stuck = false;
+    /**
+     * The route {@link canReach} or {@link plan} last found, which the next {@link moveTo} from
+     * the same block to the same block takes instead of searching again: Java's
+     * `MeleeAttackGoal` hands the path its `canUse` made to `moveTo` in `start`.
      */
     private checked:
         | {
@@ -184,6 +256,20 @@ export class Navigator {
     /** Whether a walk is under way. */
     public get walking(): boolean {
         return this.destination !== undefined;
+    }
+
+    /** Where the walk under way is headed, or undefined while none is. */
+    public get target(): EntityPosition | undefined {
+        return this.destination;
+    }
+
+    /**
+     * Whether the path under way ends within the goal radius of its destination, Java's `Path.canReach`.
+     *
+     * @javaSee Path.canReach
+     */
+    public get complete(): boolean {
+        return this.path === undefined ? this.destination !== undefined : this.path.reachedGoal;
     }
 
     /**
@@ -208,11 +294,13 @@ export class Navigator {
     }
 
     /**
-     * Starts walking to a position.
+     * Starts walking to a position, along the closest route the path finder finds when no route
+     * reaches it, as Java's `PathNavigation.moveTo` follows a path that does not reach its target.
      *
+     * @javaSee PathNavigation.moveTo(Lnet/minecraft/world/level/pathfinder/Path;D)Z
      * @param goalRadius - How close counts as arriving, in blocks.
-     * @returns Whether a route exists; false leaves the entity where it is,
-     *   which is what a goal reads to refuse to start.
+     * @returns Whether the entity has a route that takes it any closer; false leaves the entity
+     *   standing where it is, which is what a goal reads to refuse to start.
      */
     public moveTo(destination: EntityPosition, speedMultiplier: number, goalRadius = 1): boolean {
         const actuator = this.context.actuator;
@@ -221,8 +309,11 @@ export class Navigator {
         this.destination = destination;
         this.speed = speedMultiplier;
         this.radius = goalRadius;
-        this.idleTicks = 0;
-        this.lastDistance = Number.POSITIVE_INFINITY;
+        this.stuck = false;
+        // Java's `moveTo` restarts the stuck check on every call that has a path.
+        this.ticksSinceStuckCheck = 0;
+        // A copy, since an actuator may hand out a position it later moves in place.
+        this.lastStuckCheckAt = { ...actuator.position() };
 
         const view = this.context.navigation();
         if (view === undefined) {
@@ -264,11 +355,15 @@ export class Navigator {
                 : findPath(view, profile, {
                       from: actuator.position(),
                       to: destination,
-                      goalRadius: goalRadiusBlocks
+                      goalRadius: goalRadiusBlocks,
+                      allowPartial: true
                   });
         if (this.path === undefined) {
             this.destination = undefined;
             this.clearPlannedRoute();
+            // The body walked toward the last path's waypoint; with no path it stands, as Java's
+            // move control stops once the navigation stops setting a wanted position.
+            actuator.stopMoving();
             return false;
         }
 
@@ -278,6 +373,7 @@ export class Navigator {
         this.plannedGoalRadius = goalRadiusBlocks;
         this.plannedProfile = profile;
         this.ticksUntilRecompute = PATH_RECOMPUTE_TICKS;
+        this.ticksSinceBlockedCheck = 0;
         this.pathNeedsRecompute = false;
         this.step();
         return true;
@@ -293,7 +389,7 @@ export class Navigator {
         this.speed = speedMultiplier;
     }
 
-    /** Whether a route to the position exists, without starting to walk it. */
+    /** Whether a route that ends within the goal radius of the position exists, without starting to walk it. */
     public canReach(destination: EntityPosition, goalRadius = 1): boolean {
         const actuator = this.context.actuator;
         if (actuator === undefined) return false;
@@ -306,67 +402,56 @@ export class Navigator {
             to: destination,
             goalRadius: goalRadiusBlocks
         });
-        this.checked =
-            path === undefined
-                ? undefined
-                : {
-                      path,
-                      from: blockOf(actuator.position()),
-                      to: blockOf(destination),
-                      goalRadius: goalRadiusBlocks,
-                      profile
-                  };
+        this.remember(path, actuator.position(), destination, goalRadiusBlocks, profile);
         return path !== undefined;
     }
 
     /**
-     * Advances the walk by one tick.
+     * Whether a route takes the entity any closer to the position, and whether it reaches it,
+     * without starting to walk it: Java's `PathNavigation.createPath` returning a path, and that
+     * path's `canReach`.
+     *
+     * @javaSee PathNavigation.createPath(Lnet/minecraft/core/BlockPos;I)Lnet/minecraft/world/level/pathfinder/Path;
+     * @returns `complete` for a route that ends within the goal radius, `partial` for one that
+     *   only gets closer, or undefined when no step takes the entity closer.
+     */
+    public plan(destination: EntityPosition, goalRadius = 1): PathPlan | undefined {
+        const actuator = this.context.actuator;
+        if (actuator === undefined) return undefined;
+        const view = this.context.navigation();
+        if (view === undefined) return 'complete';
+        const profile = this.context.profile();
+        const goalRadiusBlocks = Math.max(0, Math.floor(goalRadius));
+        const path = findPath(view, profile, {
+            from: actuator.position(),
+            to: destination,
+            goalRadius: goalRadiusBlocks,
+            allowPartial: true
+        });
+        this.remember(path, actuator.position(), destination, goalRadiusBlocks, profile);
+        if (path === undefined) return undefined;
+        return path.reachedGoal ? 'complete' : 'partial';
+    }
+
+    /**
+     * Advances the walk by one tick. A host that calls {@link sweepNavigation} every game tick
+     * advances it there too, and a game tick advances the walk once whichever comes first.
      *
      * @returns Whether the walk is still running; false means the entity
      *   arrived, ran out of path or stopped making progress.
      */
     public tick(): boolean {
-        const actuator = this.context.actuator;
-        const destination = this.destination;
-        if (actuator === undefined || destination === undefined) return false;
+        if (this.swept && this.advancedSinceSweep) return this.lastAdvance;
+        this.advancedSinceSweep = true;
+        this.lastAdvance = this.advance();
+        return this.lastAdvance;
+    }
 
-        const here = actuator.position();
-        const remaining = distanceBetween(here, destination);
-        if (remaining <= this.radius) return false;
-
-        if (remaining < this.lastDistance - 0.01) {
-            this.lastDistance = remaining;
-            this.idleTicks = 0;
-        } else {
-            this.idleTicks += 1;
-            if (this.idleTicks >= STUCK_TICKS) {
-                this.stop();
-                return false;
-            }
-        }
-
-        const path = this.path;
-        if (path === undefined) {
-            actuator.moveTo(destination, this.speed);
-            return true;
-        }
-
-        const current = path.nodes[this.waypoint];
-        if (current === undefined) {
-            this.pathNeedsRecompute = true;
-            return false;
-        }
-        if (distanceBetween(here, entityPositionAtNode(current, this.plannedProfile?.width)) <= WAYPOINT_RADIUS) {
-            this.waypoint += 1;
-            const walked = this.context.owner === undefined ? undefined : walkedPaths.get(this.context.owner);
-            if (walked?.nodes === path.nodes) walked.waypoint = this.waypoint;
-            if (this.waypoint >= path.nodes.length) {
-                this.pathNeedsRecompute = true;
-                return false;
-            }
-        }
-        this.step();
-        return true;
+    /** The game tick's advance, for a walk no goal advanced this tick; see {@link sweepNavigation}. */
+    public sweep(): void {
+        this.swept = true;
+        if (!this.advancedSinceSweep && this.destination !== undefined) this.lastAdvance = this.advance();
+        this.advancedSinceSweep = false;
     }
 
     /** Abandons the walk. */
@@ -377,15 +462,6 @@ export class Navigator {
         this.waypoint = 0;
         this.clearPlannedRoute();
         this.context.actuator?.stopMoving();
-    }
-
-    /** Invalidates the cached request whenever it no longer describes a usable route. */
-    private clearPlannedRoute(): void {
-        this.plannedTarget = undefined;
-        this.plannedGoalRadius = undefined;
-        this.plannedProfile = undefined;
-        this.ticksUntilRecompute = 0;
-        this.pathNeedsRecompute = false;
     }
 
     /**
@@ -441,6 +517,129 @@ export class Navigator {
             if (path !== undefined) return centerOf(candidate);
         }
         return undefined;
+    }
+
+    /** Keeps a search's route for the next {@link moveTo} to the same block. */
+    private remember(
+        path: Path | undefined,
+        from: EntityPosition,
+        to: EntityPosition,
+        goalRadius: number,
+        profile: NavigationProfile
+    ): void {
+        this.checked =
+            path === undefined ? undefined : { path, from: blockOf(from), to: blockOf(to), goalRadius, profile };
+    }
+
+    /**
+     * One tick of the walk: Java's `PathNavigation.tick`, `followThePath` and `doStuckDetection`.
+     *
+     * @javaSee PathNavigation.tick()V
+     */
+    private advance(): boolean {
+        const actuator = this.context.actuator;
+        const destination = this.destination;
+        if (actuator === undefined || destination === undefined) return false;
+
+        const here = actuator.position();
+        if (distanceBetween(here, destination) <= this.radius) return false;
+
+        if (this.stuckNow(actuator, here)) {
+            this.stuck = true;
+            this.stop();
+            return false;
+        }
+
+        const path = this.path;
+        if (path === undefined) {
+            actuator.moveTo(destination, this.speed);
+            return true;
+        }
+
+        const current = path.nodes[this.waypoint];
+        if (current === undefined) {
+            this.pathNeedsRecompute = true;
+            return false;
+        }
+        const node = entityPositionAtNode(current, this.plannedProfile?.width);
+        const reach = waypointReach(actuator.width?.() ?? DEFAULT_BODY_WIDTH);
+        if (Math.abs(here.x - node.x) < reach && Math.abs(here.z - node.z) < reach && Math.abs(here.y - node.y) < 1) {
+            this.waypoint += 1;
+            const walked = this.context.owner === undefined ? undefined : walkedPaths.get(this.context.owner);
+            if (walked?.nodes === path.nodes) walked.waypoint = this.waypoint;
+            if (this.waypoint >= path.nodes.length) {
+                this.pathNeedsRecompute = true;
+                return false;
+            }
+        }
+        if (this.blockedAhead(path)) return this.replan();
+        this.step();
+        return true;
+    }
+
+    /**
+     * Java's `PathNavigation.doStuckDetection`: every 100 ticks, a body that moved less than its
+     * speed allows over them, a quarter of a hundred ticks of its speed (squared below one block a
+     * tick), is stuck.
+     *
+     * @javaSee PathNavigation.doStuckDetection
+     */
+    private stuckNow(actuator: EntityActuator, here: EntityPosition): boolean {
+        this.ticksSinceStuckCheck += 1;
+        if (this.ticksSinceStuckCheck <= STUCK_CHECK_TICKS) return false;
+        const last = this.lastStuckCheckAt;
+        this.ticksSinceStuckCheck = 0;
+        this.lastStuckCheckAt = { ...here };
+        if (last === undefined) return false;
+        const speed = (actuator.movementSpeed?.() ?? DEFAULT_MOVEMENT_SPEED) * this.speed;
+        const share = speed >= 1 ? speed : speed * speed;
+        const least = share * STUCK_CHECK_TICKS * 0.25;
+        return distanceBetween(here, last) < least;
+    }
+
+    /**
+     * Whether a block placed or a door shut since the path was planned closes one of the next
+     * nodes, checked once every {@link PATH_RECOMPUTE_TICKS}: Java's level tells each navigation of
+     * the block changes along its path, which this asks of the world instead.
+     *
+     * @javaSee PathNavigation.shouldRecomputePath
+     */
+    private blockedAhead(path: Path): boolean {
+        this.ticksSinceBlockedCheck += 1;
+        if (this.ticksSinceBlockedCheck < PATH_RECOMPUTE_TICKS) return false;
+        this.ticksSinceBlockedCheck = 0;
+        const view = this.context.navigation();
+        const profile = this.plannedProfile;
+        if (view === undefined || profile === undefined) return false;
+        const last = Math.min(path.nodes.length, this.waypoint + BLOCKED_LOOKAHEAD);
+        for (let index = this.waypoint; index < last; index += 1) {
+            const node = path.nodes[index];
+            if (node !== undefined && !canOccupy(view, profile, entityPositionAtNode(node, profile.width))) return true;
+        }
+        return false;
+    }
+
+    /** Plans the walk under way again from where the entity stands, Java's `recomputePath`. */
+    private replan(): boolean {
+        const destination = this.destination;
+        if (destination === undefined) return false;
+        this.path = undefined;
+        this.clearPlannedRoute();
+        // Java's `recomputePath` plans again without restarting the stuck check `moveTo` restarts.
+        const { ticksSinceStuckCheck, lastStuckCheckAt } = this;
+        const moving = this.moveTo(destination, this.speed, this.radius);
+        this.ticksSinceStuckCheck = ticksSinceStuckCheck;
+        this.lastStuckCheckAt = lastStuckCheckAt;
+        return moving;
+    }
+
+    /** Invalidates the cached request whenever it no longer describes a usable route. */
+    private clearPlannedRoute(): void {
+        this.plannedTarget = undefined;
+        this.plannedGoalRadius = undefined;
+        this.plannedProfile = undefined;
+        this.ticksUntilRecompute = 0;
+        this.pathNeedsRecompute = false;
     }
 
     /** Points the actuator at the waypoint the entity is walking to now. */

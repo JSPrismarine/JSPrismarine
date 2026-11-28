@@ -76,6 +76,17 @@ export type EntityEquipmentSlot = (typeof ENTITY_EQUIPMENT_SLOT_NAMES)[number];
 export interface EntityActuator {
     /** Where the entity is now. */
     position(): EntityPosition;
+    /**
+     * How wide the entity's collision box is, in blocks, Java's `getBbWidth`: how near a path node
+     * it has to come to have reached it. A navigator assumes a zombie's when it is left out.
+     */
+    width?(): number;
+    /**
+     * The entity's movement speed before a goal's multiplier, in blocks per tick: how far a
+     * navigator expects it to get before it counts it stuck. A navigator assumes a quarter block
+     * when it is left out.
+     */
+    movementSpeed?(): number;
     /** Paths toward a position at a multiple of the entity's `minecraft:movement` speed. */
     moveTo(position: EntityPosition, speedMultiplier: number): void;
     /** Abandons the current path. */

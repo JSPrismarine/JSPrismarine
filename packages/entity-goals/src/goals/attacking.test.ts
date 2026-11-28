@@ -85,14 +85,32 @@ describe('minecraft:behavior.melee_box_attack', () => {
         expect(harness.actuator.log.filter((entry) => entry === 'stopMoving')).toEqual([]);
     });
 
-    it('does not start without a route to a target out of reach, and retries every 20 game ticks', () => {
+    it('closes in along the closest route on a target no route reaches, as Java does', () => {
+        const victim = testMob('victim', { x: 6, y: 1, z: 0 });
+        // A wall across the corridor, so no route reaches the victim.
+        const blocks = voxelGrid([['##########'], ['.....#....'], ['.....#....']]);
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+            components: { 'minecraft:collision_box': { width: 0.6, height: 1.8 } },
+            world: { ...combatWorld(victim), navigation: () => blocks },
+            at: { x: 0.5, y: 1, z: 0.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.isRunning('minecraft:behavior.melee_box_attack')).toBe(true);
+        const moves = harness.actuator.log.filter((entry) => entry.startsWith('moveTo'));
+        expect(moves.length).toBeGreaterThan(0);
+    });
+
+    it('does not start without a route that reaches the target when require_complete_path is set, and retries every 20 game ticks', () => {
         const victim = testMob('victim', { x: 6, y: 1, z: 0 });
         // A wall across the corridor, so no route reaches the victim.
         const blocks = voxelGrid([['##########'], ['.....#....'], ['.....#....']]);
         let searches = 0;
         let now = 0;
         const harness = new GoalHarness({
-            goals: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+            goals: { 'minecraft:behavior.melee_box_attack': { priority: 3, require_complete_path: true } },
             components: { 'minecraft:collision_box': { width: 0.6, height: 1.8 } },
             world: {
                 ...combatWorld(victim),

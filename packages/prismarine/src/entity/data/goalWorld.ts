@@ -143,6 +143,8 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
  */
 export const actuatorOf = (body: MobBody, scene: EntityScene): EntityActuator => ({
     position: () => body.position,
+    width: () => (controlledVehicleOf(body, scene)?.body ?? body).facts.box.width,
+    movementSpeed: () => (controlledVehicleOf(body, scene)?.body ?? body).facts.movement,
     // A rider that steers its mount walks the mount, as Java's `Mob.getNavigation` hands a rider
     // its controlled vehicle's navigation.
     moveTo: (position, speedMultiplier) =>

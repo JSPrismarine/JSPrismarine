@@ -105,7 +105,7 @@ import type {
     GoalPickupOptions,
     GoalWorld
 } from '@jsprismarine/entity-goals';
-import { navigationProfile } from '@jsprismarine/entity-goals';
+import { navigationProfile, sweepNavigation } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant, MerchantSnapshot } from '@jsprismarine/trading';
@@ -206,7 +206,7 @@ import { brainMobFor } from './brainIdentifiers';
 import type { CopperGolemStatueHost } from './copperGolemStatue';
 import { isCopperGolem, tickCopperGolemStatue } from './copperGolemStatue';
 
-import { brainEntityById, brainItemOf, brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
+import { brainEntityById, brainItemOf, brainMobOf, brainWorldOf } from './brainWorld';
 import { inPickupReach, pickupQueryRadius, villagerWants } from './lootPickup';
 import type { LootPickupRule } from './lootPickup';
 import { entityFilterContextOf } from './filterView';
@@ -2568,7 +2568,9 @@ export class EntityRuntime implements EntityScene {
         this.syncGameEventListener(entity);
         this.index.refreshFamilies(entity);
         this.tickBrain(entity);
-        tickBrainNavigation(entity);
+        // Java's `Mob.serverAiStep` ticks the navigation every tick, after the goals and the brain,
+        // whether or not a goal ticked this tick.
+        sweepNavigation(entity.instance);
         if (isCopperGolem(entity) && tickCopperGolemStatue(entity, this.statueHost)) return;
         const from = { ...entity.position };
         const fromY = from.y;

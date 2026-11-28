@@ -113,6 +113,9 @@ export class TestItemEntity extends TestEntity implements BrainItemEntity {
     }
 }
 
+/** Whether two positions are the same, coordinate for coordinate. */
+const samePosition = (a: Vec3, b: Vec3): boolean => a.x === b.x && a.y === b.y && a.z === b.z;
+
 /** Records every navigation call so a test can assert on movement without a path finder. */
 export class TestNavigation implements BrainNavigation {
     /** Every `moveTo` call, in order. */
@@ -120,6 +123,11 @@ export class TestNavigation implements BrainNavigation {
     public stopped = 0;
     /** Positions `canReach` and `moveTo` refuse. A test adds one to make a target unreachable. */
     public readonly unreachable: Vec3[] = [];
+    /**
+     * Positions among {@link TestNavigation.unreachable} a path still takes the mob closer to:
+     * `canApproach` and `moveTo` accept them while `canReach` refuses them.
+     */
+    public readonly approachable: Vec3[] = [];
     public done = true;
     public stuck = false;
     /** What {@link TestNavigation.pathStep} answers; a test sets it to put the mob on a path. */
@@ -127,7 +135,7 @@ export class TestNavigation implements BrainNavigation {
 
     /** Records the call and reports false for a target listed in {@link TestNavigation.unreachable}. */
     public moveTo(target: Vec3, speedModifier: number): boolean {
-        if (!this.canReach(target)) {
+        if (!this.canApproach(target)) {
             return false;
         }
         this.moves.push({ target, speedModifier });
@@ -147,7 +155,12 @@ export class TestNavigation implements BrainNavigation {
 
     /** True unless the target is listed in {@link TestNavigation.unreachable}. */
     public canReach(target: Vec3): boolean {
-        return !this.unreachable.some((pos) => pos.x === target.x && pos.y === target.y && pos.z === target.z);
+        return !this.unreachable.some((pos) => samePosition(pos, target));
+    }
+
+    /** True for a reachable target and for one listed in {@link TestNavigation.approachable}. */
+    public canApproach(target: Vec3): boolean {
+        return this.canReach(target) || this.approachable.some((pos) => samePosition(pos, target));
     }
 
     /** Counts the call in `stopped` and marks the path done. */
