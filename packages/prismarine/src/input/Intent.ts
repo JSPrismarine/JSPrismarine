@@ -253,6 +253,20 @@ export interface IntentPayloads {
         readonly tickDelay?: number;
         readonly executeOnFirstTick?: boolean;
     };
+    /** The player left a structure block's screen with `structure` as the structure's name. */
+    readonly editStructureBlock: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly structure: string;
+    };
+    /**
+     * The player asked a structure block to act on its structure: save it, load it, scan the area
+     * for its corners, or query or export a saved one. `operation` names it as the client does.
+     */
+    readonly useStructureBlock: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly structure: string;
+        readonly operation: string;
+    };
     /** The player set the command a command block minecart runs, naming the cart by runtime id. */
     readonly editCommandMinecart: {
         readonly target: bigint;
@@ -397,6 +411,9 @@ export const Intents = {
     // Change a block and its block entity, or a cart's stored command.
     editCommandBlock: { lane: 'input' },
     editCommandMinecart: { lane: 'input' },
+    // Read the block they name; structure blocks and templates are not stored yet.
+    editStructureBlock: { lane: 'read' },
+    useStructureBlock: { lane: 'read' },
     // Moves the player, which replication shows the players that see it.
     move: { lane: 'input' },
     // Tires the player.

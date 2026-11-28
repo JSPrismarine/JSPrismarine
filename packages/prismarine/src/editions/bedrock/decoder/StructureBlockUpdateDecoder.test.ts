@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
+import { sessionSeeingBlocks } from '../handler/blockTargetSession.test.helper';
 import BlockPosition from '../../../world/BlockPosition';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
@@ -7,7 +7,16 @@ import StructureBlockUpdatePacket, {
 } from '@jsprismarine/protocol/bedrock/packet/StructureBlockUpdatePacket';
 import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import { defaultStructureSettings } from '@jsprismarine/protocol/bedrock/structure/StructureSettings';
-import StructureBlockUpdateHandler from './StructureBlockUpdateHandler';
+import EditStructureBlockHandler from '../../../input/handlers/EditStructureBlockHandler';
+import type { SessionContext } from '../../../player/context/HandlerContext';
+import { viewOf } from './DecodeView';
+import StructureBlockUpdateDecoder from './StructureBlockUpdateDecoder';
+
+/** A packet decoded and its intents run, as the dispatcher wraps a decoder. */
+const run = (packet: StructureBlockUpdatePacket, context: SessionContext): void => {
+    for (const intent of new StructureBlockUpdateDecoder().decode(packet, viewOf(context.session, context.log)))
+        new EditStructureBlockHandler().handle(intent, context);
+};
 
 const packetAt = (position: BlockPosition) => {
     return new StructureBlockUpdatePacket({
@@ -27,11 +36,11 @@ const packetAt = (position: BlockPosition) => {
     });
 };
 
-describe('StructureBlockUpdateHandler', () => {
+describe('StructureBlockUpdateDecoder', () => {
     it('logs the structure name and position of a structure block in reach', () => {
         const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:structure_block' });
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
+        run(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([
             'Steve set the structure block at 4, 1, 2 to structure "house". Structure blocks are not stored'
@@ -42,7 +51,7 @@ describe('StructureBlockUpdateHandler', () => {
     it('drops a position that holds no structure block', () => {
         const { logged, context } = sessionSeeingBlocks({ '4,1,2': 'minecraft:stone' });
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), context);
+        run(packetAt(new BlockPosition(4, 1, 2)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([
@@ -53,7 +62,7 @@ describe('StructureBlockUpdateHandler', () => {
     it('drops a position out of reach without reading the world', () => {
         const { logged, context } = sessionSeeingBlocks({});
 
-        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(5_000_000, 64, 0)), context);
+        run(packetAt(new BlockPosition(5_000_000, 64, 0)), context);
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual([

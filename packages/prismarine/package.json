@@ -1865,6 +1865,14 @@
             "jsprismarine:dist": "./dist/input/handlers/UseLabTableHandler.js",
             "default": "./src/input/handlers/UseLabTableHandler.ts"
         },
+        "./input/handlers/EditStructureBlockHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/EditStructureBlockHandler.js",
+            "default": "./src/input/handlers/EditStructureBlockHandler.ts"
+        },
+        "./input/handlers/UseStructureBlockHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/UseStructureBlockHandler.js",
+            "default": "./src/input/handlers/UseStructureBlockHandler.ts"
+        },
         "./input/handlers/BlockTarget": {
             "jsprismarine:dist": "./dist/input/handlers/BlockTarget.js",
             "default": "./src/input/handlers/BlockTarget.ts"
@@ -1876,14 +1884,6 @@
         "./editions/bedrock/handler/RequestNetworkSettingsHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/RequestNetworkSettingsHandler.js",
             "default": "./src/editions/bedrock/handler/RequestNetworkSettingsHandler.ts"
-        },
-        "./editions/bedrock/handler/StructureBlockUpdateHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureBlockUpdateHandler.js",
-            "default": "./src/editions/bedrock/handler/StructureBlockUpdateHandler.ts"
-        },
-        "./editions/bedrock/handler/StructureTemplateDataRequestHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureTemplateDataRequestHandler.js",
-            "default": "./src/editions/bedrock/handler/StructureTemplateDataRequestHandler.ts"
         },
         "./network/InboundPacketTrace": {
             "jsprismarine:dist": "./dist/network/InboundPacketTrace.js",

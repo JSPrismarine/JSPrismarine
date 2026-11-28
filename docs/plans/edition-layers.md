@@ -39,7 +39,7 @@ Progress:
   opened. The server opens no screen for a Java client yet, so those wait until one does, with
   `Container Click`. The trade and workstation rules, `tradeScreen` and `workstation`, are game
   logic that only `ItemStackRequest` uses, so they move with it.
-- Slice 3.5, forms, books and commands: under review. A form's answer, a book edit and a command
+- Slice 3.5, forms, books and commands: merged in [#3854](https://github.com/JSPrismarine/JSPrismarine/pull/3854). A form's answer, a book edit and a command
   block's or a command block minecart's edit are intents. Bedrock's `BookEdit` and
   `CommandBlockUpdate` decode into them, and `ModalFormResponse` hands its answer to
   `answerForm` once it has checked the answer is JSON, which disconnects a client when it is not,
@@ -49,6 +49,23 @@ Progress:
   its reply echoes Bedrock's request origin, so it stays Bedrock's. The data-driven screens are
   Bedrock's own UI, kept in the Bedrock session's screen state, and stay too. Structure blocks
   move with what remains, slice 3.6. The `network/` aliases are gone.
+- Slice 3.6, what remains: under review. A structure block's settings and its save, load, scan or
+  query are intents, which Bedrock's `StructureBlockUpdate` and `StructureTemplateDataRequest` and
+  Java's `Set Structure Block` decode into. What is left in `editions/bedrock/handler/` is
+  Bedrock's own, and stays:
+  - The connection and the join: login, the handshake, network settings, the packs, the client
+    cache, sub-chunks, the loading screen, latency, disconnects and violation warnings.
+  - Packets only a Bedrock client sends about itself or its own features: the skin, the emote
+    list, client options, diagnostics, aim assist, the old `MovePlayer`, and a player location a
+    client has no business sending.
+  - Education Edition and Marketplace features: multiplayer settings, photos, receipts, NPCs and
+    world templates (`SimpleEvent`).
+  - Requests a Java client makes some other way or not at all, which wait for the feature behind
+    them: map data and locked copies (Java is sent a map's data unasked), riding links, the
+    lodestone database and a difficulty change from the settings menu.
+  - The handlers that wrap Bedrock's protocol around an intent: `PlayerAuthInput`, `PlayerAction`,
+    `InventoryTransaction`, `ModalFormResponse` and `CommandRequest`, and `ItemStackRequest`, which
+    waits for its own slice beside Java's `Container Click`.
 
 ## Problem
 

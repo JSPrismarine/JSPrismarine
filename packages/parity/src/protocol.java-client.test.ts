@@ -34,6 +34,8 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    SetStructureBlock,
+    JavaStructureUpdateType,
     EditBook,
     SetCommandBlock,
     SetCommandMinecart,
@@ -256,7 +258,8 @@ const decoded = <D extends JavaPacketDefinition>(
     kind: 'decoded',
     path: pathOf(definition),
     variant,
-    payloadKey: JSON.stringify(payload),
+    // A replacer, since a payload such as a structure's seed carries a bigint.
+    payloadKey: JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? `${value}n` : value)),
     expected,
     ...(answers === undefined ? {} : { answers }),
     handle: () => handledOf(definition, payload)
@@ -1525,7 +1528,29 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'tools',
         java: "An operator's client edits structure blocks and jigsaw blocks, and generates from a jigsaw.",
         needs: [
-            read('play/serverbound/set_structure_block'),
+            decoded(
+                SetStructureBlock,
+                'save a structure',
+                {
+                    position: { x: 0, y: 64, z: 0 },
+                    updateType: JavaStructureUpdateType.SaveArea,
+                    mode: 0,
+                    name: 'house',
+                    offsetX: 0,
+                    offsetY: 1,
+                    offsetZ: 0,
+                    sizeX: 1,
+                    sizeY: 1,
+                    sizeZ: 1,
+                    mirror: 0,
+                    rotation: 0,
+                    data: '',
+                    integrity: 1,
+                    seed: 0n,
+                    flags: 0
+                },
+                { kind: 'useStructureBlock' }
+            ),
             read('play/serverbound/set_jigsaw_block'),
             read('play/serverbound/jigsaw_generate')
         ]

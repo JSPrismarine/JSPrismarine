@@ -10,6 +10,7 @@ import EatHandler from './handlers/EatHandler';
 import EditBookHandler from './handlers/EditBookHandler';
 import EditCommandBlockHandler from './handlers/EditCommandBlockHandler';
 import EditCommandMinecartHandler from './handlers/EditCommandMinecartHandler';
+import EditStructureBlockHandler from './handlers/EditStructureBlockHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
 import HoldButtonsHandler from './handlers/HoldButtonsHandler';
@@ -45,6 +46,7 @@ import TurnLecternPageHandler from './handlers/TurnLecternPageHandler';
 import UseItemHandler from './handlers/UseItemHandler';
 import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
 import UseLabTableHandler from './handlers/UseLabTableHandler';
+import UseStructureBlockHandler from './handlers/UseStructureBlockHandler';
 
 /**
  * The built-in handler of every intent kind, which `IntentHandlerRegistry.enable` registers. A
@@ -63,6 +65,7 @@ export {
     EditBookHandler,
     EditCommandBlockHandler,
     EditCommandMinecartHandler,
+    EditStructureBlockHandler,
     EmoteHandler,
     FinishCreditsHandler,
     HoldButtonsHandler,
@@ -97,5 +100,6 @@ export {
     TurnLecternPageHandler,
     UseItemHandler,
     UseItemOnBlockHandler,
-    UseLabTableHandler
+    UseLabTableHandler,
+    UseStructureBlockHandler
 };

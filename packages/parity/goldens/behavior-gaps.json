@@ -4191,7 +4191,7 @@
         },
         "tools:structure-blocks": {
             "kind": "deferred",
-            "reason": "In Java: An operator's client edits structure blocks and jigsaw blocks, and generates from a jigsaw. For a Java client here: play/serverbound/set_structure_block is not read; play/serverbound/set_jigsaw_block is not read; play/serverbound/jigsaw_generate is not read.",
+            "reason": "In Java: An operator's client edits structure blocks and jigsaw blocks, and generates from a jigsaw. For a Java client here: play/serverbound/set_jigsaw_block is not read; play/serverbound/jigsaw_generate is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3775"
         },
         "tools:test-blocks": {

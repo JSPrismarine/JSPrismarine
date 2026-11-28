@@ -26,6 +26,8 @@ import SetPlayerGameTypeDecoder from './SetPlayerGameTypeDecoder';
 import SetPlayerInventoryOptionsDecoder from './SetPlayerInventoryOptionsDecoder';
 import SettingsCommandDecoder from './SettingsCommandDecoder';
 import ShowCreditsDecoder from './ShowCreditsDecoder';
+import StructureBlockUpdateDecoder from './StructureBlockUpdateDecoder';
+import StructureTemplateDataRequestDecoder from './StructureTemplateDataRequestDecoder';
 import TextDecoder from './TextDecoder';
 
 /**
@@ -62,5 +64,7 @@ export {
     SetPlayerInventoryOptionsDecoder,
     SettingsCommandDecoder,
     ShowCreditsDecoder,
+    StructureBlockUpdateDecoder,
+    StructureTemplateDataRequestDecoder,
     TextDecoder
 };

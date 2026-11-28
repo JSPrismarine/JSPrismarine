@@ -5,7 +5,7 @@
  */
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
-import { bool, byteArray, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
+import { bool, byteArray, custom, int8, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import {
     blockPosition,
     double,
@@ -816,6 +816,40 @@ export const SetCommandMinecart = defineJavaPacket(
     'play/serverbound/set_command_minecart',
     { entityId: varInt, command: javaString(32_767), trackOutput: bool }
 );
+
+/** What a `Set Structure Block` asks for, by its ordinal in vanilla's `StructureBlockEntity.UpdateType`. */
+export enum JavaStructureUpdateType {
+    UpdateData = 0,
+    SaveArea = 1,
+    LoadArea = 2,
+    ScanArea = 3
+}
+
+/**
+ * `Set Structure Block` (serverbound): the settings a player left in a structure block's screen,
+ * and with `updateType` an action on its area. `mode`, `mirror` and `rotation` are the ordinals of
+ * vanilla's `StructureMode`, `Mirror` and `Rotation`; the offset and the size are signed bytes, and
+ * `flags` holds ignore entities (1), show air (2), show the bounding box (4) and strict (8).
+ * @javaSource ServerboundSetStructureBlockPacket.write
+ */
+export const SetStructureBlock = defineJavaPacket('Program Structure Block', 'play/serverbound/set_structure_block', {
+    position: blockPosition,
+    updateType: varInt,
+    mode: varInt,
+    name: javaString(32_767),
+    offsetX: int8,
+    offsetY: int8,
+    offsetZ: int8,
+    sizeX: int8,
+    sizeY: int8,
+    sizeZ: int8,
+    mirror: varInt,
+    rotation: varInt,
+    data: javaString(32_767),
+    integrity: float,
+    seed: varLong,
+    flags: uint8
+});
 
 /**
  * `Set Health` (clientbound): the player's own health, food level and saturation.
