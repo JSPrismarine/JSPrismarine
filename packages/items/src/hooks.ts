@@ -38,6 +38,8 @@ export interface BlockReference {
     readonly states: Readonly<Record<string, string | number | boolean>>;
     /** Where the block is. */
     readonly position: BlockPosition;
+    /** The dimension the block is in, as Bedrock names it, such as `minecraft:nether`. */
+    readonly dimension: string;
 }
 
 /** The face of a block an interaction landed on. */

@@ -340,12 +340,14 @@ const itemActionsOf = (adapter: () => ServerWorldAdapter, content: ContentLookup
 
     return {
         blockAt: (position): BlockReference | undefined => {
-            const block = adapter().blocks.get(position);
+            const world = adapter();
+            const block = world.blocks.get(position);
             return (
                 block && {
                     identifier: block.identifier,
                     states: block.states,
-                    position: { x: position.x, y: position.y, z: position.z }
+                    position: { x: position.x, y: position.y, z: position.z },
+                    dimension: world.level.dimension
                 }
             );
         },

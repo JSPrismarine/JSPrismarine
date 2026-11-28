@@ -3190,7 +3190,12 @@ export class World implements Service {
                     world: this,
                     source: { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) },
                     tool: itemInHand,
-                    block: { identifier: state.name, states: state.properties, position: { x, y, z } }
+                    block: {
+                        identifier: state.name,
+                        states: state.properties,
+                        position: { x, y, z },
+                        dimension: this.getDimension().name
+                    }
                 });
             }
 
