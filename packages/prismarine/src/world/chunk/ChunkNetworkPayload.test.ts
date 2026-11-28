@@ -339,6 +339,20 @@ describe('world', () => {
             expect(skeleton.getBlockEntity(49, -60, -110)).toBeNull();
         });
 
+        it('answers every section of a dimension under a ceiling as below its surface, as BDS does', () => {
+            // The Nether's bedrock roof lies in its top section, which BDS still answers ALL_TOO_HIGH.
+            const chunk = new Chunk(0, 0, new Map(), Dimensions.Nether);
+            for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) chunk.setBlockRuntimeId(x, 127, z, stone());
+
+            for (const y of [0, 7]) {
+                const heightMaps = chunk.networkSubChunkHeightmaps(y);
+                expect([heightMaps.heightMapType, heightMaps.renderHeightMapType]).toEqual([
+                    HeightMapDataType.ALL_TOO_HIGH,
+                    HeightMapDataType.ALL_TOO_HIGH
+                ]);
+            }
+        });
+
         it('encodes all-too-high, all-too-low, and mixed section heightmaps', () => {
             const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
             for (let x = 0; x < 16; x++) {

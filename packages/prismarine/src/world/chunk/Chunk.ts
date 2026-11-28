@@ -487,6 +487,13 @@ export default class Chunk {
             throw new PrismarineWorldErrors.InvalidSubchunkHeight({ y });
         }
 
+        // A dimension under a ceiling has no surface the sky reaches: BDS 1.26.60.6 answers every
+        // sub chunk of the Nether ALL_TOO_HIGH for both maps, the one under the bedrock roof too.
+        // A heightmap with the roof in it lit nothing there but fire and lava.
+        if (this.dimension.java.hasCeiling) {
+            return new SubChunkHeightmapData(HeightMapDataType.ALL_TOO_HIGH, undefined, HeightMapDataType.ALL_TOO_HIGH);
+        }
+
         const baseY = y * 16;
         const heightmap: number[][] = Array.from({ length: 16 }, () => new Array<number>(16));
         let allTooHigh = true;
