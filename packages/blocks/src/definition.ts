@@ -14,7 +14,7 @@ import { isRecord } from './schema';
  * dispatch picks the newest entry at or below the file's version, which is the
  * rule `selectSchemaVersion` in `@jsprismarine/packs` implements.
  */
-export const BLOCK_SCHEMA_VERSIONS = ['1.16.100', '1.19.40', '1.26.20'] as const;
+export const BLOCK_SCHEMA_VERSIONS = ['1.16.100', '1.19.40', '1.20.20', '1.26.20'] as const;
 
 /** One of {@link BLOCK_SCHEMA_VERSIONS}. */
 export type BlockSchemaVersion = (typeof BLOCK_SCHEMA_VERSIONS)[number];
@@ -102,6 +102,16 @@ export const BLOCK_SCHEMAS: Readonly<Record<BlockSchemaVersion, BlockSchema>> = 
         version: '1.19.40',
         statesAndPermutations: true,
         traits: false,
+        withoutComponents: LEGACY_PROPERTY_COMPONENTS,
+        forbiddenInDefinition: [],
+        forbiddenInPermutation: PERMUTATION_ONLY_FORBIDDEN
+    },
+    // Traits left experimental at 1.20.20 (Bedrock Wiki's block format history). BDS 1.26.60.6
+    // sends the trait states of a 1.21.80 and a 1.21.100 file, as The Sift's portal and slabs are.
+    '1.20.20': {
+        version: '1.20.20',
+        statesAndPermutations: true,
+        traits: true,
         withoutComponents: LEGACY_PROPERTY_COMPONENTS,
         forbiddenInDefinition: [],
         forbiddenInPermutation: PERMUTATION_ONLY_FORBIDDEN
@@ -280,8 +290,30 @@ const readInternalVanillaData = (value: unknown): InternalVanillaData | undefine
     };
 };
 
-const readComponents = (value: unknown): readonly ComponentEntry[] =>
-    isRecord(value) ? Object.entries(value).map(([name, componentValue]) => ({ name, value: componentValue })) : [];
+/** The prefix of a component that gives the block one tag, as `tag:minecraft:is_pickaxe_item_destructible` does. */
+const TAG_COMPONENT_PREFIX = 'tag:';
+
+/**
+ * A component object's entries. Each `tag:<name>` component joins one `minecraft:tags` entry, in
+ * the order the file writes them and after any tags `minecraft:tags` lists itself, since a pack
+ * may tag a block either way and BDS sends both as one `blockTags` list: The Sift's
+ * `limestone_grass` writes `tag:dirt` and `tag:grass`, and BDS 1.26.60.6 sends `["dirt", "grass"]`.
+ */
+const readComponents = (value: unknown): readonly ComponentEntry[] => {
+    if (!isRecord(value)) return [];
+    const entries: ComponentEntry[] = [];
+    const tagged: string[] = [];
+    for (const [name, componentValue] of Object.entries(value)) {
+        if (name.startsWith(TAG_COMPONENT_PREFIX)) tagged.push(name.slice(TAG_COMPONENT_PREFIX.length));
+        else entries.push({ name, value: componentValue });
+    }
+    if (tagged.length === 0) return entries;
+    const at = entries.findIndex((entry) => entry.name === 'minecraft:tags');
+    if (at < 0) return [...entries, { name: 'minecraft:tags', value: tagged }];
+    const listed = entries[at]!.value;
+    entries[at] = { name: 'minecraft:tags', value: [...(Array.isArray(listed) ? listed : []), ...tagged] };
+    return entries;
+};
 
 /**
  * Parses one Bedrock block definition file.
