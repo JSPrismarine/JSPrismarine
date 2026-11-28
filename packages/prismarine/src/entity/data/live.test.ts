@@ -976,6 +976,19 @@ describe('the data-driven entity runtime over a live world', () => {
         return player;
     };
 
+    /**
+     * A creative player beside the origin holding zombie spawn eggs. A spawn egg works only within
+     * reach of the mob, and zombies leave a creative player alone, so a test can hatch babies next
+     * to their parent and still watch them all walk to a survival player out of reach.
+     */
+    const eggUser = (count: number): PlayerSession => {
+        const user = addPlayer(2, 0);
+        user.getPlayer().gamemode = Gametype.CREATIVE;
+        Object.assign(user.getActor()!, { inventory: new HumanInventory() });
+        user.getInventory().setEquipment('mainhand', new Item({ name: 'minecraft:zombie_spawn_egg', count }));
+        return user;
+    };
+
     /** Uses the player's held item on an entity through its real inventory transaction path. */
     const useHeldItemOnEntity = async (player: PlayerSession, targetRuntimeId: bigint): Promise<void> => {
         const server = player.getServer();
@@ -4136,16 +4149,13 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     const player = addPlayer(18, 0);
                     player.getPlayer().gamemode = Gametype.SURVIVAL;
-                    Object.assign(player.getActor()!, { inventory: new HumanInventory() });
-                    player
-                        .getInventory()
-                        .setEquipment('mainhand', new Item({ name: 'minecraft:zombie_spawn_egg', count: 1 }));
+                    const user = eggUser(1);
                     const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (parent === undefined) throw new Error('vanilla content declares no zombie');
                     const body = live.actors.actorOf(parent.id);
                     if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
 
-                    await useHeldItemOnEntity(player, body.getRuntimeId());
+                    await useHeldItemOnEntity(user, body.getRuntimeId());
 
                     const baby = live.runtime
                         .entities()
@@ -4173,16 +4183,13 @@ describe('the data-driven entity runtime over a live world', () => {
 
                     const player = addPlayer(18, 0);
                     player.getPlayer().gamemode = Gametype.SURVIVAL;
-                    Object.assign(player.getActor()!, { inventory: new HumanInventory() });
-                    player
-                        .getInventory()
-                        .setEquipment('mainhand', new Item({ name: 'minecraft:zombie_spawn_egg', count: 24 }));
+                    const user = eggUser(24);
                     const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
                     if (parent === undefined) throw new Error('vanilla content declares no zombie');
                     const body = live.actors.actorOf(parent.id);
                     if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
 
-                    for (let egg = 0; egg < 24; egg += 1) await useHeldItemOnEntity(player, body.getRuntimeId());
+                    for (let egg = 0; egg < 24; egg += 1) await useHeldItemOnEntity(user, body.getRuntimeId());
 
                     const zombies = live.runtime
                         .entities()
