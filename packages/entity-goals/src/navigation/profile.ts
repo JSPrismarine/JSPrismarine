@@ -1,5 +1,6 @@
-import type { EntityInstance } from '@jsprismarine/entities';
+import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '../params';
+import type { NavigationView } from './view';
 
 /**
  * The `minecraft:navigation.*` component, read as the rules the path finder
@@ -285,3 +286,27 @@ export const navigationProfileOf = (overrides: Partial<NavigationProfile> = {}):
     ...defaultNavigationProfile,
     ...overrides
 });
+
+/**
+ * Java's default water malus for a walker, the extra cost of a water cell that makes
+ * `GoalUtils.hasMalus` refuse it as a random destination.
+ *
+ * @javaSee PathType.WATER
+ */
+const WALKER_WATER_MALUS = 8;
+
+/**
+ * Whether a cell costs the entity extra to path into, Java's `GoalUtils.hasMalus`: water for a
+ * walker that does not swim, lava for one that does not walk in it, each unless the entity's own
+ * malus for it is zero. A random walk refuses such a cell as its destination.
+ *
+ * @javaSee GoalUtils.hasMalus
+ */
+export const hasPathMalus = (view: NavigationView, profile: NavigationProfile, at: EntityPosition): boolean => {
+    if (view.isLava(at)) return (profile.pathfindingMalus?.lava ?? (profile.canWalkInLava ? 0 : -1)) !== 0;
+    if (view.isWater(at)) {
+        const swims = profile.canSwim || profile.isAmphibious;
+        return (profile.pathfindingMalus?.water ?? (swims ? 0 : WALKER_WATER_MALUS)) !== 0;
+    }
+    return false;
+};

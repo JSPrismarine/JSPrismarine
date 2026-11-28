@@ -1,6 +1,7 @@
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { describe, expect, it } from 'vitest';
 
+import { brainEntityOf, brainWorldOf } from './brainWorld';
 import type { DataEntity } from './DataEntity';
 import type { ExtraEntities } from './testing';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
@@ -58,5 +59,54 @@ describe('a walker following a path', () => {
 
         expect(entity.position.y).toBeCloseTo(GROUND, 6);
         expect(entity.position.x).toBeGreaterThan(6.5);
+    });
+});
+
+describe("a brain's random walk target", () => {
+    /** A world whose random source hands out the draws a test queues, then a half. */
+    const drawn = () => {
+        const queue: number[] = [];
+        const next = () => queue.shift() ?? 0.5;
+        const world = new TestEntityWorld({
+            random: { nextFloat: next, nextInt: (bound) => Math.floor(next() * bound) }
+        });
+        const { runtime } = entityFixture(world, {}, { 'minecraft:pig': walker(0.9) });
+        const pig = runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND, z: 0.5 });
+        if (pig === undefined) throw new Error('the fixture declares no pig');
+        return { queue, runtime, body: brainEntityOf(pig, runtime) };
+    };
+
+    it('lands a draw inside the ground on top of it', () => {
+        const { queue, runtime, body } = drawn();
+        // Four blocks along x, three below the feet, inside the floor.
+        queue.push(0.5 + 4 / 20, 0.5 - 3 / 14, 0.5);
+
+        expect(brainWorldOf(runtime).randomPos(body, { xzRange: 10, yRange: 7, medium: 'land' })).toEqual({
+            x: 4.5,
+            y: GROUND,
+            z: 0.5
+        });
+    });
+
+    it('refuses a land draw in the air', () => {
+        const { queue, runtime, body } = drawn();
+        for (let attempt = 0; attempt < 10; attempt += 1) queue.push(0.5 + 4 / 20, 0.5 + 3 / 14, 0.5);
+
+        expect(brainWorldOf(runtime).randomPos(body, { xzRange: 10, yRange: 7, medium: 'land' })).toBeUndefined();
+    });
+
+    it('draws away from what it flees', () => {
+        const { queue, runtime, body } = drawn();
+        // Five blocks toward the threat, which the draw turns away from it.
+        queue.push(0.5 + 5 / 20, 0.5, 0.5);
+
+        const to = brainWorldOf(runtime).randomPos(body, {
+            xzRange: 10,
+            yRange: 7,
+            medium: 'land',
+            away: { x: 6.5, y: GROUND, z: 0.5 }
+        });
+
+        expect(to).toEqual({ x: -4.5, y: GROUND, z: 0.5 });
     });
 });

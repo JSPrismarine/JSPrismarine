@@ -19,14 +19,16 @@ import type {
     Vec3
 } from '@jsprismarine/entity-brains';
 import {
-    blockContaining,
     blockPositionsInManhattanOrder,
     distanceSquared,
     entityIntersectsBounds,
     inflatedEntityBounds
 } from '@jsprismarine/entity-brains';
 import type { Brain } from '@jsprismarine/entity-brains';
+import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile, navigatorOf } from '@jsprismarine/entity-goals';
+import { hasPathMalus } from '@jsprismarine/entity-goals/navigation/profile';
+import { landPositionAt } from '@jsprismarine/entity-goals/navigation/view';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { EYE_HEIGHT } from '../playerEyes';
@@ -501,16 +503,46 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         },
         randomPos: (body, request) => {
             const navigation = scene.navigation();
+            const from = body.position;
+            const entity = scene.byId(Number(body.id));
+            const profile = entity === undefined ? undefined : navigationProfile(entity.instance);
+            // A land draw in a liquid that costs the mob extra is refused, as Java's `hasMalus` refuses it.
+            const landed = (cell: EntityPosition | undefined): EntityPosition | undefined =>
+                cell === undefined ||
+                (profile === undefined
+                    ? navigation.isWater(cell) || navigation.isLava(cell)
+                    : hasPathMalus(navigation, profile, cell))
+                    ? undefined
+                    : cell;
+            // Java's `getPosAway` and `getPosTowards` draw within a quarter turn either side of the
+            // direction, so a draw on the wrong side is mirrored through the mob onto the right one.
+            const toward =
+                request.away !== undefined
+                    ? { x: from.x - request.away.x, z: from.z - request.away.z }
+                    : request.towards === undefined
+                      ? undefined
+                      : { x: request.towards.x - from.x, z: request.towards.z - from.z };
             for (let attempt = 0; attempt < RANDOM_POS_ATTEMPTS; attempt += 1) {
-                const candidate = {
-                    x: Math.floor(body.position.x) + offset(scene, request.xzRange) + 0.5,
-                    y: Math.floor(body.position.y) + offset(scene, request.yRange),
-                    z: Math.floor(body.position.z) + offset(scene, request.xzRange) + 0.5
-                };
-                if (!navigation.isPassable(blockContaining(candidate))) continue;
-                if (request.away !== undefined && distanceSquared(candidate, request.away) <= RANDOM_POS_ATTEMPTS)
-                    continue;
-                return candidate;
+                let dx = offset(scene, request.xzRange);
+                const dy = offset(scene, request.yRange);
+                let dz = offset(scene, request.xzRange);
+                if (toward !== undefined && dx * toward.x + dz * toward.z < 0) {
+                    dx = -dx;
+                    dz = -dz;
+                }
+                const drawn = { x: Math.floor(from.x) + dx, y: Math.floor(from.y) + dy, z: Math.floor(from.z) + dz };
+                const cell =
+                    request.medium === 'land'
+                        ? landed(landPositionAt(navigation, drawn))
+                        : request.medium === 'water'
+                          ? navigation.isWater(drawn)
+                              ? drawn
+                              : undefined
+                          : navigation.isPassable(drawn)
+                            ? drawn
+                            : undefined;
+                if (cell === undefined) continue;
+                return { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 };
             }
             return undefined;
         },
