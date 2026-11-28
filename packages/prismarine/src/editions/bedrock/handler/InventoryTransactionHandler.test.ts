@@ -90,6 +90,7 @@ const fake = (
     { serverAuthoritativeBreaking = false } = {}
 ) => {
     const broken: BlockPosition[] = [];
+    const resent: string[] = [];
     const logged: string[] = [];
     const itemUse: string[] = [];
     const meals: string[] = [];
@@ -104,6 +105,7 @@ const fake = (
             broken.push(BlockPosition.fromVector3(position));
             return true;
         },
+        resendBlock: (x, y, z) => void resent.push(`${x},${y},${z}`),
         getActor: (runtimeId) => (runtimeId === 42n ? zombie : null),
         // Every chunk is loaded but those past x 1000, so a break there finds none.
         getLoadedChunk: (cx) => (cx < 1000 >> 4 ? stub<Chunk>({}) : null),
@@ -208,6 +210,7 @@ const fake = (
                 });
         },
         broken,
+        resent,
         logged,
         itemUse,
         meals,
@@ -397,8 +400,8 @@ describe('InventoryTransactionHandler', () => {
         expect(world.clicked).toEqual([]);
         expect(world.broken).toEqual([]);
         expect(world.logged).toEqual([
-            'verbose: Dropped item use PLACE from tester on a block 8.0 away',
-            'verbose: Dropped item use DESTROY from tester on a block 8.0 away'
+            'verbose: Dropped a use on a block 8.0 away from tester',
+            'verbose: Dropped mining step finish from tester on a block 8.0 away'
         ]);
     });
 
@@ -424,6 +427,18 @@ describe('InventoryTransactionHandler', () => {
         expect(world.broken).toEqual([new BlockPosition(0, 62, 0)]);
     });
 
+    it('breaks nothing for an adventure player who says a block broke, and shows the block again', async () => {
+        const world = fake(Gametype.ADVENTURE);
+
+        await handle(
+            transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.DESTROY, blockFace: 255 })),
+            world
+        );
+
+        expect(world.broken).toEqual([]);
+        expect(world.resent).toEqual(['0,62,0']);
+    });
+
     it('breaks nothing in a chunk that is not loaded, which the input step cannot wait for', async () => {
         const world = fake(Gametype.SURVIVAL);
         world.player.getPosition = () => new Position(1003, 64, 0, world.session.getWorld());
@@ -442,7 +457,7 @@ describe('InventoryTransactionHandler', () => {
 
         expect(world.broken).toEqual([]);
         expect(world.logged).toEqual([
-            'verbose: Dropped a block break transaction from tester in a chunk that is not loaded'
+            'verbose: Dropped mining step finish from tester on a block in a chunk that is not loaded'
         ]);
     });
 
@@ -472,6 +487,18 @@ describe('InventoryTransactionHandler', () => {
 
         expect(withBow.itemUse).toEqual([`begin ${TICK}`]);
         expect(withStone.itemUse).toEqual([]);
+    });
+
+    it('keeps the bow clock running through the draw the client reports held each tick', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:bow' }));
+        const use = (triggerType: number) =>
+            transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE, triggerType }));
+
+        await handle(use(1), world);
+        await handle(use(2), world);
+        await handle(use(2), world);
+
+        expect(world.itemUse).toEqual([`begin ${TICK}`]);
     });
 
     it('forgets an unfinished meal when the button is let go', async () => {
@@ -601,6 +628,22 @@ describe('InventoryTransactionHandler', () => {
         expect(world.logged).toEqual([]);
         expect(world.entityInteractions).toEqual([42]);
         expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
+    });
+
+    it('drops an item interaction on an entity out of reach, at verbose level', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:sheep_spawn_egg' }));
+        world.player.getPosition = () => new Position(20, 64, 0, world.session.getWorld());
+
+        await handle(
+            transaction(
+                TransactionType.USE_ITEM_ON_ENTITY,
+                useItemOnEntity({ actionType: ItemUseOnActorActionType.ITEM_INTERACT })
+            ),
+            world
+        );
+
+        expect(world.entityInteractions).toEqual([]);
+        expect(world.logged).toEqual(['verbose: Dropped a use on actor 42 from tester: it is 20.0 away']);
     });
 
     it('looses an arrow for as long as the bow was drawn, and nothing for a stone', async () => {

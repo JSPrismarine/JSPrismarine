@@ -31,6 +31,8 @@ import type { StoreActors } from '../entity/data/storeActors';
 import type { StorePlayers } from '../entity/data/storePlayers';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
+import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
+import type PacketHandlerRegistry from '../network/PacketHandlerRegistry';
 import { stub } from './stub.test.helper';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
@@ -138,8 +140,12 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
     const entityRuntime = options.entityRuntime ?? inertEntityRuntime();
     // One bus for the life of the double, as a server has one, so a test can listen on it.
     const kernel = testKernel();
+    // The built-in intent handlers, as a started server has them, which a packet's input runs.
+    const intents = new IntentHandlerRegistry({ debug: () => {}, verbose: () => {} });
+    intents.enable();
     return stub<Server>({
         getKernel: () => kernel,
+        getPacketHandlerRegistry: () => stub<PacketHandlerRegistry>({ getIntentHandlers: () => intents }),
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content ?? testContent(),

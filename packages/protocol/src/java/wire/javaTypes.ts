@@ -80,6 +80,74 @@ export const varLong: WireType<bigint> = custom<bigint>(
     (s) => BigInt.asIntN(64, s.readUnsignedVarLong())
 );
 
+/** A vector of three doubles. */
+export interface JavaVector {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** The largest coordinate an `LpVec3` holds; a larger one is clamped to it. */
+const LP_ABS_MAX = 1.7179869183e10;
+/** The smallest largest coordinate an `LpVec3` tells from zero. */
+const LP_ABS_MIN = 3.051944088384301e-5;
+/** What a coordinate quantizes to at most, of the 15 bits each one has. */
+const LP_MAX_QUANTIZED = 32766;
+
+/** A coordinate as `LpVec3` writes it: NaN as zero, and clamped into range. */
+const lpSanitize = (value: number): number =>
+    Number.isNaN(value) ? 0 : Math.min(Math.max(value, -LP_ABS_MAX), LP_ABS_MAX);
+
+/** A coordinate from -1 to 1 as its 15 bits, a half rounded up. */
+const lpPack = (value: number): bigint => BigInt(Math.round((value * 0.5 + 0.5) * LP_MAX_QUANTIZED));
+
+/** 15 bits back to a coordinate from -1 to 1. */
+const lpUnpack = (bits: bigint): number =>
+    (Math.min(Number(bits & 0x7fffn), LP_MAX_QUANTIZED) * 2) / LP_MAX_QUANTIZED - 1;
+
+/**
+ * `LpVec3`: a vector in six bytes, and a VarInt more for a large one. The low two bits of the
+ * first byte are the scale, the largest coordinate rounded up; a bit beside them says a VarInt
+ * carries the scale's higher bits. Each coordinate, divided by the scale, then takes 15 bits.
+ * The zero vector, and one too small to tell from it, is one zero byte.
+ * @javaSource LpVec3.read
+ * @javaSource LpVec3.write
+ */
+export const lpVec3: WireType<JavaVector> = custom<JavaVector>(
+    'LpVec3',
+    (s, vector) => {
+        const x = lpSanitize(vector.x);
+        const y = lpSanitize(vector.y);
+        const z = lpSanitize(vector.z);
+        const largest = Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+        if (largest < LP_ABS_MIN) {
+            s.writeByte(0);
+            return;
+        }
+        const scale = Math.ceil(largest);
+        const continued = (scale & 3) !== scale;
+        const header = BigInt(continued ? (scale & 3) | 4 : scale);
+        const packed = header | (lpPack(x / scale) << 3n) | (lpPack(y / scale) << 18n) | (lpPack(z / scale) << 33n);
+        s.writeByte(Number(packed & 0xffn));
+        s.writeByte(Number((packed >> 8n) & 0xffn));
+        s.writeInt(Number(BigInt.asIntN(32, packed >> 16n)));
+        if (continued) s.writeUnsignedVarInt(Math.floor(scale / 4) >>> 0);
+    },
+    (s) => {
+        const first = s.readByte();
+        if (first === 0) return { x: 0, y: 0, z: 0 };
+        const second = s.readByte();
+        const packed = (BigInt(s.readUnsignedInt()) << 16n) | (BigInt(second) << 8n) | BigInt(first);
+        let scale = first & 3;
+        if ((first & 4) === 4) scale += (s.readUnsignedVarInt() >>> 0) * 4;
+        return {
+            x: lpUnpack(packed >> 3n) * scale,
+            y: lpUnpack(packed >> 18n) * scale,
+            z: lpUnpack(packed >> 33n) * scale
+        };
+    }
+);
+
 /** A block's place in the world. */
 export interface JavaBlockPosition {
     readonly x: number;

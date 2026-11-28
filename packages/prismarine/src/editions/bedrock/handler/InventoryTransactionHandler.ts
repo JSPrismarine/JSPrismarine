@@ -1,14 +1,9 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
-import type PlayerSession from '../../../player/PlayerSession';
-import { EXHAUSTION } from '../../../entity/playerHunger';
-import { BOW, loose } from '../../../entity/Archery';
-import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../../entity/Combat';
 import HumanInventory from '../../../inventory/HumanInventory';
 import { WindowIds } from '../../../inventory/WindowIds';
-import { Item } from '../../../item/Item';
-import { consumeTicksOf, useItemInAir, useItemOnEntity } from '../../../item/interaction';
-import type { InteractingPlayer, InteractionResult, InteractionRotation } from '../../../item/interaction';
+import type { Item } from '../../../item/Item';
+import type { InteractionRotation } from '../../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import type {
     ReleaseItemData,
@@ -25,101 +20,15 @@ import {
     ItemUseActionType,
     ItemUseOnActorActionType
 } from '@jsprismarine/protocol';
-import { MAX_BLOCK_TARGET_DISTANCE } from '../../../input/handlers/BlockTarget';
-import type { ContentHooks } from '../../../input/handlers/contentUseOnBlock';
-import { contentUseOnBlock } from '../../../input/handlers/contentUseOnBlock';
-import { EyeOfEnderEcho } from './eyeOfEnderEcho';
+import type { Intent } from '../../../input/Intent';
 import type { InputContext } from '../../../player/context/HandlerContext';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
-import PlayerAttackEntityEvent from '../../../events/player/PlayerAttackEntityEvent';
-import { endItemUse, HELD_USE_TICKS, startItemUse } from '../../../item/itemUse';
-
-/**
- * What sprinting is worth in knockback levels.
- *
- * One, the same as a level of the Knockback enchantment, which is why a sprint-hit sends
- * somebody flying and a standing one nudges them.
- */
-const SPRINT_KNOCKBACK = 1;
 
 /** A block has six faces, and the docs' Face names one of them. */
 const FACE_COUNT = 6;
 
 /** Bedrock's `SimulationTick` trigger for input held from a previous tick. */
 const SIMULATION_TICK_TRIGGER = 2;
-
-/** The item whose block interaction also has a separate air-use behavior. */
-const ENDER_EYE = 'minecraft:ender_eye';
-
-/**
- * How many ticks after an eye of ender was used on a block the same client's click at nothing
- * is still taken for that click's echo.
- *
- * The client reports one right click on an end portal frame as a block use and as a use in the
- * air, in either tick. The frame takes the eye, so the second report must not throw it.
- */
-const EYE_ECHO_TICKS = 2;
-
-/** The eye of ender block uses whose air-use echo is still due. */
-const eyeEcho = new EyeOfEnderEcho(EYE_ECHO_TICKS);
-
-/**
- * One right click on an entity, offered to the content hooks.
- *
- * @returns Whether a behavior consumed the click. Nothing follows it either way: this server has
- *   no legacy path for using an item on an entity.
- */
-const contentUseOnEntity = (
-    { services, log }: ContentHooks,
-    player: InteractingPlayer,
-    data: UseItemOnEntityData
-): InteractionResult => {
-    const { content } = services;
-    const actors = services.contentWorld.actorsAt(
-        player.getWorld().getDimension().name,
-        player.getWorld().getLevel().name
-    );
-
-    const target = player.getWorld().getActor(data.entityRuntimeId);
-    if (target === null) return 'declined';
-    const position = target.getPosition();
-
-    try {
-        return useItemOnEntity({
-            content,
-            actors,
-            player,
-            target: {
-                identifier: target.getType(),
-                runtimeId: Number(target.getRuntimeId()),
-                position: { x: position.getX(), y: position.getY(), z: position.getZ() }
-            }
-        });
-    } catch (error: unknown) {
-        log.error(error);
-        return 'declined';
-    }
-};
-
-/**
- * One right click on nothing, offered to the item in hand.
- *
- * @returns Whether a behavior consumed the click. A behavior that throws is logged and declines.
- */
-const contentUseInAir = ({ services, log }: ContentHooks, player: InteractingPlayer): InteractionResult => {
-    const { content } = services;
-    const actors = services.contentWorld.actorsAt(
-        player.getWorld().getDimension().name,
-        player.getWorld().getLevel().name
-    );
-
-    try {
-        return useItemInAir({ content, actors, player });
-    } catch (error: unknown) {
-        log.error(error);
-        return 'declined';
-    }
-};
 
 const isFiniteVector = (vector: Vector3): boolean =>
     Number.isFinite(vector.getX()) && Number.isFinite(vector.getY()) && Number.isFinite(vector.getZ());
@@ -191,18 +100,16 @@ export const rejectionReason = (transaction: ServerInventoryTransaction): string
 };
 
 /**
- * The client's item use, attack and release, acted on against the server's own state.
- *
- * The server's inventory, position and entity list decide what happens. The transaction says
- * which slot, item and position the client believes in, and those are checked against the
- * server's copy rather than trusted: the item placed or swung is the one the server has in
- * the player's hand, the reach is measured from where the server has the player, and the
- * entity hit is looked up by the runtime id the server assigned.
+ * The client's item use, attack and release, decoded into the intents both editions share
+ * ([ADR 0027](../../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  *
  * A transaction with a value no client can send is dropped at debug level before anything
  * is done with it. See {@link rejectionReason}. One whose hotbar slot is not the one the
  * server has selected is dropped at verbose level: the client selects a slot through
  * `MobEquipmentPacket` before it uses it, so a disagreement means the two have come apart.
+ * What survives becomes an intent, whose handler checks it against the server's own state:
+ * the item used is the one the server has in the player's hand, reach is measured from where
+ * the server has the player, and an entity is looked up by the runtime id the server assigned.
  *
  * `PlayerAuthInputHandler` hands the item use carried inside an input to this same handler,
  * wrapped in the packet it would have arrived in on its own.
@@ -261,16 +168,103 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
             return;
         }
 
+        const intent = this.intentOf(data, context, interactionRotation);
+        if (intent === undefined) return;
+        const handled = context.services.intents.handle(intent, context);
+        if (handled instanceof Promise) context.step.output(handled);
+    }
+
+    /** The intent a transaction's body decodes into, or undefined for one that asks for nothing. */
+    private intentOf(
+        data: UseItemData | UseItemOnEntityData | ReleaseItemData,
+        context: InputContext,
+        interactionRotation: InteractionRotation | undefined
+    ): Intent | undefined {
         switch (data.kind) {
             case 'useItem':
-                this.handleUseItem(data, context, interactionRotation);
-                return;
+                return this.useItemIntentOf(data, context, interactionRotation);
+
+            // The item in hand used on an entity, which is how a melee attack arrives: not
+            // through `InteractPacket`, which is what its name suggests. `InteractPacket` carries
+            // mounting, dismounting and opening a villager's trades, and a swing comes here. An
+            // interaction and a targeted item use, a spawn egg's, both go to the content.
             case 'useItemOnEntity':
-                this.handleUseItemOnEntity(data, context);
-                return;
+                switch (data.actionType) {
+                    case ItemUseOnActorActionType.ATTACK:
+                        return { kind: 'attackEntity', target: data.entityRuntimeId };
+                    case ItemUseOnActorActionType.INTERACT:
+                    case ItemUseOnActorActionType.ITEM_INTERACT:
+                        return { kind: 'interactEntity', target: data.entityRuntimeId };
+                    default:
+                        return undefined;
+                }
+
+            // The docs' Use action, a crossbow finishing its charge, ends the use and does
+            // nothing more, since crossbows are not implemented.
             case 'releaseItem':
-                this.handleReleaseItem(data, context);
-                return;
+                return {
+                    kind: 'releaseItem',
+                    action: data.actionType === ItemReleaseActionType.RELEASE ? 'release' : 'consume'
+                };
+        }
+    }
+
+    /**
+     * The intent of the item in hand being used: on a block, on nothing, or to break a block.
+     * What is placed is the item the server has in the player's hand, which the intent's handler
+     * reads for itself, not the Item the client sent: the client's copy says what it believes it
+     * holds, and the server's inventory is the one that decides.
+     */
+    private useItemIntentOf(
+        data: UseItemData,
+        { session, log, config }: InputContext,
+        interactionRotation: InteractionRotation | undefined
+    ): Intent | undefined {
+        const { blockPosition } = data;
+        const position = { x: blockPosition.getX(), y: blockPosition.getY(), z: blockPosition.getZ() };
+        switch (data.actionType) {
+            case ItemUseActionType.PLACE:
+                return {
+                    kind: 'useItemOnBlock',
+                    position,
+                    face: data.blockFace,
+                    faceLocation: {
+                        x: data.clickPosition.getX(),
+                        y: data.clickPosition.getY(),
+                        z: data.clickPosition.getZ()
+                    },
+                    ...(interactionRotation === undefined ? {} : { rotation: interactionRotation })
+                };
+
+            // Survival's route into a break when the client times it. With
+            // server-authoritative block breaking the client reports the break as
+            // `PREDICT_DESTROY_BLOCK` instead, and a transaction saying a block broke is one
+            // that skipped the mining the server is timing. Creative announces the same thing
+            // through PlayerAction, and both end up in `breakBlock`, which does nothing the
+            // second time round.
+            case ItemUseActionType.DESTROY:
+                if (config.getServerAuthoritativeBlockBreaking()) {
+                    log.verbose(
+                        `Dropped a block break transaction from ${session.identity.name}: block breaking is server-authoritative`
+                    );
+                    return undefined;
+                }
+                return {
+                    kind: 'mineBlock',
+                    step: 'finish',
+                    position,
+                    face: data.blockFace,
+                    serverTimed: false,
+                    breaksIfInstant: false
+                };
+
+            case ItemUseActionType.USE:
+                return { kind: 'useItem', held: data.triggerType === SIMULATION_TICK_TRIGGER };
+
+            // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
+            // so there is nothing here to apply.
+            case ItemUseActionType.USE_AS_ATTACK:
+                return undefined;
         }
     }
 
@@ -350,225 +344,5 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
     /** Whether an action names the empty stack used for an absent inventory item. */
     private isAir(item: Item): boolean {
         return item.getName() === 'minecraft:air' || item.getAmount() <= 0;
-    }
-
-    /**
-     * The item in hand being used *on an entity*, which is how a melee attack arrives.
-     *
-     * Not through `InteractPacket`, which is what its name suggests and which is why this sat
-     * unimplemented for so long: `InteractPacket` carries mounting, dismounting and opening a
-     * villager's trades, and a swing comes through here instead.
-     *
-     * The target is looked up by runtime id in the world's own map. A runtime id the world
-     * does not track is ordinary traffic, since a client can swing at something the server
-     * removed in the same tick, and it is logged at verbose level and dropped. The reach is
-     * measured by `meleeAttack` from the server's position for the player, not from the
-     * From Position the client sent.
-     */
-    private handleUseItemOnEntity(data: UseItemOnEntityData, context: InputContext): void {
-        const { session, log } = context;
-        if (
-            data.actionType === ItemUseOnActorActionType.INTERACT ||
-            data.actionType === ItemUseOnActorActionType.ITEM_INTERACT
-        ) {
-            // Entity interactions and targeted item uses both enter the content path. The latter
-            // includes spawn eggs; the item's `onUse` reads the clicked entity through `targetOf`.
-            // The content rules take the session, which answers for the player and its client.
-            contentUseOnEntity(context, session, data);
-            return;
-        }
-
-        if (data.actionType !== ItemUseOnActorActionType.ATTACK) return;
-
-        const target = session.getWorld().getActor(data.entityRuntimeId);
-        if (!target) {
-            log.verbose(
-                `${session.identity.name} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`
-            );
-            return;
-        }
-
-        // A player whose entity is in no store yet cannot reach anything.
-        const attacker = session.getActor();
-        if (attacker === undefined) return;
-        const player = session.getPlayer();
-        const components = player.getComponents();
-        const held = player.getInventory().equipment('mainhand');
-        const swing = new PlayerAttackEntityEvent(attacker, target, held);
-        context.services.events.post('playerAttackEntity', swing);
-        if (swing.isCanceled()) return;
-        // In this input's unit: the blow, its sounds and the hunger it costs are all written
-        // before `meleeAttack` returns, so a throw anywhere undoes the swing whole.
-        const landed = meleeAttack(attacker, target, {
-            reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
-
-            // What they are holding, not their attack attribute: in vanilla the weapon *is*
-            // the number, and an empty hand is one point rather than none.
-            damage: (held ?? Item.air()).getAttackDamage(),
-
-            // Falling, and actually descending: a player on the way up through a jump is off
-            // the ground too, and vanilla does not let them crit from there.
-            critical: !player.isOnGround() && components.get('vitals.fallDistance') > 0 && !player.isFlying(),
-
-            knockbackLevels: components.get('movement.sprinting') ? SPRINT_KNOCKBACK : 0
-        });
-
-        // Only a swing that connected costs anything. A miss is free, which is why the hunger
-        // is charged here rather than before the attempt.
-        if (landed) session.inputs().exhaustPlayer(player, EXHAUSTION.attacking);
-    }
-
-    /**
-     * Starts the clock on eating or drinking the item in hand, if it is a consumable.
-     *
-     * The client reports the start of a meal and nothing at its end, so the player finishes it
-     * itself once the item's `consume_seconds` have passed.
-     */
-    private startMeal({ services, step }: Pick<InputContext, 'services' | 'step'>, session: PlayerSession): void {
-        const player = session.getPlayer();
-        const ticks = consumeTicksOf(services.content, player);
-        if (ticks === undefined) return;
-
-        if (session.inputs().beginPlayerMeal(player, ticks))
-            startItemUse(session, player.getInventory().equipment('mainhand') ?? Item.air(), ticks, step.tick);
-    }
-
-    /**
-     * A held item let go of, which for a bow means the arrow leaves.
-     *
-     * The charge is measured rather than sent; see the `USE` branch of
-     * {@link handleUseItem} for why. The docs' Use action, a crossbow finishing its charge, is
-     * taken and does nothing, since crossbows are not implemented.
-     *
-     * The arrow is not taken out of the inventory and the bow is not worn down. Both need the
-     * same thing, telling the client that a slot has changed, and both are left with the armor
-     * work where that lives, because a server that silently disagrees with the client about
-     * what is in a player's hand is worse than one that has not got round to the accounting.
-     */
-    private handleReleaseItem(data: ReleaseItemData, { session, step }: InputContext): void {
-        const player = session.getPlayer();
-        // Letting go of the button ends a meal that has not finished.
-        session.inputs().cancelPlayerMeal(player);
-        // The draw's clock, which the store player keeps.
-        const drawn = player.takeItemUseTicks(step.tick);
-        const bow = player.getInventory().equipment('mainhand')?.getName() === BOW;
-        endItemUse(session, bow && data.actionType === ItemReleaseActionType.RELEASE ? 'release' : 'stop', step.tick);
-
-        if (data.actionType !== ItemReleaseActionType.RELEASE) return;
-        if (!bow) return;
-
-        // The arrow and the bow's sound are written in this input's unit.
-        const shooter = session.getActor();
-        if (shooter !== undefined) loose(shooter, drawn);
-    }
-
-    /**
-     * The item in hand being used: on a block, on nothing, or to break a block.
-     *
-     * The block the client names has to be within {@link MAX_BLOCK_TARGET_DISTANCE} of where the
-     * server has the player, or the transaction is dropped at verbose level. What is placed is
-     * the item the server has in the player's hand, which `useItemOnBlock` reads for itself,
-     * not the Item the client sent: the client's copy says what it believes it holds, and the
-     * server's inventory is the one that decides.
-     */
-    private handleUseItem(data: UseItemData, context: InputContext, interactionRotation?: InteractionRotation): void {
-        const { session, log, config, step } = context;
-        // The content rules take the session, and the block break the store player.
-        const player = session.getPlayer();
-        switch (data.actionType) {
-            case ItemUseActionType.PLACE:
-            case ItemUseActionType.DESTROY: {
-                const distance = player.getPosition().distanceTo(data.blockPosition);
-                if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
-                    log.verbose(
-                        `Dropped item use ${ItemUseActionType[data.actionType]} from ${session.identity.name} on a block ${distance.toFixed(1)} away`
-                    );
-                    return;
-                }
-
-                if (data.actionType === ItemUseActionType.PLACE) {
-                    // The block's and the item's behavior families get the click, and the block
-                    // in hand goes down when neither takes it. What a click they all decline
-                    // gets is nothing: the item places no block, so the client predicted none.
-                    if (player.getInventory().equipment('mainhand')?.getName() === ENDER_EYE) {
-                        eyeEcho.usedOnBlock(session.runtimeId, step.tick);
-                    }
-                    contentUseOnBlock(
-                        context,
-                        session,
-                        {
-                            position: {
-                                x: data.blockPosition.getX(),
-                                y: data.blockPosition.getY(),
-                                z: data.blockPosition.getZ()
-                            },
-                            face: data.blockFace,
-                            faceLocation: {
-                                x: data.clickPosition.getX(),
-                                y: data.clickPosition.getY(),
-                                z: data.clickPosition.getZ()
-                            }
-                        },
-                        interactionRotation
-                    );
-                    return;
-                }
-
-                // Survival's route into a break when the client times it. With
-                // server-authoritative block breaking the client reports the break as
-                // `PREDICT_DESTROY_BLOCK` instead, and a transaction saying a block broke is one
-                // that skipped the mining the server is timing. Creative announces the same
-                // thing through PlayerAction, and both end up in `breakBlock`, which does
-                // nothing the second time round.
-                if (config.getServerAuthoritativeBlockBreaking()) {
-                    log.verbose(
-                        `Dropped a block break transaction from ${session.identity.name}: block breaking is server-authoritative`
-                    );
-                    return;
-                }
-
-                // Only in a chunk the world already holds, as ADR 0014 has an input do.
-                const world = session.getWorld();
-                const { blockPosition } = data;
-                if (world.getLoadedChunk(blockPosition.getX() >> 4, blockPosition.getZ() >> 4) === null) {
-                    log.verbose(
-                        `Dropped a block break transaction from ${session.identity.name} in a chunk that is not loaded`
-                    );
-                    return;
-                }
-
-                // The break reads and writes the loaded chunk only, in this unit.
-                world.breakBlock(blockPosition, session.getPlayer());
-                return;
-            }
-
-            case ItemUseActionType.USE:
-                // A held input is not a new Eye of Ender click, and neither is the air-use report of
-                // a click that was just used on a block. In particular, after the frame hook fills
-                // a frame, neither a simulation tick nor the click's own echo may throw the eye.
-                if (player.getInventory().equipment('mainhand')?.getName() === ENDER_EYE) {
-                    const echo = eyeEcho.isEcho(session.runtimeId, step.tick);
-                    if (data.triggerType === SIMULATION_TICK_TRIGGER || echo) return;
-                }
-
-                // Bedrock never says how long a bow was drawn for. It says "started" here and
-                // "released" in another transaction entirely, and the gap between the two is the
-                // charge. So the clock starts here.
-                if (player.getInventory().equipment('mainhand')?.getName() === BOW) {
-                    const bow = player.getInventory().equipment('mainhand') ?? Item.air();
-                    session.getPlayer().beginItemUse(step.tick);
-                    startItemUse(session, bow, HELD_USE_TICKS, step.tick);
-                }
-
-                // The item's own `onUse`, which is how an eye of ender or a snowball leaves the
-                // hand. Eating is not here: it ends in a release the content has no path for yet.
-                if (contentUseInAir(context, session) === 'handled') this.startMeal(context, session);
-                return;
-
-            // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
-            // so there is nothing here to apply.
-            case ItemUseActionType.USE_AS_ATTACK:
-                return;
-        }
     }
 }

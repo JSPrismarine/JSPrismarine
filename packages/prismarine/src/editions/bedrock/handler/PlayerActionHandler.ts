@@ -132,13 +132,18 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
         // Mining goes to the intent both editions decode into, through the handlers plugins merge with.
         const miningStep = MINING_STEPS_OF.get(action);
         if (miningStep !== undefined) {
+            const serverTimed = config.getServerAuthoritativeBlockBreaking();
+            // A client that times its own breaks reports one done in an `InventoryTransaction`,
+            // which is the `finish` the server takes its word for. A prediction from it is not
+            // that report, and breaks nothing.
+            if (miningStep === 'finish' && !serverTimed) return;
             const mined = services.intents.handle(
                 {
                     kind: 'mineBlock',
                     step: miningStep,
                     position: { x: blockPosition.getX(), y: blockPosition.getY(), z: blockPosition.getZ() },
                     face: blockFace,
-                    serverTimed: config.getServerAuthoritativeBlockBreaking(),
+                    serverTimed,
                     breaksIfInstant: false
                 },
                 context

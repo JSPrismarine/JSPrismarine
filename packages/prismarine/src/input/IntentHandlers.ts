@@ -1,4 +1,5 @@
 import AnimateHandler from './handlers/AnimateHandler';
+import AttackEntityHandler from './handlers/AttackEntityHandler';
 import ChangeGameModeHandler from './handlers/ChangeGameModeHandler';
 import ChatHandler from './handlers/ChatHandler';
 import CloseContainerHandler from './handlers/CloseContainerHandler';
@@ -6,6 +7,7 @@ import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
 import HoldButtonsHandler from './handlers/HoldButtonsHandler';
+import InteractEntityHandler from './handlers/InteractEntityHandler';
 import JumpHandler from './handlers/JumpHandler';
 import MineBlockHandler from './handlers/MineBlockHandler';
 import MoveHandler from './handlers/MoveHandler';
@@ -17,6 +19,7 @@ import PlaySoundHandler from './handlers/PlaySoundHandler';
 import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PressRespawnHandler from './handlers/PressRespawnHandler';
 import QueryBossBarHandler from './handlers/QueryBossBarHandler';
+import ReleaseItemHandler from './handlers/ReleaseItemHandler';
 import RequestAbilityHandler from './handlers/RequestAbilityHandler';
 import RespawnHandler from './handlers/RespawnHandler';
 import RunCommandHandler from './handlers/RunCommandHandler';
@@ -32,6 +35,7 @@ import SetSneakingHandler from './handlers/SetSneakingHandler';
 import SetSprintingHandler from './handlers/SetSprintingHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
 import TurnLecternPageHandler from './handlers/TurnLecternPageHandler';
+import UseItemHandler from './handlers/UseItemHandler';
 import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
 
 /**
@@ -40,6 +44,7 @@ import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
  */
 export {
     AnimateHandler,
+    AttackEntityHandler,
     ChangeGameModeHandler,
     ChatHandler,
     CloseContainerHandler,
@@ -47,6 +52,7 @@ export {
     EmoteHandler,
     FinishCreditsHandler,
     HoldButtonsHandler,
+    InteractEntityHandler,
     JumpHandler,
     MineBlockHandler,
     MoveHandler,
@@ -58,6 +64,7 @@ export {
     PlayerInitializedHandler,
     PressRespawnHandler,
     QueryBossBarHandler,
+    ReleaseItemHandler,
     RequestAbilityHandler,
     RespawnHandler,
     RunCommandHandler,
@@ -73,5 +80,6 @@ export {
     SetSprintingHandler,
     SetViewDistanceHandler,
     TurnLecternPageHandler,
+    UseItemHandler,
     UseItemOnBlockHandler
 };

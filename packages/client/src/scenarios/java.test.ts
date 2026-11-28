@@ -6,6 +6,8 @@
  * other does.
  */
 import {
+    AddEntity,
+    Attack,
     ContainerSetContent,
     ContainerSetSlot,
     JavaEntityDataSerializer,
@@ -28,6 +30,8 @@ describe('a Java Edition client', () => {
     let loopback: LoopbackServer;
     let java: JavaClient;
     const chat: string[] = [];
+    /** The entity ids the client was shown, which it names an entity by. */
+    const shownEntities: number[] = [];
 
     beforeAll(async () => {
         loopback = await startLoopbackServer({
@@ -36,6 +40,16 @@ describe('a Java Edition client', () => {
         });
         java = await loopback.joinJava('Alex', { language: 'sv_se' });
         java.on('chat', (content) => chat.push(wordsOf(content)));
+        // Every entity the client is shown, one `Spawn Entity` after another until it hangs up.
+        const watch = (): void =>
+            void java.next(AddEntity).then(
+                ({ entityId }) => {
+                    shownEntities.push(entityId);
+                    watch();
+                },
+                () => {}
+            );
+        watch();
     }, 120_000);
 
     afterAll(async () => {
@@ -145,5 +159,27 @@ describe('a Java Edition client', () => {
         expect(
             entries.find(({ serializer }) => serializer === JavaEntityDataSerializer.ItemStack)?.value
         ).toMatchObject({ count: 1 });
+    });
+
+    it('hits a Bedrock player, who takes the blow', async () => {
+        const sessions = () => loopback.server.getSessionManager().getSessions();
+        const named = (name: string) => sessions().find((entry) => entry.getName() === name);
+        // Steve joined to chat; he comes to stand where Alex is, within reach of the blow.
+        expect((await loopback.command('tp Steve Alex')).ran).toBe(true);
+        const steve = named('Steve');
+        const alex = named('Alex');
+        if (steve === undefined || alex === undefined) throw new Error('both players should be on');
+        await loopback.untilJava(
+            () => steve.getPlayer().getPosition().distanceTo(alex.getPlayer().getPosition()) < 1,
+            'Steve never came to Alex'
+        );
+        // A Java client names the entity it hits by the id its `Spawn Entity` carried, so Alex
+        // has to have been shown Steve under the id the hit names.
+        const steveId = Number(steve.runtimeId);
+        await loopback.untilJava(() => shownEntities.includes(steveId), 'Alex was never shown Steve');
+        const before = steve.getPlayer().getHealth();
+
+        java.send(Attack, { entityId: steveId });
+        await loopback.untilJava(() => steve.getPlayer().getHealth() < before, "Alex's blow never landed on Steve");
     });
 });

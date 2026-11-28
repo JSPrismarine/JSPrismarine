@@ -10,12 +10,15 @@
  */
 import type { JavaPacketDefinition, JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import {
+    Attack,
     BlockChangedAck,
     ChatCommand,
     ChatMessage,
     ClientCommand,
     ClientCommandAction,
     ConfirmTeleportation,
+    Interact,
+    JavaHand,
     MOVE_ON_GROUND,
     MovePlayerPos,
     MovePlayerPosRot,
@@ -36,6 +39,7 @@ import {
     ServerboundKeepAlive,
     SetCarriedItem,
     SetCreativeModeSlot,
+    UseItem,
     UseItemOn
 } from '@jsprismarine/protocol/java/packet/play';
 
@@ -46,7 +50,7 @@ import { javaLocaleOf, javaViewDistanceOf } from '../javaClientInformation';
 import type { JavaWorldHost } from '../JavaConnections';
 import { hearPluginMessage } from '../javaPlay';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from '../javaInventory';
-import { isBlockStatus, javaDropIntentOf, javaMiningIntentOf } from '../javaMining';
+import { isBlockStatus, javaDropIntentOf, javaMiningIntentOf, javaReleaseIntentOf } from '../javaMining';
 import { javaUseItemOnIntentOf } from '../javaUseItemOn';
 import { outOfTurn } from './loginHandlers';
 import type { JavaContext, JavaPacketHandler } from './JavaPacketHandler';
@@ -242,9 +246,23 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
         target: BigInt(entityId),
         withData: includeData
     })),
+    // A use at nothing. As with a use on a block, a Java client sends the off hand's only when the
+    // main hand's did nothing, and the server uses what the main hand holds either way.
+    acknowledgedHandler(UseItem, ({ hand, sequence }) => ({
+        intent: hand === JavaHand.Main ? { kind: 'useItem', held: false } : undefined,
+        sequence
+    })),
+    intentHandler(Attack, ({ entityId }) => ({ kind: 'attackEntity', target: BigInt(entityId) })),
+    // The off hand's interaction follows the main hand's that did nothing, as a use's does.
+    intentHandler(Interact, ({ entityId, hand }) =>
+        hand === JavaHand.Main ? { kind: 'interactEntity', target: BigInt(entityId) } : undefined
+    ),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
-        intent: javaMiningIntentOf(action, session.getPlayer().gamemode) ?? javaDropIntentOf(action.status),
+        intent:
+            javaMiningIntentOf(action, session.getPlayer().gamemode) ??
+            javaDropIntentOf(action.status) ??
+            javaReleaseIntentOf(action.status),
         // Only the block statuses are numbered for an answer, whether the server acted on them or not.
         sequence: isBlockStatus(action.status) ? action.sequence : undefined
     }))

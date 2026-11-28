@@ -13,6 +13,7 @@ import {
     int,
     javaString,
     long,
+    lpVec3,
     optionalVarInt,
     sectionPosition,
     short,
@@ -708,6 +709,37 @@ export const UseItemOn = defineJavaPacket('Use Item On', 'play/serverbound/use_i
     inside: bool,
     worldBorderHit: bool,
     sequence: varInt
+});
+
+/**
+ * `Use Item` (serverbound): the player used the item in `hand` at nothing, facing `yaw` and
+ * `pitch`. `sequence` numbers it for `Acknowledge Block Change`, as a block use's is.
+ * @javaSource ServerboundUseItemPacket.STREAM_CODEC
+ */
+export const UseItem = defineJavaPacket('Use Item', 'play/serverbound/use_item', {
+    hand: varInt,
+    sequence: varInt,
+    yaw: float,
+    pitch: float
+});
+
+/**
+ * `Attack` (serverbound): the player hit the entity `entityId`.
+ * @javaSource ServerboundAttackPacket.STREAM_CODEC
+ */
+export const Attack = defineJavaPacket('Attack', 'play/serverbound/attack', { entityId: varInt });
+
+/**
+ * `Interact` (serverbound): the player used the item in `hand` on the entity `entityId`,
+ * clicking it at `location`, relative to the entity's position. `sneaking` is whether the
+ * player held the sneak key, vanilla's secondary action.
+ * @javaSource ServerboundInteractPacket.STREAM_CODEC
+ */
+export const Interact = defineJavaPacket('Interact', 'play/serverbound/interact', {
+    entityId: varInt,
+    hand: varInt,
+    location: lpVec3,
+    sneaking: bool
 });
 
 /**

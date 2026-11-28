@@ -1,6 +1,7 @@
 /**
  * A Java client's `Player Action` as the intents a Bedrock client's actions decode into: the
- * `mineBlock` its block actions do, and the `dropHeldItem` of the drop key ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
+ * `mineBlock` its block actions do, the `dropHeldItem` of the drop key and the `releaseItem` of
+ * letting go of the use button ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPayload } from '@jsprismarine/protocol/java/packet/JavaPacket';
@@ -66,3 +67,12 @@ export const javaDropIntentOf = (status: number): Intent<'dropHeldItem'> | undef
     if (status === PlayerActionStatus.DropAllItems) return { kind: 'dropHeldItem', all: true };
     return undefined;
 };
+
+/**
+ * The intent a `Player Action` that lets go of the use button decodes into, which looses a drawn
+ * bow's arrow or cuts a meal short.
+ * @param status - The packet's status.
+ * @returns The intent, or undefined for any other status.
+ */
+export const javaReleaseIntentOf = (status: number): Intent<'releaseItem'> | undefined =>
+    status === PlayerActionStatus.ReleaseUseItem ? { kind: 'releaseItem', action: 'release' } : undefined;

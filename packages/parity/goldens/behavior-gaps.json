@@ -3341,7 +3341,7 @@
     "protocol.java-client": {
         "combat:attack-entities": {
             "kind": "deferred",
-            "reason": "In Java: A client attacks the entity it hits, and swings its arm at an entity or at the air. For a Java client here: play/serverbound/attack is not read; play/serverbound/punch is not read.",
+            "reason": "In Java: A client attacks the entity it hits, and swings its arm at an entity or at the air. For a Java client here: play/serverbound/punch is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3767"
         },
         "combat:combat-tracking": {
@@ -3362,11 +3362,6 @@
         "combat:hurt-feedback": {
             "kind": "deferred",
             "reason": "In Java: A client sees an entity hurt, the direction it was hurt from, and the arm swings and critical hits of others. For a Java client here: play/clientbound/hurt_animation is never sent; play/clientbound/damage_event is never sent; play/clientbound/animate is never sent; play/clientbound/swing_animation is never sent.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3767"
-        },
-        "combat:interact-entities": {
-            "kind": "deferred",
-            "reason": "In Java: A client uses the item in its hand on an entity, or the entity itself: breeding, riding, trading and the like. For a Java client here: play/serverbound/interact is not read.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3767"
         },
         "commands:advancements": {
@@ -3441,7 +3436,7 @@
         },
         "containers:use-items": {
             "kind": "deferred",
-            "reason": "In Java: A client uses the item in its hand in the air, eats, drinks, draws a bow and lets it go, and stabs with a spear. For a Java client here: play/serverbound/use_item is not read; play/serverbound/player_action (release a used item) decodes into nothing; play/serverbound/player_action (stab) decodes into nothing; play/clientbound/cooldown is never sent.",
+            "reason": "In Java: A client uses the item in its hand in the air, eats, drinks, draws a bow and lets it go, and stabs with a spear. For a Java client here: play/serverbound/player_action (stab) decodes into nothing; play/clientbound/cooldown has no layout.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3769"
         },
         "hud:tab-list-game-modes": {

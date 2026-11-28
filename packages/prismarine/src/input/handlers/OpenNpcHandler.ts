@@ -1,18 +1,7 @@
-import { Gametype } from '@jsprismarine/minecraft';
-
-import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
 import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
-
-/**
- * The slack added to a player's reach when checking the actor they say they interacted with.
- *
- * Reach is measured from the player's feet to the actor's feet, and a tall actor is clicked
- * well above where it stands. One block covers that. The check bounds nonsense rather than
- * policing reach.
- */
-const REACH_SLACK = 1;
+import { actorReachRefusal } from './entityReach';
 
 /**
  * The player opened an NPC's dialogue.
@@ -32,14 +21,9 @@ export default class OpenNpcHandler implements IntentHandler<'openNpc'> {
             return;
         }
 
-        const player = session.getPlayer();
-        const reach = (player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH) + REACH_SLACK;
-        const distance = player.getPosition().distanceTo(actor.getPosition());
-        // Written so a NaN distance fails too.
-        if (!(distance <= reach)) {
-            log.debug(
-                `Dropped an NPC open from ${session.identity.name}: actor ${target} is ${distance.toFixed(1)} away`
-            );
+        const refusal = actorReachRefusal(session.getPlayer(), actor.getPosition());
+        if (refusal !== null) {
+            log.debug(`Dropped an NPC open from ${session.identity.name}: actor ${target} is ${refusal}`);
             return;
         }
 

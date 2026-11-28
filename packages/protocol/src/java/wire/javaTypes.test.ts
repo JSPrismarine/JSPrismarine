@@ -5,6 +5,7 @@ import {
     blockPosition,
     javaString,
     long,
+    lpVec3,
     sectionPosition,
     textComponent,
     unsignedShort,
@@ -98,5 +99,39 @@ describe('Java wire types', () => {
 
         expect(bytes.slice(0, 4)).toEqual([0x0a, 0x08, 0x00, 0x09]);
         expect(textComponent.read(new BinaryStream(Buffer.from(bytes)))).toEqual(text);
+    });
+
+    describe('LpVec3', () => {
+        it('writes the zero vector, and one too small to tell from it, as one zero byte', () => {
+            expect(bytesOf(lpVec3, { x: 0, y: 0, z: 0 })).toEqual([0]);
+            expect(bytesOf(lpVec3, { x: 1e-6, y: 0, z: 0 })).toEqual([0]);
+            expect(lpVec3.read(new BinaryStream(Buffer.from([0])))).toEqual({ x: 0, y: 0, z: 0 });
+        });
+
+        it('packs a scale of one into the first byte, and each coordinate into 15 bits after it', () => {
+            // Scale 1, then x = 1 as 32766, y = 0 as 16383 and z = -1 as 0, at bits 3, 18 and 33.
+            const bytes = [241, 255, 0, 0, 255, 255];
+
+            expect(bytesOf(lpVec3, { x: 1, y: 0, z: -1 })).toEqual(bytes);
+            expect(lpVec3.read(new BinaryStream(Buffer.from(bytes)))).toEqual({ x: 1, y: 0, z: -1 });
+        });
+
+        it("carries a scale past the first byte's two bits in a VarInt after the vector", () => {
+            // Scale 10: its low bits 2 with the continuation bit, then 10 >> 2 = 2 as a VarInt.
+            const bytes = [246, 255, 127, 254, 255, 255, 2];
+
+            expect(bytesOf(lpVec3, { x: 10, y: 0, z: 0 })).toEqual(bytes);
+            expect(lpVec3.read(new BinaryStream(Buffer.from(bytes)))).toEqual({ x: 10, y: 0, z: 0 });
+        });
+
+        it('reads any vector back to within one step of its 15 bits', () => {
+            const vector = { x: 0.3, y: -0.71, z: 0.05 };
+            const stream = new BinaryStream();
+            lpVec3.write(stream, vector);
+            const read = lpVec3.read(new BinaryStream(stream.getBuffer()));
+
+            for (const axis of ['x', 'y', 'z'] as const)
+                expect(Math.abs(read[axis] - vector[axis])).toBeLessThan(2 / 32766);
+        });
     });
 });

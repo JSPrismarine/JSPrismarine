@@ -31,7 +31,8 @@ export type PlayerAnimation = (typeof PLAYER_ANIMATIONS)[number];
  * - `abort`: the player let go before the block broke.
  * - `stop`: the player let go after it broke, which changes nothing.
  * - `swing`: another punch while mining, heard by the players near.
- * - `finish`: the client says the block gave way, which the server checks against how long it was mined.
+ * - `finish`: the client says the block gave way. When the server times breaks it checks this
+ *   against how long the block was mined; when the client times them, the block breaks.
  * - `instant`: a creative break, at once.
  */
 export const MINING_STEPS = ['start', 'continue', 'abort', 'stop', 'swing', 'finish', 'instant'] as const;
@@ -157,7 +158,26 @@ export interface IntentPayloads {
         readonly position: { readonly x: number; readonly y: number; readonly z: number };
         readonly face: number;
         readonly faceLocation: { readonly x: number; readonly y: number; readonly z: number };
+        /**
+         * Which way the player faced when it clicked, as a Bedrock client reports it with the
+         * tick's input; absent, the player's own rotation, which a Java client's moves keep.
+         */
+        readonly rotation?: { readonly pitch: number; readonly yaw: number };
     };
+    /**
+     * The player used the item in hand at nothing. `held` says the client reports a button held
+     * down since an earlier tick rather than a new click, as Bedrock's does each tick of a draw.
+     */
+    readonly useItem: { readonly held: boolean };
+    /** The player hit an actor, by runtime id, with the item in hand. */
+    readonly attackEntity: { readonly target: bigint };
+    /** The player used the item in hand on an actor, by runtime id, which is how a spawn egg or a lead works. */
+    readonly interactEntity: { readonly target: bigint };
+    /**
+     * The player let go of the item it was using: `release` for a bow's arrow leaving or a meal
+     * cut short, `consume` for a client saying the use ran its course.
+     */
+    readonly releaseItem: { readonly action: 'release' | 'consume' };
     /**
      * The player pressed the drop key: one item of the stack in its hand, or with `all` the whole
      * stack, which it throws ahead of itself.
@@ -274,6 +294,14 @@ export const Intents = {
     dropHeldItem: { lane: 'input' },
     // Places blocks and runs the block's and the item's behaviors in the world.
     useItemOnBlock: { lane: 'input' },
+    // Runs the item's behavior, which may throw it, start a draw or begin a meal.
+    useItem: { lane: 'input' },
+    // Lands a blow, which writes the target's health and the attacker's hunger.
+    attackEntity: { lane: 'input' },
+    // Runs the content's behaviors for the actor and the item, which may write the world.
+    interactEntity: { lane: 'input' },
+    // Ends a draw, which looses an arrow into the world.
+    releaseItem: { lane: 'input' },
     // Moves the player, which replication shows the players that see it.
     move: { lane: 'input' },
     // Tires the player.

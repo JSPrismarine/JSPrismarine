@@ -1,8 +1,10 @@
 /**
  * When each entity last used an eye of ender on a block, kept only as long as it can matter.
  *
- * The client reports one right click on an end portal frame as a block use and as a use in the
- * air, in either tick, and the air use must not throw a second eye. Keyed by entity runtime id:
+ * A Bedrock client reports one right click on an end portal frame as a block use and as a use in
+ * the air, in either tick, and the air use must not throw a second eye. A Java client sends the
+ * air use only when the block use did nothing on its side, so the check never refuses one of its
+ * clicks: after an eye fills a frame there is no air use to refuse. Keyed by entity runtime id:
  * the echo comes from the same entity in the same world a tick or two later, so the id is
  * exactly as long-lived as the fact. An entry outside the window answers the same as no entry,
  * so each write drops those. That is what removes the entry of a player who leaves, dies or
@@ -40,3 +42,15 @@ export class EyeOfEnderEcho {
         return Math.abs(tick - at) <= this.windowTicks;
     }
 }
+
+/** The item whose block use also arrives as an air use. */
+export const ENDER_EYE = 'minecraft:ender_eye';
+
+/**
+ * How many ticks after an eye of ender was used on a block the same client's click at nothing is
+ * still taken for that click's echo: the block use and the air use arrive in either tick.
+ */
+const EYE_ECHO_TICKS = 2;
+
+/** The eye of ender block uses whose air-use echo is still due, which both use handlers share. */
+export const enderEyeEcho = new EyeOfEnderEcho(EYE_ECHO_TICKS);
