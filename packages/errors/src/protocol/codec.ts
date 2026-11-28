@@ -120,6 +120,47 @@ class MissingBiomeDefinitions extends JSPrismarineError {
 }
 
 /**
+ * A biome definition list to add pack biomes to holds an entry with chunk generation data,
+ * which the server cannot read past. The captured vanilla lists carry none, so a capture of a
+ * newer server that adds it needs the reader extended before pack biomes can be sent.
+ */
+class BiomeChunkGenerationDataUnsupported extends JSPrismarineError {
+    public static get code(): 'PROTOCOL_BIOME_CHUNK_GENERATION_DATA_UNSUPPORTED' {
+        return 'PROTOCOL_BIOME_CHUNK_GENERATION_DATA_UNSUPPORTED';
+    }
+    public static get domain(): 'protocol' {
+        return 'protocol';
+    }
+    public static get module(): 'codec' {
+        return 'codec';
+    }
+    public static get template(): 'Biome definition {index} carries chunk generation data, which cannot be read to add pack biomes' {
+        return 'Biome definition {index} carries chunk generation data, which cannot be read to add pack biomes';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/protocol/codec#protocol-biome-chunk-generation-data-unsupported' {
+        return 'https://jsprismarine.dev/errors/protocol/codec#protocol-biome-chunk-generation-data-unsupported';
+    }
+
+    public override readonly code = 'PROTOCOL_BIOME_CHUNK_GENERATION_DATA_UNSUPPORTED';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/protocol/codec#protocol-biome-chunk-generation-data-unsupported';
+    readonly #params: { readonly index: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly index: unknown }, options?: ErrorOptions) {
+        super(
+            `Biome definition ${String(params?.index)} carries chunk generation data, which cannot be read to add pack biomes`,
+            options
+        );
+        this.#params = params ?? { index: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
  * A packet was decoded before it was given bytes to read. This is a bug in the protocol codecs;
  * report it with the stack trace.
  */
@@ -2772,6 +2813,7 @@ export const ProtocolCodecErrors = Object.freeze({
     DuplicatePacketId,
     MissingActorIdentifiers,
     MissingBiomeDefinitions,
+    BiomeChunkGenerationDataUnsupported,
     NoReadBuffer,
     PacketHasNoData,
     BatchChecksumMismatch,

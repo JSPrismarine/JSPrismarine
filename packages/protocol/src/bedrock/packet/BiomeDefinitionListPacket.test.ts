@@ -2,11 +2,13 @@ import { biome_definitions_network } from '@jsprismarine/bedrock-data';
 import { netIdFor } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import { packetIds as packetIds2225 } from '@jsprismarine/protocol/bedrock/wire/versions/v2225';
 import BinaryStream from '@jsprismarine/binaryutils';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import { NetworkUtil } from '../../wire/networkUtil';
-import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
+import BiomeDefinitionListPacket, { appendBiomeDefinitions } from './BiomeDefinitionListPacket';
+import type { BiomeDefinitionEntry } from './BiomeDefinitionListPacket';
 import { capture } from '../../testing/evidence.test.helper';
 
 /**
@@ -158,5 +160,41 @@ describe('network', () => {
                 expect(packetIds2225.BiomeDefinitionListPacket).toBe(0x7a);
             });
         });
+    });
+});
+
+/**
+ * What BDS 1.26.60.6 sent a joining client with a behavior pack holding two biomes:
+ * `jsp:meadow`, with `minecraft:climate` at 0.6 and 0.5 and the tags `jsp` and `meadow`, and
+ * `jsp:bare`, with no components. The payload, without the packet id.
+ */
+const PACK_BIOMES_CAPTURE = fs.readFileSync(
+    new URL('./__fixtures__/biome-definitions-pack-biomes-bds-1.26.60.6.bin', import.meta.url)
+);
+
+/** What BDS gives a pack biome for each field its components leave out. */
+const PACK_BIOME_DEFAULTS = {
+    temperature: 0.5,
+    downfall: 0.5,
+    foliageSnow: 0,
+    depth: 0.1,
+    scale: 0.2,
+    mapWaterColor: -1503610881,
+    rain: true,
+    tags: []
+} as const;
+
+describe('appendBiomeDefinitions', () => {
+    it("adds a pack's biomes to the vanilla list as BDS does, byte for byte", () => {
+        const entries: BiomeDefinitionEntry[] = [
+            { ...PACK_BIOME_DEFAULTS, name: 'jsp:meadow', id: 30000, temperature: 0.6, tags: ['jsp', 'meadow'] },
+            { ...PACK_BIOME_DEFAULTS, name: 'jsp:bare', id: 30001 }
+        ];
+
+        expect(appendBiomeDefinitions(captureAt(2225), entries).equals(PACK_BIOMES_CAPTURE)).toBe(true);
+    });
+
+    it('writes the payload it read back unchanged when there is nothing to add', () => {
+        expect(appendBiomeDefinitions(captureAt(2225), []).equals(captureAt(2225))).toBe(true);
     });
 });
