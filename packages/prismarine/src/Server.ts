@@ -1147,7 +1147,7 @@ export default class Server {
 
     /**
      * The behavior pack folders the default world loads: the ones `content-world-packs` names,
-     * then each installed addon's, in the order of their local names.
+     * then each installed addon's, as {@link AddonManager.packDirectories} orders them.
      * @throws {Error} Before the content has been built.
      */
     public getWorldPackDirectories(): readonly string[] {

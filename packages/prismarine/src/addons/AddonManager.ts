@@ -157,6 +157,28 @@ const originOf = (locked: LockedAddon): string => {
 };
 
 /**
+ * The packs in the order a pack stack applies them, bottom first: as given, except that each
+ * pack comes after the packs among them it depends on. A dependency cycle keeps the given order
+ * where it closes.
+ */
+const afterDependencies = <T extends { readonly summary: PackSummary }>(packs: readonly T[]): T[] => {
+    const byUuid = new Map(packs.map((pack) => [pack.summary.uuid, pack]));
+    const ordered: T[] = [];
+    const placed = new Set<T>();
+    const place = (pack: T): void => {
+        if (placed.has(pack)) return;
+        placed.add(pack);
+        for (const { uuid } of pack.summary.dependencies) {
+            const dependency = byUuid.get(uuid);
+            if (dependency !== undefined) place(dependency);
+        }
+        ordered.push(pack);
+    };
+    for (const pack of packs) place(pack);
+    return ordered;
+};
+
+/**
  * Installs, updates and removes a server's addons, and keeps `addons/` in line with
  * `addons.json` and `addons.lock.json`. One operation runs at a time, in the order they were
  * asked for. Each reads both files again, so a hand edit of `addons.json` counts at once.
@@ -193,13 +215,14 @@ export class AddonManager {
     }
 
     /**
-     * The folders of the installed addons, in key order: the packs that join the world's pack
-     * list after `content-world-packs`.
+     * The folders of the installed addons' behavior packs: the packs that join the world's pack
+     * list after `content-world-packs`. They are in key order, except that a pack loads after the
+     * packs it depends on, so it overrides what it builds on.
      */
     public packDirectories(): readonly string[] {
-        return this.installedPacks
-            .filter(({ summary }) => summary.kind === 'behavior')
-            .map(({ directory }) => directory);
+        return afterDependencies(this.installedPacks.filter(({ summary }) => summary.kind === 'behavior')).map(
+            ({ directory }) => directory
+        );
     }
 
     /** Whether any installed pack, behavior or resource, says in its manifest that it is part of an addon. */
@@ -272,6 +295,7 @@ export class AddonManager {
                 { ...lock, addons: { ...lock.addons, [key]: locked } }
             );
             this.report('Installed', key, resolved);
+            this.warnMissingDependencies([key]);
             await this.reload();
             return locked;
         });
@@ -323,6 +347,7 @@ export class AddonManager {
                 // What was replaced is locked and loaded even when a later addon fails, so the
                 // lock always names what the folders hold.
                 if (changed.length > 0 || relocked) await this.write(requested, { ...lock, addons: locks });
+                this.warnMissingDependencies(changed);
                 if (changed.length > 0) await this.reload();
             }
             return changed;
@@ -397,6 +422,8 @@ export class AddonManager {
             const failed: string[] = [];
             const active = this.installed;
             let changed = false;
+            /** The keys this sync installed, whose missing dependencies are said once all are placed. */
+            const placed: string[] = [];
             // A startup sync runs before the content build, which loads what it installs.
             const startup = options.reload === false;
 
@@ -443,6 +470,7 @@ export class AddonManager {
                         this.reportOutgoing(key, outgoing);
                     }
                     changed = true;
+                    placed.push(key);
                 } catch (error: unknown) {
                     failed.push(key);
                     this.options.log.error(`Could not install ${key}: ${messageOf(error)}`);
@@ -453,6 +481,7 @@ export class AddonManager {
             // A dropped pack that failed to install stays in addons.json, so the next sync tries again.
             if (changed || requested !== files.requested) await this.write(requested, { ...lock, addons }, failed);
             else await this.track(addons, failed);
+            this.warnMissingDependencies(placed);
             // A folder that vanished and could not come back leaves the pack list, so the scripts
             // reload even when the folder holds nothing new.
             const restart = changed || !sameKeys(active, this.installed) || this.reloadPending;
@@ -568,9 +597,9 @@ export class AddonManager {
     }
 
     /**
-     * Logs an install, where it came from, the packs it holds, whether it is deprecated, what in
-     * it waits for a restart or a player's next join, and the packs it needs that none installed
-     * holds. What every install of its kind does, such as content that loads at the next restart,
+     * Logs an install, where it came from, the packs it holds, whether it is deprecated, and what
+     * in it waits for a restart or a player's next join. {@link warnMissingDependencies} says what
+     * it needs that no installed addon holds. What every install of its kind does, such as content that loads at the next restart,
      * is info whatever the archive was, so an `.mcaddon` and an addon from a source read alike; a
      * warning is something the owner should act on.
      * @param beforeContent - Whether the install runs before the content build, as a startup sync
@@ -589,15 +618,19 @@ export class AddonManager {
             log.info(`${key} also has ${needsRestart.join(', ')}, which load when the server restarts`);
         if (packs.some(({ summary }) => summary.kind === 'resource'))
             log.info(`${key}'s resource packs reach each player when they next join`);
+    }
 
-        const known = new Set([
-            ...this.installedPacks.filter((pack) => pack.key !== key).map(({ summary }) => summary.uuid),
-            ...packs.map(({ summary }) => summary.uuid)
-        ]);
-        for (const { summary } of packs) {
-            const missing = summary.dependencies.filter(({ uuid }) => !known.has(uuid));
-            for (const { uuid, version } of missing)
-                log.warn(
+    /**
+     * Warns about each pack of the given addons that depends on a pack no installed addon holds.
+     * Runs once the operation has recorded what is installed, so a pack whose dependency installs
+     * later in the same sync, as `furniture-bp` does before `furniture-rp`, is not warned about.
+     */
+    private warnMissingDependencies(keys: readonly string[]): void {
+        const known = new Set(this.installedPacks.map(({ summary }) => summary.uuid));
+        for (const { key, summary } of this.installedPacks) {
+            if (!keys.includes(key)) continue;
+            for (const { uuid, version } of summary.dependencies.filter(({ uuid }) => !known.has(uuid)))
+                this.options.log.warn(
                     `${key}'s ${summary.kind} pack ${summary.name} needs the pack ${uuid} ${version}, which no installed addon holds`
                 );
         }

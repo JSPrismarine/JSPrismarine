@@ -760,6 +760,51 @@ describe('AddonManager', () => {
         );
     });
 
+    /** A behavior pack with the header UUID `uuid` that depends on the packs `needs` names. */
+    const dependentPack = (uuid: string, needs: readonly string[]): Uint8Array => {
+        const files = packFiles('1.0.0');
+        const manifest = JSON.parse(new TextDecoder().decode(files.get('manifest.json')));
+        manifest.header.uuid = uuid;
+        manifest.modules = [{ type: 'data', uuid: `${uuid.slice(0, -4)}ffff`, version: [1, 0, 0] }];
+        manifest.dependencies = needs.map((need) => ({ uuid: need, version: [1, 0, 0] }));
+        files.set('manifest.json', encoder.encode(JSON.stringify(manifest)));
+        return writeZip(files);
+    };
+
+    it('warns of no dependency that a later addon of the same sync holds', async () => {
+        // furniture-bp sorts before furniture-rp, and the startup sync installs both.
+        await mkdir(path.join(directory, 'addons'));
+        await writeFile(
+            path.join(directory, 'addons', 'furniture-bp.mcpack'),
+            dependentPack('8c2b3c4e-0d1a-4c8e-9f00-000000000010', ['8c2b3c4e-0d1a-4c8e-9f00-000000000003'])
+        );
+        await writeFile(path.join(directory, 'addons', 'furniture-rp.mcpack'), writeZip(resourcePackFiles()));
+
+        expect(await manager().sync({ reload: false })).toEqual([]);
+        // A restart finds both installed and still says nothing.
+        expect(await manager().sync({ reload: false })).toEqual([]);
+
+        expect(logged.filter((line) => line.includes('needs the pack'))).toEqual([]);
+    });
+
+    it('loads a behavior pack after the behavior packs it depends on', async () => {
+        await mkdir(path.join(directory, 'addons'));
+        const base = '8c2b3c4e-0d1a-4c8e-9f00-000000000020';
+        await writeFile(
+            path.join(directory, 'addons', 'a-extension.mcpack'),
+            dependentPack('8c2b3c4e-0d1a-4c8e-9f00-000000000021', [base])
+        );
+        await writeFile(path.join(directory, 'addons', 'z-library.mcpack'), dependentPack(base, []));
+        const addons = manager();
+
+        expect(await addons.sync({ reload: false })).toEqual([]);
+
+        expect(addons.packDirectories()).toEqual([
+            path.join(directory, 'addons', 'z-library'),
+            path.join(directory, 'addons', 'a-extension')
+        ]);
+    });
+
     it('imports the worlds of an archive once, and installs the packs a world turns on', async () => {
         const world = writeZip(
             new Map([
