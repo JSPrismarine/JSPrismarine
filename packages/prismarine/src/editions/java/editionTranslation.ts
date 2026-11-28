@@ -17,7 +17,9 @@ import {
 } from '@jsprismarine/mapping';
 import { BLOCK_STATES, CONFIGURATION, ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 
+import { blockFromContent } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import type { ServerContent } from '../../content/ServerContent';
 
 /** A value with a Bedrock form and a Java form, translated either way. */
 export interface EditionTranslation<Bedrock, Java> {
@@ -53,20 +55,36 @@ export const cachedTranslation = <Bedrock, Java>(
  * Block states: a Bedrock runtime id and a Java state id.
  *
  * A Bedrock-only block, which no Java state reaches, is sent as stone, so the ground stays solid
- * where it stands. A Java state the mapping lists as a loss becomes the Bedrock fallback the loss
- * names, and one it does not know becomes air.
+ * where it stands. One the content says nothing collides with, such as a pack's light or
+ * decoration, is sent as Java's invisible `minecraft:light` at the block's light level, or as air
+ * when it gives no light, so a Java player neither sees a stone block that is not there nor gets
+ * pushed into a crawl by one. A Java state the mapping lists as a loss becomes the Bedrock
+ * fallback the loss names, and one it does not know becomes air.
+ * @param content - The server's content, read when a block is first sent, which says whether a
+ *   Bedrock-only block collides and how much light it gives. Without it every such block is stone.
  * @returns The translation, cached.
  */
-export const javaBlockTranslation = (): EditionTranslation<number, number> => {
+export const javaBlockTranslation = (
+    content: () => ServerContent | undefined = () => undefined
+): EditionTranslation<number, number> => {
     const javaAir = BLOCK_STATES.idOf('minecraft:air') ?? 0;
     const javaStone = BLOCK_STATES.idOf('minecraft:stone') ?? 1;
     const bedrockAir = () => BlockRuntimeIds.getByName('minecraft:air');
+    /** What a Java client is sent for a block no Java state maps to. */
+    const unmapped = (name: string, properties: Parameters<typeof blockFromContent>[2]): number => {
+        const loaded = content();
+        const block = loaded === undefined ? null : blockFromContent(name, loaded, properties);
+        if (block === null || block.isSolid()) return javaStone;
+        const level = block.getLightLevel();
+        if (level <= 0) return javaAir;
+        return BLOCK_STATES.idOf('minecraft:light', { level: String(level), waterlogged: 'false' }) ?? javaAir;
+    };
     return cachedTranslation({
         toJava: (runtimeId) => {
             const state = BlockRuntimeIds.getState(runtimeId);
             if (state === null || state.name === 'minecraft:air') return javaAir;
             const mapped = bedrockBlockStateToJava(state.name, state.properties);
-            if (mapped.kind !== 'mapped') return javaStone;
+            if (mapped.kind !== 'mapped') return unmapped(state.name, state.properties);
             return BLOCK_STATES.idOf(mapped.java.name, mapped.java.properties) ?? javaStone;
         },
         toBedrock: (javaId) => {

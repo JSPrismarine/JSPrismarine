@@ -229,7 +229,7 @@ export const javaPlayersOf = (
     // Read when an intent arrives, as the dispatcher reads its handlers, not when the listener starts.
     const intents = () => server.getPacketHandlerRegistry().getIntentHandlers();
     // One cache of Java block states, items and chunk columns for every Java session, rather than one each.
-    const blocks = javaBlockTranslation();
+    const blocks = javaBlockTranslation(() => server.getContent());
     const items = javaItemTranslation();
     const columns = new JavaChunkTranslator(blocks);
 

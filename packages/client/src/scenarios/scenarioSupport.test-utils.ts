@@ -7,6 +7,10 @@ import type { LoopbackPlayer, LoopbackServer } from '../testing/loopbackServer.t
 /** How far a player's eyes sit above its feet; positions on the wire are the eyes'. */
 export const EYE_HEIGHT = 1.62;
 
+/** Whether a value, such as one parsed from JSON or NBT, is an object with string keys. */
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
 /**
  * Every line the player was shown, oldest first: chat and system text, then the messages and
  * parameters of each command output, since the server answers a player's command with either.
