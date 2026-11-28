@@ -1,7 +1,9 @@
 import type { BlockHooks } from '@jsprismarine/blocks/hooks';
 import { BehaviorRegistry } from '@jsprismarine/content/behaviors';
 import type { Definition } from '@jsprismarine/content/definitions';
+import { loadItemTypes } from '@jsprismarine/items';
 import type { ItemHooks } from '@jsprismarine/items/hooks';
+import { ItemStack } from '@jsprismarine/items/ItemStack';
 import type {
     ScriptBlockHookEvent,
     ScriptComponentSink,
@@ -153,6 +155,50 @@ describe('ScriptComponentBridge', () => {
             { hook: 'onRedstoneUpdate', powerLevel: 7, previousPowerLevel: 0, firstUpdate: true },
             { hook: 'onRedstoneUpdate', powerLevel: 0, previousPowerLevel: 7, firstUpdate: false },
             { hook: 'onBlockStateChange', previousPermutation: { typeId: 'jsp:ticker', states: { open_bit: true } } }
+        ]);
+    });
+
+    it("gives an item's onUseOn and onMineBlock the block in the dimension it is in", () => {
+        const blocks = new BehaviorRegistry<BlockHooks>();
+        const items = new BehaviorRegistry<ItemHooks>();
+        const bridge = new ScriptComponentBridge();
+        registerScriptComponentBehaviors({ blocks, items }, bridge);
+        const wand: Definition = {
+            identifier: 'jsp:wand',
+            registry: 'items',
+            pack: 'test',
+            path: 'items/wand.json',
+            data: {
+                format_version: '1.21.90',
+                'minecraft:item': { description: { identifier: 'jsp:wand' }, components: { 'jsp:recorder': {} } }
+            }
+        };
+        // The script behavior binds as a content build loads the item.
+        const { registry } = loadItemTypes({ behaviors: items, definitions: [wand] });
+        const stack = new ItemStack(registry.holder('jsp:wand'));
+        const { sink, items: raised } = recordingSink();
+        bridge.bind(sink);
+
+        const block = {
+            identifier: 'minecraft:netherrack',
+            states: {},
+            position: { x: 3, y: 40, z: -2 },
+            dimension: 'minecraft:nether'
+        };
+        const source = { identifier: 'minecraft:player', runtimeId: 5 };
+        stack.dispatchFirst('onUseOn', {
+            itemStack: stack,
+            source,
+            useDuration: 0,
+            block,
+            blockFace: 'up',
+            faceLocation: { x: 0.5, y: 1, z: 0.5 }
+        });
+        stack.dispatch('onMineBlock', { itemStack: stack, source, block });
+
+        expect(raised.map((event) => [event.hook, 'block' in event ? event.block : undefined])).toEqual([
+            ['onUseOn', { dimension: 'minecraft:nether', x: 3, y: 40, z: -2 }],
+            ['onMineBlock', { dimension: 'minecraft:nether', x: 3, y: 40, z: -2 }]
         ]);
     });
 

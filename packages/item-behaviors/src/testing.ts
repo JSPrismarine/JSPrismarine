@@ -163,9 +163,9 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
 /** A plain {@link ItemSource}, so a test does not build one by hand. */
 export const testSource = (identifier = 'minecraft:player', runtimeId = 1): ItemSource => ({ identifier, runtimeId });
 
-/** A plain {@link BlockReference} at the origin unless a position is given. */
+/** A plain {@link BlockReference} at the Overworld's origin unless a position is given. */
 export const testBlock = (
     identifier: string,
     position: BlockPosition = { x: 0, y: 64, z: 0 },
     states: Readonly<Record<string, string | number | boolean>> = {}
-): BlockReference => ({ identifier, states, position });
+): BlockReference => ({ identifier, states, position, dimension: 'minecraft:overworld' });

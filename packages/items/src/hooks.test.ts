@@ -115,7 +115,12 @@ describe('the item hook seam', () => {
         const stack = stackOf('minecraft:stick');
         const result = stack.dispatchFirst('onUseOn', {
             ...useEvent(stack),
-            block: { identifier: 'minecraft:stone', states: {}, position: { x: 0, y: 0, z: 0 } },
+            block: {
+                identifier: 'minecraft:stone',
+                states: {},
+                position: { x: 0, y: 0, z: 0 },
+                dimension: 'minecraft:overworld'
+            },
             blockFace: 'up',
             faceLocation: { x: 0.5, y: 1, z: 0.5 }
         });

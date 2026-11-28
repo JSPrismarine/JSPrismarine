@@ -440,7 +440,7 @@ export const registerScriptComponentBehaviors = (
                         components: uses,
                         item: item(event.itemStack),
                         source: sourceOf(event.source),
-                        block: { dimension: 'minecraft:overworld', ...event.block.position },
+                        block: { dimension: event.block.dimension, ...event.block.position },
                         usedOnBlockPermutation: permutationOf(event.block),
                         blockFace: SCRIPT_DIRECTIONS[event.blockFace],
                         faceLocation: event.faceLocation
@@ -462,7 +462,7 @@ export const registerScriptComponentBehaviors = (
                         components: uses,
                         item: item(event.itemStack),
                         source: sourceOf(event.source),
-                        block: { dimension: 'minecraft:overworld', ...event.block.position },
+                        block: { dimension: event.block.dimension, ...event.block.position },
                         minedBlockPermutation: permutationOf(event.block)
                     })
             };

@@ -665,7 +665,12 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 itemStack: stack,
                 source,
                 useDuration: 0,
-                block: { identifier: block.identifier, states: block.states, position: block.position },
+                block: {
+                    identifier: block.identifier,
+                    states: block.states,
+                    position: block.position,
+                    dimension: block.dimension
+                },
                 blockFace: face,
                 faceLocation: interaction.faceLocation
             });
