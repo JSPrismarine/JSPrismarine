@@ -89,7 +89,10 @@ Progress:
   last two edition checks are gone: it asks `placesItselfOnRespawn` instead. Against the
   `change-dimension` captures, a Bedrock change no longer sends `StopSound` or `PlayStatus`
   ([#3882](https://github.com/JSPrismarine/JSPrismarine/issues/3882)). The chunk path as a
-  `ChunkWire`, then the creative and crafting data with the join burst, follow.
+  `ChunkWire`, then the creative and crafting data with the join burst, follow. The second part,
+  the chunk path, is under review: `BedrockChunkWire` sends a Bedrock client's publisher updates,
+  chunks, radius, sub chunks and cache blobs, and the session sends both editions' chunks through
+  one path that settles each chunk the wire reports.
 
 ## Problem
 

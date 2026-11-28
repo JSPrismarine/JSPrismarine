@@ -40,7 +40,8 @@ const isVariableDeclaration = (node: Node): node is VariableDeclaration => node.
 
 /**
  * Modules a connection-lane handler may import: the protocol, plain Bedrock enums, the error
- * catalog, codecs and the handler interfaces. `../../../` is the package barrel, allowed for type
+ * catalog, codecs, the handler interfaces, and the session's Bedrock chunk wire, whose blob cache
+ * the cache handlers touch and nothing else. `../../../` is the package barrel, allowed for type
  * imports only.
  */
 const CONNECTION_IMPORTS: readonly RegExp[] = [
@@ -51,23 +52,16 @@ const CONNECTION_IMPORTS: readonly RegExp[] = [
     /^\.\.\/\.\.\/\.\.\/network\/ClientConnection$/,
     /^\.\.\/\.\.\/\.\.\/network\/codec\/CodecRegistry$/,
     /^\.\/PacketHandler$/,
+    /^\.\.\/bedrockChunksOf$/,
     /^\.\.\/\.\.\/\.\.\/player\/context\/(ConnectionContext|SessionHandler|HandlerContext)$/
 ];
 
 /**
  * What a connection-lane handler may call on its session. Every `PlayerSession` method listed
  * was traced to state the session owns, and `identity` and `runtimeId` are fixed for the
- * session: `setClientCacheEnabled` and `handleClientCacheBlobStatus` touch only the session's
- * blob cache.
+ * session.
  */
-const SESSION_MEMBERS: ReadonlySet<string> = new Set([
-    'getPlayer',
-    'identity',
-    'runtimeId',
-    'getConnection',
-    'setClientCacheEnabled',
-    'handleClientCacheBlobStatus'
-]);
+const SESSION_MEMBERS: ReadonlySet<string> = new Set(['getPlayer', 'identity', 'runtimeId', 'getConnection']);
 /** `ClientConnection` members that reach the player, and through it the world. */
 const CONNECTION_WORLD_MEMBERS: ReadonlySet<string> = new Set([
     'closePlayerSession',

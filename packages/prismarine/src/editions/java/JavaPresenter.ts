@@ -422,6 +422,9 @@ export const javaTextOf = ({ message, kind, parameters, needsTranslation, source
     return message;
 };
 
+/** What a chunk queued for a Java client counts against the session's queue limit, as an estimate. */
+const JAVA_QUEUED_CHUNK_BYTES = 64 * 1024;
+
 /** One Java client's half of a session. */
 export class JavaPresenter implements SessionPresenter {
     public readonly edition = 'java';
@@ -470,19 +473,26 @@ export class JavaPresenter implements SessionPresenter {
      * keeps. The session decides which chunks, and when.
      */
     public readonly chunkWire: ChunkWire = {
-        center: async (x, z) => {
+        // Written when it is sent, from the column as it is then, so a queued chunk keeps only an
+        // estimate of its bytes against the queue's limit.
+        prepare: (chunk) => ({ chunk, memoryBytes: JAVA_QUEUED_CHUNK_BYTES }),
+        center: async ({ x, z }) => {
             if (this.center?.x === x && this.center.z === z) return;
             this.center = { x, z };
             this.send(SetCenterChunk, { x, z });
         },
-        send: async (chunks, session) => {
+        send: async (chunks, session, progress) => {
             const systems = session.getWorld().getSystems();
             const light: JavaChunkLight = {
                 sky: (x, y, z) => systems.getSkyLight(x, y, z),
                 block: (x, y, z) => systems.getBlockLight(x, y, z)
             };
             this.send(ChunkBatchStart, {});
-            for (const chunk of chunks) this.send(LevelChunkWithLight, this.columns.columnOf(chunk, light));
+            for (const [index, { chunk }] of chunks.entries()) {
+                progress.sending(index);
+                this.send(LevelChunkWithLight, this.columns.columnOf(chunk, light));
+                progress.sent(index);
+            }
             this.send(ChunkBatchFinished, { batchSize: chunks.length });
         },
         forget: async (chunks) => {

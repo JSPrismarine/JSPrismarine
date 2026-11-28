@@ -23,6 +23,9 @@ import {
     javaTextOf
 } from './JavaPresenter';
 
+/** A view centered on chunk `x`, `z`, as the session centers one. */
+const viewAt = (x: number, z: number) => ({ x, z, block: { x: x * 16, y: 64, z: z * 16 }, distance: 8 });
+
 const message = (fields: Partial<ShownMessage>): ShownMessage => ({
     message: 'hello',
     kind: 'raw',
@@ -236,7 +239,7 @@ describe('JavaPresenter', () => {
 
     it('spawns the player again into the dimension of the world it moved to, keeping its data, and centers its view afresh', async () => {
         const { sent, java } = presenter();
-        await java.chunkWire.center(0, 0);
+        await java.chunkWire.center(viewAt(0, 0));
         sent.length = 0;
 
         const shown = java.showWorldChange({
@@ -262,7 +265,7 @@ describe('JavaPresenter', () => {
         });
 
         // A client spawned again holds no chunks, so even the same center goes out again.
-        await java.chunkWire.center(0, 0);
+        await java.chunkWire.center(viewAt(0, 0));
         expect(sent.at(-1)).toEqual({ name: 'Set Center Chunk', value: { x: 0, z: 0 } });
     });
 
@@ -275,9 +278,15 @@ describe('JavaPresenter', () => {
                 })
         });
 
-        await java.chunkWire.center(1, 2);
-        await java.chunkWire.center(1, 2);
-        await java.chunkWire.send([new Chunk(1, 2), new Chunk(0, 2)], session);
+        await java.chunkWire.center(viewAt(1, 2));
+        await java.chunkWire.center(viewAt(1, 2));
+        const sentChunks: number[] = [];
+        await java.chunkWire.send(
+            [new Chunk(1, 2), new Chunk(0, 2)].map((chunk) => java.chunkWire.prepare(chunk)),
+            session,
+            { stillCurrent: () => true, sending: () => {}, sent: (index) => void sentChunks.push(index) }
+        );
+        expect(sentChunks).toEqual([0, 1]);
 
         expect(sent.map(({ name }) => name)).toEqual([
             'Set Center Chunk',

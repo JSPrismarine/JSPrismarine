@@ -235,11 +235,16 @@ export const PrismarineNetworkErrors = defineErrors('prismarine/network', {
     /** A message was sent to a player with no text. */
     EmptyMessage: 'A message is required',
     /**
-     * A Bedrock presenter whose session state has no `inventory` was asked to show the player's
-     * inventory, which it reads from that state. This is a bug in the server, or in a test that
-     * builds a presenter on its own; pass a `BedrockSessionState` whose `inventory` is set.
+     * A Bedrock presenter was asked for session state it was built without: the player's
+     * inventory, its loading screens or its chunk wire. This is a bug in the server, or in a test
+     * that builds a presenter on its own; pass a `BedrockSessionState` that sets what it uses.
      */
-    PresenterHasNoSession: "A Bedrock presenter with no session cannot show the player's inventory",
+    PresenterHasNoSession: 'A Bedrock presenter was built without the session state it was asked to use',
+    /**
+     * A handler for a packet only a Bedrock client sends ran on a session of another edition. This
+     * is a bug in the server: report it with the packet's name.
+     */
+    NotABedrockSession: 'A Bedrock packet reached a session that does not speak Bedrock',
     /**
      * Sending block changes lost track of a change. This is a bug in the server; report it with the
      * stack trace.

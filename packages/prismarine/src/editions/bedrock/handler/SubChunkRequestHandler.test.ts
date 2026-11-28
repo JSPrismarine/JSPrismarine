@@ -7,6 +7,8 @@ import { STEVE } from '../../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../../../player/PlayerSession';
 import SubChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/SubChunkRequestPacket';
 import SubChunkRequestHandler from './SubChunkRequestHandler';
+import type { BedrockChunkWire } from '../BedrockChunkWire';
+import { BedrockPresenter } from '../presenter/BedrockPresenter';
 
 describe('SubChunkRequestHandler', () => {
     it('answers and logs the request', async () => {
@@ -14,7 +16,13 @@ describe('SubChunkRequestHandler', () => {
         const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({
             identity: STEVE,
-            handleSubChunkRequest: async () => 1
+            presenter: new BedrockPresenter({ sendDataPacket: async () => {} }, undefined, {
+                runtimeId: 0n,
+                lastInputTick: () => 0n,
+                chunks: stub<BedrockChunkWire>({
+                    answerSubChunkRequest: async () => 1
+                })
+            })
         });
         const packet = Object.assign(new SubChunkRequestPacket(), {
             dimensionType: 0,

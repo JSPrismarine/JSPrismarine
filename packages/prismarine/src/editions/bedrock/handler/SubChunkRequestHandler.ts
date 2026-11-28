@@ -1,6 +1,7 @@
 import type SubChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/SubChunkRequestPacket';
 import type { SessionContext } from '../../../player/context/HandlerContext';
 import type { ReadLaneHandler } from '../../../player/context/SessionHandler';
+import { bedrockChunksOf } from '../bedrockChunksOf';
 
 /** Answers the sub chunks a request-mode LevelChunk told the client to fetch. */
 export default class SubChunkRequestHandler implements ReadLaneHandler<SubChunkRequestPacket> {
@@ -11,7 +12,7 @@ export default class SubChunkRequestHandler implements ReadLaneHandler<SubChunkR
     /** Sends a result for every requested offset and logs the request summary. */
     public async handle(packet: SubChunkRequestPacket, { session, log }: SessionContext): Promise<void> {
         const { centerPos } = packet;
-        const answered = await session.handleSubChunkRequest(packet);
+        const answered = await bedrockChunksOf(session).answerSubChunkRequest(packet);
 
         log.debug(
             `${session.identity.name} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`

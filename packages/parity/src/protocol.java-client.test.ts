@@ -305,7 +305,12 @@ const sendChunkBatch: PresenterCall = async (presenter) => {
                     })
             })
     });
-    await presenter.chunkWire?.send([new Chunk(1, 2)], session);
+    const wire = presenter.chunkWire;
+    await wire.send([wire.prepare(new Chunk(1, 2))], session, {
+        stillCurrent: () => true,
+        sending: () => {},
+        sent: () => {}
+    });
 };
 
 /** Whether a `Game Event` payload is the change of game mode to Java's creative, 1. */
@@ -645,10 +650,8 @@ const BEHAVIORS: readonly Behavior[] = [
             shown('play/clientbound/chunk_batch_start', 'the start of a batch', sendChunkBatch),
             shown('play/clientbound/level_chunk_with_light', 'a chunk with its light', sendChunkBatch),
             shown('play/clientbound/chunk_batch_finished', 'the end of a batch', sendChunkBatch),
-            shown(
-                'play/clientbound/set_chunk_cache_center',
-                'the chunk the view is centered on',
-                (presenter) => presenter.chunkWire?.center(3, 4) ?? Promise.resolve()
+            shown('play/clientbound/set_chunk_cache_center', 'the chunk the view is centered on', (presenter) =>
+                presenter.chunkWire.center({ x: 3, z: 4, block: { x: 56, y: 64, z: 72 }, distance: 8 })
             )
         ]
     },

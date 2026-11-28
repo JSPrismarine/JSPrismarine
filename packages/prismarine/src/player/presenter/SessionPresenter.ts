@@ -346,11 +346,8 @@ export interface SessionPresenter {
      */
     readonly edition: 'bedrock' | 'java';
 
-    /**
-     * How the client is sent chunks, for an edition that sends them its own way; Bedrock's go out
-     * in the session's own batches. The session's `ChunkView` decides which, either way.
-     */
-    readonly chunkWire?: ChunkWire;
+    /** How the client is sent chunks. The session's `ChunkView` decides which, and when. */
+    readonly chunkWire: ChunkWire;
 
     /**
      * Tells the client the time on its level's clock.
