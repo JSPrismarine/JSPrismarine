@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/raknet",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "RakNet, the UDP transport Minecraft: Bedrock Edition connects over, for a server or a client",
     "sideEffects": false,
     "publishConfig": {

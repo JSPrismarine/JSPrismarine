@@ -1,5 +1,11 @@
 # @jsprismarine/docs
 
+## 0.27.0
+
+### Patch Changes
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
 ## 0.26.0
 
 No changes in this release.

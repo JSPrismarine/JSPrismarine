@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/java-packs",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Converts Bedrock resource packs into Java Edition resource packs a vanilla client can load.",
     "sideEffects": false,
     "publishConfig": {

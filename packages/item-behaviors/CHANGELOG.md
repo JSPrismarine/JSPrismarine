@@ -1,5 +1,20 @@
 # @jsprismarine/item-behaviors
 
+## 0.27.0
+
+### Patch Changes
+
+- [#3864](https://github.com/JSPrismarine/JSPrismarine/pull/3864) [`a4fff88`](https://github.com/JSPrismarine/JSPrismarine/commit/a4fff88a3f605996c49f11f13cf6499098aa85bb) Thanks [@filiphsps](https://github.com/filiphsps)! - Fill and empty buckets in the hand. Picking up water or lava with a bucket used to drop the filled bucket on the ground, and pouring a water or lava bucket out kept the full bucket. The liquid block family no longer answers a bucket or a glass bottle, so the item's own behavior takes the click, and the server now puts a behavior's replacement item in the hand and resends the inventory. The same write-back leaves the empty bucket in the hand after drinking milk. An empty bucket only picks up a source, never a flow.
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3758](https://github.com/JSPrismarine/JSPrismarine/pull/3758) [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3852](https://github.com/JSPrismarine/JSPrismarine/pull/3852) [`99742d8`](https://github.com/JSPrismarine/JSPrismarine/commit/99742d8031c804766ff0f5623039c02f55cbff91) Thanks [@filiphsps](https://github.com/filiphsps)! - The block an item hook receives names its dimension: `BlockReference` has a required `dimension`, such as `minecraft:nether`, and code that builds one must now set it. A script item component's `onUseOn` and `onMineBlock` use it, so they get the block the player used in the dimension the player is in. They used to give every block in the Overworld, at the same coordinates. Closes [#3847](https://github.com/JSPrismarine/JSPrismarine/issues/3847).
+- Updated dependencies [[`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816), [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc), [`78a7882`](https://github.com/JSPrismarine/JSPrismarine/commit/78a788299aea78261d12c200641934a48ee1e30b), [`99742d8`](https://github.com/JSPrismarine/JSPrismarine/commit/99742d8031c804766ff0f5623039c02f55cbff91), [`3080c0f`](https://github.com/JSPrismarine/JSPrismarine/commit/3080c0f9e854591991500c408533b2cf27272ddd)]:
+  - @jsprismarine/content@0.27.0
+  - @jsprismarine/items@0.27.0
+
 ## 0.26.0
 
 ### Patch Changes
