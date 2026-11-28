@@ -205,7 +205,9 @@ describe('Server', () => {
             flush: async () => {},
             isConnected: () => true
         });
-        await scheduler.tick();
+        // A clock that stands still keeps the budget from running out before the second chunk
+        // starts, which a slow host's real clock can do.
+        await scheduler.tick(() => 0);
         await scheduler.close();
 
         expect(warnings.filter((message) => message.startsWith('Failed to send chunk'))).toEqual([
