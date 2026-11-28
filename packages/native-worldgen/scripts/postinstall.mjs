@@ -9,13 +9,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** The published package carries `dist/`; a checkout imports the source through tsx. */
+/**
+ * The published package carries `dist/`; a checkout imports the source through tsx. A checkout
+ * checks for `src/` first even when it has a build: without the `jsprismarine:dist` condition, the
+ * built file's `@jsprismarine/native-library` import resolves to that package's TypeScript sources,
+ * which plain Node cannot load.
+ */
 const loadInstaller = async () => {
-    const built = join(packageDir, 'dist', 'install.js');
-    if (existsSync(built)) return import(pathToFileURL(built).href);
+    const source = join(packageDir, 'src', 'install.ts');
+    if (!existsSync(source)) return import(pathToFileURL(join(packageDir, 'dist', 'install.js')).href);
     try {
         const { tsImport } = await import('tsx/esm/api');
-        return await tsImport(pathToFileURL(join(packageDir, 'src', 'install.ts')).href, import.meta.url);
+        return await tsImport(pathToFileURL(source).href, import.meta.url);
     } catch {
         return undefined;
     }
