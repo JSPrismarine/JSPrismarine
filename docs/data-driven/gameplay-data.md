@@ -279,7 +279,10 @@ so `player_generates_container_loot` has nothing to report.
 
 The single most important trigger is wired. `inventory_changed` carries 1914 of the 4045 criteria,
 and it is how nearly every "get this item" advancement is earned, including the ones a player gets
-for breaking a block, because Java has no "broke a block" trigger at all. It is also the engine's
+for breaking a block, because Java has no "broke a block" trigger at all. As in Java, every changed
+slot of the player's inventory, armor and offhand raises it, whatever wrote the slot: a pickup, a
+craft, a stack taken out of a chest or a furnace, a creative pick or a command. A slot raises once
+the input or tick step that wrote it has ended, with what it holds then. It is also the engine's
 worst dispatch: no field of that trigger names a registry element to key on, so one event evaluates
 all 1914 criteria in its bucket. The three recipe triggers and
 `player_generates_container_loot` are indexed by the element their event names, so a

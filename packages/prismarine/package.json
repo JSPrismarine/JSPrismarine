@@ -1956,6 +1956,9 @@
         "./testing/stub.test.helper": {
             "default": "./src/testing/stub.test.helper.ts"
         },
+        "./testing/storePlayer.test.helper": {
+            "default": "./src/testing/storePlayer.test.helper.ts"
+        },
         "./about": {
             "jsprismarine:dist": "./dist/about.js",
             "default": "./src/about.ts"
@@ -2795,6 +2798,14 @@
         "./crafting/recipeBook": {
             "jsprismarine:dist": "./dist/crafting/recipeBook.js",
             "default": "./src/crafting/recipeBook.ts"
+        },
+        "./advancement/progress": {
+            "jsprismarine:dist": "./dist/advancement/progress.js",
+            "default": "./src/advancement/progress.ts"
+        },
+        "./advancement/triggers": {
+            "jsprismarine:dist": "./dist/advancement/triggers.js",
+            "default": "./src/advancement/triggers.ts"
         },
         "./inventory/ItemContainer": {
             "jsprismarine:dist": "./dist/inventory/ItemContainer.js",

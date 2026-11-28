@@ -8,7 +8,22 @@ import { effectHealthChange } from '@jsprismarine/prismarine/entity/StatusEffect
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
-import { isLearnableRecipe } from '@jsprismarine/prismarine/crafting/recipeBook';
+import { advancementSlotWatcher } from '@jsprismarine/prismarine/advancement/triggers';
+import { loadAdvancements } from '@jsprismarine/prismarine/advancement/progress';
+import {
+    forgetRecipeBook,
+    isLearnableRecipe,
+    loadRecipeBook,
+    recipeBookOf
+} from '@jsprismarine/prismarine/crafting/recipeBook';
+import HumanInventory from '@jsprismarine/prismarine/inventory/HumanInventory';
+import { Item } from '@jsprismarine/prismarine/item/Item';
+import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
+import type { Server } from '@jsprismarine/prismarine';
+import { sessionOnPrototype } from '@jsprismarine/prismarine/testing/storePlayer.test.helper';
+import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
+import type { Position } from '@jsprismarine/prismarine/world/Position';
+import type { World } from '@jsprismarine/prismarine/world/World';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/editions/bedrock/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
@@ -558,6 +573,81 @@ const recipeBookScenario: BehaviorScenario<GameplaySubject> = {
     }
 };
 
+/** The `recipes/` advancement that unlocks oak planks once the player holds a log. */
+const OAK_PLANKS_ADVANCEMENT = 'minecraft:recipes/building_blocks/oak_planks';
+
+/** Each recipe-from-a-slot run's player name, since the recipe book is kept by it. */
+let slotRunPlayer = 0;
+
+/**
+ * A player whose inventory raises advancement triggers as a session's does, over the real
+ * content, with the recipe book a join loads.
+ */
+const advancingPlayer = () => {
+    const content = serverContent();
+    const inventory = new HumanInventory();
+    const server = stub<Server>({ getContent: () => content, getJavaEnglish: () => new Map() });
+    const world = stub<World>({ getViewers: () => [], getServer: () => server });
+    const position = () => stub<Position>({ getX: () => 0, getY: () => 64, getZ: () => 0 });
+    const player: PlayerSession = sessionOnPrototype({
+        getType: () => 'minecraft:player',
+        getName: () => `slots-${slotRunPlayer++}`,
+        getXUID: () => null,
+        getPosition: position,
+        getServer: () => server,
+        getWorld: () => world,
+        getInventory: () => inventory,
+        getEquipment: () => ({}),
+        getStatusEffects: () => [],
+        gamemode: 0,
+        isSneaking: () => false,
+        isFlying: () => false,
+        getFood: () => 20,
+        getSaturation: () => 5
+    });
+    loadAdvancements(player.keyed(), undefined);
+    loadRecipeBook(player.keyed(), [], undefined, () => []);
+    // No unit is open, so each write raises at once.
+    inventory.observe({ slot: advancementSlotWatcher(player, (work) => work()), handSlot: () => {} });
+    return { player, inventory };
+};
+
+/**
+ * Java raises `inventory_changed` from `ServerPlayer`'s container listener for each slot of the
+ * player's `Inventory` that changes, whatever changed it. So an ingredient taken out of a chest
+ * or a furnace's output unlocks its recipe, and one carried on the cursor does not yet.
+ */
+const recipeFromSlotScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'recipe-book-from-any-slot',
+    java: "An ingredient reaching any slot of the player's inventory, armor or offhand unlocks its recipe; one on the cursor or in the ender chest does not.",
+    reference: 'Java ServerPlayer.containerListener and InventoryChangeTrigger.trigger',
+    subjects: () => [subject('mechanic', 'recipe-book')],
+    idOf: (entry) => entry.id,
+    aspects: () => ['behavior'],
+    run: () => {
+        if (serverContent().advancements.get(OAK_PLANKS_ADVANCEMENT) === undefined)
+            return `the server loaded no ${OAK_PLANKS_ADVANCEMENT}`;
+        const log = () => new Item({ name: 'minecraft:oak_log' });
+        const unlocked = (player: PlayerSession): boolean => {
+            const book = recipeBookOf(player.keyed());
+            forgetRecipeBook(player.keyed());
+            return book.includes('minecraft:oak_planks');
+        };
+
+        for (const container of ['cursor', 'ender_chest'] as const) {
+            const { player, inventory } = advancingPlayer();
+            inventory.container(container).set(0, log());
+            if (unlocked(player)) return `a log in the ${container} unlocked oak planks`;
+        }
+        for (const container of ['inventory', 'armor', 'offhand'] as const) {
+            const { player, inventory } = advancingPlayer();
+            inventory.container(container).set(0, log());
+            if (!unlocked(player)) return `a log in the ${container} left oak planks locked`;
+        }
+        return undefined;
+    }
+};
+
 /** The stations whose recipes a Bedrock client makes from the recipe list the server advertises. */
 const ADVERTISED_STATIONS: ReadonlySet<string> = new Set(['crafting', 'stonecutting', 'smithing']);
 
@@ -613,7 +703,7 @@ describeFamily(
                 scenarioGroup([professionScenario]),
                 scenarioGroup(playerScenarios),
                 scenarioGroup([recipeScenario]),
-                scenarioGroup([recipeBookScenario]),
+                scenarioGroup([recipeBookScenario, recipeFromSlotScenario]),
                 scenarioGroup([explorationMapScenario]),
                 scenarioGroup([mapScenario]),
                 scenarioGroup([hurtExhaustionScenario]),

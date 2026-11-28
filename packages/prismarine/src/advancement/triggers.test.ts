@@ -24,8 +24,8 @@ import {
     advancementItemCrafted,
     advancementItemUsedOnBlock,
     advancementKill,
-    advancementPickedUpItem,
-    advancementPlayerTick
+    advancementPlayerTick,
+    advancementSlotWatcher
 } from './triggers';
 
 /**
@@ -299,13 +299,28 @@ const scene = (english: ReadonlyMap<string, string> = new Map()) => {
         }
     );
 
+    // Raises at once unless a test holds a unit open, as `EntityStore.afterUnit` does.
+    const unit: { open: boolean; after: (() => void)[] } = { open: false, after: [] };
+    const watch = advancementSlotWatcher(player, (work) => {
+        if (unit.open) unit.after.push(work);
+        else work();
+    });
+    inventory.observe({ slot: watch, handSlot: () => {} });
+    /** Runs `body` inside a unit, and what waited for it once it ends. */
+    const inUnit = (body: () => void): void => {
+        unit.open = true;
+        body();
+        unit.open = false;
+        for (const work of unit.after.splice(0)) work();
+    };
+
     const port = createItemActorPort({
         world: () => world,
         entities: stub<ContentEntityAccess>({ drop: () => {} }),
         level: { ...unwiredWorld().level, gameTime: () => 0 }
     });
 
-    return { player, inventory, announced, port, source };
+    return { player, inventory, announced, port, source, inUnit };
 };
 
 const mob = (type: string): StoreActor =>
@@ -324,30 +339,52 @@ const done = (player: PlayerSession, id: string): boolean => {
 describe('earning vanilla advancements by playing', () => {
     it('earns story/mine_stone from the cobblestone a break dropped', () => {
         const { player, inventory } = scene();
-        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        inventory.container('inventory').set(0, cobblestone);
 
         expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
-        advancementPickedUpItem(player, cobblestone);
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
         expect(done(player, 'minecraft:story/mine_stone')).toBe(true);
     });
 
     it('does not earn it from something else landing in a slot', () => {
         const { player, inventory } = scene();
-        const stick = new Item({ name: 'minecraft:stick' });
-        inventory.container('inventory').set(0, stick);
 
-        advancementPickedUpItem(player, stick);
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:stick' }));
         expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
     });
 
     it('earns story/root from a crafting table reaching the inventory', () => {
         const { player, inventory } = scene();
-        const table = new Item({ name: 'minecraft:crafting_table' });
-        inventory.container('inventory').set(0, table);
 
-        advancementPickedUpItem(player, table);
+        inventory.container('inventory').add(new Item({ name: 'minecraft:crafting_table' }));
         expect(done(player, 'minecraft:story/root')).toBe(true);
+    });
+
+    it('counts the armor and offhand slots as the inventory, and not the cursor or the ender chest', () => {
+        const { player, inventory } = scene();
+        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
+
+        inventory.container('cursor').set(0, cobblestone);
+        inventory.container('ender_chest').set(0, cobblestone);
+        expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
+
+        inventory.container('offhand').set(0, cobblestone);
+        expect(done(player, 'minecraft:story/mine_stone')).toBe(true);
+    });
+
+    it('raises once the unit that wrote the slot ends, for what the slot holds then', () => {
+        const { player, inventory, inUnit } = scene();
+        const slots = inventory.container('inventory');
+
+        inUnit(() => {
+            slots.set(0, new Item({ name: 'minecraft:cobblestone' }));
+            expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
+            // Gone again before the unit ends, so the player never held it.
+            slots.set(0, null);
+        });
+        expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
+
+        inUnit(() => slots.set(1, new Item({ name: 'minecraft:cobblestone' })));
+        expect(done(player, 'minecraft:story/mine_stone')).toBe(true);
     });
 
     it('earns a recipe_crafted advancement from the recipe and its ingredients', () => {
@@ -403,17 +440,12 @@ describe('earning vanilla advancements by playing', () => {
 
     it('announces a completion to everyone who can see it, and keeps quiet about a silent one', () => {
         const { player, inventory, announced } = scene();
-        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        const table = new Item({ name: 'minecraft:crafting_table' });
-        inventory.container('inventory').set(0, cobblestone);
-        inventory.container('inventory').set(1, table);
-
         // `story/root` sets `announce_to_chat: false`, which is why it is the
         // one advancement in the game nobody is told about.
-        advancementPickedUpItem(player, table);
+        inventory.container('inventory').set(1, new Item({ name: 'minecraft:crafting_table' }));
         expect(announced).toEqual([]);
 
-        advancementPickedUpItem(player, cobblestone);
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
         // With no Java strings to name it by, the key is all there is.
         expect(announced).toEqual([
             { key: 'chat.type.achievement', parameters: [player.getName(), 'advancements.story.mine_stone.title'] }
@@ -422,10 +454,7 @@ describe('earning vanilla advancements by playing', () => {
 
     it('names a completion in English, since a Bedrock client has no string for the Java key', () => {
         const { player, inventory, announced } = scene(new Map([['advancements.story.mine_stone.title', 'Stone Age']]));
-        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        inventory.container('inventory').set(0, cobblestone);
-
-        advancementPickedUpItem(player, cobblestone);
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
 
         expect(announced).toEqual([{ key: 'chat.type.achievement', parameters: [player.getName(), 'Stone Age'] }]);
     });
@@ -492,9 +521,7 @@ describe('earning vanilla advancements by playing', () => {
 describe('advancement progress across a save and a load', () => {
     it('survives the round trip through the player data record', () => {
         const first = scene();
-        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        first.inventory.container('inventory').set(0, cobblestone);
-        advancementPickedUpItem(first.player, cobblestone);
+        first.inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
 
         const stored = storedAdvancements(first.player.keyed());
         expect(stored['minecraft:story/mine_stone']).toEqual({
@@ -510,15 +537,12 @@ describe('advancement progress across a save and a load', () => {
 
     it('does not earn a second time, so a reloaded completion announces nothing', () => {
         const first = scene();
-        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        first.inventory.container('inventory').set(0, cobblestone);
-        advancementPickedUpItem(first.player, cobblestone);
+        first.inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
 
         const second = scene();
-        second.inventory.container('inventory').set(0, cobblestone);
         loadAdvancements(second.player.keyed(), storedAdvancements(first.player.keyed()));
 
-        advancementPickedUpItem(second.player, cobblestone);
+        second.inventory.container('inventory').set(0, new Item({ name: 'minecraft:cobblestone' }));
         expect(second.announced).toEqual([]);
     });
 

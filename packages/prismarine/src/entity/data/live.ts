@@ -269,8 +269,7 @@ const givePlayerItem = (
             events.post('entityItemPickedUp', new EntityItemPickedUpEvent(session.runtimeId, world, taken));
     }
 
-    // Here rather than in the inventory, which has no idea whose it is. Nearly every "get this
-    // item" advancement is earned this way: Java has no block-break trigger.
+    // The thrower's trigger. The `inventory_changed` the slots raise comes from the inventory.
     advancementPickedUpItem(taker, item);
 
     // Both actors have to be known to the recipient: the packet animates the item flying into

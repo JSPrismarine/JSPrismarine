@@ -1,4 +1,5 @@
 import type Server from '../Server';
+import { advancementSlotWatcher } from '../advancement/triggers';
 import type { StorePlayer } from '../entity/storePlayer';
 import type { PlayerIdentity } from '../playerIdentity';
 import type { World } from '../world/World';
@@ -55,6 +56,10 @@ export const createConnectedPlayer = ({
         world,
         presenter
     );
+
+    // Here, where both halves are known: the inventory is the store player's, and the trigger it
+    // raises is raised for the session.
+    player.watchSlots(advancementSlotWatcher(session, (work) => session.getWorld().getEntityStore().afterUnit(work)));
 
     connection.attachPlayerSession(session);
     session.enable();

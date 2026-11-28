@@ -33,6 +33,8 @@ import type { Subject } from '../identity/Subject';
 import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
 import { itemOfSlotValue } from '../inventory/slotLog';
+import type { SlotValue } from '../inventory/slotLog';
+import type { InventoryContainer } from '../inventory/EntityInventory';
 import type Device from '../utils/Device';
 import type { PlainData } from '../world/changelog/PlainData';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
@@ -53,6 +55,9 @@ import { HAND_SLOT_FIELD, HEAD_YAW_FIELD, SHOWN_PLAYER_COMPONENTS, SHOWN_PLAYER_
 import type { PlayerShownForm } from './playerShown';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 import type { ShownProfile } from '../world/ShownActor';
+
+/** Hears one write to a slot of a store player's inventory; see {@link StorePlayer.watchSlots}. */
+export type SlotWatcher = (container: InventoryContainer, slot: number, before: SlotValue, after: SlotValue) => void;
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -126,6 +131,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     private attached: DataEntity | undefined;
     /** Where writes are logged while the entity is in a store. */
     private log: PlayerLog | undefined;
+    /** Hears every slot write to the inventory; see {@link StorePlayer.watchSlots}. */
+    private slotWatcher: SlotWatcher | undefined;
     private held: HeldEntity = {
         position: { x: 0, y: 0, z: 0 },
         yaw: 0,
@@ -145,7 +152,10 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     ) {
         this.metadata.setNameTag(identity.name);
         this.inventory.observe({
-            slot: (container, slot, before, after) => this.log?.slot(container, slot, before, after),
+            slot: (container, slot, before, after) => {
+                this.log?.slot(container, slot, before, after);
+                this.slotWatcher?.(container, slot, before, after);
+            },
             handSlot: (before, after) => this.log?.field(HAND_SLOT_FIELD, before, after)
         });
         this.craftingInput.observe((slot, before, after) => this.log?.slot('crafting', slot, before, after));
@@ -348,6 +358,16 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
      */
     public isOnGround(): boolean {
         return this.attached?.body.conditions.has('on_ground') ?? false;
+    }
+
+    /**
+     * Hears every later write to a slot of the player's inventory, whether or not the player is
+     * in a store, with the slot's logged value before and after it. The session joined to this
+     * player watches it for the advancement trigger a slot change raises.
+     * @param watcher - Hears each write. It replaces any watcher set before.
+     */
+    public watchSlots(watcher: SlotWatcher): void {
+        this.slotWatcher = watcher;
     }
 
     /** Everything the player carries. */
