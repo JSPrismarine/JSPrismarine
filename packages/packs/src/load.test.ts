@@ -249,6 +249,30 @@ describe('load', () => {
         }
     });
 
+    it("routes a behavior pack's dimensions/ folder into the custom dimensions by identifier", () => {
+        const dir = temporaryDir();
+        writeFileSync(join(dir, 'manifest.json'), readFileSync(join(basePack, 'manifest.json')));
+        mkdirSync(join(dir, 'dimensions'));
+        const document = {
+            format_version: '1.26.50',
+            'minecraft:dimension': {
+                description: { identifier: 'fixture:void' },
+                components: { 'minecraft:generation': { generator_type: 'void' } }
+            }
+        };
+        writeFileSync(join(dir, 'dimensions', 'void.json'), JSON.stringify(document));
+
+        const { definitions, diagnostics } = load([{ kind: 'directory', path: dir }], { strict: true });
+
+        expect(definitions.customDimensions.get('fixture:void')).toMatchObject({
+            path: 'dimensions/void.json',
+            data: document
+        });
+        // The Java registry of datapack level stems stays apart.
+        expect(definitions.dimensions.size).toBe(0);
+        expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
+    });
+
     describe('item catalogs', () => {
         const CATALOG = 'item_catalog/crafting_item_catalog.json';
 

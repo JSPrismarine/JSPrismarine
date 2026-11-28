@@ -8,7 +8,8 @@ A `PackStack` is an ordered list of pack sources. The Bedrock kinds are a loose 
 behavior pack; the Java kind is a datapack folder or zip. `load(stack)` returns a `Definitions`
 object, which maps identifier to winning parsed definition for each registry, plus a diagnostics
 report. The Bedrock registries (blocks, items, entities, loot tables, trade tables, spawn rules,
-recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
+recipes, biomes, features, feature rules, item catalog, and `customDimensions` from a behavior
+pack's `dimensions/` folder) resolve by identifier: a later pack wins and
 its definition replaces the earlier one whole. The item catalog's identifier includes the pack, so
 every pack's catalog is kept. The Java registries (`JAVA_REGISTRY_IDS`, keyed by
 namespaced id; `JAVA_REGISTRY_DIRECTORIES` maps each singular directory name to its registry)

@@ -113,7 +113,13 @@ const SHAPES: Record<RegistryId, Shape> = {
     biomes: { requiresFormatVersion: true, requiresWrapper: true, descriptionKeys: ['identifier'] },
     features: { requiresFormatVersion: true, requiresWrapper: true, descriptionKeys: ['identifier'] },
     featureRules: { requiresFormatVersion: true, requiresWrapper: true, descriptionKeys: ['identifier'] },
-    itemCatalog: { requiresFormatVersion: true, requiresWrapper: true }
+    itemCatalog: { requiresFormatVersion: true, requiresWrapper: true },
+    customDimensions: {
+        requiresFormatVersion: true,
+        requiresWrapper: true,
+        descriptionKeys: ['identifier'],
+        objectKeys: ['components']
+    }
 };
 
 interface JavaShape {

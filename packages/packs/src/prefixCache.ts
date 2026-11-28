@@ -38,7 +38,8 @@ interface PrefixCacheFile {
     readonly result: LoadResult;
 }
 
-const FORMAT_VERSION = 1;
+// 2 added the `customDimensions` registry, which a version 1 file lacks.
+const FORMAT_VERSION = 2;
 const packageManifest: unknown = packsManifest;
 
 const packageVersion = (): string => {
