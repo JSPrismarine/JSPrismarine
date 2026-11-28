@@ -1326,6 +1326,12 @@ export interface ScriptWorld {
      */
     dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined;
     /**
+     * The interpreter steps the `system.runJob` jobs may take this tick, as the input step admitted
+     * them: BDS gives jobs a time slice from its frame-time estimates, and a host that measures
+     * its ticks turns the time left into steps. Absent, jobs take `JOB_STEPS_PER_TICK`.
+     */
+    jobSteps?(): number;
+    /**
      * Writes some of one pack's dynamic properties of the world or of a live entity through the
      * world's setter: each value replaces the property's, and undefined deletes it.
      * @param pack - The pack's header UUID.
