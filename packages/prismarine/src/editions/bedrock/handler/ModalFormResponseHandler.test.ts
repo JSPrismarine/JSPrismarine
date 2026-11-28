@@ -67,7 +67,7 @@ describe('ModalFormResponseHandler', () => {
 
         new ModalFormResponseHandler().handle(packet, context);
 
-        expect(debug).toEqual(['Steve dismissed (9) form 4, which no script sent']);
+        expect(debug).toEqual(['Steve dismissed (reason 9) form 4, which no script sent']);
     });
 
     it('disconnects a client whose answer is not JSON, as BDS does, and hands the scripts nothing', () => {

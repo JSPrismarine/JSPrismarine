@@ -8,6 +8,7 @@ describe('input/Intent', () => {
         // comparing the table with itself.
         expect([...INTENT_KINDS].sort()).toEqual([
             'animate',
+            'answerForm',
             'attackEntity',
             'changeGameMode',
             'chat',
@@ -15,6 +16,9 @@ describe('input/Intent', () => {
             'damageAnvil',
             'dropHeldItem',
             'eat',
+            'editBook',
+            'editCommandBlock',
+            'editCommandMinecart',
             'emote',
             'finishCredits',
             'holdButtons',

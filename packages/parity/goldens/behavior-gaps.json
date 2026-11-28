@@ -3351,7 +3351,7 @@
         },
         "combat:entity-events": {
             "kind": "deferred",
-            "reason": "In Java: A client sees entity events: deaths, totems, taming hearts, eating and the like. For a Java client here: play/clientbound/entity_event is never sent.",
+            "reason": "In Java: A client sees entity events: deaths, totems, taming hearts, eating and the like. For a Java client here: play/clientbound/entity_event (the events of entities in view) has no presenter call that sends it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3767"
         },
         "combat:entity-velocity": {
@@ -3581,12 +3581,12 @@
         },
         "tools:books": {
             "kind": "deferred",
-            "reason": "In Java: A client opens a written book and writes and signs a book and quill. For a Java client here: play/clientbound/open_book is never sent; play/serverbound/edit_book is not read.",
+            "reason": "In Java: A client opens a written book and writes and signs a book and quill. For a Java client here: play/clientbound/open_book has no layout.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3775"
         },
         "tools:command-blocks": {
             "kind": "deferred",
-            "reason": "In Java: An operator's client edits command blocks and command block minecarts. For a Java client here: play/serverbound/set_command_block is not read; play/serverbound/set_command_minecart is not read.",
+            "reason": "In Java: An operator's client edits command blocks and command block minecarts. For a Java client here: play/clientbound/entity_event (the operator level that opens a command block) has no presenter call that sends it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3775"
         },
         "tools:debug": {

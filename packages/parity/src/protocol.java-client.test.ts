@@ -34,6 +34,10 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    EditBook,
+    SetCommandBlock,
+    SetCommandMinecart,
+    JavaCommandBlockMode,
     RecipeBookChangeSettings,
     JavaRecipeBookType,
     PickItemFromEntity,
@@ -1121,7 +1125,10 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'books',
         area: 'tools',
         java: 'A client opens a written book and writes and signs a book and quill.',
-        needs: [sent('play/clientbound/open_book'), read('play/serverbound/edit_book')]
+        needs: [
+            sent('play/clientbound/open_book'),
+            decoded(EditBook, 'sign a book and quill', { slot: 0, pages: ['hi'], title: 'Diary' }, { kind: 'editBook' })
+        ]
     },
     {
         id: 'signs',
@@ -1283,7 +1290,7 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'entity-events',
         area: 'combat',
         java: 'A client sees entity events: deaths, totems, taming hearts, eating and the like.',
-        needs: [sent('play/clientbound/entity_event')]
+        needs: [shown('play/clientbound/entity_event', 'the events of entities in view', undefined)]
     },
     {
         id: 'combat-tracking',
@@ -1495,7 +1502,23 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'command-blocks',
         area: 'tools',
         java: "An operator's client edits command blocks and command block minecarts.",
-        needs: [read('play/serverbound/set_command_block'), read('play/serverbound/set_command_minecart')]
+        needs: [
+            // A Java client opens a command block's screen only for a player it was told may
+            // use one, by the entity event that carries the operator level.
+            shown('play/clientbound/entity_event', 'the operator level that opens a command block', undefined),
+            decoded(
+                SetCommandBlock,
+                'set a command block',
+                { position: { x: 0, y: 64, z: 0 }, command: 'say hi', mode: JavaCommandBlockMode.Redstone, flags: 0 },
+                { kind: 'editCommandBlock' }
+            ),
+            decoded(
+                SetCommandMinecart,
+                'set a command block minecart',
+                { entityId: 1, command: 'say hi', trackOutput: false },
+                { kind: 'editCommandMinecart' }
+            )
+        ]
     },
     {
         id: 'structure-blocks',

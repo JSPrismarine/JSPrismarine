@@ -24,7 +24,15 @@ import { Dimensions } from '../../../world/DimensionType';
 import type { Level } from '../../../world/Level';
 import type { World } from '../../../world/World';
 import type PlayerSession from '../../../player/PlayerSession';
-import CommandBlockUpdateHandler from './CommandBlockUpdateHandler';
+import type { InputContext } from '../../../player/context/HandlerContext';
+import CommandBlockUpdateDecoder from './CommandBlockUpdateDecoder';
+import { viewOf } from './DecodeView';
+
+/** A packet decoded and its intents run, as the dispatcher wraps a decoder. */
+const run = (packet: CommandBlockUpdatePacket, context: InputContext): void => {
+    for (const intent of new CommandBlockUpdateDecoder().decode(packet, viewOf(context.session, context.log)))
+        context.services.intents.handle(intent, context);
+};
 
 const AT = { x: 1, y: 2, z: 3 };
 
@@ -68,7 +76,11 @@ const fixture = (options: { op?: boolean; gamemode?: Gametype } = {}) => {
     return { context, logged, voxels, carts };
 };
 
-const update = (target: CommandBlockTarget, command = 'say hi') =>
+const update = (
+    target: CommandBlockTarget,
+    command = 'say hi',
+    { tickDelay = 0, executeOnFirstTick = true }: { tickDelay?: number; executeOnFirstTick?: boolean } = {}
+) =>
     new CommandBlockUpdatePacket({
         target,
         command,
@@ -76,8 +88,8 @@ const update = (target: CommandBlockTarget, command = 'say hi') =>
         name: 'Herald',
         filteredName: '',
         trackOutput: true,
-        tickDelay: 0,
-        executeOnFirstTick: true,
+        tickDelay,
+        executeOnFirstTick,
         lastOutputIsRawMessage: false
     });
 
@@ -89,11 +101,11 @@ const blockTarget = (mode = CommandBlockMode.Normal, redstoneMode = true): Comma
     isConditional: false
 });
 
-describe('CommandBlockUpdateHandler', () => {
+describe('a Bedrock command block edit', () => {
     it('stores the command and mode a player set on a command block', () => {
         const { context, voxels } = fixture();
 
-        new CommandBlockUpdateHandler().handle(update(blockTarget(CommandBlockMode.Repeating)), context);
+        run(update(blockTarget(CommandBlockMode.Repeating)), context);
 
         expect(voxels.overworld.identifierAt(AT)).toBe('minecraft:repeating_command_block');
         expect(commandBlockStateOf(voxels.overworld.getBlockData(AT))).toMatchObject({
@@ -106,7 +118,7 @@ describe('CommandBlockUpdateHandler', () => {
     it('starts a block set to always active', () => {
         const { context, voxels } = fixture();
 
-        new CommandBlockUpdateHandler().handle(update(blockTarget(CommandBlockMode.Normal, false)), context);
+        run(update(blockTarget(CommandBlockMode.Normal, false)), context);
 
         expect(voxels.overworld.scheduled).toEqual([{ position: AT, delay: 1 }]);
     });
@@ -115,7 +127,7 @@ describe('CommandBlockUpdateHandler', () => {
         for (const options of [{ op: false }, { gamemode: Gametype.SURVIVAL }]) {
             const { context, voxels, logged } = fixture(options);
 
-            new CommandBlockUpdateHandler().handle(update(blockTarget()), context);
+            run(update(blockTarget()), context);
 
             expect(voxels.overworld.getBlockData(AT)).toBeUndefined();
             expect(logged).toEqual([
@@ -127,14 +139,39 @@ describe('CommandBlockUpdateHandler', () => {
     it('hands a minecart’s command to the entity runtime', () => {
         const { context, carts, logged } = fixture();
 
-        new CommandBlockUpdateHandler().handle(
-            update({ isBlock: false, targetRuntimeId: 9n }, 'tp @p 0 64 0'),
-            context
-        );
-        new CommandBlockUpdateHandler().handle(update({ isBlock: false, targetRuntimeId: 4n }), context);
+        run(update({ isBlock: false, targetRuntimeId: 9n }, 'tp @p 0 64 0'), context);
+        run(update({ isBlock: false, targetRuntimeId: 4n }), context);
 
         expect(carts.map((cart) => cart.id)).toEqual([9, 4]);
         expect(carts[0]?.edit).toEqual({ command: 'tp @p 0 64 0', customName: 'Herald', trackOutput: true });
         expect(logged).toEqual(['Dropped a command block edit from Steve: 4 is no command block minecart']);
+    });
+
+    it('keeps the name, the tick delay and the first-tick setting an edit leaves out, as a Java one does', () => {
+        const { context, voxels } = fixture();
+        // Neither the block's defaults, a delay of 0 and running on the first tick, so the edit
+        // below can only leave them by keeping what this one set.
+        run(update(blockTarget(), 'say hi', { tickDelay: 5, executeOnFirstTick: false }), context);
+
+        context.services.intents.handle(
+            {
+                kind: 'editCommandBlock',
+                position: AT,
+                mode: 'chain',
+                conditional: false,
+                needsRedstone: true,
+                command: 'say again',
+                trackOutput: false
+            },
+            context
+        );
+
+        expect(voxels.overworld.identifierAt(AT)).toBe('minecraft:chain_command_block');
+        expect(commandBlockStateOf(voxels.overworld.getBlockData(AT))).toMatchObject({
+            command: 'say again',
+            customName: 'Herald',
+            tickDelay: 5,
+            executeOnFirstTick: false
+        });
     });
 });

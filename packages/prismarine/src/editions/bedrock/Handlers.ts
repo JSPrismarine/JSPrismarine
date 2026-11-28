@@ -1,10 +1,8 @@
-import BookEditHandler from './handler/BookEditHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import ClientCameraAimAssistHandler from './handler/ClientCameraAimAssistHandler';
 import ClientMovementPredictionSyncHandler from './handler/ClientMovementPredictionSyncHandler';
 import ClientToServerHandshakeHandler from './handler/ClientToServerHandshakeHandler';
-import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import DisconnectHandler from './handler/DisconnectHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
@@ -48,13 +46,11 @@ import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandl
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 
 export {
-    BookEditHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
     ClientCameraAimAssistHandler,
     ClientMovementPredictionSyncHandler,
     ClientToServerHandshakeHandler,
-    CommandBlockUpdateHandler,
     CommandRequestHandler,
     DisconnectHandler,
     EmoteListHandler,

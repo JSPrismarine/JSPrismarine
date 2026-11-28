@@ -763,6 +763,54 @@ export const RecipeBookChangeSettings = defineJavaPacket(
 );
 
 /**
+ * `Edit Book` (serverbound): the pages of the book and quill in hotbar slot `slot`, or the off
+ * hand's at 40, and its title when the player signed it. Vanilla's codec takes at most 100 pages
+ * of 1024 characters.
+ * @javaSource ServerboundEditBookPacket.STREAM_CODEC
+ */
+export const EditBook = defineJavaPacket('Edit Book', 'play/serverbound/edit_book', {
+    slot: varInt,
+    pages: list(javaString(1024)),
+    title: optional(javaString(32))
+});
+
+/** A command block's mode, by its ordinal in vanilla's `CommandBlockEntity.Mode`. */
+export enum JavaCommandBlockMode {
+    Sequence = 0,
+    Auto = 1,
+    Redstone = 2
+}
+
+/** The flags of `Set Command Block`. */
+export enum JavaCommandBlockFlag {
+    TrackOutput = 0x01,
+    Conditional = 0x02,
+    Automatic = 0x04
+}
+
+/**
+ * `Set Command Block` (serverbound): the command and options a player set on a command block's
+ * screen. `mode` is a {@link JavaCommandBlockMode} and `flags` a set of {@link JavaCommandBlockFlag}s.
+ * @javaSource ServerboundSetCommandBlockPacket.write
+ */
+export const SetCommandBlock = defineJavaPacket('Program Command Block', 'play/serverbound/set_command_block', {
+    position: blockPosition,
+    command: javaString(32_767),
+    mode: varInt,
+    flags: uint8
+});
+
+/**
+ * `Set Command Minecart` (serverbound): the command a command block minecart runs, by entity id.
+ * @javaSource ServerboundSetCommandMinecartPacket.write
+ */
+export const SetCommandMinecart = defineJavaPacket(
+    'Program Command Block Minecart',
+    'play/serverbound/set_command_minecart',
+    { entityId: varInt, command: javaString(32_767), trackOutput: bool }
+);
+
+/**
  * `Set Health` (clientbound): the player's own health, food level and saturation.
  * @javaSource ClientboundSetHealthPacket.STREAM_CODEC
  */

@@ -47,6 +47,29 @@ export const RECIPE_BOOKS = ['crafting', 'furnace', 'blastFurnace', 'smoker'] as
 export type RecipeBook = (typeof RECIPE_BOOKS)[number];
 
 /**
+ * One edit of a book and quill. Bedrock's client sends one page operation at a time and Java's
+ * the whole book, so both shapes are here.
+ *
+ * - `replacePage`, `addPage`: a page's text, by index from 0.
+ * - `deletePage`: a page goes, and the ones after it move up.
+ * - `swapPages`: two pages trade places.
+ * - `sign`: the book is signed with `title` under `author`'s name, and becomes a written book.
+ * - `setPages`: the book's pages are these, signed with `title` when there is one.
+ */
+export type BookEditStep =
+    | { readonly kind: 'replacePage' | 'addPage'; readonly page: number; readonly text: string }
+    | { readonly kind: 'deletePage'; readonly page: number }
+    | { readonly kind: 'swapPages'; readonly page: number; readonly other: number }
+    | { readonly kind: 'sign'; readonly title: string; readonly author: string }
+    | { readonly kind: 'setPages'; readonly pages: readonly string[]; readonly title: string | null };
+
+/** The command block modes, in the block behavior family's words. */
+export const COMMAND_BLOCK_MODES = ['impulse', 'repeat', 'chain'] as const;
+
+/** One of {@link COMMAND_BLOCK_MODES}. */
+export type CommandBlockModeName = (typeof COMMAND_BLOCK_MODES)[number];
+
+/**
  * What each intent carries beside its `kind`. Every field is plain data
  * ([ADR 0011](../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)), so an intent can
  * be recorded, replayed and compared.
@@ -203,6 +226,41 @@ export interface IntentPayloads {
      */
     readonly setRecipeBook: { readonly book: RecipeBook; readonly open: boolean | null; readonly filtering: boolean };
     /**
+     * The player answered a form a script showed it, by form id: `response` is the answer's
+     * JSON, or null for a form closed without one, when `cancelReason` says why, as the Script
+     * API's `FormCancelationReason` numbers it.
+     */
+    readonly answerForm: {
+        readonly formId: number;
+        readonly response: string | null;
+        readonly cancelReason: number | null;
+    };
+    /** The player edited the book and quill in a slot of its inventory, the hotbar's 9 first. */
+    readonly editBook: { readonly slot: number; readonly edit: BookEditStep };
+    /**
+     * The player set a command block's command and options on its screen. A field a client does
+     * not send, as Java's sends no name, tick delay or first-tick setting, is left as it was.
+     */
+    readonly editCommandBlock: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly mode: CommandBlockModeName;
+        readonly conditional: boolean;
+        /** Off is always active. */
+        readonly needsRedstone: boolean;
+        readonly command: string;
+        readonly trackOutput: boolean;
+        readonly customName?: string;
+        readonly tickDelay?: number;
+        readonly executeOnFirstTick?: boolean;
+    };
+    /** The player set the command a command block minecart runs, naming the cart by runtime id. */
+    readonly editCommandMinecart: {
+        readonly target: bigint;
+        readonly command: string;
+        readonly trackOutput: boolean;
+        readonly customName?: string;
+    };
+    /**
      * The player pressed the drop key: one item of the stack in its hand, or with `all` the whole
      * stack, which it throws ahead of itself.
      */
@@ -332,6 +390,13 @@ export const Intents = {
     useLabTable: { lane: 'read' },
     // A preference the server does not keep yet, which a decoded packet cannot run on the connection lane.
     setRecipeBook: { lane: 'read' },
+    // Settles a script's form, which changes what the scripts do next.
+    answerForm: { lane: 'input' },
+    // Reads the slot it names; books are not stored yet.
+    editBook: { lane: 'read' },
+    // Change a block and its block entity, or a cart's stored command.
+    editCommandBlock: { lane: 'input' },
+    editCommandMinecart: { lane: 'input' },
     // Moves the player, which replication shows the players that see it.
     move: { lane: 'input' },
     // Tires the player.

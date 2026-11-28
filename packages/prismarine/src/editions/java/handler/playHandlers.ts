@@ -17,7 +17,10 @@ import {
     ClientCommand,
     ClientCommandAction,
     ConfirmTeleportation,
+    EditBook,
     Interact,
+    JavaCommandBlockFlag,
+    JavaCommandBlockMode,
     JavaHand,
     JavaRecipeBookType,
     MOVE_ON_GROUND,
@@ -40,13 +43,15 @@ import {
     RecipeBookChangeSettings,
     ServerboundKeepAlive,
     SetCarriedItem,
+    SetCommandBlock,
+    SetCommandMinecart,
     SetCreativeModeSlot,
     UseItem,
     UseItemOn
 } from '@jsprismarine/protocol/java/packet/play';
 
 import { EYE_HEIGHT } from '../../../entity/playerEyes';
-import type { Intent, IntentKind, RecipeBook } from '../../../input/Intent';
+import type { CommandBlockModeName, Intent, IntentKind, RecipeBook } from '../../../input/Intent';
 import type PlayerSession from '../../../player/PlayerSession';
 import { javaLocaleOf, javaViewDistanceOf } from '../javaClientInformation';
 import type { JavaWorldHost } from '../JavaConnections';
@@ -65,6 +70,19 @@ const RECIPE_BOOK_OF: ReadonlyMap<number, RecipeBook> = new Map([
     [JavaRecipeBookType.BlastFurnace, 'blastFurnace'],
     [JavaRecipeBookType.Smoker, 'smoker']
 ]);
+
+/** The behavior family's name for each of vanilla's command block modes. */
+const COMMAND_BLOCK_MODE_OF: ReadonlyMap<number, CommandBlockModeName> = new Map([
+    [JavaCommandBlockMode.Redstone, 'impulse'],
+    [JavaCommandBlockMode.Auto, 'repeat'],
+    [JavaCommandBlockMode.Sequence, 'chain']
+]);
+
+/** The hotbar's slots, which a Java book edit names; 40, the off hand, is no slot of the inventory's. */
+const HOTBAR_SLOTS = 9;
+
+/** The most pages vanilla's `Edit Book` codec takes. */
+const MAX_JAVA_BOOK_PAGES = 100;
 
 /** The player's session and world, which every packet of a player in the world needs. */
 const inWorld = (
@@ -272,6 +290,34 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
         const book = RECIPE_BOOK_OF.get(bookType);
         return book === undefined ? undefined : { kind: 'setRecipeBook', book, open: isOpen, filtering: isFiltering };
     }),
+    // The whole book, signed when it carries a title. An off-hand book, slot 40, is not one the
+    // server's inventory holds, and more pages than vanilla's codec takes is no client's.
+    intentHandler(EditBook, ({ slot, pages, title }) =>
+        slot >= 0 && slot < HOTBAR_SLOTS && pages.length <= MAX_JAVA_BOOK_PAGES
+            ? { kind: 'editBook', slot, edit: { kind: 'setPages', pages, title } }
+            : undefined
+    ),
+    // A Java screen sends no name, tick delay or first-tick setting, so the block keeps its own.
+    intentHandler(SetCommandBlock, ({ position, command, mode, flags }) => {
+        const named = COMMAND_BLOCK_MODE_OF.get(mode);
+        return named === undefined
+            ? undefined
+            : {
+                  kind: 'editCommandBlock',
+                  position,
+                  mode: named,
+                  conditional: (flags & JavaCommandBlockFlag.Conditional) !== 0,
+                  needsRedstone: (flags & JavaCommandBlockFlag.Automatic) === 0,
+                  command,
+                  trackOutput: (flags & JavaCommandBlockFlag.TrackOutput) !== 0
+              };
+    }),
+    intentHandler(SetCommandMinecart, ({ entityId, command, trackOutput }) => ({
+        kind: 'editCommandMinecart',
+        target: BigInt(entityId),
+        command,
+        trackOutput
+    })),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
         intent:
