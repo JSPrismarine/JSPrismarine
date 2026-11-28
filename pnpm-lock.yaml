@@ -690,6 +690,9 @@ importers:
         specifier: 18.2.0
         version: 18.2.0
     devDependencies:
+      '@jsprismarine/packs':
+        specifier: workspace:*
+        version: link:../packs
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine
@@ -1835,6 +1838,9 @@ importers:
       '@jsprismarine/items':
         specifier: workspace:*
         version: link:../items
+      '@jsprismarine/java-packs':
+        specifier: workspace:*
+        version: link:../java-packs
       '@jsprismarine/kernel':
         specifier: workspace:*
         version: link:../kernel

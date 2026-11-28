@@ -1,3 +1,4 @@
+import { javaResourcePackHttp, javaResourcePackOffer } from '../resourcePacks/javaResourcePackOffer';
 import { BlockList, isIPv4, isIPv6 } from 'node:net';
 
 import type { Module } from '@jsprismarine/kernel';
@@ -393,6 +394,14 @@ export class ServerNetworking implements Networking {
         return this.java?.transport.port();
     }
 
+    /**
+     * Brings the Java players in play up to the server's converted resource pack, after the
+     * installed packs changed.
+     */
+    public updateJavaResourcePacks(): Promise<void> {
+        return this.java?.connections.updateResourcePacks() ?? Promise.resolve();
+    }
+
     /** RakNet's server name, or undefined before {@link ServerNetworking.start}. */
     public getServerName(): ServerName | undefined {
         return this.serverName;
@@ -434,9 +443,10 @@ export class ServerNetworking implements Networking {
         inputs: InputQueue
     ): { transport: TcpTransport; connections: JavaConnections } {
         const logger = this.server.getLogger();
-        const transport = new TcpTransport(ids, logger);
         const server = this.server;
         const config = server.getConfig();
+        // The converted resource pack's downloads share the Java port, so no second port is needed.
+        const transport = new TcpTransport(ids, logger, javaResourcePackHttp(server.getJavaResourcePacks()));
         const connections = new JavaConnections(transport, {
             status: this.status,
             brand: about().software,
@@ -446,6 +456,12 @@ export class ServerNetworking implements Networking {
             // TODO: a setting once the server checks chat signatures; until then chat is unsigned.
             enforcesSecureChat: () => false,
             log: logger,
+            resourcePacks: javaResourcePackOffer({
+                packs: server.getJavaResourcePacks(),
+                baseUrl: () => config.getJavaResourcePackUrl(),
+                required: () => config.getTexturepackRequired(),
+                log: logger
+            }),
             world: {
                 players: javaPlayersOf(server, inputs),
                 // The session paces the chunks through the server's scheduler, as it does a

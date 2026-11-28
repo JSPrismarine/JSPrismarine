@@ -248,6 +248,8 @@ export interface ConfigFile {
     'texturepack-required'?: boolean;
     /** Whether to tell joining Bedrock players to use another graphics setting than Vibrant Visuals, as Bedrock Dedicated Server's `disable-client-vibrant-visuals`. */
     'disable-client-vibrant-visuals'?: boolean;
+    /** The base URL Java clients download the converted resource pack from; empty for the server's own Java port. */
+    'java-resource-pack-url'?: string;
     /** The services the server reports pseudonymous usage statistics to. */
     stats?: StatsConfig;
     /** Whether and how the server checks for a newer JSPrismarine. */
@@ -359,6 +361,7 @@ export const CONFIG_KEY_ORDER = [
     'crafting-recipe-limit',
     'texturepack-required',
     'disable-client-vibrant-visuals',
+    'java-resource-pack-url',
     'stats',
     'updates',
     'script-watchdog-enable-shutdown',

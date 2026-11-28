@@ -16,6 +16,7 @@ import type { KeepAlive } from '../../player/KeepAlive';
 import type PlayerSession from '../../player/PlayerSession';
 import { JoinDiagnostics } from '../../network/JoinFailure';
 import type { TcpTransportConnection } from '../../network/transport/TcpTransport';
+import type { JavaResourcePackState, JavaServerAddress } from './javaResourcePack';
 import type { JavaProfile } from './javaAuth';
 
 /** Where a connection is in the conversation. */
@@ -45,6 +46,10 @@ export class JavaConnection {
     public profile?: JavaProfile;
     /** Whether the server sent `Finish Configuration`, which the client's acknowledgement answers. */
     public configured?: boolean;
+    /** The address and port the client dialed, as its handshake names them, which its pack's URL uses. */
+    public address?: JavaServerAddress;
+    /** The server's resource pack the client loaded, and the one it is answering. */
+    public resourcePack?: JavaResourcePackState;
     /** Whether Mojang vouched for the profile, which makes the player a `java` subject rather than `offline`. */
     public verified?: boolean;
     /** The player's session, once they are in the world. */

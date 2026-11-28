@@ -3142,6 +3142,7 @@
         "@jsprismarine/features": "workspace:*",
         "@jsprismarine/item-behaviors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
+        "@jsprismarine/java-packs": "workspace:*",
         "@jsprismarine/kernel": "workspace:*",
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/lighting": "workspace:*",

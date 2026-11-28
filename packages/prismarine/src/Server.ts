@@ -1,8 +1,10 @@
 import { randomInt as cryptoRandomInt } from 'node:crypto';
+import path from 'node:path';
 
 import type { EventListener } from '@jsprismarine/kernel';
 import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
@@ -66,6 +68,8 @@ import { scriptsModule, startLevelScripts } from './modules/scripts';
 import { AddonManager } from './addons/AddonManager';
 import { PluginRegistry, addonPluginSource } from './plugins/PluginRegistry';
 import { ServedResourcePacks } from './resourcePacks/ServedResourcePacks';
+import { JavaResourcePacks } from './resourcePacks/JavaResourcePacks';
+import { JAVA_PACK_CACHE_DIRECTORY } from './resourcePacks/javaPackCache';
 import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
 import { ScriptSlot } from './scripting/ScriptSlot';
@@ -153,6 +157,7 @@ export default class Server {
     /** The server's kinds of extension, made on first use; see {@link Server.getPlugins}. */
     private plugins: PluginRegistry | undefined;
     private resourcePacks: ServedResourcePacks | undefined;
+    private javaResourcePacks: JavaResourcePacks | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
     private contentSettings: ContentSettings | undefined;
 
@@ -487,6 +492,11 @@ export default class Server {
                     this.getResourcePacks()
                         .packs()
                         .catch((error: unknown) => this.logger.error(error));
+                    // Converted for Java clients now too, from the cache when it holds this stack.
+                    if (this.config.getJavaEnabled())
+                        this.getJavaResourcePacks()
+                            .current()
+                            .catch((error: unknown) => this.logger.error(error));
                     const startedAt = startStartupPhase();
                     this.enableContent();
                     finishStartupPhase('content-build', startedAt);
@@ -1109,7 +1119,11 @@ export default class Server {
             },
             // An update replaces an addon's folder in place, so the manifests are read again; a
             // `/reload` that changed no addon reloads the scripts in place, as it always has.
-            reload: (options) => this.reloadScripts(options),
+            reload: async (options) => {
+                await this.reloadScripts(options);
+                // A Java player takes a changed pack while they play; a Bedrock one when they next join.
+                await this.networking.updateJavaResourcePacks().catch((error: unknown) => this.logger.error(error));
+            },
             importWorld: ({ key, member, files }) =>
                 this.worldManager.importLevel({
                     fallbackName: member === '' ? key : member.replace(/\.[^.]*$|\/$/, ''),
@@ -1138,6 +1152,23 @@ export default class Server {
      */
     public getWorldPackDirectories(): readonly string[] {
         return [...this.getContentSettings().worldPacks, ...this.getAddons().packDirectories()];
+    }
+
+    /**
+     * The installed addons' resource packs converted for Java clients, built when they change and
+     * kept under {@link JAVA_PACK_CACHE_DIRECTORY}.
+     */
+    public getJavaResourcePacks(): JavaResourcePacks {
+        this.javaResourcePacks ??= new JavaResourcePacks({
+            bedrock: () => this.getResourcePacks().packs(),
+            target: {
+                release: NEWEST_JAVA_RELEASE.minecraftVersion,
+                format: NEWEST_JAVA_RELEASE.resourcePackFormat
+            },
+            cacheDirectory: path.join(cwd(), ...JAVA_PACK_CACHE_DIRECTORY.split('/')),
+            log: { info: (message) => this.logger.info(message), debug: (message) => this.logger.debug(message) }
+        });
+        return this.javaResourcePacks;
     }
 
     /** The installed addons' resource packs, as the server sends them to Bedrock clients. */

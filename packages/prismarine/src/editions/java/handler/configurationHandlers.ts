@@ -13,11 +13,11 @@ import {
     ClientboundPluginMessage,
     ConfigurationDisconnect,
     FeatureFlags,
-    FinishConfiguration,
     RegistryData,
     ServerboundKnownPacks,
     UpdateTags
 } from '@jsprismarine/protocol/java/packet/configuration';
+import { offerResourcePackOrFinish } from '../javaResourcePack';
 import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 
@@ -74,7 +74,8 @@ export const CONFIGURATION_HANDLERS: readonly JavaPacketHandler[] = [
      * a client without the pack, such as one of another release, could not read the world, so its
      * join ends here.
      */
-    javaHandler(ServerboundKnownPacks, async ({ packs }, { connection }) => {
+    javaHandler(ServerboundKnownPacks, async ({ packs }, context) => {
+        const { connection } = context;
         const missing = CONFIGURATION.knownPacks.find(
             (needed) =>
                 !packs.some(
@@ -92,8 +93,8 @@ export const CONFIGURATION_HANDLERS: readonly JavaPacketHandler[] = [
             connection.send(RegistryData, { registry, entries: entries.map((id) => ({ id, data: null })) });
         }
         connection.send(UpdateTags, { registries: CONFIGURATION.tags });
-        connection.send(FinishConfiguration, {});
-        connection.configured = true;
+        // The server's resource pack comes last, as vanilla's task does, and its answer finishes.
+        await offerResourcePackOrFinish(context);
     }),
 
     javaHandler(AcknowledgeFinishConfiguration, async (_acknowledged, context) => {

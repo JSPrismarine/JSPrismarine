@@ -85,6 +85,7 @@ describe('the config file a boot generates', () => {
         'crafting-recipe-limit',
         'texturepack-required',
         'disable-client-vibrant-visuals',
+        'java-resource-pack-url',
         'stats',
         'updates',
         'content-strict',

@@ -1,3 +1,5 @@
+import type { IncomingMessage, Server as HttpServer, ServerResponse } from 'node:http';
+import { createServer as createHttpServer } from 'node:http';
 import type { Server as NetServer, Socket } from 'node:net';
 import { createServer } from 'node:net';
 
@@ -11,6 +13,29 @@ import { KeyedTransport } from './KeyedTransport';
 import { framed, MAX_JAVA_FRAME, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { TransportNames } from './Transport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
+
+/** What answers an HTTP request that reached the Java port. */
+export type JavaPortHttpHandler = (request: IncomingMessage, response: ServerResponse) => void;
+
+/** The openings of the HTTP requests the Java port answers: a download and its headers. */
+const HTTP_OPENINGS = ['GET /', 'HEAD /'].map((opening) => Buffer.from(opening, 'latin1'));
+
+/**
+ * What a connection's opening bytes are: an HTTP request, a Java client, or too few bytes to tell.
+ * A Java client opens with a frame length then the handshake's packet id 0, or the legacy ping's
+ * 0xFE, so a connection that opens with `GET /` or `HEAD /` is never a Java client. Bytes that are
+ * still the start of one of those openings, such as `GE`, need more to tell.
+ */
+export const protocolOf = (opening: Buffer): 'http' | 'java' | 'undecided' => {
+    let undecided = false;
+    for (const http of HTTP_OPENINGS) {
+        const length = Math.min(opening.byteLength, http.byteLength);
+        if (!opening.subarray(0, length).equals(http.subarray(0, length))) continue;
+        if (opening.byteLength >= http.byteLength) return 'http';
+        undecided = true;
+    }
+    return undecided ? 'undecided' : 'java';
+};
 
 const TCP_CAPABILITIES: TransportCapabilities = {
     // Java Edition encrypts above the transport, after its login.
@@ -83,16 +108,23 @@ export class TcpTransport extends KeyedTransport<TcpTransportConnection, Socket>
     private readonly listener: NetServer;
     /** Every open socket, which closing the transport destroys. */
     private readonly sockets = new Set<Socket>();
+    /** What answers HTTP on the port, when anything does. */
+    private readonly http?: HttpServer;
 
     /**
      * @param ids - The allocator every transport of the server shares.
      * @param log - Where a connection that breaks the framing is reported.
+     * @param http - Answers a connection that opens with an HTTP request, such as a Java client's
+     *   download of the server's resource pack, on the same port; without it, every connection is
+     *   a Java client's.
      */
     public constructor(
         ids: ConnectionIds,
-        private readonly log: Pick<Logger, 'debug'>
+        private readonly log: Pick<Logger, 'debug'>,
+        http?: JavaPortHttpHandler
     ) {
         super(ids);
+        if (http !== undefined) this.http = createHttpServer(http);
         this.listener = createServer((socket) => this.accepted(socket));
     }
 
@@ -128,24 +160,51 @@ export class TcpTransport extends KeyedTransport<TcpTransportConnection, Socket>
     private accepted(socket: Socket): void {
         socket.setNoDelay(true);
         this.sockets.add(socket);
+        socket.once('close', () => this.sockets.delete(socket));
+        // From the start, so a reset before any byte arrives is logged rather than thrown.
+        // A reset or a timeout is followed by `close`, which forgets a Java connection.
+        socket.on('error', (error) => this.log.debug(`TCP connection from ${socket.remoteAddress}: ${error.message}`));
+        const http = this.http;
+        if (http === undefined) {
+            this.acceptJava(socket);
+            return;
+        }
+        // The opening bytes tell an HTTP request from a Java client; they go back to whichever reads on.
+        let opening = Buffer.alloc(0);
+        const read = (chunk: Buffer): void => {
+            opening = Buffer.concat([opening, chunk]);
+            const protocol = protocolOf(opening);
+            if (protocol === 'undecided') return;
+            socket.off('data', read);
+            if (protocol === 'java') {
+                this.acceptJava(socket, opening);
+                return;
+            }
+            socket.pause();
+            socket.unshift(opening);
+            http.emit('connection', socket);
+            socket.resume();
+        };
+        socket.on('data', read);
+    }
+
+    /** Reads a Java client's frames off a socket, its first bytes included when they were already read. */
+    private acceptJava(socket: Socket, first?: Buffer): void {
         const connection = this.accept(socket, (id) => new TcpTransportConnection(id, socket));
         if (connection === undefined) return;
 
         const reader = new JavaFrameReader();
-        socket.on('data', (chunk: Buffer) => {
-            const read = reader.push(connection.decrypt(chunk));
-            if ('malformed' in read) {
-                this.log.debug(`Java connection ${connection.id} sent ${read.malformed}; closing it`);
+        const read = (chunk: Buffer): void => {
+            const frames = reader.push(connection.decrypt(chunk));
+            if ('malformed' in frames) {
+                this.log.debug(`Java connection ${connection.id} sent ${frames.malformed}; closing it`);
                 socket.destroy();
                 return;
             }
-            for (const frame of read.frames) this.receive(socket, frame);
-        });
-        // A reset or a timeout is followed by `close`, which forgets the connection.
-        socket.on('error', (error) => this.log.debug(`Java connection ${connection.id}: ${error.message}`));
-        socket.once('close', () => {
-            this.sockets.delete(socket);
-            this.forget(socket, 'closed');
-        });
+            for (const frame of frames.frames) this.receive(socket, frame);
+        };
+        socket.on('data', read);
+        if (first !== undefined) read(first);
+        socket.once('close', () => this.forget(socket, 'closed'));
     }
 }
