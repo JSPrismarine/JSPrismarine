@@ -22,7 +22,7 @@ import { convertSoundDefinitions } from './sounds';
  * The version of what the conversion writes. It goes up whenever the same stack would convert to
  * other files, so a cache keyed by it never hands out a pack an older converter wrote.
  */
-export const JAVA_PACK_CONVERTER_VERSION = 1;
+export const JAVA_PACK_CONVERTER_VERSION = 2;
 
 /** One Bedrock resource pack: its files by their path inside it. */
 export interface BedrockResourcePack {
@@ -37,6 +37,23 @@ export interface JavaPackTarget {
     readonly release: string;
     /** The resource pack format its client reads, `[major, minor]`, which `pack.mcmeta` declares. */
     readonly format: readonly [number, number];
+}
+
+/**
+ * A custom item the server sends Java clients as a vanilla base item that names its own model, and
+ * which the pack draws.
+ */
+export interface JavaCustomItem {
+    /** The model key the stack's `minecraft:item_model` names, such as `loopback:lamp`. */
+    readonly model: string;
+    /** The icon's short name in `textures/item_texture.json`, as the item's `minecraft:icon` gives it. */
+    readonly icon: string;
+}
+
+/** What a conversion draws besides the packs' own assets. */
+export interface JavaPackContent {
+    /** The custom items, each of which gets an item model drawn from its icon. */
+    readonly items?: readonly JavaCustomItem[];
 }
 
 /** What happened to something a pack holds that did not convert as it is. */
@@ -70,6 +87,8 @@ export interface PackConversionReport {
         readonly languages: number;
         readonly sounds: number;
         readonly glyphSheets: number;
+        /** Custom items whose icon the pack holds, each drawn by a model. */
+        readonly items: number;
     };
     /** Everything else, in path order. */
     readonly notes: readonly ConversionNote[];
@@ -127,7 +146,7 @@ const CONVERTED = new Set(['manifest.json', 'pack_icon.png', 'textures', 'texts'
 /** Files under `textures/` that are data for a later step rather than images. */
 const TEXTURE_DATA: Readonly<Record<string, string>> = {
     'textures/terrain_texture.json': 'block texture names convert with custom blocks and vanilla overrides',
-    'textures/item_texture.json': 'item texture names convert with custom items and vanilla overrides',
+    'textures/item_texture.json': '',
     'textures/flipbook_textures.json': ''
 };
 
@@ -161,6 +180,7 @@ interface ReportBuilder {
         languages: number;
         sounds: number;
         glyphSheets: number;
+        items: number;
     };
     readonly notes: ConversionNote[];
 }
@@ -168,17 +188,29 @@ interface ReportBuilder {
 /**
  * Converts a stack of Bedrock resource packs, top first, into one Java resource pack for a release.
  * A file the stack holds more than once comes from the highest pack that holds it, as Bedrock
- * resolves it, and so does a language key and a sound event.
+ * resolves it, and so does a language key, a sound event and an item texture name.
+ * @param stack - The packs, top first.
+ * @param target - The Java release.
+ * @param content - The custom items the pack draws.
  */
 export const convertResourcePacks = (
     stack: readonly BedrockResourcePack[],
-    target: JavaPackTarget
+    target: JavaPackTarget,
+    content: JavaPackContent = {}
 ): ConvertedJavaPack => {
     const files = new Map<string, Uint8Array>();
     const textures = new Map<string, string>();
     const reports: ReportBuilder[] = stack.map(({ name }) => ({
         pack: name,
-        converted: { textures: 0, vanillaOverrides: 0, animations: 0, languages: 0, sounds: 0, glyphSheets: 0 },
+        converted: {
+            textures: 0,
+            vanillaOverrides: 0,
+            animations: 0,
+            languages: 0,
+            sounds: 0,
+            glyphSheets: 0,
+            items: 0
+        },
         notes: []
     }));
     const note = (report: ReportBuilder, path: string, outcome: ConversionOutcome, reason: string) =>
@@ -196,7 +228,8 @@ export const convertResourcePacks = (
     convertLanguages(bottomFirst, files);
     convertSounds(stack, bottomFirst, files, note);
     convertGlyphSheets(bottomFirst, files);
-    writeAtlases(textures, files);
+    const itemTextures = convertCustomItems(stack, reports, content.items ?? [], files, textures, note);
+    writeAtlases(textures, itemTextures, files);
 
     const icon = stack.find(({ files: packFiles }) => isPng(packFiles.get('pack_icon.png') ?? new Uint8Array()));
     if (icon !== undefined) files.set('pack.png', icon.files.get('pack_icon.png')!);
@@ -498,20 +531,107 @@ const convertGlyphSheets = (
 /**
  * Adds the converted block and item textures to the block and item atlases. Java stitches only the
  * folders an atlas lists, and the converted textures keep Bedrock's folder names, so each folder
- * the conversion wrote joins its atlas.
+ * the conversion wrote joins its atlas, and a custom item's texture outside `items/` joins the item
+ * atlas by name.
  */
-const writeAtlases = (textures: ReadonlyMap<string, string>, files: Map<string, Uint8Array>): void => {
+const writeAtlases = (
+    textures: ReadonlyMap<string, string>,
+    itemTextures: readonly string[],
+    files: Map<string, Uint8Array>
+): void => {
     const folders = new Set(
         [...textures.values()].map((texture) => texture.slice(`${BEDROCK_NAMESPACE}:`.length).split('/')[0]!)
     );
+    const loose = [...new Set(itemTextures)]
+        .filter((texture) => !texture.startsWith(`${BEDROCK_NAMESPACE}:items/`))
+        .sort();
     for (const [atlas, folder] of [
         ['blocks', 'blocks'],
         ['items', 'items']
     ] as const) {
-        if (!folders.has(folder)) continue;
+        const singles = atlas === 'items' ? loose.map((resource) => ({ type: 'single', resource })) : [];
+        if (!folders.has(folder) && singles.length === 0) continue;
         files.set(
             `assets/minecraft/atlases/${atlas}.json`,
-            json({ sources: [{ type: 'directory', source: folder, prefix: `${folder}/` }] })
+            json({
+                sources: [
+                    ...(folders.has(folder) ? [{ type: 'directory', source: folder, prefix: `${folder}/` }] : []),
+                    ...singles
+                ]
+            })
         );
     }
+};
+
+/**
+ * The texture path an `item_texture.json` short name gives, from the highest pack that names it:
+ * a string, the first of a list, or an object's `path`.
+ */
+const itemTextureOf = (
+    stack: readonly BedrockResourcePack[],
+    icon: string
+): { readonly pack: number; readonly texture: string } | undefined => {
+    for (const [pack, { files }] of stack.entries()) {
+        const data = readJson(files.get('textures/item_texture.json'));
+        const entry = isRecord(data) && isRecord(data.texture_data) ? data.texture_data[icon] : undefined;
+        const textures = isRecord(entry) ? entry.textures : undefined;
+        const first = Array.isArray(textures) ? textures[0] : textures;
+        const texture = isRecord(first) ? first.path : first;
+        if (typeof texture === 'string') return { pack, texture: withoutExtension(texture) };
+    }
+    return undefined;
+};
+
+/** A model key as the namespace and path of its files. */
+const modelLocation = (model: string): { readonly namespace: string; readonly path: string } => {
+    const colon = model.indexOf(':');
+    return colon === -1
+        ? { namespace: 'minecraft', path: javaPath(model) }
+        : { namespace: javaPath(model.slice(0, colon)), path: javaPath(model.slice(colon + 1)) };
+};
+
+/**
+ * Writes each custom item's `items/` definition and a flat item model over its icon's texture, as
+ * vanilla draws an item from one sprite. An item whose icon the stack does not hold is noted
+ * against the top pack, and the client draws its stack as a missing model.
+ * @returns The textures the models draw.
+ */
+const convertCustomItems = (
+    stack: readonly BedrockResourcePack[],
+    reports: readonly ReportBuilder[],
+    items: readonly JavaCustomItem[],
+    files: Map<string, Uint8Array>,
+    textures: ReadonlyMap<string, string>,
+    note: Note
+): string[] => {
+    const used: string[] = [];
+    for (const { model, icon } of [...items].sort((a, b) => (a.model < b.model ? -1 : a.model > b.model ? 1 : 0))) {
+        const found = itemTextureOf(stack, icon);
+        const texture = found === undefined ? undefined : textures.get(found.texture);
+        if (found === undefined || texture === undefined) {
+            const top = reports[found?.pack ?? 0];
+            if (top !== undefined)
+                note(
+                    top,
+                    found?.texture ?? 'textures/item_texture.json',
+                    'unreadable',
+                    found === undefined
+                        ? `no item texture is named ${icon}, the icon of ${model}`
+                        : `${found.texture}, the icon of ${model}, is not a texture the stack holds`
+                );
+            continue;
+        }
+        const { namespace, path } = modelLocation(model);
+        files.set(
+            `assets/${namespace}/items/${path}.json`,
+            json({ model: { type: 'minecraft:model', model: `${namespace}:item/${path}` } })
+        );
+        files.set(
+            `assets/${namespace}/models/item/${path}.json`,
+            json({ parent: 'minecraft:item/generated', textures: { layer0: texture } })
+        );
+        used.push(texture);
+        reports[found.pack]!.converted.items++;
+    }
+    return used;
 };

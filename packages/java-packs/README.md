@@ -27,15 +27,16 @@ const zip = writeZip(files);
 
 What converts:
 
-| Bedrock                                                  | Java                                                                                                         |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| The manifest's name, `pack_icon.png`                     | `pack.mcmeta` with the release's `min_format` and `max_format`, `pack.png`                                   |
-| PNG and TGA textures under `textures/`                   | PNG under `assets/bedrock/textures/`, at the same path made a Java path, added to the block and item atlases |
-| A vanilla texture, such as `textures/blocks/stone.png`   | Also the Java texture it is, such as `assets/minecraft/textures/block/stone.png`, with its flipbook animation |
-| `textures/flipbook_textures.json`                        | Each animated texture's `.png.mcmeta`                                                                        |
-| `texts/<locale>.lang`                                    | `assets/bedrock/lang/<locale>.json`, with Bedrock's keys                                                     |
-| `sounds/sound_definitions.json` and its Ogg Vorbis files | `assets/bedrock/sounds.json` and `assets/bedrock/sounds/`                                                    |
-| `font/glyph_XX.png`                                      | Bitmap providers in the default font over code points `0xXX00` to `0xXXFF`                                   |
+| Bedrock                                                    | Java                                                                                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| The manifest's name, `pack_icon.png`                       | `pack.mcmeta` with the release's `min_format` and `max_format`, `pack.png`                                    |
+| PNG and TGA textures under `textures/`                     | PNG under `assets/bedrock/textures/`, at the same path made a Java path, added to the block and item atlases  |
+| A vanilla texture, such as `textures/blocks/stone.png`     | Also the Java texture it is, such as `assets/minecraft/textures/block/stone.png`, with its flipbook animation |
+| `textures/flipbook_textures.json`                          | Each animated texture's `.png.mcmeta`                                                                         |
+| `texts/<locale>.lang`                                      | `assets/bedrock/lang/<locale>.json`, with Bedrock's keys                                                      |
+| `sounds/sound_definitions.json` and its Ogg Vorbis files   | `assets/bedrock/sounds.json` and `assets/bedrock/sounds/`                                                     |
+| `font/glyph_XX.png`                                        | Bitmap providers in the default font over code points `0xXX00` to `0xXXFF`                                    |
+| A custom item's icon, through `textures/item_texture.json` | `assets/<namespace>/items/<path>.json` and a flat item model over the icon's texture                          |
 
 Which Java textures a vanilla Bedrock texture is comes from `src/generated/vanillaTextures.json`,
 which `pnpm --filter @jsprismarine/bedrock-data run dump:java-textures` generates from the pinned
@@ -44,6 +45,11 @@ texture of the same name and size, or else every Java texture with the same pixe
 Bedrock texture is named for. A vanilla texture no Java texture is, such as a Bedrock-only block's
 or a chest's, whose layout differs between the editions, is reported rather than written over a
 Java texture it does not fit.
+
+A custom item converts when the third argument names it: `{ items: [{ model: 'furniture:chair',
+icon: 'chair' }] }` writes the item model the server's stacks name with `minecraft:item_model`, drawn
+from the texture the highest pack's `item_texture.json` gives the icon's short name. An icon the
+stack does not hold is reported, and the client draws that item as a missing model.
 
 `textures` maps each Bedrock texture path to the Java texture it became, so a model written later
 can name it. `report` lists, per Bedrock pack, how many assets of each kind converted and a note for
