@@ -334,8 +334,10 @@ pack installs gets it the next time they join.
 
 An install, an update or a removal reloads the behavior pack scripts with the new list of packs,
 as `/reload` does, so every pack's scripts start over. A pack's scripts and texts load this way. Anything else it holds, such as blocks, items, entities,
-recipes or loot tables, joins the content build, which runs at startup. The console names those
-folders and says they load when the server restarts. A removal leaves them loaded until then.
+recipes or loot tables, joins the content build, which runs at startup. For an install while the
+server runs, the console names those folders and says they load when the server restarts. An
+addon the server installs as it starts, such as a file dropped into `addons/` while it was
+stopped, loads them in that start's build. A removal leaves them loaded until the restart.
 When the scripts fail to load again, the command reports why, and the next `addon sync` reloads
 them.
 
