@@ -77,6 +77,7 @@ import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { TickKind, Weather } from '@jsprismarine/engine-systems';
 import { showContainerLid } from '../inventory/containerLid';
 import type { ContentPosition } from '../content/world/adapter';
+import { contentBlockLight } from '../content/world/views';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
 import type { EntitySpawn } from './EntitySpawn';
@@ -864,6 +865,12 @@ export class World implements Service {
                 randomTickChunks: () => this.randomTickChunks()
             },
             world: createEngineWorld(this),
+            packBlockLight: (block) => {
+                const content = this.server.getContent?.();
+                return content === undefined
+                    ? undefined
+                    : contentBlockLight(content, { identifier: block.name, states: block.states });
+            },
             // The blocks that answer a random tick are the behavior families in
             // `@jsprismarine/block-behaviors`, reached through the content world adapter, so
             // `WorldManager` builds these from the content registries. They are optional

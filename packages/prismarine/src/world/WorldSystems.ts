@@ -179,6 +179,11 @@ export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHand
     readonly blockTickHandlers?: Readonly<Record<string, (at: BlockPosition) => void>>;
     /** Content redstone hooks and their power cache lifecycle. */
     readonly redstoneUpdateHandlers?: ContentRedstoneUpdateHandlers;
+    /**
+     * The light of a block the vanilla mapping table does not know, such as a behavior pack's
+     * stone. Left out, such a block is transparent to light, as air is.
+     */
+    readonly packBlockLight?: (block: SystemBlock) => BlockLightProperties | undefined;
 }
 
 /** The two numbers the light engine reads, for a block this server's mapping table knows. */
@@ -189,7 +194,7 @@ const lightPropertiesOf = (block: SystemBlock): BlockLightProperties | undefined
     return { lightEmission: properties.lightEmission, lightDampening: properties.lightDampening };
 };
 
-/** Air, which is what an unmapped block looks like to light rather than an opaque wall. */
+/** Air, which is what a block neither the mapping table nor the content knows looks like to light. */
 const TRANSPARENT: BlockLightProperties = { lightEmission: 0, lightDampening: 0 };
 
 /**
@@ -217,6 +222,7 @@ export class WorldSystems {
     private readonly blockTickHandlers: WorldSystemsOptions['blockTickHandlers'];
 
     private readonly redstoneUpdateHandlers: WorldSystemsOptions['redstoneUpdateHandlers'];
+    private readonly packBlockLight: WorldSystemsOptions['packBlockLight'];
 
     private readonly randomPositions = new BlockRandomPositions();
 
@@ -261,6 +267,7 @@ export class WorldSystems {
         this.view = options.view;
         this.blockTickHandlers = options.blockTickHandlers;
         this.redstoneUpdateHandlers = options.redstoneUpdateHandlers;
+        this.packBlockLight = options.packBlockLight;
         this.lighting = new LightEngine(this.lightView());
         this.engine = createEngine(options.world, {
             randomTickHandlers: options.randomTickHandlers,
@@ -519,7 +526,7 @@ export class WorldSystems {
             if (known !== undefined) return known;
         }
 
-        const properties = lightPropertiesOf(block) ?? TRANSPARENT;
+        const properties = this.lightOf(block);
         if (runtimeId !== undefined) this.lightByRuntimeId.set(runtimeId, properties);
         return properties;
     }
@@ -715,15 +722,21 @@ export class WorldSystems {
         return hints.get(sectionY)!.hint;
     }
 
+    /**
+     * A block's light: the mapping table's for a vanilla block, the content's for a pack's, and
+     * air's for one neither knows. A pack's opaque blocks read as air would let the sky light
+     * through The Sift's caves.
+     */
+    private lightOf(block: SystemBlock): BlockLightProperties {
+        return lightPropertiesOf(block) ?? this.packBlockLight?.(block) ?? TRANSPARENT;
+    }
+
     private lightPropertiesForRuntimeId(runtimeId: number): BlockLightProperties {
         const cached = this.lightByRuntimeId.get(runtimeId);
         if (cached !== undefined) return cached;
 
         const state = BlockRuntimeIds.getState(runtimeId);
-        const properties =
-            state === null
-                ? TRANSPARENT
-                : (lightPropertiesOf({ name: state.name, states: state.properties }) ?? TRANSPARENT);
+        const properties = state === null ? TRANSPARENT : this.lightOf({ name: state.name, states: state.properties });
         this.lightByRuntimeId.set(runtimeId, properties);
         return properties;
     }
@@ -821,7 +834,7 @@ export class WorldSystems {
         const block = this.view.blockAt(x, y, z);
         if (block === undefined) return undefined;
 
-        const properties = lightPropertiesOf(block) ?? TRANSPARENT;
+        const properties = this.lightOf(block);
         if (runtimeId !== undefined) this.lightByRuntimeId.set(runtimeId, properties);
 
         return properties;

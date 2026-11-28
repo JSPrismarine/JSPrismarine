@@ -149,6 +149,23 @@ const runtimeIdOf = (content: ServerContent, block: ContentBlock): number | unde
 const propertiesOf = (content: ServerContent, identifier: string) =>
     content.blocks.types.get(identifier)?.state().content.params(blockProperties) ?? DEFAULT_BLOCK_PROPERTIES;
 
+/**
+ * The light a block state gives off and swallows, from the content's block table, which holds a
+ * pack's blocks beside the vanilla ones.
+ * @returns Undefined for a state the content's palette does not have.
+ */
+export const contentBlockLight = (
+    content: ServerContent,
+    block: ContentBlock
+): { readonly lightEmission: number; readonly lightDampening: number } | undefined => {
+    const id = runtimeIdOf(content, block);
+    if (id === undefined) return undefined;
+    return {
+        lightEmission: content.blocks.table.lightEmission[id]!,
+        lightDampening: content.blocks.table.lightFilter[id]!
+    };
+};
+
 /** The `minecraft:light_dampening` value for one block state. */
 const lightDampeningOf = (content: ServerContent, block: HookBlock): number => {
     const runtimeId = runtimeIdOf(content, block);
