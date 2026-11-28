@@ -1977,8 +1977,9 @@ describe('EntityRuntime', () => {
                 strides.push(walker.position.x - before);
             }
 
-            // Java's travel on default ground settles at speed² / (1 - 0.6 × 0.91).
-            const settled = (speed * speed) / (1 - 0.6 * 0.91);
+            // Java's travel on default ground settles at 0.98 × speed² / (1 - 0.6 × 0.91), the 0.98
+            // being `aiStep`'s damping of the forward input.
+            const settled = (0.98 * speed * speed) / (1 - 0.6 * 0.91);
             expect(Math.max(...strides)).toBeLessThanOrEqual(settled + 1e-6);
             expect(strides.at(-1)).toBeCloseTo(settled, 4);
             expect(strides.every((stride, index) => index === 0 || stride >= strides[index - 1]! - 1e-12)).toBe(true);
@@ -2078,7 +2079,7 @@ describe('EntityRuntime', () => {
                 strides.push(mover.position.x - before);
             }
 
-            expect(Math.min(...strides)).toBeCloseTo((0.25 * 0.25) / (1 - 0.6 * 0.91), 4);
+            expect(Math.min(...strides)).toBeCloseTo((0.98 * 0.25 * 0.25) / (1 - 0.6 * 0.91), 4);
         });
 
         it('moves a `movement.jump` mob only in its hops, and waits on the ground between them', () => {

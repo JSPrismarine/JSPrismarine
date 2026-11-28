@@ -24,6 +24,14 @@ const FRICTION_SPEED_REFERENCE = 0.21600002;
  */
 const AIR_SPEED = 0.02;
 
+/**
+ * The share of its forward input a mob keeps when it moves, Java's `zza *= 0.98F` in
+ * `LivingEntity.aiStep`, which runs before the tick's travel.
+ *
+ * @javaSee LivingEntity.aiStep
+ */
+const INPUT_DAMPING = 0.98;
+
 /** One tick of a walk: how far the mob goes, and the momentum it carries into the next tick. */
 export interface WalkStride {
     /** Blocks moved along the heading this tick. */
@@ -36,9 +44,10 @@ export interface WalkStride {
  * One tick of Java's `LivingEntity.travel` along a mob's heading.
  *
  * Java's move control sets a mob's forward input to its speed, the movement attribute times the
- * goal's speed modifier, and `moveRelative` scales that input by the speed again on the ground,
+ * goal's speed modifier, `aiStep` damps it to 0.98 of that, and `moveRelative` scales that input
+ * by the speed again on the ground,
  * or by `0.02` in the air. The momentum then loses the block's friction times `0.91`, or `0.91`
- * in the air. A zombie at `0.23` settles at `0.23² / (1 - 0.546)`, about `0.117` blocks a tick,
+ * in the air. A zombie at `0.23` settles at `0.98 × 0.23² / (1 - 0.546)`, about `0.114` blocks a tick,
  * and a slime covers ground only in the hop its jump tick launched.
  *
  * @param momentum - Blocks per tick the walk carried out of the last tick.
@@ -49,8 +58,8 @@ export interface WalkStride {
  * @javaSource LivingEntity.travel
  */
 export const walkStride = (momentum: number, speed: number, grounded: boolean, friction: number): WalkStride => {
-    // `moveRelative` normalizes an input longer than one block.
-    const input = Math.min(speed, 1);
+    // `aiStep` damps the forward input, and `moveRelative` normalizes an input longer than one block.
+    const input = Math.min(speed * INPUT_DAMPING, 1);
     const acceleration = grounded ? input * speed * (FRICTION_SPEED_REFERENCE / friction ** 3) : input * AIR_SPEED;
     const stride = momentum + acceleration;
     return { stride, momentum: stride * (grounded ? friction * DRAG : DRAG) };
