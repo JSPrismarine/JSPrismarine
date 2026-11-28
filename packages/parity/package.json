@@ -13,6 +13,7 @@
         "dashboard": "node scripts/dashboard.ts",
         "comment:pr": "node scripts/post-pr-comment.ts",
         "capture:corpus": "node scripts/capture-corpus.ts",
+        "capture:java-structure-starts": "node scripts/capture-java-structure-starts.ts",
         "capture:pack-blocks": "node scripts/capture-pack-blocks.ts",
         "capture:scripting": "node scripts/capture-scripting.ts"
     },

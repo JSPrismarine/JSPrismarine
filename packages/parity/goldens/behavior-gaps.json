@@ -2827,6 +2827,16 @@
             "reason": "BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder; does not resolve: BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;: net/minecraft/world/level/biome/BiomeManager declares no getBiome in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/DataDrivenGenerator.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:BiomeResolver.getBiomesWithin": {
+            "kind": "deferred",
+            "reason": "BiomeResolver.getBiomesWithin does not resolve: BiomeResolver.getBiomesWithin: net/minecraft/world/level/biome/BiomeResolver declares no getBiomesWithin in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructureOceanMonument.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair;": {
+            "kind": "deferred",
+            "reason": "BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair; changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructurePlacement.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:BiomeTags.WATER_ON_MAP_OUTLINES": {
             "kind": "deferred",
             "reason": "BiomeTags.WATER_ON_MAP_OUTLINES changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/World.ts then.",
@@ -2875,6 +2885,21 @@
         "preview:ChunkGenerator.findNearestMapStructure": {
             "kind": "deferred",
             "reason": "ChunkGenerator.findNearestMapStructure changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructurePlacement.ts, packages/prismarine/src/world/generators/datadriven/javaStructureStarts.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ChunkGenerator.getFirstOccupiedHeight": {
+            "kind": "deferred",
+            "reason": "ChunkGenerator.getFirstOccupiedHeight changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructureWorld.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair;": {
+            "kind": "deferred",
+            "reason": "ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair; changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructureStarts.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ChunkGenerator.lambda$createStructures$0": {
+            "kind": "deferred",
+            "reason": "ChunkGenerator.lambda$createStructures$0 resolves to net/minecraft/world/level/chunk/ChunkGenerator.lambda$createStructures$0(Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/core/Holder;)Z, the golden says net/minecraft/world/level/chunk/ChunkGenerator.lambda$createStructures$0(Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/biome/Climate$Sampler;Lnet/minecraft/core/Holder;)V in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/structures/src/structureSets.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:ChunkMap.getPlayerViewDistance": {
@@ -3195,6 +3220,11 @@
         "preview:net/minecraft/server/commands/ExecuteCommand.countItems": {
             "kind": "deferred",
             "reason": "net/minecraft/server/commands/ExecuteCommand.countItems resolves to net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$SlotResult;Ljava/util/function/Predicate;)I, the golden says net/minecraft/server/commands/ExecuteCommand.countItems(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/server/commands/item/ItemAccessor;Lnet/minecraft/commands/arguments/SlotSourceArgument$Result;Ljava/util/function/Predicate;)I in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/command/host/slotSource.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:OceanMonumentStructure.findGenerationPoint": {
+            "kind": "deferred",
+            "reason": "OceanMonumentStructure.findGenerationPoint changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/world/generators/datadriven/javaStructureOceanMonument.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:Painting.create": {
@@ -3792,6 +3822,13 @@
             "kind": "intentional",
             "reason": "game rule defaults: A world starts spawnRadius at 10 and tntExplosionDropDecay off, the values the pinned BDS writes to level.dat and sends clients in GameRulesChangedPacket, and a script reads the rule the world holds. BDS's Script API reads 0 and true for the two. server defaults: JSPrismarine's random ticks follow Java's random_tick_speed, whose 3 draws per section a world starts with, since Bedrock's 1 names only a relative speed, and a level shows coordinates. set every game rule: The script raises each number by 3 and flips each boolean from what it read, so the two rules start from the world defaults, 10 and off, where BDS starts from 0 and true. game rules after the commands: A gamerule command writes back the value the script set, so tntExplosionDropDecay keeps the flipped world default.",
             "reference": "packages/prismarine/src/world/GameRuleManager.ts, packages/engine-systems/src/randomTick.ts and packages/prismarine/src/world/Level.ts"
+        }
+    },
+    "worldgen.structures": {
+        "java-start:minecraft:stronghold@-100,-125": {
+            "kind": "intentional",
+            "reason": "Java's stronghold biome search reads an exactly tied climate cell through a thread-local last result, which depends on the order its background threads ran the 128 searches; the server breaks the tie by climate tree order.",
+            "reference": "ChunkGeneratorStructureState.generateRingPositions; Climate$RTree.lastResult"
         }
     }
 }

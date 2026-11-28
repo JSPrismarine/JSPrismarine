@@ -57,6 +57,9 @@ export const REFERENCE_WORLD_PATH = `${bedrockCaptureDir()}/reference_world.json
 /** Where `capture:corpus` writes the generation corpus golden, relative to the repository root. */
 export const GENERATION_CORPUS_PATH = 'packages/parity/goldens/worldgen-corpus.json';
 
+/** Where Java's structure starts for one seed are committed, as its own `/locate` reported them. */
+export const JAVA_STRUCTURE_STARTS_PATH = 'packages/parity/goldens/java-structure-starts.json';
+
 /**
  * The Java Edition version the pinned datapack and data generator reports come from.
  *
@@ -315,6 +318,13 @@ export const REFERENCES = {
      * parity with Java. `packages/parity/README.md` under "The generation corpus" says what
      * that row does and does not claim.
      */
+    /** Which structures Java starts in which chunks for one seed, from its own `/locate`. */
+    javaStructureStarts: committed(
+        'java-structure-starts',
+        JAVA_STRUCTURE_STARTS_PATH,
+        "the chunks the pinned Java dedicated server's `/locate structure` reports a start in, and the placement chunks it reports none in"
+    ),
+
     generationCorpus: committed(
         'generation-corpus',
         GENERATION_CORPUS_PATH,
