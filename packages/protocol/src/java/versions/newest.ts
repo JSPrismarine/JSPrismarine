@@ -12,7 +12,12 @@ import {
     ENTITY_TYPES as RELEASE_ENTITY_TYPES,
     ITEMS as RELEASE_ITEMS,
     CUSTOM_STATS as RELEASE_CUSTOM_STATS,
-    STAT_TYPES as RELEASE_STAT_TYPES
+    STAT_TYPES as RELEASE_STAT_TYPES,
+    DATA_COMPONENT_TYPES as RELEASE_DATA_COMPONENT_TYPES,
+    BLOCKS as RELEASE_BLOCKS,
+    SOUND_EVENTS as RELEASE_SOUND_EVENTS,
+    MOB_EFFECTS as RELEASE_MOB_EFFECTS,
+    CONSUME_EFFECT_TYPES as RELEASE_CONSUME_EFFECT_TYPES
 } from './26.3/registries';
 
 /** Every block state's id, by block and property values. */
@@ -35,6 +40,21 @@ export const CUSTOM_STATS = RELEASE_CUSTOM_STATS;
 
 /** The statistic types, the part of a statistic criterion before its colon. */
 export const STAT_TYPES = RELEASE_STAT_TYPES;
+
+/** Data component types, which a slot's component patch names by id. */
+export const DATA_COMPONENT_TYPES = RELEASE_DATA_COMPONENT_TYPES;
+
+/** Blocks, which a tool's rules name by id. */
+export const BLOCKS = RELEASE_BLOCKS;
+
+/** Sound events, which a sound holder names by its id plus one. */
+export const SOUND_EVENTS = RELEASE_SOUND_EVENTS;
+
+/** Status effects, which an effect instance names by id. */
+export const MOB_EFFECTS = RELEASE_MOB_EFFECTS;
+
+/** Consume effect types, which a consumable's effects name by id. */
+export const CONSUME_EFFECT_TYPES = RELEASE_CONSUME_EFFECT_TYPES;
 
 /** The packet ids, by phase, direction and Mojang's name, which the packet paths are checked against. */
 export type NewestPackets = typeof PACKETS;

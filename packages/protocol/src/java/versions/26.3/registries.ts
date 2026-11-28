@@ -14,3 +14,18 @@ export const CUSTOM_STATS = new JavaRegistry(registries.custom_stat);
 
 /** The statistic types, the part of a statistic criterion before its colon. */
 export const STAT_TYPES = new JavaRegistry(registries.stat_type);
+
+/** Data component types, which a slot's component patch names by id. */
+export const DATA_COMPONENT_TYPES = new JavaRegistry(registries.data_component_type);
+
+/** Blocks, which a tool's rules name by id. */
+export const BLOCKS = new JavaRegistry(registries.block);
+
+/** Sound events, which a sound holder names by its id plus one. */
+export const SOUND_EVENTS = new JavaRegistry(registries.sound_event);
+
+/** Status effects, which an effect instance names by id. */
+export const MOB_EFFECTS = new JavaRegistry(registries.mob_effect);
+
+/** Consume effect types, which a consumable's effects name by id. */
+export const CONSUME_EFFECT_TYPES = new JavaRegistry(registries.consume_effect_type);
