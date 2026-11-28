@@ -972,6 +972,17 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         }
     },
     {
+        id: 'pack-dimensions',
+        family: 'scripting.world',
+        description:
+            "A behavior pack's dimensions/*.json adds a void dimension a script finds with world.getDimension, with " +
+            "the document's height range or the Overworld's when it gives none, and a script's registration of the " +
+            'same id changes nothing.',
+        reference: 'docs/data-driven/dimensions.md#behavior-pack-dimensions',
+        packs: ['dimensions'],
+        needs: 'world'
+    },
+    {
         id: 'world-event-gaps',
         family: 'scripting.events',
         description:

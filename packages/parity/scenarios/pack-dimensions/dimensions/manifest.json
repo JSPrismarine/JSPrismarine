@@ -1,0 +1,21 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario pack-dimensions dimensions",
+        "description": "Records the custom dimension a behavior pack defines in dimensions/. Written for packages/parity.",
+        "uuid": "3f9b0c6e-2a4d-4e71-9b5c-8d1e7f203a41",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 26, 50]
+    },
+    "modules": [
+        { "type": "data", "uuid": "3f9b0c6e-2a4d-4e71-9b5c-8d1e7f203a42", "version": [1, 0, 0] },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3f9b0c6e-2a4d-4e71-9b5c-8d1e7f203a43",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.11.0" }]
+}

@@ -1,0 +1,65 @@
+{
+    "$comment": [
+        "What the scripts of scenario `pack-dimensions` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "pack-dimensions",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "dimensions",
+            "seq": 1,
+            "tick": 0,
+            "event": "register the pack dimension from a script"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 2,
+            "tick": 0,
+            "event": "pack dimension",
+            "value": {
+                "id": "jsp:pack_void",
+                "min": 0,
+                "max": 128
+            }
+        },
+        {
+            "pack": "dimensions",
+            "seq": 3,
+            "tick": 0,
+            "event": "pack dimension with no components",
+            "error": "Error: Dimension 'jsp:pack_defaults' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 4,
+            "tick": 0,
+            "event": "pack dimension with only a generator",
+            "value": {
+                "id": "jsp:pack_generation_only",
+                "min": -64,
+                "max": 320
+            }
+        },
+        {
+            "pack": "dimensions",
+            "seq": 5,
+            "tick": 0,
+            "event": "pack dimension with only a height",
+            "error": "Error: Dimension 'jsp:pack_height_only' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 6,
+            "tick": 0,
+            "event": "pack dimension without the namespace",
+            "error": "Error: Dimension 'pack_void' is invalid."
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "format_version": "1.26.50",
+    "minecraft:dimension": {
+        "description": { "identifier": "jsp:pack_void" },
+        "components": {
+            "minecraft:generation": { "generator_type": "void" },
+            "minecraft:dimension_height": { "min_y": 0, "height_range": 128 },
+            "minecraft:clouds": { "height": 100 }
+        }
+    }
+}
