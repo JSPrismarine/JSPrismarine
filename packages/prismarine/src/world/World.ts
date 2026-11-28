@@ -4768,10 +4768,11 @@ export class World implements Service {
     /**
      * Tells everyone in this world that an entity has moved.
      *
-     * Queued rather than sent, and flushed once at the end of the tick - see
-     * {@link PlayerSession.queueMoveActor}, which explains why sending each one on its own made
-     * mobs move in fits and starts. A move outside the tick waits at most one tick, which is
-     * fifty milliseconds and below anything a player can see.
+     * Queued rather than sent, and flushed once at the end of the tick, one pose an actor, as the
+     * replicator's batch: sent one by one, each move became a compressed batch and a frame of its
+     * own, per player, and waited behind any chunk still compressing, so mobs moved in fits and
+     * starts. A move outside the tick waits at most one tick, which is fifty milliseconds and
+     * below anything a player can see.
      *
      * It only announces. The entity index refiled the entity when its position was written,
      * whether or not the move is announced.

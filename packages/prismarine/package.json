@@ -3090,7 +3090,6 @@
         "bench:movement-fanout": "node benchmarks/run.mjs benchmarks/entityMovementFanout.bench.ts",
         "bench:entity-movement-delta": "node benchmarks/run.mjs benchmarks/entityMovementDelta.bench.ts",
         "bench:entity-movement-fanout": "node benchmarks/run.mjs benchmarks/entityMovementFanout.bench.ts",
-        "bench:runtime-id-fanout": "node benchmarks/run.mjs benchmarks/runtimeIdFanout.bench.ts",
         "bench:items": "node benchmarks/run.mjs benchmarks/entityPickup.bench.ts",
         "bench:inbound-packets": "node benchmarks/run.mjs benchmarks/inboundPacketRecording.bench.ts",
         "bench:recipes": "node benchmarks/run.mjs benchmarks/recipes.bench.ts",
