@@ -12,6 +12,9 @@ describe('format_version dispatch', () => {
         expect(schemaFor([1, 26, 50]).version).toBe('1.26.20');
         expect(schemaFor([1, 19, 40]).version).toBe('1.19.40');
         expect(schemaFor([1, 20, 0]).version).toBe('1.19.40');
+        // Traits arrived at 1.20.20; The Sift's 1.21.80 portal declares one.
+        expect(schemaFor([1, 21, 80]).version).toBe('1.20.20');
+        expect(BLOCK_SCHEMAS['1.20.20'].traits).toBe(true);
         expect(schemaFor([1, 16, 100]).version).toBe('1.16.100');
     });
 
@@ -154,6 +157,25 @@ describe('the block description', () => {
 
         expect(result.document?.description.traits).toEqual([]);
         expect(result.diagnostics[0]?.code).toBe('block.traits-unsupported');
+    });
+});
+
+describe('tag components', () => {
+    it('folds each tag:<name> component into minecraft:tags, after the tags it lists itself', () => {
+        const result = file('1.21.80', {
+            description: { identifier: 'test:grass' },
+            components: { 'minecraft:tags': ['meadow'], 'tag:dirt': {}, 'minecraft:friction': 0.6, 'tag:grass': {} }
+        });
+
+        const components = result.document?.components ?? [];
+        expect(components.find((entry) => entry.name === 'minecraft:tags')?.value).toEqual(['meadow', 'dirt', 'grass']);
+        expect(components.some((entry) => entry.name.startsWith('tag:'))).toBe(false);
+    });
+
+    it('makes a minecraft:tags entry for a block that only writes tag:<name> components', () => {
+        const result = file('1.21.80', { description: { identifier: 'test:rock' }, components: { 'tag:stone': {} } });
+
+        expect(result.document?.components).toEqual([{ name: 'minecraft:tags', value: ['stone'] }]);
     });
 });
 
