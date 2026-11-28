@@ -1865,6 +1865,65 @@ const riderSteeringScenario: BehaviorScenario<EntitySubject> = {
     }
 };
 
+/** How close a tempted mob counts as having caught up with the player, past Java's `TemptGoal` stop distance. */
+const TEMPT_CAUGHT_UP = 4;
+
+/**
+ * Java's `TemptGoal` follows the player as it moves: `tick` hands the navigation the `Player`
+ * itself, so each tick's path ends where the player stands then. The probe runs the live runtime
+ * and its goal world, stands a player holding the mob's food 6 blocks off, lets the mob catch
+ * up, then moves the player 6 blocks to the side and checks the mob walks there too.
+ */
+const temptFollowScenario: BehaviorScenario<EntitySubject> = {
+    name: 'goal-tempt-follows-player',
+    java: "A tempted mob follows the player holding its food as the player moves, walking to where the player stands each tick until it is within TemptGoal's stop distance.",
+    reference:
+        'Java TemptGoal.tick (navigateTowards the player while further than stopDistance) and PathNavigation.moveTo(Entity, double), read from the pinned jar',
+    // A camel's temptation is its brain's FollowTemptation, and a grown happy ghast's is the
+    // float_tempt scenario's TemptGoal.ForNonPathfinders, which steers without a path.
+    subjects: () =>
+        entitiesDeclaring(`${PREFIX}tempt`).filter(
+            (subject) =>
+                !brainOnly(subject) &&
+                javaGoals(subject.javaId).some(
+                    (goal) => isGoal(goal, ['TemptGoal']) && !isGoal(goal, ['TemptGoal$ForNonPathfinders'])
+                )
+        ),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [`${PREFIX}tempt`],
+    classify: goalGap(
+        "A tempted mob follows the player holding its food as the player moves, as Java's TemptGoal does."
+    ),
+    run: (subject) => {
+        const declared = declaredGoals(subject.bedrock, `${PREFIX}tempt`).flatMap(({ body }) =>
+            bodyItems(body, 'items')
+        );
+        const entityClass = javaEntityClass(subject.javaId) ?? '';
+        const javaItems = javaGoals(subject.javaId)
+            .filter((goal) => isGoal(goal, ['TemptGoal']))
+            .flatMap((goal) => [...javaItemsOf(goal.params.get('items'), entityClass)]);
+        const item = declared.find((candidate) => javaItems.includes(candidate)) ?? declared[0];
+        if (item === undefined) return 'it declares a tempt goal with no items to test it with';
+        return withProbe(subject.bedrock, { keep: [`${PREFIX}tempt`] }, (probe) => {
+            const player = probe.player(6, 0, 0);
+            probe.world.held.set(player, item);
+            const near = (x: number, z: number): boolean => {
+                const target = probe.at(x, 0, z);
+                return (
+                    Math.hypot(probe.entity.position.x - target.x, probe.entity.position.z - target.z) <=
+                    TEMPT_CAUGHT_UP
+                );
+            };
+            if (probe.until(() => near(6, 0), 300) === undefined)
+                return `it never walked to a player holding ${item} 6 blocks away`;
+            probe.movePlayer(player, 6, 0, 6);
+            if (probe.until(() => near(6, 6), 300) === undefined)
+                return `it stayed where the player stood when it was tempted, and never followed the player 6 blocks on`;
+            return undefined;
+        });
+    }
+};
+
 /** The server's goal that runs Java's `LandOnOwnersShoulderGoal`, which Bedrock has no goal for. */
 const SHOULDER = 'jsprismarine:behavior.land_on_owners_shoulder';
 
@@ -2442,6 +2501,7 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     ...comparisons.map(goalScenario),
     riderSteeringScenario,
+    temptFollowScenario,
     shoulderScenario,
     ...MOB_ATTACKS.map(mobAttackScenario),
     phantomTargetScenario,
