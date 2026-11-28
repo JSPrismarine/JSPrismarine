@@ -12,10 +12,12 @@ import {
     ContainerSetSlot,
     JavaEntityDataSerializer,
     SetCarriedItem,
+    SetCreativeModeSlot,
     SetCenterChunk,
     SetEntityData
 } from '@jsprismarine/protocol/java/packet/play';
 import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
+import { ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -210,6 +212,38 @@ describe('a Java Edition client', () => {
                 'minecraft:enchantments': { 'minecraft:efficiency': 3 }
             }
         });
+    });
+
+    it('puts a stack it took in creative in its inventory, keeping its name, damage and enchantments', async () => {
+        const alex = loopback.server
+            .getSessionManager()
+            .getSessions()
+            .find((session) => session.getPlayer().getName() === 'Alex');
+        if (alex === undefined) throw new Error('Alex should be on');
+        expect((await loopback.command('gamemode creative Alex')).ran).toBe(true);
+        // Window slot 43 is hotbar slot 7.
+        const slot = () => alex.getInventory().container('inventory').get(7);
+
+        java.send(SetCreativeModeSlot, {
+            slot: 43,
+            item: {
+                item: ITEMS.idOf('minecraft:diamond_pickaxe')!,
+                count: 1,
+                components: {
+                    'minecraft:custom_name': 'Spare',
+                    'minecraft:damage': 30,
+                    'minecraft:enchantments': { 'minecraft:fortune': 2 }
+                }
+            }
+        });
+        await loopback.untilJava(() => slot() !== null, 'the server never put the pickaxe in the slot');
+
+        const pickaxe = slot()!;
+        expect(pickaxe.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(pickaxe.getCustomName()).toBe('Spare');
+        expect(pickaxe.getMaxDurability() - pickaxe.getDurability()).toBe(30);
+        expect(pickaxe.getEnchantmentLevel('minecraft:fortune')).toBe(2);
+        expect((await loopback.command('gamemode survival Alex')).ran).toBe(true);
     });
 
     it('hits a Bedrock player, who takes the blow', async () => {

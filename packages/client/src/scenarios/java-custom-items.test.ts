@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
-import { ContainerSetContent, ContainerSetSlot } from '@jsprismarine/protocol/java/packet/play';
+import { ContainerSetContent, ContainerSetSlot, SetCreativeModeSlot } from '@jsprismarine/protocol/java/packet/play';
 import { ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 import { readZip, writeZip } from '@jsprismarine/packs/zip';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -117,6 +117,39 @@ describe("a Java Edition client and an addon's custom item", () => {
         });
         expect(files.has('assets/bedrock/textures/items/lamp.png')).toBe(true);
         expect(text('assets/bedrock/lang/en_us.json')).toMatchObject({ 'item.loopback:lamp.name': 'Loopback Lamp' });
+    });
+
+    it('puts a lamp it took in creative back in its inventory as the custom item', async () => {
+        const java = await loopback.joinJava('Sam');
+        const sam = loopback.server
+            .getSessionManager()
+            .getSessions()
+            .find((session) => session.getPlayer().getName() === 'Sam');
+        if (sam === undefined) throw new Error('Sam should be on');
+        expect((await loopback.command('gamemode creative Sam')).ran).toBe(true);
+        const slot = () => sam.getInventory().container('inventory').get(2);
+
+        // Window slot 38 is hotbar slot 2; the stack is the lamp as the server sent it, renamed.
+        java.send(SetCreativeModeSlot, {
+            slot: 38,
+            item: {
+                item: ITEMS.idOf('minecraft:paper')!,
+                count: 2,
+                components: {
+                    'minecraft:item_model': 'loopback:lamp',
+                    'minecraft:item_name': { translate: 'item.loopback:lamp.name' },
+                    'minecraft:max_stack_size': 16,
+                    'minecraft:custom_name': 'Desk Lamp'
+                }
+            }
+        });
+        await loopback.untilJava(() => slot() !== null, 'the server never put the lamp in the slot');
+
+        const lamp = slot()!;
+        expect(lamp.getName()).toBe('loopback:lamp');
+        expect(lamp.getAmount()).toBe(2);
+        expect(lamp.getCustomName()).toBe('Desk Lamp');
+        expect(lamp.getComponents()).toEqual({});
     });
 
     it('keeps the assignment in java-content.json, beside the config', () => {

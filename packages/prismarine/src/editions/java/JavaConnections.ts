@@ -21,6 +21,7 @@ import type PlayerSession from '../../player/PlayerSession';
 import type { ConnectionId } from '../../network/transport/ConnectionId';
 import type { TcpTransportConnection } from '../../network/transport/TcpTransport';
 import type { Transport } from '../../network/transport/Transport';
+import type { JavaCustomItems } from './JavaCustomItems';
 import { javaItemTranslation } from './editionTranslation';
 import { CONFIGURATION_HANDLERS } from './handler/configurationHandlers';
 import type { JavaServices } from './handler/JavaPacketHandler';
@@ -70,6 +71,8 @@ export interface JavaLoginOptions {
     readonly world?: JavaWorldHost;
     /** The converted resource pack a client is pushed as it configures; none when absent. */
     readonly resourcePacks?: JavaResourcePackOffer;
+    /** The custom items, which a creative client's stacks name by their models; none when absent. */
+    readonly customItems?: Pick<JavaCustomItems, 'identifierOf' | 'stackOf'>;
 }
 
 /** What `Login (play)` tells a client of the level its player joins. */

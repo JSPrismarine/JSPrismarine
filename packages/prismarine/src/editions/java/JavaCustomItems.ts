@@ -146,6 +146,8 @@ export const javaCustomItemComponentsOf = (
  */
 export class JavaCustomItems {
     private readonly stacks = new Map<string, JavaCustomStack>();
+    /** Each custom item's identifier, by its model key. */
+    private readonly byModel = new Map<string, string>();
     private readonly drawn: JavaCustomItem[] = [];
 
     /**
@@ -169,6 +171,7 @@ export class JavaCustomItems {
      */
     public async update(types: Iterable<BedrockItemType>): Promise<void> {
         this.stacks.clear();
+        this.byModel.clear();
         this.drawn.length = 0;
         for (const { identifier, bedrockComponents } of types) {
             if (this.isJavaItem(identifier)) continue;
@@ -177,6 +180,7 @@ export class JavaCustomItems {
                 base: assignment.base,
                 components: javaCustomItemComponentsOf(identifier, bedrockComponents, assignment)
             });
+            this.byModel.set(assignment.model, identifier);
             const icon = bedrockIconOf(bedrockComponents.get('minecraft:icon'));
             if (icon !== undefined) this.drawn.push({ model: assignment.model, icon });
         }
@@ -186,6 +190,11 @@ export class JavaCustomItems {
     /** A custom item's stacks as Java sees them, or undefined for an item that is not one. */
     public stackOf(identifier: string): JavaCustomStack | undefined {
         return this.stacks.get(identifier);
+    }
+
+    /** The custom item a model key names, for a stack a Java client sends back. */
+    public identifierOf(model: string): string | undefined {
+        return this.byModel.get(model);
     }
 
     /** The models the converted pack draws, one per custom item with an icon. */

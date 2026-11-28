@@ -242,7 +242,9 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
     moveHandler(MovePlayerRot, ({ yaw, pitch, flags }) => ({ rotation: { yaw, pitch }, flags })),
     moveHandler(MovePlayerStatusOnly, ({ flags }) => ({ flags })),
     intentHandler(SetCarriedItem, ({ slot }) => javaHotbarIntentOf(slot)),
-    intentHandler(SetCreativeModeSlot, (stack, { services }) => javaCreativeSlotIntentOf(stack, services.items)),
+    intentHandler(SetCreativeModeSlot, (stack, { services }) =>
+        javaCreativeSlotIntentOf(stack, services.items, services.options.customItems)
+    ),
     // The death screen's button; statistics are not kept.
     intentHandler(ClientCommand, ({ action }) =>
         action === ClientCommandAction.PerformRespawn ? { kind: 'pressRespawn' } : undefined
