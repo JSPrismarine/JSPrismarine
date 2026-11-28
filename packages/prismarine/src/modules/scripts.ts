@@ -249,7 +249,7 @@ const bindScriptComponents = (server: Server, level: Level, sink: ScriptComponen
     const bridge = content.scriptComponents;
     if (bridge === undefined) return () => {};
     const actors = levelActors(server, level);
-    const stops = [
+    const stops: (() => void)[] = [
         bridge.bind(sink, {
             name: level.name,
             isDefault: level === server.getWorldManager().getEntryLevel(),
@@ -259,11 +259,14 @@ const bindScriptComponents = (server: Server, level: Level, sink: ScriptComponen
                 const spread = max > min ? (actions.randomInt?.(max - min + 1) ?? 0) : 0;
                 actions.scheduleTick(block, min + spread);
             }
-        }),
-        ...[...level.worlds()].map((world) =>
-            world.onBlockWritten(bridge.blockWrites(world.getDimension().name, level.name))
-        )
+        })
     ];
+    // Every world, including a Nether or End the level builds on its first visit, after this.
+    stops.push(
+        level.eachWorld((world) =>
+            stops.push(world.onBlockWritten(bridge.blockWrites(world.getDimension().name, level.name)))
+        )
+    );
     return () => {
         for (const stop of stops) stop();
     };
