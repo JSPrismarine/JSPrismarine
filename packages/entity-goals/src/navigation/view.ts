@@ -101,3 +101,36 @@ export const distanceBetween = (a: EntityPosition, b: EntityPosition): number =>
 
 /** The horizontal distance between two positions, ignoring height. */
 export const horizontalDistance = (a: EntityPosition, b: EntityPosition): number => Math.hypot(a.x - b.x, a.z - b.z);
+
+/**
+ * How far {@link landPositionAt} lifts a draw out of the ground before giving up, in blocks.
+ * Java's `RandomPos.moveUpOutOfSolid` lifts to the world's top; a draw this deep inside a cliff
+ * is refused instead.
+ *
+ * @javaSee RandomPos.moveUpOutOfSolid
+ */
+const LAND_LIFT_LIMIT = 32;
+
+/**
+ * One draw of Java's `LandRandomPos`: a draw with no solid block under it is refused
+ * (`GoalUtils.isNotStable`), and one inside the ground is lifted to the first open block above it
+ * (`RandomPos.moveUpOutOfSolid`). Whether the walker may end up in what it was lifted into is the
+ * caller's ({@link NavigationProfile}'s `hasPathMalus`).
+ *
+ * @param view - The blocks.
+ * @param drawn - The drawn block.
+ * @returns The block the walker would stand in, or undefined when the draw is refused.
+ * @javaSee LandRandomPos.generateRandomPosTowardDirection
+ */
+export const landPositionAt = (view: NavigationView, drawn: EntityPosition): EntityPosition | undefined => {
+    const x = Math.floor(drawn.x);
+    const z = Math.floor(drawn.z);
+    let y = Math.floor(drawn.y);
+    if (!view.isSolid({ x, y: y - 1, z })) return undefined;
+    for (let lifted = 0; view.isSolid({ x, y, z }); lifted += 1) {
+        if (lifted >= LAND_LIFT_LIMIT) return undefined;
+        y += 1;
+    }
+    const at = { x, y, z };
+    return view.isPassable(at) ? at : undefined;
+};

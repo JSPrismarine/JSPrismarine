@@ -255,3 +255,29 @@ describe('Navigator walks', () => {
         expect(navigator.stuck).toBe(true);
     });
 });
+
+describe('Navigator.randomTarget', () => {
+    /** Three layers of stone under open air, with the walker standing on top at y 3. */
+    const ground = voxelGrid([
+        ...Array.from({ length: 3 }, () => Array.from({ length: 21 }, () => '#'.repeat(21))),
+        ...Array.from({ length: 10 }, () => Array.from({ length: 21 }, () => '.'.repeat(21)))
+    ]);
+    /** Draws in order, each in [0, 1); 0.5 is no offset. */
+    const draws = (values: number[]) => () => values.shift() ?? 0.5;
+    const walkerAt = () => {
+        const { actuator } = movableActuator({ x: 10.5, y: 3, z: 10.5 });
+        return new Navigator({ actuator, navigation: () => ground, profile: () => defaultNavigationProfile });
+    };
+
+    it("lifts a draw inside the ground onto it, as Java's LandRandomPos does", () => {
+        // x + 2 and y - 2 of 7: inside the stone.
+        const target = walkerAt().randomTarget(10, 7, draws([0.6, 0.5 - 2 / 14, 0.5]), 1);
+
+        expect(target).toEqual({ x: 12.5, y: 3, z: 10.5 });
+    });
+
+    it('refuses a draw with no ground under it', () => {
+        // y + 3: in the air.
+        expect(walkerAt().randomTarget(10, 7, draws([0.6, 0.5 + 3 / 14, 0.5]), 1)).toBeUndefined();
+    });
+});

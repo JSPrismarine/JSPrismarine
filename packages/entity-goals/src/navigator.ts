@@ -3,8 +3,9 @@ import type { EntityActuator, EntityPosition } from '@jsprismarine/entities';
 import type { Path } from './navigation/pathfinder';
 import { canOccupy, findPath } from './navigation/pathfinder';
 import type { NavigationProfile } from './navigation/profile';
+import { hasPathMalus } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
-import { blockOf, centerOf, distanceBetween, entityPositionAtNode } from './navigation/view';
+import { blockOf, centerOf, distanceBetween, entityPositionAtNode, landPositionAt } from './navigation/view';
 
 /**
  * One entity's movement, from a goal's point of view.
@@ -465,14 +466,17 @@ export class Navigator {
     }
 
     /**
-     * A reachable position in the box around the entity.
+     * A position in the box around the entity it can walk toward.
      *
-     * With a view it draws candidates and keeps the first the path finder
-     * reaches, skipping water destinations when the active navigation says to
-     * avoid water; without one it asks the actuator, which is what the
-     * reference goals in `@jsprismarine/entities` do. Either way a destination
-     * outside the entity's home restriction is refused
-     * ({@link breaksHomeRestriction}), as Java's `RandomPos` refuses it.
+     * With a view it draws candidates and keeps the first the path finder takes the entity any
+     * closer to. A walker draws as Java's `LandRandomPos` does ({@link landPositionAt}): a draw with
+     * no ground under it is refused, one inside the ground is lifted out onto it, and one in a
+     * liquid that costs the walker extra is refused ({@link hasPathMalus}). A swimmer or
+     * a flier keeps its draw, which has to be a cell it can stay in. A destination the active
+     * navigation says to avoid water for is refused in water. Without a view it asks the actuator,
+     * which is what the reference goals in `@jsprismarine/entities` do. Either way a destination
+     * outside the entity's home restriction is refused ({@link breaksHomeRestriction}), as Java's
+     * `RandomPos` refuses it.
      *
      * @param random - Draws the candidate offsets, in [0, 1).
      * @param accept - Refuses a candidate before the path finder sees it, such as one that does not
@@ -503,17 +507,20 @@ export class Navigator {
 
         const here = blockOf(position);
         const profile = this.context.profile();
+        const walks = profile.canWalk && !profile.canFly && profile.kind !== 'swim';
         for (let attempt = 0; attempt < attempts; attempt += 1) {
-            const candidate = {
+            const drawn = {
                 x: here.x + Math.round((random() * 2 - 1) * xzDistance),
                 y: here.y + Math.round((random() * 2 - 1) * yDistance),
                 z: here.z + Math.round((random() * 2 - 1) * xzDistance)
             };
-            if (restricted(candidate)) continue;
+            if (restricted(drawn)) continue;
+            const candidate = walks ? landPositionAt(view, drawn) : drawn;
+            if (candidate === undefined || (walks && hasPathMalus(view, profile, candidate))) continue;
             if (accept !== undefined && !accept(candidate)) continue;
             if (profile.avoidWater && view.isWater(candidate)) continue;
 
-            const path = findPath(view, profile, { from: here, to: candidate });
+            const path = findPath(view, profile, { from: here, to: candidate, allowPartial: walks });
             if (path !== undefined) return centerOf(candidate);
         }
         return undefined;
