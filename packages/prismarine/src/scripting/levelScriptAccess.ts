@@ -56,6 +56,7 @@ import { damageSourceOfScript } from './scriptEntityEvents';
 import { itemOfScriptItem, levelActors, presentActor } from './levelActors';
 import { scriptScoreboard } from './scriptScoreboard';
 import { levelCatalog, packBlockFacts } from './blocksItems/levelCatalog';
+import { overworldSkyDarken } from '../world/skyDarken';
 import { scriptEffectTypes } from '@jsprismarine/bedrock-data/script-catalog';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
@@ -387,9 +388,12 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const world = worldOf(dimension);
             if (world === undefined || world.getLoadedChunk(x >> 4, z >> 4) === null) return undefined;
             const systems = world.getSystems();
+            const sky = systems.getSkyLight?.(x, y, z) ?? systems.lighting.getSkyLight(x, y, z);
             return {
                 block: systems.getBlockLight?.(x, y, z) ?? systems.lighting.getBlockLight(x, y, z),
-                sky: systems.getSkyLight?.(x, y, z) ?? systems.lighting.getSkyLight(x, y, z)
+                // As BDS reads it, the sky light falls with the time and the weather: 15 at noon
+                // and 4 at midnight under the open sky. The light engine keeps the daytime value.
+                sky: Math.max(0, sky - overworldSkyDarken(world.getDayTime(), world.getWeather()))
             };
         },
         waterlogged: (dimension, { x, y, z }) => {
