@@ -63,7 +63,17 @@ export const packageAreas = [
         id: 'data',
         title: 'Data and formats',
         description: 'Game data, identifiers, packs and addons, Molang and the file formats they use.',
-        packages: ['bedrock-data', 'minecraft', 'mapping', 'nbt', 'molang', 'packs', 'addon-tools', 'color-parser']
+        packages: [
+            'bedrock-data',
+            'minecraft',
+            'mapping',
+            'nbt',
+            'molang',
+            'packs',
+            'java-packs',
+            'addon-tools',
+            'color-parser'
+        ]
     },
     {
         id: 'utilities',
