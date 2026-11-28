@@ -22,6 +22,8 @@ export interface ShownPose {
     readonly y: number;
     readonly z: number;
     readonly yaw: number;
+    /** Where the head faces, which a look turns apart from the body. */
+    readonly headYaw: number;
     readonly pitch: number;
 }
 
@@ -83,7 +85,7 @@ export const entityViewOf = (entity: DataEntity, leashHolderId?: number): Entity
     const health = instance.attributes.get('health');
     return {
         identifier: entity.identifier,
-        pose: { x: at.x, y: at.y, z: at.z, yaw: body.yaw, pitch: body.pitch },
+        pose: { x: at.x, y: at.y, z: at.z, yaw: body.yaw, headYaw: body.headYaw, pitch: body.pitch },
         velocity: { ...body.velocity },
         onGround: body.conditions.has('on_ground'),
         metadata: actorMetadataProjection(entity, leashHolderId),

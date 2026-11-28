@@ -103,7 +103,7 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
     runtimeId: 7n,
     view: {
         identifier: 'minecraft:player',
-        pose: { x: 0, y: 64, z: 0, yaw: 0, pitch: 0 },
+        pose: { x: 0, y: 64, z: 0, yaw: 0, headYaw: 0, pitch: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         onGround: true,
         metadata: { flags: [], properties: [] },

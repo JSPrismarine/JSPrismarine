@@ -68,7 +68,7 @@ const MOVEMENT_EPSILON = 1e-4;
  * The fields that move an entity, which a move is sent for and nothing else reads. A player's head
  * turns apart from its body, so a tick that writes only the head yaw still sends a move.
  */
-const POSE_FIELDS: ReadonlySet<string> = new Set(['position', 'yaw', 'pitch', 'teleports', HEAD_YAW_FIELD]);
+const POSE_FIELDS: ReadonlySet<string> = new Set(['position', 'yaw', 'headYaw', 'pitch', 'teleports', HEAD_YAW_FIELD]);
 
 /** The fields no metadata, property or health of an entity reads, so a tick writing only these is not projected. */
 const UNSHOWN_FIELDS: ReadonlySet<string> = new Set([
@@ -439,6 +439,7 @@ export class EntityReplication {
             Math.abs(last.y - pose.y) < MOVEMENT_EPSILON &&
             Math.abs(last.z - pose.z) < MOVEMENT_EPSILON &&
             last.yaw === pose.yaw &&
+            last.headYaw === pose.headYaw &&
             last.pitch === pose.pitch &&
             shown.headYaw === player?.headYaw;
         if (still) return;
@@ -453,7 +454,7 @@ export class EntityReplication {
                 : new Vector3(pose.x, pose.y + EYE_HEIGHT, pose.z);
         packet.pitch = pose.pitch;
         packet.yaw = pose.yaw;
-        packet.headYaw = player?.headYaw ?? pose.yaw;
+        packet.headYaw = player?.headYaw ?? pose.headYaw;
         // A dropped stack is never said to be on the ground: the client draws its landing itself.
         packet.flags =
             (shown.kind !== 'item' && view.onGround ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0) |
@@ -573,7 +574,7 @@ export class EntityReplication {
                     ...(known === undefined ? {} : { state: shownEntityStateOf(known.metadata) }),
                     yaw: view.pose.yaw,
                     pitch: view.pose.pitch,
-                    headYaw: view.pose.yaw,
+                    headYaw: view.pose.headYaw,
                     ...(identity === undefined
                         ? {}
                         : {

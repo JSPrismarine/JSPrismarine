@@ -117,6 +117,10 @@ const wrapDegrees = (degrees: number): number => {
     return wrapped;
 };
 
+/** The yaw that faces from one position toward another across the ground, in degrees. */
+const yawToward = (from: EntityPosition, to: EntityPosition): number =>
+    (Math.atan2(to.z - from.z, to.x - from.x) * 180) / Math.PI - 90;
+
 /**
  * Turns from one heading toward another by at most `maxTurn` degrees, as Java's
  * `MoveControl.rotlerp` does. A turn that fits lands on the target exactly.
@@ -126,6 +130,13 @@ const turnToward = (from: number, to: number, maxTurn: number): number => {
     if (Math.abs(change) <= maxTurn) return to;
     return wrapDegrees(from + Math.sign(change) * maxTurn);
 };
+
+/**
+ * The most degrees a walking mob's head turns from its body, Java's `Mob.getMaxHeadYRot`.
+ *
+ * @javaSource Mob.getMaxHeadYRot
+ */
+const MAX_HEAD_TURN = 75;
 
 /** Java's default jump power for an entity without a jump component or attribute. */
 const DEFAULT_JUMP_POWER = 0.42;
@@ -144,6 +155,8 @@ const FLUID_JUMP_IMPULSE = 0.04;
 export interface LoggedBodyState {
     position: EntityPosition;
     yaw: number;
+    /** Where the head faces, in degrees, which a look turns apart from the body: Java's `yHeadRot`. */
+    headYaw: number;
     pitch: number;
     velocity: EntityPosition;
     nameTag: string | undefined;
@@ -311,6 +324,21 @@ export class MobBody {
 
     public set yaw(yaw: number) {
         this.write('yaw', yaw);
+        // Whatever turns the body turns the head with it, unless a look turned the head this tick.
+        if (!this.looked) this.write('headYaw', yaw);
+    }
+
+    /**
+     * Where the entity's head faces, in degrees, Java's `yHeadRot`. A look turns it; the body's
+     * {@link MobBody.yaw} is what the walk steers, and the head stays within
+     * {@link MAX_HEAD_TURN} of it while the body walks.
+     */
+    public get headYaw(): number {
+        return this.logged.headYaw;
+    }
+
+    public set headYaw(headYaw: number) {
+        this.write('headYaw', headYaw);
     }
 
     /** The entity's head pitch, in degrees. */
@@ -709,6 +737,8 @@ export class MobBody {
      * waits until it lands. A body that walked off a ledge steers on through its fall instead.
      */
     private thrown = false;
+    /** Whether a look turned the head this tick, which {@link MobBody.settleHead} reads. */
+    private looked = false;
     /** Ticks since the destination was set without the entity getting any closer. */
     private idleTicks = 0;
     /**
@@ -729,6 +759,7 @@ export class MobBody {
         this.logged = {
             position,
             yaw: 0,
+            headYaw: 0,
             pitch: 0,
             velocity: { x: 0, y: 0, z: 0 },
             nameTag: undefined,
@@ -992,14 +1023,52 @@ export class MobBody {
         this.write('teleports', teleports);
     }
 
-    /** Points the entity's head at a position. */
+    /**
+     * Points the entity's head at a position, as Java's `LookControl` turns `yHeadRot` and the
+     * pitch and leaves the body's yaw to the move control. {@link MobBody.settleHead} lines the two
+     * up once the tick's walk is done.
+     */
     public lookAt(position: EntityPosition): void {
         const eye = entityEyePosition(this.position, this.facts.box.height);
         const dx = position.x - eye.x;
         const dz = position.z - eye.z;
         const dy = position.y - eye.y;
-        this.yaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
+        this.headYaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
         this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
+        this.looked = true;
+    }
+
+    /** The pitch that points the eyes at a position, in degrees. */
+    private pitchToward(position: EntityPosition): number {
+        const eye = entityEyePosition(this.position, this.facts.box.height);
+        return (-Math.atan2(position.y - eye.y, Math.hypot(position.x - eye.x, position.z - eye.z)) * 180) / Math.PI;
+    }
+
+    /**
+     * Lines the head and the body up after the tick's walk, as Java's `LookControl` and
+     * `BodyRotationControl` do: a head a look turned stays within {@link MAX_HEAD_TURN} of a body
+     * that walks and turns the body after it when the body stands, and a head nothing looked with
+     * follows the body.
+     */
+    public settleHead(): void {
+        const looked = this.looked;
+        this.looked = false;
+        if (!looked) {
+            this.headYaw = this.yaw;
+            return;
+        }
+        if (!this.walking) {
+            this.yaw = this.headYaw;
+            return;
+        }
+        const turn = wrapDegrees(this.headYaw - this.yaw);
+        if (Math.abs(turn) > MAX_HEAD_TURN) this.headYaw = wrapDegrees(this.yaw + Math.sign(turn) * MAX_HEAD_TURN);
+    }
+
+    /** Aims the head and the body at a position at once, for a turn that is not a look, such as a shot. */
+    public faceAt(position: EntityPosition): void {
+        this.lookAt(position);
+        this.yaw = this.headYaw;
     }
 
     /**
@@ -1127,9 +1196,8 @@ export class MobBody {
         const steered = options?.maxTurn !== undefined && options.turnShare === undefined;
         if (steered && options?.maxTurn !== undefined) {
             if (options.allowVertical) {
-                const before = this.yaw;
-                this.lookAt(destination);
-                this.yaw = turnToward(before, this.yaw, options.maxTurn);
+                this.yaw = turnToward(this.yaw, yawToward(this.position, destination), options.maxTurn);
+                this.pitch = this.pitchToward(destination);
             } else this.faceToward(destination, options.maxTurn);
         }
         const scale = Math.min(stride, remaining) / remaining;
@@ -1174,8 +1242,10 @@ export class MobBody {
         // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
         if (steered) return;
         const before = this.yaw;
-        if (options === undefined || options.allowVertical) this.lookAt(destination);
-        else this.faceToward(destination);
+        if (options === undefined || options.allowVertical) {
+            this.yaw = yawToward(this.position, destination);
+            this.pitch = this.pitchToward(destination);
+        } else this.faceToward(destination);
         if (options?.turnShare !== undefined)
             this.yaw = wrapDegrees(before + wrapDegrees(this.yaw - before) * options.turnShare);
     }

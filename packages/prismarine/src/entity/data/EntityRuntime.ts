@@ -2580,6 +2580,7 @@ export class EntityRuntime implements EntityScene {
         if (entity.removed !== undefined) return;
         if (this.componentFactsOf(entity).families.includes('boat')) tickBoatBubbles(entity, this.boatBubbleHost);
         this.step(entity);
+        entity.body.settleHead();
         this.updateMedium(entity);
         this.updateGrounded(entity);
         updateFlapping(entity, from, this.flappingHost);
