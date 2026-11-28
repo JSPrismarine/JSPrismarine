@@ -111,6 +111,48 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         expect(log.printed()).toEqual(['helper helper']);
     });
 
+    it("walks a volume's locations in BDS's order at a cost that does not grow with the volume", () => {
+        // A 32 by 4 by 32 box, 4096 locations: x fastest, then z, then y.
+        const { scripts, log } = start([
+            writePack(`import { BlockVolume, system } from '@minecraft/server';
+                system.run(() => {
+                    const iterator = new BlockVolume({ x: 0, y: 0, z: 0 }, { x: 31, y: 3, z: 31 }).getBlockLocationIterator();
+                    const walked = [];
+                    for (const at of iterator) walked.push(at);
+                    const [first, second] = walked;
+                    const last = walked[walked.length - 1];
+                    console.warn(walked.length, JSON.stringify([first, second, walked[32], walked[1024], last]));
+                });`)
+        ]);
+        const before = scripts.stats();
+        scripts.flush();
+        const after = scripts.stats();
+
+        expect(log.printed()).toEqual([
+            '4096 [{"x":0,"y":0,"z":0},{"x":1,"y":0,"z":0},{"x":0,"y":0,"z":1},{"x":0,"y":1,"z":0},{"x":31,"y":3,"z":31}]'
+        ]);
+        // Each step hands the host the volume and a position, not the locations left: the old
+        // iterator's state was the rest of the list, about 44,000 bytes a step here.
+        const bytesPerStep = (after.bytesToHost - before.bytesToHost) / 4096;
+        expect(bytesPerStep).toBeLessThan(200);
+    });
+
+    it('reads a host-made volume from its state, without a host call for each location', () => {
+        const { scripts, log } = start([
+            writePack(`import { BlockVolume, system, world } from '@minecraft/server';
+                system.run(() => {
+                    const volume = new BlockVolume({ x: 0, y: -64, z: 0 }, { x: 15, y: -49, z: 15 });
+                    console.warn(world.getDimension('overworld').containsBlock(volume, { includeTypes: ['minecraft:bedrock'] }));
+                });`)
+        ]);
+        const before = scripts.stats().hostCalls;
+        scripts.flush();
+
+        expect(log.printed()).toEqual(['true']);
+        // 4096 locations, and a handful of calls to make the volume, read the filter and answer.
+        expect(scripts.stats().hostCalls - before).toBeLessThan(50);
+    });
+
     it('costs one host call for each system.run a script makes', () => {
         const { scripts } = start([
             writePack(`import { system, world } from '@minecraft/server';
