@@ -175,7 +175,11 @@ export class LevelScripts {
             );
             return undefined;
         }
-        const world = new LevelScriptWorld(options.sources);
+        const world = new LevelScriptWorld({
+            ...options.sources,
+            packDirectories: options.packDirectories,
+            warn: (message) => options.log.warn(message)
+        });
         const { jobSlice } = options.sources;
         // BDS's job time slice, from the tick time the input step admitted; see `jobStepsForTick`.
         if (jobSlice !== undefined)

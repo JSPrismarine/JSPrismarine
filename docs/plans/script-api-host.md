@@ -452,8 +452,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       world, and a structure holds no entities, so the item databases in Canopy and Understudy that
       store entities in structures read back nothing. A placement ignores `integrity` and
       `waterlogged`, and turns only `pillar_axis` and the cardinal and facing direction states; no
-      scenario records `mirror`.
-      `getPackStructureIds` and a pack's `.mcstructure` files have no behavior. A mob has no default
+      scenario records `mirror`. The `pack-structures` scenario compares a behavior pack's
+      `.mcstructure` files, format 1 and 2, and `getPackStructureIds` with BDS. A mob has no default
       underwater speed ([#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264)). An interaction raises
       one event a click, so `isFirstEvent` is always true. `ScreenDisplay`'s HUD members,
       `SoundInstance.stop`, `ItemEnchantableComponent` and other item components, and
@@ -598,8 +598,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       path `''`, and a condition with no class is left out.
     - Left: a paused clock and `doDayLightCycle` false do not stop JSPrismarine's time
       ([#3309](https://github.com/JSPrismarine/JSPrismarine/issues/3309)); the sound instance
-      controls ([#3314](https://github.com/JSPrismarine/JSPrismarine/issues/3314)), pack
-      structures and jigsaw placement ([#3315](https://github.com/JSPrismarine/JSPrismarine/issues/3315)),
+      controls ([#3314](https://github.com/JSPrismarine/JSPrismarine/issues/3314)), jigsaw
+      placement ([#3315](https://github.com/JSPrismarine/JSPrismarine/issues/3315)),
       the locator bar and waypoints ([#3313](https://github.com/JSPrismarine/JSPrismarine/issues/3313)),
       the point-of-interest classes behind BDS's runtime condition
       ([#3312](https://github.com/JSPrismarine/JSPrismarine/issues/3312)), and `registerClock`
