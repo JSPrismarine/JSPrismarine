@@ -8,7 +8,6 @@ import type PlayerSession from '../../../player/PlayerSession';
 import { eyePositionAt } from '../../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import { announceArrival, playerArriving } from '../../../player/playerArrival';
-import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/bedrock/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket, {
     appendBiomeDefinitions
 } from '@jsprismarine/protocol/bedrock/packet/BiomeDefinitionListPacket';
@@ -37,6 +36,7 @@ import { aimAssistPresetsPacket, cameraPresetsPacket } from '../cameraJoinPacket
 import { showScoreboard } from '../../../command/host/scoreboard';
 import { packBiomesOf } from '../../../content/packBiomes';
 import type { ServerContent } from '../../../content/ServerContent';
+import { actorIdentifiersFor } from '../actorIdentifiers';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
 /**
@@ -375,7 +375,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 content,
                 recipeLimit,
                 compressionLevel,
-                new AvailableActorIdentifiersPacket()
+                actorIdentifiersFor(connection.codec.context.entityIdentifiers, content)
             )
         );
         sends.push(
