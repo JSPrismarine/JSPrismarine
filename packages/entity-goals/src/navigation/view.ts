@@ -59,6 +59,14 @@ export interface NavigationView {
     isClimbable?(position: EntityPosition): boolean;
     /** Whether the block is a ladder, which `minecraft:can_climb` lets entities climb. */
     isLadder?(position: EntityPosition): boolean;
+    /**
+     * How high the block's collision shape reaches above the block's own floor, in blocks: 1 for
+     * a full block, 1.5 for a fence or a wall, 0 for a block with no collision. A block that
+     * reaches above 1 can neither be stood on nor stepped over, Java's `PathType.FENCE`.
+     *
+     * @javaSee PathType.FENCE
+     */
+    collisionTop?(position: EntityPosition): number;
 }
 
 /** Rounds a position down to the block that contains it. */

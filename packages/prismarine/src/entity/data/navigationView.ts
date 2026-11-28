@@ -441,6 +441,7 @@ export const navigationViewOf = (
                 return identifier !== undefined && CLIMBABLE.has(identifier);
             },
             isLadder: (position) => identifierAt(position) === 'minecraft:ladder',
+            collisionTop: (position) => Math.max(0, ...(collisionAt(position) ?? []).map((box) => box[4])),
             isPortal: (position) => {
                 const identifier = identifierAt(position);
                 return identifier !== undefined && PORTALS.has(identifier);
