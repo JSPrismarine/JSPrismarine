@@ -2631,8 +2631,24 @@ export class EntityRuntime implements EntityScene {
         this.playersById = undefined;
     }
 
-    /** Mirrors `Mob.checkDespawn`: a player strictly inside 32 blocks resets idle time. */
+    /**
+     * Mirrors `Mob.checkDespawn`: a mob that must persist has no idle time, and any other mob's
+     * resets while a player is strictly inside 32 blocks. A named, tamed or leashed mob, or one
+     * whose type persists, is one Java's `isPersistenceRequired` or `requiresCustomPersistence`
+     * keeps, so it goes on strolling however far its owner is.
+     *
+     * @javaSee Mob.checkDespawn
+     */
     private resetNoActionTimeNearPlayers(entity: DataEntity): void {
+        if (
+            entity.body.nameTag !== undefined ||
+            entity.body.owner !== undefined ||
+            this.leashHolders.has(entity.id) ||
+            entity.instance.hasComponent('minecraft:persistent')
+        ) {
+            entity.instance.resetNoActionTime();
+            return;
+        }
         const maximumDistanceSquared = MOB_NO_DESPAWN_DISTANCE * MOB_NO_DESPAWN_DISTANCE;
         const nearbyPlayer = this.host.players().some((player) => {
             const dx = player.position.x - entity.position.x;
