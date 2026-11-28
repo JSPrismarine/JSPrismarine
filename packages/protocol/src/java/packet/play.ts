@@ -24,7 +24,14 @@ import {
 } from '../wire/javaTypes';
 import type { JavaText } from '../wire/javaTypes';
 import { profileProperty } from './login';
-import { CLIENT_INFORMATION, identifier, pluginData } from './configuration';
+import {
+    CLIENT_INFORMATION,
+    identifier,
+    pluginData,
+    RESOURCE_PACK_POP,
+    RESOURCE_PACK_PUSH,
+    RESOURCE_PACK_RESPONSE
+} from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
 /**
@@ -1445,3 +1452,33 @@ export const TickingState = defineJavaPacket('Set Ticking State', 'play/clientbo
  * @javaSource ClientboundTickingStepPacket.STREAM_CODEC
  */
 export const TickingStep = defineJavaPacket('Step Tick', 'play/clientbound/ticking_step', { steps: varInt });
+
+/**
+ * `Add Resource Pack (play)`: a pack the client downloads and applies while it plays.
+ * @javaSource ClientboundResourcePackPushPacket.STREAM_CODEC
+ */
+export const PlayResourcePackPush = defineJavaPacket(
+    'Add Resource Pack (play)',
+    'play/clientbound/resource_pack_push',
+    RESOURCE_PACK_PUSH
+);
+
+/**
+ * `Remove Resource Pack (play)`: drops a pack the server pushed, or every one.
+ * @javaSource ClientboundResourcePackPopPacket.STREAM_CODEC
+ */
+export const PlayResourcePackPop = defineJavaPacket(
+    'Remove Resource Pack (play)',
+    'play/clientbound/resource_pack_pop',
+    RESOURCE_PACK_POP
+);
+
+/**
+ * `Resource Pack Response (play)`: what the client did with a pack the server pushed.
+ * @javaSource ServerboundResourcePackPacket.STREAM_CODEC
+ */
+export const PlayResourcePackResponse = defineJavaPacket(
+    'Resource Pack Response (play)',
+    'play/serverbound/resource_pack',
+    RESOURCE_PACK_RESPONSE
+);

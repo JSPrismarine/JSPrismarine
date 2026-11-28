@@ -7,8 +7,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 import type { WireType } from '../../wire/fieldTypes';
-import { bool, custom, enumOf, int8, list, record, uint8 } from '../../wire/fieldTypes';
-import { javaString, long, textComponent, varInt } from '../wire/javaTypes';
+import { bool, custom, enumOf, int8, list, optional, record, uint8 } from '../../wire/fieldTypes';
+import { javaString, long, textComponent, uuid, varInt } from '../wire/javaTypes';
 import { defineJavaPacket } from './JavaPacket';
 
 /** `Identifier`: a namespaced id, such as `minecraft:overworld`. */
@@ -208,6 +208,84 @@ export const AcknowledgeFinishConfiguration = defineJavaPacket(
     'Acknowledge Finish Configuration',
     'configuration/serverbound/finish_configuration',
     {}
+);
+
+/**
+ * What a client answers a resource pack with, as `Resource Pack Response` carries it: vanilla's
+ * `ServerboundResourcePackPacket$Action` constants, in ordinal order. All but `Accepted` and
+ * `Downloaded` end the exchange for that pack.
+ * @javaSee ServerboundResourcePackPacket$Action.isTerminal
+ */
+export enum JavaResourcePackAction {
+    SuccessfullyLoaded = 0,
+    Declined = 1,
+    FailedDownload = 2,
+    Accepted = 3,
+    Downloaded = 4,
+    InvalidUrl = 5,
+    FailedReload = 6,
+    Discarded = 7
+}
+
+/** Whether an answer ends the exchange for its pack, as every one but `Accepted` and `Downloaded` does. */
+export const isTerminalResourcePackAction = (action: JavaResourcePackAction): boolean =>
+    action !== JavaResourcePackAction.Accepted && action !== JavaResourcePackAction.Downloaded;
+
+/**
+ * `Add Resource Pack`'s fields, which configuration and play share: the pack's id, the URL the
+ * client downloads it from, its SHA-1 in hexadecimal, whether the player must take it, and the
+ * prompt the client shows beside the question.
+ * @javaSee ClientboundResourcePackPushPacket.STREAM_CODEC
+ */
+export const RESOURCE_PACK_PUSH = {
+    id: uuid,
+    url: javaString(32_767),
+    /** Forty hexadecimal digits; anything else and the client does not check the download. */
+    hash: javaString(40),
+    required: bool,
+    prompt: optional(textComponent)
+};
+
+/**
+ * `Remove Resource Pack`'s fields: the pack to remove, or every pack the server pushed when absent.
+ * @javaSee ClientboundResourcePackPopPacket.STREAM_CODEC
+ */
+export const RESOURCE_PACK_POP = { id: optional(uuid) };
+
+/**
+ * `Resource Pack Response`'s fields: the pack and what the client did with it.
+ * @javaSee ServerboundResourcePackPacket.STREAM_CODEC
+ */
+export const RESOURCE_PACK_RESPONSE = { id: uuid, action: enumOf<JavaResourcePackAction>(varInt) };
+
+/**
+ * `Add Resource Pack (configuration)`: a pack the client downloads before it joins.
+ * @javaSource ClientboundResourcePackPushPacket.STREAM_CODEC
+ */
+export const ConfigurationResourcePackPush = defineJavaPacket(
+    'Add Resource Pack (configuration)',
+    'configuration/clientbound/resource_pack_push',
+    RESOURCE_PACK_PUSH
+);
+
+/**
+ * `Remove Resource Pack (configuration)`: drops a pack the server pushed, or every one.
+ * @javaSource ClientboundResourcePackPopPacket.STREAM_CODEC
+ */
+export const ConfigurationResourcePackPop = defineJavaPacket(
+    'Remove Resource Pack (configuration)',
+    'configuration/clientbound/resource_pack_pop',
+    RESOURCE_PACK_POP
+);
+
+/**
+ * `Resource Pack Response (configuration)`: what the client did with a pack the server pushed.
+ * @javaSource ServerboundResourcePackPacket.STREAM_CODEC
+ */
+export const ConfigurationResourcePackResponse = defineJavaPacket(
+    'Resource Pack Response (configuration)',
+    'configuration/serverbound/resource_pack',
+    RESOURCE_PACK_RESPONSE
 );
 
 /**

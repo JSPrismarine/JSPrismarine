@@ -9,12 +9,16 @@ import {
     ConfigurationClientboundKeepAlive,
     ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationResourcePackPop,
+    ConfigurationResourcePackPush,
+    ConfigurationResourcePackResponse,
     ConfigurationServerboundKeepAlive,
     FeatureFlags,
     FinishConfiguration,
     JavaChatVisibility,
     JavaMainHand,
     JavaParticleStatus,
+    JavaResourcePackAction,
     RegistryData,
     ServerboundKnownPacks,
     ServerboundPluginMessage,
@@ -135,6 +139,9 @@ import {
     SystemChat,
     SynchronizePlayerPosition,
     TeleportEntity,
+    PlayResourcePackPop,
+    PlayResourcePackPush,
+    PlayResourcePackResponse,
     UseItemOn
 } from './play';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from './status';
@@ -240,6 +247,28 @@ const SAMPLES: readonly Sample[] = [
     sample(FeatureFlags, { features: ['minecraft:vanilla'] }),
     sample(ClientboundPluginMessage, { channel: 'minecraft:brand', data: brandPayload('JSPrismarine') }),
     sample(FinishConfiguration, {}),
+    sample(
+        ConfigurationResourcePackPush,
+        {
+            id: STEVE,
+            url: 'http://127.0.0.1:25565/resource-packs/0123456789abcdef0123456789abcdef01234567.zip',
+            hash: '0123456789abcdef0123456789abcdef01234567',
+            required: true,
+            prompt: 'Take the pack'
+        },
+        { id: STEVE, url: 'https://example.com/pack.zip', hash: '', required: false, prompt: null }
+    ),
+    sample(ConfigurationResourcePackPop, { id: STEVE }, { id: null }),
+    sample(ConfigurationResourcePackResponse, { id: STEVE, action: JavaResourcePackAction.Declined }),
+    sample(PlayResourcePackPush, {
+        id: STEVE,
+        url: 'https://example.com/pack.zip',
+        hash: '0123456789abcdef0123456789abcdef01234567',
+        required: false,
+        prompt: { translate: 'addServer.resourcePack' }
+    }),
+    sample(PlayResourcePackPop, { id: null }),
+    sample(PlayResourcePackResponse, { id: STEVE, action: JavaResourcePackAction.SuccessfullyLoaded }),
     sample(AcknowledgeFinishConfiguration, {}),
     sample(
         PlayDisconnect,
