@@ -21,7 +21,7 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
-import { firstSightPackets } from '../network/replica/firstSight';
+import { armorPackets, firstSightPackets } from '../network/replica/firstSight';
 import type { FirstSight } from '../network/replica/firstSight';
 import type ClientConnection from '../network/ClientConnection';
 import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
@@ -69,9 +69,19 @@ const sessionFor = (player: SessionPlayer) => {
         sendDataPacket: async (packet) => void sent.push(packet)
     });
 
+    // The Bedrock presenter reads the player's slots and equipment, as a session builds it to.
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        presenter: new BedrockPresenter(connection),
+        presenter: new BedrockPresenter(connection, undefined, {
+            runtimeId: player.getRuntimeId(),
+            lastInputTick: () => 0n,
+            inventory: {
+                inventory: () => player.getInventory(),
+                codecContext: () => protocolCodec.context,
+                equipment: () => player.getEquipment(),
+                openWindow: () => 1
+            }
+        }),
         ...sessionPlayerFields(player, player.getRuntimeId())
     });
 
@@ -202,7 +212,7 @@ describe('network', () => {
 
                 await session.sendInventory();
 
-                // The off hand goes out through `sendArmorFor` afterwards; the hand comes first.
+                // The off hand goes out with the armor afterwards; the hand comes first.
                 const hand = nth(
                     sent.filter((packet) => packet instanceof MobEquipmentPacket),
                     0,
@@ -217,13 +227,12 @@ describe('network', () => {
             });
         });
 
-        describe('sendArmorFor', () => {
-            it('sends the off hand as equipment for the offhand container, not as body armor', async () => {
+        describe('armorPackets', () => {
+            it('sends the off hand as equipment for the offhand container, not as body armor', () => {
                 // `Body` is the body armor slot. Putting the shield there dressed the player in
                 // it; the client reads off-hand changes from `MobEquipment` with container 119.
-                const { session, sent } = sessionFor(stubPlayerPort({ getRuntimeId: () => 1n }));
-
-                await session.sendArmorFor(equippedHuman());
+                const wearer = equippedHuman();
+                const sent = armorPackets(wearer.getRuntimeId(), wearer.getEquipment(), protocolCodec.context);
 
                 expect(sent).toHaveLength(2);
                 const [armor, offhand] = sent;

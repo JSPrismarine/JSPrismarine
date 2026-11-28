@@ -66,11 +66,17 @@ Progress:
   - The handlers that wrap Bedrock's protocol around an intent: `PlayerAuthInput`, `PlayerAction`,
     `InventoryTransaction`, `ModalFormResponse` and `CommandRequest`, and `ItemStackRequest`, which
     waits for its own slice beside Java's `Container Click`.
-- Slice 4.1, the player's own state: under review. `showAttributes`, `showMotion`,
+- Slice 4.1, the player's own state: merged in [#3871](https://github.com/JSPrismarine/JSPrismarine/pull/3871). `showAttributes`, `showMotion`,
   `showActorData`, `showRespawned` and `showGameRules` are presenter calls, and `showDeath`
   carries where the player comes back, so Bedrock's presenter sends the death screen's `Respawn`
   and `DeathInfo` itself. Two of `PlayerSession`'s six edition checks are gone, the attributes' and
   the death screen's.
+- Slice 4.2, the player's own inventory: under review. `showInventory` and `showOwnSlot` are
+  `BedrockPresenter`'s to send now, read from the session's inventory with the stack ids Bedrock
+  names stacks by, and `openOwnInventory` opens the player's inventory screen under a window the
+  session records. `ShownContainer` names the cursor too, which Java does not show. Two more of
+  `PlayerSession`'s edition checks are gone, the inventory's and the slot's, and its
+  `sendHandItem` and `sendArmorFor` with them.
 
 ## Problem
 
@@ -140,10 +146,12 @@ removed the `network/` aliases slices 1 and 2 had left.
    packets carry beside what the contract hands it, so the shown types stay plain.
    1. The player's own state: attributes, motion, actor data, the death screen, coming back
       alive and game rules.
-   2. Inventory, containers, trades, the creative inventory and the crafting data. Bedrock names
-      every stack by a network id it assigns on the inventory, which `BedrockSessionState` grows
-      to reach.
-   3. The world change, the respawn exchange and Bedrock's chunk path, which becomes a
+   2. The player's own inventory: its contents, one of its slots, the held item and the armor,
+      and the screen the player opens on it. Bedrock names every stack by a network id it
+      assigns on the inventory, which `BedrockSessionState` grows to reach.
+   3. Block containers, trades, the creative inventory and the crafting data, which only
+      Bedrock's join sends.
+   4. The world change, the respawn exchange and Bedrock's chunk path, which becomes a
       `ChunkWire` beside Java's.
 
 ## Where new code goes

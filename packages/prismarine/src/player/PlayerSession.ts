@@ -57,11 +57,12 @@ import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/Comm
 import { commandDataOf, commandNameEnumOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
-import { armorPackets, statusEffectPacket } from '../network/replica/firstSight';
+import { statusEffectPacket } from '../network/replica/firstSight';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
 import UpdateTradePacket from '@jsprismarine/protocol/bedrock/packet/UpdateTradePacket';
 import { tradeOffersPayload } from '../editions/bedrock/tradeOffers';
+import { wireStackOf } from '../editions/bedrock/wireStack';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { DeathMessage } from '../entity/DeathMessages';
@@ -72,10 +73,9 @@ import { showContainerLid } from '../inventory/containerLid';
 import { blockSlotName } from '../inventory/containerSlots';
 import { openContainerSlots } from '../inventory/containerStore';
 import { WindowIds } from '../inventory/WindowIds';
-import type { EntityContainer } from '../inventory/slotLog';
 import { entityContainerNamed } from '../inventory/slotLog';
 import { WindowTypes } from '../inventory/WindowTypes';
-import { Item } from '../item/Item';
+import type { Item } from '../item/Item';
 import CraftingInput from '../crafting/CraftingInput';
 import { KEEP_INVENTORY, gameRuleValue } from '../content/world/gameRules';
 import BlockPosition from '../world/BlockPosition';
@@ -124,7 +124,6 @@ import SubChunkPos from '@jsprismarine/protocol/bedrock/structure/SubChunkPos';
 import SubChunkPosOffset from '@jsprismarine/protocol/bedrock/structure/SubChunkPosOffset';
 import SubChunkHeightmapData from '@jsprismarine/protocol/bedrock/structure/SubChunkHeightmapData';
 import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheBlobStatusPacket';
-import MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import type { ChunkCoord } from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
@@ -358,26 +357,6 @@ export type RespawnDestination = ReturnType<typeof respawnPoint> & { readonly wo
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
-
-/** A slot as the wire carries it: an empty slot is an air stack of none, at its position. */
-const wireStackOf = (item: Item | null): Item => item ?? Item.air();
-
-/** One of the player's own slots as the wire carries it, under the id the client names the stack by. */
-const ownSlotDescriptor = (item: Item | null, context: Parameters<Item['toStackDescriptor']>[0]) =>
-    wireStackOf(item).toStackDescriptor(context, item !== null && item.stackNetworkId > 0 ? item.stackNetworkId : null);
-
-/**
- * The window and the container name a client numbers each of its player's own slots by, for the
- * containers it always has open. The ender chest is sent when one is opened, and the crafting
- * grid is emptied when its screen closes, so neither is here.
- */
-const OWN_SLOT_WINDOWS: Partial<Record<EntityContainer, { readonly windowId: number; readonly containerId: number }>> =
-    {
-        inventory: { windowId: WindowIds.INVENTORY, containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY },
-        armor: { windowId: WindowIds.ARMOR, containerId: ContainerUiId.ARMOR_CONTAINER },
-        offhand: { windowId: WindowIds.OFFHAND, containerId: ContainerUiId.OFFHAND },
-        cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
-    };
 
 /** Where the client's view was last centered, in chunks, and the area it keeps around that. */
 type PublishedView = CenteredView;
@@ -633,7 +612,17 @@ export default class PlayerSession {
                 recipeBookEntriesOf(server, () => connection.codec.itemData),
                 {
                     runtimeId: player.runtimeId,
-                    lastInputTick: () => this.getLastInputTick()
+                    lastInputTick: () => this.getLastInputTick(),
+                    inventory: {
+                        inventory: () => this.own().getInventory(),
+                        codecContext: () => connection.codec.context,
+                        equipment: () => this.shown().getEquipment(),
+                        openWindow: (containerType) => {
+                            const windowId = this.nextWindowId();
+                            this.openWindows.set(windowId, containerType);
+                            return windowId;
+                        }
+                    }
                 }
             );
         this.identity = player.identity;
@@ -1723,38 +1712,8 @@ export default class PlayerSession {
      * into a container it does not know. Every drag was refused on the client's side, before
      * an `ItemStackRequest` was ever sent.
      */
-    public sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
-        const player = this.own();
-        const inventory = player.getInventory();
-        // A client of another edition is handed plain stacks, which its presenter encodes.
-        if (this.presenter.edition !== 'bedrock') return this.presenter.showInventory(shownInventoryOf(inventory));
-        const context = this.connection.codec.context;
-        // Every stack goes out with the id the client will name it by in its requests.
-        inventory.assignStackNetworkIds();
-
-        const pk = new InventoryContentPacket();
-        pk.items = inventory
-            .container('inventory')
-            .items()
-            .map((item) => ownSlotDescriptor(item, context));
-        pk.windowId = windowId;
-        const sends = [this.connection.sendDataPacket(pk)];
-
-        sends.push(this.sendHandItem(wireStackOf(inventory.equipment('mainhand'))));
-
-        // The armor container is a window of its own, so the main inventory's contents say
-        // nothing about it and a player would open their screen to four empty slots. Its
-        // `Full Container Name` has to say armor too: the packet defaults to the player's
-        // combined hotbar and inventory, which named the wrong container for window 120.
-        const armor = new InventoryContentPacket();
-        armor.items = inventory
-            .container('armor')
-            .items()
-            .map((item) => ownSlotDescriptor(item, context));
-        armor.windowId = WindowIds.ARMOR;
-        armor.containerId = ContainerUiId.ARMOR_CONTAINER;
-        sends.push(this.connection.sendDataPacket(armor), this.sendArmorFor(this.shown()));
-        return allSent(sends);
+    public sendInventory(): Promise<void> {
+        return this.presenter.showInventory(shownInventoryOf(this.own().getInventory()));
     }
 
     /**
@@ -1797,31 +1756,12 @@ export default class PlayerSession {
      */
     public sendOwnSlot(container: string, slot: number): Promise<void> {
         const named = entityContainerNamed(container);
-        const window = named === undefined ? undefined : OWN_SLOT_WINDOWS[named];
-        if (named === undefined || window === undefined) return allSent([]);
-
-        const inventory = this.own().getInventory();
-        if (this.presenter.edition !== 'bedrock') {
-            const item = inventory.slotItem(named, slot);
-            if (item === undefined || (named !== 'inventory' && named !== 'armor' && named !== 'offhand')) {
-                return allSent([]);
-            }
-            return this.presenter.showOwnSlot(named, slot, shownStackOf(item));
+        if (named !== 'inventory' && named !== 'armor' && named !== 'offhand' && named !== 'cursor') {
+            return allSent([]);
         }
-        inventory.assignStackNetworkIds();
-        const item = inventory.slotItem(named, slot);
+        const item = this.own().getInventory().slotItem(named, slot);
         if (item === undefined) return allSent([]);
-
-        const packet = new InventorySlotPacket();
-        packet.windowId = window.windowId;
-        packet.containerId = window.containerId;
-        packet.inventorySlot = slot;
-        packet.item =
-            item?.toStackDescriptor(
-                this.connection.codec.context,
-                item.stackNetworkId > 0 ? item.stackNetworkId : null
-            ) ?? null;
-        return this.connection.sendDataPacket(packet);
+        return this.presenter.showOwnSlot(named, slot, shownStackOf(item));
     }
 
     /**
@@ -1837,13 +1777,7 @@ export default class PlayerSession {
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/InventoryManager.php (onClientOpenMainInventory)
      */
     public openMainInventory(): Promise<void> {
-        const packet = new ContainerOpenPacket();
-        packet.windowId = this.nextWindowId();
-        packet.containerType = WindowTypes.INVENTORY;
-        // No position: a container an actor carries is named by the actor, not by a block.
-        packet.containerEntityId = this.runtimeId;
-        this.openWindows.set(packet.windowId, packet.containerType);
-        return allSent([this.connection.sendDataPacket(packet), this.sendInventory(packet.windowId)]);
+        return this.presenter.openOwnInventory();
     }
 
     /**
@@ -2255,23 +2189,6 @@ export default class PlayerSession {
             this.server.getConfig().getCraftingRecipeLimit(),
             this.server.getConfig().getPacketCompressionLevel(),
             new CreativeContentPacket(payloads.creative)
-        );
-    }
-
-    /**
-     * Sets the item in the player hand.
-     * @param {Item} item - The entity.
-     */
-    public async sendHandItem(item: Item): Promise<void> {
-        const slot = this.own().getInventory().getHandSlot();
-        await this.connection.sendDataPacket(
-            new MobEquipmentPacket({
-                runtimeEntityId: this.runtimeId,
-                item: item.toStackDescriptor(this.connection.codec.context),
-                inventorySlot: slot,
-                hotbarSlot: slot,
-                windowId: WindowIds.INVENTORY
-            })
         );
     }
 
@@ -3459,19 +3376,6 @@ export default class PlayerSession {
             runtimeId === this.runtimeId ? this.lastInputTick : 0n
         );
         if (packet !== undefined) await this.send(packet);
-    }
-
-    /**
-     * Tells this client what a human is wearing and holding in the off hand (`armorPackets`),
-     * read from the wearer's equipment, which for a player is its inventory.
-     * @param {ShownActor} wearer - Whose armor it is.
-     */
-    public sendArmorFor(wearer: ShownActor): Promise<void> {
-        return allSent(
-            armorPackets(wearer.getRuntimeId(), wearer.getEquipment(), this.connection.codec.context).map((packet) =>
-                this.send(packet)
-            )
-        );
     }
 
     /**

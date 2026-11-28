@@ -1,4 +1,17 @@
 import type { Weather } from '@jsprismarine/engine-systems';
+import type { ProtocolContext } from '@jsprismarine/protocol';
+import { ContainerUiId } from '@jsprismarine/minecraft';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import ContainerOpenPacket from '@jsprismarine/protocol/bedrock/packet/ContainerOpenPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
+import type HumanInventory from '../../../inventory/HumanInventory';
+import { WindowIds } from '../../../inventory/WindowIds';
+import { WindowTypes } from '../../../inventory/WindowTypes';
+import type { Item } from '../../../item/Item';
+import { wireStackOf } from '../wireStack';
+import { armorPackets } from '../../../network/replica/firstSight';
 import { Vector3 } from '@jsprismarine/math';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { SetHealthPacket } from '@jsprismarine/protocol';
@@ -53,6 +66,7 @@ import type {
     SessionPresenter,
     ShownActorData,
     ShownBossBar,
+    ShownContainer,
     ShownDeath,
     ShownMessage,
     ShownMove,
@@ -111,10 +125,55 @@ export interface BedrockSessionState {
     readonly runtimeId: bigint;
     /** The tick of the last `PlayerAuthInput` the session handled; see `PlayerSession.recordInputTick`. */
     lastInputTick(): bigint;
+    /**
+     * The player's own slots, in which Bedrock names each stack by a network id the server assigns
+     * on the inventory, the codec context the stacks are written in, and the equipment the
+     * player is shown wearing. Absent for a presenter built without a session, which shows no
+     * inventory.
+     */
+    readonly inventory?: BedrockInventoryState;
 }
+
+/** What a Bedrock presenter reads to show the player its own slots. */
+export interface BedrockInventoryState {
+    /** The player's inventory. */
+    inventory(): HumanInventory;
+    /** The context the client's codec writes item stacks in. */
+    codecContext(): StackContext;
+    /** What the player wears and holds in the off hand, as `MobArmorEquipment` shows it. */
+    equipment(): ShownArmor;
+    /**
+     * Opens a window of `containerType` for the client, which the session records beside the
+     * windows its blocks open, and returns its id.
+     */
+    openWindow(containerType: number): number;
+}
+
+/** The context an item stack is written in. */
+type StackContext = ProtocolContext;
+
+/** A wearer's equipment, as `armorPackets` reads it. */
+type ShownArmor = Parameters<typeof armorPackets>[1];
 
 /** A session with no player yet, as a presenter built before one has an id. */
 const NO_SESSION: BedrockSessionState = { runtimeId: 0n, lastInputTick: () => 0n };
+
+/** One of the player's own slots as the wire carries it, under the id the client names the stack by. */
+const ownSlotDescriptor = (item: Item | null, context: StackContext) =>
+    wireStackOf(item).toStackDescriptor(context, item !== null && item.stackNetworkId > 0 ? item.stackNetworkId : null);
+
+/**
+ * The window and the container name a client numbers each of its player's own slots by, for the
+ * containers it always has open. The ender chest is sent when one is opened, and the crafting
+ * grid is emptied when its screen closes, so neither is here.
+ */
+const OWN_SLOT_WINDOWS: Readonly<Record<ShownContainer, { readonly windowId: number; readonly containerId: number }>> =
+    {
+        inventory: { windowId: WindowIds.INVENTORY, containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY },
+        armor: { windowId: WindowIds.ARMOR, containerId: ContainerUiId.ARMOR_CONTAINER },
+        offhand: { windowId: WindowIds.OFFHAND, containerId: ContainerUiId.OFFHAND },
+        cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
+    };
 
 /** The outbound contract in Bedrock packets, over one client's connection. */
 export class BedrockPresenter implements SessionPresenter {
@@ -144,6 +203,105 @@ export class BedrockPresenter implements SessionPresenter {
      */
     private inputTickFor(runtimeId: bigint): bigint {
         return runtimeId === this.state.runtimeId ? this.state.lastInputTick() : 0n;
+    }
+
+    /** The session's inventory state, which a presenter built without a session lacks. */
+    private inventoryState(): BedrockInventoryState {
+        const state = this.state.inventory;
+        if (state === undefined) throw new PrismarineNetworkErrors.PresenterHasNoSession();
+        return state;
+    }
+
+    /**
+     * Sends the player's own slots under `windowId`: the inventory, the hand it holds, and the
+     * armor, which is a window of its own. Every stack goes out with the id the client will name it
+     * by in its requests. The armor's `Full Container Name` has to say armor: the packet defaults
+     * to the player's combined hotbar and inventory, which named the wrong container for window
+     * 120, and a player would open their screen to four empty slots.
+     */
+    private async sendOwnInventory(windowId: number): Promise<void> {
+        const state = this.inventoryState();
+        const inventory = state.inventory();
+        const context = state.codecContext();
+        inventory.assignStackNetworkIds();
+
+        const contents = new InventoryContentPacket();
+        contents.items = inventory
+            .container('inventory')
+            .items()
+            .map((item) => ownSlotDescriptor(item, context));
+        contents.windowId = windowId;
+
+        const slot = inventory.getHandSlot();
+        const hand = new MobEquipmentPacket({
+            runtimeEntityId: this.state.runtimeId,
+            item: wireStackOf(inventory.equipment('mainhand')).toStackDescriptor(context),
+            inventorySlot: slot,
+            hotbarSlot: slot,
+            windowId: WindowIds.INVENTORY
+        });
+
+        const armor = new InventoryContentPacket();
+        armor.items = inventory
+            .container('armor')
+            .items()
+            .map((item) => ownSlotDescriptor(item, context));
+        armor.windowId = WindowIds.ARMOR;
+        armor.containerId = ContainerUiId.ARMOR_CONTAINER;
+
+        await Promise.all([
+            this.connection.sendDataPacket(contents),
+            this.connection.sendDataPacket(hand),
+            this.connection.sendDataPacket(armor),
+            ...armorPackets(this.state.runtimeId, state.equipment(), context).map((packet) =>
+                this.connection.sendDataPacket(packet)
+            )
+        ]);
+    }
+
+    /**
+     * Sends the player's own slots, read from the session's inventory with the stack ids a Bedrock
+     * client names stacks by, rather than from the plain stacks the contract hands a presenter.
+     */
+    public async showInventory(): Promise<void> {
+        await this.sendOwnInventory(WindowIds.INVENTORY);
+    }
+
+    /**
+     * Opens the player's own inventory under a window of its own rather than under zero, which is
+     * the inventory the client always has, and sends its contents under that window: a window whose
+     * contents never arrive is one the client has no reason to keep. No position: a container an
+     * actor carries is named by the actor, not by a block.
+     * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/InventoryManager.php (onClientOpenMainInventory)
+     */
+    public async openOwnInventory(): Promise<void> {
+        const open = new ContainerOpenPacket();
+        open.containerType = WindowTypes.INVENTORY;
+        open.windowId = this.inventoryState().openWindow(open.containerType);
+        open.containerEntityId = this.state.runtimeId;
+        await Promise.all([this.connection.sendDataPacket(open), this.sendOwnInventory(open.windowId)]);
+    }
+
+    /**
+     * Sends `InventorySlot` for one of the player's own slots, read from the session's inventory
+     * under the stack network id the client is to name it by. Replication sends it for a
+     * `slot-shown` occurrence: a slot whose write was undone holds a stack with a new id.
+     */
+    public async showOwnSlot(container: ShownContainer, slot: number): Promise<void> {
+        const state = this.inventoryState();
+        const inventory = state.inventory();
+        inventory.assignStackNetworkIds();
+        const item = inventory.slotItem(container, slot);
+        if (item === undefined) return;
+
+        const window = OWN_SLOT_WINDOWS[container];
+        const packet = new InventorySlotPacket();
+        packet.windowId = window.windowId;
+        packet.containerId = window.containerId;
+        packet.inventorySlot = slot;
+        packet.item =
+            item?.toStackDescriptor(state.codecContext(), item.stackNetworkId > 0 ? item.stackNetworkId : null) ?? null;
+        await this.connection.sendDataPacket(packet);
     }
 
     /** Sends `UpdateAttributes`, the player's vitals and experience among them. */
@@ -275,12 +433,6 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Sends nothing: a Bedrock client's block changes go in the replicator's shared batches. */
     public async showBlocks(): Promise<void> {}
-
-    /** Sends nothing: the session sends a Bedrock client its inventory, with the stack ids it names stacks by. */
-    public async showInventory(): Promise<void> {}
-
-    /** Sends nothing: the session sends a Bedrock client its slots, with the stack ids it names stacks by. */
-    public async showOwnSlot(): Promise<void> {}
 
     /** Sends nothing: a Bedrock client's entity data goes in the replicator's shared batches. */
     public async showEntityState(): Promise<void> {}

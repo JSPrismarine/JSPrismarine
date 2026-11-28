@@ -16,7 +16,7 @@ import type { EditionTranslation } from './editionTranslation';
  */
 export const containerSlotOf = (
     windowSlot: number
-): { readonly container: ShownContainer; readonly slot: number } | undefined => {
+): { readonly container: Exclude<ShownContainer, 'cursor'>; readonly slot: number } | undefined => {
     if (windowSlot >= 5 && windowSlot <= 8) return { container: 'armor', slot: windowSlot - 5 };
     if (windowSlot >= 9 && windowSlot <= 35) return { container: 'inventory', slot: windowSlot };
     if (windowSlot >= 36 && windowSlot <= 44) return { container: 'inventory', slot: windowSlot - 36 };
