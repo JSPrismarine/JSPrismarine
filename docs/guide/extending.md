@@ -372,7 +372,7 @@ server, so it lists the built-in editions alone.
 
 ### Entry points
 
-The package publishes <!-- fact:prismarine.entryPoints.count -->313<!-- /fact --> entry points, and
+The package publishes <!-- fact:prismarine.entryPoints.count -->303<!-- /fact --> entry points, and
 each one is the module that defines what it exports. The root exports `Server` and nothing else.
 Import every other symbol from its own module, such as `Config` from
 `@jsprismarine/prismarine/config/Config`. Each event class and `PlayerSession` is the default
@@ -414,7 +414,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/network/InboundPacketTrace
 @jsprismarine/prismarine/network/OutboundPacketTrace
 @jsprismarine/prismarine/player/PlayerSession
-@jsprismarine/prismarine/network/PlayerSession
 @jsprismarine/prismarine/network/ReplayManifest
 @jsprismarine/prismarine/about
 @jsprismarine/prismarine/stats/StatsMetric
@@ -433,7 +432,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/scripting/DataDrivenScreens
 @jsprismarine/prismarine/scripting/ScriptHttpInputs
 @jsprismarine/prismarine/player/presenter/SessionPresenter
-@jsprismarine/prismarine/network/presenter/SessionPresenter
 @jsprismarine/prismarine/utils/Service
 @jsprismarine/prismarine/ban/BanManager
 @jsprismarine/prismarine/chat/ChatManager
@@ -521,7 +519,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/entity/DamageSource
 @jsprismarine/prismarine/world/portal/DimensionTravel
 @jsprismarine/prismarine/player/ChunkSender
-@jsprismarine/prismarine/network/ChunkSender
 @jsprismarine/prismarine/entity/data/storePlayers
 @jsprismarine/prismarine/entity/data/facts
 @jsprismarine/prismarine/network/ClientConnection
@@ -576,7 +573,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/changelog/ChangeLog
 @jsprismarine/prismarine/world/BlockMining
 @jsprismarine/prismarine/player/sessionPlayers
-@jsprismarine/prismarine/network/sessionPlayers
 @jsprismarine/prismarine/entity/DeathMessages
 @jsprismarine/prismarine/world/generators/datadriven/chunkPipeline
 @jsprismarine/prismarine/world/GameEventListenerRegistry
@@ -588,9 +584,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/changelog/changeLogCost
 @jsprismarine/prismarine/entity/data/scene
 @jsprismarine/prismarine/player/context/ConnectionContext
-@jsprismarine/prismarine/network/handler/ConnectionContext
 @jsprismarine/prismarine/player/context/SessionHandler
-@jsprismarine/prismarine/network/handler/SessionHandler
 @jsprismarine/prismarine/addons/addonFiles
 @jsprismarine/prismarine/identity/Subject
 @jsprismarine/prismarine/item/blockTransformers
@@ -659,7 +653,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/network/MinecraftSession
 @jsprismarine/prismarine/network/encodePacketBatch
 @jsprismarine/prismarine/editions/bedrock/decoder/PacketDecoder
-@jsprismarine/prismarine/network/decoder/PacketDecoder
 @jsprismarine/prismarine/input/Intent
 @jsprismarine/prismarine/network/replica/firstSight
 @jsprismarine/prismarine/network/contentAdapter
@@ -673,12 +666,10 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/savedMap
 @jsprismarine/prismarine/command/host/support
 @jsprismarine/prismarine/editions/bedrock/LoginIdentity
-@jsprismarine/prismarine/network/LoginIdentity
 @jsprismarine/prismarine/entity/equipment
 @jsprismarine/prismarine/entity/data/observedCollections
 @jsprismarine/prismarine/entity/data/damageLog
 @jsprismarine/prismarine/player/context/HandlerContext
-@jsprismarine/prismarine/network/handler/HandlerContext
 @jsprismarine/prismarine/world/positionKeys
 @jsprismarine/prismarine/crafting/CraftingGrid
 @jsprismarine/prismarine/entity/data/damageStages
@@ -691,7 +682,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/input/IntentHandler
 @jsprismarine/prismarine/item/contentAdapter
 @jsprismarine/prismarine/editions/bedrock/decoder/DecodeView
-@jsprismarine/prismarine/network/decoder/DecodeView
 @jsprismarine/prismarine/block/contentAdapter
 ```
 <!-- /fact -->
