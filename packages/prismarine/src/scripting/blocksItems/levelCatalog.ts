@@ -16,17 +16,60 @@ import {
     scriptPotionEffects,
     scriptPotionStacks
 } from '@jsprismarine/bedrock-data/script-catalog';
+import { liquidDetection } from '@jsprismarine/blocks/components';
 import type {
     ScriptBlockTypeInfo,
     ScriptCatalog,
     ScriptItemInfo,
-    ScriptLegacyStates
+    ScriptLegacyStates,
+    ScriptWaterAnswers
 } from '@jsprismarine/script-host/host/world';
+
+import type { ServerContent } from '../../content/ServerContent';
+
+/** What a pack block's own definition says of it, which the catalog answers its scripts with. */
+export interface CatalogBlockFacts {
+    /** How water treats the block, from its `minecraft:liquid_detection`. */
+    readonly water: ScriptWaterAnswers;
+    /** Whether anything collides with the block, from its `minecraft:collision_box`. */
+    readonly solid: boolean;
+}
+
+/** What water does to a block that declares no `minecraft:liquid_detection`: it is kept out. */
+const DRY: ScriptWaterAnswers = { contain: false, blocking: true, destroyed: false, spawns: false };
+
+/**
+ * What a pack block's definition says of it, in its default state: its water rule and whether it
+ * collides. A rule that pops the block drops its loot, which the Script API calls a spawn.
+ * @param content - The server's content.
+ * @param typeId - The block type.
+ * @returns The facts, or undefined for a type the content does not have.
+ */
+export const packBlockFacts = (content: ServerContent, typeId: string): CatalogBlockFacts | undefined => {
+    const type = content.blocks.types.get(typeId);
+    if (type === undefined) return undefined;
+    const state = type.state();
+    const rule = state.content.params(liquidDetection)?.detectionRules.find((each) => each.liquidType === 'water');
+    return {
+        water:
+            rule === undefined
+                ? DRY
+                : {
+                      contain: rule.canContainLiquid,
+                      blocking: rule.onLiquidTouches === 'blocking',
+                      destroyed: rule.onLiquidTouches === 'broken' || rule.onLiquidTouches === 'popped',
+                      spawns: rule.onLiquidTouches === 'popped'
+                  },
+        solid: content.blocks.table.solid[state.runtimeId] === 1
+    };
+};
 
 /** What the catalog reads of the server's content: the ids of its block and item types. */
 export interface CatalogContent {
     blockTypes(): Iterable<string>;
     itemTypes(): Iterable<string>;
+    /** What a pack block's definition says of it; left out, every pack block answers as solid and dry. */
+    blockFacts?(typeId: string): CatalogBlockFacts | undefined;
 }
 
 const BLOCK_TYPES = new Map(scriptBlockTypes.map((row) => [row.id, row]));
@@ -60,18 +103,20 @@ const vanillaBlock = (id: string): ScriptBlockTypeInfo | undefined => {
 };
 
 /**
- * A block type only the server's content has, which BDS's tables cannot describe. No scenario has
- * recorded a pack's own block yet, so it answers as a plain solid block that gives itself.
+ * A block type only the server's content has, which BDS's tables cannot describe. Its water
+ * answers and solidity come from its own definition when the content can say; otherwise, and for
+ * everything no scenario has recorded of a pack's block yet, it answers as a plain solid block
+ * that gives itself and keeps water out.
  */
-const customBlock = (id: string): ScriptBlockTypeInfo => ({
+const customBlock = (id: string, facts: CatalogBlockFacts | undefined): ScriptBlockTypeInfo => ({
     localizationKey: `tile.${id}.name`,
     tags: [],
     item: id,
-    water: { contain: false, blocking: true, destroyed: false, spawns: false },
+    water: facts?.water ?? DRY,
     waterPermutations: [],
     liquid: false,
     air: false,
-    solid: true,
+    solid: facts?.solid ?? true,
     components: []
 });
 
@@ -101,7 +146,7 @@ export const levelCatalog = (content: CatalogContent): ScriptCatalog => ({
     blockType: (typeId) => {
         const vanilla = vanillaBlock(typeId);
         if (vanilla !== undefined) return vanilla;
-        for (const id of content.blockTypes()) if (id === typeId) return customBlock(id);
+        for (const id of content.blockTypes()) if (id === typeId) return customBlock(id, content.blockFacts?.(id));
         return undefined;
     },
     blockStates: () => scriptBlockStates,
