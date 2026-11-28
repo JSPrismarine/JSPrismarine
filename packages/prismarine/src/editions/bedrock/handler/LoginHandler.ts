@@ -281,6 +281,8 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
         // The installed addons' resource packs, which the client downloads now unless it has
         // them. A build that fails offers none, so the player still joins, unless the packs are
         // required: joining without them then is what `texturepack-required` forbids.
+        // Read with the packs, before the await, so both describe the same installed addons.
+        const addonPacks = login.resourcePacks.hasAddonPacks();
         let packs: Awaited<ReturnType<typeof login.resourcePacks.packs>>;
         try {
             packs = await login.resourcePacks.packs();
@@ -298,7 +300,10 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
         await connection.sendDataPacket(
             new ResourcePacksInfoPacket({
                 resourcePackRequired: packs.length > 0 && config.getTexturepackRequired(),
-                hasAddonPacks: false,
+                // As a Bedrock Dedicated Server 1.26.60.6 fills them. A resource pack that depends on
+                // an addon's behavior pack, which never reaches the client, is applied only when
+                // the client is told it is an addon pack; otherwise its textures were missing.
+                hasAddonPacks: addonPacks,
                 hasScripts: false,
                 forceDisableVibrantVisuals: false,
                 worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
@@ -307,9 +312,9 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                     sizeBytes: BigInt(pack.bytes.byteLength),
                     contentKey: '',
                     subPackName: '',
-                    contentIdentity: '',
+                    contentIdentity: pack.uuid,
                     hasScripts: false,
-                    isAddonPack: false,
+                    isAddonPack: pack.addon,
                     isRayTracingCapable: false,
                     cdnUrl: ''
                 }))

@@ -30,6 +30,11 @@ export interface Manifest {
     header: ManifestHeader;
     modules: ManifestModule[];
     dependencies: ManifestDependency[];
+    /**
+     * `metadata.product_type`, such as `addon`, when the manifest names one. A Bedrock Dedicated
+     * Server marks a resource pack whose manifest says `addon` as an addon pack when it offers it.
+     */
+    productType?: string;
 }
 
 const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -98,12 +103,18 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
         }
     }
 
+    const productType =
+        isRecord(value.metadata) && typeof value.metadata.product_type === 'string'
+            ? value.metadata.product_type
+            : undefined;
+
     return {
         manifest: {
             formatVersion: expectedFormatVersion,
             header: { name: header.name, uuid: header.uuid, version: headerVersion, minEngineVersion },
             modules,
-            dependencies
+            dependencies,
+            ...(productType === undefined ? {} : { productType })
         },
         diagnostics
     };

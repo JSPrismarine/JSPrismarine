@@ -178,7 +178,8 @@ describe('network', () => {
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
                 getAllowList: () => stub<AllowList>({ allows: () => true, ignoresPlayerLimit: () => false }),
-                getResourcePacks: () => stub<ServedResourcePacks>({ packs: async () => [] }),
+                getResourcePacks: () =>
+                    stub<ServedResourcePacks>({ packs: async () => [], hasAddonPacks: () => false }),
                 getTick: () => 0,
                 // What a session posts `playerConnect` on.
                 getKernel: () => kernel,
@@ -596,12 +597,14 @@ describe('network', () => {
                 const pack = stub<ServedResourcePack>({
                     uuid: '01020304-0506-0708-090a-0b0c0d0e0f10',
                     version: '1.2.3',
-                    bytes: new Uint8Array(42)
+                    bytes: new Uint8Array(42),
+                    addon: false
                 });
                 const offering = stub<Server>({
                     ...server,
                     getConfig: () => stub<Config>({ ...config(), getTexturepackRequired: () => true }),
-                    getResourcePacks: () => stub<ServedResourcePacks>({ packs: async () => [pack] })
+                    getResourcePacks: () =>
+                        stub<ServedResourcePacks>({ packs: async () => [pack], hasAddonPacks: () => false })
                 });
 
                 await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
@@ -624,6 +627,43 @@ describe('network', () => {
                 });
             });
 
+            it("marks an addon's resource pack as an addon pack, and names it by its uuid, as BDS does", async () => {
+                // A Bedrock Dedicated Server 1.26.60.6 sets both flags from the manifests'
+                // `metadata.product_type`. A client did not apply an addon's resource pack that
+                // depends on a behavior pack it never receives, and drew its blocks with the
+                // missing texture.
+                const sent: NetworkPacket[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+                const uuid = 'd481f05a-f125-4e3c-9d8f-794b7e94c350';
+                const pack = stub<ServedResourcePack>({
+                    uuid,
+                    version: '1.0.2',
+                    bytes: new Uint8Array(8),
+                    addon: true
+                });
+                const offering = stub<Server>({
+                    ...server,
+                    getResourcePacks: () =>
+                        stub<ServedResourcePacks>({ packs: async () => [pack], hasAddonPacks: () => true })
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
+
+                const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
+                assert(info instanceof ResourcePacksInfoPacket);
+                expect(info.getPacketData()).toMatchObject({
+                    hasAddonPacks: true,
+                    resourcePackEntries: [{ contentIdentity: uuid, isAddonPack: true }]
+                });
+            });
+
             it('disconnects a player rather than offer no packs when required packs fail to build', async () => {
                 const sent: NetworkPacket[] = [];
                 const reasons: string[] = [];
@@ -640,7 +680,10 @@ describe('network', () => {
                     getLogger: () => stub<Logger>({ ...logger(), error: () => {} }),
                     getConfig: () => stub<Config>({ ...config(), getTexturepackRequired: () => true }),
                     getResourcePacks: () =>
-                        stub<ServedResourcePacks>({ packs: async () => Promise.reject(new TypeError('unreadable')) })
+                        stub<ServedResourcePacks>({
+                            packs: async () => Promise.reject(new TypeError('unreadable')),
+                            hasAddonPacks: () => false
+                        })
                 });
 
                 await new LoginHandler().handle(loginPacket(), contextOf(failing, quiet));
