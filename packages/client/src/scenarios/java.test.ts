@@ -11,9 +11,11 @@ import {
     ContainerSetContent,
     ContainerSetSlot,
     JavaEntityDataSerializer,
+    SetCarriedItem,
     SetCenterChunk,
     SetEntityData
 } from '@jsprismarine/protocol/java/packet/play';
+import type { JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -159,6 +161,55 @@ describe('a Java Edition client', () => {
         expect(
             entries.find(({ serializer }) => serializer === JavaEntityDataSerializer.ItemStack)?.value
         ).toMatchObject({ count: 1 });
+    });
+
+    it('is shown the name, lore, damage and enchantments of the stack in its hand', async () => {
+        const alex = loopback.server
+            .getSessionManager()
+            .getSessions()
+            .find((session) => session.getPlayer().getName() === 'Alex');
+        if (alex === undefined) throw new Error('Alex should be on');
+        const inventory = alex.getInventory();
+        expect((await loopback.command('give Alex diamond_pickaxe')).ran).toBe(true);
+        const slot = inventory
+            .container('inventory')
+            .items()
+            .findIndex((item) => item?.getName() === 'minecraft:diamond_pickaxe');
+        java.send(SetCarriedItem, { slot });
+        await loopback.untilJava(() => inventory.getHandSlot() === slot, 'Alex never took the pickaxe in hand');
+
+        // A worn, renamed pickaxe, which the server holds; the enchanting then shows the slot.
+        const pickaxe = inventory.container('inventory').get(slot)!;
+        inventory
+            .container('inventory')
+            .set(
+                slot,
+                pickaxe
+                    .withDisplay('Old Faithful', ['Dug the first mine'])
+                    .withDurability(pickaxe.getMaxDurability() - 120)
+            );
+        const isEnchanted = (item: JavaItemStack | null | undefined) =>
+            item?.components?.['minecraft:enchantments'] !== undefined;
+        let shown: JavaItemStack | null | undefined;
+        void Promise.race([
+            java.next(ContainerSetSlot, ({ item }) => isEnchanted(item)).then(({ item }) => item),
+            java
+                .next(ContainerSetContent, ({ items }) => items.some(isEnchanted))
+                .then(({ items }) => items.find(isEnchanted))
+        ]).then((item) => {
+            shown = item;
+        });
+        expect((await loopback.command('enchant Alex efficiency 3')).ran).toBe(true);
+        await loopback.untilJava(() => shown !== undefined, "Alex's client was never shown the enchanted pickaxe");
+
+        expect(shown).toMatchObject({
+            components: {
+                'minecraft:custom_name': 'Old Faithful',
+                'minecraft:lore': ['Dug the first mine'],
+                'minecraft:damage': 120,
+                'minecraft:enchantments': { 'minecraft:efficiency': 3 }
+            }
+        });
     });
 
     it('hits a Bedrock player, who takes the blow', async () => {

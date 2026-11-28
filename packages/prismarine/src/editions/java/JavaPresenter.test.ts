@@ -173,6 +173,45 @@ describe('JavaPresenter', () => {
         expect(slot).toMatchObject({ name: 'Set Container Slot', value: { window: 0, slot: 37, item: null } });
     });
 
+    it("sends what a stack changes from its item's defaults as the slot's data components", async () => {
+        const { sent, java } = presenter();
+
+        await java.showOwnSlot('inventory', 0, {
+            name: 'minecraft:diamond_pickaxe',
+            count: 1,
+            customName: 'Old Faithful',
+            lore: ['Dug the first mine'],
+            damage: 120,
+            enchantments: new Map([
+                ['minecraft:efficiency', 5],
+                ['loopback:only_an_addon_has_it', 1]
+            ]),
+            components: { 'minecraft:item_model': 'loopback:pick', 'minecraft:trim': { pattern: 'minecraft:wild' } }
+        });
+
+        expect(sent).toEqual([
+            {
+                name: 'Set Container Slot',
+                value: {
+                    window: 0,
+                    stateId: 1,
+                    slot: 36,
+                    item: {
+                        item: ITEMS.idOf('minecraft:diamond_pickaxe'),
+                        count: 1,
+                        components: {
+                            'minecraft:item_model': 'loopback:pick',
+                            'minecraft:damage': 120,
+                            'minecraft:custom_name': 'Old Faithful',
+                            'minecraft:lore': ['Dug the first mine'],
+                            'minecraft:enchantments': { 'minecraft:efficiency': 5 }
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
     it('shows the vitals with a whole food level, a death on its own screen, and a respawn that waits for chunks', async () => {
         const { sent, java } = presenter();
 

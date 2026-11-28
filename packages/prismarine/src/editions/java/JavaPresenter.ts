@@ -116,6 +116,7 @@ import type { ChunkWire } from '../../player/ChunkView';
 import type { EditionTranslation } from './editionTranslation';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';
+import { javaItemComponentsOf } from './javaItemComponents';
 import {
     javaBlockTranslation,
     javaEntityTranslation,
@@ -501,7 +502,11 @@ export class JavaPresenter implements SessionPresenter {
     /** A stack in Java's terms; an item Java has nothing for shows as an empty slot. */
     private javaStackOf(stack: ShownStack | null): JavaItemStack | null {
         const item = stack === null ? undefined : this.items.toJava(stack.name);
-        return stack === null || item === undefined ? null : { item, count: stack.count };
+        if (stack === null || item === undefined) return null;
+        const components = javaItemComponentsOf(stack);
+        return Object.keys(components).length === 0
+            ? { item, count: stack.count }
+            : { item, count: stack.count, components };
     }
 
     /**
