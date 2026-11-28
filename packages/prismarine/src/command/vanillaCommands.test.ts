@@ -24,6 +24,7 @@ import type {
 } from '../content/ServerContent';
 import { stub } from '../testing/stub.test.helper';
 import { UNWIRED_COMMANDS, buildVanillaCommands, contentRegistryIds, summonableEntityTypes } from './vanillaCommands';
+import { JAVA_STATISTICS } from './javaStatistics';
 
 /** Registry entries for entity types that carry only their `summonable` flag. */
 const entityEntries = (flags: Record<string, boolean>) =>
@@ -126,7 +127,8 @@ describe('the vanilla command set this server runs', () => {
             blocks: ['mypack:brass_block'],
             items: ['mypack:wrench'],
             enchantments: ['mypack:keen'],
-            damageTypes: ['mypack:acid']
+            damageTypes: ['mypack:acid'],
+            statistics: JAVA_STATISTICS
         });
     });
 

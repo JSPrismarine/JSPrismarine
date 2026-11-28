@@ -34,6 +34,7 @@ import { LevelSave } from '../world/LevelSave';
 import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
 import { RespawnSearch } from '../world/RespawnSearch';
+import { Scoreboard } from '../world/Scoreboard';
 import { WorldWeather } from '../world/Weather';
 import { World } from '../world/World';
 import type { WorldExperiment } from '../world/WorldExperiments';
@@ -138,6 +139,8 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     const referenced = new Set<string>();
     // The level's maps by id, numbered as a real level numbers them.
     const maps = new Map<number, SavedMap>();
+    // An empty scoreboard, which a player's tick reads its objectives from.
+    const scoreboard = new Scoreboard();
     const addMap = (map: SavedMap): number => {
         const id = maps.size + 1;
         maps.set(id, map);
@@ -165,6 +168,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         setDayTimePaused: (paused) => clock.setPaused(paused),
         getGameRuleManager: () => gameRules,
         getWeather: () => weather,
+        getScoreboard: () => scoreboard,
         getSpawn: () => spawn,
         setSpawn: (at) => {
             spawn = at;

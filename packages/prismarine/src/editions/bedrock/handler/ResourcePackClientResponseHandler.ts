@@ -32,6 +32,7 @@ import type { InputContext } from '../../../player/context/HandlerContext';
 import type { InputLaneHandler } from '../../../player/context/SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import { aimAssistPresetsPacket, cameraPresetsPacket } from '../cameraJoinPackets';
+import { showScoreboard } from '../../../command/host/scoreboard';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
 const knownSpawns = (world: World): { readonly world: Vector3; readonly overworld: Vector3 } | undefined => {
@@ -382,6 +383,8 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         sends.push(session.sendPlayerList());
 
         sends.push(session.sendTime());
+        // The level's display slots, which a client forgets when it leaves.
+        sends.push(showScoreboard(session, world.getLevel().getScoreboard(), false));
 
         sends.push(connection.sendDataPacket(playerSpawnPositionPacket(session.getPlayer(), world, spawns.overworld)));
 

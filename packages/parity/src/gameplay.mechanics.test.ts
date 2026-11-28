@@ -46,6 +46,7 @@ import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse 
 import { experienceOrbScenarios } from './experienceOrbScenarios.ts';
 import { furnaceExperienceScenarios } from './furnaceExperienceScenarios.ts';
 import { furnaceShiftClickScenarios } from './furnaceShiftClickScenarios.ts';
+import { scoreboardCriterionScenario } from './scoreboardCriteriaScenarios.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
@@ -710,7 +711,8 @@ describeFamily(
                 scenarioGroup([difficultyScenario]),
                 scenarioGroup(experienceOrbScenarios),
                 scenarioGroup(furnaceExperienceScenarios),
-                scenarioGroup(furnaceShiftClickScenarios)
+                scenarioGroup(furnaceShiftClickScenarios),
+                scenarioGroup([scoreboardCriterionScenario])
             );
 
             reportCoverage(

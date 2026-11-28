@@ -1808,6 +1808,35 @@ describe('the server command host', () => {
             expect(scores?.entries).toHaveLength(1);
         });
 
+        it('shows the text of a display name given as a text component', async () => {
+            watch();
+            await fixture.run('scoreboard objectives add time minecraft.custom:minecraft.play_time {text:"Play time"}');
+            await fixture.run('scoreboard objectives setdisplay sidebar time');
+
+            const display = fixture.sent.filter((packet) => packet instanceof SetDisplayObjectivePacket).at(-1);
+            expect(display?.objectiveDisplayName).toBe('Play time');
+            expect(display?.criteriaName).toBe('minecraft.custom:minecraft.play_time');
+        });
+
+        it('draws the slot again when its objective is renamed', async () => {
+            watch();
+            await fixture.run('scoreboard objectives add kills dummy');
+            await fixture.run('scoreboard objectives setdisplay sidebar kills');
+
+            await expect(fixture.run('scoreboard objectives modify kills displayname "Kills"')).resolves.toBe(1);
+
+            const display = fixture.sent.filter((packet) => packet instanceof SetDisplayObjectivePacket).at(-1);
+            expect(display?.objectiveDisplayName).toBe('Kills');
+        });
+
+        it('refuses to set a score of an objective only the game raises', async () => {
+            await fixture.run('scoreboard objectives add hp health');
+
+            await expect(fixture.run('scoreboard players set Steve hp 5')).rejects.toThrow(
+                "Scoreboard objective 'hp' is read-only"
+            );
+        });
+
         it('clears the slot and drops the scores when the objective goes', async () => {
             watch();
             await fixture.run('scoreboard objectives add kills dummy');

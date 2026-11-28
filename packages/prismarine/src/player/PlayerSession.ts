@@ -151,6 +151,7 @@ import type ChunkSender from './ChunkSender';
 import type { CenteredView } from './ChunkView';
 import { ChunkView, insideView } from './ChunkView';
 import type { ChunkWire } from './ChunkView';
+import { tickPlayerScores } from './playerScores';
 import ChunkBatchCache from '../editions/bedrock/ChunkBatchCache';
 import { ClientBlobCache } from '../editions/bedrock/ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
@@ -3902,6 +3903,9 @@ export default class PlayerSession {
         // about where the player is standing rather than about anything that happened, so there
         // is nothing else to hang the 67 vanilla criteria that use them on.
         if (tick % ADVANCEMENT_CHECK_TICKS === 0) advancementPlayerTick(this);
+
+        // The statistics Java awards each tick, such as the play time, and the vitals criteria.
+        tickPlayerScores(this);
 
         // Every five minutes of ticks.
         if (tick % (20 * 5 * 60 * 1) === 0) this.released(this.sendTime());

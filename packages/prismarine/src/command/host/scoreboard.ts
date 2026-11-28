@@ -16,6 +16,8 @@ import type Server from '../../Server';
 import type { Level } from '../../world/Level';
 import type { Scoreboard } from '../../world/Scoreboard';
 import { DISPLAY_SLOTS } from '../../world/Scoreboard';
+import { plainText } from '../../item/lootStack';
+import { jsonOfSnbt } from './snbtJson';
 import { carryOut, refuse } from './support';
 
 /** The nine operators Java's `scoreboard players operation` defines. */
@@ -61,12 +63,71 @@ export const shownObjectiveOf = (scoreboard: Scoreboard, slot: string): ShownObj
  * them.
  * @param session - The player's session.
  * @param scoreboard - The level's scoreboard.
+ * @param clearEmpty - Whether a slot that shows nothing is cleared, for a client that may still
+ *   show another level's objective there. A joining client shows nothing yet, so its join leaves
+ *   the empty slots out, as BDS's does.
  * @returns Once every slot was sent.
  */
-export const showScoreboard = (session: PlayerSession, scoreboard: Scoreboard): Promise<void> =>
+export const showScoreboard = (session: PlayerSession, scoreboard: Scoreboard, clearEmpty = true): Promise<void> =>
     Promise.all(
-        DISPLAY_SLOTS.map((slot) => session.presenter.showDisplaySlot(slot, shownObjectiveOf(scoreboard, slot)))
+        DISPLAY_SLOTS.flatMap((slot) => {
+            const shown = shownObjectiveOf(scoreboard, slot);
+            return shown === undefined && !clearEmpty ? [] : [session.presenter.showDisplaySlot(slot, shown)];
+        })
     ).then(() => {});
+
+/** Whether any slot is currently drawing an objective. */
+const isDisplayed = (board: Scoreboard, objective: string): boolean =>
+    DISPLAY_SLOTS.some((slot) => board.display(slot)?.objective === objective);
+
+/**
+ * Tells the players of a level about one holder's score in one objective.
+ *
+ * Skipped for an objective no slot is drawing: a Bedrock client refuses a score naming an
+ * objective it was never shown in a slot.
+ *
+ * @param server - The live server, for its players.
+ * @param level - The level the scoreboard belongs to, whose players alone see it. Left out, every
+ *   player does.
+ * @param board - The scoreboard.
+ * @param holder - Whose score changed.
+ * @param objective - The objective.
+ * @param value - The new score, or undefined for a reset.
+ * @returns Each player's send, for the caller to wait on or release.
+ */
+export const showScoreChange = (
+    server: Server,
+    level: Level | undefined,
+    board: Scoreboard,
+    holder: string,
+    objective: string,
+    value: number | undefined
+): Promise<void>[] => {
+    if (!isDisplayed(board, objective)) return [];
+    const shown = { holder, identity: board.identityOf(holder) };
+    return server
+        .getSessionManager()
+        .getSessions()
+        .filter((session) => level === undefined || session.getWorld().getLevel() === level)
+        .map((session) => session.presenter.showScore(objective, shown, value));
+};
+
+/**
+ * The text an objective's display name shows. Java's command takes a text component, which is
+ * SNBT such as `"Play time"` or `{text:"Play time"}`; Bedrock's takes plain text, which is kept
+ * as typed when it does not read as a component.
+ *
+ * @param typed - The display name as the command was given it.
+ */
+export const displayNameText = (typed: string): string => {
+    let component: unknown;
+    try {
+        component = jsonOfSnbt(typed);
+    } catch {
+        return typed;
+    }
+    return plainText(component) ?? typed;
+};
 
 /**
  * Builds the `scoreboard` group over one scoreboard.
@@ -90,18 +151,10 @@ export const scoreboardCommandHost = (
         }
     };
 
-    /**
-     * Tells every client about one holder's score in one objective.
-     *
-     * Skipped for an objective no slot is drawing: a Bedrock client refuses a
-     * score naming an objective it was never shown in a slot.
-     */
+    /** Tells the level's clients about one holder's score in one objective. */
     const sendScore = (holder: string, objective: string, value: number | undefined): void => {
-        const board = scoreboard();
-        if (!isDisplayed(board, objective)) return;
-
-        const shown = { holder, identity: board.identityOf(holder) };
-        show((session) => session.presenter.showScore(objective, shown, value));
+        for (const sent of showScoreChange(server, level?.(), scoreboard(), holder, objective, value))
+            carryOut(sent, undefined);
     };
 
     /** Draws a slot from scratch: the objective's header, then every score in it. */
@@ -123,7 +176,17 @@ export const scoreboardCommandHost = (
     };
 
     return {
-        addObjective: (name, criterion, displayName) => scoreboard().add(name, criterion, displayName),
+        addObjective: (name, criterion, displayName) =>
+            scoreboard().add(name, criterion, displayName === undefined ? undefined : displayNameText(displayName)),
+
+        criterionOf: (objective) => scoreboard().objective(objective)?.criterion,
+
+        setDisplayName: (objective, displayName) => {
+            const board = scoreboard();
+            if (!board.setDisplayName(require(objective), displayNameText(displayName))) return false;
+            for (const slot of DISPLAY_SLOTS) if (board.display(slot)?.objective === objective) sendDisplay(slot);
+            return true;
+        },
 
         removeObjective: (name) => {
             const cleared = scoreboard().remove(name);
@@ -185,10 +248,6 @@ export const scoreboardCommandHost = (
         enableTrigger: () => refuse('This server has no /trigger, so enabling an objective grants nothing')
     };
 };
-
-/** Whether any slot is currently drawing an objective. */
-const isDisplayed = (board: Scoreboard, objective: string): boolean =>
-    DISPLAY_SLOTS.some((slot) => board.display(slot)?.objective === objective);
 
 /** The `scores=` fact a selector reads, which is one holder's score in one objective. */
 export const scoreFactOf =

@@ -32,6 +32,7 @@ import { laneOfIntents } from '../../input/Intent';
 import ClientConnection from '../../network/ClientConnection';
 import { latestCodec } from '../../network/codec/CodecRegistry';
 import { HandlerContexts } from '../../player/context/handlerContexts';
+import { showScoreboard } from '../../command/host/scoreboard';
 import type { InputQueue } from '../../input/InputQueue';
 import type PlayerSession from '../../player/PlayerSession';
 import type { ShownDimension } from '../../player/presenter/SessionPresenter';
@@ -187,7 +188,8 @@ const accountOf = (profile: JavaProfile, verified: boolean): PlayerIdentity => (
 /**
  * Shows a joining Java player the state of the level it is in, as vanilla's join does before the
  * chunks: the difficulty, the world spawn a compass points to, the time, the weather under a sky,
- * and the tick rate. A Bedrock client learns these from its start game packet.
+ * the tick rate and the scoreboard's display slots. A Bedrock client learns all but the last from
+ * its start game packet.
  * @param server - The server.
  * @param session - The player's session.
  * @returns Once every part was sent.
@@ -207,7 +209,8 @@ export const showLevelState = async (server: Server, session: PlayerSession): Pr
         world.getDimension().java.hasSkylight
             ? session.presenter.showWeather(undefined, world.getLevel().getWeather().current())
             : Promise.resolve(),
-        session.presenter.showTicking({ rate: control.getTickRate(), frozen: control.isFrozen() })
+        session.presenter.showTicking({ rate: control.getTickRate(), frozen: control.isFrozen() }),
+        showScoreboard(session, world.getLevel().getScoreboard(), false)
     ]);
 };
 
