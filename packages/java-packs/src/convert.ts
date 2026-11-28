@@ -10,6 +10,7 @@
  */
 import { parseLenientJson } from '@jsprismarine/packs/lenientJson';
 
+import { UNMATCHED_VANILLA_TEXTURES, VANILLA_TEXTURES } from './generated/vanillaTextures';
 import { decodeTga, encodePng, isPng } from './image';
 import { isRecord } from './isRecord';
 import { javaLocaleOf, parseLang } from './lang';
@@ -57,6 +58,8 @@ export interface PackConversionReport {
     /** How many of each kind of asset converted. */
     readonly converted: {
         readonly textures: number;
+        /** Java's own textures a vanilla Bedrock texture of the pack retextures. */
+        readonly vanillaOverrides: number;
         readonly animations: number;
         readonly languages: number;
         readonly sounds: number;
@@ -147,6 +150,7 @@ interface ReportBuilder {
     readonly pack: string;
     readonly converted: {
         textures: number;
+        vanillaOverrides: number;
         animations: number;
         languages: number;
         sounds: number;
@@ -168,7 +172,7 @@ export const convertResourcePacks = (
     const textures = new Map<string, string>();
     const reports: ReportBuilder[] = stack.map(({ name }) => ({
         pack: name,
-        converted: { textures: 0, animations: 0, languages: 0, sounds: 0, glyphSheets: 0 },
+        converted: { textures: 0, vanillaOverrides: 0, animations: 0, languages: 0, sounds: 0, glyphSheets: 0 },
         notes: []
     }));
     const note = (report: ReportBuilder, path: string, outcome: ConversionOutcome, reason: string) =>
@@ -285,6 +289,20 @@ const convertTextures = (
         files.set(`assets/${BEDROCK_NAMESPACE}/textures/${location}.png`, png);
         textures.set(texture, `${BEDROCK_NAMESPACE}:${location}`);
         report.converted.textures++;
+        // A vanilla texture retextures Java's own, which the client reads in place of its built-in
+        // one with the pack's animation, or none: Java takes a texture's .mcmeta from the pack
+        // its image comes from.
+        for (const vanilla of VANILLA_TEXTURES.get(texture) ?? []) {
+            files.set(`assets/minecraft/textures/${vanilla}.png`, png);
+            report.converted.vanillaOverrides++;
+        }
+        if (UNMATCHED_VANILLA_TEXTURES.has(texture))
+            note(
+                report,
+                path,
+                'unsupported',
+                'no Java texture is this vanilla Bedrock texture: the block or item is Bedrock-only, or its layout differs'
+            );
     }
 };
 
@@ -322,17 +340,17 @@ const convertFlipbooks = (
         if (entry.replicate !== undefined && entry.replicate !== 1)
             note(report, entry.flipbook_texture, 'lossy', 'Java does not replicate an animated texture across tiles');
         const location = texture.slice(`${BEDROCK_NAMESPACE}:`.length);
-        files.set(
-            `assets/${BEDROCK_NAMESPACE}/textures/${location}.png.mcmeta`,
-            json({
-                animation: {
-                    frametime:
-                        typeof entry.ticks_per_frame === 'number' ? Math.max(1, Math.round(entry.ticks_per_frame)) : 1,
-                    ...(frames === undefined || frames.length === 0 ? {} : { frames }),
-                    interpolate: entry.blend_frames !== false
-                }
-            })
-        );
+        const animation = json({
+            animation: {
+                frametime:
+                    typeof entry.ticks_per_frame === 'number' ? Math.max(1, Math.round(entry.ticks_per_frame)) : 1,
+                ...(frames === undefined || frames.length === 0 ? {} : { frames }),
+                interpolate: entry.blend_frames !== false
+            }
+        });
+        files.set(`assets/${BEDROCK_NAMESPACE}/textures/${location}.png.mcmeta`, animation);
+        for (const vanilla of VANILLA_TEXTURES.get(entry.flipbook_texture) ?? [])
+            files.set(`assets/minecraft/textures/${vanilla}.png.mcmeta`, animation);
         report.converted.animations++;
     }
 };

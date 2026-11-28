@@ -1,11 +1,12 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
-import { RELEASE } from '@jsprismarine/protocol/java/versions/26.3/release';
+import { NEWEST_JAVA_RELEASE as RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { convertResourcePacks } from './convert';
 import type { BedrockResourcePack, JavaPackTarget } from './convert';
+import { UNMATCHED_VANILLA_TEXTURES, VANILLA_TEXTURES } from './generated/vanillaTextures';
 import { encodePng, isPng } from './image';
 
 const encoder = new TextEncoder();
@@ -142,7 +143,14 @@ describe('convertResourcePacks', () => {
 
     it('reports what converted, what a later step converts and what Java cannot show', () => {
         const [, report] = converted.report;
-        expect(report!.converted).toEqual({ textures: 3, animations: 1, languages: 2, sounds: 1, glyphSheets: 1 });
+        expect(report!.converted).toEqual({
+            textures: 3,
+            vanillaOverrides: 0,
+            animations: 1,
+            languages: 2,
+            sounds: 1,
+            glyphSheets: 1
+        });
         expect(report!.notes.map(({ path, outcome }) => `${outcome} ${path}`)).toEqual([
             'unsupported animations',
             'deferred entity',
@@ -154,6 +162,47 @@ describe('convertResourcePacks', () => {
             'unsupported textures/blocks/lamp.texture_set.json',
             'deferred textures/terrain_texture.json'
         ]);
+    });
+
+    it("retextures Java's own textures with a vanilla Bedrock texture, animation and all", () => {
+        const stone = png(2, 2);
+        const prismarine = png(1, 4);
+        const vanilla = convertResourcePacks(
+            [
+                pack('Retextures', {
+                    'textures/blocks/stone.png': stone,
+                    'textures/blocks/prismarine_rough.png': prismarine,
+                    'textures/blocks/border.png': png(),
+                    'textures/flipbook_textures.json': [
+                        {
+                            flipbook_texture: 'textures/blocks/prismarine_rough',
+                            atlas_tile: 'prismarine',
+                            ticks_per_frame: 30
+                        }
+                    ]
+                })
+            ],
+            target
+        );
+        const javaOf = (bedrock: string) => VANILLA_TEXTURES.get(bedrock) ?? [];
+
+        expect(javaOf('textures/blocks/stone')).toEqual(['block/stone']);
+        for (const java of javaOf('textures/blocks/stone'))
+            expect(vanilla.files.get(`assets/minecraft/textures/${java}.png`)).toEqual(stone);
+        for (const java of javaOf('textures/blocks/prismarine_rough')) {
+            expect(vanilla.files.get(`assets/minecraft/textures/${java}.png`)).toEqual(prismarine);
+            expect(text(vanilla.files.get(`assets/minecraft/textures/${java}.png.mcmeta`))).toEqual({
+                animation: { frametime: 30, interpolate: true }
+            });
+        }
+        const [report] = vanilla.report;
+        expect(report!.converted.vanillaOverrides).toBe(
+            javaOf('textures/blocks/stone').length + javaOf('textures/blocks/prismarine_rough').length
+        );
+        expect(UNMATCHED_VANILLA_TEXTURES.has('textures/blocks/border')).toBe(true);
+        expect(report!.notes).toContainEqual(
+            expect.objectContaining({ path: 'textures/blocks/border.png', outcome: 'unsupported' })
+        );
     });
 
     it('gives the same files for the same stack', () => {
