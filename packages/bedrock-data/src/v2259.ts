@@ -1,5 +1,5 @@
 /**
- * What a Bedrock Dedicated Server 1.26.70.24 sends a joining client, for a session speaking the
+ * What protocol 2259's pinned Bedrock Dedicated Server sends a joining client, for a session speaking the
  * Minecraft Preview protocol 2259.
  *
  * Published beside the unversioned exports, as `v2193` is. A preview is replaced, not kept, when
@@ -39,7 +39,7 @@ export const biome_definitions_network: Buffer = Buffer.from(biome_definitions_n
 export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.data, 'base64');
 
 /**
- * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * The camera presets protocol 2225's pinned Bedrock Dedicated Server sends a joining client, as the payload
  * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
  * in this list.
  */

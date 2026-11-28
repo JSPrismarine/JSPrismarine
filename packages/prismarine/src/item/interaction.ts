@@ -15,7 +15,7 @@
  * A placement is answered either way. The client shows the block and takes it out of its own
  * copy of the hand the moment the player clicks. A placement that goes through costs the
  * server's copy one block and resends the inventory; one that does not sends back the blocks
- * and the inventory as they are. A Bedrock Dedicated Server 1.26.52 did both.
+ * and the inventory as they are. An unpinned Bedrock Dedicated Server did both.
  */
 import { BLOCK_FACES, collisionBox, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';

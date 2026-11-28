@@ -1131,7 +1131,7 @@ export class Config {
     /**
      * Who decides when a block a player is mining breaks.
      *
-     * On, the default and what a Bedrock Dedicated Server 1.26.52 announces: the server animates
+     * On, the default and what an unpinned Bedrock Dedicated Server announces: the server animates
      * the cracks every tick, and the client reports a break it predicts, which the server
      * carries out. Off, the client times the break itself and reports it once it is done.
      *

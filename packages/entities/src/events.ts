@@ -50,7 +50,7 @@ export type VibrationKind = (typeof VIBRATION_KINDS)[number];
  *
  * The nine members are every action the composed vanilla pack writes plus
  * `queue_command`, which the documentation describes and no vanilla entity
- * uses. Measured over the 129 files of Bedrock Dedicated Server 1.26.51.1:
+ * uses. Measured over the 129 files of protocol 2193's pinned Bedrock Dedicated Server:
  * `play_sound` 23 uses, `set_home_position` 17, `emit_vibration` 9,
  * `drop_item` 2, `execute_event_on_home_block` 2, and one each of
  * `emit_particle`, `reset_target` and `stop_movement`.

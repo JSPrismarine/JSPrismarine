@@ -167,7 +167,7 @@ const randomAuxValue: TradeFunctionApplier = (stack, spec, context) => {
 
 /**
  * `random_block_state`, which replaced `random_aux_value` on the coral trades
- * between bedrock-samples 1.26.50.4 and BDS 1.26.51.1. Every state a stack
+ * between bedrock-samples 1.26.50.4 and protocol 2193's pinned BDS. Every state a stack
  * draws accumulates under one component.
  */
 const randomBlockState: TradeFunctionApplier = (stack, spec, context) => {

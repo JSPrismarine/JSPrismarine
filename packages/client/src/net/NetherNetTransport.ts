@@ -33,8 +33,8 @@ export interface NetherNetTransportOptions {
      * The identity the offer is signed with, or a function that resolves it when the join starts,
      * for an identity that needs a sign-in first. A fresh self-signed one per connection by
      * default, and when the function resolves to undefined. That default opens the connection
-     * and no more: a server that ties a login to its connection, as Bedrock Dedicated Server
-     * 1.26.60 does, refuses a login whose key did not sign the offer. `Client` passes
+     * and no more: a server that ties a login to its connection, as protocol 2225's pinned Bedrock
+     * Dedicated Server does, refuses a login whose key did not sign the offer. `Client` passes
      * `netherNetIdentityOf`, which signs with the login's key.
      */
     readonly identity?: NetherNetIdentity | (() => Promise<NetherNetIdentity | undefined>);

@@ -25,7 +25,8 @@ import { StructuresErrors } from '@jsprismarine/errors/structures';
 /**
  * The `.mcstructure` `format_version`s this reader takes. Version 2 keeps one block layer, as a
  * TAG_Int_Array rather than a list of ints, with the same order and the same -1 for a position
- * that changes nothing; the `pack-structures` parity scenario read one on BDS 1.26.60.6.
+ * that changes nothing; the `pack-structures` parity scenario read one on protocol 2225's pinned
+ * BDS.
  */
 export const MCSTRUCTURE_FORMAT_VERSIONS: readonly number[] = [1, 2];
 

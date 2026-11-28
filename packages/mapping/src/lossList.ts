@@ -750,7 +750,7 @@ export const ENTITY_LOSSES = [
         javaId: 'minecraft:mannequin',
         kind: 'unrepresentable',
         reason: 'Java 26.3 added the mannequin and the pinned Bedrock identifier list has no counterpart; listed rather than guessed.',
-        reference: 'reports/registries.json (Java 26.3) against entity_identifiers (BDS 1.26.51.1)'
+        reference: 'reports/registries.json (Java 26.3) against entity_identifiers (the pinned BDS of protocol 2193)'
     },
     {
         javaId: 'minecraft:item_frame',

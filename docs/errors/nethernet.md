@@ -14,12 +14,12 @@ These are the errors `@jsprismarine/nethernet` throws. [The error reference](REA
 
 Catch one of these classes to handle every error that extends it.
 
-| Class                       | What its errors mean                                                                |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `JoinRefusedError`          | A failed `POST /v1/join/<networkId>`, with what the server answered.                |
-| `NetherNetUnavailableError` | The native library could not be loaded, so NetherNet cannot run here.               |
-| `RefusedRequest`            | A signaling request the server refuses, answered with an HTTP error status.         |
-| `UdpPortsError`             | Thrown for a setting Bedrock Dedicated Server 1.26.70.24 refuses, with its message. |
+| Class                       | What its errors mean                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `JoinRefusedError`          | A failed `POST /v1/join/<networkId>`, with what the server answered.                            |
+| `NetherNetUnavailableError` | The native library could not be loaded, so NetherNet cannot run here.                           |
+| `RefusedRequest`            | A signaling request the server refuses, answered with an HTTP error status.                     |
+| `UdpPortsError`             | Thrown for a setting protocol 2259's pinned Bedrock Dedicated Server refuses, with its message. |
 
 ## `NETHERNET_CLIENT_CONNECTS_ONCE`
 

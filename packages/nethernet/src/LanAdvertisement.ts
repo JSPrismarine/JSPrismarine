@@ -2,10 +2,10 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import type { NetherNetStatus } from './NetherNetStatus';
 import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
-/** The advertisement layout Bedrock Dedicated Server 1.26.51 answers LAN discovery with. */
+/** The advertisement layout protocol 2193's pinned Bedrock Dedicated Server answers LAN discovery with. */
 export const LAN_ADVERTISEMENT_VERSION = 7;
 
-/** The connection type Bedrock Dedicated Server 1.26.51 advertises on the LAN. Its meaning is not documented. */
+/** The connection type protocol 2193's pinned Bedrock Dedicated Server advertises on the LAN. Its meaning is not documented. */
 const LAN_CONNECTION_TYPE = 4;
 
 /**

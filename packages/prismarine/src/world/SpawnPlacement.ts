@@ -11,7 +11,7 @@ export const UNKNOWN_SPAWN_HEIGHT = 32767;
 /**
  * How far, in blocks along each axis, a spawn that lands on leaves is moved.
  *
- * Measured, not documented: across nine relocations by BDS 1.26.52 the offset never went
+ * Measured, not documented: across nine relocations by an unpinned BDS the offset never went
  * past 15 on either axis.
  */
 export const SPAWN_RELOCATION_RANGE = 15;
@@ -59,7 +59,7 @@ export const requestedSpawnPosition = (spawn: Vector3): Vector3 =>
     centered(Math.floor(spawn.getX()), Math.floor(spawn.getY()) + 1, Math.floor(spawn.getZ()));
 
 /**
- * Where a player who died comes back, as a Bedrock Dedicated Server 1.26.52 says it, measured
+ * Where a player who died comes back, as an unpinned Bedrock Dedicated Server says it, measured
  * with the world spawn at (5, 63, -6):
  *
  * - `announced`: the `SearchingForSpawn` sent at the death, the eyes over the spawn block's
@@ -139,7 +139,7 @@ export const clearRespawnFeet = (
 /**
  * Places a player who has no position of their own, the way a Bedrock Dedicated Server does.
  *
- * Measured against BDS 1.26.52, one fresh player per case:
+ * Measured against an unpinned BDS, one fresh player per case:
  *
  * 1. The feet start one block above the stored spawn height, centered on the block. A height of
  *    {@link UNKNOWN_SPAWN_HEIGHT} starts them on the column's highest block instead.

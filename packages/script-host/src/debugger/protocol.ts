@@ -55,7 +55,7 @@ export interface DiagnosticsTab {
 }
 
 /**
- * The tabs the pinned BDS 1.26.51.1 sends in its `SchemaEvent`, captured from its wire: two for a
+ * The tabs protocol 2193's pinned BDS sends in its `SchemaEvent`, captured from its wire: two for a
  * client's frame timings and memory, which a dedicated server never fills, and the engine's
  * memory table, which the `scripting_engine` statistic fills.
  */

@@ -9,7 +9,7 @@ import { NetherNetIdentity } from '@jsprismarine/nethernet';
  * provider's carries the multiplayer token Minecraft services issued for that key, as a game
  * client's does; any other signs a token of its own.
  *
- * The key must be the login's, never a fresh one. Bedrock Dedicated Server 1.26.60 accepts a
+ * The key must be the login's, never a fresh one. Protocol 2225's pinned Bedrock Dedicated Server accepts a
  * login only on a connection whose offer the login's identity key signed, with `online-mode`
  * off as well, and answers one signed with another key `NotAuthenticated`. This server checks
  * the same in online mode. An offer signed with a throwaway key joins neither.

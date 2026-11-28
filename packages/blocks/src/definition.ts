@@ -106,8 +106,9 @@ export const BLOCK_SCHEMAS: Readonly<Record<BlockSchemaVersion, BlockSchema>> = 
         forbiddenInDefinition: [],
         forbiddenInPermutation: PERMUTATION_ONLY_FORBIDDEN
     },
-    // Traits left experimental at 1.20.20 (Bedrock Wiki's block format history). BDS 1.26.60.6
-    // sends the trait states of a 1.21.80 and a 1.21.100 file, as The Sift's portal and slabs are.
+    // Traits left experimental at 1.20.20 (Bedrock Wiki's block format history). Protocol 2225's
+    // pinned BDS sends the trait states of a 1.21.80 and a 1.21.100 file, as The Sift's portal and
+    // slabs are.
     '1.20.20': {
         version: '1.20.20',
         statesAndPermutations: true,
@@ -297,7 +298,8 @@ const TAG_COMPONENT_PREFIX = 'tag:';
  * A component object's entries. Each `tag:<name>` component joins one `minecraft:tags` entry, in
  * the order the file writes them and after any tags `minecraft:tags` lists itself, since a pack
  * may tag a block either way and BDS sends both as one `blockTags` list: The Sift's
- * `limestone_grass` writes `tag:dirt` and `tag:grass`, and BDS 1.26.60.6 sends `["dirt", "grass"]`.
+ * `limestone_grass` writes `tag:dirt` and `tag:grass`, and protocol 2225's pinned BDS sends
+ * `["dirt", "grass"]`.
  */
 const readComponents = (value: unknown): readonly ComponentEntry[] => {
     if (!isRecord(value)) return [];

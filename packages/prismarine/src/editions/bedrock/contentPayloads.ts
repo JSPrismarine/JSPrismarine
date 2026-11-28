@@ -268,7 +268,7 @@ const resultStack =
  * replaces a definition whole, so Mojang's geometry, material instances and
  * `internal_vanilla_data` are gone by the time the registry is resolved. The
  * 98 vanilla blocks Mojang defines in data still have to be declared, and
- * those travel as the bytes a Bedrock Dedicated Server 1.26.60.6 sent.
+ * those travel as the bytes protocol 2225's pinned Bedrock Dedicated Server sent.
  */
 const inventedBlocksOf = (content: ServerContent, client: BlockPalette) =>
     [...content.blocks.types.values()].filter((type) => client.entry(type.identifier) === undefined);

@@ -164,7 +164,7 @@ const blockChangeKey = ({ position, blockRuntimeId, layer }: BlockChange): strin
 /** One change as an entry of a sub chunk's batch, whichever layer it lists the change under. */
 /**
  * The `Sync Message - Entity Unique ID` of a change no actor syncs: -1 as the unsigned field
- * holds it, which a Bedrock Dedicated Server 1.26.60.6 writes on every entry of a fill and of a
+ * holds it, which protocol 2225's pinned Bedrock Dedicated Server writes on every entry of a fill and of a
  * script's block writes.
  */
 const NO_SYNCED_ACTOR = 0xffff_ffff_ffff_ffffn;

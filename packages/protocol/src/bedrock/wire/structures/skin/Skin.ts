@@ -368,8 +368,8 @@ export default class Skin {
      * The layout had drifted years out of date - it was still the 748-era shape, which is
      * exactly the sort of thing that only shows up against a real client, because this
      * server's own client decoded it with the same stale reader. Checked field for field
-     * against gophertunnel's `protocol/skin.go` and against the bytes a Bedrock Dedicated
-     * Server 1.26.51 puts on the wire. What was wrong:
+     * against gophertunnel's `protocol/skin.go` and against the bytes protocol 2193's pinned
+     * Bedrock Dedicated Server puts on the wire. What was wrong:
      *
      * - The animation, persona-piece and tint counts were fixed 32-bit little-endian ints;
      *   they are unsigned varints, like every other list.

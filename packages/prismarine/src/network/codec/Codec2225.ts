@@ -9,7 +9,7 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 
 import { itemData2225 } from './itemData';
 
-/** Server-configured protocol 2225 codec with the tables captured from BDS 1.26.60.6. */
+/** Server-configured protocol 2225 codec with the tables captured from protocol 2225's pinned BDS. */
 const Codec2225 = createProtocolCodec({
     definition: ProtocolVersions.v2225,
     context: {

@@ -2,7 +2,7 @@
  * What a block yields when it breaks, read from its active `minecraft:loot`
  * component or from the Java loot table mapped to its state.
  *
- * Bedrock publishes almost none of them. A Bedrock Dedicated Server 1.26.51.1
+ * Bedrock publishes almost none of them. Protocol 2193's pinned Bedrock Dedicated Server
  * carries 99 block tables in `vanilla_1.26.50`, against Java's 1201, because
  * the engine holds the rest in code. Of the 99, 96 are the 16 dye colors times
  * the concrete and wool slabs, double slabs and stairs; the other three are

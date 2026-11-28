@@ -46,13 +46,22 @@ const itemDataOver = (protocolVersion: number, table: Readonly<Record<string, It
     };
 };
 
-/** Protocol 2193's item data, captured from a Bedrock Dedicated Server 1.26.51.1. */
+/**
+ * Protocol 2193's item data: the item table captured from protocol 2193's pinned Bedrock Dedicated
+ * Server, and the item components every protocol shares, from one capture.
+ */
 export const itemData2193: ProtocolItemData = itemDataOver(protocol2193, item_table_2193);
 
-/** Protocol 2225's item data, captured from a Bedrock Dedicated Server 1.26.60.6. */
+/**
+ * Protocol 2225's item data: the item table captured from protocol 2225's pinned Bedrock Dedicated
+ * Server, and the item components every protocol shares, from one capture.
+ */
 export const itemData2225: ProtocolItemData = itemDataOver(protocol2225, item_table_2225);
 
-/** The Minecraft Preview protocol 2259's item data, captured from a Bedrock Dedicated Server 1.26.70.24. */
+/**
+ * The Minecraft Preview protocol 2259's item data: the item table captured from protocol 2259's
+ * pinned Bedrock Dedicated Server, and the item components every protocol shares, from one capture.
+ */
 export const itemData2259: ProtocolItemData = itemDataOver(protocol2259, item_table_2259);
 
 const byProtocol = new Map<number, ProtocolItemData>([

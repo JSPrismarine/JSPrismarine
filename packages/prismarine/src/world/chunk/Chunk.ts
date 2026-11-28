@@ -487,9 +487,9 @@ export default class Chunk {
             throw new PrismarineWorldErrors.InvalidSubchunkHeight({ y });
         }
 
-        // A dimension under a ceiling has no surface the sky reaches: BDS 1.26.60.6 answers every
-        // sub chunk of the Nether ALL_TOO_HIGH for both maps, the one under the bedrock roof too.
-        // A heightmap with the roof in it lit nothing there but fire and lava.
+        // A dimension under a ceiling has no surface the sky reaches: protocol 2225's pinned BDS
+        // answers every sub chunk of the Nether ALL_TOO_HIGH for both maps, the one under the
+        // bedrock roof too. A heightmap with the roof in it lit nothing there but fire and lava.
         if (this.dimension.java.hasCeiling) {
             return new SubChunkHeightmapData(HeightMapDataType.ALL_TOO_HIGH, undefined, HeightMapDataType.ALL_TOO_HIGH);
         }
@@ -525,10 +525,10 @@ export default class Chunk {
               : HeightMapDataType.HAS_DATA;
         const heightMap = heightMapType === HeightMapDataType.HAS_DATA ? heightmap : undefined;
 
-        // The render height map is the same one. Bedrock Dedicated Server 1.26.60 says so with
-        // ALL_COPIED when there is data to copy, and repeats the type when there is none: an
-        // all-air section above the ground is ALL_TOO_LOW twice in its answers. ALL_COPIED for
-        // every section is not what it sends. ALL_TOO_HIGH is repeated by the same reading and
+        // The render height map is the same one. Protocol 2225's pinned Bedrock Dedicated Server
+        // says so with ALL_COPIED when there is data to copy, and repeats the type when there is
+        // none: an all-air section above the ground is ALL_TOO_LOW twice in its answers. ALL_COPIED
+        // for every section is not what it sends. ALL_TOO_HIGH is repeated by the same reading and
         // was not in the capture.
         const renderType = heightMapType === HeightMapDataType.HAS_DATA ? HeightMapDataType.ALL_COPIED : heightMapType;
         return new SubChunkHeightmapData(heightMapType, heightMap, renderType);

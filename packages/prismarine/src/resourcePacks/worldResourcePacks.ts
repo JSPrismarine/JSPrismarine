@@ -2,7 +2,7 @@
  * A world's `world_resource_packs.json`: the resource packs a Bedrock world turns on, each by its
  * header UUID and version, with the subpack it is applied with.
  *
- * A Bedrock Dedicated Server 1.26.60.6 sends the `subpack` an entry names as the pack's
+ * Protocol 2225's pinned Bedrock Dedicated Server sends the `subpack` an entry names as the pack's
  * `Subpack Name` in both `ResourcePacksInfo` and `ResourcePackStack`, and an empty name for a
  * pack no entry picks a subpack for. An entry whose version is not the pack's names a pack the
  * server does not have, which it ignores.

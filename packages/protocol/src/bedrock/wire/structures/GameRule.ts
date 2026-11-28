@@ -29,7 +29,7 @@ export type GameRuleValue =
 export interface GameRule {
     /**
      * Rule Name, spelled as the client spells it: camelCase, as in `showCoordinates` or
-     * `doDayLightCycle`. A Bedrock Dedicated Server 1.26.51 sends these names, and the client
+     * `doDayLightCycle`. Protocol 2193's pinned Bedrock Dedicated Server sends these names, and the client
      * matches them by exact string.
      */
     ruleName: string;
@@ -74,7 +74,7 @@ export const readGameRule = (stream: BinaryStream): GameRule => ({
 /**
  * Writes one `GameRule` as the docs lay it out: Rule Name as a string, Rule Can Be Modified
  * as a boolean, the value's varuint32 selector, then the value itself. A boolean is one byte,
- * an integer is a signed int32 LE (four fixed bytes, not a varint; a BDS 1.26.51 sends
+ * an integer is a signed int32 LE (four fixed bytes, not a varint; protocol 2193's pinned BDS sends
  * `maxCommandChainLength` as `02 ff ff 00 00`), a float is a float LE, and the null
  * alternative has no value bytes.
  * @param stream - The stream to append to.

@@ -532,8 +532,11 @@ const runPacketPass = async (): Promise<void> => {
 /** The port the exchange capture's server listens on, clear of the default one. */
 const EXCHANGE_PORT = 29152;
 
-/** How long a scenario's console command may go unanswered before the client goes on anyway. */
+/** How long a scenario's console command may go unanswered before the capture fails. */
 const EXCHANGE_COMMAND_MS = 5000;
+
+/** A console line the server prints on its own, which never answers a command. */
+const SERVER_EVENT = /^(?:Player (?:connected|Spawned|disconnected)|Running AutoCompaction)/;
 
 const runExchangePass = async (): Promise<void> => {
     console.log(`${passLabel('exchanges')}: the exchange capture`);
@@ -558,14 +561,22 @@ const runExchangePass = async (): Promise<void> => {
         cwd: staged.root,
         onLine: (line) => console.log(`  ${line}`)
     });
-    // Types a line at the console and waits for the server's next line, which for every command a
-    // scenario sends is its answer. A command that prints nothing goes on after the timeout.
+    // Types a line at the console and waits for its answer: the next log line the server did not
+    // print on its own. Every command a scenario sends prints one once it has run, so a scenario
+    // step after it meets the world the command left. One that never answers fails the capture,
+    // rather than letting the scenario run on a world the command did not change.
     const answer = async (line: string): Promise<void> => {
         const from = server.lines.length;
         server.send(line);
-        await server
-            .waitForLine(() => true, `an answer to ${line}`, EXCHANGE_COMMAND_MS * launcher.timeoutScale, from)
-            .catch(() => undefined);
+        await server.waitForLine(
+            (candidate) => {
+                const answered = readCommandAnswer(line, candidate);
+                return answered !== undefined && !SERVER_EVENT.test(answered.message);
+            },
+            `an answer to ${line}`,
+            EXCHANGE_COMMAND_MS * launcher.timeoutScale,
+            from
+        );
     };
     try {
         await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
@@ -586,14 +597,22 @@ const runExchangePass = async (): Promise<void> => {
             ]),
             { cwd: repositoryRoot, stdio: ['inherit', 'inherit', 'inherit', 'ipc'] }
         );
+        let unanswered: unknown;
         child.on('message', (message: unknown) => {
             if (typeof message !== 'object' || message === null || !('command' in message) || !('id' in message)) {
                 return;
             }
             const { command, id } = message;
-            void answer(String(command)).then(() => child.send({ answered: id }));
+            void answer(String(command)).then(
+                () => child.send({ answered: id }),
+                (error: unknown) => {
+                    unanswered ??= error;
+                    child.kill();
+                }
+            );
         });
         const status = await new Promise<number | null>((resolveExit) => child.on('exit', resolveExit));
+        if (unanswered !== undefined) throw unanswered;
         if (status !== 0) throw new Error(`The exchange capture client exited with status ${status}`);
     } finally {
         await server.stop(TIMEOUTS.stop);

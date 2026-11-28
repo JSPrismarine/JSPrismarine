@@ -53,8 +53,8 @@ export interface ItemUserData {
      * Durability spent, which is Java's `minecraft:damage` and Bedrock's `tag.Damage`. The
      * client draws the damage bar from it.
      *
-     * Undefined for an item with no durability, which writes nothing. Zero is written: a Bedrock
-     * Dedicated Server 1.26.52 sends `Damage` 0 with every unused item that has durability.
+     * Undefined for an item with no durability, which writes nothing. Zero is written: an unpinned
+     * Bedrock Dedicated Server sends `Damage` 0 with every unused item that has durability.
      */
     readonly damage: number | undefined;
     /**

@@ -121,7 +121,7 @@ const toBuffer = ({ data }: { data: string }) => Buffer.from(data, 'base64');
 export const entity_identifiers: Buffer = toBuffer(entity_identifiers_data);
 
 /**
- * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * The camera presets protocol 2225's pinned Bedrock Dedicated Server sends a joining client, as the payload
  * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
  * in this list.
  */

@@ -77,7 +77,7 @@ Progress:
   session records. `ShownContainer` names the cursor too, which Java does not show. Two more of
   `PlayerSession`'s edition checks are gone, the inventory's and the slot's, and its
   `sendHandItem` and `sendArmorFor` with them.
-- Slice 4.3, block containers and trades: under review. `openContainer`, `showTradeOffers`,
+- Slice 4.3, block containers and trades: merged in [#3876](https://github.com/JSPrismarine/JSPrismarine/pull/3876). `openContainer`, `showTradeOffers`,
   `showContainerData` and `showContainerSlots` are presenter calls. The session keeps the window
   table, the open container and which of its properties the client already has, and the
   presenter sends the packets. `sendContainerSlot`, which only Bedrock's handlers call, is

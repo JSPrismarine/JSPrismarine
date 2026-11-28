@@ -121,7 +121,7 @@ const BLOCK_CONTAINER = -2;
  * A slot a request named: which store holds it and the index there, then the `Container Name`
  * and the slot number the request used.
  *
- * The answer repeats the last two. A Bedrock Dedicated Server 1.26.52 answers a move out of
+ * The answer repeats the last two. An unpinned Bedrock Dedicated Server answers a move out of
  * `HOTBAR` slot 2 about `HOTBAR` slot 2, not about the combined inventory the slot also belongs
  * to, and the offhand's one slot is slot 1 to the client and index 0 here.
  */
@@ -277,8 +277,8 @@ const javaRequirement = (ingredient: JavaIngredient): CraftingRequirement => ({
 /**
  * Part of a stack, split off as a stack of its own.
  *
- * Without the stack network id, which stays with what is left: a Bedrock Dedicated Server
- * 1.26.52 gives the part a new one, and so does the answer that first names it here.
+ * Without the stack network id, which stays with what is left: an unpinned Bedrock Dedicated Server
+ * gives the part a new one, and so does the answer that first names it here.
  */
 const splitOff = (item: Item, count: number): Item => {
     const part = item.withCount(count);
@@ -565,7 +565,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
     /**
      * Runs one request's steps, and describes the slots they left behind.
      *
-     * Measured against a Bedrock Dedicated Server 1.26.52 through the proxy, which this
+     * Measured against an unpinned Bedrock Dedicated Server through the proxy, which this
      * follows:
      *
      * - a stack that moves whole keeps its stack network id; the part split off a stack gets a

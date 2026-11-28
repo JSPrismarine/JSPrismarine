@@ -388,8 +388,8 @@ export interface ToolWear {
  *
  * That hook is Java's `Item.mineBlock`, which `@jsprismarine/item-behaviors` implements: a tool
  * spends its `damage_per_block`, one unless the item says otherwise and two for a sword, and
- * nothing on a block that breaks at once. The four cases measured on a Bedrock Dedicated Server
- * 1.26.52 agree: a wooden pickaxe wore by one a block on cobblestone and on dirt and by none on
+ * nothing on a block that breaks at once. The four cases measured on an unpinned Bedrock Dedicated
+ * Server agree: a wooden pickaxe wore by one a block on cobblestone and on dirt and by none on
  * short grass, and a wooden sword wore by two a block on dirt. Nothing raised the hook before,
  * so no tool wore.
  *

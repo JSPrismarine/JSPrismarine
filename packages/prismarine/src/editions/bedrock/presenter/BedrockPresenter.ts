@@ -331,8 +331,10 @@ export class BedrockPresenter implements SessionPresenter {
      * inventory: one packet per named slot left the client without the window's whole storage
      * model, and it refused moves into those slots before it sent a request. Every other screen
      * names each slot list under the container the client uses for requests to that part of it.
-     * A crafting table is followed by the player's own inventory under window 0, which is what a
-     * Bedrock Dedicated Server 1.26.52 sent after a click on one.
+     * A crafting table is followed by the player's inventory under window 0 and its armor. The
+     * pinned servers follow every screen with all four of the player's windows, at every protocol
+     * ([#3890](https://github.com/JSPrismarine/JSPrismarine/issues/3890)).
+     * @bdsSee open-crafting-table
      */
     public async openContainer(window: OpenBlockContainer, contents: readonly (Item | null)[]): Promise<void> {
         const open = new ContainerOpenPacket();
@@ -474,8 +476,8 @@ export class BedrockPresenter implements SessionPresenter {
     }
 
     /**
-     * Sends `ActorEvent(SPAWN_ALIVE)` for the player and its health, as a Bedrock Dedicated
-     * Server 1.26.52 does when the respawn button is pressed. No `MovePlayer`: the client has
+     * Sends `ActorEvent(SPAWN_ALIVE)` for the player and its health, as an unpinned Bedrock
+     * Dedicated Server does when the respawn button is pressed. No `MovePlayer`: the client has
      * put itself at the `ReadyToSpawn` position already.
      */
     public async showRespawned(health: number): Promise<void> {

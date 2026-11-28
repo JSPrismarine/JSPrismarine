@@ -17,14 +17,14 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ExchangeCapture, ExchangeDriver, ExchangedPacket } from '@jsprismarine/client/exchanges/exchange';
-import { exchangeDifference, runExchange } from '@jsprismarine/client/exchanges/exchange';
+import { exchangeDifferences, runExchange } from '@jsprismarine/client/exchanges/exchange';
 import { EXCHANGE_SCENARIOS, EXCHANGE_SETUP } from '@jsprismarine/client/exchanges/scenarios';
 import { startLoopbackServer } from '@jsprismarine/client/testing/loopbackServer';
 import { resolveProtocolPolicy } from '@jsprismarine/prismarine/network/codec/ProtocolPolicy';
 import { beforeAll, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
-import { measureScenarios, scenarioGroup } from './behaviorScenarios.ts';
+import { measureScenarioScope, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { bedrockCaptureProtocol, bedrockDataPath } from './goldens.ts';
 import { describeFamily } from './measure.ts';
@@ -115,31 +115,89 @@ const replayAt = async (protocol: number): Promise<Replayed[]> => {
     return results;
 };
 
-describeFamily(FAMILIES.protocolBedrockExchanges, [], () => {
-    let replays: Replayed[] = [];
+/**
+ * The differences the captures show that JSPrismarine has not closed yet, each by the scenario and
+ * a piece of the difference's text. A scenario's row is deferred only while every difference it
+ * shows is one of these, so a new difference in the same scenario is still a defect.
+ */
+const DEFERRED: readonly { readonly scenario: string; readonly shows: string; readonly issue: string }[] = [
+    {
+        scenario: 'change-dimension',
+        shows: 'extra PlayStatusPacket',
+        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3882'
+    },
+    {
+        scenario: 'open-chest',
+        shows: "InventoryContentPacket's containerId",
+        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3883'
+    },
+    {
+        scenario: 'open-crafting-table',
+        shows: "InventoryContentPacket's containerId",
+        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3883'
+    },
+    ...['open-chest', 'open-crafting-table'].flatMap((scenario) =>
+        ['InventoryContentPacket, is never sent', "InventoryContentPacket's items.length"].map((shows) => ({
+            scenario,
+            shows,
+            issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3890'
+        }))
+    )
+];
 
-    beforeAll(async () => {
-        replays = [];
-        for (const protocol of replayed()) replays.push(...(await replayAt(protocol)));
-    }, 600_000);
+/** Every way a replay differs from its capture, or the one reason it could not be compared. */
+const differencesOf = ({ capture, replay, protocol }: Replayed): string[] => {
+    if (capture === undefined) return [`no capture at protocol ${protocol}; run dump:bedrock --pass exchanges`];
+    if (replay instanceof Error) return [`the replay stopped: ${replay.message}`];
+    return exchangeDifferences(capture.packets, replay);
+};
 
-    it("sends a Bedrock client what each protocol's pinned server sent it, scenario by scenario", () => {
-        const scenarios: readonly BehaviorScenario<Replayed>[] = [
-            {
-                name: 'exchange',
+/** The issue a difference waits on, or undefined for one nothing defers. */
+const deferralOf = (scenario: string, difference: string): string | undefined =>
+    DEFERRED.find((entry) => entry.scenario === scenario && difference.includes(entry.shows))?.issue;
+
+// Without the fetched data the real-data shards restore, the server never finishes the trip into
+// the Nether, so the family runs there.
+describeFamily(
+    FAMILIES.protocolBedrockExchanges,
+    [],
+    () => {
+        const protocols = replayed();
+        let replays: Replayed[] = [];
+
+        beforeAll(async () => {
+            replays = [];
+            for (const protocol of protocols) replays.push(...(await replayAt(protocol)));
+        }, 600_000);
+
+        it("sends a Bedrock client what each protocol's pinned server sent it, scenario by scenario", () => {
+            // One group a protocol, so a run that replays the primary alone leaves the others' rows be.
+            const scenarios: readonly BehaviorScenario<Replayed>[] = protocols.map((replayedAt) => ({
+                name: `v${replayedAt}`,
                 java: 'The pinned Bedrock Dedicated Server of the protocol answers the scenario with the captured packets.',
                 reference: 'packages/bedrock-data/src/jsp/v<protocol>/exchanges',
-                subjects: () => replays,
-                idOf: ({ protocol, scenario }) => `${protocol}:${scenario.id}`,
+                subjects: () => replays.filter(({ protocol }) => protocol === replayedAt),
+                idOf: ({ scenario }) => scenario.id,
                 covers: () => undefined,
-                run: ({ capture, replay, protocol }) => {
-                    if (capture === undefined)
-                        return `no capture at protocol ${protocol}; run dump:bedrock --pass exchanges`;
-                    if (replay instanceof Error) return `the replay stopped: ${replay.message}`;
-                    return exchangeDifference(capture.packets, replay);
+                run: (subject) => {
+                    const differences = differencesOf(subject);
+                    return differences.length === 0 ? undefined : differences.join('; ');
+                },
+                classify: (subject, difference) => {
+                    const issues = differencesOf(subject).map((each) => deferralOf(subject.scenario.id, each));
+                    const [issue] = issues;
+                    return issue === undefined || issues.some((each) => each === undefined)
+                        ? undefined
+                        : { kind: 'deferred', reason: difference, reference: issue };
                 }
-            }
-        ];
-        measureScenarios(FAMILIES.protocolBedrockExchanges, import.meta.filename, scenarioGroup(scenarios));
-    });
-});
+            }));
+            measureScenarioScope(
+                FAMILIES.protocolBedrockExchanges,
+                import.meta.filename,
+                new Set(protocols.map((protocol) => `v${protocol}`)),
+                [scenarioGroup(scenarios)]
+            );
+        });
+    },
+    { tags: ['real-data'] }
+);

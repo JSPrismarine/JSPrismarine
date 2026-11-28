@@ -579,7 +579,7 @@ export class Item {
      * size goes through here, because the wire writes the item's count and not the slot's.
      *
      * The stack network id comes along too, because a stack that grows or shrinks is still the
-     * stack the client knows: a Bedrock Dedicated Server 1.26.52 keeps the id on what is left
+     * stack the client knows: an unpinned Bedrock Dedicated Server keeps the id on what is left
      * of a stack and on a stack merged onto. A part split off is a new stack, and the caller
      * clears the id on it.
      *
@@ -902,7 +902,7 @@ export class Item {
             lore: this.loreLines,
             // Spent rather than remaining, which is what both editions store and what the
             // client draws the damage bar from. Written for every item that has durability,
-            // zero included, as a Bedrock Dedicated Server 1.26.52 writes it.
+            // zero included, as an unpinned Bedrock Dedicated Server writes it.
             damage: limit > 0 ? Math.max(0, limit - this.durability) : undefined,
             // Through the stored form, so the `Items` list the client previews a shulker box
             // from is the same list the world record keeps.

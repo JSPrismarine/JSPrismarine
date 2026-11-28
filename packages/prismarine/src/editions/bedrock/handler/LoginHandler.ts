@@ -94,9 +94,9 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                 const verified = await verifyLogin(login);
                 // A verified login only says the chain is real. Without Minecraft's encryption
                 // handshake, nothing else shows this client holds the chain's key and is not
-                // sending a login it recorded from somebody else. Bedrock Dedicated Server
-                // 1.26.60 refuses such a login the same way (NotAuthenticated), so this is not
-                // an extra check a retail client could fail.
+                // sending a login it recorded from somebody else. Protocol 2225's pinned Bedrock
+                // Dedicated Server refuses such a login the same way (NotAuthenticated), so this is
+                // not an extra check a retail client could fail.
                 if (!(await connection.provesIdentityKey(verified.identityPublicKey))) {
                     throw new AuthErrors.XboxLoginRequired({ cause: new AuthErrors.IdentityDoesNotProveLoginKey() });
                 }
@@ -151,8 +151,9 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
      * the client answers.
      *
      * On a transport that encrypts the wire itself the handshake still goes out but encryption
-     * stays off. That is what Bedrock Dedicated Server 1.26.51 does over NetherNet, where DTLS
-     * covers the data channel: it sends the handshake and the client answers in the clear.
+     * stays off. That is what protocol 2193's pinned Bedrock Dedicated Server does over NetherNet,
+     * where DTLS covers the data channel: it sends the handshake and the client answers in the
+     * clear.
      *
      * The key comes from the identity key the login chain names. That key is only as trustworthy
      * as the chain, which this server does not verify yet, so the session is protected from
@@ -298,8 +299,9 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             packs = [];
         }
         const subpacks = await login.resourcePacks.subpacks(packs);
-        // Every field as a Bedrock Dedicated Server 1.26.60.6 fills it, but the content key, which
-        // BDS takes only from Marketplace entitlements and this server reads beside the pack.
+        // Every field as protocol 2225's pinned Bedrock Dedicated Server fills it, but the content
+        // key, which BDS takes only from Marketplace entitlements and this server reads beside the
+        // pack.
         await connection.sendDataPacket(
             new ResourcePacksInfoPacket({
                 resourcePackRequired: packs.length > 0 && config.getTexturepackRequired(),

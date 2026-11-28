@@ -9,7 +9,7 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 
 import { itemData2193 } from './itemData';
 
-/** Server-configured protocol 2193 codec with the tables captured from BDS 1.26.51.1. */
+/** Server-configured protocol 2193 codec with the tables captured from protocol 2193's pinned BDS. */
 const Codec2193 = createProtocolCodec({
     definition: ProtocolVersions.v2193,
     context: {

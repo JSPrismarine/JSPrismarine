@@ -4,7 +4,7 @@
  * Bedrock writes one little endian NBT compound: `currentTick`, the world's tick when it saved,
  * and `tickList`, one compound per tick holding the block state it fires for (`{name, states,
  * version}`, the palette form), the absolute tick it is due on as `time`, and its world `x`, `y`
- * and `z`. Read from a world Bedrock Dedicated Server 1.26.51 saved with lava still spreading.
+ * and `z`. Read from a world protocol 2193's pinned Bedrock Dedicated Server saved with lava still spreading.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';

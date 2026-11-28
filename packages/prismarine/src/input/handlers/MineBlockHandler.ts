@@ -18,8 +18,8 @@ import type { IntentHandler } from '../IntentHandler';
  * A player mining a block, whichever edition's client mines it.
  *
  * Bedrock's block actions and Java's `Player Action` both decode into these steps. Two ways to
- * time a break exist, and the intent says which applies. Server-timed, as a Bedrock
- * Dedicated Server 1.26.52 runs it with `server-authoritative-block-breaking` and as every Java
+ * time a break exist, and the intent says which applies. Server-timed, as an unpinned Bedrock
+ * Dedicated Server runs it with `server-authoritative-block-breaking` and as every Java
  * server does: the server starts the cracks, the store's player systems animate them every tick,
  * and the client's `finish` is checked against how long the block was mined. Client-timed, a
  * Bedrock client with the setting off: the client times the break and reports it with an
