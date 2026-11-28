@@ -1804,6 +1804,43 @@ class EmptyMessage extends JSPrismarineError {
 }
 
 /**
+ * A Bedrock presenter built without a session was asked to show the player's inventory, which
+ * it reads from the session. This is a bug in the server, or in a test that builds a
+ * presenter on its own; pass a `BedrockSessionState`.
+ */
+class PresenterHasNoSession extends JSPrismarineError {
+    public static get code(): 'PRISMARINE_PRESENTER_HAS_NO_SESSION' {
+        return 'PRISMARINE_PRESENTER_HAS_NO_SESSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): "A Bedrock presenter with no session cannot show the player's inventory" {
+        return "A Bedrock presenter with no session cannot show the player's inventory";
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-presenter-has-no-session' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-presenter-has-no-session';
+    }
+
+    public override readonly code = 'PRISMARINE_PRESENTER_HAS_NO_SESSION';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/prismarine/network#prismarine-presenter-has-no-session';
+    readonly #params: Readonly<Record<string, unknown>> = {};
+
+    public constructor(options?: ErrorOptions) {
+        super("A Bedrock presenter with no session cannot show the player's inventory", options);
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
  * Sending block changes lost track of a change. This is a bug in the server; report it with the
  * stack trace.
  */
@@ -3130,6 +3167,7 @@ export const PrismarineNetworkErrors = Object.freeze({
     LoginTokenIsNotJwt,
     SpawnLostDuringJoin,
     EmptyMessage,
+    PresenterHasNoSession,
     MissingBlockChange,
     MissingEncodedBlockPacket,
     MissingEncodedMovement,

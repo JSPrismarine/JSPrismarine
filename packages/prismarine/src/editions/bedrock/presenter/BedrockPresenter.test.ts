@@ -49,6 +49,13 @@ import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/Update
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { SetHealthPacket } from '@jsprismarine/protocol';
 
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import ContainerOpenPacket from '@jsprismarine/protocol/bedrock/packet/ContainerOpenPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
+import HumanInventory from '../../../inventory/HumanInventory';
+import { WindowIds } from '../../../inventory/WindowIds';
+import { WindowTypes } from '../../../inventory/WindowTypes';
+
 import { BedrockPresenter } from './BedrockPresenter';
 
 /** A presenter over a connection that keeps what it was asked to send. */
@@ -479,6 +486,46 @@ describe('BedrockPresenter', () => {
             }
             expect([event.runtimeEntityId, event.event]).toEqual([7n, ActorEvent.SPAWN_ALIVE]);
             expect(health.getPacketData()).toEqual({ health: 20 });
+        });
+    });
+
+    describe("the player's own inventory", () => {
+        it('refuses to show the inventory without a session to read it from', async () => {
+            const { presenter: bedrock } = presenter();
+
+            await expect(bedrock.showInventory()).rejects.toBeInstanceOf(PrismarineNetworkErrors.PresenterHasNoSession);
+        });
+
+        it('opens the inventory under the window the session opened, and sends its contents under it', async () => {
+            const sent: NetworkPacket[] = [];
+            const opened: number[] = [];
+            const bedrock = new BedrockPresenter(
+                { sendDataPacket: async (packet) => void sent.push(packet) },
+                undefined,
+                {
+                    runtimeId: 7n,
+                    lastInputTick: () => 0n,
+                    inventory: {
+                        inventory: () => new HumanInventory(),
+                        codecContext: () => ({ protocolVersion: 2193 }),
+                        equipment: () => ({}),
+                        openWindow: (containerType) => {
+                            opened.push(containerType);
+                            return WindowIds.FIRST;
+                        }
+                    }
+                }
+            );
+
+            await bedrock.openOwnInventory();
+
+            const [open, contents] = sent;
+            if (!(open instanceof ContainerOpenPacket) || !(contents instanceof InventoryContentPacket)) {
+                throw new Error('expected ContainerOpen then InventoryContent');
+            }
+            expect(opened).toEqual([WindowTypes.INVENTORY]);
+            expect([open.windowId, open.containerEntityId]).toEqual([WindowIds.FIRST, 7n]);
+            expect(contents.windowId).toBe(WindowIds.FIRST);
         });
     });
 });

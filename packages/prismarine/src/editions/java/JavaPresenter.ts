@@ -217,7 +217,7 @@ const WINDOW_SLOTS = 46;
  * @param container - The container.
  * @param slot - The slot within it, numbered as the server numbers it.
  */
-export const javaWindowSlotOf = (container: ShownContainer, slot: number): number => {
+export const javaWindowSlotOf = (container: Exclude<ShownContainer, 'cursor'>, slot: number): number => {
     if (container === 'armor') return 5 + slot;
     if (container === 'offhand') return 45;
     return slot < 9 ? 36 + slot : slot;
@@ -774,6 +774,9 @@ export class JavaPresenter implements SessionPresenter {
 
     /** Sends one slot of the inventory window. */
     public async showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void> {
+        // The cursor is no slot of the inventory window, and a Java client is told it apart.
+        // Known gap: `Set Cursor Item` is not defined, so the server's cursor goes unshown.
+        if (container === 'cursor') return;
         this.send(ContainerSetSlot, {
             window: INVENTORY_WINDOW,
             stateId: ++this.stateId,
@@ -781,6 +784,9 @@ export class JavaPresenter implements SessionPresenter {
             item: this.javaStackOf(stack)
         });
     }
+
+    /** Sends nothing: a Java client opens its own inventory without the server. */
+    public async openOwnInventory(): Promise<void> {}
 
     /** Sends `Set Health`: Java's food level is a whole number, as the hunger bar's halves are. */
     public async showVitals({ health, food, saturation }: ShownVitals): Promise<void> {

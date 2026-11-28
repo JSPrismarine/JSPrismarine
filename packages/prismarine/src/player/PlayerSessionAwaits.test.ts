@@ -89,7 +89,6 @@ describe("the owner's view's awaits", () => {
             'stopMining',
             'completeSpawn',
             'sendInventory',
-            'sendArmorFor',
             'sendAttributes',
             'sendStatusEffects',
             'announceSettings',

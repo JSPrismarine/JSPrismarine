@@ -146,7 +146,7 @@ export interface ShownEntityState {
 }
 
 /** The containers of a player's own inventory that a client shows. */
-export type ShownContainer = 'inventory' | 'armor' | 'offhand';
+export type ShownContainer = 'inventory' | 'armor' | 'offhand' | 'cursor';
 
 /** A player's own inventory as plain stacks, an empty slot null. */
 export interface ShownInventory {
@@ -410,6 +410,12 @@ export interface SessionPresenter {
      * @param stack - What it holds, or null.
      */
     showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void>;
+
+    /**
+     * Opens the player's own inventory screen, as the client asked. A client that opens it without
+     * the server, as Java's does, has nothing to send.
+     */
+    openOwnInventory(): Promise<void>;
 
     /**
      * Shows what an entity the client sees holds and wears now, for a client the replicator's

@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, WindowIds, WindowTypes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import type HumanInventory from '../inventory/HumanInventory';
+import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
@@ -14,6 +14,7 @@ import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/Invent
 import UpdateTradePacket from '@jsprismarine/protocol/bedrock/packet/UpdateTradePacket';
 import { Merchant, parseTradeTable } from '@jsprismarine/trading';
 import { seededRandom } from '@jsprismarine/predicates';
+import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import PlayerSession from './PlayerSession';
 import type { TradingActor } from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
@@ -52,6 +53,21 @@ const sessionFor = () => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
+        // The Bedrock presenter opens the player's own inventory under a window the session records.
+        presenter: new BedrockPresenter(connection, undefined, {
+            runtimeId: 7n,
+            lastInputTick: () => 0n,
+            inventory: {
+                inventory: () => new HumanInventory(),
+                codecContext: () => protocolCodec.context,
+                equipment: () => ({}),
+                openWindow: (containerType: number) => {
+                    const windowId = session['nextWindowId']();
+                    session['openWindows'].set(windowId, containerType);
+                    return windowId;
+                }
+            }
+        }),
         ...sessionPlayerFields(player, 7n),
         windowId: 0,
         openWindows: new Map<number, number>(),
