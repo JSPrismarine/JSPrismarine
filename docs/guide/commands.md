@@ -37,6 +37,9 @@ player sees it, and an operator who types it is told it needs a higher level. `/
 but only a permission entry that names the node does that. An operator's `*` doesn't count,
 because restarting the server is a decision for whoever runs the machine.
 [Updates](updates.md#console-commands) explains both.
+`/help` follows both columns: it lists only the commands, subcommands and forms the player may
+run, and answers `/help <command>` for one they may not run as it answers for a command that
+doesn't exist. The console's `/help` lists every command.
 The **granted to**
 column puts the two together for a fresh server: who can run the command before you change
 anything.

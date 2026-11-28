@@ -724,9 +724,11 @@ export interface ServerCommandHost {
      * Builds the paged list or command-route help `/help` prints.
      *
      * @param target - A page number or command route, or undefined for page 1.
+     * @param source - Who asked. The help lists only the commands, subcommands and forms this
+     *   source may use, as Java's `/help` does; left out, it lists everything.
      * @returns The formatted help lines.
      */
-    usage(target?: string): readonly string[];
+    usage(target?: string, source?: CommandSource): readonly string[];
 }
 
 /** The optional source clauses of `/damage <target> <amount> <type> [at <location>] [by <entity> [from <cause>]]`. */

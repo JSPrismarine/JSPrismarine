@@ -108,6 +108,9 @@ export interface CommandReference {
 }
 const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
 
+/** Whether `/help` lists a node for the source that asked; see {@link CommandManager.usageLines}. */
+type Usable = (node: VanillaCommandTreeNode) => boolean;
+
 /**
  * The permission node a command is gated by.
  *
@@ -612,15 +615,22 @@ export class CommandManager implements Service {
      * This walks the source tree directly, so recursive routes such as
      * `/execute` do not need to be expanded into Bedrock overloads first.
      *
+     * With a source, the help leaves out every command, subcommand and form whose node the
+     * source cannot use, the check the dispatcher makes before running it, so a player sees
+     * only what they may run, as Java's `/help` does. A command they may not run gets the same
+     * answer as one that does not exist.
+     *
      * @param target - A page number or command route, or undefined for page 1.
+     * @param source - Who asked; left out, the help lists every command.
      * @returns Formatted help lines for the requested page or route.
      */
-    public usageLines(target?: string): readonly string[] {
+    public usageLines(target?: string, source?: CommandSource): readonly string[] {
+        const usable = (node: VanillaCommandTreeNode): boolean => source === undefined || node.canUse(source);
         const request = target?.trim();
-        if (request === undefined || request.length === 0) return this.helpPage(1);
-        if (/^[+-]?\d+$/.test(request)) return this.helpPage(Number(request));
+        if (request === undefined || request.length === 0) return this.helpPage(1, usable);
+        if (/^[+-]?\d+$/.test(request)) return this.helpPage(Number(request), usable);
 
-        return this.commandHelp(request);
+        return this.commandHelp(request, usable);
     }
 
     /**
@@ -651,9 +661,14 @@ export class CommandManager implements Service {
             });
     }
 
-    private helpPage(page: number): readonly string[] {
+    private helpPage(page: number, usable: Usable): readonly string[] {
+        const root = this.vanillaRegistry().getRoot();
         const names = this.vanillaRegistry()
             .getNames()
+            .filter((name) => {
+                const node = root.getChild(name);
+                return node !== undefined && usable(node);
+            })
             .sort((left, right) => left.localeCompare(right));
         const pageCount = Math.max(1, Math.ceil(names.length / HELP_PAGE_SIZE));
         if (!Number.isSafeInteger(page) || page < 1) {
@@ -666,7 +681,7 @@ export class CommandManager implements Service {
         const start = (page - 1) * HELP_PAGE_SIZE;
         const entries = names.slice(start, start + HELP_PAGE_SIZE).flatMap((name) => {
             const description = this.helpDescription(name) ?? 'See syntax below.';
-            return [`§6/${name}§r §f- ${description}`, `   §eUsage: §f${this.helpUsage(name)}`];
+            return [`§6/${name}§r §f- ${description}`, `   §eUsage: §f${this.helpUsage(name, usable)}`];
         });
 
         const previous = page > 1 ? '§f‹' : '§8■';
@@ -676,11 +691,11 @@ export class CommandManager implements Service {
         return [border, ...entries, border];
     }
 
-    private helpUsage(name: string): string {
+    private helpUsage(name: string, usable: Usable): string {
         const root = this.vanillaRegistry().getRoot().getChild(name);
         if (root === undefined) return `/${name}`;
 
-        const syntax = this.commandSyntax(root, root, [`/${name}`]);
+        const syntax = this.commandSyntax(root, root, [`/${name}`], usable);
         const primary = syntax.lines[0] ?? `/${name}`;
         return syntax.lines.length > 1 || syntax.hasMore ? `${primary}${primary.endsWith('…') ? '' : ' …'}` : primary;
     }
@@ -699,14 +714,17 @@ export class CommandManager implements Service {
         return Array.from(text.replace(/§./g, '')).length;
     }
 
-    private commandHelp(request: string): readonly string[] {
+    private commandHelp(request: string, usable: Usable): readonly string[] {
         const [typedName, ...requestedRoute] = request.split(/\s+/);
-        if (typedName === undefined) return this.helpPage(1);
+        if (typedName === undefined) return this.helpPage(1, usable);
         const owner = this.vanillaName(typedName.toLowerCase());
         if (owner === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
 
+        // A command the source may not run answers as one that does not exist, as Java's does.
         const commandRoot = this.vanillaRegistry().getRoot().getChild(owner);
-        if (commandRoot === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
+        if (commandRoot === undefined || !usable(commandRoot)) {
+            return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
+        }
 
         let node = commandRoot;
         const route: string[] = [];
@@ -714,7 +732,9 @@ export class CommandManager implements Service {
         for (const part of requestedRoute) {
             const child = [...node.getChildren()].find(
                 (candidate) =>
-                    candidate.getNodeType() === 'literal' && candidate.getName().toLowerCase() === part.toLowerCase()
+                    candidate.getNodeType() === 'literal' &&
+                    candidate.getName().toLowerCase() === part.toLowerCase() &&
+                    usable(candidate)
             );
             if (child === undefined) {
                 unknownRoute = part;
@@ -740,7 +760,7 @@ export class CommandManager implements Service {
             lines.push(`§7Aliases: ${metadata.aliases.map((alias) => `/${alias}`).join(', ')}`);
         }
 
-        const children = [...node.getChildren()];
+        const children = [...node.getChildren()].filter(usable);
         const subcommands = children
             .filter((child) => child.getNodeType() === 'literal')
             .map((child) => child.getName());
@@ -753,7 +773,7 @@ export class CommandManager implements Service {
         ];
         if (argumentNames.length > 0) lines.push(`§eArguments: §f${argumentNames.join(', ')}`);
 
-        const syntax = this.commandSyntax(node, commandRoot, [name]);
+        const syntax = this.commandSyntax(node, commandRoot, [name], usable);
         if (syntax.lines.length > 0) {
             lines.push('§eUsage:');
             for (const line of syntax.lines) lines.push(`§f${line}`);
@@ -770,12 +790,13 @@ export class CommandManager implements Service {
      * The forms a route takes, as `/help` and the console show them, up to
      * {@link MAX_HELP_SYNTAX_LINES}. `words` lists, for each form, how many typed words each
      * part after `prefix` reads: one for a literal, the argument type's count for an argument,
-     * and `rest` for a `…` that repeats the command.
+     * and `rest` for a `…` that repeats the command. A child `usable` refuses is left out.
      */
     private commandSyntax(
         start: VanillaCommandTreeNode,
         commandRoot: VanillaCommandTreeNode,
-        prefix: readonly string[]
+        prefix: readonly string[],
+        usable: Usable = () => true
     ): { lines: readonly string[]; words: readonly (readonly ArgumentWords[])[]; hasMore: boolean } {
         const lines: string[] = [];
         const words: (readonly ArgumentWords[])[] = [];
@@ -812,7 +833,7 @@ export class CommandManager implements Service {
             }
 
             for (const child of node.getChildren()) {
-                if (ancestors.has(child)) continue;
+                if (ancestors.has(child) || !usable(child)) continue;
                 const childParts = [...parts, child.getUsageText()];
                 const childWords = [
                     ...partWords,

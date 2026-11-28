@@ -268,6 +268,6 @@ export const serverSideCommandHost = (
             return entities.length;
         },
 
-        usage: (command) => server.getCommandManager().usageLines(command)
+        usage: (command, source) => server.getCommandManager().usageLines(command, source)
     };
 };
