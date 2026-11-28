@@ -7,6 +7,7 @@
         }
     ],
     "commit": false,
+    "format": "prettier",
     "fixed": [["{,@jsprismarine/}{,*,!color-parser,!brigadier,!bedrock-data}"]],
     "linked": [],
     "access": "public",
