@@ -11,7 +11,7 @@ import { evaluateFilter } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { HomeRestriction } from './navigator';
-import { Navigator, walkedPathOf } from './navigator';
+import { Navigator, navigatorOf, walkedPathOf } from './navigator';
 import type { NavigationProfile } from './navigation/profile';
 import { navigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
@@ -100,13 +100,18 @@ export class GoalSupport {
         /** The world seam, which answers nothing when the server supplied none. */
         public readonly world: GoalWorld = emptyGoalWorld
     ) {
-        this.navigator = new Navigator({
-            actuator: entity.actuator,
-            navigation: () => this.navigation(),
-            profile: () => this.profile(),
-            homeRestriction: () => this.homeRestriction(),
-            owner: entity
-        });
+        const create = (): Navigator =>
+            new Navigator({
+                actuator: entity.actuator,
+                navigation: () => this.navigation(),
+                profile: () => this.profile(),
+                homeRestriction: () => this.homeRestriction(),
+                owner: entity
+            });
+        // One navigator for all of the entity's goals, as Java's mob has one `PathNavigation`. A
+        // support with no world, as a brain mob's goal components get, keeps one of its own: it
+        // reads no blocks, and the brain's navigator, which does, must not be that one.
+        this.navigator = world === emptyGoalWorld ? create() : navigatorOf(entity, create);
     }
 
     /** The path the entity last planned, whichever goal planned it; see {@link walkedPathOf}. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Activities, MemoryModuleTypes, entityTracker } from '@jsprismarine/entity-brains';
-import { navigationProfile } from '@jsprismarine/entity-goals';
+import { navigationProfile, sweepNavigation } from '@jsprismarine/entity-goals';
 import type { FilterEntityView } from '@jsprismarine/entities';
 import { trustedBy } from '@jsprismarine/entities/components/trust';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
@@ -9,7 +9,7 @@ import type { ContentEntity } from '../../content/world/adapter';
 import { definitionOf } from '../../content/ContentOptions';
 
 import { mergeStatusEffect } from '../StatusEffect';
-import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
+import { brainEntityOf, brainMobOf } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
 import { entityFixture, entityFixtureStack, FLOOR_Y, TestEntityWorld } from './testing';
 import { carriedOf, containerOf, equip, equipmentOf, give, setContainerSlot } from '../../testing/mobSlots.test-utils';
@@ -3432,10 +3432,31 @@ describe('EntityRuntime', () => {
             expect(mob.navigation.moveTo(target, 1)).toBe(true);
             for (let tick = 0; tick < 30; tick += 1) {
                 expect(mob.navigation.moveTo(target, 1)).toBe(true);
-                tickBrainNavigation(goat);
+                sweepNavigation(goat.instance);
                 goat.body.step();
                 expect(Math.floor(goat.position.x) === 1 && Math.floor(goat.position.z) === 0).toBe(false);
             }
+        });
+
+        it('walks a brain mob up to a solid block it cannot stand in, as a villager walks to its bed', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 4, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            const { runtime } = brainGoatRuntime('walk', world);
+            const goat = runtime.spawn('minecraft:goat', GROUND);
+            if (goat?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:goat');
+
+            const mob = brainMobOf(goat, goat.brain, runtime);
+            const block = { x: 4.5, y: FLOOR_Y + 1, z: 0.5 };
+            expect(mob.navigation.canReach(block)).toBe(false);
+            expect(mob.navigation.canReach(block, 1)).toBe(true);
+            expect(mob.navigation.canApproach?.(block)).toBe(true);
+            expect(mob.navigation.moveTo(block, 1)).toBe(true);
+            for (let tick = 0; tick < 60; tick += 1) {
+                sweepNavigation(goat.instance);
+                goat.body.step();
+            }
+
+            expect(Math.floor(goat.position.x)).toBe(3);
         });
 
         it('does not let a walking brain mob fly to a position without ground support', () => {
@@ -3462,7 +3483,7 @@ describe('EntityRuntime', () => {
             expect(mob.navigation.moveTo(target, 1)).toBe(true);
             for (let tick = 0; tick < 10; tick += 1) {
                 expect(mob.navigation.moveTo(target, 1)).toBe(true);
-                tickBrainNavigation(goat);
+                sweepNavigation(goat.instance);
                 goat.body.step();
             }
 

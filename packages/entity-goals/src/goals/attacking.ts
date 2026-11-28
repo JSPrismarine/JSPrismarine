@@ -62,6 +62,8 @@ interface MeleeOptions {
     readonly trackTarget: boolean;
     /** Whether one swing ends the goal. */
     readonly attackOnce: boolean;
+    /** Whether the goal starts only with a path that reaches the target, not one that gets closer. */
+    readonly requireCompletePath: boolean;
     /** One tick in this many ends the goal early; 0 never does. */
     readonly randomStopInterval: number;
     /** Ticks between the swing starting and the damage landing. */
@@ -90,8 +92,9 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
 
     return {
         // Java's `MeleeAttackGoal.canUse`: at most one path search every 20 game ticks, and a
-        // start only with a path to the target or the target already in reach. Starting without
-        // one began a walk that failed at once, so the goal stopped and started every pass.
+        // start only with a path toward the target or the target already in reach. Java's path
+        // need not reach the target, so a zombie closes in on a player it cannot get to; Bedrock's
+        // `require_complete_path` asks for one that does.
         canStart: () => {
             const now = support.world.gameTime?.();
             // A clock that went back, as `/time set` moves this server's, opens the check again
@@ -103,7 +106,8 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
             target = support.target();
             if (target === undefined) return false;
             if (support.distanceTo(target.position()) <= options.reach) return true;
-            return support.navigator.canReach(target.position(), 1);
+            if (options.requireCompletePath) return support.navigator.canReach(target.position(), 1);
+            return support.navigator.plan(target.position(), 1) !== undefined;
         },
         canContinue: () => {
             const current = support.target();
@@ -165,8 +169,8 @@ export interface MeleeAttackParams {
     readonly trackTarget: boolean;
     readonly attackOnce: boolean;
     /**
-     * Read, and true in effect either way: a melee goal starts only with a route the navigator
-     * can walk, and the navigator walks only complete ones.
+     * Whether the goal starts only with a route that reaches the target. Java's `MeleeAttackGoal`
+     * starts with any route that gets closer, which is what false gives.
      */
     readonly requireCompletePath: boolean;
     readonly randomStopInterval: number;
@@ -203,6 +207,7 @@ const meleeOptions = (params: MeleeAttackParams, hitDelay = 0): MeleeOptions => 
     reach: MELEE_REACH * (params.reachMultiplier / 2),
     trackTarget: params.trackTarget,
     attackOnce: params.attackOnce,
+    requireCompletePath: params.requireCompletePath,
     randomStopInterval: params.randomStopInterval,
     hitDelay,
     onAttack: params.onAttack

@@ -465,6 +465,14 @@ export class SecondaryPoiSensor extends Sensor {
 export const NEAREST_BED_SENSOR = { cacheTimeout: 40, batchSize: 5, rate: 20, searchRadius: 48 };
 
 /**
+ * How near a bed a path has to end for the bed to count as reachable, the valid range Java's
+ * `PoiTypes` registers `minecraft:home` with.
+ *
+ * @javaSee PoiType.validRange()I
+ */
+const HOME_VALID_RANGE = 1;
+
+/**
  * Java's `NearestBedSensor`: the nearest reachable `minecraft:home` point of interest.
  *
  * It only runs for a baby, which is the one surprising thing about it: an adult villager finds its
@@ -490,7 +498,13 @@ export class NearestBedSensor extends Sensor {
                 (type) => type === 'minecraft:home'
             )
             .slice(0, NEAREST_BED_SENSOR.batchSize)
-            .find((poi) => context.body.navigation.canReach({ x: poi.pos.x + 0.5, y: poi.pos.y, z: poi.pos.z + 0.5 }));
+            .find((poi) =>
+                // Java's `AcquirePoi.findPathToPois` asks for a path to within the home's valid range.
+                context.body.navigation.canReach(
+                    { x: poi.pos.x + 0.5, y: poi.pos.y, z: poi.pos.z + 0.5 },
+                    HOME_VALID_RANGE
+                )
+            );
         if (nearest !== undefined) {
             context.body.brain.setMemory(MemoryModuleTypes.NEAREST_BED, nearest.pos);
         }

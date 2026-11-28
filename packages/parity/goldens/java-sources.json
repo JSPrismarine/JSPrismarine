@@ -474,6 +474,7 @@
         "MobEffectInstance.endsWithin": "net/minecraft/world/effect/MobEffectInstance.endsWithin(I)Z",
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
         "MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING",
+        "MoveToTargetSink.tryComputePath": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.tryComputePath(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/ai/memory/WalkTarget;J)Z",
         "Mth.atan2": "net/minecraft/util/Mth.atan2(DD)D",
         "Mth.cos": "net/minecraft/util/Mth.cos(D)F",
         "Mth.fastInvSqrt": "net/minecraft/util/Mth.fastInvSqrt(D)D",
@@ -1563,6 +1564,9 @@
         "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": {
             "26.3": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef",
             "26.4-pre-1": "sha256:677166e1a140f98efd3ebe7acbdb14aed8239c09fd4fc2a5ff6b9d7e5e4056ef"
+        },
+        "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.tryComputePath(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/ai/memory/WalkTarget;J)Z": {
+            "26.3": "sha256:ab1e4abc39792cff268e15053f8962a1ccf52c14eef9f370a60e5de677cb3936"
         },
         "net/minecraft/world/entity/ai/behavior/RandomStroll.fly(F)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;": {
             "26.3": "sha256:56c8855f2ad154a27879ea72859c57e8042b11bacab2eee5b1a4abc1c94f14f2",

@@ -236,16 +236,28 @@ export interface BrainEntity {
 /** Path following, the one capability a brain needs that `@jsprismarine/entity-goals` also owns. */
 export interface BrainNavigation {
     /**
-     * Starts walking to a position. Returns false when no path exists, which is what makes
-     * `MoveToTargetSink` record `CANT_REACH_WALK_TARGET_SINCE`.
+     * Starts walking to a position, along the closest route when none reaches it, as Java's
+     * `PathNavigation.moveTo` follows a path that does not reach its target. Returns false when
+     * no step takes the mob any closer.
      */
     moveTo(target: Vec3, speedModifier: number): boolean;
     /** Whether the current path is finished or was never started. */
     isDone(): boolean;
     /** Whether the mob has stopped making progress along its path. */
     isStuck(): boolean;
-    /** Whether a path to the position exists without starting to follow it. */
-    canReach(target: Vec3): boolean;
+    /**
+     * Whether a path that ends at the position exists, without starting to follow it: Java's
+     * `Path.canReach` for the path `createPath` finds.
+     * @param accuracy - How many blocks from the position the path may end, Java's `createPath`
+     *   accuracy. 0 when left out.
+     */
+    canReach(target: Vec3, accuracy?: number): boolean;
+    /**
+     * Whether a path takes the mob any closer to the position, complete or not, without starting
+     * to follow it: Java's `createPath` returning a path. A navigation that leaves it out
+     * answers with {@link BrainNavigation.canReach}.
+     */
+    canApproach?(target: Vec3): boolean;
     stop(): void;
     /**
      * The node of the path under way the mob last left and the one it walks to, Java's

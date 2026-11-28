@@ -398,11 +398,18 @@ export interface FollowOwnerParams {
 }
 
 /**
+ * How far from its owner a pet teleports instead of walking, in blocks.
+ *
+ * @javaSee TamableAnimal.shouldTryTeleportToOwner
+ */
+const FOLLOW_OWNER_TELEPORT_DISTANCE = 12;
+
+/**
  * `minecraft:behavior.follow_owner`, which the five tamable entities carry.
  *
  * Java's `FollowOwnerGoal` sets off past `start_distance`, stops inside
- * `stop_distance` and teleports when the path is blocked, which is what
- * `can_teleport` selects.
+ * `stop_distance` and, when `can_teleport` is set, teleports once 12 blocks or
+ * more from its owner.
  */
 export const followOwner = goal<FollowOwnerParams>({
     name: 'minecraft:behavior.follow_owner',
@@ -437,13 +444,13 @@ export const followOwner = goal<FollowOwnerParams>({
                     return;
                 }
                 repath = 10;
-                const reachable = support.navigator.moveTo(
-                    keeper.position(),
-                    params.speedMultiplier,
-                    params.stopDistance
-                );
-                if (reachable || !params.canTeleport) return;
-                support.world.teleportTo?.(keeper.position());
+                // Java's `FollowOwnerGoal.tick` teleports a pet 12 blocks or more from its owner
+                // rather than walking it, whether or not a path would get it there.
+                if (params.canTeleport && support.distanceTo(keeper.position()) >= FOLLOW_OWNER_TELEPORT_DISTANCE) {
+                    support.world.teleportTo?.(keeper.position());
+                    return;
+                }
+                support.navigator.moveTo(keeper.position(), params.speedMultiplier, params.stopDistance);
             },
             stop: () => {
                 owner = undefined;

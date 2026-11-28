@@ -26,8 +26,7 @@ import {
     inflatedEntityBounds
 } from '@jsprismarine/entity-brains';
 import type { Brain } from '@jsprismarine/entity-brains';
-import type { EntityPosition } from '@jsprismarine/entities';
-import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
+import { Navigator, navigationProfile, navigatorOf } from '@jsprismarine/entity-goals';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { EYE_HEIGHT } from '../playerEyes';
@@ -38,6 +37,7 @@ import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
 import { setDoorOpen } from './doors';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
+import { controlledVehicleOf } from './riderControl';
 import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
 import { canTargetPlayer } from './playerTargets';
@@ -235,77 +235,65 @@ const contentTagsFor = (registry: string, identifier: string, tags: ContentTags)
     return found;
 };
 
-interface BrainNavigationState {
-    readonly navigator: Navigator;
-    destination: EntityPosition | undefined;
-    speedModifier: number | undefined;
-    stuck: boolean;
-}
+/**
+ * The navigator one brain mob walks with: the one its goals share, keyed by its instance, since a
+ * camel, a happy ghast and a tadpole run goals and a brain over one Java `PathNavigation`.
+ */
+const brainNavigatorOf = (entity: DataEntity, scene: EntityScene): Navigator =>
+    navigatorOf(
+        entity.instance,
+        () =>
+            new Navigator({
+                actuator: actuatorOf(entity.body, scene),
+                navigation: () => scene.navigation(),
+                profile: () => navigationProfile(entity.instance),
+                owner: entity.instance
+            })
+    );
 
-const brainNavigations = new WeakMap<DataEntity, BrainNavigationState>();
-
-/** The path state one brain mob keeps while its behavior ticks. */
-const brainNavigationStateOf = (entity: DataEntity, scene: EntityScene): BrainNavigationState => {
-    const known = brainNavigations.get(entity);
-    if (known !== undefined) return known;
-
-    const state: BrainNavigationState = {
-        navigator: new Navigator({
-            actuator: actuatorOf(entity.body, scene),
-            navigation: () => scene.navigation(),
-            profile: () => navigationProfile(entity.instance)
-        }),
-        destination: undefined,
-        speedModifier: undefined,
-        stuck: false
-    };
-    brainNavigations.set(entity, state);
-    return state;
-};
+/**
+ * How near its target a brain's walk has to end, in blocks: Java's `MoveToTargetSink` asks
+ * `createPath` for accuracy 0, the target block itself, and walks a path that ends short of it.
+ */
+const BRAIN_PATH_ACCURACY = 0.5;
 
 /** Path following for one brain mob, over the same body the goals walk. */
 const brainNavigationOf = (entity: DataEntity, scene: EntityScene): BrainNavigation => {
-    const state = brainNavigationStateOf(entity, scene);
+    // A rider that steers its mount walks with the mount's navigator, its position and its rules,
+    // as Java's `Mob.getNavigation` hands a rider its controlled vehicle's navigation.
+    const current = (): Navigator => brainNavigatorOf(controlledVehicleOf(entity.body, scene) ?? entity, scene);
+    let speed: number | undefined;
     return {
         moveTo: (target, speedModifier) => {
+            const navigator = current();
             const targetBlock = blockPositionOf(target);
-            const currentBlock = state.destination === undefined ? undefined : blockPositionOf(state.destination);
+            const heading = navigator.target;
+            const currentBlock = heading === undefined ? undefined : blockPositionOf(heading);
             if (
                 currentBlock?.x === targetBlock.x &&
                 currentBlock.y === targetBlock.y &&
                 currentBlock.z === targetBlock.z &&
-                state.speedModifier === speedModifier &&
-                state.navigator.walking
+                speed === speedModifier &&
+                navigator.walking
             )
                 return true;
 
-            state.destination = targetBlock;
-            state.speedModifier = speedModifier;
-            state.stuck = false;
-            const started = state.navigator.moveTo(target, speedModifier, 0.5);
-            if (!started) state.destination = undefined;
-            return started;
+            speed = speedModifier;
+            return navigator.moveTo(target, speedModifier, BRAIN_PATH_ACCURACY);
         },
-        isDone: () => !state.navigator.walking || state.navigator.arrived(),
-        isStuck: () => state.stuck,
-        canReach: (target) => state.navigator.canReach(target, 0.5),
-        pathStep: () => state.navigator.pathStep(),
+        isDone: () => {
+            const navigator = current();
+            return !navigator.walking || navigator.arrived();
+        },
+        isStuck: () => current().stuck,
+        canReach: (target, accuracy) => current().canReach(target, accuracy ?? BRAIN_PATH_ACCURACY),
+        canApproach: (target) => current().plan(target, BRAIN_PATH_ACCURACY) !== undefined,
+        pathStep: () => current().pathStep(),
         stop: () => {
-            state.navigator.stop();
-            state.destination = undefined;
-            state.stuck = false;
+            current().stop();
+            speed = undefined;
         }
     };
-};
-
-/** Advances the cached brain path by one tick. */
-export const tickBrainNavigation = (entity: DataEntity): void => {
-    const state = brainNavigations.get(entity);
-    if (state === undefined || !state.navigator.walking) return;
-
-    const arrived = state.navigator.arrived();
-    state.navigator.tick();
-    if (!state.navigator.walking && !arrived && !state.navigator.arrived()) state.stuck = true;
 };
 
 /** The body one brain drives. */

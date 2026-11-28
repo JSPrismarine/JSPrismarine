@@ -243,12 +243,56 @@ export interface MoveToTargetSinkOptions {
 export function moveToTargetSink(options: MoveToTargetSinkOptions = {}): BehaviorControl {
     let remainingCooldown = 0;
     let moving = false;
+    /**
+     * Where the walk heads instead of the target, when no path takes the mob any closer to the
+     * target itself: Java's `DefaultRandomPos.getPosTowards` fallback in `tryComputePath`.
+     *
+     * @javaSee DefaultRandomPos.getPosTowards
+     */
+    let detour: Vec3 | undefined;
+    /** The target's block when the walk was planned, Java's `lastTargetPos`. */
+    let plannedFor: BlockPos | undefined;
 
     const reachedTarget = (context: BrainContext, target: WalkTarget): boolean => {
         const at = blockContaining(context.body.position);
         const to = target.target.currentBlockPosition();
         return Math.abs(at.x - to.x) + Math.abs(at.y - to.y) + Math.abs(at.z - to.z) <= target.closeEnoughDist;
     };
+
+    /**
+     * Java's `MoveToTargetSink.tryComputePath`: a path that ends at the target clears
+     * `CANT_REACH_WALK_TARGET_SINCE` and one that does not stamps it, but the mob walks either
+     * one. With no path at all it walks toward a position drawn in the target's direction.
+     *
+     * @javaSource MoveToTargetSink.tryComputePath
+     */
+    const computePath = (context: BrainContext, target: WalkTarget): boolean => {
+        const brain = context.body.brain;
+        const navigation = context.body.navigation;
+        const position = target.target.currentPosition();
+        detour = undefined;
+        plannedFor = target.target.currentBlockPosition();
+        if (navigation.canReach(position)) {
+            brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
+            return true;
+        }
+        if (!brain.hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)) {
+            brain.setMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE, context.world.gameTime());
+        }
+        if (navigation.canApproach?.(position) === true) return true;
+        const toward = context.world.randomPos(context.body, {
+            xzRange: 10,
+            yRange: 7,
+            medium: 'land',
+            towards: position
+        });
+        if (toward === undefined || !(navigation.canApproach?.(toward) ?? navigation.canReach(toward))) return false;
+        detour = toward;
+        return true;
+    };
+
+    /** Where the walk heads now: the detour while there is one, else the target. */
+    const heading = (target: WalkTarget): Vec3 => detour ?? target.target.currentPosition();
 
     const hooks: BehaviorHooks = {
         checkExtraStartConditions: (context) => {
@@ -265,12 +309,8 @@ export function moveToTargetSink(options: MoveToTargetSinkOptions = {}): Behavio
                 return false;
             }
             const reached = reachedTarget(context, target);
-            if (!reached && context.body.navigation.canReach(target.target.currentPosition())) {
-                brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
+            if (!reached && computePath(context, target)) {
                 return true;
-            }
-            if (!reached && !brain.hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)) {
-                brain.setMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE, context.world.gameTime());
             }
             brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
             if (reached) {
@@ -283,7 +323,7 @@ export function moveToTargetSink(options: MoveToTargetSinkOptions = {}): Behavio
             if (target === undefined) {
                 return;
             }
-            moving = context.body.navigation.moveTo(target.target.currentPosition(), target.speedModifier);
+            moving = context.body.navigation.moveTo(heading(target), target.speedModifier);
             options.onStart?.(context);
         },
         canStillUse: (context) => {
@@ -295,9 +335,16 @@ export function moveToTargetSink(options: MoveToTargetSinkOptions = {}): Behavio
         },
         tick: (context) => {
             const target = context.body.brain.getMemory(MemoryModuleTypes.WALK_TARGET);
-            if (target !== undefined) {
-                moving = context.body.navigation.moveTo(target.target.currentPosition(), target.speedModifier);
+            if (target === undefined) return;
+            // Java plans again only once the target has moved more than two blocks from where the
+            // walk was planned for, so a detour holds until then.
+            const now = target.target.currentBlockPosition();
+            if (detour !== undefined && plannedFor !== undefined && distanceSquared(now, plannedFor) <= 4) return;
+            if (detour !== undefined && !computePath(context, target)) {
+                moving = false;
+                return;
             }
+            moving = context.body.navigation.moveTo(heading(target), target.speedModifier);
         },
         stop: (context) => {
             const target = context.body.brain.getMemory(MemoryModuleTypes.WALK_TARGET);
@@ -308,6 +355,8 @@ export function moveToTargetSink(options: MoveToTargetSinkOptions = {}): Behavio
             context.body.brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
             context.body.brain.eraseMemory(MemoryModuleTypes.PATH);
             moving = false;
+            detour = undefined;
+            plannedFor = undefined;
             options.onStop?.(context);
         }
     };
