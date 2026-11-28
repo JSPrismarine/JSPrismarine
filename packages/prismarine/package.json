@@ -175,11 +175,6 @@
                 "import": "./dist/player/PlayerSession.js",
                 "module": "./dist/player/PlayerSession.js"
             },
-            "./network/PlayerSession": {
-                "types": "./dist/player/PlayerSession.d.ts",
-                "import": "./dist/player/PlayerSession.js",
-                "module": "./dist/player/PlayerSession.js"
-            },
             "./network/ReplayManifest": {
                 "types": "./dist/network/ReplayManifest.d.ts",
                 "import": "./dist/network/ReplayManifest.js",
@@ -266,11 +261,6 @@
                 "module": "./dist/scripting/ScriptHttpInputs.js"
             },
             "./player/presenter/SessionPresenter": {
-                "types": "./dist/player/presenter/SessionPresenter.d.ts",
-                "import": "./dist/player/presenter/SessionPresenter.js",
-                "module": "./dist/player/presenter/SessionPresenter.js"
-            },
-            "./network/presenter/SessionPresenter": {
                 "types": "./dist/player/presenter/SessionPresenter.d.ts",
                 "import": "./dist/player/presenter/SessionPresenter.js",
                 "module": "./dist/player/presenter/SessionPresenter.js"
@@ -710,11 +700,6 @@
                 "import": "./dist/player/ChunkSender.js",
                 "module": "./dist/player/ChunkSender.js"
             },
-            "./network/ChunkSender": {
-                "types": "./dist/player/ChunkSender.d.ts",
-                "import": "./dist/player/ChunkSender.js",
-                "module": "./dist/player/ChunkSender.js"
-            },
             "./entity/data/storePlayers": {
                 "types": "./dist/entity/data/storePlayers.d.ts",
                 "import": "./dist/entity/data/storePlayers.js",
@@ -985,11 +970,6 @@
                 "import": "./dist/player/sessionPlayers.js",
                 "module": "./dist/player/sessionPlayers.js"
             },
-            "./network/sessionPlayers": {
-                "types": "./dist/player/sessionPlayers.d.ts",
-                "import": "./dist/player/sessionPlayers.js",
-                "module": "./dist/player/sessionPlayers.js"
-            },
             "./entity/DeathMessages": {
                 "types": "./dist/entity/DeathMessages.d.ts",
                 "import": "./dist/entity/DeathMessages.js",
@@ -1045,17 +1025,7 @@
                 "import": "./dist/player/context/ConnectionContext.js",
                 "module": "./dist/player/context/ConnectionContext.js"
             },
-            "./network/handler/ConnectionContext": {
-                "types": "./dist/player/context/ConnectionContext.d.ts",
-                "import": "./dist/player/context/ConnectionContext.js",
-                "module": "./dist/player/context/ConnectionContext.js"
-            },
             "./player/context/SessionHandler": {
-                "types": "./dist/player/context/SessionHandler.d.ts",
-                "import": "./dist/player/context/SessionHandler.js",
-                "module": "./dist/player/context/SessionHandler.js"
-            },
-            "./network/handler/SessionHandler": {
                 "types": "./dist/player/context/SessionHandler.d.ts",
                 "import": "./dist/player/context/SessionHandler.js",
                 "module": "./dist/player/context/SessionHandler.js"
@@ -1400,11 +1370,6 @@
                 "import": "./dist/editions/bedrock/decoder/PacketDecoder.js",
                 "module": "./dist/editions/bedrock/decoder/PacketDecoder.js"
             },
-            "./network/decoder/PacketDecoder": {
-                "types": "./dist/editions/bedrock/decoder/PacketDecoder.d.ts",
-                "import": "./dist/editions/bedrock/decoder/PacketDecoder.js",
-                "module": "./dist/editions/bedrock/decoder/PacketDecoder.js"
-            },
             "./input/Intent": {
                 "types": "./dist/input/Intent.d.ts",
                 "import": "./dist/input/Intent.js",
@@ -1470,11 +1435,6 @@
                 "import": "./dist/editions/bedrock/LoginIdentity.js",
                 "module": "./dist/editions/bedrock/LoginIdentity.js"
             },
-            "./network/LoginIdentity": {
-                "types": "./dist/editions/bedrock/LoginIdentity.d.ts",
-                "import": "./dist/editions/bedrock/LoginIdentity.js",
-                "module": "./dist/editions/bedrock/LoginIdentity.js"
-            },
             "./entity/equipment": {
                 "types": "./dist/entity/equipment.d.ts",
                 "import": "./dist/entity/equipment.js",
@@ -1491,11 +1451,6 @@
                 "module": "./dist/entity/data/damageLog.js"
             },
             "./player/context/HandlerContext": {
-                "types": "./dist/player/context/HandlerContext.d.ts",
-                "import": "./dist/player/context/HandlerContext.js",
-                "module": "./dist/player/context/HandlerContext.js"
-            },
-            "./network/handler/HandlerContext": {
                 "types": "./dist/player/context/HandlerContext.d.ts",
                 "import": "./dist/player/context/HandlerContext.js",
                 "module": "./dist/player/context/HandlerContext.js"
@@ -1556,11 +1511,6 @@
                 "module": "./dist/item/contentAdapter.js"
             },
             "./editions/bedrock/decoder/DecodeView": {
-                "types": "./dist/editions/bedrock/decoder/DecodeView.d.ts",
-                "import": "./dist/editions/bedrock/decoder/DecodeView.js",
-                "module": "./dist/editions/bedrock/decoder/DecodeView.js"
-            },
-            "./network/decoder/DecodeView": {
                 "types": "./dist/editions/bedrock/decoder/DecodeView.d.ts",
                 "import": "./dist/editions/bedrock/decoder/DecodeView.js",
                 "module": "./dist/editions/bedrock/decoder/DecodeView.js"
@@ -1890,15 +1840,7 @@
             "jsprismarine:dist": "./dist/player/context/connectionContexts.js",
             "default": "./src/player/context/connectionContexts.ts"
         },
-        "./network/connectionContexts": {
-            "jsprismarine:dist": "./dist/player/context/connectionContexts.js",
-            "default": "./src/player/context/connectionContexts.ts"
-        },
         "./editions/bedrock/contentPayloads": {
-            "jsprismarine:dist": "./dist/editions/bedrock/contentPayloads.js",
-            "default": "./src/editions/bedrock/contentPayloads.ts"
-        },
-        "./network/contentPayloads": {
             "jsprismarine:dist": "./dist/editions/bedrock/contentPayloads.js",
             "default": "./src/editions/bedrock/contentPayloads.ts"
         },
@@ -1922,15 +1864,7 @@
             "jsprismarine:dist": "./dist/input/handlers/BlockTarget.js",
             "default": "./src/input/handlers/BlockTarget.ts"
         },
-        "./network/handler/BlockTarget": {
-            "jsprismarine:dist": "./dist/input/handlers/BlockTarget.js",
-            "default": "./src/input/handlers/BlockTarget.ts"
-        },
         "./player/context/HandlerContext": {
-            "jsprismarine:dist": "./dist/player/context/HandlerContext.js",
-            "default": "./src/player/context/HandlerContext.ts"
-        },
-        "./network/handler/HandlerContext": {
             "jsprismarine:dist": "./dist/player/context/HandlerContext.js",
             "default": "./src/player/context/HandlerContext.ts"
         },
@@ -1938,23 +1872,11 @@
             "jsprismarine:dist": "./dist/editions/bedrock/handler/RequestNetworkSettingsHandler.js",
             "default": "./src/editions/bedrock/handler/RequestNetworkSettingsHandler.ts"
         },
-        "./network/handler/RequestNetworkSettingsHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/RequestNetworkSettingsHandler.js",
-            "default": "./src/editions/bedrock/handler/RequestNetworkSettingsHandler.ts"
-        },
         "./editions/bedrock/handler/StructureBlockUpdateHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureBlockUpdateHandler.js",
             "default": "./src/editions/bedrock/handler/StructureBlockUpdateHandler.ts"
         },
-        "./network/handler/StructureBlockUpdateHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureBlockUpdateHandler.js",
-            "default": "./src/editions/bedrock/handler/StructureBlockUpdateHandler.ts"
-        },
         "./editions/bedrock/handler/StructureTemplateDataRequestHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureTemplateDataRequestHandler.js",
-            "default": "./src/editions/bedrock/handler/StructureTemplateDataRequestHandler.ts"
-        },
-        "./network/handler/StructureTemplateDataRequestHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/StructureTemplateDataRequestHandler.js",
             "default": "./src/editions/bedrock/handler/StructureTemplateDataRequestHandler.ts"
         },
@@ -1967,10 +1889,6 @@
             "default": "./src/network/OutboundPacketTrace.ts"
         },
         "./player/PlayerSession": {
-            "jsprismarine:dist": "./dist/player/PlayerSession.js",
-            "default": "./src/player/PlayerSession.ts"
-        },
-        "./network/PlayerSession": {
             "jsprismarine:dist": "./dist/player/PlayerSession.js",
             "default": "./src/player/PlayerSession.ts"
         },
@@ -2223,10 +2141,6 @@
             "default": "./src/scripting/ScriptHttpInputs.ts"
         },
         "./player/presenter/SessionPresenter": {
-            "jsprismarine:dist": "./dist/player/presenter/SessionPresenter.js",
-            "default": "./src/player/presenter/SessionPresenter.ts"
-        },
-        "./network/presenter/SessionPresenter": {
             "jsprismarine:dist": "./dist/player/presenter/SessionPresenter.js",
             "default": "./src/player/presenter/SessionPresenter.ts"
         },
@@ -2530,10 +2444,6 @@
             "jsprismarine:dist": "./dist/player/ChunkSender.js",
             "default": "./src/player/ChunkSender.ts"
         },
-        "./network/ChunkSender": {
-            "jsprismarine:dist": "./dist/player/ChunkSender.js",
-            "default": "./src/player/ChunkSender.ts"
-        },
         "./entity/data/storePlayers": {
             "jsprismarine:dist": "./dist/entity/data/storePlayers.js",
             "default": "./src/entity/data/storePlayers.ts"
@@ -2710,10 +2620,6 @@
             "jsprismarine:dist": "./dist/player/sessionPlayers.js",
             "default": "./src/player/sessionPlayers.ts"
         },
-        "./network/sessionPlayers": {
-            "jsprismarine:dist": "./dist/player/sessionPlayers.js",
-            "default": "./src/player/sessionPlayers.ts"
-        },
         "./entity/DeathMessages": {
             "jsprismarine:dist": "./dist/entity/DeathMessages.js",
             "default": "./src/entity/DeathMessages.ts"
@@ -2746,15 +2652,7 @@
             "jsprismarine:dist": "./dist/player/context/ConnectionContext.js",
             "default": "./src/player/context/ConnectionContext.ts"
         },
-        "./network/handler/ConnectionContext": {
-            "jsprismarine:dist": "./dist/player/context/ConnectionContext.js",
-            "default": "./src/player/context/ConnectionContext.ts"
-        },
         "./player/context/SessionHandler": {
-            "jsprismarine:dist": "./dist/player/context/SessionHandler.js",
-            "default": "./src/player/context/SessionHandler.ts"
-        },
-        "./network/handler/SessionHandler": {
             "jsprismarine:dist": "./dist/player/context/SessionHandler.js",
             "default": "./src/player/context/SessionHandler.ts"
         },
@@ -2990,10 +2888,6 @@
             "jsprismarine:dist": "./dist/editions/bedrock/decoder/PacketDecoder.js",
             "default": "./src/editions/bedrock/decoder/PacketDecoder.ts"
         },
-        "./network/decoder/PacketDecoder": {
-            "jsprismarine:dist": "./dist/editions/bedrock/decoder/PacketDecoder.js",
-            "default": "./src/editions/bedrock/decoder/PacketDecoder.ts"
-        },
         "./input/Intent": {
             "jsprismarine:dist": "./dist/input/Intent.js",
             "default": "./src/input/Intent.ts"
@@ -3043,10 +2937,6 @@
             "default": "./src/command/host/support.ts"
         },
         "./editions/bedrock/LoginIdentity": {
-            "jsprismarine:dist": "./dist/editions/bedrock/LoginIdentity.js",
-            "default": "./src/editions/bedrock/LoginIdentity.ts"
-        },
-        "./network/LoginIdentity": {
             "jsprismarine:dist": "./dist/editions/bedrock/LoginIdentity.js",
             "default": "./src/editions/bedrock/LoginIdentity.ts"
         },
@@ -3103,10 +2993,6 @@
             "default": "./src/item/contentAdapter.ts"
         },
         "./editions/bedrock/decoder/DecodeView": {
-            "jsprismarine:dist": "./dist/editions/bedrock/decoder/DecodeView.js",
-            "default": "./src/editions/bedrock/decoder/DecodeView.ts"
-        },
-        "./network/decoder/DecodeView": {
             "jsprismarine:dist": "./dist/editions/bedrock/decoder/DecodeView.js",
             "default": "./src/editions/bedrock/decoder/DecodeView.ts"
         },
