@@ -20,7 +20,8 @@ export const REGISTRY_IDS = [
     'biomes',
     'features',
     'featureRules',
-    'itemCatalog'
+    'itemCatalog',
+    'customDimensions'
 ] as const;
 
 /** One registry a loaded pack stack fills. */
@@ -66,7 +67,9 @@ const ROUTES: Record<string, RegistryRoute> = {
     features: { registry: 'features' },
     feature_rules: { registry: 'featureRules', wrapperKeys: ['minecraft:feature_rules'] },
     // The Bedrock Dedicated Server merges every pack's catalog into the menu, in pack order.
-    item_catalog: { registry: 'itemCatalog', identifierFrom: 'packAndPath' }
+    item_catalog: { registry: 'itemCatalog', identifierFrom: 'packAndPath' },
+    // Bedrock's own name for the folder. The Java `dimensions` registry holds datapack level stems.
+    dimensions: { registry: 'customDimensions', wrapperKeys: ['minecraft:dimension'] }
 };
 
 /**
