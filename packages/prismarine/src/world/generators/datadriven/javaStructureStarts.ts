@@ -18,18 +18,34 @@ import { performance } from 'node:perf_hooks';
 
 import type { DecorationStep } from '@jsprismarine/features';
 import { DECORATION_STEPS } from '@jsprismarine/features';
-import type { BoundingBox, RandomSource, TemplatePool } from '@jsprismarine/structures';
-import { createLegacyRandom, parseTemplatePool } from '@jsprismarine/structures';
+import type {
+    BoundingBox,
+    ChunkPosition,
+    ConcentricRingsPlacement,
+    RandomSource,
+    RandomSpreadPlacement,
+    RingPosition,
+    StructurePlacement,
+    TemplatePool
+} from '@jsprismarine/structures';
+import {
+    concentricRingPositions,
+    createLegacyRandom,
+    isStructureChunk,
+    parseStructureSet,
+    parseTemplatePool,
+    potentialStructureChunk
+} from '@jsprismarine/structures';
 
 import type { TerrainAdaptation } from './javaStructureBeard';
 import { terrainAdaptationOf } from './javaStructureBeard';
-import type { NamedStructureSet } from './javaStructurePlacement';
+import type { ChunkRange, NamedStructureSet } from './javaStructurePlacement';
 import {
     CandidateChunkMemo,
-    chooseStructure,
     createTagExpander,
     loadStructureSets,
-    searchCandidatesFrom
+    findBiomeHorizontal,
+    structureAttemptsAt
 } from './javaStructurePlacement';
 import { structureRandomSeed } from './javaStructurePlacement';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
@@ -47,6 +63,29 @@ import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/gene
 
 /** How far Java looks for a start that reaches into the chunk being generated. */
 const REFERENCE_RADIUS = 8;
+
+/**
+ * How many exclusion zones deep a placement check follows.
+ *
+ * A zone names another set whose own placement may carry a zone, and Java follows the chain
+ * until it ends. No vanilla chain is longer than one; the cap only stops a datapack whose
+ * sets exclude each other in a cycle, which overflows Java's stack.
+ */
+const MAX_EXCLUSION_DEPTH = 8;
+
+/** How far from a drawn ring position, in blocks, Java looks for a biome the placement prefers. */
+const RING_BIOME_SEARCH_RADIUS = 112;
+
+/** How many chunks a ring position can move: the search radius, from the chunk's middle. */
+const RING_MOVE_CHUNKS = Math.ceil((RING_BIOME_SEARCH_RADIUS + 8) / 16);
+
+/** Every chunk, for a ring placement searched whole. */
+const UNBOUNDED = {
+    minChunkX: Number.NEGATIVE_INFINITY,
+    minChunkZ: Number.NEGATIVE_INFINITY,
+    maxChunkX: Number.POSITIVE_INFINITY,
+    maxChunkZ: Number.POSITIVE_INFINITY
+};
 
 /** How many cached starts are kept before the cache is dropped and rebuilt. */
 const CACHE_LIMIT = 8192;
@@ -67,6 +106,12 @@ export interface StructureBuildContext {
     readonly templates: StructureTemplateStore;
     /** Resolves a `worldgen/template_pool` identifier, parsed once and kept. */
     readonly pool: (identifier: string) => TemplatePool | undefined;
+    /**
+     * The biomes a `worldgen/biome` tag holds, given without its `#`. A builder whose Java
+     * structure checks a biome tag reads it here; without it, as in a test with no registries,
+     * the check is skipped.
+     */
+    readonly biomeTag?: (tag: string) => ReadonlySet<string>;
 }
 
 /**
@@ -157,8 +202,14 @@ export interface StructureSearchOptions {
     readonly originChunkX: number;
     readonly originChunkZ: number;
     /**
+     * The block the search is made from, which distances are measured to. Defaults to the
+     * origin chunk's corner at y 0.
+     */
+    readonly origin?: { readonly x: number; readonly y: number; readonly z: number };
+    /**
      * How far out to look, in rings of placement regions, which is how Java's `/locate` counts
-     * its radius of 100. See {@link searchCandidatesFrom} for what that reaches per placement.
+     * its radius of 100. A random spread set spaced 34 chunks apart is searched 3400 chunks out;
+     * a concentric ring placement is searched whole.
      */
     readonly radius: number;
     /**
@@ -202,7 +253,14 @@ export class StructureStartSource {
     private readonly sets: readonly NamedStructureSet[];
     private readonly setsById: ReadonlyMap<string, NamedStructureSet>;
     private readonly biomesOf: (structure: string) => ReadonlySet<string>;
+    private readonly biomeTag: (tag: string) => ReadonlySet<string>;
     private readonly pools = new Map<string, TemplatePool | undefined>();
+    private readonly placements = new Map<string, StructurePlacement | undefined>();
+    /** Each ring placement's drawn positions, and where each has moved once a range asked. */
+    private readonly rings = new Map<
+        ConcentricRingsPlacement,
+        { positions: readonly RingPosition[]; moved: ChunkPosition[]; preferred: ReadonlySet<string> }
+    >();
     private readonly starts = new Map<string, StructureStart | null>();
     private readonly startsByChunk = new Map<string, readonly StructureStart[]>();
     private readonly candidates: CandidateChunkMemo;
@@ -214,8 +272,11 @@ export class StructureStartSource {
     private readonly unbuilt = new Set<string>();
 
     public constructor(private readonly options: StructureStartOptions) {
-        this.candidates = new CandidateChunkMemo(options.seed);
         const expand = createTagExpander(options.registries.biomeTags);
+        this.biomeTag = (tag) => expand(`#${tag}`);
+        this.candidates = new CandidateChunkMemo(options.seed, (placement, range) =>
+            this.ringChunksIn(placement, range, expand)
+        );
         const biomeCache = new Map<string, ReadonlySet<string>>();
 
         this.biomesOf = (structure) => {
@@ -340,20 +401,17 @@ export class StructureStartSource {
     }
 
     /**
-     * The nearest structure a predicate accepts, or undefined when the search radius held none.
+     * The structure Java's `/locate` answers, or undefined when the search radius held none.
      *
-     * This is Java's `ChunkGenerator.findNearestMapStructure`, which is what `/locate` is. The
-     * scan runs over candidate chunks rather than over chunks: a random spread placement offers
-     * one chunk per region, so the command's hundred rings of regions ask about forty thousand
-     * positions instead of the millions of chunks they cover.
+     * This is Java's `ChunkGenerator.findNearestMapStructure`. It is not always the nearest start:
+     * a random spread placement is walked one ring of regions at a time, each ring answers the
+     * first start in scan order, and the first ring with an answer ends the search. A start in
+     * the next ring can be nearer than the one answered, and Java answers the same.
      *
-     * Candidates are laid out nearest first and the first accepted one wins, so the expensive
-     * half - {@link StructureStartSource.startAt}, which draws the structure and assembles its
-     * pieces - runs for as few of them as the answer allows. "Nearest" is by candidate chunk
-     * rather than by the generation point the layout settles on, the same approximation Java's
-     * ring scan makes; the two differ by less than a chunk.
-     *
-     * Nothing here touches a chunk, so this costs no terrain and writes nothing.
+     * Each region offers one candidate chunk, so the command's hundred rings ask about forty
+     * thousand positions rather than the millions of chunks they cover, and only a candidate the
+     * walk reaches is laid out. Nothing here touches a chunk, so this costs no terrain and writes
+     * nothing.
      *
      * @param options - Where to search from, how far, and which structures count.
      * @returns The start, or undefined when nothing matched inside the radius.
@@ -361,30 +419,163 @@ export class StructureStartSource {
      */
     public locate(options: StructureSearchOptions): StructureStart | undefined {
         const { originChunkX, originChunkZ, radius } = options;
-        const origin = { x: originChunkX, z: originChunkZ };
+        const origin = options.origin ?? { x: originChunkX * 16, y: 0, z: originChunkZ * 16 };
+        const distanceTo = (x: number, y: number, z: number): number =>
+            (x - origin.x) ** 2 + (y - origin.y) ** 2 + (z - origin.z) ** 2;
 
-        const candidates: Array<{ named: NamedStructureSet; x: number; z: number; distance: number }> = [];
-        for (const named of this.sets) {
-            // A set none of whose structures are wanted cannot answer, and skipping it here is
-            // what keeps the scan to the one or two sets a `/locate` names.
-            if (!named.set.structures.some((entry) => options.wanted(entry.structure))) continue;
+        // A set none of whose structures are wanted cannot answer, and skipping it here is what
+        // keeps the scan to the one or two sets a `/locate` names.
+        const sets = this.sets.filter((named) => named.set.structures.some((entry) => options.wanted(entry.structure)));
 
-            for (const chunk of searchCandidatesFrom(named.set.placement, this.options.seed, origin, radius)) {
-                const dx = chunk.x - originChunkX;
-                const dz = chunk.z - originChunkZ;
-                candidates.push({ named, x: chunk.x, z: chunk.z, distance: dx * dx + dz * dz });
+        /** Java's `getStructureGeneratingAt`: the wanted start a placement chunk holds, if any. */
+        const generatingAt = (named: NamedStructureSet, chunk: ChunkPosition): StructureStart | undefined => {
+            const start = this.startAt(named, chunk.x, chunk.z);
+            if (start === null || !options.wanted(start.structure)) return undefined;
+            return options.skip?.(start.structure, start.chunkX, start.chunkZ) === true ? undefined : start;
+        };
+
+        let best: StructureStart | undefined;
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        // A ring placement is searched whole, by the distance to the middle of each ring chunk at
+        // y 32. A chunk no nearer than the best so far is not laid out at all.
+        for (const named of sets) {
+            const placement = named.set.placement;
+            if (placement.type !== 'minecraft:concentric_rings') continue;
+            for (const chunk of this.candidates.in(placement, UNBOUNDED)) {
+                const distance = distanceTo(chunk.x * 16 + 8, 32, chunk.z * 16 + 8);
+                if (best !== undefined && distance >= bestDistance) continue;
+                const start = generatingAt(named, chunk);
+                if (start === undefined) continue;
+                best = start;
+                bestDistance = distance;
             }
         }
 
-        candidates.sort((left, right) => left.distance - right.distance);
-
-        for (const candidate of candidates) {
-            const start = this.startAt(candidate.named, candidate.x, candidate.z);
-            if (start === null || !options.wanted(start.structure)) continue;
-            if (options.skip?.(start.structure, start.chunkX, start.chunkZ) !== true) return start;
+        // A random spread placement is walked one ring of regions at a time, and the first ring in
+        // which any set holds a start ends the search. Within a ring each set answers the first
+        // start in its scan order, not its nearest, and the answers compete by distance.
+        const spreads = sets.flatMap((named) =>
+            named.set.placement.type === 'minecraft:random_spread' ? [{ named, placement: named.set.placement }] : []
+        );
+        for (let ring = 0; ring <= radius && spreads.length > 0; ring++) {
+            let found = false;
+            for (const { named, placement } of spreads) {
+                const start = this.firstInRing(named, placement, originChunkX, originChunkZ, ring, generatingAt);
+                if (start === undefined) continue;
+                found = true;
+                const at = start.locatePosition;
+                const distance = distanceTo(at.x, at.y, at.z);
+                if (distance < bestDistance) {
+                    best = start;
+                    bestDistance = distance;
+                }
+            }
+            if (found) return best;
         }
 
+        return best;
+    }
+
+    /**
+     * The first start one ring of a random spread placement's regions holds, in Java's scan order.
+     *
+     * The ring is the regions `ring` steps out from the origin's, x then z, and each step is the
+     * placement's spacing added to the origin chunk, not a region boundary.
+     *
+     * @javaSource ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair;
+     */
+    private firstInRing(
+        named: NamedStructureSet,
+        placement: RandomSpreadPlacement,
+        originChunkX: number,
+        originChunkZ: number,
+        ring: number,
+        generatingAt: (named: NamedStructureSet, chunk: ChunkPosition) => StructureStart | undefined
+    ): StructureStart | undefined {
+        const seed = this.options.seed;
+        for (let stepX = -ring; stepX <= ring; stepX++) {
+            const edgeX = stepX === -ring || stepX === ring;
+            for (let stepZ = -ring; stepZ <= ring; stepZ++) {
+                if (!edgeX && stepZ !== -ring && stepZ !== ring) continue;
+                const chunk = potentialStructureChunk(
+                    placement,
+                    seed,
+                    originChunkX + placement.spacing * stepX,
+                    originChunkZ + placement.spacing * stepZ
+                );
+                // Java's `StructureCheck` applies the frequency rule before it looks further.
+                if (!isStructureChunk(placement, seed, chunk.x, chunk.z)) continue;
+                const start = generatingAt(named, chunk);
+                if (start !== undefined) return start;
+            }
+        }
         return undefined;
+    }
+
+    /**
+     * Where a concentric rings placement's structures start in a range: each drawn position,
+     * moved to a chunk whose biome the placement prefers when one lies within 112 blocks of its
+     * middle.
+     *
+     * A move is a biome search over 3249 cells, so a position is moved only when a range it
+     * could land in asks for it, and the answer is kept. Generating a chunk asks for the few
+     * strongholds near it rather than all 128.
+     *
+     * @javaSource ChunkGeneratorStructureState.lambda$generateRingPositions$0
+     */
+    private ringChunksIn(
+        placement: ConcentricRingsPlacement,
+        range: ChunkRange,
+        expand: (spec: unknown) => ReadonlySet<string>
+    ): ChunkPosition[] {
+        let ring = this.rings.get(placement);
+        if (ring === undefined) {
+            ring = {
+                positions: concentricRingPositions(placement, this.options.seed),
+                moved: [],
+                preferred: expand(placement.preferredBiomes)
+            };
+            this.rings.set(placement, ring);
+        }
+        const { positions, moved, preferred } = ring;
+        const noiseBiome = (x: number, y: number, z: number): string => this.options.level.noiseBiome(x, y, z);
+
+        // Two positions can move to the same chunk, which starts one structure.
+        const found = new Map<string, ChunkPosition>();
+        positions.forEach(({ x, z, random }, index) => {
+            if (
+                x < range.minChunkX - RING_MOVE_CHUNKS ||
+                x > range.maxChunkX + RING_MOVE_CHUNKS ||
+                z < range.minChunkZ - RING_MOVE_CHUNKS ||
+                z > range.maxChunkZ + RING_MOVE_CHUNKS
+            ) {
+                return;
+            }
+            let chunk = moved[index];
+            if (chunk === undefined) {
+                const cell = findBiomeHorizontal(
+                    x * 16 + 8,
+                    0,
+                    z * 16 + 8,
+                    RING_BIOME_SEARCH_RADIUS,
+                    (biome) => preferred.has(biome),
+                    random,
+                    noiseBiome
+                );
+                chunk = cell === undefined ? { x, z } : { x: cell.x >> 4, z: cell.z >> 4 };
+                moved[index] = chunk;
+            }
+            if (
+                chunk.x >= range.minChunkX &&
+                chunk.x <= range.maxChunkX &&
+                chunk.z >= range.minChunkZ &&
+                chunk.z <= range.maxChunkZ
+            ) {
+                found.set(`${chunk.x},${chunk.z}`, chunk);
+            }
+        });
+        return [...found.values()];
     }
 
     /**
@@ -442,9 +633,78 @@ export class StructureStartSource {
     }
 
     private buildStart(named: NamedStructureSet, chunkX: number, chunkZ: number): StructureStart | null {
-        const structure = chooseStructure(named.set, this.options.seed, chunkX, chunkZ);
-        if (structure === undefined) return null;
+        if (this.excludedAt(named.set.placement, chunkX, chunkZ, 0)) return null;
 
+        // Java's `createStructures`: a structure that cannot start here, most often because the
+        // biome at its generation point refuses it, hands the chunk to the next one the set
+        // draws. Sets of biome variants rely on it: a chunk outside the badlands that draws the
+        // badlands mineshaft gets the normal one, and an ocean chunk that draws a beached
+        // shipwreck gets a sunken one.
+        for (const structure of structureAttemptsAt(named.set, this.options.seed, chunkX, chunkZ)) {
+            const start = this.tryStructure(named, structure, chunkX, chunkZ);
+            if (start !== null) return start;
+        }
+        return null;
+    }
+
+    /**
+     * Whether a placement's exclusion zone keeps a structure out of a chunk.
+     *
+     * Java forbids the chunk when the zone's other set could start a structure within
+     * `chunk_count` chunks of it. That is the other set's placement alone, biome and layout
+     * aside, which is how a pillager outpost stays ten chunks clear of where a village could
+     * have been.
+     *
+     * @javaSource ChunkGeneratorStructureState.hasStructureChunkInRange
+     */
+    private excludedAt(placement: StructurePlacement, chunkX: number, chunkZ: number, depth: number): boolean {
+        const zone = placement.exclusionZone;
+        if (zone === undefined || depth >= MAX_EXCLUSION_DEPTH) return false;
+
+        const other = this.placementOf(zone.otherSet);
+        if (other === undefined) return false;
+
+        const range = {
+            minChunkX: chunkX - zone.chunkCount,
+            minChunkZ: chunkZ - zone.chunkCount,
+            maxChunkX: chunkX + zone.chunkCount,
+            maxChunkZ: chunkZ + zone.chunkCount
+        };
+        return this.candidates
+            .in(other, range)
+            .some((candidate) => !this.excludedAt(other, candidate.x, candidate.z, depth + 1));
+    }
+
+    /**
+     * The placement of any registered structure set, used or not.
+     *
+     * An exclusion zone names its set through the registry, so a set this dimension drops still
+     * clears the zone around where it would have placed.
+     */
+    private placementOf(id: string): StructurePlacement | undefined {
+        const used = this.setsById.get(id);
+        if (used !== undefined) return used.set.placement;
+        if (this.placements.has(id)) return this.placements.get(id);
+
+        let placement: StructurePlacement | undefined;
+        try {
+            const document = this.options.registries.structureSets.get(id);
+            placement = document === undefined ? undefined : parseStructureSet(document).placement;
+        } catch {
+            // Extracted game data, as in `loadStructureSets`: a set that cannot be read excludes nothing.
+            placement = undefined;
+        }
+        this.placements.set(id, placement);
+        return placement;
+    }
+
+    /** One attempt of Java's `tryGenerateStructure`: the start, or null when it cannot start here. */
+    private tryStructure(
+        named: NamedStructureSet,
+        structure: string,
+        chunkX: number,
+        chunkZ: number
+    ): StructureStart | null {
         const definition = this.options.registries.structures.get(structure);
         if (!isRecord(definition)) return null;
 
@@ -463,7 +723,8 @@ export class StructureStartSource {
             random: createLegacyRandom(structureRandomSeed(this.options.seed, chunkX, chunkZ)),
             level: this.options.level,
             templates: this.options.templates,
-            pool: (identifier) => this.poolAt(identifier)
+            pool: (identifier) => this.poolAt(identifier),
+            biomeTag: this.biomeTag
         });
         if (layout === undefined) return null;
 

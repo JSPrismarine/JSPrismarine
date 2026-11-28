@@ -2843,8 +2843,9 @@ export class World implements Service {
         }
 
         const found = search.call(this.generator, {
-            x: Math.trunc(origin.x),
-            z: Math.trunc(origin.z),
+            x: Math.floor(origin.x),
+            ...(origin.y === undefined ? {} : { y: Math.floor(origin.y) }),
+            z: Math.floor(origin.z),
             radius,
             wanted,
             ...(skipKnown

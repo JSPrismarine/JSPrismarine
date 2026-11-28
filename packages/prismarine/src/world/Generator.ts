@@ -47,6 +47,8 @@ export interface SpawnChunkResult {
  */
 export interface StructureSearchRequest {
     readonly x: number;
+    /** The height searched from, which Java measures distances with. Defaults to 0. */
+    readonly y?: number;
     readonly z: number;
     /**
      * How far out to look, in rings of placement regions, which is how Java's `/locate` and eye

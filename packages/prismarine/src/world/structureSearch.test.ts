@@ -105,7 +105,8 @@ describe('World.locateStructure', () => {
         const { generator, asked } = searchingGenerator();
         worldOver(generator).locateStructure('stronghold', { x: 10.7, z: -10.2 });
 
-        expect(asked.structure).toMatchObject({ x: 10, z: -10, radius: 100, seed: 99n });
+        // Java's `BlockPos.containing` floors, so -10.2 is block -11.
+        expect(asked.structure).toMatchObject({ x: 10, z: -11, radius: 100, seed: 99n });
     });
 
     it("passes over a start an explorer map's search already found, as Java's skipKnownStructures does", () => {

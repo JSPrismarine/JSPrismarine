@@ -241,6 +241,16 @@ export const structurePieceFromPlan = (
     return codec.decode(plan.data, context);
 };
 
+/**
+ * Java's `ChunkGenerator.getFirstOccupiedHeight`: the topmost block a heightmap stops above, one
+ * below {@link StructureLevel.baseHeight}. A structure that stands on the chunk's middle takes
+ * its generation point here, which is where its biome is read.
+ *
+ * @javaSource ChunkGenerator.getFirstOccupiedHeight
+ */
+export const firstOccupiedHeight = (level: StructureLevel, x: number, z: number, heightmap: HeightmapType): number =>
+    level.baseHeight(x, z, heightmap) - 1;
+
 /** A box holding nothing, which an empty piece list collapses to. */
 export const EMPTY_BOX: BoundingBox = {
     minX: 0,

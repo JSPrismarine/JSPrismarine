@@ -182,8 +182,9 @@ describe('the desert pyramid', () => {
         expect(box.maxZ - box.minZ).toBe(20);
         expect(box.maxY - box.minY).toBe(14);
         expect(box.minY).toBe(SURFACE);
-        // Java's generation point is the middle of the chunk, read off `WORLD_SURFACE_WG`.
-        expect(layout.origin).toEqual({ x: 8, y: SURFACE, z: 8 });
+        // Java's generation point is the middle of the chunk, on the topmost block under
+        // `WORLD_SURFACE_WG`, one below the heightmap.
+        expect(layout.origin).toEqual({ x: 8, y: SURFACE - 1, z: 8 });
     });
 
     it('writes the sandstone shell and the chiseled frame around the door', () => {
@@ -226,6 +227,26 @@ describe('the desert pyramid', () => {
     });
 });
 
+describe('a desert pyramid or a jungle temple, over water', () => {
+    /** Ground at the surface except on the far x edge of the start chunk's footprint, a lake. */
+    const lakeAt = (edge: number): StructureLevel => ({
+        ...flatLevel(),
+        baseHeight: (x) => (x >= edge ? 60 : SURFACE)
+    });
+
+    it.each([
+        ['desert pyramid', buildDesertPyramid, 21],
+        ['jungle temple', buildJungleTemple, 12]
+    ] as const)(
+        'leaves out a %s whose footprint has a corner under sea level, as Java does',
+        (_name, builder, width) => {
+            // Java reads the four corners one block past the footprint's far edges.
+            expect(builder(contextFor(42, { level: lakeAt(width) }))).toBeUndefined();
+            expect(builder(contextFor(42, { level: lakeAt(width + 1) }))).toBeDefined();
+        }
+    );
+});
+
 describe('the jungle temple', () => {
     it('lays out a 12 by 15 piece settled on the terrain', () => {
         const layout = laidOut(buildJungleTemple, 7);
@@ -237,7 +258,8 @@ describe('the jungle temple', () => {
         expect(footprint).toEqual([12, 15]);
         expect(box.maxY - box.minY).toBe(9);
         expect(box.minY).toBe(SURFACE);
-        expect(layout.origin).toEqual({ x: 8, y: SURFACE, z: 8 });
+        // Java's generation point is the topmost block, one below the heightmap.
+        expect(layout.origin).toEqual({ x: 8, y: SURFACE - 1, z: 8 });
     });
 
     it('writes the cobblestone the temple is built out of', () => {
@@ -284,7 +306,8 @@ describe('the swamp hut', () => {
         expect(footprint).toEqual([7, 9]);
         expect(box.maxY - box.minY).toBe(6);
         expect(box.minY).toBe(SURFACE);
-        expect(layout.origin).toEqual({ x: 8, y: SURFACE, z: 8 });
+        // Java's generation point is the topmost block, one below the heightmap.
+        expect(layout.origin).toEqual({ x: 8, y: SURFACE - 1, z: 8 });
     });
 
     it('writes the cauldron, the crafting table and the mushroom in the pot', () => {
@@ -326,7 +349,7 @@ describe('buried treasure', () => {
         expect(box.maxZ).toBe(box.minZ);
         // The fake world is stone right up to the surface, so the walk down stops immediately.
         expect(box.minY).toBe(SURFACE);
-        expect(layout.origin).toEqual({ x: 3 * 16 + 8, y: SURFACE, z: -2 * 16 + 8 });
+        expect(layout.origin).toEqual({ x: 3 * 16 + 8, y: SURFACE - 1, z: -2 * 16 + 8 });
     });
 
     it('walks down through the sea floor until it finds a block it can bury into', () => {

@@ -16,6 +16,7 @@ import type { StructureBuildContext, StructureBuilder, StructureLayout } from '.
 import type { ProcessorsReference } from './javaStructureTemplatePiece';
 import { TemplatePiece } from './javaStructureTemplatePiece';
 import type { StructurePiece } from './javaStructureWorld';
+import { isRecord } from '../../../utils/isRecord';
 
 /**
  * The stream the pool alias draws come from.
@@ -60,10 +61,13 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
             maxDepth: typeof definition.size === 'number' ? definition.size : 0,
             startPosition: [context.chunkX * 16, startY, context.chunkZ * 16],
             ...(typeof startJigsawName === 'string' ? { startJigsawName } : {}),
-            ...(typeof definition.max_distance_from_center === 'number'
-                ? { maxDistanceFromCenter: definition.max_distance_from_center }
-                : {}),
+            ...maxDistanceOf(definition.max_distance_from_center),
             ...(typeof heightmap === 'string' ? { projectStartToHeightmap: heightmap } : {}),
+            heightLimits: {
+                minY: context.level.minY,
+                maxY: context.level.minY + context.level.height - 1,
+                ...dimensionPaddingOf(definition.dimension_padding)
+            },
             useExpansionHack: definition.use_expansion_hack === true
         },
         {
@@ -82,6 +86,36 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
         origin: { x: origin[0], y: origin[1], z: origin[2] },
         pieces: () => start.expand().pieces.flatMap((piece) => piecesOf(piece, context))
     };
+};
+
+/**
+ * Java's `max_distance_from_center`: a number bounds both axes, an object names each.
+ *
+ * @javaSee JigsawStructure$MaxDistance.CODEC
+ */
+const maxDistanceOf = (value: unknown): { maxDistanceFromCenter?: number; maxVerticalDistanceFromCenter?: number } => {
+    if (typeof value === 'number') return { maxDistanceFromCenter: value };
+    if (!isRecord(value) || typeof value.horizontal !== 'number') return {};
+    return {
+        maxDistanceFromCenter: value.horizontal,
+        maxVerticalDistanceFromCenter: typeof value.vertical === 'number' ? value.vertical : value.horizontal
+    };
+};
+
+/**
+ * Java's `dimension_padding`: a number pads both ends, an object names each.
+ *
+ * @javaSee DimensionPadding.CODEC
+ */
+const dimensionPaddingOf = (value: unknown): { paddingBottom: number; paddingTop: number } => {
+    if (typeof value === 'number') return { paddingBottom: value, paddingTop: value };
+    if (isRecord(value)) {
+        return {
+            paddingBottom: typeof value.bottom === 'number' ? value.bottom : 0,
+            paddingTop: typeof value.top === 'number' ? value.top : 0
+        };
+    }
+    return { paddingBottom: 0, paddingTop: 0 };
 };
 
 /**

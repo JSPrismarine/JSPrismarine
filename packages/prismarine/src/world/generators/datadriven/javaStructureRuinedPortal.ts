@@ -18,12 +18,13 @@
  * whole portal.
  */
 import type { BoundingBox, Placement, RandomSource, TemplatePosition } from '@jsprismarine/structures';
+import { pivotedCorner } from '@jsprismarine/structures';
 
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
-import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
+import { TemplatePiece } from './javaStructureTemplatePiece';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
-import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
+import { firstOccupiedHeight, registerStructurePieceFieldsCodec } from './javaStructureWorld';
 
 /** Java's six `VerticalPlacement` values, which decide the heightmap and the y search. */
 type VerticalPlacement =
@@ -91,7 +92,7 @@ export const buildRuinedPortal: StructureBuilder = (context): StructureLayout | 
     const heightmap = setup.placement === 'on_ocean_floor' ? 'OCEAN_FLOOR_WG' : 'WORLD_SURFACE_WG';
     const centerX = Math.trunc((box.minX + box.maxX) / 2);
     const centerZ = Math.trunc((box.minZ + box.maxZ) / 2);
-    const surface = context.level.baseHeight(centerX, centerZ, heightmap) - 1;
+    const surface = firstOccupiedHeight(context.level, centerX, centerZ, heightmap);
     const y = suitableY(context, setup, airPocket, surface, size[1], box, heightmap);
 
     // Everything above settles the portal's y, which is the generation point's own y, so it is

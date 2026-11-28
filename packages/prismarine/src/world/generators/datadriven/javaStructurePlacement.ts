@@ -12,15 +12,22 @@
  * `spacing` by `spacing` region, so asking the region is one draw where asking every chunk in a
  * 17 by 17 window would be 289.
  */
-import type { ChunkPosition, RandomSpreadPlacement, StructurePlacement, StructureSet } from '@jsprismarine/structures';
+import type {
+    ChunkPosition,
+    ConcentricRingsPlacement,
+    RandomSource,
+    RandomSpreadPlacement,
+    StructurePlacement,
+    StructureSet
+} from '@jsprismarine/structures';
 import {
     concentricRingChunks,
     createLegacyRandom,
     isStructureChunk,
     largeFeatureSeed,
     parseStructureSet,
-    pickStructure,
-    potentialStructureChunk
+    potentialStructureChunk,
+    structureAttemptOrder
 } from '@jsprismarine/structures';
 
 import type { JavaRegistry } from './javaWorldgenData';
@@ -121,7 +128,14 @@ export class CandidateChunkMemo {
     private size = 0;
     private drawn = 0;
 
-    public constructor(private readonly seed: bigint) {}
+    /**
+     * @param ringChunks - Where a concentric rings placement starts in a range once its positions
+     *   are moved to their preferred biomes. Without it, the drawn positions are used as they are.
+     */
+    public constructor(
+        private readonly seed: bigint,
+        private readonly ringChunks?: (placement: ConcentricRingsPlacement, range: ChunkRange) => ChunkPosition[]
+    ) {}
 
     /** How many random spread regions this memo has drawn a candidate for, for profiling. */
     public get regionsDrawn(): number {
@@ -131,6 +145,11 @@ export class CandidateChunkMemo {
     /** The same chunks, in the same order, as {@link candidateChunksIn} returns. */
     public in(placement: StructurePlacement, range: ChunkRange): ChunkPosition[] {
         if (placement.type === 'minecraft:random_spread') return this.spread(placement, range);
+
+        // The resolver keeps its own answers, since moving a position costs a biome search.
+        if (placement.type === 'minecraft:concentric_rings' && this.ringChunks !== undefined) {
+            return this.ringChunks(placement, range);
+        }
 
         let all = this.rings.get(placement);
         if (all === undefined) {
@@ -206,72 +225,6 @@ const regionCandidate = (
     return isStructureChunk(placement, seed, chunk.x, chunk.z) ? chunk : null;
 };
 
-/**
- * Every chunk a search from one chunk may find a structure of this set in.
- *
- * This is the reach of Java's `ChunkGenerator.findNearestMapStructure`, which is what `/locate`
- * and a thrown eye of ender ask. Its radius counts placement regions rather than chunks: a
- * random spread placement is walked one ring of regions at a time, so the command's radius of
- * 100 reaches 3400 chunks for a village set spaced 34 apart. A concentric ring placement has no
- * regions and Java visits all of its positions however far out they lie, which is how a
- * stronghold on the first ring, two thousand blocks away, is found from the origin.
- *
- * @param origin - The chunk the search starts from.
- * @param radius - How many rings of regions to walk, Java's `/locate` radius.
- * @returns The candidate chunks, unordered.
- * @javaSource ChunkGenerator.findNearestMapStructure
- */
-export const searchCandidatesFrom = (
-    placement: StructurePlacement,
-    seed: bigint,
-    origin: ChunkPosition,
-    radius: number
-): ChunkPosition[] => {
-    switch (placement.type) {
-        case 'minecraft:random_spread':
-            return spreadCandidatesAround(placement, seed, origin, radius);
-        case 'minecraft:dimension_origin':
-            return isStructureChunk(placement, seed, 0, 0) ? [{ x: 0, z: 0 }] : [];
-        case 'minecraft:concentric_rings':
-            return concentricRingChunks(placement, seed).filter((chunk) =>
-                isStructureChunk(placement, seed, chunk.x, chunk.z)
-            );
-    }
-};
-
-/**
- * The one chunk each region within `radius` regions of the origin's offers.
- *
- * Java's `getPotentialStructureChunk(seed, x + spacing * j, z + spacing * k)` for every `j` and
- * `k` in the radius, which is the region grid around the origin's own region. Nothing is cut
- * at a chunk boundary: a region on the edge contributes its chunk wherever in the region it
- * falls, as Java's does.
- */
-const spreadCandidatesAround = (
-    placement: RandomSpreadPlacement,
-    seed: bigint,
-    origin: ChunkPosition,
-    radius: number
-): ChunkPosition[] => {
-    const candidates: ChunkPosition[] = [];
-    const originRegionX = Math.floor(origin.x / placement.spacing);
-    const originRegionZ = Math.floor(origin.z / placement.spacing);
-
-    for (let regionX = originRegionX - radius; regionX <= originRegionX + radius; regionX++) {
-        for (let regionZ = originRegionZ - radius; regionZ <= originRegionZ + radius; regionZ++) {
-            const chunk = potentialStructureChunk(
-                placement,
-                seed,
-                regionX * placement.spacing,
-                regionZ * placement.spacing
-            );
-            if (isStructureChunk(placement, seed, chunk.x, chunk.z)) candidates.push(chunk);
-        }
-    }
-
-    return candidates;
-};
-
 /** The one chunk each region overlapping the range offers, kept when it falls inside. */
 const spreadCandidates = (placement: RandomSpreadPlacement, seed: bigint, range: ChunkRange): ChunkPosition[] => {
     const candidates: ChunkPosition[] = [];
@@ -297,15 +250,22 @@ const inRange = (range: ChunkRange, chunk: ChunkPosition): boolean =>
     chunk.z <= range.maxChunkZ;
 
 /**
- * Which structure of a set starts in a chunk.
+ * The structures of a set a chunk tries, in the order Java tries them.
  *
- * Java draws the weighted pick from a stream seeded by the world seed and the chunk, then starts
- * the structure's own layout from a second stream seeded identically. Both are reproduced:
- * {@link structureRandomSeed} is the seed, and this draws from a source of its own so the layout
- * sees an untouched stream.
+ * Java draws a structure by weight from a stream seeded by the world seed and the chunk, and
+ * when that structure cannot start there it draws again from the rest of the set. The layout of
+ * each attempt starts from a second stream seeded identically. Both are reproduced:
+ * {@link structureRandomSeed} is the seed, and this draws from a source of its own so each
+ * layout sees an untouched stream.
+ *
+ * @javaSee ChunkGenerator.createStructures
  */
-export const chooseStructure = (set: StructureSet, seed: bigint, chunkX: number, chunkZ: number): string | undefined =>
-    pickStructure(set, createLegacyRandom(structureRandomSeed(seed, chunkX, chunkZ)));
+export const structureAttemptsAt = (
+    set: StructureSet,
+    seed: bigint,
+    chunkX: number,
+    chunkZ: number
+): readonly string[] => structureAttemptOrder(set, createLegacyRandom(structureRandomSeed(seed, chunkX, chunkZ)));
 
 /** The seed Java gives both the weighted pick and the structure's own layout. */
 export const structureRandomSeed = (seed: bigint, chunkX: number, chunkZ: number): bigint =>
@@ -360,4 +320,45 @@ export const createTagExpander = (tags: JavaRegistry): ((spec: unknown) => Reado
     };
 
     return (spec) => expand(spec, new Set());
+};
+
+/**
+ * Java's horizontal biome search, the one that moves a stronghold to a biome it prefers.
+ *
+ * It scans every quart cell of the square `radius` blocks out from the point, z then x, at the
+ * point's height, and keeps a matching cell by a reservoir draw: the first match outright, the
+ * nth with a one in n chance. That is the overload a ring placement calls, which steps one quart
+ * at a time and does not look for the closest match, so only the outermost square is walked and
+ * the walk covers all of it.
+ *
+ * @param noiseBiome - The biome at a quart position.
+ * @returns The block position of the cell kept, or undefined when none matched.
+ * @javaSource BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair;
+ */
+export const findBiomeHorizontal = (
+    x: number,
+    y: number,
+    z: number,
+    radius: number,
+    matches: (biome: string) => boolean,
+    random: RandomSource,
+    noiseBiome: (quartX: number, quartY: number, quartZ: number) => string
+): { x: number; y: number; z: number } | undefined => {
+    const quartX = x >> 2;
+    const quartZ = z >> 2;
+    const quartRadius = radius >> 2;
+    const quartY = y >> 2;
+    let found: { x: number; y: number; z: number } | undefined;
+    let count = 0;
+
+    for (let dz = -quartRadius; dz <= quartRadius; dz++) {
+        for (let dx = -quartRadius; dx <= quartRadius; dx++) {
+            const cellX = quartX + dx;
+            const cellZ = quartZ + dz;
+            if (!matches(noiseBiome(cellX, quartY, cellZ))) continue;
+            if (found === undefined || random.nextInt(count + 1) === 0) found = { x: cellX << 2, y, z: cellZ << 2 };
+            count++;
+        }
+    }
+    return found;
 };

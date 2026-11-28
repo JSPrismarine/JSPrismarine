@@ -1862,6 +1862,7 @@ export class DataDrivenGenerator implements Generator {
         const found = starts.locate({
             originChunkX: request.x >> 4,
             originChunkZ: request.z >> 4,
+            origin: { x: request.x, y: request.y ?? 0, z: request.z },
             radius: Math.max(0, Math.trunc(request.radius)),
             wanted: request.wanted,
             ...(request.skip === undefined ? {} : { skip: request.skip })

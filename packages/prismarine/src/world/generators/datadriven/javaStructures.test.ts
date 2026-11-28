@@ -45,6 +45,25 @@ const SEED = 1234n;
  */
 const VILLAGE_CHUNK = { x: -166, z: -80 };
 
+/**
+ * The chunk the village's town center lies in. Java turns the start piece about the start
+ * chunk's corner, so a turned town center reaches back into the chunk west of it.
+ */
+const TOWN_CENTER_CHUNK = { x: -167, z: -80 };
+
+/** A chunk of that village holding a house's door and windows. */
+const HOUSE_CHUNK = { x: -167, z: -81 };
+
+/** Where this seed's ocean monument nearest the origin starts, which Java's `/locate` reports too. */
+const MONUMENT_CHUNK = { x: -77, z: -59 };
+
+/**
+ * The mineshaft nearest the origin at this seed, which Java 26.3's `/locate structure
+ * minecraft:mineshaft` reports from 0, 0 as the block at -80, 16. It is also the chunk one of
+ * its spider corridors holds its spawner in.
+ */
+const MINESHAFT_CHUNK = { x: -5, z: 1 };
+
 /** Where this seed's trail ruins starts, which is also the chunk most of its gravel lands in. */
 const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
 
@@ -204,15 +223,15 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         );
 
         it(
-            'puts the village in the generated chunk',
+            'puts the village in the generated chunks',
             async () => {
-                const chunk = await chunkAt(VILLAGE_CHUNK.x, VILLAGE_CHUNK.z);
-                const names = identifiersAbove(chunk, 80);
+                const center = identifiersAbove(await chunkAt(TOWN_CENTER_CHUNK.x, TOWN_CENTER_CHUNK.z), 80);
+                const houses = identifiersAbove(await chunkAt(HOUSE_CHUNK.x, HOUSE_CHUNK.z), 80);
 
                 // The meeting point's bell, and the parts of a house no feature ever places.
-                expect(names).toContain('minecraft:bell');
-                expect(names).toContain('minecraft:wooden_door');
-                expect(names).toContain('minecraft:glass_pane');
+                expect(center).toContain('minecraft:bell');
+                expect(houses).toContain('minecraft:wooden_door');
+                expect(houses).toContain('minecraft:glass_pane');
             },
             CHUNK_TIMEOUT
         );
@@ -277,8 +296,8 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         'digs a mineshaft where the placement puts it',
         async () => {
             await landsIn(
-                16,
-                128,
+                MINESHAFT_CHUNK.x,
+                MINESHAFT_CHUNK.z,
                 'minecraft:mineshaft',
                 'minecraft:mineshafts',
                 ['minecraft:rail', 'minecraft:oak_fence', 'minecraft:web', 'minecraft:oak_planks'],
@@ -291,12 +310,13 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     it(
         'builds a stronghold where the concentric rings put it',
         async () => {
+            // One of the ring positions Java 26.3 moves to a preferred biome, chunk -34, 97.
             await landsIn(
-                -48,
-                115,
+                -34,
+                97,
                 'minecraft:stronghold',
                 'minecraft:strongholds',
-                ['minecraft:stone_bricks', 'minecraft:mossy_stone_bricks', 'minecraft:iron_bars'],
+                ['minecraft:stone_bricks', 'minecraft:mossy_stone_bricks', 'minecraft:infested_stone_bricks'],
                 -64
             );
         },
@@ -307,8 +327,8 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         'raises an ocean monument where the placement puts it',
         async () => {
             await landsIn(
-                -80,
-                -73,
+                MONUMENT_CHUNK.x,
+                MONUMENT_CHUNK.z,
                 'minecraft:monument',
                 'minecraft:ocean_monuments',
                 [
@@ -327,7 +347,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         'maps Java structure-only entity IDs before checking override bounds',
         () => {
             const monument = generator
-                .structureStartsAt(-80, -73, SEED)
+                .structureStartsAt(MONUMENT_CHUNK.x, MONUMENT_CHUNK.z, SEED)
                 .find((start) => start.structure === 'minecraft:monument');
             if (monument === undefined) throw new Error('the seeded ocean monument did not start');
 
@@ -350,7 +370,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         'forwards guardian spawn overrides through the generator the Overworld stem builds',
         () => {
             const monument = generator
-                .structureStartsAt(-80, -73, SEED)
+                .structureStartsAt(MONUMENT_CHUNK.x, MONUMENT_CHUNK.z, SEED)
                 .find((start) => start.structure === 'minecraft:monument');
             if (monument === undefined) throw new Error('the seeded ocean monument did not start');
 
@@ -425,7 +445,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         it(
             'gives a generated spawner the mob it spawns',
             async () => {
-                const chunk = await chunkAt(16, 128);
+                const chunk = await chunkAt(MINESHAFT_CHUNK.x, MINESHAFT_CHUNK.z);
                 const spawner = [...chunk.getBlockEntities()].find((entry) => entry.getId() === 'MobSpawner');
 
                 expect(spawner, 'the mineshaft placed no spawner').toBeDefined();
@@ -499,7 +519,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         it(
             'stands a village up with the mobs its templates saved',
             async () => {
-                const spawns = (await chunkAt(VILLAGE_CHUNK.x, VILLAGE_CHUNK.z)).getEntitySpawns();
+                const spawns = (await chunkAt(TOWN_CENTER_CHUNK.x, TOWN_CENTER_CHUNK.z)).getEntitySpawns();
 
                 expect(spawns.map((spawn) => spawn.type)).toContain('minecraft:villager_v2');
                 expect(spawns.map((spawn) => spawn.type)).toContain('minecraft:cat');

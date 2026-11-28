@@ -16,6 +16,10 @@
         "AbstractSchoolingFish.canRandomSwim": "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.canRandomSwim()Z",
         "AbstractSchoolingFish.tick": "net/minecraft/world/entity/animal/fish/AbstractSchoolingFish.tick()V",
         "AbstractSkullBlock.getStateForPlacement": "net/minecraft/world/level/block/AbstractSkullBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
+        "AbstractSpreadingStructurePlacement.legacyArbitrarySaltProbabilityReducer": "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyArbitrarySaltProbabilityReducer(JIIIF)Z",
+        "AbstractSpreadingStructurePlacement.legacyPillagerOutpostReducer": "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyPillagerOutpostReducer(JIIIF)Z",
+        "AbstractSpreadingStructurePlacement.legacyProbabilityReducerWithDouble": "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyProbabilityReducerWithDouble(JIIIF)Z",
+        "AbstractSpreadingStructurePlacement.probabilityReducer": "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.probabilityReducer(JIIIF)Z",
         "AbstractThrownPotion.onHit": "net/minecraft/world/entity/projectile/throwableitemprojectile/AbstractThrownPotion.onHit(Lnet/minecraft/world/phys/HitResult;)V",
         "ActivityData.createPriorityPairs": "net/minecraft/world/entity/ai/ActivityData.createPriorityPairs(ILcom/google/common/collect/ImmutableList;)Lcom/google/common/collect/ImmutableList;",
         "AllayAi.getItemDepositPosition": "net/minecraft/world/entity/animal/allay/AllayAi.getItemDepositPosition(Lnet/minecraft/world/entity/LivingEntity;)Ljava/util/Optional;",
@@ -78,6 +82,8 @@
         "Biome.coldEnoughToSnow": "net/minecraft/world/level/biome/Biome.coldEnoughToSnow(Lnet/minecraft/core/BlockPos;I)Z",
         "Biome.getTemperature": "net/minecraft/world/level/biome/Biome.getTemperature(Lnet/minecraft/core/BlockPos;I)F",
         "BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;": "net/minecraft/world/level/biome/BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;",
+        "BiomeResolver.getBiomesWithin": "net/minecraft/world/level/biome/BiomeResolver.getBiomesWithin(IIII)Ljava/util/Set;",
+        "BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair;": "net/minecraft/world/level/biome/BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair;",
         "BiomeTags.WATER_ON_MAP_OUTLINES": "net/minecraft/tags/BiomeTags.WATER_ON_MAP_OUTLINES",
         "Block.canSupportCenter": "net/minecraft/world/level/block/Block.canSupportCenter(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
         "Block.updateFromNeighbourShapes": "net/minecraft/world/level/block/Block.updateFromNeighbourShapes(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -119,6 +125,12 @@
         "ChunkAccess.isOldNoiseGeneration": "net/minecraft/world/level/chunk/ChunkAccess.isOldNoiseGeneration()Z",
         "ChunkAccess.markPosForPostProcessing": "net/minecraft/world/level/chunk/ChunkAccess.markPosForPostProcessing(Lnet/minecraft/core/BlockPos;)V",
         "ChunkGenerator.findNearestMapStructure": "net/minecraft/world/level/chunk/ChunkGenerator.findNearestMapStructure(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/HolderSet;Lnet/minecraft/core/BlockPos;IZ)Lcom/mojang/datafixers/util/Pair;",
+        "ChunkGenerator.getFirstOccupiedHeight": "net/minecraft/world/level/chunk/ChunkGenerator.getFirstOccupiedHeight(IILnet/minecraft/world/level/levelgen/Heightmap$Types;Lnet/minecraft/world/level/LevelHeightAccessor;Lnet/minecraft/world/level/levelgen/RandomState;)I",
+        "ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair;": "net/minecraft/world/level/chunk/ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair;",
+        "ChunkGenerator.lambda$createStructures$0": "net/minecraft/world/level/chunk/ChunkGenerator.lambda$createStructures$0(Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/biome/Climate$Sampler;Lnet/minecraft/core/Holder;)V",
+        "ChunkGeneratorStructureState.generateRingPositions": "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.generateRingPositions(Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/levelgen/structure/placement/ConcentricRingsStructurePlacement;)Ljava/util/concurrent/CompletableFuture;",
+        "ChunkGeneratorStructureState.hasStructureChunkInRange": "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.hasStructureChunkInRange(Lnet/minecraft/core/Holder;III)Z",
+        "ChunkGeneratorStructureState.lambda$generateRingPositions$0": "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.lambda$generateRingPositions$0(IILnet/minecraft/core/HolderSet;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/ChunkPos;",
         "ChunkMap.getPlayerViewDistance": "net/minecraft/server/level/ChunkMap.getPlayerViewDistance(Lnet/minecraft/server/level/ServerPlayer;)I",
         "ClientboundAddEntityPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundAddEntityPacket.STREAM_CODEC",
         "ClientboundBlockChangedAckPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ClientboundBlockChangedAckPacket.STREAM_CODEC",
@@ -506,6 +518,7 @@
         "NoiseSettings.clampToHeightAccessor": "net/minecraft/world/level/levelgen/NoiseSettings.clampToHeightAccessor(Lnet/minecraft/world/level/LevelHeightAccessor;)Lnet/minecraft/world/level/levelgen/NoiseSettings;",
         "ObserverBlock.getStateForPlacement": "net/minecraft/world/level/block/ObserverBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox": "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$RoomDefinition;III)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
+        "OceanMonumentStructure.findGenerationPoint": "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.findGenerationPoint(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;)Ljava/util/Optional;",
         "OfferFlowerGoal.canUse": "net/minecraft/world/entity/ai/goal/OfferFlowerGoal.canUse()Z",
         "OfferFlowerGoal.start": "net/minecraft/world/entity/ai/goal/OfferFlowerGoal.start()V",
         "OldMinecartBehavior.tick": "net/minecraft/world/entity/vehicle/minecart/OldMinecartBehavior.tick()V",
@@ -721,6 +734,7 @@
         "Strider$StriderGoToLavaGoal.shouldRecalculatePath": "net/minecraft/world/entity/monster/Strider$StriderGoToLavaGoal.shouldRecalculatePath()Z",
         "StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS": "net/minecraft/world/entity/ai/behavior/StrollAroundPoi.MIN_TIME_BETWEEN_STROLLS",
         "StrongholdPieces$FillerCorridor.findPieceBox": "net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$FillerCorridor.findPieceBox(Lnet/minecraft/world/level/levelgen/structure/pieces/StructurePiecesBuilder;Lnet/minecraft/util/RandomSource;IIILnet/minecraft/core/Direction;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;",
+        "Structure.getLowestY(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;IIII)I": "net/minecraft/world/level/levelgen/structure/Structure.getLowestY(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;IIII)I",
         "Structure$GenerationStub.getPiecesBuilder": "net/minecraft/world/level/levelgen/structure/Structure$GenerationStub.getPiecesBuilder()Lnet/minecraft/world/level/levelgen/structure/pieces/StructurePiecesBuilder;",
         "StructureManager.getStructureAt(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/Structure;)Lnet/minecraft/world/level/levelgen/structure/StructureStart;": "net/minecraft/world/level/StructureManager.getStructureAt(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/Structure;)Lnet/minecraft/world/level/levelgen/structure/StructureStart;",
         "StructurePiece.createChest(Lnet/minecraft/world/level/WorldGenLevel;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;Lnet/minecraft/util/RandomSource;IIILnet/minecraft/resources/ResourceKey;)Z": "net/minecraft/world/level/levelgen/structure/StructurePiece.createChest(Lnet/minecraft/world/level/WorldGenLevel;Lnet/minecraft/world/level/levelgen/structure/BoundingBox;Lnet/minecraft/util/RandomSource;IIILnet/minecraft/resources/ResourceKey;)Z",
@@ -3049,6 +3063,12 @@
         "net/minecraft/world/level/biome/BiomeManager.getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;": {
             "26.3": "sha256:880c562b305731c577665b4d0285280d5706597e49c0fac58323264d8d9771dc"
         },
+        "net/minecraft/world/level/biome/BiomeResolver.getBiomesWithin(IIII)Ljava/util/Set;": {
+            "26.3": "sha256:4f15e403aeaec93f7fa788cddfc66a1bff26ff773b2bc2907779ce311a240bdb"
+        },
+        "net/minecraft/world/level/biome/BiomeSource.findBiomeHorizontal(IIIIILjava/util/function/Predicate;Lnet/minecraft/util/RandomSource;ZLnet/minecraft/world/level/levelgen/RandomState;)Lcom/mojang/datafixers/util/Pair;": {
+            "26.3": "sha256:3df5a0e29e758668311118ac89693aecbb1a8a43fe6f7b654e3240c27a0d7f10"
+        },
         "net/minecraft/world/level/block/AbstractBedBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;": {
             "26.3": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2",
             "26.4-pre-1": "sha256:ce6224c6c8e863d3c0d82666fcbf2c2ef76bdac9d85da406acc9dc8da729e2c2"
@@ -3519,6 +3539,24 @@
         "net/minecraft/world/level/chunk/ChunkGenerator.findNearestMapStructure(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/HolderSet;Lnet/minecraft/core/BlockPos;IZ)Lcom/mojang/datafixers/util/Pair;": {
             "26.3": "sha256:54d0522c4ce527dc3c1219c16f50362548e1c1450df0e6d7abff692912c597b7"
         },
+        "net/minecraft/world/level/chunk/ChunkGenerator.getFirstOccupiedHeight(IILnet/minecraft/world/level/levelgen/Heightmap$Types;Lnet/minecraft/world/level/LevelHeightAccessor;Lnet/minecraft/world/level/levelgen/RandomState;)I": {
+            "26.3": "sha256:e5e92df83995e4a553556d4fa3e9aa4e5d52c8f474ed793afd37ab9ff3faac7d"
+        },
+        "net/minecraft/world/level/chunk/ChunkGenerator.getNearestGeneratedStructure(Ljava/util/Set;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/world/level/StructureManager;IIIZJLnet/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement;)Lcom/mojang/datafixers/util/Pair;": {
+            "26.3": "sha256:5668205f9acee8792767fd7cc92dd5644229aca7d3372e88f462127d80db3616"
+        },
+        "net/minecraft/world/level/chunk/ChunkGenerator.lambda$createStructures$0(Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/biome/Climate$Sampler;Lnet/minecraft/core/Holder;)V": {
+            "26.3": "sha256:5c20f4a8c9577927c60f4c079eb8db9506d0c87c4cadd53d2b4e5313e4d2351d"
+        },
+        "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.generateRingPositions(Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/levelgen/structure/placement/ConcentricRingsStructurePlacement;)Ljava/util/concurrent/CompletableFuture;": {
+            "26.3": "sha256:a5dcc712d23e3f6533b82f016e5508b3fd176551db6615dd0afae7c4a1e4f03c"
+        },
+        "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.hasStructureChunkInRange(Lnet/minecraft/core/Holder;III)Z": {
+            "26.3": "sha256:e95749a6f5bac187bd543fbfdee56470ddf9d2e6c665d88f8c1579645a4e5610"
+        },
+        "net/minecraft/world/level/chunk/ChunkGeneratorStructureState.lambda$generateRingPositions$0(IILnet/minecraft/core/HolderSet;Lnet/minecraft/util/RandomSource;)Lnet/minecraft/world/level/ChunkPos;": {
+            "26.3": "sha256:7b1cdca0376ffb409117b3bf1f2e40eff14a8d38e088c3bdee7169b0bd646f28"
+        },
         "net/minecraft/world/level/chunk/LevelChunk.postProcessGeneration(Lnet/minecraft/server/level/ServerLevel;)V": {
             "26.3": "sha256:40e0b279921bf07adf24710bf12470746eaa14eead2179db1127af2942097fd1",
             "26.4-pre-1": "sha256:40e0b279921bf07adf24710bf12470746eaa14eead2179db1127af2942097fd1"
@@ -3663,6 +3701,18 @@
             "26.3": "sha256:9685ffa58166a3e6d80fbf93ac7293d355df250d712c28767172602625b543d7",
             "26.4-pre-1": "sha256:9685ffa58166a3e6d80fbf93ac7293d355df250d712c28767172602625b543d7"
         },
+        "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyArbitrarySaltProbabilityReducer(JIIIF)Z": {
+            "26.3": "sha256:d7ad0e0284ea5a6e716b2c15dc8dfec79267ca8a402a0460cbcd99b5a55c13a7"
+        },
+        "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyPillagerOutpostReducer(JIIIF)Z": {
+            "26.3": "sha256:29f8eeba1bbe587e53d731c382f284cbba845f56e5640ff38132d2b31f415375"
+        },
+        "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.legacyProbabilityReducerWithDouble(JIIIF)Z": {
+            "26.3": "sha256:6912dc0c49d02094a96b93ea88ec4105fa7c2bb60de5178521397db825ef42d8"
+        },
+        "net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.probabilityReducer(JIIIF)Z": {
+            "26.3": "sha256:5edec2a87b346eca2e9317759bffe5b8bc97bebd0eac930ef8035e3fdc2a701c"
+        },
         "net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.getLocatePos(Lnet/minecraft/world/level/ChunkPos;)Lnet/minecraft/core/BlockPos;": {
             "26.3": "sha256:bbd4551855fc28afb47e805de6d30d6a3e02ffe288843ac1dc7362695e7881f9",
             "26.4-pre-1": "sha256:bbd4551855fc28afb47e805de6d30d6a3e02ffe288843ac1dc7362695e7881f9"
@@ -3678,6 +3728,9 @@
         "net/minecraft/world/level/levelgen/structure/SinglePieceStructure.findGenerationPoint(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;)Ljava/util/Optional;": {
             "26.3": "sha256:6f114832e628ebb5d7273a45119b4d2630b4bddcd5c92270fb94795c3308e135",
             "26.4-pre-1": "sha256:6f114832e628ebb5d7273a45119b4d2630b4bddcd5c92270fb94795c3308e135"
+        },
+        "net/minecraft/world/level/levelgen/structure/Structure.getLowestY(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;IIII)I": {
+            "26.3": "sha256:fb2c72a4ddb9b7be1b48afe01f5325f1199e22158b2466bb64345d6e57d6681a"
         },
         "net/minecraft/world/level/levelgen/structure/Structure$GenerationStub.getPiecesBuilder()Lnet/minecraft/world/level/levelgen/structure/pieces/StructurePiecesBuilder;": {
             "26.3": "sha256:1b1370b7aa51ee789845ffb589a619106de35ec762ab7d07b502c7d39dcb186a",
@@ -3786,6 +3839,9 @@
         "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$OceanMonumentPiece.makeBoundingBox(Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/levelgen/structure/structures/OceanMonumentPieces$RoomDefinition;III)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;": {
             "26.3": "sha256:8b4da4344efc4935daa6e08e51c483f0a541dcc330933af9e557b11b4e4ff2ae",
             "26.4-pre-1": "sha256:8b4da4344efc4935daa6e08e51c483f0a541dcc330933af9e557b11b4e4ff2ae"
+        },
+        "net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.findGenerationPoint(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;)Ljava/util/Optional;": {
+            "26.3": "sha256:fed2c714a53c950a85780acef8fa032b3bad0cb8f96f1ea54803a280bf90e8f0"
         },
         "net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$FillerCorridor.findPieceBox(Lnet/minecraft/world/level/levelgen/structure/pieces/StructurePiecesBuilder;Lnet/minecraft/util/RandomSource;IIILnet/minecraft/core/Direction;)Lnet/minecraft/world/level/levelgen/structure/BoundingBox;": {
             "26.3": "sha256:5d15f6fc8916ea7e9313ee0091869dacc4dc012e6da1f499df44ecb4b34c2a60",

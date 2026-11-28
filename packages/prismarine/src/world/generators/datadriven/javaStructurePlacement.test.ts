@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { createLegacyRandom } from '@jsprismarine/structures';
 
 import {
     CandidateChunkMemo,
     candidateChunksIn,
-    chooseStructure,
     createTagExpander,
-    loadStructureSets
+    findBiomeHorizontal,
+    loadStructureSets,
+    structureAttemptsAt
 } from './javaStructurePlacement';
 
 const spread = (overrides: Record<string, unknown> = {}) => ({
@@ -99,8 +101,8 @@ describe('loadStructureSets', () => {
     });
 });
 
-describe('chooseStructure', () => {
-    it('draws by weight and gives the same answer for the same chunk', () => {
+describe('structureAttemptsAt', () => {
+    it('orders every structure of the set and gives the same order for the same chunk', () => {
         const set = {
             placement: {
                 type: 'minecraft:random_spread',
@@ -118,14 +120,14 @@ describe('chooseStructure', () => {
             ]
         } as const;
 
-        const first = chooseStructure(set, 1234n, 4, -7);
-        expect(first).toBe(chooseStructure(set, 1234n, 4, -7));
-        expect(['minecraft:village_plains', 'minecraft:village_desert']).toContain(first);
+        const order = structureAttemptsAt(set, 1234n, 4, -7);
+        expect(order).toEqual(structureAttemptsAt(set, 1234n, 4, -7));
+        expect([...order].sort()).toEqual(['minecraft:village_desert', 'minecraft:village_plains']);
     });
 
-    it('answers undefined for a set with no structures', () => {
+    it('tries nothing for a set with no structures', () => {
         expect(
-            chooseStructure(
+            structureAttemptsAt(
                 {
                     placement: {
                         type: 'minecraft:dimension_origin',
@@ -140,7 +142,7 @@ describe('chooseStructure', () => {
                 0,
                 0
             )
-        ).toBeUndefined();
+        ).toEqual([]);
     });
 });
 
@@ -230,5 +232,55 @@ describe('CandidateChunkMemo', () => {
         // One chunk further reaches the next tile over.
         memo.in(mineshafts, window(24, 12));
         expect(memo.regionsDrawn).toBe(2 * 32 * 32);
+    });
+});
+
+describe('findBiomeHorizontal', () => {
+    /** A source that answers each bound with the next scripted value, recording the bounds. */
+    const scripted = (values: number[]) => {
+        const bounds: number[] = [];
+        const random = createLegacyRandom(0);
+        random.nextInt = (bound: number): number => {
+            bounds.push(bound);
+            return values.shift() ?? 1;
+        };
+        return { random, bounds };
+    };
+
+    it('keeps the first match outright and each later one by a one in n draw, z then x', () => {
+        // Three matching cells on the 112 block square around 0, 0: the scan meets the one at the
+        // lowest z first, then the two on the next row in x order.
+        const matches = new Set(['-28,-28', '-27,-27', '5,-27']);
+        const { random, bounds } = scripted([0, 1]);
+        const found = findBiomeHorizontal(
+            0,
+            0,
+            0,
+            112,
+            (biome) => biome === 'minecraft:wanted',
+            random,
+            (x, _y, z) => (matches.has(`${x},${z}`) ? 'minecraft:wanted' : 'minecraft:plains')
+        );
+
+        // The second match drew 0 out of 2 and replaced the first; the third drew 1 out of 3.
+        expect(bounds).toEqual([2, 3]);
+        expect(found).toEqual({ x: -27 * 4, y: 0, z: -27 * 4 });
+    });
+
+    it('finds nothing, and draws nothing, when no cell matches', () => {
+        const { random, bounds } = scripted([]);
+
+        expect(
+            findBiomeHorizontal(
+                40,
+                0,
+                40,
+                112,
+                () => false,
+                random,
+                () => 'minecraft:plains'
+            )
+        ).toBeUndefined();
+        expect(bounds).toEqual([]);
     });
 });

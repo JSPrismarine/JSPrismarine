@@ -34,7 +34,7 @@ import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
 import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
-import { boxFromSize } from './javaStructureWorld';
+import { boxFromSize, firstOccupiedHeight } from './javaStructureWorld';
 
 // ---------------------------------------------------------------------------
 // The frame a scattered piece is written in
@@ -203,10 +203,39 @@ const scatteredLayout = (
 ): StructureLayout => {
     const center = chunkCenter(context.chunkX, context.chunkZ);
     return {
-        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, heightmap), z: center.z },
+        origin: { x: center.x, y: firstOccupiedHeight(context.level, center.x, center.z, heightmap), z: center.z },
         pieces: assemble
     };
 };
+
+/**
+ * Java's `Structure.getLowestY` from the chunk's corner: the lowest of the four corner heights of
+ * a footprint, measured one past its far edges.
+ *
+ * @javaSource Structure.getLowestY(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;IIII)I
+ */
+const lowestCornerY = (context: StructureBuildContext, width: number, depth: number): number => {
+    const x = context.chunkX * 16;
+    const z = context.chunkZ * 16;
+    const at = (cornerX: number, cornerZ: number): number =>
+        firstOccupiedHeight(context.level, cornerX, cornerZ, 'WORLD_SURFACE_WG');
+    return Math.min(at(x, z), at(x, z + depth), at(x + width, z), at(x + width, z + depth));
+};
+
+/**
+ * Java's `SinglePieceStructure`: a desert pyramid or a jungle temple, which also needs all four
+ * corners of its footprint at or above sea level, so neither stands in a lake or half off a cliff.
+ *
+ * @javaSource SinglePieceStructure.findGenerationPoint
+ */
+const singlePieceLayout = (
+    context: StructureBuildContext,
+    extent: { readonly width: number; readonly depth: number },
+    assemble: () => readonly StructurePiece[]
+): StructureLayout | undefined =>
+    lowestCornerY(context, extent.width, extent.depth) < context.level.seaLevel
+        ? undefined
+        : scatteredLayout(context, 'WORLD_SURFACE_WG', assemble);
 
 /** One scattered piece, turned a drawn quarter turn and settled onto the terrain under it. */
 const settledScatteredPiece = <T>(
@@ -536,7 +565,7 @@ class DesertPyramidPiece extends ScatteredPiece {
 
 /** Lays out a desert pyramid: one piece, turned, settled onto the sand. */
 export const buildDesertPyramid: StructureBuilder = (context): StructureLayout | undefined =>
-    scatteredLayout(context, 'WORLD_SURFACE_WG', () =>
+    singlePieceLayout(context, DESERT_PYRAMID, () =>
         settledScatteredPiece(context, DESERT_PYRAMID, (box, facing) => new DesertPyramidPiece(box, facing))
     );
 
@@ -708,7 +737,7 @@ class JungleTemplePiece extends ScatteredPiece {
 
 /** Lays out a jungle temple: one piece, turned, settled onto the jungle floor. */
 export const buildJungleTemple: StructureBuilder = (context): StructureLayout | undefined =>
-    scatteredLayout(context, 'WORLD_SURFACE_WG', () =>
+    singlePieceLayout(context, JUNGLE_TEMPLE, () =>
         settledScatteredPiece(context, JUNGLE_TEMPLE, (box, facing) => new JungleTemplePiece(box, facing))
     );
 
