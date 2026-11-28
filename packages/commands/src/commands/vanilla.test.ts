@@ -1404,6 +1404,109 @@ describe('the data-driven commands', () => {
         expect(results).toEqual([11]);
     });
 
+    it('/scoreboard objectives add hands the host a criterion’s full name and refuses one Java does not know', () => {
+        const added: unknown[][] = [];
+        const scoreboard = {
+            addObjective: (...call: unknown[]) => {
+                added.push(call);
+                return true;
+            }
+        };
+
+        run('scoreboard objectives add play_time minecraft.custom:minecraft.play_time', { scoreboard });
+        run('scoreboard objectives add jumps custom:jump', { scoreboard });
+        run('scoreboard objectives add deaths deathCount "Deaths"', { scoreboard });
+
+        expect(added).toEqual([
+            ['play_time', 'minecraft.custom:minecraft.play_time', undefined],
+            ['jumps', 'minecraft.custom:minecraft.jump', undefined],
+            ['deaths', 'deathCount', '"Deaths"']
+        ]);
+        // Bedrock's `dummy`-only overload refuses it too, so the error is Brigadier's own.
+        expect(() => run('scoreboard objectives add x bogus', { scoreboard })).toThrow(CommandSyntaxException);
+        expect(added).toHaveLength(3);
+    });
+
+    it('/scoreboard objectives add checks a statistic against the host’s statistics', () => {
+        const scoreboard = { addObjective: () => true };
+        const content = { statistics: { 'minecraft:custom': ['minecraft:play_time'] } };
+
+        expect(
+            run('scoreboard objectives add t minecraft.custom:minecraft.play_time', { scoreboard }, { content }).results
+        ).toEqual([1]);
+        expect(() =>
+            run('scoreboard objectives add t minecraft.custom:minecraft.nothing', { scoreboard }, { content })
+        ).toThrow(CommandSyntaxException);
+        expect(() =>
+            run('scoreboard objectives add t minecraft.mined:minecraft.stone', { scoreboard }, { content })
+        ).toThrow(CommandSyntaxException);
+    });
+
+    it('/scoreboard objectives setdisplay names below_name the Bedrock way and refuses an unknown slot', () => {
+        const slots: unknown[] = [];
+        const scoreboard = {
+            setDisplay: (slot: string, objective?: string) => {
+                slots.push([slot, objective]);
+                return true;
+            }
+        };
+
+        run('scoreboard objectives setdisplay sidebar play_time', { scoreboard });
+        run('scoreboard objectives setdisplay below_name hp', { scoreboard });
+        run('scoreboard objectives setdisplay belowname hp', { scoreboard });
+
+        expect(slots).toEqual([
+            ['sidebar', 'play_time'],
+            ['belowname', 'hp'],
+            ['belowname', 'hp']
+        ]);
+        expect(() => run('scoreboard objectives setdisplay corner hp', { scoreboard })).toThrow(
+            "Unknown display slot 'corner'"
+        );
+    });
+
+    it('/scoreboard objectives modify … displayname renames an objective', () => {
+        const renamed: unknown[] = [];
+        const scoreboard = {
+            criterionOf: () => 'dummy',
+            setDisplayName: (objective: string, displayName: string) => {
+                renamed.push([objective, displayName]);
+                return true;
+            }
+        };
+
+        expect(run('scoreboard objectives modify kills displayname "Kills"', { scoreboard }).results).toEqual([1]);
+        expect(renamed).toEqual([['kills', '"Kills"']]);
+        expect(() =>
+            run('scoreboard objectives modify gone displayname "Gone"', {
+                scoreboard: { criterionOf: () => undefined }
+            })
+        ).toThrow("Unknown scoreboard objective 'gone'");
+    });
+
+    it('/scoreboard players refuses to write a read-only objective, which `execute store` still writes', () => {
+        const written: number[] = [];
+        const host: TestCommandHostOverrides = {
+            entities: { select: () => [testEntity({ name: 'Steve' })] },
+            scoreboard: {
+                criterionOf: () => 'health',
+                setScore: (_holder, _objective, value) => {
+                    written.push(value);
+                    return value;
+                },
+                addScore: () => 0,
+                operation: () => 0
+            }
+        };
+
+        expect(() => run('scoreboard players set Steve hp 5', host)).toThrow("Scoreboard objective 'hp' is read-only");
+        expect(() => run('scoreboard players add Steve hp 5', host)).toThrow('is read-only');
+        expect(() => run('scoreboard players operation Steve hp = Steve other', host)).toThrow('is read-only');
+        run('execute store result score Steve hp run scoreboard players get Steve other', host);
+
+        expect(written).toEqual([0]);
+    });
+
     it('/random value draws from the named sequence', () => {
         const seen: unknown[] = [];
         const { results } = run('random value 1..6 mypack:dice', {

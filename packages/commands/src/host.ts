@@ -342,9 +342,22 @@ export interface TickingAreaCommandHost {
 
 /** The scoreboard verbs a command needs. */
 export interface ScoreboardCommandHost {
+    /**
+     * @param criterion - The criterion's full name, such as `minecraft.custom:minecraft.play_time`.
+     * @param displayName - The display name as typed: a text component, or plain text.
+     */
     addObjective(name: string, criterion: string, displayName?: string): boolean;
     removeObjective(name: string): boolean;
     listObjectives(): readonly string[];
+    /** The criterion an objective counts, or undefined when there is no such objective. */
+    criterionOf(objective: string): string | undefined;
+    /**
+     * Renames an objective, as `/scoreboard objectives modify <objective> displayname` does.
+     *
+     * @param displayName - The display name as typed: a text component, or plain text.
+     * @returns False when the objective already had that name.
+     */
+    setDisplayName(objective: string, displayName: string): boolean;
     setDisplay(slot: string, objective?: string, sortOrder?: 'ascending' | 'descending'): boolean;
     /**
      * Every holder the board tracks, which is what a `*` score holder names.

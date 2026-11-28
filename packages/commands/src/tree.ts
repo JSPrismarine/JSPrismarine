@@ -16,6 +16,8 @@ import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { CommandsErrors } from '@jsprismarine/errors/commands';
 
+import type { StatisticEntries } from './criteria';
+
 /** The per-command data `AvailableCommandsPacket` carries and Brigadier does not. */
 export interface CommandMetadata {
     /** The one-line description the Bedrock client shows next to the name. */
@@ -65,6 +67,11 @@ export interface ContentRegistryIds {
     readonly enchantments?: readonly string[];
     /** Every damage type the loaded datapacks declare, `/damage`'s argument. */
     readonly damageTypes?: readonly string[];
+    /**
+     * The entries each Java statistic type counts, by the type's id, which a statistic
+     * scoreboard criterion such as `minecraft.custom:minecraft.play_time` names.
+     */
+    readonly statistics?: StatisticEntries;
 }
 
 /** How a registry decides what it will hold. */

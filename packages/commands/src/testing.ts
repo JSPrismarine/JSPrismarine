@@ -93,6 +93,8 @@ const scoreboard = (): ScoreboardCommandHost => ({
     addObjective: () => false,
     removeObjective: () => false,
     listObjectives: () => [],
+    criterionOf: () => undefined,
+    setDisplayName: () => false,
     setDisplay: () => false,
     holders: () => [],
     getScore: () => undefined,

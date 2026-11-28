@@ -40,6 +40,7 @@ import type {
     LootSource,
     SlotTarget
 } from '../host';
+import { criterionByName } from '../criteria';
 import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
@@ -757,6 +758,27 @@ const buildScoreboard = () => {
         )
     );
     objectives.then(
+        lit('modify').then(
+            arg('objective', softEnumArgument('ScoreboardObjectives')).then(
+                lit('displayname').then(
+                    arg('displayName', stringArgument()).executes(
+                        command((context) => {
+                            const current = source(context);
+                            const objective = value<string>(context, 'objective');
+                            if (current.host.scoreboard.criterionOf(objective) === undefined)
+                                refuse(`Unknown scoreboard objective '${objective}'`);
+                            const changed = current.host.scoreboard.setDisplayName(
+                                objective,
+                                value(context, 'displayName')
+                            );
+                            return report(current, changed ? 1 : 0, `Changed the display name of ${objective}`);
+                        })
+                    )
+                )
+            )
+        )
+    );
+    objectives.then(
         lit('setdisplay').then(
             arg('slot', enumArgument('DisplaySlot', ['list', 'sidebar', 'belowname'] as const))
                 .executes(
@@ -861,7 +883,7 @@ const buildScoreboard = () => {
                                     const current = source(context);
                                     const result = current.host.scoreboard.operation(
                                         scoreHolderOne(current, value(context, 'target')),
-                                        value(context, 'targetObjective'),
+                                        requireWritable(current, value(context, 'targetObjective')),
                                         value(context, 'operation'),
                                         scoreHolderOne(current, value(context, 'source')),
                                         value(context, 'sourceObjective')
@@ -892,9 +914,23 @@ const addObjective = (context: Context, displayName: string | undefined): number
     return report(current, added ? 1 : 0, 'Added the objective');
 };
 
+/**
+ * Refuses an objective whose criterion only the game raises, such as `health`, as Java's
+ * `ObjectiveArgument.getWritableObjective` does for the commands that write a score. `execute
+ * store` is not one of them: Java lets it write any objective.
+ *
+ * @javaSee ObjectiveArgument.getWritableObjective
+ */
+const requireWritable = (current: CommandSource, objective: string): string => {
+    const criterion = current.host.scoreboard.criterionOf(objective);
+    if (criterion !== undefined && criterionByName(criterion)?.readOnly === true)
+        refuse(`Scoreboard objective '${objective}' is read-only`);
+    return objective;
+};
+
 const changeScore = (context: Context, action: 'set' | 'add' | 'remove'): number => {
     const current = source(context);
-    const objective = value<string>(context, 'objective');
+    const objective = requireWritable(current, value<string>(context, 'objective'));
     const score = value<number>(context, 'score');
     let last = 0;
     for (const holder of scoreHolders(current, value(context, 'targets'))) {

@@ -12,6 +12,8 @@ import type { ArgumentType, StringReader } from '@jsprismarine/brigadier';
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 
 import { bedrockCommandEnum } from './bedrockTable';
+import type { StatisticEntries } from './criteria';
+import { criterionByName } from './criteria';
 import type { BedrockParameterShape, BedrockParameterTypeName } from './parameterTypes';
 import type { SelectorDialect, SelectorModel } from './selector';
 import { parseSelector } from './selector';
@@ -422,6 +424,62 @@ export const enumArgument = <const T extends string>(name: string, values: reado
     },
     describeBedrock: () => ({ kind: 'enum', name, values })
 });
+
+/**
+ * `minecraft:objective_criteria`, a scoreboard criterion such as `dummy` or
+ * `minecraft.custom:minecraft.play_time`, read up to the next space as Java reads it.
+ *
+ * The value is the criterion's full name, so `custom:play_time` reaches a host as Java stores
+ * it. Bedrock lists no criterion but `dummy`, so the client is told it is a plain id.
+ *
+ * @param statistics - The entries each statistic type counts. Left out, any well-formed
+ *   statistic parses.
+ * @javaSee ObjectiveCriteriaArgument.ERROR_INVALID_VALUE
+ */
+export const objectiveCriteriaArgument = (statistics?: StatisticEntries): BedrockDescribedType<string> =>
+    basic('ID', (reader) => {
+        const start = reader.getCursor();
+        while (reader.canRead() && reader.peek() !== ' ') reader.skip();
+        const name = reader.getString().slice(start, reader.getCursor());
+        const criterion = criterionByName(name, statistics);
+        if (criterion === undefined) {
+            reader.setCursor(start);
+            fail(reader, `Unknown criterion '${name}'`);
+        }
+        return criterion.name;
+    });
+
+/**
+ * The display slots this server draws, by every name a command spells them with: Java's
+ * `below_name` and Bedrock's `belowname` are the one slot, which the value always names the
+ * Bedrock way.
+ */
+const DISPLAY_SLOT_NAMES: Readonly<Record<string, 'list' | 'sidebar' | 'belowname'>> = {
+    list: 'list',
+    sidebar: 'sidebar',
+    below_name: 'belowname',
+    belowname: 'belowname'
+};
+
+/**
+ * `minecraft:scoreboard_slot`, a display slot, under the name Bedrock gives it.
+ *
+ * Java also has a `sidebar.team.<color>` slot for each team color, which needs teams this
+ * server does not have, so those are unknown here.
+ *
+ * @javaSee ScoreboardSlotArgument.ERROR_INVALID_VALUE
+ */
+export const scoreboardSlotArgument = (): BedrockDescribedType<'list' | 'sidebar' | 'belowname'> =>
+    basic('ID', (reader) => {
+        const start = reader.getCursor();
+        const name = reader.readUnquotedString();
+        const slot = DISPLAY_SLOT_NAMES[name];
+        if (slot === undefined) {
+            reader.setCursor(start);
+            fail(reader, `Unknown display slot '${name}'`);
+        }
+        return slot;
+    });
 
 /**
  * A value list the server fills at runtime over `UpdateSoftEnumPacket`.
