@@ -72,6 +72,7 @@ describe('the config file a boot generates', () => {
         'java-enabled',
         'java-port',
         'account-linking',
+        'server-udp-ports',
         'enable-server-public-ip-lookup',
         'enable-lan-visibility',
         'packet-compression-level',

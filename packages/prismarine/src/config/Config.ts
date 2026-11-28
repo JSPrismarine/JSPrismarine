@@ -677,8 +677,10 @@ export class Config {
         this.accountLinking = read('account-linking', DEFAULTS['account-linking']);
         // Written with server-port's value, so the file shows where NetherNet's UDP goes and a file
         // from before the key keeps it on its own server-port. A value equal to the file's
-        // server-port follows a server port given at runtime.
-        const fileUdpPorts = read('server-udp-ports', String(filePort));
+        // server-port follows a server port given at runtime. A server-port of 0, which asks the
+        // system for a free port, is no port server-udp-ports takes, so the key is left empty
+        // and NetherNet follows whichever port the server is given.
+        const fileUdpPorts = read('server-udp-ports', filePort > 0 ? String(filePort) : DEFAULTS['server-udp-ports']);
         this.serverUdpPorts =
             this.serverPortOverride !== undefined && fileUdpPorts.trim() === String(filePort)
                 ? DEFAULTS['server-udp-ports']

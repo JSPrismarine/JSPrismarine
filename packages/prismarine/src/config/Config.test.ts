@@ -63,6 +63,17 @@ describe('config', () => {
             expect(reread.getServerUdpPorts()).toBe('19200');
         });
 
+        it('leaves server-udp-ports empty for a file whose server-port asks for any free port', async () => {
+            const file = path.join(configDirectory, 'config.json');
+            writeFileSync(file, `{ "schemaVersion": ${CONFIG_SCHEMA_VERSION}, "server-port": 0 }\n`);
+            const reread = new Config();
+            await reread.enable();
+
+            // 0 is no port server-udp-ports takes: the server refused to start with it.
+            expect(readFileSync(file, 'utf8')).toContain('"server-udp-ports": ""');
+            expect(reread.getServerUdpPorts()).toBe('');
+        });
+
         it('lets a server-udp-ports equal to server-port follow a server port given at runtime', async () => {
             const overridden = new Config({ serverPort: 0 });
             await overridden.enable();
