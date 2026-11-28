@@ -34,11 +34,13 @@ import {
     nbtCompoundArgument,
     nbtPathArgument,
     nbtTagArgument,
+    objectiveCriteriaArgument,
     operationArgument,
     positionArgument,
     relativeValueArgument,
     resourceArgument,
     scoreHolderArgument,
+    scoreboardSlotArgument,
     slotSourceArgument,
     stringArgument,
     timeArgument
@@ -329,11 +331,13 @@ const javaArgumentType = (
             return itemPredicateArgument();
         case 'minecraft:slot_source':
             return slotSourceArgument();
+        case 'minecraft:objective_criteria':
+            return objectiveCriteriaArgument(commands.getContent().statistics);
+        case 'minecraft:scoreboard_slot':
+            return scoreboardSlotArgument();
         case 'minecraft:block_predicate':
         case 'minecraft:item_slot':
         case 'minecraft:objective':
-        case 'minecraft:objective_criteria':
-        case 'minecraft:scoreboard_slot':
         case 'minecraft:style':
         case 'minecraft:heightmap':
         case 'minecraft:feature':

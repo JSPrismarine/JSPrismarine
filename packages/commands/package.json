@@ -21,6 +21,11 @@
                 "import": "./dist/commands/support.js",
                 "module": "./dist/commands/support.js"
             },
+            "./criteria": {
+                "types": "./dist/criteria.d.ts",
+                "import": "./dist/criteria.js",
+                "module": "./dist/criteria.js"
+            },
             "./flatten": {
                 "types": "./dist/flatten.d.ts",
                 "import": "./dist/flatten.js",
@@ -79,6 +84,10 @@
         "./commands/support": {
             "jsprismarine:dist": "./dist/commands/support.js",
             "default": "./src/commands/support.ts"
+        },
+        "./criteria": {
+            "jsprismarine:dist": "./dist/criteria.js",
+            "default": "./src/criteria.ts"
         },
         "./flatten": {
             "jsprismarine:dist": "./dist/flatten.js",
