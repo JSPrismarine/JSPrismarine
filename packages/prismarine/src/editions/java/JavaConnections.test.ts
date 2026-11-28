@@ -1,4 +1,4 @@
-import { constants, publicEncrypt, randomBytes } from 'node:crypto';
+import { constants, createHash, publicEncrypt, randomBytes } from 'node:crypto';
 
 import {
     AcknowledgeFinishConfiguration,
@@ -8,6 +8,9 @@ import {
     ConfigurationClientboundKeepAlive,
     ConfigurationClientInformation,
     ConfigurationDisconnect,
+    ConfigurationResourcePackPush,
+    ConfigurationResourcePackResponse,
+    JavaResourcePackAction,
     ConfigurationServerboundKeepAlive,
     FeatureFlags,
     FinishConfiguration,
@@ -82,6 +85,9 @@ import type { ShownDimension } from '../../player/presenter/SessionPresenter';
 import type { SessionPlayer } from '../../player/sessionPlayers';
 import { ConnectionIds } from '../../network/transport/ConnectionId';
 import { TcpTransport } from '../../network/transport/TcpTransport';
+import type { JavaResourcePack } from '../../resourcePacks/JavaResourcePacks';
+import { javaResourcePackOffer } from '../../resourcePacks/javaResourcePackOffer';
+import type { JavaResourcePackOffer } from './javaResourcePack';
 import type { JavaProfile } from './javaAuth';
 import { offlineUuid, serverHash } from '@jsprismarine/protocol/java/javaIdentity';
 import { JavaConnections } from './JavaConnections';
@@ -128,8 +134,14 @@ describe('JavaConnections', () => {
     const listen = async ({
         onlineMode = false,
         mojang,
-        keepAliveTimer
-    }: { onlineMode?: boolean; mojang?: JavaProfile; keepAliveTimer?: KeepAliveTimer } = {}) => {
+        keepAliveTimer,
+        resourcePacks
+    }: {
+        onlineMode?: boolean;
+        mojang?: JavaProfile;
+        keepAliveTimer?: KeepAliveTimer;
+        resourcePacks?: JavaResourcePackOffer;
+    } = {}) => {
         warned.length = 0;
         warning = Promise.withResolvers<string>();
         asked.length = 0;
@@ -141,6 +153,7 @@ describe('JavaConnections', () => {
             compressionThreshold: () => 256,
             keepAliveIntervalMs: () => 15_000,
             ...(keepAliveTimer === undefined ? {} : { keepAliveTimer }),
+            ...(resourcePacks === undefined ? {} : { resourcePacks }),
             enforcesSecureChat: () => false,
             hasJoined: async (name, hash) => {
                 asked.push({ name, hash });
@@ -240,6 +253,74 @@ describe('JavaConnections', () => {
             reason: 'This server does not take Java Edition players yet.'
         });
         await java.closed;
+    });
+
+    describe('the resource pack exchange', () => {
+        const bytes = new TextEncoder().encode('a converted pack');
+        const pack: JavaResourcePack = {
+            id: '00000000-0000-4000-8000-0000000000aa',
+            key: 'k'.repeat(64),
+            sha1: createHash('sha1').update(bytes).digest('hex'),
+            bytes
+        };
+        const offering = (required: boolean) =>
+            javaResourcePackOffer({
+                packs: { current: async () => pack },
+                baseUrl: () => '',
+                required: () => required,
+                log: quiet
+            });
+
+        /** A client configured up to the server's pack, which it is pushed after the tags. */
+        const pushed = async (port: number) => {
+            const java = await configuring(port);
+            await java.receive(ClientboundPluginMessage);
+            await java.receive(FeatureFlags);
+            const { packs } = await java.receive(ClientboundKnownPacks);
+            java.send(ServerboundKnownPacks, { packs });
+            for (let i = 0; i < CONFIGURATION.registries.length; i++) await java.receive(RegistryData);
+            await java.receive(UpdateTags);
+            return { java, push: await java.receive(ConfigurationResourcePackPush) };
+        };
+
+        it('pushes the pack at the address the client dialed and finishes once the client loaded it', async () => {
+            const port = await listen({ resourcePacks: offering(true) });
+            const { java, push } = await pushed(port);
+
+            expect(push).toEqual({
+                id: pack.id,
+                url: `http://localhost:${port}/resource-packs/${pack.sha1}.zip`,
+                hash: pack.sha1,
+                required: true,
+                prompt: null
+            });
+            java.send(ConfigurationResourcePackResponse, { id: pack.id, action: JavaResourcePackAction.Accepted });
+            java.send(ConfigurationResourcePackResponse, { id: pack.id, action: JavaResourcePackAction.Downloaded });
+            java.send(ConfigurationResourcePackResponse, {
+                id: pack.id,
+                action: JavaResourcePackAction.SuccessfullyLoaded
+            });
+            await java.receive(FinishConfiguration);
+        });
+
+        it('turns away a client that declines a required pack, in vanilla words', async () => {
+            const { java } = await pushed(await listen({ resourcePacks: offering(true) }));
+
+            java.send(ConfigurationResourcePackResponse, { id: pack.id, action: JavaResourcePackAction.Declined });
+
+            expect(await java.receive(ConfigurationDisconnect)).toEqual({
+                reason: { translate: 'multiplayer.requiredTexturePrompt.disconnect' }
+            });
+            await java.closed;
+        });
+
+        it('lets a client that declines or cannot download an optional pack join without it', async () => {
+            const { java } = await pushed(await listen({ resourcePacks: offering(false) }));
+
+            java.send(ConfigurationResourcePackResponse, { id: pack.id, action: JavaResourcePackAction.Declined });
+
+            await java.receive(FinishConfiguration);
+        });
     });
 
     it('pings a configuring client, and drops one that leaves a ping unanswered', async () => {

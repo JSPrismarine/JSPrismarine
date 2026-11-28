@@ -93,6 +93,7 @@ import {
     serializeAddonsLockFile
 } from '../../packages/prismarine/src/addons/addonFiles.ts';
 import { ADDON_ARCHIVE_EXTENSIONS } from '../../packages/prismarine/src/addons/addonSpec.ts';
+import { JAVA_PACK_CACHE_DIRECTORY } from '../../packages/prismarine/src/resourcePacks/javaPackCache.ts';
 import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
 import { CommandPermissionLevel } from '../../packages/minecraft/src/CommandPermissionLevel.ts';
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
@@ -1367,6 +1368,7 @@ async function addonFacts() {
         'addons.lockFile': inlineCode(ADDONS_LOCK_FILE),
         'addons.lockfileVersion': inlineCode(String(ADDONS_LOCKFILE_VERSION)),
         'addons.directory': inlineCode(`${ADDONS_DIRECTORY}/`),
+        'javaPacks.cacheDirectory': inlineCode(`${JAVA_PACK_CACHE_DIRECTORY}/`),
         'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE),
         'addons.archiveExtensions': list(ADDON_ARCHIVE_EXTENSIONS.map(inlineCode), 'or'),
         // Plain, since the docs build also reads it to write each addon's install command.

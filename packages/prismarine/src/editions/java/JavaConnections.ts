@@ -28,6 +28,8 @@ import { JavaPacketHandlers } from './handler/JavaPacketHandler';
 import { LOGIN_HANDLERS } from './handler/loginHandlers';
 import { PLAY_HANDLERS } from './handler/playHandlers';
 import { STATUS_HANDLERS } from './handler/statusHandlers';
+import type { JavaResourcePackOffer } from './javaResourcePack';
+import { RESOURCE_PACK_HANDLERS, updateResourcePack } from './javaResourcePack';
 import { hasJoined } from './javaAuth';
 import { JavaConnection } from './JavaConnection';
 import type { JavaPlayers } from './javaPlayers';
@@ -66,6 +68,8 @@ export interface JavaLoginOptions {
     readonly log: Pick<Logger, 'debug' | 'info' | 'warn'>;
     /** The world a player who reaches play is shown; without one, the join ends there. */
     readonly world?: JavaWorldHost;
+    /** The converted resource pack a client is pushed as it configures; none when absent. */
+    readonly resourcePacks?: JavaResourcePackOffer;
 }
 
 /** What `Login (play)` tells a client of the level its player joins. */
@@ -97,6 +101,7 @@ export const JAVA_HANDLERS = new JavaPacketHandlers([
     ...STATUS_HANDLERS,
     ...LOGIN_HANDLERS,
     ...CONFIGURATION_HANDLERS,
+    ...RESOURCE_PACK_HANDLERS,
     ...PLAY_HANDLERS
 ]);
 
@@ -154,6 +159,18 @@ export class JavaConnections {
             if (connection?.phase === 'play') await this.options.world?.players.leave(id);
         });
         transport.onFrame((frame, id) => this.receive(frame, id));
+    }
+
+    /**
+     * Brings every client in play up to the server's current resource pack, after the installed
+     * packs changed: Java applies a new pack while the player plays, which Bedrock cannot.
+     */
+    public async updateResourcePacks(): Promise<void> {
+        const offer = this.options.resourcePacks;
+        if (offer === undefined) return;
+        for (const connection of this.connections.values()) {
+            if (connection.phase === 'play' && !connection.closed) await updateResourcePack(connection, offer);
+        }
     }
 
     private async receive(frame: Buffer, id: ConnectionId): Promise<void> {

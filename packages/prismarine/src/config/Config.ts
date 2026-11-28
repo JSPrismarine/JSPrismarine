@@ -1,6 +1,7 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import { isLogLevel } from '@jsprismarine/logger/levels';
 
+import { JAVA_PACK_CACHE_DIRECTORY } from '../resourcePacks/javaPackCache';
 import { isRecord } from '../utils/isRecord';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
@@ -141,6 +142,7 @@ const COMMENTS = {
         "Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's texturepack-required. On, a player who declines them is disconnected. Off, a player may join without them.",
     'disable-client-vibrant-visuals':
         "Whether to tell joining Bedrock players to use the next best graphics setting instead of Vibrant Visuals, as Bedrock Dedicated Server's disable-client-vibrant-visuals.",
+    'java-resource-pack-url': `The base URL Java Edition clients download the converted resource pack from, for a server behind a CDN or a proxy that does not pass HTTP. Each pack is <base>/<sha1>.zip, named by the SHA-1 of its zip rather than by its file in ${JAVA_PACK_CACHE_DIRECTORY}/, which is named by what it was converted from; the console names each file and the name to upload it under, beside the older ones. The server checks the URL when a player joins and when the packs change, at most once a minute, and offers a new pack once it serves it. Empty, the server serves the pack from its own Java port.`,
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
@@ -313,6 +315,7 @@ const DEFAULTS = {
     'enable-lan-visibility': true,
     'texturepack-required': false,
     'disable-client-vibrant-visuals': false,
+    'java-resource-pack-url': '',
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
@@ -508,6 +511,7 @@ export class Config {
     private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
     private texturepackRequired: boolean = DEFAULTS['texturepack-required'];
     private disableClientVibrantVisuals: boolean = DEFAULTS['disable-client-vibrant-visuals'];
+    private javaResourcePackUrl: string = DEFAULTS['java-resource-pack-url'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
@@ -686,6 +690,7 @@ export class Config {
             'disable-client-vibrant-visuals',
             DEFAULTS['disable-client-vibrant-visuals']
         );
+        this.javaResourcePackUrl = read('java-resource-pack-url', DEFAULTS['java-resource-pack-url']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
@@ -1303,6 +1308,11 @@ export class Config {
     /** Whether joining Bedrock players are told to use another graphics setting than Vibrant Visuals. */
     public getDisableClientVibrantVisuals(): boolean {
         return this.disableClientVibrantVisuals;
+    }
+
+    /** The base URL Java clients download the converted resource pack from, or empty for the server's own Java port. */
+    public getJavaResourcePackUrl(): string {
+        return this.javaResourcePackUrl;
     }
 
     /**

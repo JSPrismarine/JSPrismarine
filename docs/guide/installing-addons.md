@@ -327,8 +327,34 @@ Dedicated Server, to make the packs a condition of joining: the game then downlo
 asking, and a player who declines is disconnected.
 
 The packs stack in the order of the local names, and inside an addon in the order of their
-folders, except that a pack goes above the packs it depends on. A player online when a resource
-pack installs gets it the next time they join.
+folders, except that a pack goes above the packs it depends on. A Bedrock player online when a
+resource pack installs gets it the next time they join.
+
+### On Java Edition
+
+Java Edition players get the same packs converted into one Java resource pack, which they
+download as they join, from the server's own Java port. The converted pack holds what a vanilla
+Java client can draw: the textures, with a pack's retextured vanilla blocks and items applied to
+Java's own, their animations, the translations, the sounds that ship as Ogg Vorbis and the glyph
+fonts. [`@jsprismarine/java-packs`](../../packages/java-packs/README.md) lists what converts and
+what it leaves out, and the console names what each pack lost.
+
+The server converts the packs once each time they change and keeps the result in
+<!-- fact:javaPacks.cacheDirectory -->`cache/java-packs/`<!-- /fact --> in the server's folder, so a
+restart with the same addons converts nothing and a returning player's game skips the download.
+The folder can be deleted at any time. `texturepack-required` applies to Java players too: one who
+declines the pack is disconnected. A Java player online when the packs change gets the new pack at
+once, and keeps the old one until the new one has loaded.
+
+A server behind a CDN, or behind a proxy that passes no HTTP, sets `java-resource-pack-url` to a
+base URL instead. Each pack is then `<base>/<sha1>.zip`, named by the SHA-1 of its zip. The file
+in <!-- fact:javaPacks.cacheDirectory -->`cache/java-packs/`<!-- /fact --> is named by what it was
+converted from instead, so the console names each file and the name to upload it under. Upload
+it beside the older ones, and remove an older one only once no player online was offered it.
+
+The server checks the URL when a player joins and when the installed packs change, at most once a
+minute, and offers the new pack from the first check that finds it. A player who joined while the
+URL did not serve it yet keeps the pack before it until they join again or the packs change.
 
 Set `disable-client-vibrant-visuals` to `true` to tell joining players to use the next best
 graphics setting instead of Vibrant Visuals, as the Bedrock Dedicated Server setting of the same

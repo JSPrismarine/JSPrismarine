@@ -28,7 +28,10 @@ export const statusJson = (status: JavaStatusSource, enforcesSecureChat: boolean
 
 /** The handshake, the status request and the ping. */
 export const STATUS_HANDLERS: readonly JavaPacketHandler[] = [
-    javaHandler(Intention, async ({ protocolVersion, intent }, { connection }) => {
+    javaHandler(Intention, async ({ protocolVersion, intent, serverAddress, serverPort }, { connection }) => {
+        // A modded client appends its loader's marker after a NUL, and a trailing dot can end a
+        // fully qualified name; neither is part of the address the client dialed.
+        connection.address = { host: serverAddress.split('\0')[0]!.replace(/\.$/, ''), port: serverPort };
         if (intent === ClientIntent.Status) {
             connection.phase = 'status';
             return;

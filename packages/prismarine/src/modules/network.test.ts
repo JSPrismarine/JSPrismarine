@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { JavaResourcePacks } from '../resourcePacks/JavaResourcePacks';
 import { TransportNames } from '../network/transport/Transport';
 import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
@@ -52,6 +53,15 @@ const addonPlugins = (addons: readonly LoadedAddon[]): PluginRegistry => {
 
 /** The native WebRTC stack, or undefined on a machine with no build of it. */
 const driver = await loadNativeDriver().catch(() => undefined);
+
+/** The Java resource packs of a server with no addon resource packs, which offers Java clients none. */
+const noJavaResourcePacks = (): JavaResourcePacks =>
+    new JavaResourcePacks({
+        bedrock: async () => [],
+        target: { release: '26.3', format: [97, 1] },
+        cacheDirectory: path.join(os.tmpdir(), 'jsprismarine-no-java-packs'),
+        log: { info: () => {}, debug: () => {} }
+    });
 
 describe('modules/network', () => {
     it('provides the networking the server constructed under the network token', async () => {
@@ -281,6 +291,7 @@ describe('modules/network', () => {
         const config = server.getConfig();
         return stub<Server>({
             ...server,
+            getJavaResourcePacks: noJavaResourcePacks,
             getConfig: () =>
                 Object.assign(Object.create(config), { getJavaEnabled: () => true, getJavaPort: () => javaPort })
         });
@@ -565,6 +576,7 @@ describe('modules/network', () => {
     ) =>
         stub<Server>({
             getKernel: kernelDouble,
+            getJavaResourcePacks: noJavaResourcePacks,
             getConfig: () =>
                 stub<Config>({
                     getEnableQuery: () => true,
