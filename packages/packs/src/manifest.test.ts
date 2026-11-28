@@ -48,6 +48,27 @@ describe('parseManifest', () => {
         expect(parseManifest(valid(), 'test').manifest).not.toHaveProperty('productType');
     });
 
+    it('reads capabilities and subpacks, leaving out a subpack with no folder name', () => {
+        const { manifest } = parseManifest(
+            {
+                ...valid(),
+                capabilities: ['raytraced', 7],
+                subpacks: [
+                    { folder_name: 'low', name: 'Low', memory_tier: 0 },
+                    { folder_name: 'high' },
+                    { name: 'No folder' }
+                ]
+            },
+            'test'
+        );
+        expect(manifest?.capabilities).toEqual(['raytraced']);
+        expect(manifest?.subpacks).toEqual([
+            { folderName: 'low', name: 'Low' },
+            { folderName: 'high', name: 'high' }
+        ]);
+        expect(parseManifest(valid(), 'test').manifest).toMatchObject({ capabilities: [], subpacks: [] });
+    });
+
     it('requires format_version 2 for a data pack', () => {
         const { manifest, diagnostics } = parseManifest({ ...valid(), format_version: 1 }, 'test');
         expect(manifest).toBeUndefined();

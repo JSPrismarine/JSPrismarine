@@ -44,6 +44,27 @@ describe('readContentArchive', () => {
         ]);
     });
 
+    it("keeps the content key beside each of an .mcaddon's packs, nested or in a folder", () => {
+        const key = '0123456789abcdef0123456789abcdef';
+        const addon = writeZip(
+            new Map([
+                ['rp.mcpack', writeZip(files({ 'manifest.json': '{}' }))],
+                ['plain.mcpack', writeZip(files({ 'manifest.json': '{}' }))],
+                ...files({ 'rp.mcpack.key': key, 'BP/manifest.json': '{}', 'BP.key': key })
+            ])
+        );
+
+        const keys = readContentArchive(addon).members.map(({ name, key: found }) => [
+            name,
+            found === undefined ? undefined : new TextDecoder().decode(found)
+        ]);
+        expect(keys).toEqual([
+            ['rp.mcpack', key],
+            ['plain.mcpack', undefined],
+            ['BP/', key]
+        ]);
+    });
+
     it('lists a nested archive that is no pack as a problem and reads the rest', () => {
         const addon = writeZip(
             new Map([

@@ -19,6 +19,12 @@ export interface ArchiveMember {
     readonly kind: 'pack' | 'world';
     /** Its files, by their path inside it. */
     readonly files: Map<string, Uint8Array>;
+    /**
+     * The content key of an encrypted pack, from the file beside it in an `.mcaddon`:
+     * `<name>.key` for a nested `<name>`, such as `resources.mcpack.key`, or `<folder>.key` for a
+     * folder. Undefined when there is none, and always for an archive that is the member.
+     */
+    readonly key?: Uint8Array;
 }
 
 /** A nested file the archive names but that does not read as a pack or a world. */
@@ -142,13 +148,15 @@ export const readContentArchive = (bytes: Uint8Array, options: ContentArchiveOpt
             problems.push({ name, message: `${name} has no manifest.json or level.dat` });
             continue;
         }
-        members.push({ name, ...nested });
+        const key = entries.get(`${name}.key`);
+        members.push({ name, ...nested, ...(key === undefined ? {} : { key }) });
     }
     const folders = [...new Set([...entries.keys()].filter((name) => name.includes('/')).map(rootOf))].sort();
     for (const root of folders) {
         const files = inside(entries, root);
         const kind = kindAtRoot(files);
-        if (kind !== undefined) members.push({ name: `${root}/`, kind, files });
+        const key = entries.get(`${root}.key`);
+        if (kind !== undefined) members.push({ name: `${root}/`, kind, files, ...(key === undefined ? {} : { key }) });
     }
     return { members, problems };
 };

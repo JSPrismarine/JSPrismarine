@@ -24,6 +24,14 @@ export interface ManifestDependency {
     version: FormatVersion;
 }
 
+/** One entry of a resource pack's `subpacks`: a folder under `subpacks/` the pack can be applied with. */
+export interface ManifestSubpack {
+    /** `folder_name`, the subpack's folder under `subpacks/`, which a world picks it by. */
+    folderName: string;
+    /** `name`, what the client shows for it. */
+    name: string;
+}
+
 /** A parsed and validated `manifest.json`. */
 export interface Manifest {
     formatVersion: number;
@@ -35,6 +43,10 @@ export interface Manifest {
      * Server marks a resource pack whose manifest says `addon` as an addon pack when it offers it.
      */
     productType?: string;
+    /** `capabilities`, such as `raytraced` or `pbr`; empty when the manifest lists none. */
+    capabilities: string[];
+    /** `subpacks`, in manifest order; empty when the manifest lists none. */
+    subpacks: ManifestSubpack[];
 }
 
 const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -108,13 +120,32 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
             ? value.metadata.product_type
             : undefined;
 
+    // Neither is validated: the client reads them, and a malformed entry only loses itself.
+    const capabilities = Array.isArray(value.capabilities)
+        ? value.capabilities.filter((each): each is string => typeof each === 'string')
+        : [];
+    const subpacks = Array.isArray(value.subpacks)
+        ? value.subpacks.flatMap((entry: unknown): ManifestSubpack[] =>
+              isRecord(entry) && typeof entry.folder_name === 'string' && entry.folder_name.length > 0
+                  ? [
+                        {
+                            folderName: entry.folder_name,
+                            name: typeof entry.name === 'string' ? entry.name : entry.folder_name
+                        }
+                    ]
+                  : []
+          )
+        : [];
+
     return {
         manifest: {
             formatVersion: expectedFormatVersion,
             header: { name: header.name, uuid: header.uuid, version: headerVersion, minEngineVersion },
             modules,
             dependencies,
-            ...(productType === undefined ? {} : { productType })
+            ...(productType === undefined ? {} : { productType }),
+            capabilities,
+            subpacks
         },
         diagnostics
     };
