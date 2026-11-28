@@ -122,11 +122,6 @@ const replayAt = async (protocol: number): Promise<Replayed[]> => {
  */
 const DEFERRED: readonly { readonly scenario: string; readonly shows: string; readonly issue: string }[] = [
     {
-        scenario: 'change-dimension',
-        shows: 'extra PlayStatusPacket',
-        issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3882'
-    },
-    {
         scenario: 'open-chest',
         shows: "InventoryContentPacket's containerId",
         issue: 'https://github.com/JSPrismarine/JSPrismarine/issues/3883'

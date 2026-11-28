@@ -44,6 +44,7 @@ const worldOf = (dimension: DimensionType): World =>
     stub<World>({
         getName: () => `${dimension.name} world`,
         getDimension: () => dimension,
+        getSeaLevel: () => 63,
         addPlayer: async () => {},
         broadcastMove: async () => {},
         getSpawnPosition: async () => new Position(8, 70, 8, target()),
@@ -158,10 +159,12 @@ describe(FAMILIES.protocolDimensionChange, () => {
     it('captures the sequence the client expects, with the arrival chunk carrying the target dimension', () => {
         expect(names).toContain('RemoveActorPacket');
         expect(names.indexOf('ChangeDimensionPacket')).toBeGreaterThan(names.indexOf('RemoveActorPacket'));
-        expect(names.indexOf('StopSoundPacket')).toBeGreaterThan(names.indexOf('ChangeDimensionPacket'));
-        expect(names.indexOf('NetworkChunkPublisherUpdatePacket')).toBeGreaterThan(names.indexOf('StopSoundPacket'));
-        expect(names.indexOf('PlayerActionPacket')).toBeGreaterThan(names.indexOf('NetworkChunkPublisherUpdatePacket'));
-        expect(names.indexOf('PlayStatusPacket')).toBeGreaterThan(names.indexOf('PlayerActionPacket'));
+        // As every pinned server's `change-dimension` exchange has it: the ack after the change,
+        // and neither `StopSound` nor `PlayStatus`.
+        expect(names.indexOf('PlayerActionPacket')).toBeGreaterThan(names.indexOf('ChangeDimensionPacket'));
+        expect(names.indexOf('NetworkChunkPublisherUpdatePacket')).toBeGreaterThan(names.indexOf('PlayerActionPacket'));
+        expect(names).not.toContain('StopSoundPacket');
+        expect(names).not.toContain('PlayStatusPacket');
 
         const change = sequence.find((packet) => packet instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);

@@ -194,20 +194,19 @@ describe('traveling through a nether portal on a real server', () => {
         expect(change.loadingScreenId).not.toBeNull();
         expect(ended[0]!.loadingScreenId).toBe(change.loadingScreenId);
 
-        // The order the portal note settles on: ChangeDimension, StopSound, the publisher
-        // update, the server-sent ack, the chunks, then PlayerSpawn.
+        // The order of every pinned server's `change-dimension` exchange: `ChangeDimension`, then
+        // the server-sent ack, with no `StopSound` and no `PlayerSpawn`. The ack goes ahead of
+        // the publisher update and the chunks.
         const serverAck = trip.findIndex(
             (p) => payloadOf(p, PlayerActionPacket)?.action === PlayerActionType.ChangeDimensionAck
         );
         const firstNetherChunk = trip.findIndex((p) => payloadOf(p, LevelChunkPacket)?.dimension === NETHER);
         const spawn = trip.findIndex((p) => payloadOf(p, PlayStatusPacket)?.status === PlayStatus.PlayerSpawn);
-        expect(indexOf(PacketIdentifier.CHANGE_DIMENSION)).toBeLessThan(indexOf(PacketIdentifier.STOP_SOUND));
-        expect(indexOf(PacketIdentifier.STOP_SOUND)).toBeLessThan(
-            indexOf(PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE)
-        );
-        expect(indexOf(PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE)).toBeLessThan(serverAck);
-        expect(serverAck).toBeLessThan(firstNetherChunk);
-        expect(spawn).toBeGreaterThan(serverAck);
+        expect(indexOf(PacketIdentifier.CHANGE_DIMENSION)).toBeLessThan(serverAck);
+        expect(serverAck).toBeLessThan(indexOf(PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE));
+        expect(indexOf(PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE)).toBeLessThan(firstNetherChunk);
+        expect(indexOf(PacketIdentifier.STOP_SOUND)).toBe(-1);
+        expect(spawn).toBe(-1);
 
         // Every chunk since the change is the Nether's; none of the Overworld's leaked through.
         const chunks = trip.flatMap((p) => payloadOf(p, LevelChunkPacket) ?? []);

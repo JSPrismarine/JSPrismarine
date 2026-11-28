@@ -9,6 +9,12 @@
                 "dimension": 1,
                 "respawn": false
             }
+        },
+        {
+            "name": "PlayerActionPacket",
+            "fields": {
+                "action": 14
+            }
         }
     ]
 }

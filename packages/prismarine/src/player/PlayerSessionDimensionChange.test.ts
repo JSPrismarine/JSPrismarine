@@ -147,7 +147,7 @@ describe('PlayerSession.changeWorld', () => {
         expect(player.pitch).toBe(10);
     });
 
-    it('sends the change in the order the client expects, with the arrival chunks queued', async () => {
+    it('sends the change as the pinned servers do, with the arrival chunks queued', async () => {
         const { session, player, sent } = fakePlayer();
         const mobId = player.getRuntimeId() + 1_000_000n;
         await session.considerEntity(
@@ -180,10 +180,11 @@ describe('PlayerSession.changeWorld', () => {
 
         expect(removal).toBeGreaterThanOrEqual(0);
         expect(change).toBeGreaterThan(removal);
-        expect(stopSound).toBeGreaterThan(change);
-        expect(publisher).toBeGreaterThan(stopSound);
-        expect(ack).toBeGreaterThan(publisher);
-        expect(spawn).toBeGreaterThan(ack);
+        expect(ack).toBeGreaterThan(change);
+        expect(publisher).toBeGreaterThan(ack);
+        // Neither is in the `change-dimension` capture of any pinned server.
+        expect(stopSound).toBe(-1);
+        expect(spawn).toBe(-1);
         expect(session.sender.size).toBeGreaterThan(0);
         expect(session.tracks(mobId)).toBe(false);
     });

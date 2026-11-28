@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Arrival } from '../../player/PlayerSession';
 import type PlayerSession from '../../player/PlayerSession';
+import type { SessionPresenter } from '../../player/presenter/SessionPresenter';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
@@ -21,7 +22,12 @@ import RespawnHandler from './RespawnHandler';
  * player cannot move.
  */
 const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld?: World } = {}) => {
-    const done: Array<{ state?: PlayerRespawnState; position?: Vector3; what?: string; arrival?: Arrival }> = [];
+    const done: Array<{
+        state?: PlayerRespawnState;
+        position?: { readonly x: number; readonly y: number; readonly z: number };
+        what?: string;
+        arrival?: Arrival;
+    }> = [];
     const world = stub<World>({});
     const standingAt = new Position(0, 64, 0, world);
     /** The respawn requests the handler filed, which {@link handle} answers as an input step would. */
@@ -35,7 +41,13 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
         session: stub<PlayerSession>({
             runtimeId: 7n,
             identity: identityNamed('tester'),
-            sendRespawn: async (position, state) => void done.push({ state, position }),
+            presenter: stub<SessionPresenter>({
+                showRespawnPoint: async ({ block, eyes }) => {
+                    if (block !== undefined)
+                        done.push({ state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: block });
+                    done.push({ state: PlayerRespawnState.READY_TO_SPAWN, position: eyes });
+                }
+            }),
             changeWorld: async (arrival) => void done.push({ what: 'changeWorld', arrival }),
             released: () => {},
             sendAttributes: async () => void done.push({ what: 'attributes' }),
@@ -82,7 +94,10 @@ describe('input/handlers/RespawnHandler', () => {
 
         await handle(fake);
 
-        expect(done[0]).toEqual({ state: PlayerRespawnState.READY_TO_SPAWN, position: standingAt });
+        expect(done[0]).toEqual({
+            state: PlayerRespawnState.READY_TO_SPAWN,
+            position: { x: standingAt.getX(), y: standingAt.getY(), z: standingAt.getZ() }
+        });
     });
 
     it('answers a dead player as a Bedrock server does: searching at the spawn block, then ready at its eyes', async () => {
@@ -94,8 +109,8 @@ describe('input/handlers/RespawnHandler', () => {
         await handle(fake);
 
         expect(done).toEqual([
-            { state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: new Vector3(100, 70, 100) },
-            { state: PlayerRespawnState.READY_TO_SPAWN, position: new Vector3(100, 71.62, 100) }
+            { state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: { x: 100, y: 70, z: 100 } },
+            { state: PlayerRespawnState.READY_TO_SPAWN, position: { x: 100, y: 71.62, z: 100 } }
         ]);
     });
 

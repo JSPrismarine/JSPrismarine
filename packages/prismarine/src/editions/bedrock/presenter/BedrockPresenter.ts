@@ -18,8 +18,10 @@ import type { Item } from '../../../item/Item';
 import { wireStackOf } from '../wireStack';
 import { armorPackets } from '../../../network/replica/firstSight';
 import { Vector3 } from '@jsprismarine/math';
-import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import { SetHealthPacket } from '@jsprismarine/protocol';
+import { Dimension, PlayerRespawnState } from '@jsprismarine/minecraft';
+import { PlayerActionType, PlayStatus, PlayStatusPacket, SetHealthPacket } from '@jsprismarine/protocol';
+import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
+import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
@@ -76,10 +78,13 @@ import type {
     ShownMessage,
     ShownMove,
     ShownObjective,
+    ShownRespawnPoint,
     ShownScore,
     ShownTime,
     ShownTitle,
-    ShownWorldSpawn
+    ShownWorldChange,
+    ShownWorldSpawn,
+    WorldChangeShown
 } from '../../../player/presenter/SessionPresenter';
 
 /**
@@ -137,6 +142,14 @@ export interface BedrockSessionState {
      * inventory.
      */
     readonly inventory?: BedrockInventoryState;
+    /** The loading screens the session waits on. Absent for a presenter built without a session. */
+    readonly loadingScreens?: BedrockLoadingScreens;
+}
+
+/** The loading screens a Bedrock client shows through a change of dimension. */
+export interface BedrockLoadingScreens {
+    /** Hands out the `Loading Screen Id` of a screen about to open, which the session waits on. */
+    begin(): number;
 }
 
 /** What a Bedrock presenter reads to show the player its own slots. */
@@ -153,6 +166,9 @@ export interface BedrockInventoryState {
      */
     openWindow(containerType: number): number;
 }
+
+/** The block position a `PlayerActionPacket` carries when the action has no block. */
+const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
 /** The context an item stack is written in. */
 type StackContext = ProtocolContext;
@@ -614,8 +630,107 @@ export class BedrockPresenter implements SessionPresenter {
         await this.connection.sendDataPacket(killTelemetryOf(kill));
     }
 
-    /** Sends nothing: the session runs Bedrock's respawn exchange and dimension change. */
+    /**
+     * True: a Bedrock client stands its player at the `ReadyToSpawn` position
+     * {@link showRespawnPoint} sent, and keeps its chunks.
+     */
+    public readonly placesItselfOnRespawn = true;
+
+    /** Sends nothing: a Bedrock client comes back where {@link showRespawnPoint} told it. */
     public async showRespawn(): Promise<void> {}
+
+    /**
+     * Sends the server's half of Bedrock's respawn exchange: `Respawn(SearchingForSpawn)` at the
+     * block, then `Respawn(ReadyToSpawn)` at the eyes, or the second alone without a block.
+     *
+     * Sending only `ReadyToSpawn` to a dead player leaves the client on "Respawning" for ever: it
+     * waits to be told where it comes back before it offers the button. `Player Runtime Id` is
+     * always 0, as in every `Respawn` the pinned servers send, at every protocol.
+     * @bdsSee respawn
+     */
+    public async showRespawnPoint({ block, eyes }: ShownRespawnPoint): Promise<void> {
+        const respawn = (position: ShownRespawnPoint['eyes'], state: PlayerRespawnState) =>
+            this.connection.sendDataPacket(new RespawnPacket({ position, state, runtimeEntityId: 0n }));
+        await Promise.all([
+            ...(block === undefined ? [] : [respawn(block, PlayerRespawnState.SEARCHING_FOR_SPAWN)]),
+            respawn(eyes, PlayerRespawnState.READY_TO_SPAWN)
+        ]);
+    }
+
+    /**
+     * Sends `ChangeDimension` under a new loading screen, and the server's
+     * `PlayerAction(ChangeDimensionAck)`, which the session's chunks follow. The client shows the
+     * screen until it has loaded into the new dimension, and the session waits for it to close.
+     *
+     * The pinned servers send no `StopSound` and no `PlayStatus` in this exchange, at every
+     * protocol: the client stops its sounds itself, and `PlayStatus(PlayerSpawn)` is the join's.
+     * They send the acknowledgment after the publisher updates that bring the chunks in. This
+     * sends it ahead of the chunks, which the client takes as well.
+     * @bdsSee change-dimension
+     *
+     * A client sent `ChangeDimension` into the dimension it is already in never closes the
+     * screen, so a move between two worlds of one Bedrock id first goes through another
+     * dimension and back, each step under a screen of its own.
+     */
+    public showWorldChange({ from, dimension, eyes, keepData }: ShownWorldChange): WorldChangeShown {
+        const sends: Promise<void>[] = [];
+        if (from.bedrockId === dimension.bedrockId) sends.push(this.detourFrom(dimension.bedrockId, eyes));
+        const loadingScreen = this.loadingScreens().begin();
+        sends.push(
+            this.connection.sendDataPacket(
+                new ChangeDimensionPacket({
+                    dimension: dimension.bedrockId,
+                    position: new Vector3(eyes.x, eyes.y, eyes.z),
+                    respawn: !keepData,
+                    loadingScreenId: loadingScreen
+                })
+            ),
+            // Since 1.19.50 the server sends the acknowledgment that used to be the client's; the
+            // client still answers with its own copy afterwards.
+            this.connection.sendDataPacket(
+                new PlayerActionPacket({
+                    runtimeEntityId: this.state.runtimeId,
+                    action: PlayerActionType.ChangeDimensionAck,
+                    blockPosition: NO_BLOCK,
+                    resultPosition: NO_BLOCK,
+                    blockFace: 0
+                })
+            )
+        );
+        return { sent: Promise.all(sends).then(() => undefined), loadingScreen };
+    }
+
+    /**
+     * The detour {@link showWorldChange} takes between two worlds of one Bedrock id: the current
+     * id, another and that other again, each with its own screen and spawn status, ahead of the
+     * real `ChangeDimension`.
+     */
+    private detourFrom(bedrockId: number, eyes: ShownWorldChange['eyes']): Promise<void> {
+        const away = bedrockId === Dimension.NETHER ? Dimension.OVERWORLD : Dimension.NETHER;
+        const position = new Vector3(eyes.x, eyes.y, eyes.z);
+        const sends: Promise<void>[] = [];
+        for (const dimension of [bedrockId, away, away]) {
+            sends.push(
+                this.connection.sendDataPacket(
+                    new ChangeDimensionPacket({
+                        dimension,
+                        position,
+                        respawn: false,
+                        loadingScreenId: this.loadingScreens().begin()
+                    })
+                ),
+                this.connection.sendDataPacket(new PlayStatusPacket({ status: PlayStatus.PlayerSpawn }))
+            );
+        }
+        return Promise.all(sends).then(() => undefined);
+    }
+
+    /** The session's loading screens, which a presenter built without a session lacks. */
+    private loadingScreens(): BedrockLoadingScreens {
+        const screens = this.state.loadingScreens;
+        if (screens === undefined) throw new PrismarineNetworkErrors.PresenterHasNoSession();
+        return screens;
+    }
 
     /** Sends one `PlayerList` Add with every entry. */
     public async sendPlayerList(players: readonly ListedPlayer[]): Promise<void> {
