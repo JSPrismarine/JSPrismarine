@@ -149,7 +149,8 @@ describe('convertResourcePacks', () => {
             animations: 1,
             languages: 2,
             sounds: 1,
-            glyphSheets: 1
+            glyphSheets: 1,
+            items: 0
         });
         expect(report!.notes.map(({ path, outcome }) => `${outcome} ${path}`)).toEqual([
             'unsupported animations',
@@ -265,5 +266,84 @@ describe.skipIf(!enabled)('the vanilla Bedrock resource pack', { tags: ['real-da
         expect(report!.converted.textures).toBeGreaterThanOrEqual(tgas);
         expect(report!.converted.animations).toBeGreaterThan(0);
         expect(converted.files.has('assets/bedrock/lang/en_us.json')).toBe(true);
+    });
+});
+
+describe('custom items', () => {
+    const lamps = pack('Lamps', {
+        'manifest.json': {},
+        'textures/items/lamp.png': png(),
+        'textures/loopback/chair_icon.tga': tga(),
+        'textures/item_texture.json': {
+            resource_pack_name: 'lamps',
+            texture_data: {
+                lamp: { textures: 'textures/items/lamp' },
+                chair: { textures: ['textures/loopback/chair_icon.tga'] },
+                ghost: { textures: 'textures/items/ghost' }
+            }
+        }
+    });
+    const items = [
+        { model: 'loopback:lamp', icon: 'lamp' },
+        { model: 'loopback:chair', icon: 'chair' },
+        { model: 'loopback:ghost', icon: 'ghost' },
+        { model: 'loopback:unnamed', icon: 'unnamed' }
+    ];
+    const converted = convertResourcePacks([lamps], target, { items });
+
+    it("writes each item's definition and a flat model over its icon's texture", () => {
+        expect(text(converted.files.get('assets/loopback/items/lamp.json'))).toEqual({
+            model: { type: 'minecraft:model', model: 'loopback:item/lamp' }
+        });
+        expect(text(converted.files.get('assets/loopback/models/item/lamp.json'))).toEqual({
+            parent: 'minecraft:item/generated',
+            textures: { layer0: 'bedrock:items/lamp' }
+        });
+        expect(text(converted.files.get('assets/loopback/models/item/chair.json'))).toEqual({
+            parent: 'minecraft:item/generated',
+            textures: { layer0: 'bedrock:loopback/chair_icon' }
+        });
+    });
+
+    it('stitches a texture outside the items folder into the item atlas by name', () => {
+        expect(text(converted.files.get('assets/minecraft/atlases/items.json'))).toEqual({
+            sources: [
+                { type: 'directory', source: 'items', prefix: 'items/' },
+                { type: 'single', resource: 'bedrock:loopback/chair_icon' }
+            ]
+        });
+    });
+
+    it('reports an item whose icon the stack does not name or hold, and writes nothing for it', () => {
+        expect(converted.files.has('assets/loopback/items/ghost.json')).toBe(false);
+        expect(converted.files.has('assets/loopback/items/unnamed.json')).toBe(false);
+        const [report] = converted.report;
+        expect(report?.converted.items).toBe(2);
+        expect(report?.notes).toEqual(
+            expect.arrayContaining([
+                {
+                    path: 'textures/item_texture.json',
+                    outcome: 'unreadable',
+                    reason: 'no item texture is named unnamed, the icon of loopback:unnamed'
+                },
+                {
+                    path: 'textures/items/ghost',
+                    outcome: 'unreadable',
+                    reason: 'textures/items/ghost, the icon of loopback:ghost, is not a texture the stack holds'
+                }
+            ])
+        );
+    });
+
+    it('takes an icon name from the highest pack that names it', () => {
+        const override = pack('Override', {
+            'manifest.json': {},
+            'textures/items/lamp_lit.png': png(),
+            'textures/item_texture.json': { texture_data: { lamp: { textures: 'textures/items/lamp_lit' } } }
+        });
+        const stacked = convertResourcePacks([override, lamps], target, { items: [items[0]!] });
+        expect(text(stacked.files.get('assets/loopback/models/item/lamp.json'))).toMatchObject({
+            textures: { layer0: 'bedrock:items/lamp_lit' }
+        });
     });
 });
