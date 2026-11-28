@@ -265,9 +265,9 @@ export const furnaceFamily = defineFamily(
  * The cauldron, which holds one of three liquids.
  *
  * A bucket moves the whole six levels and a bottle moves two, so three
- * bottles fill what one bucket does. What the exchange gives back goes on the
- * ground, because `WorldActions` has no inventory to put it in; the server
- * picks it up from the drop or replaces the stack itself.
+ * bottles fill what one bucket does. The container the exchange gives back is
+ * named in the answer's `heldItemBecomes`, because `WorldActions` has no
+ * inventory to put it in, and the server swaps it for the one in hand.
  */
 export const cauldronFamily = defineFamily(
     'jsprismarine:cauldron',
@@ -281,17 +281,15 @@ export const cauldronFamily = defineFamily(
             if (poured !== undefined) {
                 if (level >= CAULDRON_FULL) return undefined;
                 setStates(world, event.block, { fill_level: CAULDRON_FULL, cauldron_liquid: poured });
-                world.dropItem(event.block.position, { identifier: 'minecraft:bucket', count: 1 });
                 world.playSound(event.block.position, liquidSounds(poured).empty);
-                return true;
+                return { consumed: true, heldItemBecomes: 'minecraft:bucket' };
             }
 
             if (isEmptyBucket(event.itemStack)) {
                 if (level < CAULDRON_FULL) return undefined;
                 setStates(world, event.block, { fill_level: 0 });
-                world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
                 world.playSound(event.block.position, liquidSounds(liquid).fill);
-                return true;
+                return { consumed: true, heldItemBecomes: bucketOf(liquid) };
             }
 
             // A bottle only ever carries water, so lava and powder snow are
@@ -301,9 +299,8 @@ export const cauldronFamily = defineFamily(
             if (isGlassBottle(event.itemStack)) {
                 if (level < CAULDRON_BOTTLE_LEVELS) return undefined;
                 setStates(world, event.block, { fill_level: level - CAULDRON_BOTTLE_LEVELS });
-                world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
                 world.playSound(event.block.position, 'bucket.fill_water');
-                return true;
+                return { consumed: true, heldItemBecomes: 'minecraft:potion' };
             }
 
             if (isWaterBottle(event.itemStack)) {
@@ -312,9 +309,8 @@ export const cauldronFamily = defineFamily(
                     fill_level: level + CAULDRON_BOTTLE_LEVELS,
                     cauldron_liquid: 'water'
                 });
-                world.dropItem(event.block.position, { identifier: 'minecraft:glass_bottle', count: 1 });
                 world.playSound(event.block.position, 'bucket.empty_water');
-                return true;
+                return { consumed: true, heldItemBecomes: 'minecraft:glass_bottle' };
             }
 
             return undefined;

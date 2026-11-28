@@ -85,7 +85,8 @@ const BLOCKS = [
     'minecraft:unpowered_comparator',
     'minecraft:short_grass',
     'minecraft:trapdoor',
-    'minecraft:lantern'
+    'minecraft:lantern',
+    'minecraft:cauldron'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -843,6 +844,58 @@ describe('useItemOnBlock', () => {
 
         expect(click(playerHolding(world, 'minecraft:air', true), { x: 2, y: 64, z: 2 })).toBe('handled');
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
+    });
+
+    describe('cauldrons', () => {
+        const at = { x: 5, y: 64, z: 5 };
+        const filled = (level: number) =>
+            place(chunk, at, 'minecraft:cauldron', { fill_level: level, cauldron_liquid: 'water' });
+        const items = (player: PlayerSession) =>
+            player
+                .getInventory()
+                .container('inventory')
+                .stacks()
+                .filter((stack) => stack.getName() !== 'minecraft:air')
+                .map((stack) => `${stack.getAmount()} ${stack.getName()}`);
+
+        // Java's `ItemUtils.createFilledResult`: the container swaps in the hand. The cauldron
+        // used to drop it on the ground and leave the held one, a free bucket every pour.
+        it('turns the water bucket poured into a cauldron into an empty bucket', () => {
+            filled(0);
+            const player = playerHolding(world, new Item({ name: 'minecraft:water_bucket', count: 1, content }));
+
+            expect(click(player, at)).toBe('handled');
+
+            expect(items(player)).toEqual(['1 minecraft:bucket']);
+            expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['fill_level']).toBe(6);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('fills one bucket of a stack and puts it in the inventory', () => {
+            filled(6);
+            const player = playerHolding(world, new Item({ name: 'minecraft:bucket', count: 2, content }));
+
+            expect(click(player, at)).toBe('handled');
+
+            expect(items(player)).toEqual(['1 minecraft:bucket', '1 minecraft:water_bucket']);
+            expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['fill_level']).toBe(0);
+        });
+
+        it('keeps the bucket a creative player fills, and hands over one water bucket', () => {
+            filled(6);
+            const player = playerHolding(
+                world,
+                new Item({ name: 'minecraft:bucket', count: 1, content }),
+                false,
+                Gametype.CREATIVE
+            );
+
+            expect(click(player, at)).toBe('handled');
+            filled(6);
+            expect(click(player, at)).toBe('handled');
+
+            expect(items(player)).toEqual(['1 minecraft:bucket', '1 minecraft:water_bucket']);
+        });
     });
 
     it('leaves the bucket that milk was drunk from in the hand', () => {

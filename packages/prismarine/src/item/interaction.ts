@@ -460,6 +460,46 @@ const spendHeldItem = (player: InteractingPlayer): void => {
 };
 
 /**
+ * Turns one of the held item into another, for a block hook that names what it becomes: the
+ * empty bucket a water bucket leaves in a cauldron, or the water bucket an empty one fills from it.
+ *
+ * The new item replaces the last one held. Beside a larger stack it goes into the inventory, and
+ * onto the ground when that is full. A creative player keeps the held item and gets the new one
+ * only when the inventory holds none.
+ *
+ * @javaSee ItemUtils.createFilledResult(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;Z)Lnet/minecraft/world/item/ItemStack;
+ */
+const exchangeHeldItem = ({ content, actors, player }: BlockInteraction, identifier: string): void => {
+    const inventory = player.getInventory();
+    const held = inventory.equipment('mainhand');
+    const replacement = itemFromContent(identifier, content);
+    if (held === null || replacement === null) return;
+
+    const give = (): void => {
+        const item = contentStackOf(content, replacement, 1);
+        if (item === undefined) return;
+        const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
+        actors.perform({ kind: 'give-item', source, item });
+    };
+
+    if (player.gamemode === Gametype.CREATIVE) {
+        const holds = inventory
+            .container('inventory')
+            .stacks()
+            .some((stack) => stack.getName() === identifier);
+        if (!holds) give();
+        return;
+    }
+
+    if (held.getAmount() <= 1) {
+        inventory.setEquipment('mainhand', replacement.withCount(1));
+        return;
+    }
+    inventory.setEquipmentCount('mainhand', held.getAmount() - 1);
+    give();
+};
+
+/**
  * Tells a client that the block it predicted was not placed.
  *
  * Both positions the client could have put it in go back as they are: the clicked block, which it
@@ -672,7 +712,10 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             if (opened || claimed || consumed === true || typeof consumed === 'object') {
                 // A hook has no inventory, so one that reports the click cost the held item -
                 // the eye of ender a portal frame took - is charged here, outside creative.
-                if (typeof consumed === 'object' && consumed.consumesHeldItem === true) {
+                if (typeof consumed === 'object' && consumed.heldItemBecomes !== undefined) {
+                    exchangeHeldItem(interaction, consumed.heldItemBecomes);
+                    resendInventory(player);
+                } else if (typeof consumed === 'object' && consumed.consumesHeldItem === true) {
                     spendHeldItem(player);
                     resendInventory(player);
                 }

@@ -201,7 +201,11 @@ Every event carries `block: HookBlock`, which is the identifier, the position, t
 the state values. `onPlayerInteract` is the one hook with a return value: `true` means the handler
 consumed the interaction, which stops the later handlers under `dispatchFirst`. A handler whose
 interaction costs the player the held item answers `{ consumed: true, consumesHeldItem: true }`
-instead, and the host that dispatched the click takes the item out of the hand, outside creative. The event types are
+instead, and the host that dispatched the click takes the item out of the hand, outside creative.
+One that swaps the held item for another, as a cauldron swaps a water bucket for an empty one,
+answers `{ consumed: true, heldItemBecomes: 'minecraft:bucket' }`, and the host puts the new item
+in the hand, or in the inventory beside a larger stack. A creative player keeps the held item and
+gets the new one only when the inventory holds none. The event types are
 structural and name only what a handler reads, so a host builds a `HookActor` from its own
 entities without this package depending on the server.
 
