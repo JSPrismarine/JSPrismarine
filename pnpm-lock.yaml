@@ -1132,6 +1132,34 @@ importers:
         specifier: 5.1.2
         version: 5.1.2(patch_hash=86280b11750e2719200d59a330fdb89eb7ef52bc748910264e40ee2397f74821)(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/java-packs:
+    dependencies:
+      '@jsprismarine/packs':
+        specifier: workspace:*
+        version: link:../packs
+    devDependencies:
+      '@jsprismarine/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@types/node':
+        specifier: 26.6.11
+        version: 26.6.11
+      glob:
+        specifier: 14.0.6
+        version: 14.0.6
+      rimraf:
+        specifier: 6.1.4
+        version: 6.1.4
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.4.0
+        version: 8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      vitest:
+        specifier: 5.1.2
+        version: 5.1.2(patch_hash=86280b11750e2719200d59a330fdb89eb7ef52bc748910264e40ee2397f74821)(@types/node@26.6.11)(@vitest/coverage-v8@5.1.2)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
   packages/kernel:
     dependencies:
       '@jsprismarine/errors':

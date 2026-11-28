@@ -1,0 +1,102 @@
+{
+    "name": "@jsprismarine/java-packs",
+    "version": "0.26.0",
+    "description": "Converts Bedrock resource packs into Java Edition resource packs a vanilla client can load.",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "exports": {
+            "./convert": {
+                "types": "./dist/convert.d.ts",
+                "import": "./dist/convert.js",
+                "module": "./dist/convert.js"
+            },
+            "./image": {
+                "types": "./dist/image.d.ts",
+                "import": "./dist/image.js",
+                "module": "./dist/image.js"
+            },
+            "./lang": {
+                "types": "./dist/lang.d.ts",
+                "import": "./dist/lang.js",
+                "module": "./dist/lang.js"
+            },
+            "./sounds": {
+                "types": "./dist/sounds.d.ts",
+                "import": "./dist/sounds.js",
+                "module": "./dist/sounds.js"
+            },
+            "./resourceLocation": {
+                "types": "./dist/resourceLocation.d.ts",
+                "import": "./dist/resourceLocation.js",
+                "module": "./dist/resourceLocation.js"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "exports": {
+        "./convert": {
+            "jsprismarine:dist": "./dist/convert.js",
+            "default": "./src/convert.ts"
+        },
+        "./image": {
+            "jsprismarine:dist": "./dist/image.js",
+            "default": "./src/image.ts"
+        },
+        "./lang": {
+            "jsprismarine:dist": "./dist/lang.js",
+            "default": "./src/lang.ts"
+        },
+        "./sounds": {
+            "jsprismarine:dist": "./dist/sounds.js",
+            "default": "./src/sounds.ts"
+        },
+        "./resourceLocation": {
+            "jsprismarine:dist": "./dist/resourceLocation.js",
+            "default": "./src/resourceLocation.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "build:watch": "vite build --watch",
+        "test": "vitest run",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.test.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "jsprismarine",
+        "minecraft",
+        "bedrock",
+        "java",
+        "resource-pack"
+    ],
+    "author": "JSPrismarine",
+    "license": "(MIT OR MPL-2.0)",
+    "bugs": {
+        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
+    },
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/java-packs",
+    "devDependencies": {
+        "@jsprismarine/protocol": "workspace:*",
+        "@types/node": "26.6.11",
+        "glob": "14.0.6",
+        "rimraf": "6.1.4",
+        "typescript": "7.0.2",
+        "vite": "8.4.0",
+        "vitest": "5.1.2"
+    },
+    "dependencies": {
+        "@jsprismarine/packs": "workspace:*"
+    }
+}
