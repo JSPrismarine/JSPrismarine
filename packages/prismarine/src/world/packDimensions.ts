@@ -19,12 +19,20 @@ const DEFAULT_HEIGHT = 384;
 const MIN_Y_LIMIT = 512;
 const HEIGHT_MIN = 16;
 const HEIGHT_MAX = 1024;
-/** The schema's cloud height when the document leaves `minecraft:clouds` out. */
+/** The schema's cloud height when `minecraft:clouds` gives none. */
 const DEFAULT_CLOUD_HEIGHT = 128;
+/** The schema's biome when the document leaves `minecraft:default_biome` out. */
+const DEFAULT_BIOME = 'minecraft:ocean';
 
 /** A pack dimension read from its document, or why it cannot be one. */
 export type PackDimension =
-    { readonly typeId: string; readonly definition: DimensionTypeDefinition } | { readonly problem: string };
+    | {
+          readonly typeId: string;
+          readonly definition: DimensionTypeDefinition;
+          /** The Bedrock biome the client is told and every chunk is filled with. */
+          readonly biome: string;
+      }
+    | { readonly problem: string };
 
 /** A component's object, or an empty one when the document leaves the component out. */
 const component = (components: Record<string, unknown>, key: string): Record<string, unknown> | undefined => {
@@ -40,12 +48,10 @@ const integerField = (from: Record<string, unknown>, key: string, fallback: numb
 };
 
 /**
- * Reads one `minecraft:dimension` document into the dimension type its void stem binds: the
- * Overworld's physics with the document's bounds and cloud height.
+ * Reads one `minecraft:dimension` document into the dimension type its void stem binds, the
+ * Overworld's physics with the document's bounds and clouds, and its default biome.
  *
- * `minecraft:default_biome` is not read: the void generator fills no chunk, and the join's
- * `BiomeDefinitionList` lists only vanilla biomes, so the client is told `minecraft:plains`, as
- * for a script's dimension.
+ * A document without `minecraft:clouds` renders none: BDS sends `Render Clouds` false for it.
  */
 export const packDimensionOf = (identifier: string, data: unknown): PackDimension => {
     const dimension = isRecord(data) ? data['minecraft:dimension'] : undefined;
@@ -73,15 +79,23 @@ export const packDimensionOf = (identifier: string, data: unknown): PackDimensio
     if (height === undefined || height < HEIGHT_MIN || height > HEIGHT_MAX || height % 16 !== 0)
         return { problem: `its height_range has to be a multiple of 16 from ${HEIGHT_MIN} to ${HEIGHT_MAX}` };
 
-    const clouds = component(components, 'minecraft:clouds');
-    const cloudHeight = clouds && integerField(clouds, 'height', DEFAULT_CLOUD_HEIGHT);
-    if (cloudHeight === undefined || cloudHeight < -MIN_Y_LIMIT || cloudHeight > MIN_Y_LIMIT)
-        return { problem: `its cloud height has to be a whole number from -${MIN_Y_LIMIT} to ${MIN_Y_LIMIT}` };
     const attributes = new Map(Dimensions.Overworld.java.attributes);
-    attributes.set(CLOUD_HEIGHT_ATTRIBUTE, cloudHeight);
+    attributes.delete(CLOUD_HEIGHT_ATTRIBUTE);
+    if (components['minecraft:clouds'] !== undefined) {
+        const clouds = component(components, 'minecraft:clouds');
+        const cloudHeight = clouds && integerField(clouds, 'height', DEFAULT_CLOUD_HEIGHT);
+        if (cloudHeight === undefined || cloudHeight < -MIN_Y_LIMIT || cloudHeight > MIN_Y_LIMIT)
+            return { problem: `its cloud height has to be a whole number from -${MIN_Y_LIMIT} to ${MIN_Y_LIMIT}` };
+        attributes.set(CLOUD_HEIGHT_ATTRIBUTE, cloudHeight);
+    }
+
+    const defaultBiome = component(components, 'minecraft:default_biome');
+    const biome = defaultBiome?.biome ?? DEFAULT_BIOME;
+    if (typeof biome !== 'string') return { problem: 'its minecraft:default_biome names no biome' };
 
     return {
         typeId: identifier,
-        definition: { ...Dimensions.Overworld.java, minY, height, logicalHeight: height, attributes }
+        definition: { ...Dimensions.Overworld.java, minY, height, logicalHeight: height, attributes },
+        biome
     };
 };

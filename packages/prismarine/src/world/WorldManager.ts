@@ -573,7 +573,7 @@ export default class WorldManager implements Service {
             const dimension = packDimensionOf(identifier, data);
             if ('problem' in dimension)
                 logger.warn(`World '${folderName}': ${pack}'s ${path} adds no dimension: ${dimension.problem}`);
-            else level.registerPackDimension(dimension.typeId, dimension.definition);
+            else level.registerPackDimension(dimension.typeId, dimension.definition, dimension.biome);
         }
         this.levels.set(level.id, level);
         this.states.set(level.id, 'attaching');
