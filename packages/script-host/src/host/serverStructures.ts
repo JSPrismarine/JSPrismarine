@@ -205,8 +205,15 @@ export const implementStructures = (implementations: ScriptApiImplementations, h
             const id = String(call.args[0]);
             return store.get(id) === undefined ? undefined : structureObject(id);
         })
-        .implement(SERVER, 'StructureManager', 'delete', (call) => store.delete(idArgument(call, call.args[0])))
+        .implement(SERVER, 'StructureManager', 'delete', (call) => {
+            const id = idArgument(call, call.args[0]);
+            // A structure a pack ships stays, as the `pack-structures` scenario recorded on BDS.
+            if (!store.ids().includes(id) && store.packIds?.().includes(id) === true)
+                throw invalidArgument(0, `Structure '${id}' cannot be deleted.`);
+            return store.delete(id);
+        })
         .implement(SERVER, 'StructureManager', 'getWorldStructureIds', () => JSON.stringify(store.ids()))
+        .implement(SERVER, 'StructureManager', 'getPackStructureIds', () => JSON.stringify(store.packIds?.() ?? []))
         .implement(SERVER, 'StructureManager', 'place', (call) => {
             const structure = store.get(idArgument(call, call.args[0]));
             if (structure === undefined) throw missingStructure();

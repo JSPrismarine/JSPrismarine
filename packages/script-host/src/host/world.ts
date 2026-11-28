@@ -468,14 +468,20 @@ export interface ScriptStructure {
     readonly saveMode: ScriptStructureSaveMode;
 }
 
-/** The structures of a world, by their ids with a namespace, such as `mystructure:house`. */
+/**
+ * The structures of a world, by their ids with a namespace, such as `mystructure:house`: the ones
+ * scripts keep, and the ones the world's behavior packs ship in `structures/`, which `get` finds
+ * when no kept structure has the id.
+ */
 export interface ScriptStructureStore {
     get(id: string): ScriptStructure | undefined;
     set(id: string, structure: ScriptStructure): void;
     /** @returns False when there was none. */
     delete(id: string): boolean;
-    /** Every id, in the order the structures were first kept. */
+    /** Every id scripts keep, in the order the structures were first kept. */
     ids(): readonly string[];
+    /** The ids of the structures the packs ship, which `getPackStructureIds` lists. None when absent. */
+    packIds?(): readonly string[];
 }
 
 /** A block a player clicks, which a script's before-event sees before the click does anything. */
@@ -1320,17 +1326,17 @@ export interface ScriptWorld {
      */
     clock(): number;
     /**
-     * One pack's dynamic properties of the world or of an entity.
-     * @param pack - The pack's header UUID, which BDS keys a world's and an entity's properties by.
-     * @returns Undefined for an entity that is gone.
-     */
-    dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined;
-    /**
      * The interpreter steps the `system.runJob` jobs may take this tick, as the input step admitted
      * them: BDS gives jobs a time slice from its frame-time estimates, and a host that measures
      * its ticks turns the time left into steps. Absent, jobs take `JOB_STEPS_PER_TICK`.
      */
     jobSteps?(): number;
+    /**
+     * One pack's dynamic properties of the world or of an entity.
+     * @param pack - The pack's header UUID, which BDS keys a world's and an entity's properties by.
+     * @returns Undefined for an entity that is gone.
+     */
+    dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined;
     /**
      * Writes some of one pack's dynamic properties of the world or of a live entity through the
      * world's setter: each value replaces the property's, and undefined deletes it.
