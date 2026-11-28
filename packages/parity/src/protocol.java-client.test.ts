@@ -1334,7 +1334,11 @@ const BEHAVIORS: readonly Behavior[] = [
                 presenter.showVitals({ health: 20, food: 20, saturation: 5 })
             ),
             shown('play/clientbound/player_combat_kill', 'the death screen', (presenter) =>
-                presenter.showDeath({ key: 'death.attack.generic', parameters: ['Steve'] })
+                presenter.showDeath({
+                    key: 'death.attack.generic',
+                    parameters: ['Steve'],
+                    respawnAt: { x: 0, y: 64, z: 0 }
+                })
             ),
             clientCommand(ClientCommandAction.PerformRespawn, 'press respawn', { kind: 'pressRespawn' }),
             shown('play/clientbound/respawn', 'the respawn after death', (presenter) =>

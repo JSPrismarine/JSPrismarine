@@ -134,19 +134,13 @@ import { playerListAddOf, playerListRemoveOf } from '../editions/bedrock/present
 import { listedPlayerOf, setPlayerListName } from '../network/playerListEntry';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
-import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
-import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
-import SetActorDataPacket from '@jsprismarine/protocol/bedrock/packet/SetActorDataPacket';
-import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
+import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
-import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import type { MoveMode, SessionPresenter, ShownDimension, ShownMessage } from './presenter/SessionPresenter';
 import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
 import { EXPERIENCE_ATTRIBUTES, experienceOf, VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
-import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
-import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import type ChunkSender from './ChunkSender';
 import type { CenteredView } from './ChunkView';
 import { ChunkView, insideView } from './ChunkView';
@@ -627,15 +621,21 @@ export default class PlayerSession {
         player: SessionPlayerRef,
         players: SessionPlayers<SessionPlayer>,
         world: World,
-        presenter: SessionPresenter = new BedrockPresenter(
-            connection,
-            recipeBookEntriesOf(server, () => connection.codec.itemData)
-        )
+        presenter?: SessionPresenter
     ) {
         this.server = server;
         this.connection = connection;
-        this.presenter = presenter;
         this.runtimeId = player.runtimeId;
+        this.presenter =
+            presenter ??
+            new BedrockPresenter(
+                connection,
+                recipeBookEntriesOf(server, () => connection.codec.itemData),
+                {
+                    runtimeId: player.runtimeId,
+                    lastInputTick: () => this.getLastInputTick()
+                }
+            );
         this.identity = player.identity;
         this.players = players;
         this.world = world;
@@ -2353,9 +2353,7 @@ export default class PlayerSession {
      * @param {GameRule[]} rules - The rules that changed, spelled as the client spells them.
      */
     public async sendGameRules(rules: GameRule[]): Promise<void> {
-        const packet = new GameRulesChangedPacket();
-        packet.rulesList = rules;
-        await this.connection.sendDataPacket(packet);
+        await this.presenter.showGameRules(rules);
     }
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
@@ -2665,27 +2663,21 @@ export default class PlayerSession {
      */
     public async sendAttributesFor(entity: Pick<ShownActor, 'getRuntimeId'>, attributes: Attribute[]): Promise<void> {
         if (attributes.length === 0) return;
-        // A client of another edition is shown its own vitals as plain values; other entities'
-        // attributes come with their replication there.
-        if (this.presenter.edition !== 'bedrock') {
-            if (entity.getRuntimeId() !== this.runtimeId) return;
+        const shown = [this.presenter.showAttributes(entity.getRuntimeId(), attributes)];
+        // The player's own vitals and experience, as plain values, for a client shown them so.
+        if (entity.getRuntimeId() === this.runtimeId) {
             const own = this.own().attributes;
             const names = attributes.map((attribute) => attribute.getName());
-            const shown: Promise<void>[] = [];
             if (names.some((name) => VITAL_ATTRIBUTES.has(name))) shown.push(this.presenter.showVitals(vitalsOf(own)));
             if (names.some((name) => EXPERIENCE_ATTRIBUTES.has(name)))
                 shown.push(this.presenter.showExperience(experienceOf(own)));
-            await Promise.all(shown);
-            return;
         }
+        await Promise.all(shown);
+    }
 
-        const packet = new UpdateAttributesPacket();
-        packet.runtimeEntityId = entity.getRuntimeId();
-        packet.attributes = attributes;
-        // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
-        // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
-        packet.tick = entity.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n;
-        await this.connection.sendDataPacket(packet);
+    /** The tick of the last `PlayerAuthInputPacket` handled; see {@link recordInputTick}. */
+    public getLastInputTick(): bigint {
+        return this.lastInputTick;
     }
 
     /**
@@ -3219,11 +3211,7 @@ export default class PlayerSession {
      * @param {Vector3} motion - Blocks per tick, in each axis.
      */
     public async sendMotion(motion: Vector3): Promise<void> {
-        const packet = new SetActorMotionPacket();
-        packet.runtimeEntityId = this.runtimeId;
-        packet.motion = motion;
-        packet.tick = this.lastInputTick;
-        await this.connection.sendDataPacket(packet);
+        await this.presenter.showMotion({ x: motion.getX(), y: motion.getY(), z: motion.getZ() });
     }
 
     public async sendMetadata(metadata?: Metadata): Promise<void> {
@@ -3244,14 +3232,7 @@ export default class PlayerSession {
         entity: Pick<ShownActor, 'getRuntimeId' | 'metadata' | 'getSyncedProperties'>,
         metadata?: Metadata
     ): Promise<void> {
-        const packet = new SetActorDataPacket();
-        packet.runtimeEntityId = entity.getRuntimeId();
-        packet.metadata = metadata ?? entity.metadata;
-        packet.syncedProperties = entity.getSyncedProperties();
-        // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
-        // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
-        packet.tick = entity.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n;
-        await this.connection.sendDataPacket(packet);
+        await this.presenter.showActorData(entity, metadata);
     }
 
     /**
@@ -3262,18 +3243,11 @@ export default class PlayerSession {
      * No `MovePlayer`: the client has put itself at the `ReadyToSpawn` position already.
      */
     public sendRespawned(): Promise<void> {
-        const player = this.own();
-        const event = new ActorEventPacket();
-        event.runtimeEntityId = this.runtimeId;
-        event.event = ActorEvent.SPAWN_ALIVE;
-        const sends = [this.connection.sendDataPacket(event)];
-
-        const health = new SetHealthPacket({ health: Math.ceil(player.getHealth()) });
-        sends.push(this.connection.sendDataPacket(health));
-
-        sends.push(this.sendAttributes());
-        sends.push(this.sendMetadata());
-        return allSent(sends);
+        return allSent([
+            this.presenter.showRespawned(Math.ceil(this.own().getHealth())),
+            this.sendAttributes(),
+            this.sendMetadata()
+        ]);
     }
 
     /**
@@ -3312,13 +3286,11 @@ export default class PlayerSession {
      *   the `%` the chat packet wants.
      */
     public sendDeathScreen(announced: Vector3, { key, parameters }: DeathMessage): Promise<void> {
-        if (this.presenter.edition !== 'bedrock') {
-            return this.presenter.showDeath({ key: key.replace(/^%/, ''), parameters });
-        }
-        return allSent([
-            this.sendRespawn(announced, PlayerRespawnState.SEARCHING_FOR_SPAWN),
-            this.connection.sendDataPacket(new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters }))
-        ]);
+        return this.presenter.showDeath({
+            key: key.replace(/^%/, ''),
+            parameters,
+            respawnAt: { x: announced.getX(), y: announced.getY(), z: announced.getZ() }
+        });
     }
 
     /**

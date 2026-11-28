@@ -22,7 +22,10 @@ import type { ListedPlayer } from '../../network/playerListEntry';
 import type { AbilityTarget } from '../../network/replica/firstSight';
 import type { ChunkWire } from '../ChunkView';
 import type PlayerSession from '../PlayerSession';
-import type { ShownEntity } from '../../world/ShownActor';
+import type { ShownActor, ShownEntity } from '../../world/ShownActor';
+import type { Attribute } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 
 /**
  * How a message is shown.
@@ -198,7 +201,12 @@ export type ReportedKill =
 export interface ShownDeath {
     readonly key: string;
     readonly parameters: readonly string[];
+    /** Where the player will come back, which Bedrock's death screen waits for before it offers the button. */
+    readonly respawnAt: { readonly x: number; readonly y: number; readonly z: number };
 }
+
+/** What {@link SessionPresenter.showActorData} reads of an entity: its id, its actor data and its synced properties. */
+export type ShownActorData = Pick<ShownActor, 'getRuntimeId' | 'metadata' | 'getSyncedProperties'>;
 
 /** A boss bar's color. Bedrock has a `rebeccaPurple` that Java lacks. */
 export type ShownBossBarColor = 'pink' | 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'rebeccaPurple' | 'white';
@@ -463,6 +471,25 @@ export interface SessionPresenter {
      * @param death - Why the player died.
      */
     showDeath(death: ShownDeath): Promise<void>;
+
+    /**
+     * Shows the attributes of an entity that changed, the player's own or another's. A client
+     * that has its own vitals and experience shown through {@link showVitals} and
+     * {@link showExperience}, and other entities' with their replication, has nothing to send.
+     */
+    showAttributes(runtimeId: bigint, attributes: readonly Attribute[]): Promise<void>;
+
+    /** Shows the player's own velocity, in blocks a tick, after a knockback or an impulse. */
+    showMotion(motion: { readonly x: number; readonly y: number; readonly z: number }): Promise<void>;
+
+    /** Shows an entity's actor data, its own by default: its flags, its values and its synced properties. */
+    showActorData(entity: ShownActorData, metadata?: Metadata): Promise<void>;
+
+    /** Shows the player alive again after a respawn, at `health`, before its attributes and actor data. */
+    showRespawned(health: number): Promise<void>;
+
+    /** Shows the game rules that changed, spelled as the client spells them. */
+    showGameRules(rules: readonly GameRule[]): Promise<void>;
 
     /**
      * Tells the client of a kill its player took part in, for an edition whose client counts
