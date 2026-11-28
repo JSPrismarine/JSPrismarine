@@ -8,3 +8,9 @@ export const ENTITY_TYPES = new JavaRegistry(registries.entity_type);
 
 /** Items, which a slot names by id. */
 export const ITEMS = new JavaRegistry(registries.item);
+
+/** The `minecraft:custom` statistics, which a scoreboard criterion such as `minecraft.custom:minecraft.play_time` names. */
+export const CUSTOM_STATS = new JavaRegistry(registries.custom_stat);
+
+/** The statistic types, the part of a statistic criterion before its colon. */
+export const STAT_TYPES = new JavaRegistry(registries.stat_type);

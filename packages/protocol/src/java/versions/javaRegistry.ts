@@ -9,6 +9,11 @@ export class JavaRegistry {
         this.ids = new Map(names.map((name, id) => [name, id]));
     }
 
+    /** Every entry, in network id order. */
+    public get entries(): readonly string[] {
+        return this.names;
+    }
+
     /** How many entries the registry has. */
     public get size(): number {
         return this.names.length;

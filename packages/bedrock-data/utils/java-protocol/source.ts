@@ -126,7 +126,12 @@ export const blockStatesSource = (rows: readonly BlockStateRow[]): string =>
     `[\n${rows.map((row) => `    ${JSON.stringify(row)}`).join(',\n')}\n]\n`;
 
 /** The static registries `registries.json` holds, by the report's name. */
-export const STATIC_REGISTRIES = ['minecraft:entity_type', 'minecraft:item'] as const;
+export const STATIC_REGISTRIES = [
+    'minecraft:entity_type',
+    'minecraft:item',
+    'minecraft:custom_stat',
+    'minecraft:stat_type'
+] as const;
 
 /**
  * The JSON of the static registries: each one's entry names in network id order, under its name
@@ -182,7 +187,15 @@ export const STATIC_REGISTRY_CONSTANTS: Readonly<
     Record<(typeof STATIC_REGISTRIES)[number], { readonly constant: string; readonly doc: string }>
 > = {
     'minecraft:entity_type': { constant: 'ENTITY_TYPES', doc: 'Entity types, which `Spawn Entity` names by id.' },
-    'minecraft:item': { constant: 'ITEMS', doc: 'Items, which a slot names by id.' }
+    'minecraft:item': { constant: 'ITEMS', doc: 'Items, which a slot names by id.' },
+    'minecraft:custom_stat': {
+        constant: 'CUSTOM_STATS',
+        doc: 'The `minecraft:custom` statistics, which a scoreboard criterion such as `minecraft.custom:minecraft.play_time` names.'
+    },
+    'minecraft:stat_type': {
+        constant: 'STAT_TYPES',
+        doc: 'The statistic types, the part of a statistic criterion before its colon.'
+    }
 };
 
 /**
