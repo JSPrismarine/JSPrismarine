@@ -7,6 +7,8 @@ import { STEVE } from '../../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../../../player/PlayerSession';
 import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheBlobStatusPacket';
 import ClientCacheBlobStatusHandler from './ClientCacheBlobStatusHandler';
+import type { BedrockChunkWire } from '../BedrockChunkWire';
+import { BedrockPresenter } from '../presenter/BedrockPresenter';
 
 describe('ClientCacheBlobStatusHandler', () => {
     it('responds through the session and logs the hit and miss counts', async () => {
@@ -15,10 +17,16 @@ describe('ClientCacheBlobStatusHandler', () => {
         const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({
             identity: STEVE,
-            handleClientCacheBlobStatus: async (report) => {
-                reports.push({ missingIds: report.missingIds, foundIds: report.foundIds });
-                return 2;
-            }
+            presenter: new BedrockPresenter({ sendDataPacket: async () => {} }, undefined, {
+                runtimeId: 0n,
+                lastInputTick: () => 0n,
+                chunks: stub<BedrockChunkWire>({
+                    answerBlobStatus: async (report) => {
+                        reports.push({ missingIds: report.missingIds, foundIds: report.foundIds });
+                        return 2;
+                    }
+                })
+            })
         });
         const packet = Object.assign(new ClientCacheBlobStatusPacket(), { missingIds: [1n, 2n], foundIds: [3n] });
 

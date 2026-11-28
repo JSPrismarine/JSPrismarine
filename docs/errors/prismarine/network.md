@@ -437,6 +437,15 @@ Thrown as `PrismarineNetworkErrors.NoInputLaneHandler`, which extends `Error`.
 A packet that must be handled during the world tick has no handler there. This is a bug in
 the server; report it with the stack trace.
 
+## `PRISMARINE_NOT_ABEDROCK_SESSION`
+
+`A Bedrock packet reached a session that does not speak Bedrock`
+
+Thrown as `PrismarineNetworkErrors.NotABedrockSession`, which extends `Error`.
+
+A handler for a packet only a Bedrock client sends ran on a session of another edition. This
+is a bug in the server: report it with the packet's name.
+
 ## `PRISMARINE_NOT_RAKNET_CONNECTION`
 
 `Connection {id} did not connect over RakNet`
@@ -483,13 +492,13 @@ server; report it with the stack trace.
 
 ## `PRISMARINE_PRESENTER_HAS_NO_SESSION`
 
-`A Bedrock presenter with no session cannot show the player's inventory`
+`A Bedrock presenter was built without the session state it was asked to use`
 
 Thrown as `PrismarineNetworkErrors.PresenterHasNoSession`, which extends `Error`.
 
-A Bedrock presenter whose session state has no `inventory` was asked to show the player's
-inventory, which it reads from that state. This is a bug in the server, or in a test that
-builds a presenter on its own; pass a `BedrockSessionState` whose `inventory` is set.
+A Bedrock presenter was asked for session state it was built without: the player's
+inventory, its loading screens or its chunk wire. This is a bug in the server, or in a test
+that builds a presenter on its own; pass a `BedrockSessionState` that sets what it uses.
 
 ## `PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY`
 

@@ -27,6 +27,7 @@ import Codec2193 from '../network/codec/Codec2193';
 import Codec2225 from '../network/codec/Codec2225';
 import { xxHash64 } from '../network/xxHash64';
 import type { SessionPresenter } from './presenter/SessionPresenter';
+import { bedrockChunksOf } from '../editions/bedrock/bedrockChunksOf';
 
 /**
  * The chunk queue's lifecycle, which is the part of `PlayerSession` a moving player exercises
@@ -174,9 +175,13 @@ describe('network', () => {
             const presenter = stub<SessionPresenter>({
                 edition: 'java',
                 chunkWire: {
-                    center: async (x, z) => void wired.push(`center ${x},${z}`),
-                    send: async (chunks) =>
-                        void wired.push(`send ${chunks.map((chunk) => `${chunk.getX()},${chunk.getZ()}`).join(' ')}`),
+                    prepare: (chunk) => ({ chunk, memoryBytes: 1 }),
+                    center: async ({ x, z }) => void wired.push(`center ${x},${z}`),
+                    send: async (chunks, _session, progress) => {
+                        for (const index of chunks.keys()) progress.sending(index);
+                        wired.push(`send ${chunks.map(({ chunk }) => `${chunk.getX()},${chunk.getZ()}`).join(' ')}`);
+                        for (const index of chunks.keys()) progress.sent(index);
+                    },
                     forget: async (chunks) =>
                         void wired.push(`forget ${chunks.map(({ x, z }) => `${x},${z}`).join(' ')}`),
                     radius: async (distance) => void wired.push(`radius ${distance}`)
@@ -226,7 +231,7 @@ describe('network', () => {
                     // centered there goes out before this flush has finished.
                     if (sentFar && walker !== undefined) {
                         blockX = 16 * 10;
-                        await walker.sendNetworkChunkPublisher(2, []);
+                        await walker.publishChunkView(2);
                     }
                 }
             });
@@ -504,24 +509,19 @@ describe('network', () => {
                 world
             });
             const payload = chunk.networkSerializeRequestSkeleton();
-            cacheSession.setClientCacheEnabled(true);
+            bedrockChunksOf(cacheSession).setClientCacheEnabled(true);
 
             const delivered = cacheSession.tryDeliverLoaded(1, 2);
             const queued = Reflect.get(cacheSession, 'chunkSendQueue');
 
             expect(delivered).toEqual({ kind: 'queued', queuedBytes: payload.byteLength });
-            expect(queued).toMatchObject([
-                {
-                    payload,
-                    memoryBytes: payload.byteLength
-                }
-            ]);
+            // The wire keeps the skeleton itself; the queue counts its bytes.
+            expect(queued).toMatchObject([{ chunk, memoryBytes: payload.byteLength }]);
             expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
 
-            cacheSession.setClientCacheEnabled(false);
+            bedrockChunksOf(cacheSession).setClientCacheEnabled(false);
 
-            expect(queued).toMatchObject([{ payload, memoryBytes: payload.byteLength }]);
-            expect(queued).not.toMatchObject([{ blobs: expect.any(Array), blobHashes: expect.any(Array) }]);
+            expect(queued).toMatchObject([{ chunk, memoryBytes: payload.byteLength }]);
             expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
         });
 
@@ -547,7 +547,7 @@ describe('network', () => {
                     sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
                 });
                 const cacheSession = sessionFor(server, connection, playerWithWorld, { world, joined: true });
-                cacheSession.setClientCacheEnabled(true);
+                bedrockChunksOf(cacheSession).setClientCacheEnabled(true);
                 const skeleton = chunk.networkSerializeRequestSkeleton();
                 cacheSession.tryDeliverLoaded(1, 2);
 
@@ -585,7 +585,7 @@ describe('network', () => {
                 missing.missingIds = [xxHash64(biomes)];
                 const sent: NetworkPacket<unknown>[] = [];
                 connection.sendDataPacket = async (packet) => void sent.push(packet);
-                await cacheSession.handleClientCacheBlobStatus(missing);
+                await bedrockChunksOf(cacheSession).answerBlobStatus(missing);
                 const response = sent.at(-1);
                 if (!(response instanceof ClientCacheMissResponsePacket)) throw new Error('No miss response was sent');
                 expect(response.blobs).toEqual([{ blobId: xxHash64(biomes), blobData: biomes }]);
@@ -662,7 +662,7 @@ describe('network', () => {
                 { x: 0, y: 300, z: 0 }
             ];
 
-            expect(await sessionWithResponses.handleSubChunkRequest(request)).toBe(3);
+            expect(await bedrockChunksOf(sessionWithResponses).answerSubChunkRequest(request)).toBe(3);
             const first = sentPackets.at(-1);
             expect(first).toBeInstanceOf(SubChunkPacket);
             if (!(first instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
@@ -677,7 +677,7 @@ describe('network', () => {
             expect(firstEntries[0]?.serializedSubChunk).toEqual(chunk.networkSerializeRequestSubChunk(-4));
 
             request.offsets = [{ x: 0, y: 0, z: 0 }];
-            await sessionWithResponses.handleSubChunkRequest(request);
+            await bedrockChunksOf(sessionWithResponses).answerSubChunkRequest(request);
             const repeated = sentPackets.at(-1);
             if (!(repeated instanceof SubChunkPacket)) throw new Error('Repeated SubChunkPacket response was not sent');
             const repeatedData = repeated.getPacketData();
@@ -685,7 +685,7 @@ describe('network', () => {
             expect(repeatedData.entries[0]?.serializedSubChunk).toEqual(firstEntries[0]?.serializedSubChunk);
 
             request.dimensionType = 1;
-            await sessionWithResponses.handleSubChunkRequest(request);
+            await bedrockChunksOf(sessionWithResponses).answerSubChunkRequest(request);
             const wrongDimension = sentPackets.at(-1);
             if (!(wrongDimension instanceof SubChunkPacket)) throw new Error('Wrong-dimension response was not sent');
             const wrongDimensionData = wrongDimension.getPacketData();
@@ -731,7 +731,7 @@ describe('network', () => {
                 { x: 0, y: 0, z: 0 },
                 { x: 5, y: 0, z: 0 }
             ];
-            await announced.handleSubChunkRequest(request);
+            await bedrockChunksOf(announced).answerSubChunkRequest(request);
 
             const response = sent.at(-1);
             if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
@@ -762,13 +762,13 @@ describe('network', () => {
                 playerWithWorld,
                 { world, joined: true }
             );
-            cacheSession.setClientCacheEnabled(true);
+            bedrockChunksOf(cacheSession).setClientCacheEnabled(true);
             const request = new SubChunkRequestPacket();
             request.dimensionType = 0;
             request.centerPos = { x: 1, y: -3, z: 2 };
             request.offsets = [{ x: 0, y: 0, z: 0 }];
             const entryOf = async () => {
-                await cacheSession.handleSubChunkRequest(request);
+                await bedrockChunksOf(cacheSession).answerSubChunkRequest(request);
                 const response = sentPackets.at(-1);
                 if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
                 const entry = response.getPacketData()?.entries[0];
@@ -796,7 +796,7 @@ describe('network', () => {
 
             const missing = new ClientCacheBlobStatusPacket();
             missing.missingIds = [blobId];
-            expect(await cacheSession.handleClientCacheBlobStatus(missing)).toBe(1);
+            expect(await bedrockChunksOf(cacheSession).answerBlobStatus(missing)).toBe(1);
             const missResponse = sentPackets.at(-1);
             if (!(missResponse instanceof ClientCacheMissResponsePacket)) {
                 throw new Error('ClientCacheMissResponsePacket was not sent');
@@ -808,7 +808,7 @@ describe('network', () => {
             // closes the client's cache transaction.
             const found = new ClientCacheBlobStatusPacket();
             found.foundIds = [blobId];
-            expect(await cacheSession.handleClientCacheBlobStatus(found)).toBe(0);
+            expect(await bedrockChunksOf(cacheSession).answerBlobStatus(found)).toBe(0);
             const empty = sentPackets.at(-1);
             if (!(empty instanceof ClientCacheMissResponsePacket)) throw new Error('No empty miss response was sent');
             expect(empty.blobs).toEqual([]);

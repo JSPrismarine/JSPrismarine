@@ -13,16 +13,46 @@ import Chunk from '../world/chunk/Chunk';
 import ChunkSender from './ChunkSender';
 import type PlayerSession from './PlayerSession';
 
+/** A chunk queued for a client, as its edition's wire prepared it. */
+export interface WireChunk {
+    readonly chunk: Chunk;
+    /** The bytes it keeps while queued, which count against the session's queue limit. */
+    readonly memoryBytes: number;
+}
+
+/** Where a client's view is centered, as {@link ChunkWire.center} is told it. */
+export interface ChunkWireView {
+    /** The chunk the view is centered on. */
+    readonly x: number;
+    readonly z: number;
+    /** The block the player stands at. */
+    readonly block: { readonly x: number; readonly y: number; readonly z: number };
+    /** How many chunks around the center the client keeps. */
+    readonly distance: number;
+}
+
+/** What a wire reports while it sends a batch, so the session settles each chunk on its own. */
+export interface ChunkSendProgress {
+    /** Whether the batch still belongs to the world the client is in; a wire stops when it does not. */
+    stillCurrent(): boolean;
+    /** Called just before the chunk at `index` goes on the wire. */
+    sending(index: number): void;
+    /** Called once the chunk at `index` is on the wire. */
+    sent(index: number): void;
+}
+
 /**
- * How an edition that sends its chunks its own way sends them. The session decides which chunks
- * and when, through its {@link ChunkView} and the server's scheduler, and settles what the client
- * kept; the wire only writes them. Bedrock's go out in the session's own batches and need none.
+ * How an edition sends a client its chunks. The session decides which chunks and when, through
+ * its {@link ChunkView} and the server's scheduler, and settles what the client kept; the wire
+ * only writes them.
  */
 export interface ChunkWire {
-    /** Centers the client's view on a chunk, which the client keeps the chunks around. */
-    center(x: number, z: number): Promise<void>;
-    /** Sends chunks of the world the session's player is in, as one batch. */
-    send(chunks: readonly Chunk[], session: PlayerSession): Promise<void>;
+    /** Prepares a chunk as it is queued, with what it keeps until it is sent. */
+    prepare(chunk: Chunk): WireChunk;
+    /** Centers the client's view, which the client keeps the chunks around. */
+    center(view: ChunkWireView): Promise<void>;
+    /** Sends chunks of the world the session's player is in, in order, reporting each. */
+    send(chunks: readonly WireChunk[], session: PlayerSession, progress: ChunkSendProgress): Promise<void>;
     /** Tells the client to drop chunks that left its view. */
     forget(chunks: readonly ChunkCoord[]): Promise<void>;
     /** Tells the client how many chunks around it to keep, as the view's radius changed. */

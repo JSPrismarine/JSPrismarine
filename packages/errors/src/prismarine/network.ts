@@ -1804,9 +1804,9 @@ class EmptyMessage extends JSPrismarineError {
 }
 
 /**
- * A Bedrock presenter whose session state has no `inventory` was asked to show the player's
- * inventory, which it reads from that state. This is a bug in the server, or in a test that
- * builds a presenter on its own; pass a `BedrockSessionState` whose `inventory` is set.
+ * A Bedrock presenter was asked for session state it was built without: the player's
+ * inventory, its loading screens or its chunk wire. This is a bug in the server, or in a test
+ * that builds a presenter on its own; pass a `BedrockSessionState` that sets what it uses.
  */
 class PresenterHasNoSession extends JSPrismarineError {
     public static get code(): 'PRISMARINE_PRESENTER_HAS_NO_SESSION' {
@@ -1818,8 +1818,8 @@ class PresenterHasNoSession extends JSPrismarineError {
     public static get module(): 'network' {
         return 'network';
     }
-    public static get template(): "A Bedrock presenter with no session cannot show the player's inventory" {
-        return "A Bedrock presenter with no session cannot show the player's inventory";
+    public static get template(): 'A Bedrock presenter was built without the session state it was asked to use' {
+        return 'A Bedrock presenter was built without the session state it was asked to use';
     }
     public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-presenter-has-no-session' {
         return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-presenter-has-no-session';
@@ -1831,7 +1831,43 @@ class PresenterHasNoSession extends JSPrismarineError {
     readonly #params: Readonly<Record<string, unknown>> = {};
 
     public constructor(options?: ErrorOptions) {
-        super("A Bedrock presenter with no session cannot show the player's inventory", options);
+        super('A Bedrock presenter was built without the session state it was asked to use', options);
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * A handler for a packet only a Bedrock client sends ran on a session of another edition. This
+ * is a bug in the server: report it with the packet's name.
+ */
+class NotABedrockSession extends JSPrismarineError {
+    public static get code(): 'PRISMARINE_NOT_ABEDROCK_SESSION' {
+        return 'PRISMARINE_NOT_ABEDROCK_SESSION';
+    }
+    public static get domain(): 'prismarine' {
+        return 'prismarine';
+    }
+    public static get module(): 'network' {
+        return 'network';
+    }
+    public static get template(): 'A Bedrock packet reached a session that does not speak Bedrock' {
+        return 'A Bedrock packet reached a session that does not speak Bedrock';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-abedrock-session' {
+        return 'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-abedrock-session';
+    }
+
+    public override readonly code = 'PRISMARINE_NOT_ABEDROCK_SESSION';
+    public override readonly docs =
+        'https://jsprismarine.dev/errors/prismarine/network#prismarine-not-abedrock-session';
+    readonly #params: Readonly<Record<string, unknown>> = {};
+
+    public constructor(options?: ErrorOptions) {
+        super('A Bedrock packet reached a session that does not speak Bedrock', options);
     }
 
     /** The placeholder values the message was built from. */
@@ -3168,6 +3204,7 @@ export const PrismarineNetworkErrors = Object.freeze({
     SpawnLostDuringJoin,
     EmptyMessage,
     PresenterHasNoSession,
+    NotABedrockSession,
     MissingBlockChange,
     MissingEncodedBlockPacket,
     MissingEncodedMovement,

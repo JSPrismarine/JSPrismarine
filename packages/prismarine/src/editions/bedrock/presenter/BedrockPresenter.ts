@@ -16,6 +16,7 @@ import { WindowIds } from '../../../inventory/WindowIds';
 import { WindowTypes } from '../../../inventory/WindowTypes';
 import type { Item } from '../../../item/Item';
 import { wireStackOf } from '../wireStack';
+import type { BedrockChunkWire } from '../BedrockChunkWire';
 import { armorPackets } from '../../../network/replica/firstSight';
 import { Vector3 } from '@jsprismarine/math';
 import { Dimension, PlayerRespawnState } from '@jsprismarine/minecraft';
@@ -144,6 +145,8 @@ export interface BedrockSessionState {
     readonly inventory?: BedrockInventoryState;
     /** The loading screens the session waits on. Absent for a presenter built without a session. */
     readonly loadingScreens?: BedrockLoadingScreens;
+    /** How the client is sent chunks. Absent for a presenter built without a session. */
+    readonly chunks?: BedrockChunkWire;
 }
 
 /** The loading screens a Bedrock client shows through a change of dimension. */
@@ -723,6 +726,13 @@ export class BedrockPresenter implements SessionPresenter {
             );
         }
         return Promise.all(sends).then(() => undefined);
+    }
+
+    /** The session's chunk wire, which a presenter built without a session lacks. */
+    public get chunkWire(): BedrockChunkWire {
+        const chunks = this.state.chunks;
+        if (chunks === undefined) throw new PrismarineNetworkErrors.PresenterHasNoSession();
+        return chunks;
     }
 
     /** The session's loading screens, which a presenter built without a session lacks. */

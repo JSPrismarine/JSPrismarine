@@ -8,6 +8,8 @@ import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketHandlerRegistry from '../../../network/PacketHandlerRegistry';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheStatusPacket';
 import type PlayerSession from '../../../player/PlayerSession';
+import type { BedrockChunkWire } from '../BedrockChunkWire';
+import { BedrockPresenter } from '../presenter/BedrockPresenter';
 
 /**
  * The one-bool packet every client sends after login.
@@ -63,9 +65,15 @@ describe('ClientCacheStatusPacket', () => {
         const log = stub<Logger>({ debug: () => {}, verbose: () => {} });
         const session = stub<PlayerSession>({
             identity: STEVE,
-            setClientCacheEnabled: (value) => {
-                enabled = value;
-            }
+            presenter: new BedrockPresenter({ sendDataPacket: async () => {} }, undefined, {
+                runtimeId: 0n,
+                lastInputTick: () => 0n,
+                chunks: stub<BedrockChunkWire>({
+                    setClientCacheEnabled: (value) => {
+                        enabled = value;
+                    }
+                })
+            })
         });
         const packet = new ClientCacheStatusPacket();
         packet.enabled = true;
