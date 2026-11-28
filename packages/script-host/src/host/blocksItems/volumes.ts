@@ -179,9 +179,12 @@ const vectorsArgument = (call: ScriptCall, index: number): ScriptVector3[] => {
 };
 
 /** Reads a volume object's state. The host wrote every state, so a bad one is a host bug. */
-export const volumeOf = (state: string): VolumeState => {
+export const volumeOf = (state: string): VolumeState =>
     // The host wrote the string with JSON.stringify.
-    const parsed: unknown = state === '' ? undefined : JSON.parse(state);
+    volumeFrom(state === '' ? undefined : JSON.parse(state));
+
+/** A volume's state, parsed. */
+const volumeFrom = (parsed: unknown): VolumeState => {
     if (isRecord(parsed) && parsed.kind === 'corners') {
         return { kind: 'corners', from: vectorOf(parsed.from, 0, 'Vector3'), to: vectorOf(parsed.to, 0, 'Vector3') };
     }
@@ -211,8 +214,43 @@ const volumeBox = (volume: VolumeState, bound: 'minimum' | 'maximum' | 'box' = '
 };
 
 /** Every location of a volume, in the order its iterator walks them. */
-const volumeLocations = (volume: VolumeState): ScriptVector3[] =>
+export const volumeLocations = (volume: VolumeState): ScriptVector3[] =>
     volume.kind === 'corners' ? locationsOf(volumeBox(volume)) : [...volume.locations];
+
+/** How many locations a volume holds. */
+const volumeSize = (volume: VolumeState): number => {
+    if (volume.kind === 'list') return volume.locations.length;
+    const { min, max } = volumeBox(volume);
+    return (max.x - min.x + 1) * (max.y - min.y + 1) * (max.z - min.z + 1);
+};
+
+/**
+ * The location at `index` of a volume's walk, in the order {@link volumeLocations} lists them:
+ * x fastest, then z, then y for a box, and a list in its own order. Undefined past the end.
+ */
+const volumeLocationAt = (volume: VolumeState, index: number): ScriptVector3 | undefined => {
+    if (volume.kind === 'list') return volume.locations[index];
+    if (index >= volumeSize(volume)) return undefined;
+    const { min, max } = volumeBox(volume);
+    const spanX = max.x - min.x + 1;
+    const spanZ = max.z - min.z + 1;
+    return {
+        x: min.x + (index % spanX),
+        y: min.y + Math.floor(index / (spanX * spanZ)),
+        z: min.z + (Math.floor(index / spanX) % spanZ)
+    };
+};
+
+/**
+ * What a `BlockLocationIterator` holds: the volume it was made from, as it was then, and how many
+ * of its locations it has given. Each step reads one location from the volume rather than
+ * carrying the locations left, which made a walk of n locations cost n² as the list was parsed
+ * and written again on every step: a check of a 60,000-block box held a tick for half a minute.
+ */
+interface IteratorState {
+    readonly volume: VolumeState;
+    readonly at: number;
+}
 
 const volumeContains = (volume: VolumeState, location: ScriptVector3): boolean =>
     volume.kind === 'corners'
@@ -259,13 +297,13 @@ export const implementVolumes = (implementations: ScriptApiImplementations, host
         if (!(made instanceof ScriptHandle)) throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'object' });
         return host.engine.release(made);
     };
-    /** The locations an iterator has left to give. */
-    const iteratorOf = (state: string): readonly ScriptVector3[] => {
+    /** An iterator's volume and position. */
+    const iteratorOf = (state: string): IteratorState => {
         // The host wrote the string with JSON.stringify.
         const parsed: unknown = JSON.parse(state);
-        if (!Array.isArray(parsed))
+        if (!isRecord(parsed) || typeof parsed.at !== 'number')
             throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'block location iterator' });
-        return parsed.map((each) => vectorOf(each, 0, 'Vector3'));
+        return { volume: volumeFrom(parsed.volume), at: parsed.at };
     };
 
     implementations
@@ -417,9 +455,9 @@ export const implementVolumes = (implementations: ScriptApiImplementations, host
         .implement(SERVER, 'BlockVolumeBase', 'getClosest', (call) => sorted(call, false))
         .implement(SERVER, 'BlockVolumeBase', 'getFarthest', (call) => sorted(call, true))
         .implement(SERVER, 'BlockVolumeBase', 'getBlockLocationIterator', (call) => {
-            const locations = volumeLocations(volumeOf(call.state));
+            const state: IteratorState = { volume: volumeOf(call.state), at: 0 };
             return host.engine.release(
-                host.create('BlockLocationIterator', BLOCK_ITEM_TAG.locationIterator, JSON.stringify(locations))
+                host.create('BlockLocationIterator', BLOCK_ITEM_TAG.locationIterator, JSON.stringify(state))
             );
         })
         // An iterator walks the locations its volume had when it was made, and a change to the
@@ -429,9 +467,10 @@ export const implementVolumes = (implementations: ScriptApiImplementations, host
             return true;
         })
         .implement(SERVER, 'BlockLocationIterator', 'next', (call) => {
-            const [value, ...rest] = iteratorOf(call.state);
+            const { volume, at } = iteratorOf(call.state);
+            const value = volumeLocationAt(volume, at);
             if (value === undefined) return plainObject({ done: true, value: undefined });
-            call.setState(JSON.stringify(rest));
+            call.setState(JSON.stringify({ volume, at: at + 1 } satisfies IteratorState));
             return plainObject({ done: false, value });
         });
 };

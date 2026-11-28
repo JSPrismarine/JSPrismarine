@@ -2,8 +2,9 @@
  * A dimension's members over block volumes and regions: `fillBlocks`, `containsBlock`,
  * `getBlocks`, `containsBiomes` and `cloneBlocks`.
  *
- * A volume is read through its own `getBlockLocationIterator`, so any `BlockVolumeBase` works the
- * same, and a member that returns a volume makes a `ListBlockVolume` with its own constructor.
+ * A volume the host made is read from its state, and any other `BlockVolumeBase` through its own
+ * `getBlockLocationIterator`. A member that returns a volume makes a `ListBlockVolume` with its own
+ * constructor.
  * The `dimension-volumes` scenario recorded what BDS does: a fill returns the blocks it changed,
  * a volume reaching an unloaded chunk throws `UnloadedChunksError` with the count, and a clone
  * refuses regions that overlap unless forced and copies only the blocks a filter names.
@@ -28,6 +29,18 @@ import {
 } from '../serverObjects';
 import type { ScriptBlockPermutation, ScriptVector3 } from '../world';
 import { worldSystemOf } from './serverWorld';
+import type { VolumeState } from '../blocksItems/volumes';
+import { volumeLocations, volumeOf } from '../blocksItems/volumes';
+
+/** The volume a host-made volume object's state holds, or undefined for any other object. */
+const ownVolumeOf = (state: string): VolumeState | undefined => {
+    if (state === '') return undefined;
+    try {
+        return volumeOf(state);
+    } catch {
+        return undefined;
+    }
+};
 
 /** Lists a volume's locations as JSON, inside the engine, through the volume's own iterator. */
 const LOCATIONS_SOURCE =
@@ -81,8 +94,14 @@ const unloadedChunks = (unloaded: number, total: number): ScriptApiError =>
 export const implementVolumes = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const { world } = host;
     const system = () => worldSystemOf(host);
-    /** A volume argument's locations, read through its iterator. */
+    /**
+     * A volume argument's locations. A `BlockVolume` or `ListBlockVolume` the host made is read
+     * from its state, as BDS reads the native volume; anything else is walked through its own
+     * iterator, inside the engine, one host call a location.
+     */
     const locationsOf = (call: ScriptCall, index: number): ScriptVector3[] => {
+        const own = ownVolumeOf(call.stateOf(call.args[index] ?? null));
+        if (own !== undefined) return volumeLocations(own).map(blockPosition);
         const read = call.engine.evaluate(LOCATIONS_SOURCE, '<jsp volume>');
         if (!(read instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The volume walk' });
         try {
