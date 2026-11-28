@@ -594,16 +594,21 @@ describe('command', () => {
                             getEntryWorld: () => world,
                             getEntryLevel: () => level,
                             getLevels: () => [level]
-                        })
+                        }),
+                    // `/help` builds its page through the manager.
+                    getCommandManager: () => commandManager
                 });
                 await permissionManager.enable();
                 // The owner holds `*` of their own, which counts as operator status.
                 const filfat = identityNamed('Filfat', ownerUuid);
                 await permissionManager.grantUser(filfat, '*');
+                /** What the owner was sent, in order. */
+                const received: string[] = [];
                 const owner: PlayerSession = sessionOnPrototype(
                     {
                         getName: () => 'Filfat',
                         hasPermission: (node: string) => permissionManager.has(filfat, node),
+                        getPermissions: () => permissionManager.nodesOf(filfat),
                         getCommandLevel: () => permissionManager.commandLevelOf(filfat),
                         isOp: () => permissionManager.isOp(filfat.subject),
                         getType: () => 'minecraft:player',
@@ -611,13 +616,15 @@ describe('command', () => {
                         getPosition: () => new Position(0, 64, 0, world),
                         getWorld: () => world,
                         getServer: () => server,
-                        sendMessage: async () => {}
+                        sendMessage: async (message: string) => {
+                            received.push(message);
+                        }
                     },
                     { ...body, runtimeId: 1n, uuid: UUID.fromString(ownerUuid) }
                 );
                 const commandManager = new CommandManager(server);
                 await commandManager.enable();
-                return { commandManager, permissionManager, filfat, owner, sessionManager, logger };
+                return { commandManager, permissionManager, filfat, owner, received, sessionManager, logger };
             };
 
             it('lets a player holding `*` run /op, and saves the target under their subject', async () => {
@@ -652,6 +659,30 @@ describe('command', () => {
                     true
                 );
                 expect(permissionManager.isOp({ kind: 'offline', name: 'Target' })).toBe(true);
+            });
+
+            it('lists in /help only the commands the player may run', async () => {
+                const { commandManager, permissionManager, filfat, owner, received } = await integration();
+                await permissionManager.revokeUser(filfat, '*');
+                await permissionManager.grantUser(filfat, 'minecraft.command.help');
+                await permissionManager.grantUser(filfat, 'minecraft.command.me');
+                const listed = (): string[] =>
+                    received.flatMap((line) => [...line.matchAll(/§6\/(\S+)§r/g)].map((match) => match[1]!));
+
+                await expect(commandManager.dispatchCommand(owner, owner, '/help')).resolves.toBe(true);
+                // What they were granted, plus what every player holds by default, and nothing else.
+                expect(listed()).toEqual(expect.arrayContaining(['help', 'me']));
+                for (const refused of ['op', 'stop', 'gamemode', 'teleport']) expect(listed()).not.toContain(refused);
+
+                // A command they may not run answers as one that does not exist.
+                received.length = 0;
+                await commandManager.dispatchCommand(owner, owner, '/help op');
+                expect(listed()).toEqual([]);
+                expect(received).toEqual([expect.stringContaining('No help found for /op')]);
+
+                // The console, which asks with no player, still sees every command.
+                const everything = commandManager.usageLines('op');
+                expect(everything.some((line) => line.startsWith('§6/op'))).toBe(true);
             });
         });
     });

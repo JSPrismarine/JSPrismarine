@@ -180,7 +180,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
             .executes(
                 command((context) => {
                     const current = source(context);
-                    const lines = current.host.server.usage();
+                    const lines = current.host.server.usage(undefined, current);
                     for (const line of lines) current.sendFeedback(line);
                     return lines.length;
                 })
@@ -189,7 +189,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                 arg('command', messageArgument()).executes(
                     command((context) => {
                         const current = source(context);
-                        const lines = current.host.server.usage(value(context, 'command'));
+                        const lines = current.host.server.usage(value(context, 'command'), current);
                         for (const line of lines) current.sendFeedback(line);
                         return lines.length;
                     })
