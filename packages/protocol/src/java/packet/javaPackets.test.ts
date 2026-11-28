@@ -405,10 +405,32 @@ const SAMPLES: readonly Sample[] = [
         items: [null, { item: 1, count: 64 }],
         carried: null
     }),
-    sample(ContainerSetSlot, { window: 0, stateId: 2, slot: 36, item: { item: 5, count: 1 } }),
+    sample(
+        ContainerSetSlot,
+        { window: 0, stateId: 2, slot: 36, item: { item: 5, count: 1 } },
+        {
+            window: 0,
+            stateId: 3,
+            slot: 36,
+            item: {
+                item: 5,
+                count: 1,
+                components: { 'minecraft:damage': 12, 'minecraft:custom_name': 'Pick' },
+                removed: ['minecraft:food']
+            }
+        }
+    ),
     sample(SetHeldSlot, { slot: 8 }),
     sample(SetCarriedItem, { slot: 3 }),
-    sample(SetCreativeModeSlot, { slot: 36, item: { item: 5, count: 1 } }, { slot: 37, item: null }),
+    sample(
+        SetCreativeModeSlot,
+        { slot: 36, item: { item: 5, count: 1 } },
+        { slot: 37, item: null },
+        {
+            slot: 38,
+            item: { item: 5, count: 1, components: { 'minecraft:enchantments': { 'minecraft:efficiency': 3 } } }
+        }
+    ),
     sample(UseItemOn, {
         hand: JavaHand.Main,
         position: { x: 1, y: -61, z: 2 },

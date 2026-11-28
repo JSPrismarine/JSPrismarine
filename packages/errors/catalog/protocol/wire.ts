@@ -443,10 +443,18 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      */
     JavaVelocityNotAtRest: 'A spawned entity carries a velocity, which this server does not read',
     /**
-     * A Java Edition item stack the server sent carries data components, which this server's
-     * reader does not read: it sends plain stacks. Seen when reading another server's inventory.
+     * A Java Edition item stack the server sent carries a data component this reader has no codec
+     * for, and the server's codec gives no length to skip it by. The reader knows the components
+     * this server sends; seen when reading another server's inventory, whose stacks carry others.
      */
-    JavaItemComponentsUnread: 'An item stack carries {count} data components, which this server does not read',
+    JavaItemComponentUnread: 'An item stack carries the data component {component}, which this server does not read',
+    /**
+     * A Java Edition packet names a registry entry the release's data lacks: an item component or
+     * an enchantment the server was asked to send that 26.3's registries do not have, or an id
+     * past the end of the registry in a packet another server sent. Check the name against the
+     * release's registries.
+     */
+    JavaRegistryEntryUnknown: 'The {registry} registry has no entry {entry}',
     /**
      * A Java Edition entity data entry uses a serializer this server's reader does not read: it
      * sends the shared flags and the pose only. Seen when reading another server's entity data.

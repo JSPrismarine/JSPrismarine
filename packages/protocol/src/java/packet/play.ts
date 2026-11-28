@@ -32,6 +32,8 @@ import {
     RESOURCE_PACK_PUSH,
     RESOURCE_PACK_RESPONSE
 } from './configuration';
+import { itemStack, untrustedItemStack } from './itemStack';
+import type { JavaItemStack } from './itemStack';
 import { defineJavaPacket } from './JavaPacket';
 
 /**
@@ -585,63 +587,6 @@ export const PickItemFromEntity = defineJavaPacket('Pick Item From Entity', 'pla
     entityId: varInt,
     includeData: bool
 });
-
-/** An item stack as plain data: an item's network id and how many. */
-export interface JavaItemStack {
-    readonly item: number;
-    readonly count: number;
-}
-
-/**
- * `Slot` as the server writes it: a count, zero for an empty slot, then the item's id and its
- * data component patch. Stacks are sent plain, with an empty patch, so reading one with components
- * refuses it rather than misread what follows.
- */
-const itemStack = custom<JavaItemStack | null>(
-    'Slot',
-    (s, stack) => {
-        if (stack === null || stack.count <= 0) {
-            varInt.write(s, 0);
-            return;
-        }
-        varInt.write(s, stack.count);
-        varInt.write(s, stack.item);
-        // No components added, none removed.
-        varInt.write(s, 0);
-        varInt.write(s, 0);
-    },
-    (s) => {
-        const count = varInt.read(s);
-        if (count <= 0) return null;
-        const item = varInt.read(s);
-        const added = varInt.read(s);
-        const removed = varInt.read(s);
-        if (added + removed > 0) throw new ProtocolWireErrors.JavaItemComponentsUnread({ count: added + removed });
-        return { item, count };
-    }
-);
-
-/**
- * `Slot` as a client writes it, vanilla's untrusted codec: each added component's value carries
- * its length, so the components are read past. The stack keeps its item and count only.
- */
-const untrustedItemStack = custom<JavaItemStack | null>(
-    'Untrusted Slot',
-    (s, stack) => itemStack.write(s, stack),
-    (s) => {
-        const count = varInt.read(s);
-        if (count <= 0) return null;
-        const item = varInt.read(s);
-        const added = varInt.read(s);
-        const removed = varInt.read(s);
-        for (let i = 0; i < added; i++) {
-            varInt.read(s);
-            s.read(varInt.read(s));
-        }
-        for (let i = 0; i < removed; i++) varInt.read(s);
-        return { item, count };
-    }
-);
 
 /**
  * `Set Container Content` (clientbound): every slot of a window, and what the cursor carries.

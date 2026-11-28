@@ -113,6 +113,7 @@
         "BubbleColumnBlock.getFluidState": "net/minecraft/world/level/block/BubbleColumnBlock.getFluidState(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/material/FluidState;",
         "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V": "net/minecraft/world/level/block/BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V",
         "BuriedTreasurePieces$BuriedTreasurePiece.isLiquid": "net/minecraft/world/level/levelgen/structure/structures/BuriedTreasurePieces$BuriedTreasurePiece.isLiquid(Lnet/minecraft/world/level/block/state/BlockState;)Z",
+        "ByteBufCodecs.holderSet": "net/minecraft/network/codec/ByteBufCodecs.holderSet(Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/network/codec/StreamCodec;",
         "CalibratedSculkSensorBlock.getStateForPlacement": "net/minecraft/world/level/block/CalibratedSculkSensorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CamelAi$RandomSitting.checkExtraStartConditions": "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;)Z",
         "CamelAi$RandomSitting.start": "net/minecraft/world/entity/animal/camel/CamelAi$RandomSitting.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/camel/Camel;J)V",
@@ -202,12 +203,15 @@
         "CommandBlock.getStateForPlacement": "net/minecraft/world/level/block/CommandBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CommandBlock.tick": "net/minecraft/world/level/block/CommandBlock.tick(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V",
         "CommandBlockEntity.scheduleTick": "net/minecraft/world/level/block/entity/CommandBlockEntity.scheduleTick()V",
+        "Consumable.STREAM_CODEC": "net/minecraft/world/item/component/Consumable.STREAM_CODEC",
+        "ConsumeEffect.STREAM_CODEC": "net/minecraft/world/item/consume_effects/ConsumeEffect.STREAM_CODEC",
         "CopperGolemStatueBlock.getStateForPlacement": "net/minecraft/world/level/block/CopperGolemStatueBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "CrafterBlock.getStateForPlacement": "net/minecraft/world/level/block/CrafterBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "Creaking.checkCanMove": "net/minecraft/world/entity/monster/creaking/Creaking.checkCanMove()Z",
         "Creeper.explodeCreeper": "net/minecraft/world/entity/monster/Creeper.explodeCreeper()V",
         "CropBlock.getMaxAge": "net/minecraft/world/level/block/CropBlock.getMaxAge()I",
         "CrossbowItem.getDefaultProjectileRange": "net/minecraft/world/item/CrossbowItem.getDefaultProjectileRange()I",
+        "CustomModelData.STREAM_CODEC": "net/minecraft/world/item/component/CustomModelData.STREAM_CODEC",
         "DamageSource.getSourcePosition": "net/minecraft/world/damagesource/DamageSource.getSourcePosition()Lnet/minecraft/world/phys/Vec3;",
         "DebugLevelSource.BARRIER_HEIGHT": "net/minecraft/world/level/levelgen/DebugLevelSource.BARRIER_HEIGHT",
         "DebugLevelSource.HEIGHT": "net/minecraft/world/level/levelgen/DebugLevelSource.HEIGHT",
@@ -315,6 +319,8 @@
         "EntityDimensions.scalable": "net/minecraft/world/entity/EntityDimensions.scalable(FF)Lnet/minecraft/world/entity/EntityDimensions;",
         "EquipmentSlot.$values": "net/minecraft/world/entity/EquipmentSlot.$values()[Lnet/minecraft/world/entity/EquipmentSlot;",
         "EquipmentSlot.SADDLE": "net/minecraft/world/entity/EquipmentSlot.SADDLE",
+        "EquipmentSlot.STREAM_CODEC": "net/minecraft/world/entity/EquipmentSlot.STREAM_CODEC",
+        "Equippable.STREAM_CODEC": "net/minecraft/world/item/equipment/Equippable.STREAM_CODEC",
         "Equippable.swapWithEquipmentSlot": "net/minecraft/world/item/equipment/Equippable.swapWithEquipmentSlot(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/InteractionResult;",
         "Evoker.considersEntityAsAlly": "net/minecraft/world/entity/monster/illager/Evoker.considersEntityAsAlly(Lnet/minecraft/world/entity/Entity;)Z",
         "Evoker$EvokerAttackSpellGoal.createSpellEntity": "net/minecraft/world/entity/monster/illager/Evoker$EvokerAttackSpellGoal.createSpellEntity(DDDDFI)V",
@@ -354,6 +360,7 @@
         "FoodData.needsFood": "net/minecraft/world/food/FoodData.needsFood()Z",
         "FoodData.tick": "net/minecraft/world/food/FoodData.tick(Lnet/minecraft/server/level/ServerPlayer;)V",
         "FoodOnAStickItem.use": "net/minecraft/world/item/FoodOnAStickItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
+        "FoodProperties.DIRECT_STREAM_CODEC": "net/minecraft/world/food/FoodProperties.DIRECT_STREAM_CODEC",
         "Fox$DefendTrustedTargetGoal.canUse": "net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.canUse()Z",
         "Fox$DefendTrustedTargetGoal.start": "net/minecraft/world/entity/animal/fox/Fox$DefendTrustedTargetGoal.start()V",
         "Fox$FoxEatBerriesGoal.acceptedDistance": "net/minecraft/world/entity/animal/fox/Fox$FoxEatBerriesGoal.acceptedDistance()D",
@@ -402,7 +409,11 @@
         "Item.getDestroySpeed": "net/minecraft/world/item/Item.getDestroySpeed(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/block/state/BlockState;)F",
         "Item.mineBlock": "net/minecraft/world/item/Item.mineBlock(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/LivingEntity;)Z",
         "ItemCommands.applyModifier": "net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator;",
+        "ItemEnchantments.STREAM_CODEC": "net/minecraft/world/item/enchantment/ItemEnchantments.STREAM_CODEC",
         "ItemStack.isSameItemSameComponents": "net/minecraft/world/item/ItemStack.isSameItemSameComponents(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z",
+        "ItemStack.OPTIONAL_STREAM_CODEC": "net/minecraft/world/item/ItemStack.OPTIONAL_STREAM_CODEC",
+        "ItemStack.OPTIONAL_UNTRUSTED_STREAM_CODEC": "net/minecraft/world/item/ItemStack.OPTIONAL_UNTRUSTED_STREAM_CODEC",
+        "ItemUseAnimation.STREAM_CODEC": "net/minecraft/world/item/ItemUseAnimation.STREAM_CODEC",
         "JungleTemplePiece$MossStoneSelector.next": "net/minecraft/world/level/levelgen/structure/structures/JungleTemplePiece$MossStoneSelector.next(Lnet/minecraft/util/RandomSource;IIIZ)V",
         "LadderBlock.canAttachTo": "net/minecraft/world/level/block/LadderBlock.canAttachTo(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
         "LadderBlock.getStateForPlacement": "net/minecraft/world/level/block/LadderBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
@@ -487,6 +498,8 @@
         "Mob.getMaxHeadYRot": "net/minecraft/world/entity/Mob.getMaxHeadYRot()I",
         "Mob.updateControlFlags": "net/minecraft/world/entity/Mob.updateControlFlags()V",
         "MobEffectInstance.endsWithin": "net/minecraft/world/effect/MobEffectInstance.endsWithin(I)Z",
+        "MobEffectInstance.STREAM_CODEC": "net/minecraft/world/effect/MobEffectInstance.STREAM_CODEC",
+        "MobEffectInstance$Details.STREAM_CODEC": "net/minecraft/world/effect/MobEffectInstance$Details.STREAM_CODEC",
         "MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.nextStartTick(Lnet/minecraft/world/entity/PathfinderMob;)I",
         "MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.MAX_COOLDOWN_BEFORE_RETRYING",
         "MoveToTargetSink.tryComputePath": "net/minecraft/world/entity/ai/behavior/MoveToTargetSink.tryComputePath(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/entity/ai/memory/WalkTarget;J)Z",
@@ -712,6 +725,7 @@
         "SnifferAi$Sniffing.start": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.start(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
         "SnifferAi$Sniffing.stop": "net/minecraft/world/entity/animal/sniffer/SnifferAi$Sniffing.stop(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/animal/sniffer/Sniffer;J)V",
         "SonicBoom.setCooldown": "net/minecraft/world/entity/ai/behavior/warden/SonicBoom.setCooldown(Lnet/minecraft/world/entity/LivingEntity;I)V",
+        "SoundEvent.STREAM_CODEC": "net/minecraft/sounds/SoundEvent.STREAM_CODEC",
         "SpawnerBlockEntity.setEntityId": "net/minecraft/world/level/block/entity/SpawnerBlockEntity.setEntityId(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/util/RandomSource;)V",
         "SpearAttack$SpearStatus.$VALUES": "net/minecraft/world/entity/ai/behavior/SpearAttack$SpearStatus.$VALUES",
         "SpeleothemBlock.calculateSpeleothemThickness": "net/minecraft/world/level/block/SpeleothemBlock.calculateSpeleothemThickness(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;Z)Lnet/minecraft/world/level/block/state/properties/SpeleothemThickness;",
@@ -776,6 +790,8 @@
         "ThrownSplashPotion.onHitAsPotion": "net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownSplashPotion.onHitAsPotion(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/phys/HitResult;)V",
         "TimeUtil.rangeOfSeconds": "net/minecraft/util/TimeUtil.rangeOfSeconds(II)Lnet/minecraft/util/valueproviders/UniformInt;",
         "TntBlock.wasExploded": "net/minecraft/world/level/block/TntBlock.wasExploded(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/Explosion;)V",
+        "Tool.STREAM_CODEC": "net/minecraft/world/item/component/Tool.STREAM_CODEC",
+        "Tool$Rule.STREAM_CODEC": "net/minecraft/world/item/component/Tool$Rule.STREAM_CODEC",
         "TrapDoorBlock.getStateForPlacement": "net/minecraft/world/level/block/TrapDoorBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "TreeFeature.isAirOrLeaves": "net/minecraft/world/level/levelgen/feature/TreeFeature.isAirOrLeaves(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z",
         "TreeFeature.validTreePos": "net/minecraft/world/level/levelgen/feature/TreeFeature.validTreePos(Lnet/minecraft/world/level/LevelSimulatedReader;Lnet/minecraft/core/BlockPos;)Z",
@@ -784,6 +800,7 @@
         "TripWireHookBlock.canSurvive": "net/minecraft/world/level/block/TripWireHookBlock.canSurvive(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z",
         "TripWireHookBlock.getStateForPlacement": "net/minecraft/world/level/block/TripWireHookBlock.getStateForPlacement(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/level/block/state/BlockState;",
         "UniformInt.of": "net/minecraft/util/valueproviders/UniformInt.of(II)Lnet/minecraft/util/valueproviders/UniformInt;",
+        "UseCooldown.STREAM_CODEC": "net/minecraft/world/item/component/UseCooldown.STREAM_CODEC",
         "Util.getRandom([Ljava/lang/Object;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": "net/minecraft/util/Util.getRandom([Ljava/lang/Object;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;",
         "Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;": "net/minecraft/util/Util.getRandom(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/lang/Object;",
         "Util.shuffle": "net/minecraft/util/Util.shuffle(Ljava/util/List;Lnet/minecraft/util/RandomSource;)V",
@@ -964,6 +981,9 @@
         "net/minecraft/core/Vec3i.hashCode()I": {
             "26.3": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db",
             "26.4-pre-1": "sha256:ba5a9603cf85f60a470318b0474196e0c713fb2caa31380a1dfc684a1ad8a6db"
+        },
+        "net/minecraft/network/codec/ByteBufCodecs.holderSet(Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/network/codec/StreamCodec;": {
+            "26.3": "sha256:46168191c6f942d4ef697154341e3ab0d8ae293833dc82c01d75c0e9a7f98104"
         },
         "net/minecraft/network/LpVec3.read(Lio/netty/buffer/ByteBuf;)Lnet/minecraft/world/phys/Vec3;": {
             "26.3": "sha256:42d4c4d7a4bd2e8feb784bb45726855d90262ff26b3aa09f7524a143ac2795b1"
@@ -1407,6 +1427,9 @@
         "net/minecraft/server/players/PlayerList.respawn(Lnet/minecraft/server/level/ServerPlayer;ZLnet/minecraft/world/entity/Entity$RemovalReason;)Lnet/minecraft/server/level/ServerPlayer;": {
             "26.3": "sha256:133ebfeac17e96b5b6b2143e9f2bf47eea6d7d8c350602b4e156a03c0d9327b8"
         },
+        "net/minecraft/sounds/SoundEvent.STREAM_CODEC": {
+            "26.3": "sha256:9cc20dc6c8c197a05d9b6ebfc2bf434609f75e2437266071002d28113dcc8f2c"
+        },
         "net/minecraft/stats/Stat.buildName(Lnet/minecraft/stats/StatType;Ljava/lang/Object;)Ljava/lang/String;": {
             "26.3": "sha256:1844e1cdef72a63610e18943cee33e98f48b52d09098ba3de2157ad038eb6135"
         },
@@ -1515,6 +1538,12 @@
         "net/minecraft/world/effect/MobEffectInstance.endsWithin(I)Z": {
             "26.3": "sha256:9575d1ab40a3f4cf3acb631588491059a0d2c507d00a4f60dfe6eb13513ccf01",
             "26.4-pre-1": "sha256:9575d1ab40a3f4cf3acb631588491059a0d2c507d00a4f60dfe6eb13513ccf01"
+        },
+        "net/minecraft/world/effect/MobEffectInstance.STREAM_CODEC": {
+            "26.3": "sha256:53bbc0091f1deff3727f0a3d292dd61eb55554946cdaa579b094f7218f65b3a9"
+        },
+        "net/minecraft/world/effect/MobEffectInstance$Details.STREAM_CODEC": {
+            "26.3": "sha256:5fc00dc560b70b75f9f26bf0e06c31dcee1a7e327f5559e44d6bbc336ec39430"
         },
         "net/minecraft/world/effect/RaidOmenMobEffect.applyEffectTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;I)Z": {
             "26.3": "sha256:d04ffcbc808587c00dc0960b91d396e7f45148c96ef93ebd7fb08e162c781e56",
@@ -2382,6 +2411,9 @@
         "net/minecraft/world/entity/EquipmentSlot.SADDLE": {
             "26.3": "sha256:eed604bda2c94dcba20de1dc0e48c43e8adc07c5f176824d07e2be2734c16ef3"
         },
+        "net/minecraft/world/entity/EquipmentSlot.STREAM_CODEC": {
+            "26.3": "sha256:dd3d220ddc02aa0780b56fdda566788ff426df61d3d28d2ec60fd75ac0e33d00"
+        },
         "net/minecraft/world/entity/ExperienceOrb.award(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/phys/Vec3;I)V": {
             "26.3": "sha256:e7a1761657f5625708e8c00236e9f6c8789a90527e544390262c94acc4902df9",
             "26.4-pre-1": "sha256:e7a1761657f5625708e8c00236e9f6c8789a90527e544390262c94acc4902df9"
@@ -2999,14 +3031,35 @@
         "net/minecraft/world/food/FoodData.tick(Lnet/minecraft/server/level/ServerPlayer;)V": {
             "26.3": "sha256:1dccfa6b37e3485b5b586d5787eacb54073b1e26bc7790f5036221dac2b2345d"
         },
+        "net/minecraft/world/food/FoodProperties.DIRECT_STREAM_CODEC": {
+            "26.3": "sha256:e83d1c412800651a609c8e167a41b2684dcd9a202f70c752d57b71520d682584"
+        },
         "net/minecraft/world/item/alchemy/Potions.SWIFTNESS": {
             "26.3": "sha256:917b66727f6dcb436961047a3b8b8b494bf9c83ddaa64ea36eb099e81ab1a7cc"
         },
         "net/minecraft/world/item/component/BlocksAttacks.resolveBlockedDamage(Lnet/minecraft/world/damagesource/DamageSource;FD)F": {
             "26.3": "sha256:9c9941d03bb7e66dffafc1f899ed6028403c34ed90d7f88b03baa6b2f3d39c2a"
         },
+        "net/minecraft/world/item/component/Consumable.STREAM_CODEC": {
+            "26.3": "sha256:02cac036af3db4e7846ab7b70d640ea38166a744f28384021faab15de4d65367"
+        },
+        "net/minecraft/world/item/component/CustomModelData.STREAM_CODEC": {
+            "26.3": "sha256:8cbf633f83c7ab813dd2fe08527a6d41ccc1cbff48ca2d0bc66d8207fcb19cc1"
+        },
         "net/minecraft/world/item/component/FireworkExplosion$Shape.$VALUES": {
             "26.3": "sha256:47a8323a4f0a86f212c38d33e436cdcc92f0e8e8c096f1b1192f9ebc36d273df"
+        },
+        "net/minecraft/world/item/component/Tool.STREAM_CODEC": {
+            "26.3": "sha256:e81f60fb54630075bb22a17f3b06cbef555e8e4f505146b96dbf8de9138447b0"
+        },
+        "net/minecraft/world/item/component/Tool$Rule.STREAM_CODEC": {
+            "26.3": "sha256:c5756d310cbfbc8455b3ba9a30c91e3ea035d4b36580d88ee2c6321aa6c8d61d"
+        },
+        "net/minecraft/world/item/component/UseCooldown.STREAM_CODEC": {
+            "26.3": "sha256:a86890f731d71ec635e5fbf3578f08958d6b509455f2be4575c523a1a3004b52"
+        },
+        "net/minecraft/world/item/consume_effects/ConsumeEffect.STREAM_CODEC": {
+            "26.3": "sha256:238a2d2e77e845128211881974d3f25517273c5ac264a7e6ae4cac5e445083ed"
         },
         "net/minecraft/world/item/context/BlockPlaceContext.getNearestLookingDirections()[Lnet/minecraft/core/Direction;": {
             "26.3": "sha256:1eaefdd71166e768842dc6f23dc9235fb3f77056d6bf169ddc8e191b8dd93937",
@@ -3029,9 +3082,15 @@
         "net/minecraft/world/item/EmptyMapItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ac32715efe707271607b432252bf1e6e56176c43f9e53ee9a9726074d5c2351b"
         },
+        "net/minecraft/world/item/enchantment/ItemEnchantments.STREAM_CODEC": {
+            "26.3": "sha256:fb74ed9318e1c5d324686b30217f7570e53010e19ba67fda90801933e32426a6"
+        },
         "net/minecraft/world/item/EnderEyeItem.use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:25dd61efbd89f5f80bc910d2688d50fb1dbbdecd0e14a8dda9e77e3e71655505",
             "26.4-pre-1": "sha256:25dd61efbd89f5f80bc910d2688d50fb1dbbdecd0e14a8dda9e77e3e71655505"
+        },
+        "net/minecraft/world/item/equipment/Equippable.STREAM_CODEC": {
+            "26.3": "sha256:ebaa92c203bfcc9bdb6a6080dbfaa3b476a932e8eda1364ab353b4401cdc3454"
         },
         "net/minecraft/world/item/equipment/Equippable.swapWithEquipmentSlot(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/InteractionResult;": {
             "26.3": "sha256:ed311512b572d8aa5a7b9f0121016d9c0bf02cc2f0524a6efbc6596eb8ba6783",
@@ -3056,6 +3115,15 @@
         "net/minecraft/world/item/ItemStack.isSameItemSameComponents(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z": {
             "26.3": "sha256:7f990ac3eb2a42aa30b693959a9e1026a1ede1628be5d0c88b37580b21727c86",
             "26.4-pre-1": "sha256:7f990ac3eb2a42aa30b693959a9e1026a1ede1628be5d0c88b37580b21727c86"
+        },
+        "net/minecraft/world/item/ItemStack.OPTIONAL_STREAM_CODEC": {
+            "26.3": "sha256:04d34530b81baf92fdcc48c00654e021238cda8e64660ef143efa525d7c8d579"
+        },
+        "net/minecraft/world/item/ItemStack.OPTIONAL_UNTRUSTED_STREAM_CODEC": {
+            "26.3": "sha256:17428e1f7272020763e988d3ef4aa3ddb56ef5220e621f9e77159976cdd7fab7"
+        },
+        "net/minecraft/world/item/ItemUseAnimation.STREAM_CODEC": {
+            "26.3": "sha256:da260f4861688e3aafdfe7a0980f375a5c3bc0836b1d9ce25617474806f913eb"
         },
         "net/minecraft/world/item/MapItem.create(Lnet/minecraft/server/level/ServerLevel;IIBZZ)Lnet/minecraft/world/item/ItemStack;": {
             "26.3": "sha256:763b7754e1c10f58f8e6423da12b9c2560b396cd624539ccc52dce4516a11629",

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { JavaPacketDefinition, JavaPayload } from './JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId, javaPacketId } from './JavaPacket';
 import { NEWEST_JAVA_RELEASE } from '../versions/javaReleases';
+import { DATA_COMPONENT_TYPES } from '../versions/newest';
 import {
     ConfigurationClientboundKeepAlive,
     ConfigurationClientInformation,
@@ -214,21 +215,22 @@ describe('inventory packets', () => {
         ).toEqual(content);
     });
 
-    it('reads past the components of a creative stack, each behind its length', () => {
+    it('reads past the components of a creative stack it has no codec for, each behind its length', () => {
         // Slot 36, 1 of item 900, one added component (type 5, three bytes), one removed (type 7).
         const body = [0x00, 0x24, 0x01, 0x84, 0x07, 0x01, 0x01, 0x05, 0x03, 0xaa, 0xbb, 0xcc, 0x07];
 
         expect(decodeJavaPacket(NEWEST_JAVA_RELEASE, SetCreativeModeSlot, frameOf(SetCreativeModeSlot, body))).toEqual({
             slot: 36,
-            item: { item: 900, count: 1 }
+            item: { item: 900, count: 1, removed: [DATA_COMPONENT_TYPES.nameOf(7)] }
         });
     });
 
-    it('refuses a stack from a server that carries components, rather than misread what follows', () => {
-        const body = [0x00, 0x01, 0x00, 0x24, 0x01, 0x05, 0x01, 0x00, 0x01, 0x00];
+    it('refuses a stack from a server that carries a component it has no codec for, rather than misread what follows', () => {
+        // Window 0, state 1, slot 36, 1 of item 5, one added component of type 5, which has no codec.
+        const body = [0x00, 0x01, 0x00, 0x24, 0x01, 0x05, 0x01, 0x00, 0x05, 0x00];
 
         expect(() => decodeJavaPacket(NEWEST_JAVA_RELEASE, ContainerSetSlot, frameOf(ContainerSetSlot, body))).toThrow(
-            'An item stack carries 1 data components'
+            `An item stack carries the data component ${DATA_COMPONENT_TYPES.nameOf(5)}`
         );
     });
 });

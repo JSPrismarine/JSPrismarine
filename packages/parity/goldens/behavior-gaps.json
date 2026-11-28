@@ -3427,6 +3427,11 @@
             "reason": "BubbleColumnBlock.updateColumn(Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;)V changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/families/world.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:ByteBufCodecs.holderSet": {
+            "kind": "deferred",
+            "reason": "ByteBufCodecs.holderSet changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/itemBehavior.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:CeilingHangingSignBlock.getStateForPlacement": {
             "kind": "deferred",
             "reason": "CeilingHangingSignBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
@@ -3522,6 +3527,11 @@
             "reason": "CombatRules.getDamageAfterMagicAbsorb changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/Damage.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:Consumable.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "Consumable.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/itemBehavior.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:CopperGolemStatueBlock.getStateForPlacement": {
             "kind": "deferred",
             "reason": "CopperGolemStatueBlock.getStateForPlacement changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/block-behaviors/src/rules/javaPlacement.ts then.",
@@ -3597,6 +3607,16 @@
             "reason": "EquipmentSlot.SADDLE changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/inventory/slotAddress.ts then.",
             "reference": "Java 26.4-pre-1"
         },
+        "preview:EquipmentSlot.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "EquipmentSlot.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/itemBehavior.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:Equippable.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "Equippable.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/itemBehavior.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
         "preview:EyeOfEnder.tick": {
             "kind": "deferred",
             "reason": "EyeOfEnder.tick changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/entity/data/eyeOfEnderSignals.ts then.",
@@ -3650,6 +3670,11 @@
         "preview:ItemCommands.applyModifier": {
             "kind": "deferred",
             "reason": "ItemCommands.applyModifier resolves to net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/commands/arguments/ValidationWrapper;)Ljava/util/function/UnaryOperator;, the golden says net/minecraft/server/commands/item/ItemCommands.applyModifier(Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/world/level/storage/loot/functions/LootItemFunction;)Ljava/util/function/UnaryOperator; in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/prismarine/src/command/host/inventory.ts then.",
+            "reference": "Java 26.4-pre-1"
+        },
+        "preview:ItemUseAnimation.STREAM_CODEC": {
+            "kind": "deferred",
+            "reason": "ItemUseAnimation.STREAM_CODEC changed its bytecode in 26.4-pre-1. The server runs the default release until 26.4-pre-1 replaces it; read the change against packages/protocol/src/java/packet/itemBehavior.ts then.",
             "reference": "Java 26.4-pre-1"
         },
         "preview:LadderBlock.getStateForPlacement": {
