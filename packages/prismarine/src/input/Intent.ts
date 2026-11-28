@@ -13,6 +13,7 @@
  */
 import type { Lane } from '@jsprismarine/protocol/handler/Lane';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
+import type { ShownStack } from '../player/presenter/SessionPresenter';
 
 /**
  * The animations a player plays on itself and asks the server to show everyone else, by name.
@@ -282,12 +283,13 @@ export interface IntentPayloads {
     /**
      * A creative player put a stack in a slot of its own inventory, or emptied it, as a Java
      * client says outright. `container` is the inventory's 36 slots (the hotbar's 9 first),
-     * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier.
+     * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier, with what
+     * it changes from the item's defaults.
      */
     readonly setCreativeSlot: {
         readonly container: 'inventory' | 'armor' | 'offhand';
         readonly slot: number;
-        readonly item: { readonly name: string; readonly count: number } | null;
+        readonly item: ShownStack | null;
     };
     /**
      * Where the client says its player is and which way it faces. The server does not simulate

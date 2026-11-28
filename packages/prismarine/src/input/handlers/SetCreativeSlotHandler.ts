@@ -1,10 +1,27 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
+import type { Item } from '../../item/Item';
 import { itemFromContent } from '../../item/itemFromContent';
 import { maxStackSizeOf } from '../../item/Item';
 import type { InputContext } from '../../player/context/HandlerContext';
+import type { ShownStack } from '../../player/presenter/SessionPresenter';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
+
+/**
+ * A stack with what the client's stack changes from its item: its name, lore, enchantments, spent
+ * durability, at most all of it, and its other components.
+ */
+const stackWith = (stack: Item, { customName, lore, enchantments, damage, components }: ShownStack): Item => {
+    let shaped = stack;
+    if (customName !== undefined || (lore !== undefined && lore.length > 0))
+        shaped = shaped.withDisplay(customName, lore);
+    if (enchantments !== undefined && enchantments.size > 0) shaped = shaped.withEnchantments(enchantments);
+    const max = shaped.getMaxDurability();
+    if (damage !== undefined && max > 0) shaped = shaped.withDurability(max - Math.min(Math.max(0, damage), max));
+    if (components !== undefined) shaped = shaped.withComponents(components);
+    return shaped;
+};
 
 /**
  * A creative player set a slot of its own inventory.
@@ -38,6 +55,6 @@ export default class SetCreativeSlotHandler implements IntentHandler<'setCreativ
             return;
         }
         const count = Math.min(Math.max(1, item.count), maxStackSizeOf(item.name, services.content));
-        target.set(slot, stack.withCount(count));
+        target.set(slot, stackWith(stack.withCount(count), item));
     }
 }

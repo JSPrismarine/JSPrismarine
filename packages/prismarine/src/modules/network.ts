@@ -456,6 +456,7 @@ export class ServerNetworking implements Networking {
             // TODO: a setting once the server checks chat signatures; until then chat is unsigned.
             enforcesSecureChat: () => false,
             log: logger,
+            customItems: server.getJavaCustomItems(),
             resourcePacks: javaResourcePackOffer({
                 packs: server.getJavaResourcePacks(),
                 baseUrl: () => config.getJavaResourcePackUrl(),

@@ -104,6 +104,8 @@ describe('JavaCustomItems', () => {
         });
         expect(items.stackOf('loopback:bow')?.base).toBe('minecraft:bow');
         expect(items.models()).toEqual([{ model: 'loopback:lamp', icon: 'lamp' }]);
+        expect(items.identifierOf('loopback:lamp')).toBe('loopback:lamp');
+        expect(items.identifierOf('minecraft:stone')).toBeUndefined();
         expect(Object.keys(JSON.parse(fs.readFileSync(file, 'utf8')).items)).toEqual(['loopback:lamp', 'loopback:bow']);
     });
 });

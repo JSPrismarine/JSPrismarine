@@ -3,7 +3,7 @@
  * fields `Item` keeps of its own, such as its name and its damage, and the components in its bag
  * that a Java slot can carry, read from their JSON form.
  */
-import type { JavaItemComponents } from '@jsprismarine/protocol/java/packet/itemStack';
+import type { JavaItemComponents, JavaItemStack } from '@jsprismarine/protocol/java/packet/itemStack';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 
@@ -122,5 +122,78 @@ export const javaItemComponentsOf = (stack: ShownStack): JavaItemComponents => {
             : stack.name === ENCHANTED_BOOK
               ? { 'minecraft:stored_enchantments': enchantments }
               : { 'minecraft:enchantments': enchantments })
+    };
+};
+
+/** Java text as a stack's plain text: only plain text is, since a stack holds names as strings. */
+const plainTextOf = (text: JavaText | undefined): string | undefined => (typeof text === 'string' ? text : undefined);
+
+/**
+ * The components of a Java stack that a stack's bag keeps, in Java's JSON form, which
+ * {@link javaItemComponentsOf} reads back.
+ */
+const bagOf = (components: JavaItemComponents): Record<string, unknown> => {
+    const customModelData = components['minecraft:custom_model_data'];
+    const cooldown = components['minecraft:use_cooldown'];
+    const food = components['minecraft:food'];
+    return {
+        ...(components['minecraft:max_stack_size'] === undefined
+            ? {}
+            : { 'minecraft:max_stack_size': components['minecraft:max_stack_size'] }),
+        ...(components['minecraft:unbreakable'] === undefined ? {} : { 'minecraft:unbreakable': {} }),
+        ...(components['minecraft:item_name'] === undefined
+            ? {}
+            : { 'minecraft:item_name': components['minecraft:item_name'] }),
+        ...(components['minecraft:item_model'] === undefined
+            ? {}
+            : { 'minecraft:item_model': components['minecraft:item_model'] }),
+        ...(customModelData === undefined ? {} : { 'minecraft:custom_model_data': { ...customModelData } }),
+        ...(components['minecraft:enchantment_glint_override'] === undefined
+            ? {}
+            : { 'minecraft:enchantment_glint_override': components['minecraft:enchantment_glint_override'] }),
+        ...(cooldown === undefined
+            ? {}
+            : {
+                  'minecraft:use_cooldown': {
+                      seconds: cooldown.seconds,
+                      ...(cooldown.group === undefined ? {} : { cooldown_group: cooldown.group })
+                  }
+              }),
+        ...(food === undefined
+            ? {}
+            : {
+                  'minecraft:food': {
+                      nutrition: food.nutrition,
+                      saturation: food.saturation,
+                      can_always_eat: food.canAlwaysEat
+                  }
+              })
+    };
+};
+
+/**
+ * What a Java stack changes from its item's defaults, as a stack's plain data: the inverse of
+ * {@link javaItemComponentsOf}, for a stack a Java client sends. A name or lore line that is a
+ * translation rather than plain text, and a component the server keeps no field or bag entry for,
+ * are left out.
+ * @param name - The stack's Bedrock identifier.
+ * @param stack - The stack as the client sent it.
+ * @returns The stack.
+ */
+export const shownStackOfJava = (name: string, { count, components = {} }: JavaItemStack): ShownStack => {
+    const customName = plainTextOf(components['minecraft:custom_name']);
+    const lore = (components['minecraft:lore'] ?? []).map(plainTextOf).filter((line) => line !== undefined);
+    const damage = components['minecraft:damage'];
+    const levels = components['minecraft:stored_enchantments'] ?? components['minecraft:enchantments'] ?? {};
+    const enchantments = new Map(Object.entries(levels).filter(([, level]) => level > 0));
+    const bag = bagOf(components);
+    return {
+        name,
+        count,
+        ...(customName === undefined ? {} : { customName }),
+        ...(lore.length === 0 ? {} : { lore }),
+        ...(damage === undefined || damage <= 0 ? {} : { damage }),
+        ...(enchantments.size === 0 ? {} : { enchantments }),
+        ...(Object.keys(bag).length === 0 ? {} : { components: bag })
     };
 };

@@ -56,4 +56,36 @@ describe('SetCreativeSlotHandler', () => {
         await creative.set({ container: 'offhand', slot: 0, item: { name: 'minecraft:not_an_item', count: 1 } });
         expect(creative.resent).toEqual(['offhand 0']);
     });
+
+    it("keeps what the client's stack changes: its name, lore, enchantments, spent durability and components", async () => {
+        const { inventory, set } = scene(Gametype.CREATIVE);
+
+        await set({
+            container: 'inventory',
+            slot: 0,
+            item: {
+                name: 'minecraft:diamond_pickaxe',
+                count: 1,
+                customName: 'Old Faithful',
+                lore: ['Dug the first mine'],
+                damage: 120,
+                enchantments: new Map([['minecraft:efficiency', 3]]),
+                components: { 'minecraft:item_model': 'loopback:pick' }
+            }
+        });
+        const pickaxe = inventory.container('inventory').get(0)!;
+        expect(pickaxe.getCustomName()).toBe('Old Faithful');
+        expect(pickaxe.getLore()).toEqual(['Dug the first mine']);
+        expect(pickaxe.getEnchantmentLevel('minecraft:efficiency')).toBe(3);
+        expect(pickaxe.getMaxDurability() - pickaxe.getDurability()).toBe(120);
+        expect(pickaxe.getComponents()).toEqual({ 'minecraft:item_model': 'loopback:pick' });
+
+        // Damage past the item's durability leaves it at none, rather than below.
+        await set({
+            container: 'inventory',
+            slot: 1,
+            item: { name: 'minecraft:diamond_pickaxe', count: 1, damage: 1e6 }
+        });
+        expect(inventory.container('inventory').get(1)?.getDurability()).toBe(0);
+    });
 });
