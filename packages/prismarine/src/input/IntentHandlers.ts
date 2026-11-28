@@ -1,10 +1,15 @@
 import AnimateHandler from './handlers/AnimateHandler';
+import AnswerFormHandler from './handlers/AnswerFormHandler';
 import AttackEntityHandler from './handlers/AttackEntityHandler';
 import ChangeGameModeHandler from './handlers/ChangeGameModeHandler';
 import ChatHandler from './handlers/ChatHandler';
 import CloseContainerHandler from './handlers/CloseContainerHandler';
 import DamageAnvilHandler from './handlers/DamageAnvilHandler';
+import DropHeldItemHandler from './handlers/DropHeldItemHandler';
 import EatHandler from './handlers/EatHandler';
+import EditBookHandler from './handlers/EditBookHandler';
+import EditCommandBlockHandler from './handlers/EditCommandBlockHandler';
+import EditCommandMinecartHandler from './handlers/EditCommandMinecartHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
 import HoldButtonsHandler from './handlers/HoldButtonsHandler';
@@ -27,7 +32,6 @@ import RunCommandHandler from './handlers/RunCommandHandler';
 import ScriptMessageHandler from './handlers/ScriptMessageHandler';
 import SelectHotbarSlotHandler from './handlers/SelectHotbarSlotHandler';
 import SetCreativeSlotHandler from './handlers/SetCreativeSlotHandler';
-import DropHeldItemHandler from './handlers/DropHeldItemHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetFlyingHandler from './handlers/SetFlyingHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
@@ -48,12 +52,17 @@ import UseLabTableHandler from './handlers/UseLabTableHandler';
  */
 export {
     AnimateHandler,
+    AnswerFormHandler,
     AttackEntityHandler,
     ChangeGameModeHandler,
     ChatHandler,
     CloseContainerHandler,
     DamageAnvilHandler,
+    DropHeldItemHandler,
     EatHandler,
+    EditBookHandler,
+    EditCommandBlockHandler,
+    EditCommandMinecartHandler,
     EmoteHandler,
     FinishCreditsHandler,
     HoldButtonsHandler,
@@ -76,7 +85,6 @@ export {
     ScriptMessageHandler,
     SelectHotbarSlotHandler,
     SetCreativeSlotHandler,
-    DropHeldItemHandler,
     SetDefaultGameModeHandler,
     SetFlyingHandler,
     SetPlayerPermissionHandler,

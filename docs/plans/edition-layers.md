@@ -22,7 +22,7 @@ Progress:
   `BlockActorData`, which no handler reads yet, and Java's `sign_update`
   ([#3775](https://github.com/JSPrismarine/JSPrismarine/issues/3775)), so it is a feature to build
   rather than a handler to move.
-- Slice 3.3, item use: under review. `InventoryTransaction`'s bodies are intents: a use on a block,
+- Slice 3.3, item use: merged in [#3845](https://github.com/JSPrismarine/JSPrismarine/pull/3845). `InventoryTransaction`'s bodies are intents: a use on a block,
   a use at nothing, a hit, a use on an actor and a release, beside the client-timed break that is
   `mineBlock`'s `finish`. Java decodes `Use Item`, `Attack`, `Interact` and `Player Action`'s
   release into the same ones. The Bedrock handler keeps what only Bedrock has: checking the
@@ -31,7 +31,7 @@ Progress:
   slice: Java moves them with `Container Click`, by slot and button, so the two need a shared
   model of a stack move before either decodes into it, and that is a slice of its own after the
   screens.
-- Slice 3.4, screens: under review. An anvil's wear, a crafter's slot toggle, a lab table action
+- Slice 3.4, screens: merged in [#3851](https://github.com/JSPrismarine/JSPrismarine/pull/3851). An anvil's wear, a crafter's slot toggle, a lab table action
   and a recipe book's settings are intents. Bedrock's `AnvilDamage`, `PlayerToggleCrafterSlotRequest`,
   `LabTable`, `SetPlayerFurnaceOptions` and `SetPlayerInventoryOptions` decode into them, and Java's
   `Change Recipe Book Settings` into the recipe book's. Java toggles a crafter's slot, turns a
@@ -39,6 +39,16 @@ Progress:
   opened. The server opens no screen for a Java client yet, so those wait until one does, with
   `Container Click`. The trade and workstation rules, `tradeScreen` and `workstation`, are game
   logic that only `ItemStackRequest` uses, so they move with it.
+- Slice 3.5, forms, books and commands: under review. A form's answer, a book edit and a command
+  block's or a command block minecart's edit are intents. Bedrock's `BookEdit` and
+  `CommandBlockUpdate` decode into them, and `ModalFormResponse` hands its answer to
+  `answerForm` once it has checked the answer is JSON, which disconnects a client when it is not,
+  as BDS does. Java's `Edit Book`, `Set Command Block` and `Set Command Minecart` decode into the
+  same intents. A Java screen sends no command block name or tick delay, so an edit that leaves a
+  field out keeps the block's own. `CommandRequest` already runs the shared command manager, and
+  its reply echoes Bedrock's request origin, so it stays Bedrock's. The data-driven screens are
+  Bedrock's own UI, kept in the Bedrock session's screen state, and stay too. Structure blocks
+  move with what remains, slice 3.6. The `network/` aliases are gone.
 
 ## Problem
 
@@ -84,8 +94,8 @@ compression, encryption and packet traces.
 
 A moved or replaced module's old public subpath is removed, not kept as a deprecated alias or a
 shim, and its changeset names the replacement. Removing a subpath that a release published is a
-breaking change, with the bump [the versioning policy](../guide/versioning.md) gives it. The
-`network/` aliases slices 1 and 2 left are the exception this rule came too late for.
+breaking change, with the bump [the versioning policy](../guide/versioning.md) gives it. Slice 3.5
+removed the `network/` aliases slices 1 and 2 had left.
 
 ## Slices
 

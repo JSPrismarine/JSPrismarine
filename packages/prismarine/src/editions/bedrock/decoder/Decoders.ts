@@ -3,7 +3,9 @@ import ActorPickRequestDecoder from './ActorPickRequestDecoder';
 import AnimateDecoder from './AnimateDecoder';
 import AnvilDamageDecoder from './AnvilDamageDecoder';
 import BlockPickRequestDecoder from './BlockPickRequestDecoder';
+import BookEditDecoder from './BookEditDecoder';
 import BossEventDecoder from './BossEventDecoder';
+import CommandBlockUpdateDecoder from './CommandBlockUpdateDecoder';
 import ContainerCloseDecoder from './ContainerCloseDecoder';
 import EmoteDecoder from './EmoteDecoder';
 import InteractDecoder from './InteractDecoder';
@@ -37,7 +39,9 @@ export {
     AnimateDecoder,
     AnvilDamageDecoder,
     BlockPickRequestDecoder,
+    BookEditDecoder,
     BossEventDecoder,
+    CommandBlockUpdateDecoder,
     ContainerCloseDecoder,
     EmoteDecoder,
     InteractDecoder,

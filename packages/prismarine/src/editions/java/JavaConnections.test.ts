@@ -39,6 +39,11 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    EditBook,
+    SetCommandBlock,
+    SetCommandMinecart,
+    JavaCommandBlockMode,
+    JavaCommandBlockFlag,
     RecipeBookChangeSettings,
     JavaRecipeBookType,
     PlayerActionStatus,
@@ -407,9 +412,20 @@ describe('JavaConnections', () => {
         // A recipe book the player filtered, and a book type past the four, which names none.
         java.send(RecipeBookChangeSettings, { bookType: JavaRecipeBookType.Smoker, isOpen: true, isFiltering: true });
         java.send(RecipeBookChangeSettings, { bookType: 9, isOpen: true, isFiltering: true });
+        // A signed book, one in the off hand the server's inventory has no slot for, and the
+        // edits of a command block and of a cart.
+        java.send(EditBook, { slot: 2, pages: ['hi'], title: 'Diary' });
+        java.send(EditBook, { slot: 40, pages: ['hi'], title: null });
+        java.send(SetCommandBlock, {
+            position: { x: 1, y: 64, z: 2 },
+            command: 'say hi',
+            mode: JavaCommandBlockMode.Auto,
+            flags: JavaCommandBlockFlag.Conditional
+        });
+        java.send(SetCommandMinecart, { entityId: 9, command: 'say hi', trackOutput: true });
         await expect
             .poll(() => did.at(-1))
-            .toBe('intent {"kind":"setRecipeBook","book":"smoker","open":true,"filtering":true}');
+            .toBe('intent {"kind":"editCommandMinecart","target":"9n","command":"say hi","trackOutput":true}');
         java.destroy();
         await leaving;
 
@@ -435,6 +451,9 @@ describe('JavaConnections', () => {
             'intent {"kind":"useItem","held":false}',
             'intent {"kind":"releaseItem","action":"release"}',
             'intent {"kind":"setRecipeBook","book":"smoker","open":true,"filtering":true}',
+            'intent {"kind":"editBook","slot":2,"edit":{"kind":"setPages","pages":["hi"],"title":"Diary"}}',
+            'intent {"kind":"editCommandBlock","position":{"x":1,"y":64,"z":2},"mode":"repeat","conditional":true,"needsRedstone":true,"command":"say hi","trackOutput":false}',
+            'intent {"kind":"editCommandMinecart","target":"9n","command":"say hi","trackOutput":true}',
             'leave'
         ]);
     });

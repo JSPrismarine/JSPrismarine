@@ -40,7 +40,8 @@ export const minecartCommandOf = (entity: DataEntity) => entity.instance.compone
 /** What a player set on the cart's command block screen. */
 export interface MinecartCommandEdit {
     readonly command: string;
-    readonly customName: string;
+    /** Absent, as Java's screen sends none, the cart keeps the name it has. */
+    readonly customName?: string;
     readonly trackOutput: boolean;
 }
 
@@ -49,7 +50,7 @@ export const setMinecartCommand = (entity: DataEntity, edit: MinecartCommandEdit
     const before = minecartCommandOf(entity);
     entity.instance.componentState.set(commandState, {
         command: edit.command,
-        customName: edit.customName,
+        customName: edit.customName ?? before?.customName ?? '',
         trackOutput: edit.trackOutput,
         lastOutput: edit.trackOutput ? (before?.lastOutput ?? '') : '',
         successCount: before?.successCount ?? 0,

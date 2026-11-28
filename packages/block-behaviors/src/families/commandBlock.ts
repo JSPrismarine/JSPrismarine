@@ -276,10 +276,13 @@ export interface CommandBlockEdit {
     /** Bedrock's "Needs Redstone"; off is always active. */
     readonly needsRedstone: boolean;
     readonly command: string;
-    readonly customName: string;
+    /** Absent, as Java's screen sends none, the block keeps the name it has. */
+    readonly customName?: string;
     readonly trackOutput: boolean;
-    readonly tickDelay: number;
-    readonly executeOnFirstTick: boolean;
+    /** Absent, the block keeps the delay it has. */
+    readonly tickDelay?: number;
+    /** Absent, the block keeps the setting it has. */
+    readonly executeOnFirstTick?: boolean;
 }
 
 /**
@@ -303,11 +306,11 @@ export const editCommandBlock = (world: WorldActions, position: BlockPosition, e
         state: {
             ...before.state,
             command: edit.command,
-            customName: edit.customName,
+            customName: edit.customName ?? before.state.customName,
             trackOutput: edit.trackOutput,
             lastOutput: edit.trackOutput ? before.state.lastOutput : '',
-            tickDelay: Math.max(0, edit.tickDelay),
-            executeOnFirstTick: edit.executeOnFirstTick,
+            tickDelay: Math.max(0, edit.tickDelay ?? before.state.tickDelay),
+            executeOnFirstTick: edit.executeOnFirstTick ?? before.state.executeOnFirstTick,
             auto
         }
     };

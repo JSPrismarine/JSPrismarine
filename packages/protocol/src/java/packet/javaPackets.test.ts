@@ -86,6 +86,11 @@ import {
     Attack,
     Interact,
     UseItem,
+    EditBook,
+    SetCommandBlock,
+    SetCommandMinecart,
+    JavaCommandBlockMode,
+    JavaCommandBlockFlag,
     RecipeBookChangeSettings,
     JavaRecipeBookType,
     PickItemFromBlock,
@@ -386,6 +391,15 @@ const SAMPLES: readonly Sample[] = [
     }),
     sample(UseItem, { hand: JavaHand.Main, sequence: 6, yaw: 90, pitch: -45 }),
     sample(Attack, { entityId: 12 }),
+    sample(EditBook, { slot: 3, pages: ['first', 'second'], title: null }),
+    sample(EditBook, { slot: 40, pages: ['only'], title: 'Diary' }),
+    sample(SetCommandBlock, {
+        position: { x: 1, y: 64, z: -2 },
+        command: 'say hi',
+        mode: JavaCommandBlockMode.Auto,
+        flags: JavaCommandBlockFlag.TrackOutput | JavaCommandBlockFlag.Automatic
+    }),
+    sample(SetCommandMinecart, { entityId: 9, command: 'say hi', trackOutput: false }),
     sample(RecipeBookChangeSettings, { bookType: JavaRecipeBookType.Smoker, isOpen: true, isFiltering: false }),
     // A location whose coordinates quantize exactly: one in each of the scale's units.
     sample(Interact, { entityId: 12, hand: JavaHand.Off, location: { x: 1, y: 0, z: -1 }, sneaking: true }),
