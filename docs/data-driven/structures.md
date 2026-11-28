@@ -44,9 +44,12 @@ dimension has. That is what keeps the nether's and the end's sets out of the ove
 anything naming a dimension.
 
 A random spread placement chooses one chunk per region, so the scan asks each region once rather
-than asking each of the 289 chunks in the window. Once a chunk is chosen, the set draws which of
-its structures goes there, the structure lays itself out, and the biome at the layout's
-generation point decides whether it is kept.
+than asking each of the 289 chunks in the window. A set with an `exclusion_zone` skips a chunk
+when the set it names could start a structure within `chunk_count` chunks of it, which is how a
+pillager outpost keeps clear of villages. Once a chunk is chosen, the set draws which of its
+structures goes there, the structure lays itself out, and the biome at the layout's generation
+point decides whether it is kept. A structure that is not kept hands the chunk to the next one the
+set draws, so a chunk outside the badlands that draws the badlands mineshaft gets the normal one.
 
 ## What generates
 
@@ -64,8 +67,8 @@ All 52 generate.
 | `igloo` | 1 | Generates |
 | `jungle_temple` | 1 | Generates; the basement is a reconstruction |
 | `nether_fossil` | 1 | Generates |
-| `ocean_monument` | 1 | Generates, without Java's surrounding-biome check |
-| `stronghold` | 1 | Generates, at the unsnapped ring position |
+| `ocean_monument` | 1 | Generates |
+| `stronghold` | 1 | Generates |
 | `swamp_hut` | 1 | Generates |
 | `woodland_mansion` | 1 | Generates, without the cobblestone pillars Java drops under it |
 | `fortress` | 1 | Generates |
@@ -115,17 +118,18 @@ height.
 placements a box rejects. `placement_priority`, which only the trial chambers use, does not
 reorder the placement queue.
 
-**A stronghold is not snapped to its preferred biome.** Java's concentric ring placement moves
-each of the 128 ring positions to the nearest chunk whose biome is in `stronghold_biased_to`.
-This uses the unsnapped ring positions.
+**A stronghold's biome search breaks climate ties by tree order.** Java moves each of the 128
+ring positions to a chunk whose biome is in `stronghold_biased_to`, picked by a draw over the
+matching cells within 112 blocks, and this does the same. A cell whose climate is exactly as far
+from two biomes resolves in Java through a thread-local last result, and Java runs the 128
+searches in parallel on background threads, so its answer for such a cell depends on thread
+scheduling. This resolves the tie by climate tree order, so a ring whose search square holds such
+a cell can land a few chunks from Java's.
 
 **Pool alias draws use a different stream.** Java forks a positional random off the world seed at
 the structure's position for the trial chambers' pool aliases. This forks one keyed the same way
 but from a different generator, so the aliases are stable for a world and a chunk without being
 Java's.
-
-**The exclusion zones are parsed and not applied.** A set whose `exclusion_zone` names another
-set is placed as if the zone were absent.
 
 **A few decoration draws moved from placement to layout.** Java's ocean monument draws its
 simple room pillars and its sponge room patterns inside `postProcess`, so a room on a chunk
@@ -145,13 +149,12 @@ which is what `/locate` prints and what an eye of ender flies toward.
 `DataDrivenGenerator.locate(request)` is the search behind `/locate structure`, Java's
 `findNearestMapStructure`. Its radius counts rings of placement regions, so the command's 100
 reaches 3400 chunks for a set spaced 34 apart, and a concentric ring placement is searched whole
-however far its rings lie. Candidates are laid out nearest first and the first one the biome
-accepts wins, so a search costs a few layouts rather than a few thousand. A `#tag` such as
-`#minecraft:village` resolves through `tags/worldgen/structure` by `membersOfTag`, and
-`locatableNames` lists every id and tag for the command's suggestions. One difference from Java
-remains: Java finishes a ring of regions and answers the nearest start in it, where this answers
-the nearest start by candidate chunk across the whole search, so the two can disagree when a
-nearer candidate sits one ring further out.
+however far its rings lie. A random spread set is walked one ring of regions at a time, each
+ring answers the first start in Java's scan order, and the first ring with an answer ends the
+search, so the answer is Java's even where a nearer start sits one ring further out. Only the
+candidates the walk reaches are laid out, so a search costs a few layouts rather than a few
+thousand. A `#tag` such as `#minecraft:village` resolves through `tags/worldgen/structure` by
+`membersOfTag`, and `locatableNames` lists every id and tag for the command's suggestions.
 
 `DataDrivenGenerator.locateBiome(request)` is the walk behind `/locate biome`, Java's
 `BiomeSource.findClosestBiome3d` over the same climate sampler the chunks read, in Java's spiral

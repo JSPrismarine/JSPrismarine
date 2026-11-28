@@ -146,6 +146,23 @@ describe('buildOceanMonument', () => {
         expect(extentOf(monumentFor(SEED))).toEqual({ width: 58, height: 23, depth: 58 });
     });
 
+    it('starts no monument whose surroundings reach a biome the tag leaves out, as Java does', () => {
+        const allowed = new Set(['minecraft:deep_ocean', 'minecraft:ocean']);
+        const biomeTag = (tag: string) =>
+            tag === 'minecraft:required_ocean_monument_surrounding' ? allowed : new Set<string>();
+        const withBeachAt = (quartX: number): StructureBuildContext => ({
+            ...contextOf(SEED),
+            biomeTag,
+            level: { ...levelOf(), noiseBiome: (x) => (x === quartX ? 'minecraft:beach' : 'minecraft:deep_ocean') }
+        });
+        // The start chunk is 2, -3, so its block 9 is x 41 and the check reaches 29 blocks: quart
+        // cells 3 to 17.
+        expect(buildOceanMonument(withBeachAt(17))).toBeUndefined();
+        expect(buildOceanMonument(withBeachAt(3))).toBeUndefined();
+        expect(buildOceanMonument(withBeachAt(18))).toBeDefined();
+        expect(buildOceanMonument(withBeachAt(2))).toBeDefined();
+    });
+
     it('centers the building on the start chunk and reports the sea floor as its origin', () => {
         const layout = monumentFor(SEED);
         const building = layout.pieces[0]!.boundingBox;

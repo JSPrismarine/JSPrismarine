@@ -198,7 +198,8 @@ describe('buildIgloo', () => {
         const layout = laidOut(buildIgloo(contextOf({}, igloo, 11)))!;
         const dome = layout.pieces.at(-1)!;
 
-        expect(layout.origin.y).toBe(GROUND + 1);
+        // The generation point is the topmost ground block, which is where the biome is read.
+        expect(layout.origin.y).toBe(GROUND);
         expect(dome.boundingBox.minY).toBe(GROUND);
     });
 

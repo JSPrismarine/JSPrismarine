@@ -20,11 +20,12 @@
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { Placement, Rotation, TemplatePosition } from '@jsprismarine/structures';
+import { pivotedCorner } from '@jsprismarine/structures';
 
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { DataMarker } from './javaStructureTemplatePiece';
-import { registerTemplatePieceMarkerHandler, TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
+import { registerTemplatePieceMarkerHandler, TemplatePiece } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructureWriter } from './javaStructureWorld';
 import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 

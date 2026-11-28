@@ -171,9 +171,9 @@ structure it places in the dimension you are standing in, `minecraft:stronghold`
 `minecraft:end_city` from the End. The name is a Java id with or without its namespace, a
 structure tag such as `#minecraft:village`, or Bedrock's family name, `village` or
 `ruinedportal`. The search is Java's: a radius of 100 placement regions rather than chunks, and
-every ring of the strongholds' concentric placement, so a stronghold two thousand blocks out is
-found from spawn. The answer is Java's too, `The nearest minecraft:stronghold is at [-768, ~, 1840]
-(1993 blocks away)`: the start chunk's corner, the height hidden because a structure has none, and
+every ring of the strongholds' concentric placement, so a stronghold sixteen hundred blocks out is
+found from spawn. The answer is Java's too, `The nearest minecraft:stronghold is at [-544, ~, 1552]
+(1644 blocks away)`: the start chunk's corner, the height hidden because a structure has none, and
 the flat distance, which is also the command's result. `/locate biome` walks the climate sampler
 on Java's grid, 6400 blocks out at one column per 32 blocks and one sample per 64 blocks of
 height, and prints the sampled height and a three-axis distance. `/locate poi` is refused with

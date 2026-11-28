@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { candidateChunksIn } from './javaStructurePlacement';
+import { candidateChunksIn, structureAttemptsAt } from './javaStructurePlacement';
 import type { StructureBuilder, StructureStartOptions } from './javaStructureStarts';
 import { StructureStartSource } from './javaStructureStarts';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
@@ -272,32 +272,126 @@ describe('StructureStartSource', () => {
         expect(builds).toEqual([{ set: named.id, chunkX: candidate.x, chunkZ: candidate.z }]);
     });
 
+    it('hands a chunk whose first draw the biome refuses to the next structure the set draws, as Java does', () => {
+        const base = registriesOf([HERE]);
+        const registries: JavaWorldgenRegistries = {
+            ...base,
+            structures: new Map<string, unknown>([
+                ['test:hut', { type: 'test:hut', biomes: [HERE], step: 'surface_structures' }],
+                ['test:cabin', { type: 'test:hut', biomes: [ELSEWHERE], step: 'surface_structures' }]
+            ]),
+            structureSets: new Map<string, unknown>([
+                [
+                    'test:huts',
+                    {
+                        placement: { type: 'minecraft:random_spread', spacing: SPACING, separation: 1, salt: 7 },
+                        structures: [
+                            { structure: 'test:cabin', weight: 1 },
+                            { structure: 'test:hut', weight: 1 }
+                        ]
+                    }
+                ]
+            ])
+        };
+        const source = new StructureStartSource({
+            seed: SEED,
+            registries,
+            level,
+            templates,
+            isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
+            builders: new Map<string, StructureBuilder>([['test:hut', hutBuilder]])
+        });
+        const named = source.usedSets()[0]!;
+        const candidates = candidateChunksIn(named.set.placement, SEED, {
+            minChunkX: 0,
+            minChunkZ: 0,
+            maxChunkX: 63,
+            maxChunkZ: 63
+        });
+        const drewCabinFirst = candidates.filter(
+            (chunk) => structureAttemptsAt(named.set, SEED, chunk.x, chunk.z)[0] === 'test:cabin'
+        );
+
+        expect(drewCabinFirst.length).toBeGreaterThan(0);
+        for (const chunk of candidates) {
+            expect(source.startAt(named, chunk.x, chunk.z)?.structure).toBe('test:hut');
+        }
+    });
+
+    it('starts nothing where the exclusion zone of another set reaches, as Java does', () => {
+        const zone = 1;
+        const source = sourceOf([HERE], {
+            sets: {
+                'test:camps': {
+                    placement: {
+                        type: 'minecraft:random_spread',
+                        spacing: SPACING,
+                        separation: 1,
+                        salt: 9,
+                        exclusion_zone: { other_set: 'test:huts', chunk_count: zone }
+                    },
+                    structures: [{ structure: 'test:hut', weight: 1 }]
+                }
+            }
+        });
+        const huts = source.usedSets().find((named) => named.id === 'test:huts')!;
+        const camps = source.usedSets().find((named) => named.id === 'test:camps')!;
+        const range = { minChunkX: 0, minChunkZ: 0, maxChunkX: 63, maxChunkZ: 63 };
+        const hutChunks = candidateChunksIn(huts.set.placement, SEED, {
+            minChunkX: range.minChunkX - zone,
+            minChunkZ: range.minChunkZ - zone,
+            maxChunkX: range.maxChunkX + zone,
+            maxChunkZ: range.maxChunkZ + zone
+        });
+
+        let excluded = 0;
+        let kept = 0;
+        for (const chunk of candidateChunksIn(camps.set.placement, SEED, range)) {
+            const nearHut = hutChunks.some(
+                (hut) => Math.abs(hut.x - chunk.x) <= zone && Math.abs(hut.z - chunk.z) <= zone
+            );
+            const start = source.startAt(camps, chunk.x, chunk.z);
+            expect(start === null).toBe(nearHut);
+            if (nearHut) excluded++;
+            else kept++;
+        }
+        expect(excluded).toBeGreaterThan(0);
+        expect(kept).toBeGreaterThan(0);
+    });
+
     describe('locate', () => {
-        it('finds the nearest start to the origin, not whichever candidate came first', () => {
+        it("answers the start in the origin's own region before a nearer one in the next ring, as Java does", () => {
             const source = sourceOf();
-            const origin = { originChunkX: 40, originChunkZ: 40, radius: 6 };
+            const named = source.usedSets()[0];
+            if (named === undefined) throw new Error('Expected the fixture structure set to be usable');
+            /** Every region of the fixture offers one candidate, and the biome accepts it. */
+            const candidateOf = (regionX: number, regionZ: number) =>
+                candidateChunksIn(named.set.placement, SEED, {
+                    minChunkX: regionX * SPACING,
+                    minChunkZ: regionZ * SPACING,
+                    maxChunkX: regionX * SPACING + SPACING - 1,
+                    maxChunkZ: regionZ * SPACING + SPACING - 1
+                })[0]!;
 
-            const found = source.locate({ ...origin, wanted: (structure) => structure === 'test:hut' });
-            expect(found).toBeDefined();
+            let checked = 0;
+            for (let x = 0; x < 48; x++) {
+                for (let z = 0; z < 48; z++) {
+                    const regionX = Math.floor(x / SPACING);
+                    const regionZ = Math.floor(z / SPACING);
+                    const own = candidateOf(regionX, regionZ);
+                    const distance = (chunk: { x: number; z: number }): number =>
+                        (chunk.x - x) ** 2 + (chunk.z - z) ** 2;
+                    const nearer = [-1, 0, 1]
+                        .flatMap((dx) => [-1, 0, 1].map((dz) => candidateOf(regionX + dx, regionZ + dz)))
+                        .some((chunk) => distance(chunk) < distance(own));
+                    if (!nearer) continue;
 
-            // Nothing inside the radius may be closer to the origin than what was returned.
-            const reach = origin.radius * SPACING;
-            const distance = (chunkX: number, chunkZ: number): number =>
-                (chunkX - origin.originChunkX) ** 2 + (chunkZ - origin.originChunkZ) ** 2;
-            const nearest = source
-                .usedSets()
-                .flatMap((named) =>
-                    candidateChunksIn(named.set.placement, SEED, {
-                        minChunkX: origin.originChunkX - reach,
-                        minChunkZ: origin.originChunkZ - reach,
-                        maxChunkX: origin.originChunkX + reach,
-                        maxChunkZ: origin.originChunkZ + reach
-                    })
-                )
-                .map((at) => distance(at.x, at.z))
-                .sort((left, right) => left - right)[0];
-
-            expect(distance(found!.chunkX, found!.chunkZ)).toBe(nearest);
+                    const found = source.locate({ originChunkX: x, originChunkZ: z, radius: 4, wanted: () => true });
+                    expect([found?.chunkX, found?.chunkZ]).toEqual([own.x, own.z]);
+                    checked++;
+                }
+            }
+            expect(checked).toBeGreaterThan(0);
         });
 
         it('answers the generation point the layout settled on', () => {

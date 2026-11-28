@@ -50,8 +50,11 @@ const TIMEOUT = 900_000;
 /** The seed `javaStructures.test.ts` verified the placements of against the 26.3 jar. */
 const SEED = 1234n;
 
-/** Where the seed's first-ring stronghold starts: 1993 blocks out, past a 100-chunk square. */
-const STRONGHOLD_CHUNK = { x: -48, z: 115 };
+/**
+ * Where the seed's stronghold nearest spawn starts, 1644 blocks out, which is what Java 26.3's
+ * `/locate structure minecraft:stronghold` answers from 0, 0.
+ */
+const STRONGHOLD_CHUNK = { x: -34, z: 97 };
 
 /** Where the seed's nearest nether fortress to the origin starts, by the `nether_complexes` set. */
 const FORTRESS_CHUNK = { x: 14, z: 8 };
@@ -249,7 +252,7 @@ describe.skipIf(!enabled)('/locate through the server command host', { tags: ['r
 
     describe('a structure', () => {
         it(
-            'finds the stronghold the concentric rings place, beyond a 100-chunk square',
+            'finds the stronghold the concentric rings place, moved to the biome it prefers',
             async () => {
                 const { result, feedback } = await fixture.run('locate structure minecraft:stronghold');
                 const answer = positionIn(feedback[0]);
@@ -259,8 +262,8 @@ describe.skipIf(!enabled)('/locate through the server command host', { tags: ['r
                     chunkZ: STRONGHOLD_CHUNK.z
                 });
                 // Java reports the start chunk's corner, hides the y, and measures flat.
-                expect(answer).toEqual({ x: -768, y: '~', z: 1840, distance: 1993 });
-                expect(result).toBe(1993);
+                expect(answer).toEqual({ x: -544, y: '~', z: 1552, distance: 1644 });
+                expect(result).toBe(1644);
             },
             TIMEOUT
         );
@@ -270,7 +273,7 @@ describe.skipIf(!enabled)('/locate through the server command host', { tags: ['r
             async () => {
                 const { feedback } = await fixture.run('locate structure stronghold');
 
-                expect(positionIn(feedback[0])).toMatchObject({ x: -768, z: 1840 });
+                expect(positionIn(feedback[0])).toMatchObject({ x: -544, z: 1552 });
             },
             TIMEOUT
         );

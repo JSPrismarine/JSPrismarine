@@ -8,7 +8,7 @@
  * rooms left unclaimed are taken by the first room shape that fits them. That is where the seed
  * shows, and the draws below follow Java's order so a seed produces Java's plan.
  *
- * Three things are done differently from Java.
+ * Two things are done differently from Java.
  *
  * Java's `MonumentBuilding.postProcess` writes the shell and then walks its child pieces, skipping
  * the ones whose box misses the chunk. Here each Java piece is its own {@link StructurePiece} with
@@ -20,10 +20,6 @@
  * room on a chunk border grows two different patterns. The draws here happen once, after every
  * draw Java makes during layout, so Java's floor plan is untouched and the room is whole.
  *
- * Java's `findGenerationPoint` rejects a monument whose 29-block surroundings are not all in
- * `#minecraft:required_ocean_monument_surrounding`. A builder cannot read a biome tag, so the
- * check is left out and the structure's own biome list is all that holds a monument to deep
- * ocean.
  *
  * @javaSee OceanMonumentPieces$MonumentBuilding.postProcess
  */
@@ -31,10 +27,10 @@ import type { BlockState, Direction } from '@jsprismarine/features';
 import { ALL_DIRECTIONS, DIRECTION_STEPS, HORIZONTAL_DIRECTIONS, oppositeDirection } from '@jsprismarine/features';
 import type { BoundingBox, RandomSource } from '@jsprismarine/structures';
 
-import type { StructureBuilder, StructureLayout } from './javaStructureStarts';
+import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
 import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
-import { boxFromSize, movedBox } from './javaStructureWorld';
+import { boxFromSize, firstOccupiedHeight, movedBox } from './javaStructureWorld';
 
 // ---------------------------------------------------------------------------
 // The blocks a monument is made of
@@ -1857,6 +1853,38 @@ const layOutMonument = (
 };
 
 /**
+ * Whether every biome within 29 blocks of the start chunk's block 9, 9 at sea level is one a
+ * monument may stand among, so a monument never reaches into a shore or a river.
+ *
+ * Java reads every quart cell of the cube those 29 blocks span, through `BiomeResolver`.
+ *
+ * @javaSource OceanMonumentStructure.findGenerationPoint
+ * @javaSource BiomeResolver.getBiomesWithin
+ */
+const surroundedByOcean = (context: StructureBuildContext): boolean => {
+    const allowed = context.biomeTag?.(SURROUNDING_TAG);
+    if (allowed === undefined) return true;
+
+    const x = context.chunkX * 16 + 9;
+    const y = context.level.seaLevel;
+    const z = context.chunkZ * 16 + 9;
+    for (let quartX = (x - SURROUNDING_REACH) >> 2; quartX <= (x + SURROUNDING_REACH) >> 2; quartX++) {
+        for (let quartY = (y - SURROUNDING_REACH) >> 2; quartY <= (y + SURROUNDING_REACH) >> 2; quartY++) {
+            for (let quartZ = (z - SURROUNDING_REACH) >> 2; quartZ <= (z + SURROUNDING_REACH) >> 2; quartZ++) {
+                if (!allowed.has(context.level.noiseBiome(quartX, quartY, quartZ))) return false;
+            }
+        }
+    }
+    return true;
+};
+
+/** How far from its middle, in blocks, a monument's surroundings are checked. */
+const SURROUNDING_REACH = 29;
+
+/** The biomes a monument's surroundings must all be in. */
+const SURROUNDING_TAG = 'minecraft:required_ocean_monument_surrounding';
+
+/**
  * Lays out an ocean monument: one prismarine building, at a fixed y 39 on the deep ocean floor.
  *
  * @returns The building and its rooms, with the generation point Java takes in the middle of the
@@ -1865,11 +1893,11 @@ const layOutMonument = (
 export const buildOceanMonument: StructureBuilder = (context): StructureLayout | undefined => {
     const x = context.chunkX * 16 + 8;
     const z = context.chunkZ * 16 + 8;
+    if (!surroundedByOcean(context)) return undefined;
 
     return {
-        // Java's `getFirstOccupiedHeight` is the heightmap minus one, which is the topmost block
-        // of the sea floor rather than the water above it.
-        origin: { x, y: context.level.baseHeight(x, z, 'OCEAN_FLOOR_WG') - 1, z },
+        // The topmost block of the sea floor rather than the water above it.
+        origin: { x, y: firstOccupiedHeight(context.level, x, z, 'OCEAN_FLOOR_WG'), z },
         pieces: () => {
             const orientation = HORIZONTAL_DIRECTIONS[context.random.nextInt(HORIZONTAL_DIRECTIONS.length)]!;
             return layOutMonument(

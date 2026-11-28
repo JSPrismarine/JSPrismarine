@@ -14,6 +14,7 @@
  * result is a whole shipwreck where Java sometimes has two halves at different heights.
  */
 import type { Placement, RandomSource, Rotation, TemplatePosition } from '@jsprismarine/structures';
+import { pivotedCorner } from '@jsprismarine/structures';
 
 import { sampleStructureHeight } from './javaStructureHeight';
 import { rotationOf } from './javaStructureJigsaw';
@@ -23,8 +24,9 @@ import {
     registerTemplatePieceMarkerHandler,
     registerTemplatePiecePostPlacementHandler
 } from './javaStructureTemplatePiece';
-import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
+import { TemplatePiece } from './javaStructureTemplatePiece';
 import type { StructurePiece } from './javaStructureWorld';
+import { firstOccupiedHeight } from './javaStructureWorld';
 import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /**
@@ -108,7 +110,7 @@ export const buildShipwreck: StructureBuilder = (context): StructureLayout | und
     const middle = chunkMiddle(context.chunkX, context.chunkZ);
 
     return {
-        origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, heightmap), z: middle.z },
+        origin: { x: middle.x, y: firstOccupiedHeight(context.level, middle.x, middle.z, heightmap), z: middle.z },
         pieces: () => {
             const rotation = rotationOf(context.random.nextInt(4));
             const names = beached ? BEACHED_SHIPWRECKS : OCEAN_SHIPWRECKS;
@@ -198,7 +200,11 @@ export const buildIgloo: StructureBuilder = (context): StructureLayout | undefin
     const surface = context.level.baseHeight(middle.x, middle.z, 'WORLD_SURFACE_WG');
 
     return {
-        origin: { x: middle.x, y: surface, z: middle.z },
+        origin: {
+            x: middle.x,
+            y: firstOccupiedHeight(context.level, middle.x, middle.z, 'WORLD_SURFACE_WG'),
+            z: middle.z
+        },
         pieces: () => {
             const rotation = rotationOf(context.random.nextInt(4));
             const corner: TemplatePosition = [context.chunkX * 16, IGLOO_LAYOUT_Y, context.chunkZ * 16];
@@ -321,7 +327,11 @@ export const buildOceanRuin: StructureBuilder = (context): StructureLayout | und
     const middle = chunkMiddle(context.chunkX, context.chunkZ);
 
     return {
-        origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, 'OCEAN_FLOOR_WG'), z: middle.z },
+        origin: {
+            x: middle.x,
+            y: firstOccupiedHeight(context.level, middle.x, middle.z, 'OCEAN_FLOOR_WG'),
+            z: middle.z
+        },
         pieces: () => {
             const warm = context.definition.biome_temp === 'warm';
             const largeProbability = numberAt(context.definition, 'large_probability', 0);
