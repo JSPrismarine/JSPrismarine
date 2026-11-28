@@ -589,18 +589,21 @@ export class BedrockPresenter implements SessionPresenter {
 
     /** Sends `Respawn(SearchingForSpawn)`, the first half of Bedrock's respawn exchange, and `DeathInfo`. */
     public async showDeath({ key, parameters, respawnAt }: ShownDeath): Promise<void> {
-        // `Respawn(SearchingForSpawn)` says where the player will come back, which the client waits
-        // for before it offers the button, then the screen's own copy of the cause, as
-        // PocketMine's `DeathPacketHandler` sends it after the `Respawn`. Its `Player Runtime Id`
-        // is 0, as in every `Respawn` a Bedrock Dedicated Server 1.26.52 sends.
-        const respawn = new RespawnPacket({
-            position: respawnAt,
-            state: PlayerRespawnState.SEARCHING_FOR_SPAWN,
-            runtimeEntityId: 0n
-        });
+        // The screen's copy of the cause, then `Respawn(SearchingForSpawn)`, which says where the
+        // player will come back and which the client waits for before it offers the button. The
+        // pinned servers send them in this order, at every protocol, and the `Respawn`'s
+        // `Player Runtime Id` is 0. PocketMine's `DeathPacketHandler` sends them the other way.
+        // @bdsSee death-screen
+        // Both sent before either is awaited: the connection keeps the order they are called in.
         await Promise.all([
-            this.connection.sendDataPacket(respawn),
-            this.connection.sendDataPacket(new DeathInfoPacket({ cause: key, messages: [...parameters] }))
+            this.connection.sendDataPacket(new DeathInfoPacket({ cause: key, messages: [...parameters] })),
+            this.connection.sendDataPacket(
+                new RespawnPacket({
+                    position: respawnAt,
+                    state: PlayerRespawnState.SEARCHING_FOR_SPAWN,
+                    runtimeEntityId: 0n
+                })
+            )
         ]);
     }
 

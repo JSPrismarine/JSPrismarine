@@ -454,7 +454,7 @@ describe('BedrockPresenter', () => {
             expect(ticks).toEqual([42n, 0n, 42n]);
         });
 
-        it('opens the death screen with where the player will come back, then the cause', async () => {
+        it('opens the death screen with the cause, then where the player will come back', async () => {
             const { sent, bedrock } = player7();
 
             await bedrock.showDeath({
@@ -463,9 +463,9 @@ describe('BedrockPresenter', () => {
                 respawnAt: { x: 1, y: 64, z: 2 }
             });
 
-            const [respawn, info] = sent;
+            const [info, respawn] = sent;
             if (!(respawn instanceof RespawnPacket) || !(info instanceof DeathInfoPacket)) {
-                throw new Error('expected Respawn then DeathInfo');
+                throw new Error('expected DeathInfo then Respawn');
             }
             expect(respawn.getPacketData()).toMatchObject({
                 state: PlayerRespawnState.SEARCHING_FOR_SPAWN,

@@ -743,6 +743,110 @@ class DuplicatePacketId extends JSPrismarineError {
     }
 }
 
+/**
+ * An exchange scenario needs where the client stands, and the server has not placed it yet.
+ * Run the scenario once the client has spawned.
+ */
+class ExchangeWithoutPosition extends JSPrismarineError {
+    public static get code(): 'CLIENT_EXCHANGE_WITHOUT_POSITION' {
+        return 'CLIENT_EXCHANGE_WITHOUT_POSITION';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): 'The client has no position to {action}' {
+        return 'The client has no position to {action}';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-exchange-without-position' {
+        return 'https://jsprismarine.dev/errors/client#client-exchange-without-position';
+    }
+
+    public override readonly code = 'CLIENT_EXCHANGE_WITHOUT_POSITION';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-exchange-without-position';
+    readonly #params: { readonly action: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly action: unknown }, options?: ErrorOptions) {
+        super(`The client has no position to ${String(params?.action)}`, options);
+        this.#params = params ?? { action: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * An exchange scenario is about a packet the client registers no class for, so a server's
+ * packet of it would reach no listener and the capture and the replay would both miss it.
+ * Register the class in `Client`.
+ */
+class ExchangeSubjectNotDecoded extends JSPrismarineError {
+    public static get code(): 'CLIENT_EXCHANGE_SUBJECT_NOT_DECODED' {
+        return 'CLIENT_EXCHANGE_SUBJECT_NOT_DECODED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{scenario}: the client decodes no {packets}; register them in Client' {
+        return '{scenario}: the client decodes no {packets}; register them in Client';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-exchange-subject-not-decoded' {
+        return 'https://jsprismarine.dev/errors/client#client-exchange-subject-not-decoded';
+    }
+
+    public override readonly code = 'CLIENT_EXCHANGE_SUBJECT_NOT_DECODED';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-exchange-subject-not-decoded';
+    readonly #params: { readonly scenario: unknown; readonly packets: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly scenario: unknown; readonly packets: unknown }, options?: ErrorOptions) {
+        super(
+            `${String(params?.scenario)}: the client decodes no ${String(params?.packets)}; register them in Client`,
+            options
+        );
+        this.#params = params ?? { scenario: undefined, packets: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
+/**
+ * An exchange scenario waited for something the server never did, such as opening a screen.
+ * The server answered the scenario's steps differently, or not at all; capture with
+ * `JSP_EXCHANGE_TRACE=1` to see what it sent.
+ */
+class ExchangeNeverHappened extends JSPrismarineError {
+    public static get code(): 'CLIENT_EXCHANGE_NEVER_HAPPENED' {
+        return 'CLIENT_EXCHANGE_NEVER_HAPPENED';
+    }
+    public static get domain(): 'client' {
+        return 'client';
+    }
+    public static get template(): '{what}, after {ticks} ticks' {
+        return '{what}, after {ticks} ticks';
+    }
+    public static get docs(): 'https://jsprismarine.dev/errors/client#client-exchange-never-happened' {
+        return 'https://jsprismarine.dev/errors/client#client-exchange-never-happened';
+    }
+
+    public override readonly code = 'CLIENT_EXCHANGE_NEVER_HAPPENED';
+    public override readonly docs = 'https://jsprismarine.dev/errors/client#client-exchange-never-happened';
+    readonly #params: { readonly what: unknown; readonly ticks: unknown } & Readonly<Record<string, unknown>>;
+
+    public constructor(params: { readonly what: unknown; readonly ticks: unknown }, options?: ErrorOptions) {
+        super(`${String(params?.what)}, after ${String(params?.ticks)} ticks`, options);
+        this.#params = params ?? { what: undefined, ticks: undefined };
+    }
+
+    /** The placeholder values the message was built from. */
+    public override get params() {
+        return this.#params;
+    }
+}
+
 /** The server has no room for another player. */
 class ServerFull extends JSPrismarineError {
     public static get code(): 'CLIENT_SERVER_FULL' {
@@ -1301,6 +1405,9 @@ export const ClientErrors = Object.freeze({
     PacketHeaderTruncated,
     PacketHeaderUnterminated,
     DuplicatePacketId,
+    ExchangeWithoutPosition,
+    ExchangeSubjectNotDecoded,
+    ExchangeNeverHappened,
     ServerFull,
     ServerOutdated,
     ClientOutdated,

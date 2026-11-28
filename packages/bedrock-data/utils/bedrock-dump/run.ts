@@ -19,7 +19,10 @@
  * - `palette` runs the two halves of the block palette capture and writes
  *   `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`;
  * - `commands` types the lines in `commands.ts` at the console and records how the server
- *   answers each, in `src/jsp/v<protocol>/command_answers.json`.
+ *   answers each, in `src/jsp/v<protocol>/command_answers.json`;
+ * - `exchanges` drives a client through every exchange scenario in
+ *   `packages/client/src/exchanges/scenarios.ts` and records what the server sent in answer, in
+ *   `src/jsp/v<protocol>/exchanges/`, which `packages/parity/` replays JSPrismarine against.
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
@@ -38,7 +41,7 @@
  * own, started from outside it with every path passed as an argument, and the extracted archive
  * is never written to.
  */
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -523,6 +526,82 @@ const runPacketPass = async (): Promise<void> => {
 };
 
 // ---------------------------------------------------------------------------
+// Pass: what the server sends in answer to what a client does
+// ---------------------------------------------------------------------------
+
+/** The port the exchange capture's server listens on, clear of the default one. */
+const EXCHANGE_PORT = 29152;
+
+/** How long a scenario's console command may go unanswered before the client goes on anyway. */
+const EXCHANGE_COMMAND_MS = 5000;
+
+const runExchangePass = async (): Promise<void> => {
+    console.log(`${passLabel('exchanges')}: the exchange capture`);
+    const tool = join(repositoryRoot, 'packages/client/tools/capture-exchanges.mts');
+    const staged = await stageServer({
+        unpacked,
+        root: runRoot,
+        force: false,
+        levelName: 'jsp-exchanges',
+        // Off the default port, as the scripting capture stages its server, so a JSPrismarine
+        // server somebody has running on 19132 does not stop the capture.
+        properties: {
+            'level-type': 'FLAT',
+            'view-distance': '4',
+            'server-port': String(EXCHANGE_PORT),
+            'server-portv6': String(EXCHANGE_PORT + 1)
+        }
+    });
+
+    const server = startServer({
+        ...launcher.launch(staged.root, { clientConnects: true, serverPort: EXCHANGE_PORT }),
+        cwd: staged.root,
+        onLine: (line) => console.log(`  ${line}`)
+    });
+    // Types a line at the console and waits for the server's next line, which for every command a
+    // scenario sends is its answer. A command that prints nothing goes on after the timeout.
+    const answer = async (line: string): Promise<void> => {
+        const from = server.lines.length;
+        server.send(line);
+        await server
+            .waitForLine(() => true, `an answer to ${line}`, EXCHANGE_COMMAND_MS * launcher.timeoutScale, from)
+            .catch(() => undefined);
+    };
+    try {
+        await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
+
+        const child = spawn(
+            process.execPath,
+            hostNodeArgs(tool, [
+                '--out',
+                join(outDirectory, 'exchanges'),
+                '--server',
+                pinnedServer.serverVersion,
+                '--protocol',
+                String(protocolVersion),
+                '--port',
+                String(EXCHANGE_PORT),
+                '--network',
+                staged.transport
+            ]),
+            { cwd: repositoryRoot, stdio: ['inherit', 'inherit', 'inherit', 'ipc'] }
+        );
+        child.on('message', (message: unknown) => {
+            if (typeof message !== 'object' || message === null || !('command' in message) || !('id' in message)) {
+                return;
+            }
+            const { command, id } = message;
+            void answer(String(command)).then(() => child.send({ answered: id }));
+        });
+        const status = await new Promise<number | null>((resolveExit) => child.on('exit', resolveExit));
+        if (status !== 0) throw new Error(`The exchange capture client exited with status ${status}`);
+    } finally {
+        await server.stop(TIMEOUTS.stop);
+        launcher.cleanup();
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Pass: how the console answers command lines
 // ---------------------------------------------------------------------------
 
@@ -594,7 +673,8 @@ const passes: Record<Pass, () => Promise<void>> = {
     refworld: runReferenceWorldPass,
     packets: runPacketPass,
     palette: runPalettePass,
-    commands: runCommandPass
+    commands: runCommandPass,
+    exchanges: runExchangePass
 };
 
 console.log(

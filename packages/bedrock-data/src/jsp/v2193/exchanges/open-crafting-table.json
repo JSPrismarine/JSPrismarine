@@ -1,0 +1,47 @@
+{
+    "scenario": "open-crafting-table",
+    "protocolVersion": 2193,
+    "server": "1.26.51.1",
+    "packets": [
+        {
+            "name": "ContainerOpenPacket",
+            "fields": {
+                "windowId": 3,
+                "containerType": 1,
+                "containerEntityId": "-1n"
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 0,
+                "containerId": 0,
+                "items.length": 36
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 120,
+                "containerId": 0,
+                "items.length": 5
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 124,
+                "containerId": 0,
+                "items.length": 54
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 119,
+                "containerId": 0,
+                "items.length": 1
+            }
+        }
+    ]
+}

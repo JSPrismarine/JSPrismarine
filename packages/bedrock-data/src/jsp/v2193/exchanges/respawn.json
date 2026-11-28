@@ -1,0 +1,27 @@
+{
+    "scenario": "respawn",
+    "protocolVersion": 2193,
+    "server": "1.26.51.1",
+    "packets": [
+        {
+            "name": "RespawnPacket",
+            "fields": {
+                "state": 0,
+                "runtimeEntityId": "0n"
+            }
+        },
+        {
+            "name": "RespawnPacket",
+            "fields": {
+                "state": 1,
+                "runtimeEntityId": "0n"
+            }
+        },
+        {
+            "name": "SetHealthPacket",
+            "fields": {
+                "health": 20
+            }
+        }
+    ]
+}

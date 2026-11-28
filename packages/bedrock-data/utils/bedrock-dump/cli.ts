@@ -7,7 +7,7 @@
  */
 
 /** The capture passes, in the order a full run performs them. */
-export const PASSES = ['dump', 'refworld', 'packets', 'palette', 'commands'] as const;
+export const PASSES = ['dump', 'refworld', 'packets', 'palette', 'commands', 'exchanges'] as const;
 
 /** One capture pass. */
 export type Pass = (typeof PASSES)[number];

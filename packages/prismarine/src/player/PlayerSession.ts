@@ -484,8 +484,13 @@ export default class PlayerSession {
     private lastChunkX: number | null = null;
     private lastChunkZ: number | null = null;
 
-    /** The last window id handed out; see {@link PlayerSession.nextWindowId}. */
-    private windowId = 0;
+    /**
+     * The last window id handed out; see {@link PlayerSession.nextWindowId}. The pinned servers
+     * open a client's first window as 2, one past `WindowIds.FIRST`, at every protocol, so the
+     * count starts at `FIRST`.
+     * @bdsSee open-chest
+     */
+    private windowId: number = WindowIds.FIRST;
 
     /**
      * The container windows this session has opened on the client and not yet seen closed,

@@ -840,9 +840,9 @@ describe("PlayerSession's player", () => {
             });
         });
 
-        it('tells the dying client why, for its death screen, after the respawn', async () => {
-            // The same key and parameters as the chat line, minus the `%` the chat packet
-            // wants: `DeathInfo` takes the bare key, as PocketMine sends it.
+        it('tells the dying client why, for its death screen, before the respawn', async () => {
+            // The same key and parameters as the chat line, minus the `%` the chat packet wants:
+            // `DeathInfo` takes the bare key, ahead of the `Respawn`, as every pinned server sends it.
             const { session, player, sent } = fakePlayer({ underwater: true });
             player.setFood(10);
             await session.getActor()?.setHealth(1);
@@ -853,9 +853,7 @@ describe("PlayerSession's player", () => {
             expect(deaths).toHaveLength(1);
             expect(deaths[0]?.getPacketData()?.cause).toBe('death.attack.drown');
             expect(deaths[0]?.getPacketData()?.messages).toEqual(['Tester']);
-            expect(sent.indexOf(deaths[0])).toBeGreaterThan(
-                sent.findIndex((packet) => packet instanceof RespawnPacket)
-            );
+            expect(sent.indexOf(deaths[0])).toBeLessThan(sent.findIndex((packet) => packet instanceof RespawnPacket));
         });
 
         it('sends no respawn packet when the button is pressed', async () => {

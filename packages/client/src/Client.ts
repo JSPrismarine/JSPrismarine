@@ -2,6 +2,7 @@ import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import {
     ChangeDimensionPacket,
+    DeathInfoPacket,
     DisconnectPacket,
     ItemRegistryPacket,
     LevelChunkPacket,
@@ -162,6 +163,8 @@ export default class Client extends EventEmitter {
             ResourcePackStackPacket,
             StartGamePacket,
             TextPacket,
+            // The death screen's copy of the cause, which nothing here reads but a listener may.
+            DeathInfoPacket,
             // The dimension change sequence, in the order the server sends it, and the
             // teleport that ends it.
             ChangeDimensionPacket,

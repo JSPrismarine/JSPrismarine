@@ -38,6 +38,9 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf-8
 
 const bedrockDataRoot = packageRoot('@jsprismarine/bedrock-data');
 
+/** A path inside the `@jsprismarine/bedrock-data` package, such as `src/jsp`. */
+export const bedrockDataPath = (path: string): string => join(bedrockDataRoot, path);
+
 /** The protocol version `sources.json` builds the package's unversioned exports from. */
 export const bedrockCaptureProtocol = (): number => {
     // Parsed JSON has no type the compiler can see; this is the one field read here.

@@ -30,6 +30,15 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
+        "./exchanges/exchange": {
+            "default": "./src/exchanges/exchange.ts"
+        },
+        "./exchanges/scenarios": {
+            "default": "./src/exchanges/scenarios.ts"
+        },
+        "./testing/loopbackServer": {
+            "default": "./src/testing/loopbackServer.test-utils.ts"
+        },
         "./package.json": "./package.json"
     },
     "scripts": {
