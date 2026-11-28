@@ -16,7 +16,7 @@
  *
  * | Trigger | Raised from |
  * | --- | --- |
- * | `inventory_changed` | a dropped stack picked up, and a finished craft |
+ * | `inventory_changed` | every changed slot of the inventory, armor and offhand, through `advancementSlotWatcher` |
  * | `thrown_item_picked_up_by_player` | a dropped stack picked up |
  * | `recipe_crafted` | `ItemStackRequestHandler`'s crafting action |
  * | `player_killed_entity`, `entity_killed_player` | the store's `damageCommitted` host fact, on a death |
@@ -46,6 +46,9 @@ import type HumanInventory from '../inventory/HumanInventory';
 import type { StoreActor } from '../entity/data/storeActors';
 import type { DamageSource } from '../entity/DamageSource';
 import type { Item } from '../item/Item';
+import type { InventoryContainer } from '../inventory/EntityInventory';
+import type { SlotWatcher } from '../entity/storePlayer';
+import { samePlain } from '../world/changelog/PlainData';
 import { entityPredicateView, vec3Of } from '../entity/predicateView';
 import { lootDamageSource } from '../entity/mobLoot';
 import { raiseAdvancement } from './raise';
@@ -96,40 +99,90 @@ const inventoryOf = (player: AdvancementPlayer): readonly (PredicateItemStack | 
  * has no "broke a block" trigger at all. `minecraft:story/mine_stone` is an
  * `inventory_changed` on `#minecraft:stone_tool_materials`.
  *
- * @param changed - The stack that changed, which is what a single-item
- *   criterion is tested against. 1913 of the 1914 take that path, so leaving
- *   it out makes almost all of them unreachable.
+ * @param changed - What the changed slot holds now, which is what a
+ *   single-item criterion is tested against: 1913 of the 1914 take that path.
+ *   Null for a slot that was emptied, which only a criterion over the whole
+ *   inventory can match, as in Java.
  */
-export const advancementInventoryChanged = (player: AdvancementPlayer, changed?: Item): void => {
-    if (!listening(player, 'inventory_changed')) return;
-
+const advancementInventoryChanged = (player: AdvancementPlayer, changed: Item | null): void => {
     raiseAdvancement(player, 'inventory_changed', {
         player: advancementSubject(player),
         inventory: inventoryOf(player),
-        ...(changed === undefined ? {} : { changed: changed.asPredicateStack() })
+        ...(changed === null ? {} : { changed: changed.asPredicateStack() })
     });
+};
+
+/**
+ * The containers of Java's player `Inventory`, whose slot changes raise `inventory_changed`. The
+ * cursor, the crafting grid and the ender chest are not in it.
+ */
+const JAVA_INVENTORY = ['inventory', 'armor', 'offhand'] as const satisfies readonly InventoryContainer[];
+
+/** Whether a container is one of {@link JAVA_INVENTORY}. */
+const inJavaInventory = (container: InventoryContainer): container is (typeof JAVA_INVENTORY)[number] =>
+    JAVA_INVENTORY.some((name) => name === container);
+
+/**
+ * Raises `inventory_changed` for every slot of a player's inventory that a write changes, which
+ * is how Java raises it: `ServerPlayer`'s container listener calls it from `slotChanged` for each
+ * slot of the player's `Inventory` that differs from what the client was last sent. So a stack
+ * taken from a chest or a furnace's output, a creative pick, a pickup, a craft or a command that
+ * fills a slot all raise it, and the `recipes/` advancements that unlock a recipe from its
+ * ingredient hear every one.
+ *
+ * The raises wait for the change log's open unit to end, as Java's wait for the menu's next
+ * `broadcastChanges`. A slot written twice in one unit raises once, with what it holds at the
+ * end, and a unit that is undone raises for what its slots were put back to, which the player
+ * holds whether or not they had it before.
+ *
+ * @javaSee ServerPlayer.containerListener
+ * @param player - The player the inventory belongs to.
+ * @param afterUnit - Runs work once the unit open in the player's world, if any, has ended, as
+ *   `EntityStore.afterUnit` does.
+ * @returns The watcher to hand the player's `StorePlayer.watchSlots`.
+ */
+export const advancementSlotWatcher = (
+    player: AdvancementPlayer,
+    afterUnit: (work: () => void) => void
+): SlotWatcher => {
+    const pending = new Map<string, readonly [(typeof JAVA_INVENTORY)[number], number]>();
+
+    const raise = (): void => {
+        const slots = [...pending.values()];
+        // Cleared before raising, so a reward that writes a slot raises in its own round.
+        pending.clear();
+        const inventory = player.getInventory();
+        for (const [container, slot] of slots)
+            advancementInventoryChanged(player, inventory.container(container).get(slot));
+    };
+
+    return (container, slot, before, after) => {
+        if (!inJavaInventory(container) || samePlain(before, after)) return;
+        if (!listening(player, 'inventory_changed')) return;
+        const first = pending.size === 0;
+        pending.set(`${container}:${slot}`, [container, slot]);
+        if (first) afterUnit(raise);
+    };
 };
 
 /**
  * A player finished a recipe.
  *
- * Raised alongside the inventory change the result produces, because Java
- * raises both and a vanilla advancement may be listening for either.
+ * The result raises `inventory_changed` of its own once it lands in a slot of the inventory,
+ * through {@link advancementSlotWatcher}.
  */
 export const advancementItemCrafted = (
     player: AdvancementPlayer,
     recipe: string,
-    ingredients: readonly Item[],
-    result?: Item
+    ingredients: readonly Item[]
 ): void => {
-    if (listening(player, 'recipe_crafted')) {
-        raiseAdvancement(player, 'recipe_crafted', {
-            player: advancementSubject(player),
-            recipe,
-            ingredients: ingredients.map((stack) => stack.asPredicateStack())
-        });
-    }
-    advancementInventoryChanged(player, result);
+    if (!listening(player, 'recipe_crafted')) return;
+
+    raiseAdvancement(player, 'recipe_crafted', {
+        player: advancementSubject(player),
+        recipe,
+        ingredients: ingredients.map((stack) => stack.asPredicateStack())
+    });
 };
 
 /**
@@ -338,16 +391,18 @@ export const advancementEnchantedItem = (player: AdvancementPlayer, item: Item, 
     });
 };
 
-/** A player picked a dropped stack up off the ground. */
+/**
+ * A player picked a dropped stack up off the ground. The slots it landed in raise
+ * `inventory_changed` through {@link advancementSlotWatcher}.
+ */
 export const advancementPickedUpItem = (player: AdvancementPlayer, item: Item, thrower?: StoreActor): void => {
-    if (listening(player, 'thrown_item_picked_up_by_player')) {
-        raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
-            player: advancementSubject(player),
-            item: item.asPredicateStack(),
-            ...(thrower === undefined ? {} : { entity: viewOf(thrower) })
-        });
-    }
-    advancementInventoryChanged(player, item);
+    if (!listening(player, 'thrown_item_picked_up_by_player')) return;
+
+    raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
+        player: advancementSubject(player),
+        item: item.asPredicateStack(),
+        ...(thrower === undefined ? {} : { entity: viewOf(thrower) })
+    });
 };
 
 /**

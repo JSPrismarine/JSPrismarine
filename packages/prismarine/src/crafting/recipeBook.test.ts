@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { advancementInventoryChanged } from '../advancement/triggers';
+import { advancementSlotWatcher } from '../advancement/triggers';
 import { advancementsOf, loadAdvancements } from '../advancement/progress';
 import { buildServerContent } from '../content/ServerContent';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
@@ -110,6 +110,9 @@ const joined = (stored: unknown = []) => {
     };
     loadAdvancements(player.keyed(), undefined);
     loadRecipeBook(player.keyed(), stored, presenter, () => rewardedRecipesOf(player.keyed()));
+    // With no unit open, as a write outside the change log raises at once.
+    const watch = advancementSlotWatcher(player, (work) => work());
+    inventory.observe({ slot: watch, handSlot: () => {} });
     return { player, inventory, shown, built };
 };
 
@@ -119,12 +122,11 @@ const torchDone = (player: PlayerSession, built: ServerContent): boolean => {
 };
 
 describe('the recipe book', () => {
-    it('unlocks a recipe when its advancement rewards it, as picking up its ingredient does', () => {
+    it('unlocks a recipe when its advancement rewards it, as its ingredient reaching a slot does', () => {
         const { player, inventory, shown } = joined();
 
         const stone = new Item({ name: 'minecraft:stone' });
         inventory.container('inventory').set(0, stone);
-        advancementInventoryChanged(player, stone);
 
         expect(recipeBookOf(player.keyed())).toEqual(['minecraft:torch']);
         expect(shown).toEqual([{ kind: 'unlocked', recipes: ['minecraft:torch'] }]);
@@ -165,7 +167,6 @@ describe('the recipe book', () => {
         const { player, inventory } = joined();
         const stone = new Item({ name: 'minecraft:stone' });
         inventory.container('inventory').set(0, stone);
-        advancementInventoryChanged(player, stone);
         const key = player.keyed();
 
         // The same record read back with no book, as one saved before the book was.

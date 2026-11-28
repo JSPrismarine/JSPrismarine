@@ -1091,7 +1091,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                             }
                         }
 
-                        if (autoCraftPlan === null) advancementItemCrafted(player, recipeId, ingredients, created);
+                        if (autoCraftPlan === null) advancementItemCrafted(player, recipeId, ingredients);
                         const made = created;
                         const station = open;
                         commits.push(() => {
@@ -1205,8 +1205,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
             advancementItemCrafted(
                 player,
                 autoCraftPlan.recipeId,
-                autoCraftPlan.spent.map(({ item }) => item),
-                autoCraftPlan.output
+                autoCraftPlan.spent.map(({ item }) => item)
             );
         }
 

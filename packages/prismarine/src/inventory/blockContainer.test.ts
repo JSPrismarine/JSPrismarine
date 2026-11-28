@@ -37,6 +37,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { builtInEntityDefinitions } from '../content/testing';
 import { EntityRuntimes } from '../entity/data/live';
 import { orbViewOf } from '../entity/data/experienceOrbs';
+import { advancementsOf } from '../advancement/progress';
 import { Item } from '../item/Item';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type ClientConnection from '../network/ClientConnection';
@@ -104,6 +105,12 @@ const ITEMS = [
     'minecraft:diamond_pickaxe',
     'minecraft:diamond_sword'
 ] as const;
+
+/**
+ * An advancement in the shape of Java's `recipes/` ones, earned by an iron ingot reaching the
+ * inventory, which is how a recipe is unlocked from its ingredient.
+ */
+const INGOT_ADVANCEMENT = 'minecraft:recipes/misc/iron_nugget';
 
 /** Behavior families whose place hooks initialize fixture block entities. */
 const BLOCK_BEHAVIORS: ReadonlyMap<string, string> = new Map([
@@ -252,6 +259,20 @@ const buildScene = async (name: string) => {
             definitions: definitionsOf({
                 blocks: new Map(BLOCKS.map((id) => [id, definitionOf('blocks', id, blockFile(id))])),
                 entities: new Map(builtInEntityDefinitions()),
+                advancements: new Map([
+                    [
+                        INGOT_ADVANCEMENT,
+                        definitionOf('advancements', INGOT_ADVANCEMENT, {
+                            criteria: {
+                                has_iron_ingot: {
+                                    conditions: { items: [{ items: 'minecraft:iron_ingot' }] },
+                                    trigger: 'minecraft:inventory_changed'
+                                }
+                            },
+                            requirements: [['has_iron_ingot']]
+                        })
+                    ]
+                ]),
                 recipesJava: new Map([
                     [
                         'minecraft:iron_ingot_from_smelting',
@@ -518,6 +539,55 @@ describe('a block container a player can put things in', () => {
             move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 4), 9)
         ]);
         expect(orbPoints()).toEqual([7]);
+
+        await level.disable();
+    });
+
+    /**
+     * Java raises `inventory_changed` for every slot of the player's inventory that changes, and
+     * the `recipes/` advancements that unlock a recipe from its ingredient listen for it. Only a
+     * pickup, a craft and `/give` raised it, so an ingot taken out of a furnace or a chest
+     * unlocked nothing.
+     */
+    it('earns an inventory_changed advancement from a stack taken out of a furnace or a chest', async () => {
+        const scene = await buildScene('furnace-advancement');
+        const { server, world, level, blocks } = scene;
+        const advancement = scene.content.advancements.get(INGOT_ADVANCEMENT);
+        if (advancement === undefined) throw new Error('the fixture advancement did not load');
+
+        const smelter = buildPlayer(world, server, 'Ingots');
+        await world.addPlayer(smelter);
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [undefined, undefined, { identifier: 'minecraft:iron_ingot', count: 2 }],
+            capacity: 3
+        });
+        await smelter.openBlockContainer(
+            new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+            'minecraft:furnace',
+            openContainerContents(smelter, FURNACE, 'minecraft:furnace')
+        );
+        expect(advancementsOf(smelter.keyed()).isDone(advancement)).toBe(false);
+        await apply(server, smelter, [
+            move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 2)
+        ]);
+        expect(advancementsOf(smelter.keyed()).isDone(advancement)).toBe(true);
+
+        const looter = buildPlayer(world, server, 'Looter');
+        await world.addPlayer(looter);
+        blocks.setBlock(CHEST, 'minecraft:chest');
+        blocks.setBlockData(CHEST, { items: [{ identifier: 'minecraft:iron_ingot', count: 1 }], capacity: 27 });
+        await looter.openBlockContainer(
+            new Vector3(CHEST.x, CHEST.y, CHEST.z),
+            'minecraft:chest',
+            openContainerContents(looter, CHEST, 'minecraft:chest')
+        );
+        expect(advancementsOf(looter.keyed()).isDone(advancement)).toBe(false);
+        await apply(server, looter, [
+            move(at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 0), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 5), 1)
+        ]);
+        expect(looter.getInventory().container('inventory').get(5)?.getName()).toBe('minecraft:iron_ingot');
+        expect(advancementsOf(looter.keyed()).isDone(advancement)).toBe(true);
 
         await level.disable();
     });
