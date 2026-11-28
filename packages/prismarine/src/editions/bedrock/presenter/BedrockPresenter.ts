@@ -1,4 +1,9 @@
 import type { Weather } from '@jsprismarine/engine-systems';
+import ContainerSetDataPacket from '@jsprismarine/protocol/bedrock/packet/ContainerSetDataPacket';
+import UpdateTradePacket from '@jsprismarine/protocol/bedrock/packet/UpdateTradePacket';
+import { blockSlotName } from '../../../inventory/containerSlots';
+import type { OpenBlockContainer } from '../../../player/PlayerSession';
+import { tradeOffersPayload } from '../tradeOffers';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import { ContainerUiId } from '@jsprismarine/minecraft';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
@@ -155,6 +160,14 @@ type StackContext = ProtocolContext;
 /** A wearer's equipment, as `armorPackets` reads it. */
 type ShownArmor = Parameters<typeof armorPackets>[1];
 
+/** Screens whose primary content packet spans several named request containers. */
+const COMBINED_BLOCK_CONTENT_SCREENS: ReadonlySet<number> = new Set([
+    WindowTypes.FURNACE,
+    WindowTypes.BLAST_FURNACE,
+    WindowTypes.SMOKER,
+    WindowTypes.BREWING_STAND
+]);
+
 /** A session with no player yet, as a presenter built before one has an id. */
 const NO_SESSION: BedrockSessionState = { runtimeId: 0n, lastInputTick: () => 0n };
 
@@ -302,6 +315,123 @@ export class BedrockPresenter implements SessionPresenter {
         packet.item =
             item?.toStackDescriptor(state.codecContext(), item.stackNetworkId > 0 ? item.stackNetworkId : null) ?? null;
         await this.connection.sendDataPacket(packet);
+    }
+
+    /** The stack network id the player's inventory gives `item` in a window, or null for air. */
+    private stackIdFor(item: Item): number | null {
+        const id = this.inventoryState().inventory().assignStackNetworkId(item);
+        return id > 0 ? id : null;
+    }
+
+    /**
+     * Sends `ContainerOpen` for a block's screen or a trader's, and what the block holds.
+     *
+     * The contents follow the open because a window whose contents never arrive is one the client
+     * has no reason to keep. A furnace's or a brewing stand's go out as one complete primary
+     * inventory: one packet per named slot left the client without the window's whole storage
+     * model, and it refused moves into those slots before it sent a request. Every other screen
+     * names each slot list under the container the client uses for requests to that part of it.
+     * A crafting table is followed by the player's own inventory under window 0, which is what a
+     * Bedrock Dedicated Server 1.26.52 sent after a click on one.
+     */
+    public async openContainer(window: OpenBlockContainer, contents: readonly (Item | null)[]): Promise<void> {
+        const open = new ContainerOpenPacket();
+        open.windowId = window.windowId;
+        open.containerType = window.screen;
+        open.containerPos = window.position;
+        // A trader's screen is open on the actor; -1 for a block's, which is no actor.
+        open.containerEntityId = window.trade?.trader.getRuntimeId() ?? -1n;
+        await this.connection.sendDataPacket(open);
+
+        if (contents.length > 0) {
+            const context = this.inventoryState().codecContext();
+            const descriptor = (held: Item | null) => {
+                const item = wireStackOf(held);
+                return item.toStackDescriptor(context, this.stackIdFor(item));
+            };
+            if (COMBINED_BLOCK_CONTENT_SCREENS.has(window.screen)) {
+                const content = new InventoryContentPacket();
+                content.windowId = window.windowId;
+                content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
+                content.items = contents.map(descriptor);
+                await this.connection.sendDataPacket(content);
+            } else {
+                const byContainer = new Map<number, (Item | null)[]>();
+                contents.forEach((held, slot) => {
+                    const named = blockSlotName(window.screen, slot);
+                    const slots = byContainer.get(named.containerId) ?? [];
+                    slots[named.slotId] = held;
+                    byContainer.set(named.containerId, slots);
+                });
+                for (const [containerId, slots] of byContainer) {
+                    const content = new InventoryContentPacket();
+                    content.windowId = window.windowId;
+                    content.containerId = containerId;
+                    content.items = slots.map(descriptor);
+                    await this.connection.sendDataPacket(content);
+                }
+            }
+        }
+
+        if (window.screen === WindowTypes.WORKBENCH) await this.sendOwnInventory(WindowIds.INVENTORY);
+    }
+
+    /** Sends `UpdateTrade`, the offers the client draws a trade screen from. */
+    public async showTradeOffers(window: OpenBlockContainer): Promise<void> {
+        const trade = window.trade;
+        if (trade === undefined) return;
+        const offers = trade.source.offers(trade.context());
+        await this.connection.sendDataPacket(
+            new UpdateTradePacket({
+                containerId: window.windowId,
+                type: WindowTypes.TRADE,
+                size: offers.length,
+                traderTier: trade.source.level - 1,
+                entityUniqueId: trade.trader.getRuntimeId(),
+                lastTradingPlayer: this.state.runtimeId,
+                displayName: trade.title ?? trade.trader.getName(),
+                useNewTradeScreen: true,
+                usingEconomyTrade: true,
+                data: tradeOffersPayload(offers, trade.source.tierRequirements())
+            })
+        );
+    }
+
+    /** Sends one `ContainerSetData` per property, which is how a progress bar moves. */
+    public async showContainerData(window: OpenBlockContainer, properties: ReadonlyMap<number, number>): Promise<void> {
+        await Promise.all(
+            [...properties].map(([id, value]) => {
+                const packet = new ContainerSetDataPacket();
+                packet.containerId = window.windowId;
+                packet.id = id;
+                packet.value = value;
+                return this.connection.sendDataPacket(packet);
+            })
+        );
+    }
+
+    /**
+     * Sends `InventorySlot` for slots of an open block's screen, each under the container that
+     * screen numbers it in and under a stack network id of this player's, as when it opened, so
+     * the client can still take it.
+     */
+    public async showContainerSlots(
+        window: OpenBlockContainer,
+        slots: readonly { readonly slot: number; readonly item: Item | null }[]
+    ): Promise<void> {
+        const context = this.inventoryState().codecContext();
+        await Promise.all(
+            slots.map(({ slot, item: held }) => {
+                const named = blockSlotName(window.screen, slot);
+                const item = wireStackOf(held);
+                const packet = new InventorySlotPacket();
+                packet.windowId = window.windowId;
+                packet.containerId = named.containerId;
+                packet.inventorySlot = named.slotId;
+                packet.item = item.toStackDescriptor(context, this.stackIdFor(item));
+                return this.connection.sendDataPacket(packet);
+            })
+        );
     }
 
     /** Sends `UpdateAttributes`, the player's vitals and experience among them. */

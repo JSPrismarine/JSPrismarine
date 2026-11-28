@@ -791,6 +791,22 @@ export class JavaPresenter implements SessionPresenter {
         });
     }
 
+    /**
+     * Sends nothing yet. Known gap: the server opens no screen for a Java client, so a chest, a
+     * furnace or a villager's trades do nothing when it uses one
+     * ([#3769](https://github.com/JSPrismarine/JSPrismarine/issues/3769)).
+     */
+    public async openContainer(): Promise<void> {}
+
+    /** Sends nothing: no trade screen is open on a Java client; see {@link openContainer}. */
+    public async showTradeOffers(): Promise<void> {}
+
+    /** Sends nothing: no screen is open on a Java client; see {@link openContainer}. */
+    public async showContainerData(): Promise<void> {}
+
+    /** Sends nothing: no screen is open on a Java client; see {@link openContainer}. */
+    public async showContainerSlots(): Promise<void> {}
+
     /** Sends nothing: a Java client opens its own inventory without the server. */
     public async openOwnInventory(): Promise<void> {}
 

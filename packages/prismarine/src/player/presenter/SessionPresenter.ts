@@ -23,6 +23,8 @@ import type { ListedPlayer } from '../../network/playerListEntry';
 import type { AbilityTarget } from '../../network/replica/firstSight';
 import type { ChunkWire } from '../ChunkView';
 import type PlayerSession from '../PlayerSession';
+import type { OpenBlockContainer } from '../PlayerSession';
+import type { Item } from '../../item/Item';
 import type { ShownActor, ShownEntity } from '../../world/ShownActor';
 import type { Attribute } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
@@ -429,6 +431,24 @@ export interface SessionPresenter {
      * the server, as Java's does, has nothing to send.
      */
     openOwnInventory(): Promise<void>;
+
+    /**
+     * Opens the screen of a block, or of the trader `window.trade` names, which the session has
+     * recorded as `window`, and shows what the block holds, one entry per slot.
+     */
+    openContainer(window: OpenBlockContainer, contents: readonly (Item | null)[]): Promise<void>;
+
+    /** Shows the open trade screen the trader's offers as they stand. */
+    showTradeOffers(window: OpenBlockContainer): Promise<void>;
+
+    /** Shows the properties of the open screen that changed, by id, which is how a progress bar moves. */
+    showContainerData(window: OpenBlockContainer, properties: ReadonlyMap<number, number>): Promise<void>;
+
+    /** Shows what some slots of the open block's screen hold now, numbered as its block entity numbers them. */
+    showContainerSlots(
+        window: OpenBlockContainer,
+        slots: readonly { readonly slot: number; readonly item: Item | null }[]
+    ): Promise<void>;
 
     /**
      * Shows what an entity the client sees holds and wears now, for a client the replicator's
