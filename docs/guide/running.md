@@ -598,7 +598,8 @@ which come and go from their tab list and screen as Bedrock players' do, and mov
 the server moves them, with their equipment and whether they crouch, sprint, swim, glide, sleep or
 burn. A Java player's own sprinting, sneaking and jumps count as a Bedrock player's do: other
 players see them crouch and sprint, a jump tires them, and scripts hear their jump and sneak
-buttons. A Java player can break and place blocks, set their inventory in creative mode, and has a
+buttons. A Java player can break and place blocks, hit mobs and players, use the item in hand on
+nothing or on a mob, as a Bedrock player can, set their inventory in creative mode, and has a
 health bar the server keeps current, a death screen and a respawn. They go to the Nether and the
 End through portals and commands, and respawn in the dimension their spawn point is in. They cannot
 yet move items in a survival inventory or see their experience or status effects.

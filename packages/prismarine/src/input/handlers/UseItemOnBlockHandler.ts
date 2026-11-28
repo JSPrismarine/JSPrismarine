@@ -3,6 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { contentUseOnBlock } from './contentUseOnBlock';
+import { ENDER_EYE, enderEyeEcho } from './eyeOfEnderEcho';
 import type { InputContext } from '../../player/context/HandlerContext';
 import type { Intent } from '../Intent';
 import type { IntentHandler } from '../IntentHandler';
@@ -17,8 +18,8 @@ export default class UseItemOnBlockHandler implements IntentHandler<'useItemOnBl
 
     /** Offers the click to the content, for a block within reach in a loaded chunk. */
     public handle(intent: Intent<'useItemOnBlock'>, context: InputContext): undefined {
-        const { session, log } = context;
-        const { position, face, faceLocation } = intent;
+        const { session, log, step } = context;
+        const { position, face, faceLocation, rotation } = intent;
         // A spectator touches nothing, as it breaks nothing.
         if (session.getPlayer().gamemode === Gametype.SPECTATOR) return;
 
@@ -35,6 +36,12 @@ export default class UseItemOnBlockHandler implements IntentHandler<'useItemOnBl
             log.verbose(`Dropped a use on a block in a chunk that is not loaded from ${session.identity.name}`);
             return;
         }
-        contentUseOnBlock(context, session, { position, face, faceLocation });
+        // The block's and the item's behavior families get the click, and the block in hand goes
+        // down when neither takes it. A click they all decline places nothing.
+        const eye = session.getPlayer().getInventory().equipment('mainhand')?.getName() === ENDER_EYE;
+        const used = contentUseOnBlock(context, session, { position, face, faceLocation }, rotation);
+        // Only an eye a block took, as a portal frame does, leaves an air use to refuse. One the
+        // block declined is thrown by the air use that follows, as both editions' clients send it.
+        if (eye && used === 'handled') enderEyeEcho.usedOnBlock(session.runtimeId, step.tick);
     }
 }

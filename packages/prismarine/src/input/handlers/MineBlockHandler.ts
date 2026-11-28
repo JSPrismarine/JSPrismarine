@@ -176,8 +176,11 @@ export default class MineBlockHandler implements IntentHandler<'mineBlock'> {
             // gave way. A Bedrock client sends it inside `PlayerAuthInput`, often in the same
             // packet as the `continue` that last restarted the cracks, and BDS breaks the block
             // for it. A survival break drops what the block yields; `breakBlock` leaves that out
-            // for creative. With the client timing breaks the transaction is what breaks a block,
-            // and this is not sent.
+            // for creative.
+            //
+            // A Bedrock client that times its own breaks reports one done in an
+            // `InventoryTransaction`, decoded as a `finish` the server does not time: the block
+            // breaks on the client's word, as it always has with that setting.
             //
             // The prediction is the client's word, so it is checked before anything breaks: the
             // block has to be the one the server is timing, breakable, and mined for long enough
@@ -185,7 +188,17 @@ export default class MineBlockHandler implements IntentHandler<'mineBlock'> {
             // only has to be one that breaks at once. A refused prediction puts the block back
             // on the client's screen.
             case 'finish': {
-                if (!serverTimed) return;
+                if (!serverTimed) {
+                    // Adventure mode breaks nothing, but the client has already taken the block
+                    // off its screen, so it is told what is still there.
+                    if (player.gamemode === Gametype.ADVENTURE) {
+                        world.resendBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
+                        return;
+                    }
+                    // The break reads and writes the loaded chunk only, in this unit.
+                    world.breakBlock(blockPosition, player);
+                    return;
+                }
 
                 const mining = blockMiningOf(player.getComponents().get('mining.block'));
                 inputs.setPlayerMining(player, null);

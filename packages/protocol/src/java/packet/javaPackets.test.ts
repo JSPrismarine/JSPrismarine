@@ -83,6 +83,9 @@ import {
     PlayerInfoRemove,
     PlayerInfoUpdateGameMode,
     PlayerInput,
+    Attack,
+    Interact,
+    UseItem,
     PickItemFromBlock,
     PickItemFromEntity,
     PlayerInputFlag,
@@ -379,6 +382,10 @@ const SAMPLES: readonly Sample[] = [
         worldBorderHit: false,
         sequence: 5
     }),
+    sample(UseItem, { hand: JavaHand.Main, sequence: 6, yaw: 90, pitch: -45 }),
+    sample(Attack, { entityId: 12 }),
+    // A location whose coordinates quantize exactly: one in each of the scale's units.
+    sample(Interact, { entityId: 12, hand: JavaHand.Off, location: { x: 1, y: 0, z: -1 }, sneaking: true }),
     sample(SetHealth, { health: 20, food: 20, saturation: 5 }),
     sample(PlayerCombatKill, { playerId: 7, message: { translate: 'death.attack.fall', with: ['Steve'] } }),
     sample(ClientCommand, { action: ClientCommandAction.PerformRespawn }),

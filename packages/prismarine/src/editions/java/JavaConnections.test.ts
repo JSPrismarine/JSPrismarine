@@ -35,6 +35,10 @@ import {
     PlayerInputFlag,
     PickItemFromBlock,
     PickItemFromEntity,
+    Attack,
+    Interact,
+    JavaHand,
+    UseItem,
     PlayerActionStatus,
     PlayerLoaded,
     PlayClientInformation,
@@ -386,7 +390,19 @@ describe('JavaConnections', () => {
         // Middle clicks on a block and on an entity, which name the entity by its runtime id.
         java.send(PickItemFromBlock, { position: { x: 1, y: -60, z: 2 }, includeData: true });
         java.send(PickItemFromEntity, { entityId: 12, includeData: false });
-        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"pickEntity","target":"12n","withData":false}');
+        // A hit and a use on an entity, the off hand's use being the main hand's that did nothing,
+        // then a draw at nothing and its release.
+        java.send(Attack, { entityId: 12 });
+        java.send(Interact, { entityId: 13, hand: JavaHand.Off, location: { x: 0, y: 1, z: 0 }, sneaking: false });
+        java.send(Interact, { entityId: 12, hand: JavaHand.Main, location: { x: 0, y: 1, z: 0 }, sneaking: false });
+        java.send(UseItem, { hand: JavaHand.Main, sequence: 3, yaw: 0, pitch: 0 });
+        java.send(PlayerAction, {
+            status: PlayerActionStatus.ReleaseUseItem,
+            position: { x: 0, y: 0, z: 0 },
+            face: 0,
+            sequence: 0
+        });
+        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"releaseItem","action":"release"}');
         java.destroy();
         await leaving;
 
@@ -407,6 +423,10 @@ describe('JavaConnections', () => {
             'intent {"kind":"setSprinting","sprinting":true}',
             'intent {"kind":"pickBlock","position":{"x":1,"y":-60,"z":2},"withData":true}',
             'intent {"kind":"pickEntity","target":"12n","withData":false}',
+            'intent {"kind":"attackEntity","target":"12n"}',
+            'intent {"kind":"interactEntity","target":"12n"}',
+            'intent {"kind":"useItem","held":false}',
+            'intent {"kind":"releaseItem","action":"release"}',
             'leave'
         ]);
     });

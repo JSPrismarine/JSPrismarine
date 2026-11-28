@@ -14,7 +14,7 @@ Progress:
   Java's move packets, `Player Command` and `Player Input`. Java sends no jump, so a Java move that
   leaves the ground going up is one, as vanilla's `handleMovePlayer` decides. Bedrock's input mode
   stays Bedrock's, since only Bedrock has touch, mouse and gamepad modes.
-- Slice 3.2, blocks: under review. Mining was already the `mineBlock` intent, so what was left is
+- Slice 3.2, blocks: merged in [#3837](https://github.com/JSPrismarine/JSPrismarine/pull/3837). Mining was already the `mineBlock` intent, so what was left is
   a block pick, an entity pick and a lectern page turn. Each is an intent, decoded from Bedrock's
   `BlockPickRequest`, `ActorPickRequest` and `LecternUpdate` and from Java's `Pick Item From Block`
   and `Pick Item From Entity`. Java turns a lectern's page with a container button, which waits for
@@ -22,6 +22,15 @@ Progress:
   `BlockActorData`, which no handler reads yet, and Java's `sign_update`
   ([#3775](https://github.com/JSPrismarine/JSPrismarine/issues/3775)), so it is a feature to build
   rather than a handler to move.
+- Slice 3.3, item use: under review. `InventoryTransaction`'s bodies are intents: a use on a block,
+  a use at nothing, a hit, a use on an actor and a release, beside the client-timed break that is
+  `mineBlock`'s `finish`. Java decodes `Use Item`, `Attack`, `Interact` and `Player Action`'s
+  release into the same ones. The Bedrock handler keeps what only Bedrock has: checking the
+  transaction against the docs, the hand slot it names, the mismatch report and the legacy
+  two-action drop. `ItemStackRequest`, which moves stacks between Bedrock's windows, is not in this
+  slice: Java moves them with `Container Click`, by slot and button, so the two need a shared
+  model of a stack move before either decodes into it, and that is a slice of its own after the
+  screens.
 
 ## Problem
 

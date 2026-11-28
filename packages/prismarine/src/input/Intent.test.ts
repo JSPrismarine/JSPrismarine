@@ -8,6 +8,7 @@ describe('input/Intent', () => {
         // comparing the table with itself.
         expect([...INTENT_KINDS].sort()).toEqual([
             'animate',
+            'attackEntity',
             'changeGameMode',
             'chat',
             'closeContainer',
@@ -16,6 +17,7 @@ describe('input/Intent', () => {
             'emote',
             'finishCredits',
             'holdButtons',
+            'interactEntity',
             'jump',
             'mineBlock',
             'move',
@@ -27,6 +29,7 @@ describe('input/Intent', () => {
             'playerInitialized',
             'pressRespawn',
             'queryBossBar',
+            'releaseItem',
             'requestAbility',
             'respawn',
             'runCommand',
@@ -41,6 +44,7 @@ describe('input/Intent', () => {
             'setSprinting',
             'setViewDistance',
             'turnLecternPage',
+            'useItem',
             'useItemOnBlock'
         ]);
     });

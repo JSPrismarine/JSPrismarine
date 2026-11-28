@@ -30,6 +30,10 @@ import {
     PlayerInput,
     PlayerInputFlag,
     PickItemFromBlock,
+    Attack,
+    Interact,
+    JavaHand,
+    UseItem,
     PickItemFromEntity,
     RAIN_LEVEL_CHANGE,
     START_RAINING,
@@ -1038,8 +1042,15 @@ const BEHAVIORS: readonly Behavior[] = [
         area: 'containers',
         java: 'A client uses the item in its hand in the air, eats, drinks, draws a bow and lets it go, and stabs with a spear.',
         needs: [
-            read('play/serverbound/use_item'),
-            playerAction(PlayerActionStatus.ReleaseUseItem, 'release a used item'),
+            decoded(
+                UseItem,
+                'use the main hand at nothing',
+                { hand: JavaHand.Main, sequence: 1, yaw: 0, pitch: 0 },
+                {
+                    kind: 'useItem'
+                }
+            ),
+            playerAction(PlayerActionStatus.ReleaseUseItem, 'release a used item', { kind: 'releaseItem' }),
             playerAction(PlayerActionStatus.Stab, 'stab'),
             sent('play/clientbound/cooldown')
         ]
@@ -1232,13 +1243,23 @@ const BEHAVIORS: readonly Behavior[] = [
         id: 'attack-entities',
         area: 'combat',
         java: 'A client attacks the entity it hits, and swings its arm at an entity or at the air.',
-        needs: [read('play/serverbound/attack'), read('play/serverbound/punch')]
+        needs: [
+            decoded(Attack, 'hit an entity', { entityId: 1 }, { kind: 'attackEntity' }),
+            read('play/serverbound/punch')
+        ]
     },
     {
         id: 'interact-entities',
         area: 'combat',
         java: 'A client uses the item in its hand on an entity, or the entity itself: breeding, riding, trading and the like.',
-        needs: [read('play/serverbound/interact')]
+        needs: [
+            decoded(
+                Interact,
+                'use the main hand on an entity',
+                { entityId: 1, hand: JavaHand.Main, location: { x: 0, y: 1, z: 0 }, sneaking: false },
+                { kind: 'interactEntity' }
+            )
+        ]
     },
     {
         id: 'hurt-feedback',
