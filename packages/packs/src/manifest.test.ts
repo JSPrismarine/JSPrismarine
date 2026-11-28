@@ -42,6 +42,12 @@ describe('parseManifest', () => {
         expect(parsed?.dependencies).toEqual([{ uuid: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', version: [1, 0, 0] }]);
     });
 
+    it('reads metadata.product_type, and leaves it out when the manifest names none', () => {
+        const addon = parseManifest({ ...valid(), metadata: { product_type: 'addon' } }, 'test');
+        expect(addon.manifest?.productType).toBe('addon');
+        expect(parseManifest(valid(), 'test').manifest).not.toHaveProperty('productType');
+    });
+
     it('requires format_version 2 for a data pack', () => {
         const { manifest, diagnostics } = parseManifest({ ...valid(), format_version: 1 }, 'test');
         expect(manifest).toBeUndefined();

@@ -571,6 +571,29 @@ describe('AddonManager', () => {
         expect(logged).toContain('mobs also has entities, items, which load when the server restarts');
     });
 
+    it("reads whether an addon's packs call themselves part of an addon", async () => {
+        const marked = new Map(resourcePackFiles());
+        // Parsed JSON, which the fixture above wrote as an object.
+        const manifest = JSON.parse(new TextDecoder().decode(marked.get('manifest.json'))) as Record<string, unknown>;
+        marked.set(
+            'manifest.json',
+            encoder.encode(JSON.stringify({ ...manifest, metadata: { product_type: 'addon' } }))
+        );
+        await writeFile(path.join(directory, 'plain.mcaddon'), mcaddon('1.0.0'));
+        const addons = manager();
+        await addons.install('./plain.mcaddon');
+        expect(addons.hasAddonPacks()).toBe(false);
+
+        await writeFile(path.join(directory, 'lights.mcpack'), writeZip(marked));
+        await addons.install('./lights.mcpack');
+
+        expect(addons.resourcePacks().map(({ key, summary }) => [key, summary.addon])).toEqual([
+            ['lights', true],
+            ['plain', false]
+        ]);
+        expect(addons.hasAddonPacks()).toBe(true);
+    });
+
     it('installs every pack of an .mcaddon, each in a folder of its own', async () => {
         await writeFile(path.join(directory, 'furniture.mcaddon'), mcaddon('1.2.0'));
         const addons = manager();

@@ -140,7 +140,8 @@ describe('addon', () => {
             uuid: '8c2b3c4e-0d1a-4c8e-9f00-000000000001',
             version: '1.0.0',
             needsRestart: [],
-            dependencies: []
+            dependencies: [],
+            addon: false
         });
         const { commands, server, logged } = await setUp([
             {

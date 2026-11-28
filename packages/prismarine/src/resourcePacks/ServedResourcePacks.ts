@@ -28,6 +28,8 @@ export interface ServedResourcePack {
     readonly version: string;
     /** The UUID and version joined by an underscore, which the client asks for chunks by. */
     readonly resourceName: string;
+    /** Whether its manifest calls it part of an addon, which the client is told it is. */
+    readonly addon: boolean;
     /** The pack as one zip, which the chunks are cut from. */
     readonly bytes: Uint8Array;
     /** The zip's SHA-256, which the client checks the download against. */
@@ -67,6 +69,7 @@ export const servedPackOf = async ({ key, directory, summary }: AddonResourcePac
         uuid: summary.uuid,
         version: summary.version,
         resourceName: `${summary.uuid}_${summary.version}`,
+        addon: summary.addon,
         bytes,
         sha256: createHash('sha256').update(bytes).digest(),
         chunkCount: Math.max(1, Math.ceil(bytes.byteLength / RESOURCE_PACK_CHUNK_SIZE))
@@ -108,15 +111,26 @@ export interface ResourcePackChunk {
  */
 export class ServedResourcePacks {
     private readonly installed: () => readonly AddonResourcePack[];
+    private readonly addonPacks: () => boolean;
     private built?: { readonly from: readonly AddonResourcePack[]; readonly packs: Promise<ServedResourcePack[]> };
     /** The packs the last finished build offers, in stack order. */
     private latest: readonly ServedResourcePack[] = [];
     /** Every pack a build offered, by its resource name. */
     private readonly offeredByName = new Map<string, ServedResourcePack>();
 
-    /** @param installed - The installed addons' resource packs; a new list means they changed. */
-    public constructor(installed: () => readonly AddonResourcePack[]) {
+    /**
+     * @param installed - The installed addons' resource packs; a new list means they changed.
+     * @param addonPacks - Whether any installed pack, behavior or resource, calls itself part of
+     *   an addon, which a login tells the client as BDS does; left out, none does.
+     */
+    public constructor(installed: () => readonly AddonResourcePack[], addonPacks: () => boolean = () => false) {
         this.installed = installed;
+        this.addonPacks = addonPacks;
+    }
+
+    /** Whether the world holds an addon's packs, as a login's `Has Addon Packs` says. */
+    public hasAddonPacks(): boolean {
+        return this.addonPacks();
     }
 
     /** The packs to offer, in stack order, top first. */

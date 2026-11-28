@@ -34,7 +34,8 @@ const installed = async (
         uuid,
         version: '1.0.0',
         needsRestart: [],
-        dependencies: dependencies.map((each) => ({ uuid: each, version: '1.0.0' }))
+        dependencies: dependencies.map((each) => ({ uuid: each, version: '1.0.0' })),
+        addon: false
     };
     return { key: 'addon', folder: '.', directory, summary };
 };

@@ -383,6 +383,12 @@ export interface PackSummary {
     readonly needsRestart: readonly string[];
     /** The other packs it needs. */
     readonly dependencies: readonly PackDependency[];
+    /**
+     * Whether its manifest's `metadata.product_type` is `addon`. A Bedrock Dedicated Server offers
+     * such a resource pack to clients as an addon pack, which a client applies though the behavior
+     * pack the resource pack depends on stays on the server.
+     */
+    readonly addon: boolean;
 }
 
 /**
@@ -456,7 +462,8 @@ const summarize = (
         dependencies: manifest.dependencies.map((dependency) => ({
             uuid: dependency.uuid.toLowerCase(),
             version: dependency.version.join('.')
-        }))
+        })),
+        addon: manifest.productType === 'addon'
     };
 };
 

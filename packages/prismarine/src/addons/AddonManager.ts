@@ -195,6 +195,11 @@ export class AddonManager {
             .map(({ directory }) => directory);
     }
 
+    /** Whether any installed pack, behavior or resource, says in its manifest that it is part of an addon. */
+    public hasAddonPacks(): boolean {
+        return this.installedPacks.some(({ summary }) => summary.addon);
+    }
+
     /**
      * The resource packs of the installed addons, in key order and, inside an addon, in the order
      * of their folders: the packs the server sends to clients as they join.
