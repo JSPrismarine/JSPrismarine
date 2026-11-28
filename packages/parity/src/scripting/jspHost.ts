@@ -37,6 +37,8 @@ import type { ScriptHttpTransport } from '@jsprismarine/prismarine/scripting/Scr
 import { networkTransport, ScriptHttpInputs } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
 import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
+import { packDimensionOf } from '@jsprismarine/prismarine/world/packDimensions';
+import { load } from '@jsprismarine/packs';
 
 import { isRecord } from '../isRecord.ts';
 import type { FormAnswer, ScreenCloseReason, ScreenStep } from './formClient.ts';
@@ -353,6 +355,22 @@ const runPacksInLevel = async (
     }
 };
 
+/**
+ * The custom dimensions the packs' `dimensions/*.json` define, read as a level reads them, with
+ * each one's height range.
+ */
+const packDimensionsOf = (packDirectories: readonly string[]): ReadonlyMap<string, { min: number; max: number }> => {
+    const { definitions } = load(packDirectories.map((path) => ({ kind: 'directory', path })));
+    const dimensions = new Map<string, { min: number; max: number }>();
+    for (const [identifier, { data }] of definitions.customDimensions) {
+        const dimension = packDimensionOf(identifier, data);
+        if ('problem' in dimension) continue;
+        const { minY, height } = dimension.definition;
+        dimensions.set(dimension.typeId, { min: minY, max: minY + height });
+    }
+    return dimensions;
+};
+
 /** Loads a world scenario's packs and ticks them until they end; see {@link runPacksInLevel}. */
 const runLoadedPacks = async (
     scenario: ScriptScenario,
@@ -364,16 +382,20 @@ const runLoadedPacks = async (
     // The void dimensions the packs registered. As a level does, a reload adds a new one and
     // drops one it no longer registers.
     let registered: string[] = [];
+    const packDirectories = scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack));
+    const fromPacks = packDimensionsOf(packDirectories);
     const scripts = await LevelScripts.load({
-        packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
+        packDirectories,
         configDirectory: scenarioConfigDirectory(scenario),
         sources: {
             dimensions: () => [
                 ...[Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
+                ...fromPacks.keys(),
                 ...registered
             ],
+            // As a level does, the pack's definition wins over a script's registration.
             registerCustomDimension: (typeId) => {
-                if (!registered.includes(typeId)) registered.push(typeId);
+                if (!fromPacks.has(typeId) && !registered.includes(typeId)) registered.push(typeId);
                 return 'registered';
             },
             settleCustomDimensions: (run) => {
@@ -382,6 +404,7 @@ const runLoadedPacks = async (
             players: () => client?.players() ?? [],
             access: {
                 ...NO_LEVEL_ACCESS,
+                heightRange: (dimension) => fromPacks.get(dimension) ?? NO_LEVEL_ACCESS.heightRange(dimension),
                 entity: (id) => client?.entity(id),
                 entities: (dimension) => {
                     const player = client?.entity(CLIENT_PLAYER);

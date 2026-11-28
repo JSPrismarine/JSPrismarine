@@ -1,0 +1,7 @@
+{
+    "format_version": "1.26.50",
+    "minecraft:dimension": {
+        "description": { "identifier": "jsp:pack_height_only" },
+        "components": { "minecraft:dimension_height": { "min_y": 0, "height_range": 128 } }
+    }
+}
