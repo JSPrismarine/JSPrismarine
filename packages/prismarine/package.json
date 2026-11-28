@@ -610,6 +610,11 @@
                 "import": "./dist/world/DimensionType.js",
                 "module": "./dist/world/DimensionType.js"
             },
+            "./world/packDimensions": {
+                "types": "./dist/world/packDimensions.d.ts",
+                "import": "./dist/world/packDimensions.js",
+                "module": "./dist/world/packDimensions.js"
+            },
             "./world/BaseGenerator": {
                 "types": "./dist/world/BaseGenerator.d.ts",
                 "import": "./dist/world/BaseGenerator.js",
@@ -2031,6 +2036,10 @@
         "./world/DimensionType": {
             "jsprismarine:dist": "./dist/world/DimensionType.js",
             "default": "./src/world/DimensionType.ts"
+        },
+        "./world/packDimensions": {
+            "jsprismarine:dist": "./dist/world/packDimensions.js",
+            "default": "./src/world/packDimensions.ts"
         },
         "./world/end/DragonFight": {
             "jsprismarine:dist": "./dist/world/end/DragonFight.js",

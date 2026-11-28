@@ -372,7 +372,7 @@ server, so it lists the built-in editions alone.
 
 ### Entry points
 
-The package publishes <!-- fact:prismarine.entryPoints.count -->304<!-- /fact --> entry points, and
+The package publishes <!-- fact:prismarine.entryPoints.count -->305<!-- /fact --> entry points, and
 each one is the module that defines what it exports. The root exports `Server` and nothing else.
 Import every other symbol from its own module, such as `Config` from
 `@jsprismarine/prismarine/config/Config`. Each event class and `PlayerSession` is the default
@@ -501,6 +501,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/SessionManager
 @jsprismarine/prismarine/world/ChunkCompletionQueue
 @jsprismarine/prismarine/world/DimensionType
+@jsprismarine/prismarine/world/packDimensions
 @jsprismarine/prismarine/world/BaseGenerator
 @jsprismarine/prismarine/world/generators/datadriven/TerrainProtoCache
 @jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData

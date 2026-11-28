@@ -30,7 +30,7 @@ import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile } from '../config/JsonFile';
-import { Dimensions, dimensionTypeOf, isCustomDimensionType } from './DimensionType';
+import { CLOUD_HEIGHT_ATTRIBUTE, Dimensions, dimensionTypeOf, isCustomDimensionType } from './DimensionType';
 import { DimensionNumbers } from './DimensionNumbers';
 import type { SavedDimensionNumbers } from './DimensionNumbers';
 import { voidStem } from './generators/factories/void';
@@ -88,9 +88,6 @@ const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
 /** Where a player record goes when the provider has no player storage of its own. */
 /** The biome a custom dimension is announced with when its stem names none. */
 const DEFAULT_ANNOUNCED_BIOME = 'minecraft:plains';
-
-/** The `dimension_type` attribute that says where the clouds render. */
-const CLOUD_HEIGHT_ATTRIBUTE = 'minecraft:visual/cloud_height';
 
 /** When a stem's world is built: at {@link Level.enable}, or on the first {@link Level.world}. */
 export type DimensionLoad = 'eager' | 'lazy';
@@ -210,7 +207,7 @@ export class Level {
     /** When and how the level is written to disk; see {@link LevelSave}. */
     private readonly saves: LevelSave;
     private readonly respawnSearch: RespawnSearch;
-    /** Every stem: the config's and the save's, then the ones scripts registered, in that order. */
+    /** Every stem: the config's and the save's, then the packs', then the ones scripts registered. */
     private readonly stems: Map<string, LevelStem>;
     private readonly dimensionTypes: Map<string, DimensionType>;
     /** The Bedrock number of each custom dimension, which the save keeps; see {@link DimensionNumbers}. */
@@ -220,6 +217,12 @@ export class Level {
      * each time the level opens, and their types are in no datapack the next start reads.
      */
     private readonly scriptStems = new Set<string>();
+    /**
+     * The stems a behavior pack's `dimensions/*.json` defined, which the save leaves out for the
+     * reason it leaves out the scripts': the packs define them again each time the level opens,
+     * and a pack removed since would leave the save a type nothing defines.
+     */
+    private readonly packStems = new Set<string>();
     /** The script dimensions added since the last {@link Level.settleScriptDimensions}. */
     private readonly addedScriptStems = new Set<string>();
     /** The worlds of script dimensions a reload dropped, by type id, until they have saved and closed. */
@@ -444,7 +447,7 @@ export class Level {
      * `custom-dimensions` scenario recorded. Its world is built on its first visit.
      *
      * A dimension the level already has, from the config or an earlier registration, is
-     * registered again and keeps its definition: on BDS a pack's `dimension/*.json` takes priority
+     * registered again and keeps its definition: on BDS a pack's `dimensions/*.json` takes priority
      * over a script's registration. Unlike BDS, which refuses a dimension that only a reload
      * registers with "Please exit and rejoin your world", the level adds it, and the caller tells
      * the clients already in the level about it.
@@ -462,6 +465,23 @@ export class Level {
         this.scriptStems.add(typeId);
         this.addedScriptStems.add(typeId);
         return 'registered';
+    }
+
+    /**
+     * Adds a custom dimension a behavior pack's `dimensions/*.json` defined: a void dimension of
+     * the type the document describes, built on its first visit. A dimension the level already
+     * has from its config or its save keeps its definition. Called before the level opens, and
+     * before any script registers a dimension, so the pack's definition wins over a script
+     * registration of the same id, as on BDS.
+     *
+     * @param typeId - The dimension's namespaced id, from the document's `description.identifier`.
+     * @param definition - The dimension type the document describes.
+     */
+    public registerPackDimension(typeId: string, definition: DimensionTypeDefinition): void {
+        if (this.stems.has(typeId) || [...this.stems.values()].some((stem) => stem.type === typeId)) return;
+        this.dimensionTypes.set(typeId, dimensionTypeOf(definition, typeId, this.dimensionNumbers.numberOf(typeId)));
+        this.stems.set(typeId, voidStem(typeId));
+        this.packStems.add(typeId);
     }
 
     /** Whether a custom dimension got a number the save does not hold yet, which the next save writes. */
@@ -1390,7 +1410,9 @@ export class Level {
             this.server.getLogger().debug(`No spawn point to save for ${this.name}`);
         }
 
-        const stems = Object.fromEntries([...this.stems].filter(([id]) => !this.scriptStems.has(id)));
+        const stems = Object.fromEntries(
+            [...this.stems].filter(([id]) => !this.scriptStems.has(id) && !this.packStems.has(id))
+        );
         const dragonFight = this.dragonFightState();
         const raids = this.raidState();
         const position = spawn ? { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } : undefined;
