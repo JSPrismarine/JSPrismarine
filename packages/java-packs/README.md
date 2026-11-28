@@ -53,6 +53,10 @@ controllers, particles, JSON UI, materials, Vibrant Visuals data, and sounds tha
 FSB), and what did not read. [Bedrock resource packs for Java clients](../../docs/plans/bedrock-resource-packs-for-java.md)
 plans the rest.
 
+`JAVA_PACK_CONVERTER_VERSION` goes up whenever the same stack would convert to other files, so a
+cache keyed by it, as the server's `cache/java-packs/` is, never serves a pack an older converter
+wrote.
+
 `decodeTga` and `encodePng` from `@jsprismarine/java-packs/image` are the image codecs the
 conversion uses. `decodeTga` reads the color-mapped, true color and grayscale TGA files Bedrock
 packs ship, run-length encoded or not, and says why a file does not read rather than throwing.
