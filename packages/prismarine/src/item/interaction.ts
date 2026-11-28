@@ -51,6 +51,7 @@ import PlayerPlaceBlockEvent from '../events/player/PlayerPlaceBlockEvent';
 import PlayerItemUseStageEvent from '../events/player/PlayerItemUseStageEvent';
 import PlayerUseItemEvent from '../events/player/PlayerUseItemEvent';
 import { Item } from './Item';
+import { itemFromContent } from './itemFromContent';
 import type { ItemStack } from '@jsprismarine/items';
 import type { SystemBlock } from '../world/WorldSystems';
 import type Server from '../Server';
@@ -397,15 +398,35 @@ const placeBlock = (
 };
 
 /**
- * Puts the stack a behavior handed back into the hand, for a result that names the item held.
+ * Puts the stack a behavior handed back into the hand.
  *
  * This is the one carry-back for every hook result: without it bone meal, a fire charge, a spawn
- * egg and every other consumable used on a block, an entity or the air stayed at full count.
+ * egg and every other consumable used on a block, an entity or the air stayed at full count. A
+ * stack of the item held only resizes it, so its durability and enchantments stay. A stack of
+ * another item replaces it: the water bucket an empty bucket became, or the bucket a water bucket
+ * poured out of. Writing only the count kept the old item, so a bucket picked up and poured out
+ * liquid without ever changing.
  */
-const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): void => {
-    const held = player.getInventory().equipment('mainhand');
-    if (stack === undefined || stack.identifier !== held?.getName()) return;
-    player.getInventory().setEquipmentCount('mainhand', stack.count);
+const putBackStack = (player: InteractingPlayer, used: Item, stack: ItemStack | undefined): void => {
+    if (stack === undefined) return;
+
+    const inventory = player.getInventory();
+    // The hand changed under the behavior, as when the actor port puts a blank map where the last
+    // empty one was, and what is there now is already the outcome.
+    const held = inventory.equipment('mainhand');
+    if (held?.getName() !== used.getName()) return;
+
+    if (stack.identifier === held.getName()) {
+        inventory.setEquipmentCount('mainhand', stack.count);
+        return;
+    }
+
+    if (stack.count <= 0) {
+        inventory.setEquipment('mainhand', null);
+        return;
+    }
+    const replacement = itemFromContent(stack.identifier, player.getServer().getContent());
+    if (replacement !== null) inventory.setEquipment('mainhand', replacement.withCount(stack.count));
 };
 
 /**
@@ -675,7 +696,10 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 faceLocation: interaction.faceLocation
             });
             if (used !== undefined) {
-                putBackStack(player, used.stack);
+                putBackStack(player, held, used.stack);
+                // The client changed its own copy of the hand when it clicked, a bucket into a
+                // water bucket, and has to hear what the server made of it.
+                resendInventory(player);
 
                 // Java raises both: `any_block_use` for every interaction with a block, and
                 // `item_used_on_block` for the item that did it, whose conditions see the tool.
@@ -748,7 +772,7 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
 
         // Targeted item use has no later inventory path, so carry its stack result back now.
         // Spawn eggs use this to spend one egg after creating their entity at the target.
-        putBackStack(player, used.stack);
+        putBackStack(player, held, used.stack);
 
         return 'handled';
     });
@@ -785,7 +809,7 @@ export const useItemInAir = (interaction: AirInteraction): InteractionResult => 
         const used = stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 });
         if (used === undefined) return 'declined';
 
-        putBackStack(player, used.stack);
+        putBackStack(player, held, used.stack);
         resendInventory(player);
         return 'handled';
     });
@@ -846,7 +870,8 @@ export const consumeHeldItem = (interaction: AirInteraction): boolean => {
     const { content, actors, player } = interaction;
 
     const held = player.getInventory().equipment('mainhand');
-    const stack = held === null ? undefined : contentStackOf(content, held);
+    if (held === null) return false;
+    const stack = contentStackOf(content, held);
     if (stack === undefined) return false;
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
@@ -854,7 +879,7 @@ export const consumeHeldItem = (interaction: AirInteraction): boolean => {
         const consumed = stack.dispatchFirst('onConsume', { itemStack: stack, source });
         if (consumed === undefined) return false;
 
-        putBackStack(player, consumed.stack);
+        putBackStack(player, held, consumed.stack);
         resendInventory(player);
         return true;
     });

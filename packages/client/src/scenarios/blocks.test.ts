@@ -10,8 +10,18 @@
  * what the rendering client did. These ask the server the same questions through its console,
  * read its world directly, and check the block packets the client was sent against it.
  */
+import { Vector3 } from '@jsprismarine/math';
 import BlockRuntimeIds from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
-import { PlayerActionType, PlayerAuthInputData, UpdateBlockPacket } from '@jsprismarine/protocol';
+import {
+    emptyItemStackDescriptor,
+    HandSlot,
+    ItemUseActionType,
+    PlayerActionType,
+    PlayerAuthInputData,
+    TransactionType,
+    UpdateBlockPacket
+} from '@jsprismarine/protocol';
+import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateSubChunkBlocksPacket';
 import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -172,6 +182,41 @@ const blockActions = (player: LoopbackPlayer, at: BlockAt): ((action?: PlayerAct
         await player.client.getSession().send(packet);
         await jsp.tick();
     };
+};
+
+/**
+ * Right-clicks the top face of a block with the item in hotbar slot 0, as the client's item use
+ * transaction does. The server reads the item from its own copy of the hand, so the packet's
+ * item is empty.
+ * @param player - Who clicks.
+ * @param at - The block clicked.
+ */
+const useItemOn = async (player: LoopbackPlayer, at: BlockAt): Promise<void> => {
+    const position = player.world.getPosition();
+    if (position === undefined) throw new Error(`${player.name} has no position to click from`);
+    const packet = new InventoryTransactionPacket({
+        legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
+        transactionType: TransactionType.USE_ITEM,
+        inventoryActions: [],
+        hand: HandSlot.MAINHAND,
+        transactionData: {
+            kind: 'useItem',
+            actionType: ItemUseActionType.PLACE,
+            triggerType: 1,
+            blockPosition: new Vector3(at.x, at.y, at.z),
+            blockFace: 1,
+            hotbarSlot: 0,
+            hand: HandSlot.MAINHAND,
+            itemInHand: emptyItemStackDescriptor(),
+            playerPosition: new Vector3(position.x, position.y, position.z),
+            clickPosition: new Vector3(0.5, 1, 0.5),
+            blockRuntimeId: serverRuntimeId(at) ?? 0,
+            clientInteractPrediction: 1,
+            clientCooldownState: 0
+        }
+    });
+    await player.client.getSession().send(packet);
+    await jsp.tick();
 };
 
 /**
@@ -514,6 +559,43 @@ describe('redstone-dust', { tags: ['real-data'] }, () => {
         await jsp.tick();
         for (const at of [...DUST, LAMP])
             expect(shown.at(at), `what the client was sent for ${at.x}`).toBe(serverRuntimeId(at));
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('bucket-pickup-place', { tags: ['real-data'] }, () => {
+    /** A spot on the flat surface, clear of what the other scenarios build. */
+    const STAND = { x: 160.5, y: -60, z: 160.5 };
+
+    it('fills the bucket in hand from a water source and empties it back out', async () => {
+        const player = await jsp.join('Bucketeer');
+        await jsp.command(`gamemode survival ${player.name}`);
+        await standAt(player, STAND);
+        await jsp.command('kill @e[type=item]');
+        await jsp.command(`replaceitem entity ${player.name} slot.hotbar 0 minecraft:bucket 1`);
+        const held = () => player.session()?.getInventory().equipment('mainhand')?.getName();
+        await jsp.until(() => held() === 'minecraft:bucket', `${player.name} was never handed the bucket`);
+
+        const water = { x: 162, y: -60, z: 160 };
+        await place(water, 'minecraft:water');
+        const items = player.world.actorsOfType('minecraft:item').length;
+
+        await useItemOn(player, water);
+        await jsp.until(() => held() === 'minecraft:water_bucket', 'the bucket never filled');
+        expect(serverBlockName(water)).toBe('minecraft:air');
+
+        // Poured on the floor beside it, which puts the water back on top of that block.
+        const floor = { x: 162, y: -61, z: 162 };
+        await useItemOn(player, floor);
+        await jsp.until(() => held() === 'minecraft:bucket', 'the water bucket never emptied');
+        expect(serverBlockName({ x: 162, y: -60, z: 162 })).toBe('minecraft:water');
+
+        await jsp.tick(5);
+        // The filled bucket went into the hand, not onto the ground.
+        expect(player.world.actorsOfType('minecraft:item')).toHaveLength(items);
+
+        await jsp.command('fill 160 -60 158 166 -60 166 minecraft:air');
         player.leave();
         await jsp.tick();
     });
