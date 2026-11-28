@@ -51,11 +51,34 @@ export interface Manifest {
 
 const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+/** The `format_version` values a resource, behavior or world template manifest may have. */
+const DATA_PACK_FORMAT_VERSIONS: readonly number[] = [2, 3];
+
+/**
+ * A SemVer string: one to three numeric parts, then an optional pre-release and build suffix. The
+ * suffix classes exclude `+`, so the pattern matches in linear time.
+ */
+const SEMVER_PATTERN = /^(\d+(?:\.\d+){0,2})(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+/**
+ * Parses a manifest version. Format 3 writes versions as SemVer strings, which may carry a
+ * pre-release or build suffix such as `"1.0.0-beta+7"`; the suffix is dropped, since a
+ * {@link FormatVersion} keeps only the three numeric parts. A string with no numeric core, such
+ * as `"-1.0.0"`, is not a version.
+ */
+const parseManifestVersion = (value: unknown): FormatVersion | undefined => {
+    if (typeof value !== 'string') return parseVersion(value);
+    const core = SEMVER_PATTERN.exec(value)?.[1];
+    return core === undefined ? undefined : parseVersion(core);
+};
+
 /**
  * Parses a decoded `manifest.json` against the documented schema: `header`
  * with `name`, `uuid` and `version`; `modules` with at least one entry, each
  * with `type`, `uuid` and `version`; optional `dependencies`; and a
- * `format_version` of 1 for skin packs and 2 otherwise.
+ * `format_version` of 1 for skin packs and 2 or 3 otherwise. Format 3 writes
+ * versions as SemVer strings instead of `[major, minor, patch]` arrays; both
+ * shapes are read under either format.
  *
  * @param pack - The pack name used in diagnostics, usually the source path.
  * @returns The manifest when it validates, plus every finding. A result
@@ -75,10 +98,10 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
     if (typeof header.name !== 'string' || header.name.length === 0)
         return fail('header.name must be a non-empty string');
     if (typeof header.uuid !== 'string' || !UUID_PATTERN.test(header.uuid)) return fail('header.uuid must be a UUID');
-    const headerVersion = parseVersion(header.version);
+    const headerVersion = parseManifestVersion(header.version);
     if (!headerVersion) return fail('header.version must be a version');
     const minEngineVersion =
-        header.min_engine_version === undefined ? undefined : parseVersion(header.min_engine_version);
+        header.min_engine_version === undefined ? undefined : parseManifestVersion(header.min_engine_version);
     if (header.min_engine_version !== undefined && !minEngineVersion)
         return fail('header.min_engine_version must be a version');
 
@@ -88,16 +111,17 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
     for (const entry of value.modules) {
         if (!isRecord(entry) || typeof entry.type !== 'string') return fail('each module needs a string type');
         if (typeof entry.uuid !== 'string' || !UUID_PATTERN.test(entry.uuid)) return fail('each module needs a UUID');
-        const moduleVersion = parseVersion(entry.version);
+        const moduleVersion = parseManifestVersion(entry.version);
         if (!moduleVersion) return fail('each module needs a version');
         modules.push({ type: entry.type, uuid: entry.uuid, version: moduleVersion });
     }
 
     const isSkinPack = modules.some((module) => module.type === 'skin_pack');
-    const expectedFormatVersion = isSkinPack ? 1 : 2;
-    if (value.format_version !== expectedFormatVersion)
+    const expectedFormatVersions: readonly number[] = isSkinPack ? [1] : DATA_PACK_FORMAT_VERSIONS;
+    const formatVersion = value.format_version;
+    if (typeof formatVersion !== 'number' || !expectedFormatVersions.includes(formatVersion))
         return fail(
-            `format_version must be ${expectedFormatVersion} for a ${isSkinPack ? 'skin' : 'resource, behavior or world template'} pack, got ${JSON.stringify(value.format_version)}`
+            `format_version must be ${expectedFormatVersions.join(' or ')} for a ${isSkinPack ? 'skin' : 'resource, behavior or world template'} pack, got ${JSON.stringify(formatVersion)}`
         );
 
     const dependencies: ManifestDependency[] = [];
@@ -109,7 +133,7 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
             // client, not to this loader; only pack dependencies are kept.
             if (typeof entry.uuid !== 'string') continue;
             if (!UUID_PATTERN.test(entry.uuid)) return fail('each pack dependency needs a UUID');
-            const dependencyVersion = parseVersion(entry.version);
+            const dependencyVersion = parseManifestVersion(entry.version);
             if (!dependencyVersion) return fail('each pack dependency needs a version');
             dependencies.push({ uuid: entry.uuid, version: dependencyVersion });
         }
@@ -139,7 +163,7 @@ export const parseManifest = (value: unknown, pack: string): { manifest?: Manife
 
     return {
         manifest: {
-            formatVersion: expectedFormatVersion,
+            formatVersion,
             header: { name: header.name, uuid: header.uuid, version: headerVersion, minEngineVersion },
             modules,
             dependencies,

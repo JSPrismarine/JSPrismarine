@@ -69,11 +69,48 @@ describe('parseManifest', () => {
         expect(parseManifest(valid(), 'test').manifest).toMatchObject({ capabilities: [], subpacks: [] });
     });
 
-    it('requires format_version 2 for a data pack', () => {
+    it('requires format_version 2 or 3 for a data pack', () => {
         const { manifest, diagnostics } = parseManifest({ ...valid(), format_version: 1 }, 'test');
         expect(manifest).toBeUndefined();
         expect(diagnostics[0]).toMatchObject({ severity: 'error', code: 'manifest.invalid' });
-        expect(diagnostics[0]?.message).toContain('format_version must be 2');
+        expect(diagnostics[0]?.message).toContain('format_version must be 2 or 3');
+        expect(parseManifest({ ...valid(), format_version: 4 }, 'test').manifest).toBeUndefined();
+    });
+
+    it('parses a format_version 3 manifest with SemVer string versions', () => {
+        const { manifest, diagnostics } = parseManifest(
+            {
+                format_version: 3,
+                header: {
+                    name: 'Test Pack',
+                    uuid: '11111111-2222-3333-4444-555555555555',
+                    version: '1.1.2',
+                    min_engine_version: '1.21.90'
+                },
+                modules: [{ type: 'resources', uuid: '66666666-7777-8888-9999-aaaaaaaaaaaa', version: '1.0.0-beta+7' }],
+                dependencies: [
+                    { uuid: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', version: '2.0.0' },
+                    { module_name: '@minecraft/server', version: '2.1.0-beta' }
+                ]
+            },
+            'test'
+        );
+        expect(diagnostics).toEqual([]);
+        expect(manifest).toMatchObject({
+            formatVersion: 3,
+            header: { version: [1, 1, 2], minEngineVersion: [1, 21, 90] },
+            modules: [{ type: 'resources', version: [1, 0, 0] }],
+            dependencies: [{ uuid: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', version: [2, 0, 0] }]
+        });
+    });
+
+    it('rejects a version string with no numeric core', () => {
+        for (const version of ['-1.0.0', '+1', '1.0.0-', '1..0', '']) {
+            const manifest = { ...valid(), format_version: 3, header: { ...valid().header, version } };
+            const { manifest: parsed, diagnostics } = parseManifest(manifest, 'test');
+            expect(parsed, version).toBeUndefined();
+            expect(diagnostics[0]?.message).toContain('header.version must be a version');
+        }
     });
 
     it('requires format_version 1 for a skin pack', () => {
