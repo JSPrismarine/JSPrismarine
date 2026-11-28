@@ -1010,8 +1010,9 @@ describeFamily(
                 }
                 const speed = mob.facts.movement;
                 runtime.remove(mob.id, 'parity travel check complete');
-                // Java's `LivingEntity.travel` on stone settles at speed² / (1 - 0.6 × 0.91).
-                return { strides, settled: (speed * speed) / (1 - 0.6 * 0.91) };
+                // Java's `LivingEntity.travel` on stone settles at 0.98 × speed² / (1 - 0.6 × 0.91), the
+                // 0.98 being `aiStep`'s damping of the forward input.
+                return { strides, settled: (0.98 * speed * speed) / (1 - 0.6 * 0.91) };
             };
 
             const zombie = walk('minecraft:zombie', 40);
