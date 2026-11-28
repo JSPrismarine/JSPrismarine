@@ -113,6 +113,7 @@ pnpm --filter @jsprismarine/mapping run generate:block-support --java <R>
 pnpm --filter @jsprismarine/mapping run generate:block-states --java <R>
 pnpm --filter @jsprismarine/items run generate:item-types --java <R>
 pnpm --filter @jsprismarine/bedrock-data run dump:java-protocol --java <R>
+pnpm --filter @jsprismarine/bedrock-data run dump:java-textures --java <R>
 ```
 
 `dump:java-protocol` writes everything a Java client connecting with R needs under
@@ -122,6 +123,11 @@ registries, English and, by running R's server, its configuration phase. It then
 release becomes the one the server speaks without hand edits. It needs a JDK the jar runs on.
 Code that serves Java clients imports `@jsprismarine/protocol/java/versions/newest`, never a
 release's own directory.
+
+`dump:java-textures` matches R's client jar textures to the vanilla Bedrock textures in
+`bedrock-samples` and writes the table `@jsprismarine/java-packs` retextures Java's vanilla textures
+with, `packages/java-packs/src/generated/vanillaTextures.json`. It needs R's `client` entry in
+`sources.json`, with the client jar's URL, sha1, sha256 and size from R's piston-meta package.
 
 Regenerate the worldgen vectors for R as well. A new Java identifier with no Bedrock counterpart
 goes into the reviewed loss list before the generator will emit.

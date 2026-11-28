@@ -64,6 +64,11 @@ export interface JavaVersion extends PinnedArchive {
     sha1: string;
     sizeInBytes: number;
     /**
+     * The release's client jar, which only the table generators that read the client's assets
+     * download, such as `dump:java-textures`.
+     */
+    client?: PinnedArchive & { sha1: string; sizeInBytes: number };
+    /**
      * Whether this is a snapshot or pre-release tracked ahead of the default release. At most one
      * entry carries it, and it must be newer than `defaultVersion`.
      */
@@ -278,6 +283,31 @@ export const javaServerDescriptor = (data: JavaServerData, release?: string): So
         unpack: false,
         fileName: 'server.jar',
         envOverride: 'JSP_JAVA_JAR_PATH'
+    };
+};
+
+/** The source name a Java Edition client jar caches under. */
+export const JAVA_CLIENT_SOURCE_NAME = 'java-client';
+
+/**
+ * The descriptor for one Java Edition release's client jar, cached as
+ * `java-client/<release>/client.jar` and pinned by Mojang's own sha1.
+ *
+ * @throws Error when `sources.json` pins no client jar for the release.
+ */
+export const javaClientDescriptor = (data: JavaServerData, release?: string): SourceDescriptor => {
+    const { release: resolved, version } = selectJavaVersion(data, release);
+    if (version.client === undefined) {
+        throw new Error(`sources.json pins no Java Edition client jar for ${resolved}; add a client entry to it`);
+    }
+    return {
+        name: JAVA_CLIENT_SOURCE_NAME,
+        version: resolved,
+        url: version.client.url,
+        hash: { algorithm: 'sha1', value: version.client.sha1 },
+        unpack: false,
+        fileName: 'client.jar',
+        envOverride: 'JSP_JAVA_CLIENT_JAR_PATH'
     };
 };
 

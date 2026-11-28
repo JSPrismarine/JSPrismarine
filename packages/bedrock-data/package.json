@@ -83,6 +83,7 @@
         "dump:bedrock": "node utils/bedrock-dump/run.ts",
         "dump:java": "node utils/java-dump/run.mjs",
         "dump:java-protocol": "node utils/java-protocol/run.ts",
+        "dump:java-textures": "node utils/java-textures/run.ts",
         "dump:java-goals": "node utils/java-goals/run.ts",
         "java:sources": "node utils/java-sources/run.ts",
         "java:transcriptions": "node utils/java-sources/transcriptions.ts",
