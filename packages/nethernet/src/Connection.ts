@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 
 import { provesKey } from './NetherNetIdentity';
 import type { IdentityProof } from './NetherNetIdentity';
-import type { DriverChannel, DriverPeer } from './WebRtcDriver';
+import type { DriverChannel, DriverPeer, PeerState } from './WebRtcDriver';
 import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /**
@@ -33,6 +33,16 @@ export const DEFAULT_MAX_BUFFERED_BYTES = 64 * 1024 * 1024;
  * its own close, which comes after the channel's last messages.
  */
 export const PEER_END_GRACE_MS = 2_000;
+
+/**
+ * How long a peer connection may stay `disconnected` before the connection is given up. WebRTC
+ * reports `disconnected` once a few consent checks go unanswered, and the peer comes back to
+ * `connected` when they are answered again. A phone that puts the game in the background stops
+ * answering for as long as it stays there, so a connection closed at the first `disconnected`
+ * dropped every player who opened their notifications. Thirty seconds is the consent timeout
+ * RFC 7675 gives, after which WebRTC itself calls the peer `failed`.
+ */
+export const PEER_RECOVERY_MS = 30_000;
 
 /**
  * The payload one segment may carry to a peer: what its description's `a=max-message-size`
@@ -140,6 +150,7 @@ export class Connection extends EventEmitter {
     private readonly queue: Uint8Array[] = [];
     private segmentBytes = SEGMENT_BYTES;
     private endTimer: NodeJS.Timeout | undefined;
+    private recoveryTimer: NodeJS.Timeout | undefined;
 
     /**
      * @param id - The connection ID the client picked.
@@ -240,6 +251,28 @@ export class Connection extends EventEmitter {
     }
 
     /**
+     * Follows the peer connection's state. `failed` and `closed` end the connection. `disconnected`
+     * ends it only when the peer stays that way for {@link PEER_RECOVERY_MS}, since a peer whose
+     * consent checks lapse for a moment recovers to `connected` by itself.
+     * @param state - The peer connection's new state.
+     */
+    public peerStateChanged(state: PeerState): void {
+        if (this.closed) return;
+        if (state === 'disconnected') {
+            if (this.recoveryTimer !== undefined) return;
+            this.recoveryTimer = setTimeout(() => {
+                this.recoveryTimer = undefined;
+                this.peerEnded('disconnected');
+            }, PEER_RECOVERY_MS);
+            this.recoveryTimer.unref();
+            return;
+        }
+        clearTimeout(this.recoveryTimer);
+        this.recoveryTimer = undefined;
+        if (state === 'failed' || state === 'closed') this.peerEnded('disconnected');
+    }
+
+    /**
      * Ends the connection because the peer connection went down. The reliable channel's close is
      * ordered behind the data on it, and the peer connection's state is not: it can be reported
      * before the channel's last messages. So an open reliable channel is left to close by itself,
@@ -265,6 +298,7 @@ export class Connection extends EventEmitter {
         if (this.closed) return;
         this.closedReason = reason;
         clearTimeout(this.endTimer);
+        clearTimeout(this.recoveryTimer);
         this.queue.length = 0;
         this.reliable?.close();
         this.unreliable?.close();

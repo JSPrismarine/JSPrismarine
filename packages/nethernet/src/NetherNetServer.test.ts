@@ -1,9 +1,9 @@
 import { createPublicKey, generateKeyPairSync } from 'node:crypto';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { SEGMENT_BYTES } from './Connection';
+import { PEER_END_GRACE_MS, PEER_RECOVERY_MS, SEGMENT_BYTES } from './Connection';
 import type { Connection } from './Connection';
 import { BEDROCK_CURVE } from './es384';
 import { LanDiscovery } from './LanDiscovery';
@@ -12,6 +12,7 @@ import { NetherNetIdentity } from './NetherNetIdentity';
 import { NetherNetServer } from './NetherNetServer';
 import { PortAllocator } from './PortAllocator';
 import { SignalStructure, SignalType } from './protocol/Signal';
+import { fakePeer } from './testing/fakePeer.test-utils';
 import { loadDriver, nativeAvailable } from './testing/nativeDriver.test.helper';
 import type { PeerConfig, WebRtcDriver } from './WebRtcDriver';
 
@@ -319,6 +320,50 @@ describe.skipIf(!nativeAvailable())('NetherNet over the native driver', async ()
             ]);
         } finally {
             for (const { client } of joined) client.close();
+            server.close();
+        }
+    });
+});
+
+describe('NetherNetServer peer states', () => {
+    /** A server whose one peer is a fake the test drives, after the offer for connection 1 is answered. */
+    const offered = async () => {
+        const fake = fakePeer();
+        const driver: WebRtcDriver = { createPeer: () => fake.peer };
+        const server = new NetherNetServer({ driver, acceptTimeoutMs: 0 });
+        const closed: string[] = [];
+        server.on('closeConnection', (_id: bigint, reason: string) => closed.push(reason));
+        await server.handleOffer(new SignalStructure(SignalType.ConnectRequest, 1n, 'v=0'), () => {});
+        return { fake, server, closed };
+    };
+
+    it('keeps a connection whose peer is disconnected for a moment and comes back', async () => {
+        const { fake, server, closed } = await offered();
+        vi.useFakeTimers();
+        try {
+            fake.state('connected');
+            fake.state('disconnected');
+            vi.advanceTimersByTime(PEER_RECOVERY_MS / 2);
+            fake.state('connected');
+            vi.advanceTimersByTime(PEER_RECOVERY_MS + PEER_END_GRACE_MS);
+
+            expect(closed).toStrictEqual([]);
+            expect(server.connections.has(1n)).toBe(true);
+        } finally {
+            vi.useRealTimers();
+            server.close();
+        }
+    });
+
+    it('drops a connection whose peer failed', async () => {
+        const { fake, server, closed } = await offered();
+        try {
+            fake.state('connected');
+            fake.state('failed');
+
+            expect(closed).toStrictEqual(['disconnected']);
+            expect(server.connections.has(1n)).toBe(false);
+        } finally {
             server.close();
         }
     });
