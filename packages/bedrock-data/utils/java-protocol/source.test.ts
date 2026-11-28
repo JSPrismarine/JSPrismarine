@@ -46,9 +46,9 @@ describe('dump:java-protocol sources', () => {
         );
     });
 
-    it('records the release and its protocol number', () => {
-        expect(releaseSource('26.3', 777)).toContain(
-            "export const RELEASE: JavaRelease = { minecraftVersion: '26.3', protocolVersion: 777 };"
+    it('records the release, its protocol number and its resource pack format', () => {
+        expect(releaseSource('26.3', 777, [97, 1])).toContain(
+            "minecraftVersion: '26.3',\n    protocolVersion: 777,\n    resourcePackFormat: [97, 1]"
         );
     });
 

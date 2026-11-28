@@ -63,8 +63,13 @@ export interface JarVersion {
     readonly protocol_version: number;
     /** Feature release the jar was built for, the lowest JDK that can run it. */
     readonly java_version: number;
-    /** Format numbers a datapack must declare to load in this version. */
-    readonly pack_version: { readonly data_major: number; readonly data_minor: number };
+    /** Format numbers a datapack, and a resource pack, must declare to load in this version. */
+    readonly pack_version: {
+        readonly data_major: number;
+        readonly data_minor: number;
+        readonly resource_major: number;
+        readonly resource_minor: number;
+    };
 }
 
 /**
@@ -88,20 +93,22 @@ export const readJarVersion = async (jarPath: string): Promise<JarVersion> => {
         typeof parsed.java_version !== 'number' ||
         !isRecord(parsed.pack_version) ||
         typeof parsed.pack_version.data_major !== 'number' ||
-        typeof parsed.pack_version.data_minor !== 'number'
+        typeof parsed.pack_version.data_minor !== 'number' ||
+        typeof parsed.pack_version.resource_major !== 'number' ||
+        typeof parsed.pack_version.resource_minor !== 'number'
     ) {
         throw new Error(
             `${jarPath} has a version.json without the id, world_version, protocol_version, java_version and ` +
-                'pack_version.data_major/data_minor fields a server jar declares'
+                'pack_version.data_major/data_minor/resource_major/resource_minor fields a server jar declares'
         );
     }
-    const { data_major, data_minor } = parsed.pack_version;
+    const { data_major, data_minor, resource_major, resource_minor } = parsed.pack_version;
     return {
         id: parsed.id,
         world_version: parsed.world_version,
         protocol_version: parsed.protocol_version,
         java_version: parsed.java_version,
-        pack_version: { data_major, data_minor }
+        pack_version: { data_major, data_minor, resource_major, resource_minor }
     };
 };
 

@@ -3,4 +3,8 @@
 import type { JavaRelease } from '../javaRelease';
 
 /** Java Edition 26.3, as its server jar's `version.json` names it. */
-export const RELEASE: JavaRelease = { minecraftVersion: '26.3', protocolVersion: 777 };
+export const RELEASE: JavaRelease = {
+    minecraftVersion: '26.3',
+    protocolVersion: 777,
+    resourcePackFormat: [97, 1]
+};
