@@ -21,6 +21,7 @@
 import type { FormatVersion } from '@jsprismarine/packs';
 import { compareVersions } from '@jsprismarine/packs';
 import type { BlockDefinitionDocument, BlockStateDefinition, BlockTrait, BlockType } from '@jsprismarine/blocks';
+import { TRAIT_STATES } from '@jsprismarine/blocks';
 import type { ComponentEntry } from '@jsprismarine/content';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { BlockProperty } from '../packet/StartGamePacket';
@@ -110,16 +111,18 @@ const booleanAt = (source: Record<string, unknown>, key: string, fallback: boole
 
 /**
  * One bounding box as the client reads it: the two corners in sixteenths,
- * with the horizontal axes shifted so that an origin of -8 is 0.
+ * with the horizontal axes shifted so that an origin of -8 is 0, and the x axis
+ * mirrored, since a block file's x runs the other way from the engine's.
  *
  * Verified against both captured boxes of `minecraft:shelf_mushroom`:
  * `origin [-5, 4, 1]` with `size [10, 7, 7]` is `min (3, 4, 9)` to
- * `max (13, 11, 16)`.
+ * `max (13, 11, 16)`, and against The Sift's stairs, where BDS 1.26.60.6 writes
+ * `origin [0, 8, -8]` with `size [8, 8, 8]` as x 0 to 8, not 8 to 16.
  */
 const boundingBox = (box: Record<string, unknown>): NBTTagCompound => {
     const [originX, originY, originZ] = triple(box.origin, [-8, 0, -8]);
     const [sizeX, sizeY, sizeZ] = triple(box.size, [16, 16, 16]);
-    const [minX, minY, minZ] = [originX + 8, originY, originZ + 8];
+    const [minX, minY, minZ] = [8 - originX - sizeX, originY, originZ + 8];
 
     return nbtCompound({
         minX: nbtFloat(minX),
@@ -240,6 +243,8 @@ const materialInstances = (value: unknown, context: BlockTranslationContext): NB
  * boolean as the float the engine reads it as, `"1.000000"` or `"0.000000"`.
  */
 const boneVisibilityValue = (value: unknown): string => {
+    // A file may write a flag as the string "true" or "false", which BDS sends as a float too.
+    if (value === 'true' || value === 'false') return (value === 'true' ? 1 : 0).toFixed(6);
     if (typeof value === 'boolean') return (value ? 1 : 0).toFixed(6);
     if (typeof value === 'number') return value.toFixed(6);
     return String(value);
@@ -419,6 +424,14 @@ export const BLOCK_NBT_TRANSLATIONS: Readonly<Record<string, BlockComponentTrans
         });
     },
     'minecraft:geometry': geometry,
+    // BDS 1.26.60.6 writes the inventory model as its own geometry and material instances.
+    'minecraft:item_visual': (value, context) => {
+        const source = isRecord(value) ? value : {};
+        return nbtCompound({
+            geometryDescription: geometry(source.geometry, context),
+            materialInstancesDescription: materialInstances(source.material_instances, context)
+        });
+    },
     'minecraft:liquid_detection': liquidDetection,
     'minecraft:material_instances': materialInstances,
     'minecraft:precipitation_interactions': (value) =>
@@ -536,21 +549,57 @@ const propertyEntry = (state: BlockStateDefinition): NBTTagCompound => {
 };
 
 /**
- * The `traits` list.
+ * The `traits` list, each trait in the shape BDS 1.26.60.6 sent for The Sift's slabs, stairs,
+ * fences and portal:
  *
- * No captured definition carries one, because none of Mojang's 98 blocks
- * enables a trait in a file the server forwards. The shape is the research
- * note's: the trait name, a compound of the enabled states with their
- * `minecraft:` prefix dropped, and the trait's own parameters beside them.
+ * - `minecraft:placement_position` and `minecraft:placement_direction` name every state the trait
+ *   has in `enabled_states`, as a byte that says whether the file enabled it.
+ * - `minecraft:placement_direction` also carries `y_rotation_offset` as a float and
+ *   `blocks_to_corner_with` as `{ name, states, tags }` compounds, both written when the file
+ *   leaves them out.
+ * - `minecraft:connection` writes `enabled_states` as the int 1, with `type` 0 and
+ *   `update_flags` 3.
+ *
+ * A trait no capture shows keeps the enabled states and the file's own parameters.
  */
 const traitEntry = (trait: BlockTrait): NBTTagCompound => {
+    const name = nbtString(trait.name);
+    const enabledFlags = (): NBTTagCompound => {
+        const states = Object.keys(TRAIT_STATES[trait.name] ?? {}).sort();
+        const enabled: Record<string, NbtValue> = {};
+        for (const state of states)
+            enabled[state.replace(/^minecraft:/, '')] = nbtByte(trait.enabledStates.includes(state));
+        return nbtCompound(enabled);
+    };
+
+    if (trait.name === 'minecraft:connection') {
+        return nbtCompound({ enabled_states: nbtInt(1), name, type: nbtInt(0), update_flags: nbtInt(3) });
+    }
+    if (trait.name === 'minecraft:placement_position') return nbtCompound({ enabled_states: enabledFlags(), name });
+    if (trait.name === 'minecraft:placement_direction') {
+        const corners = trait.parameters.blocks_to_corner_with;
+        const offset = trait.parameters.y_rotation_offset;
+        return nbtCompound({
+            blocks_to_corner_with: nbtList(
+                (Array.isArray(corners) ? corners : []).filter(isRecord).map((corner) =>
+                    nbtCompound({
+                        name: nbtString(typeof corner.name === 'string' ? corner.name : ''),
+                        states: nbtCompound({}),
+                        tags: nbtString(typeof corner.tags === 'string' ? corner.tags : '')
+                    })
+                )
+            ),
+            enabled_states: enabledFlags(),
+            name,
+            y_rotation_offset: nbtFloat(typeof offset === 'number' ? offset : 0)
+        });
+    }
+
     const enabled: Record<string, NbtValue> = {};
     for (const state of trait.enabledStates) enabled[state.replace(/^minecraft:/, '')] = nbtByte(true);
-
     const parameters: Record<string, NbtValue | undefined> = {};
     for (const [key, value] of Object.entries(trait.parameters)) parameters[key] = scalar(value);
-
-    return nbtCompound({ ...parameters, enabled_states: nbtCompound(enabled), name: nbtString(trait.name) });
+    return nbtCompound({ ...parameters, enabled_states: nbtCompound(enabled), name });
 };
 
 /** `vanilla_block_data`, which is `internal_vanilla_data` with its archetype flattened. */
@@ -668,7 +717,8 @@ export const buildBlockProperties = (
         blockIds.set(name, blockId);
 
         const definition = nbtCompound({
-            blockTags: tags.length > 0 ? nbtList(tags.map(nbtString)) : undefined,
+            // In name order, as BDS 1.26.60.6 sent The Sift's stairs' and fences' tags.
+            blockTags: tags.length > 0 ? nbtList(tags.toSorted().map(nbtString)) : undefined,
             // A block with no client-side component has no compound at all, as BDS 1.26.60.6 sends it.
             components: base.count > 0 ? base.compound : undefined,
             menu_category: nbtCompound({

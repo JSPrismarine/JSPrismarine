@@ -136,7 +136,8 @@ describe('buildBlockProperties', () => {
             components: {
                 'minecraft:geometry': {
                     identifier: 'geometry.probe',
-                    bone_visibility: { a: false, b: true, c: "q.block_state('x') == 1" }
+                    // The Sift's pitcher plant writes "true" and "false" as strings.
+                    bone_visibility: { a: false, b: true, c: "q.block_state('x') == 1", d: 'true', e: 'false' }
                 },
                 'minecraft:material_instances': { '*': { texture: 'stone' } }
             }
@@ -147,7 +148,9 @@ describe('buildBlockProperties', () => {
         ).toEqual({
             a: 'string:0.000000',
             b: 'string:1.000000',
-            c: "string:q.block_state('x') == 1"
+            c: "string:q.block_state('x') == 1",
+            d: 'string:1.000000',
+            e: 'string:0.000000'
         });
     });
 
@@ -274,6 +277,48 @@ describe('buildBlockProperties', () => {
                     render_method: 'string:alpha_test',
                     texture: 'string:thing',
                     tint_method: 'string:none'
+                }
+            });
+        });
+
+        it('writes an item visual as a geometry and material instances description, as BDS does', () => {
+            // The Sift's fence, whose inventory model shows only its icon bone.
+            const definition = definitionOf({
+                ...minimal,
+                components: {
+                    'minecraft:item_visual': {
+                        geometry: { identifier: 'geometry.fence', bone_visibility: { post: 'false', icon: 'true' } },
+                        material_instances: { '*': { texture: 'planks', render_method: 'alpha_test' } }
+                    }
+                }
+            });
+
+            expect(definition.components).toEqual({
+                'minecraft:item_visual': {
+                    geometryDescription: {
+                        bone_visibility: { icon: 'string:1.000000', post: 'string:0.000000' },
+                        culling: 'string:',
+                        culling_layer: 'string:minecraft:culling_layer.undefined',
+                        culling_shape: 'string:',
+                        identifier: 'string:geometry.fence',
+                        ignoreGeometryForIsSolid: 'byte:0',
+                        isV1Fullblock: 'byte:0',
+                        needsLegacyTopRotation: 'byte:0',
+                        useBlockTypeLightAbsorption: 'byte:0',
+                        uv_lock: 'byte:0'
+                    },
+                    materialInstancesDescription: {
+                        mappings: {},
+                        materials: {
+                            '*': {
+                                ambient_occlusion: 'float:1',
+                                packed_bools: 'byte:5',
+                                render_method: 'string:alpha_test',
+                                texture: 'string:planks',
+                                tint_method: 'string:none'
+                            }
+                        }
+                    }
                 }
             });
         });
@@ -434,11 +479,45 @@ describe('buildBlockProperties', () => {
             });
 
             expect(definition.properties).toBeUndefined();
+            // Every state of the trait, as BDS 1.26.60.6 sent The Sift's portal's.
             expect(definition.traits).toEqual([
                 {
-                    enabled_states: { cardinal_direction: 'byte:1' },
+                    blocks_to_corner_with: [],
+                    enabled_states: {
+                        cardinal_direction: 'byte:1',
+                        corner_and_cardinal_direction: 'byte:0',
+                        facing_direction: 'byte:0',
+                        sixteen_way_rotation: 'byte:0'
+                    },
                     name: 'string:minecraft:placement_direction',
-                    y_rotation_offset: 'int:180'
+                    y_rotation_offset: 'float:180'
+                }
+            ]);
+        });
+
+        it("writes a stair's traits in the shapes BDS sent for The Sift's stairs", () => {
+            const definition = definitionOf({
+                description: {
+                    identifier: 'test:stair',
+                    menu_category: { category: 'construction' },
+                    traits: {
+                        'minecraft:placement_position': { enabled_states: ['minecraft:vertical_half'] },
+                        'minecraft:connection': { enabled_states: ['minecraft:cardinal_connections'] }
+                    }
+                },
+                components: {}
+            });
+
+            expect(definition.traits).toEqual([
+                {
+                    enabled_states: { block_face: 'byte:0', vertical_half: 'byte:1' },
+                    name: 'string:minecraft:placement_position'
+                },
+                {
+                    enabled_states: 'int:1',
+                    name: 'string:minecraft:connection',
+                    type: 'int:0',
+                    update_flags: 'int:3'
                 }
             ]);
         });
