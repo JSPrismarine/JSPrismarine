@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/addon-tools",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Build JSPrismarine addons: check each behavior pack, pack it into an .mcpack and write the index a server installs from",
     "sideEffects": false,
     "publishConfig": {

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/script-host",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Runs Bedrock behavior pack scripts for JSPrismarine in an embedded QuickJS, bound through node:ffi",
     "sideEffects": false,
     "publishConfig": {

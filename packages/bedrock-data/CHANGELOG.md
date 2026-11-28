@@ -1,5 +1,19 @@
 # @jsprismarine/bedrock-data
 
+## 0.27.0
+
+### Patch Changes
+
+- [#3886](https://github.com/JSPrismarine/JSPrismarine/pull/3886) [`3a7e94b`](https://github.com/JSPrismarine/JSPrismarine/commit/3a7e94b89acda05d76e99409711ea15afd122c0f) Thanks [@filiphsps](https://github.com/filiphsps)! - Five exchanges, such as opening a chest and dying, are checked at each Bedrock protocol against that protocol's own pinned Bedrock Dedicated Server. `dump:bedrock --pass exchanges --protocol <n>` drives the client through the exchange scenarios in `@jsprismarine/client/exchanges/scenarios` against that protocol's server and writes what it sent under `src/jsp/v<n>/exchanges/`, captured here for protocols 2193, 2225 and 2259. The captures changed the server in two places: a death screen sends `DeathInfo` before `Respawn`, and a client's first window opens as 2, as every pinned server does. The client decodes `DeathInfo`, `ClientPacketRegistry.decodesNamed` says whether a packet class reaches the client's listeners, and a loopback join can speak another protocol.
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3758](https://github.com/JSPrismarine/JSPrismarine/pull/3758) [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3897](https://github.com/JSPrismarine/JSPrismarine/pull/3897) [`6a5c881`](https://github.com/JSPrismarine/JSPrismarine/commit/6a5c881814137a5b2682cc5fcc098a2bf5970514) Thanks [@filiphsps](https://github.com/filiphsps)! - A change of world and the respawn exchange go through the session's presenter. `SessionPresenter` gains `showWorldChange`, which returns the loading screen the session waits on, `showRespawnPoint`, and `placesItselfOnRespawn`. `ShownDimension` carries the dimension's `bedrockId`. `PlayerSession.sendRespawn` is removed: call `session.presenter.showRespawnPoint` instead.
+  
+  A Bedrock dimension change now sends what each protocol's pinned Bedrock Dedicated Server sends in its `change-dimension` exchange: `ChangeDimension` and the server's `ChangeDimensionAck`, with no `StopSound` and no `PlayStatus(PlayerSpawn)`. The `change-dimension` captures at protocols 2193, 2225 and 2259 now record the `StopSound` and `PlayerAction` packets as well.
+
 ## 0.26.0
 
 ### Patch Changes

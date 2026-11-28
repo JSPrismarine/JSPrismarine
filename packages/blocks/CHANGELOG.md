@@ -1,5 +1,43 @@
 # @jsprismarine/blocks
 
+## 0.27.0
+
+### Minor Changes
+
+- [#3811](https://github.com/JSPrismarine/JSPrismarine/pull/3811) [`3080c0f`](https://github.com/JSPrismarine/JSPrismarine/commit/3080c0f9e854591991500c408533b2cf27272ddd) Thanks [@filiphsps](https://github.com/filiphsps)! - Molang is versioned the way the engine versions it. `MOLANG_VERSIONS` lists every number of the engine's `MolangVersion` enum with the engine version that introduced it. `molangVersionFor` reduces a pack's `min_engine_version` to one of those numbers, and `Molang.compile` takes the number as `version` and caches by it. A loaded `Definition` carries its pack's `min_engine_version`. A parsed block document records the Molang version of its pack as `molangVersion`, and its permutation conditions compile under that version.
+  
+  `buildBlockProperties` now writes a pack block's definition as a Bedrock Dedicated Server 1.26.60.6 sends it:
+  
+  - Each block declares its pack's Molang version rather than 13. `MOLANG_VERSION` is gone.
+  - `bone_visibility` values are strings.
+  - `ignoreGeometryForIsSolid`, the third `packed_bools` bit and the full block's `full_block_v1` form follow the file's `format_version`.
+  - A disabled selection box keeps the full block's box.
+  - A boolean `ambient_occlusion` travels as 1 or 0.
+  - A block with no client-side component has no `components` compound.
+  
+  A `BlockComponentTranslation` now takes the file's `format_version` as a second argument.
+
+### Patch Changes
+
+- [#3782](https://github.com/JSPrismarine/JSPrismarine/pull/3782) [`70924dd`](https://github.com/JSPrismarine/JSPrismarine/commit/70924dd5d70e19c29277b43037fbd3fd977b7f8c) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `replacingClicked` to `BlockPlaceEvent` and `BlockPlacementContext`: whether the new block replaced the one clicked, such as short grass, rather than going against its face. It is optional, so a host that does not set it keeps working and has every placement read as a click against the face.
+
+- [#3889](https://github.com/JSPrismarine/JSPrismarine/pull/3889) [`47e3a38`](https://github.com/JSPrismarine/JSPrismarine/commit/47e3a389a2f9781fa30d21828bc465bd89e6cfce) Thanks [@filiphsps](https://github.com/filiphsps)! - Read a block's traits from format version 1.20.20 on, where they left experimental, rather than from 1.26.20, and fold each `tag:<name>` component into the block's `minecraft:tags`. The Sift's 1.21.80 portal and 1.21.100 slabs lost their trait states, so `BlockPermutation.resolve` refused the portal's `minecraft:cardinal_direction` and the client could not draw them, and its `tag:` components gave its blocks no tags. Closes [#3879](https://github.com/JSPrismarine/JSPrismarine/issues/3879).
+
+- [#3864](https://github.com/JSPrismarine/JSPrismarine/pull/3864) [`9b87dd9`](https://github.com/JSPrismarine/JSPrismarine/commit/9b87dd967ec02d3a161a964947f5925577db49be) Thanks [@filiphsps](https://github.com/filiphsps)! - A cauldron swaps the bucket or bottle in the hand instead of dropping one on the ground. Pouring a water bucket into a cauldron used to drop an empty bucket and keep the full one, so every pour gave out a free bucket. An `onPlayerInteract` block hook can now answer `{ consumed: true, heldItemBecomes: '<identifier>' }`: the server turns one of the held item into that item, puts it in the hand when it was the last one, and otherwise adds it to the inventory, or drops it when the inventory is full. A creative player keeps the held item and gets the new one only when the inventory holds none. The cauldron family answers this way for buckets and bottles.
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3758](https://github.com/JSPrismarine/JSPrismarine/pull/3758) [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3852](https://github.com/JSPrismarine/JSPrismarine/pull/3852) [`9bb0384`](https://github.com/JSPrismarine/JSPrismarine/commit/9bb038416c87b34dfe469e2febe5d0ed8707afb8) Thanks [@filiphsps](https://github.com/filiphsps)! - A material instance's `ambient_occlusion` may be the older boolean form, which reads as 1 or 0. A pack that wrote `false`, as Bedrock Dynamic Lights does, used to fail `minecraft:material_instances` on all its blocks with a content error.
+- Updated dependencies [[`2625130`](https://github.com/JSPrismarine/JSPrismarine/commit/2625130f47f326564e73a8864cc541edf3cea504), [`44c0251`](https://github.com/JSPrismarine/JSPrismarine/commit/44c02515fa4810e75de3185001a8490aa7766ebd), [`c836dac`](https://github.com/JSPrismarine/JSPrismarine/commit/c836dac76a41e697fb7c8d1594224cdaf5cdbece), [`edb1160`](https://github.com/JSPrismarine/JSPrismarine/commit/edb116075c62fa251747acaf9d6db80bf1b448c4), [`3a7e94b`](https://github.com/JSPrismarine/JSPrismarine/commit/3a7e94b89acda05d76e99409711ea15afd122c0f), [`d4faaf4`](https://github.com/JSPrismarine/JSPrismarine/commit/d4faaf4250ea34c1f244a7a5047072c7dcff8b6b), [`17718cc`](https://github.com/JSPrismarine/JSPrismarine/commit/17718cc881c0d491e01c5f35dae0e3b9bf21dc5e), [`88fc786`](https://github.com/JSPrismarine/JSPrismarine/commit/88fc78645d05b732a620dbfcc6ee2a106950c093), [`9684f81`](https://github.com/JSPrismarine/JSPrismarine/commit/9684f8141a8cfe1a17f21d48afa34521379a75b9), [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816), [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc), [`ffb86ad`](https://github.com/JSPrismarine/JSPrismarine/commit/ffb86ad9e67431eeb9f1568ea66758a5cbffd050), [`78a7882`](https://github.com/JSPrismarine/JSPrismarine/commit/78a788299aea78261d12c200641934a48ee1e30b), [`cf7fe3c`](https://github.com/JSPrismarine/JSPrismarine/commit/cf7fe3c485a52482dcdbda6da2f822749b256f36), [`7756f1c`](https://github.com/JSPrismarine/JSPrismarine/commit/7756f1c349bb40b381252a231d6fd4b6518ae997), [`6580502`](https://github.com/JSPrismarine/JSPrismarine/commit/6580502b8aa1bab3091d98d581fd3501d5049b36), [`832bd7b`](https://github.com/JSPrismarine/JSPrismarine/commit/832bd7b2e1237f1cc98622cdcb1c21a3a6d37503), [`68a0e1b`](https://github.com/JSPrismarine/JSPrismarine/commit/68a0e1b820981bab5d69830066d824ca937e1021), [`14aeb2c`](https://github.com/JSPrismarine/JSPrismarine/commit/14aeb2cf0b75913f02907de47112af392f517d53), [`c35144a`](https://github.com/JSPrismarine/JSPrismarine/commit/c35144acb33d5b1a6237c523595df8674e349a0f), [`9d84682`](https://github.com/JSPrismarine/JSPrismarine/commit/9d846821f5c62f6591f45c77fec261801a5d9021), [`c4aa27d`](https://github.com/JSPrismarine/JSPrismarine/commit/c4aa27d8e035b66c02ef5e2997a6c81141646cfe), [`0cd4ddb`](https://github.com/JSPrismarine/JSPrismarine/commit/0cd4ddb62d4a05f212368dbca7f217a8bb3a7f08), [`fd07315`](https://github.com/JSPrismarine/JSPrismarine/commit/fd07315101923766c69a1f1fd2981de9afb9cf99), [`5d3699e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d3699e81d3d68ee727a3c932379cd6b6ab526ef), [`2b5358c`](https://github.com/JSPrismarine/JSPrismarine/commit/2b5358c9b6be965d48af4670f786edc8c90861c0), [`37722e2`](https://github.com/JSPrismarine/JSPrismarine/commit/37722e2d12c913328b9dfa9776e70b6300868d5e), [`3080c0f`](https://github.com/JSPrismarine/JSPrismarine/commit/3080c0f9e854591991500c408533b2cf27272ddd), [`dfe4b85`](https://github.com/JSPrismarine/JSPrismarine/commit/dfe4b85f7b9c075988d0231f4fb48e572e332ce1)]:
+  - @jsprismarine/packs@0.27.0
+  - @jsprismarine/errors@0.27.0
+  - @jsprismarine/mapping@0.27.0
+  - @jsprismarine/content@0.27.0
+  - @jsprismarine/minecraft@0.27.0
+  - @jsprismarine/molang@0.27.0
+
 ## 0.26.0
 
 ### Minor Changes

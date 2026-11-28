@@ -1,5 +1,28 @@
 # @jsprismarine/structures
 
+## 0.27.0
+
+### Minor Changes
+
+- [#3889](https://github.com/JSPrismarine/JSPrismarine/pull/3889) [`0cd4ddb`](https://github.com/JSPrismarine/JSPrismarine/commit/0cd4ddb62d4a05f212368dbca7f217a8bb3a7f08) Thanks [@filiphsps](https://github.com/filiphsps)! - Read `.mcstructure` files in `format_version` 2, which keep one block layer as an int array rather than a list, as The Sift's structures do. `MCSTRUCTURE_FORMAT_VERSION` is replaced by `MCSTRUCTURE_FORMAT_VERSIONS`, the versions `readMcStructure` takes.
+
+### Patch Changes
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3758](https://github.com/JSPrismarine/JSPrismarine/pull/3758) [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3856](https://github.com/JSPrismarine/JSPrismarine/pull/3856) [`8eb7c90`](https://github.com/JSPrismarine/JSPrismarine/commit/8eb7c9092048494d22650cb66bc3e7f8ad0157a3) Thanks [@filiphsps](https://github.com/filiphsps)! - Structures start where Java 26.3 starts them. Abandoned mineshafts generate again: `legacy_type_1` and `legacy_type_3` were swapped, so mineshafts drew one 1 in 250 chance per 16 by 16 block of chunks and pillager outposts drew one per chunk. A structure set whose first draw cannot start in a chunk now tries the set's other structures, as Java does, so a chunk outside the badlands that draws the badlands mineshaft gets the normal one, and an ocean chunk that draws a beached shipwreck gets a sunken one. Exclusion zones apply, so pillager outposts keep ten chunks clear of villages.
+  
+  Strongholds are moved to the biomes they prefer, and their ring positions draw from the world seed and fork a source for each position as Java does. A jigsaw start piece turns about the start position as Java turns it about its pivot, which moves a turned village, outpost, bastion or camp to Java's position and its generation point with it. An ancient city reads its biome at its anchor's height. `max_distance_from_center` is measured from the start piece's center, bounds y as well, defaults to 80 and honors `dimension_padding`. Desert pyramids and jungle temples need every corner of their footprint at or above sea level, an ocean monument needs every biome around it in `#minecraft:required_ocean_monument_surrounding`, and a structure on top of the chunk's middle reads its biome one block lower, on the topmost block. `/locate structure` walks the regions ring by ring and answers the first start in Java's scan order.
+  
+  `@jsprismarine/structures` adds `structureAttemptOrder`, `concentricRingPositions` and `pivotedCorner`, and `concentricRingChunks` now returns Java's ring positions.
+- Updated dependencies [[`44c0251`](https://github.com/JSPrismarine/JSPrismarine/commit/44c02515fa4810e75de3185001a8490aa7766ebd), [`c836dac`](https://github.com/JSPrismarine/JSPrismarine/commit/c836dac76a41e697fb7c8d1594224cdaf5cdbece), [`edb1160`](https://github.com/JSPrismarine/JSPrismarine/commit/edb116075c62fa251747acaf9d6db80bf1b448c4), [`3a7e94b`](https://github.com/JSPrismarine/JSPrismarine/commit/3a7e94b89acda05d76e99409711ea15afd122c0f), [`d4faaf4`](https://github.com/JSPrismarine/JSPrismarine/commit/d4faaf4250ea34c1f244a7a5047072c7dcff8b6b), [`17718cc`](https://github.com/JSPrismarine/JSPrismarine/commit/17718cc881c0d491e01c5f35dae0e3b9bf21dc5e), [`88fc786`](https://github.com/JSPrismarine/JSPrismarine/commit/88fc78645d05b732a620dbfcc6ee2a106950c093), [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816), [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc), [`ffb86ad`](https://github.com/JSPrismarine/JSPrismarine/commit/ffb86ad9e67431eeb9f1568ea66758a5cbffd050), [`78a7882`](https://github.com/JSPrismarine/JSPrismarine/commit/78a788299aea78261d12c200641934a48ee1e30b), [`cf7fe3c`](https://github.com/JSPrismarine/JSPrismarine/commit/cf7fe3c485a52482dcdbda6da2f822749b256f36), [`7756f1c`](https://github.com/JSPrismarine/JSPrismarine/commit/7756f1c349bb40b381252a231d6fd4b6518ae997), [`6580502`](https://github.com/JSPrismarine/JSPrismarine/commit/6580502b8aa1bab3091d98d581fd3501d5049b36), [`832bd7b`](https://github.com/JSPrismarine/JSPrismarine/commit/832bd7b2e1237f1cc98622cdcb1c21a3a6d37503), [`68a0e1b`](https://github.com/JSPrismarine/JSPrismarine/commit/68a0e1b820981bab5d69830066d824ca937e1021), [`14aeb2c`](https://github.com/JSPrismarine/JSPrismarine/commit/14aeb2cf0b75913f02907de47112af392f517d53), [`c35144a`](https://github.com/JSPrismarine/JSPrismarine/commit/c35144acb33d5b1a6237c523595df8674e349a0f), [`0cd4ddb`](https://github.com/JSPrismarine/JSPrismarine/commit/0cd4ddb62d4a05f212368dbca7f217a8bb3a7f08), [`37722e2`](https://github.com/JSPrismarine/JSPrismarine/commit/37722e2d12c913328b9dfa9776e70b6300868d5e), [`dfe4b85`](https://github.com/JSPrismarine/JSPrismarine/commit/dfe4b85f7b9c075988d0231f4fb48e572e332ce1)]:
+  - @jsprismarine/errors@0.27.0
+  - @jsprismarine/mapping@0.27.0
+  - @jsprismarine/binaryutils@0.27.0
+  - @jsprismarine/nbt@0.27.0
+
 ## 0.26.0
 
 ### Patch Changes

@@ -1,5 +1,55 @@
 # @jsprismarine/entity-goals
 
+## 0.27.0
+
+### Minor Changes
+
+- [#3855](https://github.com/JSPrismarine/JSPrismarine/pull/3855) [`05fb54a`](https://github.com/JSPrismarine/JSPrismarine/commit/05fb54a294d8363656aa2e168c51b42d0237c783) Thanks [@filiphsps](https://github.com/filiphsps)! - Mobs no longer stand still as often. They walk and choose where to go the way Java Edition's do:
+  
+  - A mob walks down a one-block step, however wide it is. Cows and pigs used to stop on the edge until the walk gave up.
+  - A walk heads along the closest route when no route reaches its target. A zombie closes in on a player it cannot reach, and a villager walks to its job site and its bed.
+  - Random strolls land on the ground, so far more of them find somewhere to go. A brain mob that flees heads away from the threat.
+  - A path no longer crosses a fence or a wall, so penned animals stay in their pens.
+  - A mob that looks one way while it walks another keeps to its path, and clients see its head turn apart from its body.
+  - Named, tamed and leashed mobs keep strolling with no player nearby.
+  - Mobs walk at Java's speed, about 2% slower than before.
+  
+  `@jsprismarine/entity-goals`: all of a mob's goals share one `Navigator`, from `navigatorOf`. A host advances it every game tick with `sweepNavigation`. `Navigator.moveTo` now follows a route that gets closer to the target without reaching it. `Navigator.plan` says whether such a route exists and whether it is complete, and `Navigator.stuck` reports a walk that stopped making progress. A `NavigationView` may answer `collisionTop`, which the path finder uses to refuse fences and walls. `landPositionAt` and `hasPathMalus` draw a walker's random destination as Java's `LandRandomPos` does.
+  
+  `@jsprismarine/entity-brains`: `BrainNavigation.canReach` takes an optional accuracy, and a navigation may answer `canApproach` for a route that only gets closer. `MoveToTargetSink` walks such a route and records `CANT_REACH_WALK_TARGET_SINCE` while the target stays out of reach.
+  
+  `@jsprismarine/entities`: an `EntityActuator` may report the entity's `width` and `movementSpeed`, which a navigator uses to decide when a node is reached and when a walk is stuck.
+
+### Patch Changes
+
+- [#3743](https://github.com/JSPrismarine/JSPrismarine/pull/3743) [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3758](https://github.com/JSPrismarine/JSPrismarine/pull/3758) [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update all non-major dependencies
+
+- [#3782](https://github.com/JSPrismarine/JSPrismarine/pull/3782) [`90080b0`](https://github.com/JSPrismarine/JSPrismarine/commit/90080b0e884ced24349af581851e1839f367c557) Thanks [@filiphsps](https://github.com/filiphsps)! - Fly the ender dragon as Java 26.3 does, checked tick for tick against fights Java's own code flew. The flight now computes in Java's `float` arithmetic with its table sine and `atan2`, and finds paths with Java's binary heap order, so it no longer drifts from Java's course. The fixes:
+  
+  - The takeoff ends on the outer ring while crystals stand and on the middle ring once none do; it had the two the wrong way round. It aims by the dragon's head yaw, which turns after the body on the ticks the dragon moves, as Java's `BodyRotationControl` turns it, and tilts with the distance to the portal.
+  - The holding pattern and the strafe keep separate senses of turn, both starting counterclockwise, and the strafe's lap keeps to the middle ring once no crystal stands.
+  - The path nodes sit on rings around the world's origin and never below 73, as Java's do, and the landing approach aims by the player's direction from the world's origin.
+  - A climbing target adds the node's height and the draw in `float`, the drag keeps Java's `0.91F`, and the head and the neck strike from where the previous tick placed them, tilted by the dragon's climb.
+  - The wings and the head strike what their reach meets by its hitbox, which a mob now reports through `GoalMob.size`, and the head and the neck each strike. A wing hurts a mob only when no mob has hurt it in the last two ticks, and the dragon leaves others alone for the 9 ticks after a blow to it lands whole.
+  - Breaking through blocks draws the particle position Java draws, treats cave air and void air as air, and slows the next tick's flight to `0.8` when the head, the neck or the body meets a block it may not break.
+  - When a phase hands over to the next in the tick it began, as a landing approach whose path ends as it starts does, the dragon still flies toward that phase's target, as Java's does.
+  - The scan and the charge only pick a player the dragon can see, and keep the first answer for each player, as Java's dragon keeps its `Sensing`.
+  
+  `dragonPhasesOf` also reports the phase's fly target, the dragon's Java `yRot` and whether a wall slows it.
+
+- [#3782](https://github.com/JSPrismarine/JSPrismarine/pull/3782) [`46d646a`](https://github.com/JSPrismarine/JSPrismarine/commit/46d646a3acb4a8a39921fa73677c44275432ab08) Thanks [@filiphsps](https://github.com/filiphsps)! - Fly the ender dragon on the entity's own velocity, as Java's dragon flies on its `deltaMovement`. `GoalWorld.moveSelf` now takes the velocity the move leaves, and the new `GoalWorld.velocity` hands it back on the next tick, so a blow that knocks the dragon back between two ticks changes its flight.
+
+- [#3782](https://github.com/JSPrismarine/JSPrismarine/pull/3782) [`6b56822`](https://github.com/JSPrismarine/JSPrismarine/commit/6b56822dc0cc8c477b3847683fea73b23aabd0d7) Thanks [@filiphsps](https://github.com/filiphsps)! - Leave the fluid behind when the ender dragon breaks through a block, as Java's `EnderDragon.checkWalls` does through `Level.removeBlock`. A waterlogged block, kelp, seagrass or a bubble column becomes a water source, and a water or lava block stays as it is, so it no longer counts as broken. With `mobGriefing` off, a water block is a wall, as in Java.
+  
+  `GoalWorld.removeBlock` takes a block out the way `Level.removeBlock` does, and the goal world over the entity runtime answers it with the new `removedBlockOf` from `@jsprismarine/block-behaviors/rules/fluid`. `checkDragonWalls` runs Java's `checkWalls` over one box.
+- Updated dependencies [[`44c0251`](https://github.com/JSPrismarine/JSPrismarine/commit/44c02515fa4810e75de3185001a8490aa7766ebd), [`c836dac`](https://github.com/JSPrismarine/JSPrismarine/commit/c836dac76a41e697fb7c8d1594224cdaf5cdbece), [`edb1160`](https://github.com/JSPrismarine/JSPrismarine/commit/edb116075c62fa251747acaf9d6db80bf1b448c4), [`3a7e94b`](https://github.com/JSPrismarine/JSPrismarine/commit/3a7e94b89acda05d76e99409711ea15afd122c0f), [`88fc786`](https://github.com/JSPrismarine/JSPrismarine/commit/88fc78645d05b732a620dbfcc6ee2a106950c093), [`ddbf63c`](https://github.com/JSPrismarine/JSPrismarine/commit/ddbf63cd7d5c971e4ef224f11c72f5227acc5816), [`f71822e`](https://github.com/JSPrismarine/JSPrismarine/commit/f71822e9a631edf44c55b8fbe70dfc9a728e78cc), [`bf2f320`](https://github.com/JSPrismarine/JSPrismarine/commit/bf2f320f9be2b579f32d3f9d5dcfcbc46a8bf798), [`ffb86ad`](https://github.com/JSPrismarine/JSPrismarine/commit/ffb86ad9e67431eeb9f1568ea66758a5cbffd050), [`cf7fe3c`](https://github.com/JSPrismarine/JSPrismarine/commit/cf7fe3c485a52482dcdbda6da2f822749b256f36), [`7756f1c`](https://github.com/JSPrismarine/JSPrismarine/commit/7756f1c349bb40b381252a231d6fd4b6518ae997), [`6580502`](https://github.com/JSPrismarine/JSPrismarine/commit/6580502b8aa1bab3091d98d581fd3501d5049b36), [`832bd7b`](https://github.com/JSPrismarine/JSPrismarine/commit/832bd7b2e1237f1cc98622cdcb1c21a3a6d37503), [`68a0e1b`](https://github.com/JSPrismarine/JSPrismarine/commit/68a0e1b820981bab5d69830066d824ca937e1021), [`14aeb2c`](https://github.com/JSPrismarine/JSPrismarine/commit/14aeb2cf0b75913f02907de47112af392f517d53), [`c35144a`](https://github.com/JSPrismarine/JSPrismarine/commit/c35144acb33d5b1a6237c523595df8674e349a0f), [`0cd4ddb`](https://github.com/JSPrismarine/JSPrismarine/commit/0cd4ddb62d4a05f212368dbca7f217a8bb3a7f08), [`05fb54a`](https://github.com/JSPrismarine/JSPrismarine/commit/05fb54a294d8363656aa2e168c51b42d0237c783), [`37722e2`](https://github.com/JSPrismarine/JSPrismarine/commit/37722e2d12c913328b9dfa9776e70b6300868d5e), [`3080c0f`](https://github.com/JSPrismarine/JSPrismarine/commit/3080c0f9e854591991500c408533b2cf27272ddd), [`dfe4b85`](https://github.com/JSPrismarine/JSPrismarine/commit/dfe4b85f7b9c075988d0231f4fb48e572e332ce1)]:
+  - @jsprismarine/errors@0.27.0
+  - @jsprismarine/content@0.27.0
+  - @jsprismarine/entities@0.27.0
+  - @jsprismarine/math@0.27.0
+
 ## 0.26.0
 
 ### Patch Changes

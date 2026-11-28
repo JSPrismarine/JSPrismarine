@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/errors",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Every error the JSPrismarine packages throw, each with a code and a link to the error reference",
     "sideEffects": false,
     "publishConfig": {
