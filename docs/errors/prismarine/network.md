@@ -487,9 +487,9 @@ server; report it with the stack trace.
 
 Thrown as `PrismarineNetworkErrors.PresenterHasNoSession`, which extends `Error`.
 
-A Bedrock presenter built without a session was asked to show the player's inventory, which
-it reads from the session. This is a bug in the server, or in a test that builds a
-presenter on its own; pass a `BedrockSessionState`.
+A Bedrock presenter whose session state has no `inventory` was asked to show the player's
+inventory, which it reads from that state. This is a bug in the server, or in a test that
+builds a presenter on its own; pass a `BedrockSessionState` whose `inventory` is set.
 
 ## `PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY`
 
