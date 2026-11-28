@@ -9,7 +9,9 @@ import { eyePositionAt } from '../../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import { announceArrival, playerArriving } from '../../../player/playerArrival';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/bedrock/packet/AvailableActorIdentifiersPacket';
-import BiomeDefinitionListPacket from '@jsprismarine/protocol/bedrock/packet/BiomeDefinitionListPacket';
+import BiomeDefinitionListPacket, {
+    appendBiomeDefinitions
+} from '@jsprismarine/protocol/bedrock/packet/BiomeDefinitionListPacket';
 import FeatureRegistryPacket from '@jsprismarine/protocol/bedrock/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/bedrock/packet/JigsawStructureDataPacket';
@@ -33,8 +35,24 @@ import type { InputLaneHandler } from '../../../player/context/SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import { aimAssistPresetsPacket, cameraPresetsPacket } from '../cameraJoinPackets';
 import { showScoreboard } from '../../../command/host/scoreboard';
+import { packBiomesOf } from '../../../content/packBiomes';
+import type { ServerContent } from '../../../content/ServerContent';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
+/**
+ * The join's biome list: the codec's captured vanilla list, with the content's pack biomes after
+ * it, as BDS sends them. The join cache keeps one per content and codec.
+ */
+const biomeDefinitionsFor = (
+    vanilla: Buffer | undefined,
+    content: ServerContent | undefined
+): BiomeDefinitionListPacket => {
+    const packet = new BiomeDefinitionListPacket();
+    const added = content === undefined ? [] : packBiomesOf(content.biomes);
+    if (vanilla !== undefined && added.length > 0) packet.definitions = appendBiomeDefinitions(vanilla, added);
+    return packet;
+};
+
 const knownSpawns = (world: World): { readonly world: Vector3; readonly overworld: Vector3 } | undefined => {
     const spawn = world.getKnownSpawnPosition();
     const overworld = knownOverworldSpawnOf(world);
@@ -361,7 +379,13 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             )
         );
         sends.push(
-            sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new BiomeDefinitionListPacket())
+            sendCachedJoinPacket(
+                connection,
+                content,
+                recipeLimit,
+                compressionLevel,
+                biomeDefinitionsFor(connection.codec.context.biomeDefinitions, content)
+            )
         );
         // The camera presets and aim assist registry BDS sends, which a script's camera and aim assist name.
         sends.push(connection.sendDataPacket(cameraPresetsPacket(connection.codec.context.protocolVersion)));

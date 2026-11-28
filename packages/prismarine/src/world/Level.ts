@@ -33,7 +33,7 @@ import { readJsonFile } from '../config/JsonFile';
 import { CLOUD_HEIGHT_ATTRIBUTE, Dimensions, dimensionTypeOf, isCustomDimensionType } from './DimensionType';
 import { DimensionNumbers } from './DimensionNumbers';
 import type { SavedDimensionNumbers } from './DimensionNumbers';
-import { voidStem } from './generators/factories/void';
+import { voidBiomeOf, voidStem } from './generators/factories/void';
 import type { DimensionType } from './DimensionType';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import type { GeneratorFactories, TerrainCacheSettings } from './GeneratorFactories';
@@ -476,11 +476,12 @@ export class Level {
      *
      * @param typeId - The dimension's namespaced id, from the document's `description.identifier`.
      * @param definition - The dimension type the document describes.
+     * @param biome - The document's default biome, which the client is told and the chunks hold.
      */
-    public registerPackDimension(typeId: string, definition: DimensionTypeDefinition): void {
+    public registerPackDimension(typeId: string, definition: DimensionTypeDefinition, biome?: string): void {
         if (this.stems.has(typeId) || [...this.stems.values()].some((stem) => stem.type === typeId)) return;
         this.dimensionTypes.set(typeId, dimensionTypeOf(definition, typeId, this.dimensionNumbers.numberOf(typeId)));
-        this.stems.set(typeId, voidStem(typeId));
+        this.stems.set(typeId, voidStem(typeId, biome));
         this.packStems.add(typeId);
     }
 
@@ -877,6 +878,8 @@ export class Level {
     /** The one biome a stem's generator names, when it names one. */
     private static announcedBiomeOf(stem: LevelStem): string {
         const generator = stem.generator;
+        const voidBiome = voidBiomeOf(stem);
+        if (voidBiome !== undefined) return voidBiome;
         if (isFlatGenerator(generator)) return generator.settings.biome;
         if (isNoiseGenerator(generator) && generator.biomeSource.type === 'minecraft:fixed') {
             return generator.biomeSource.biome;

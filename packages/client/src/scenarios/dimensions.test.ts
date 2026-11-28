@@ -67,10 +67,13 @@ const DATAPACK = {
 
 /**
  * A behavior pack whose `dimensions/` folder defines a void dimension, as a Bedrock 1.26.50 pack
- * such as The Sift does. Its bounds differ from the Overworld's, so the test can tell they came
- * from the document.
+ * such as The Sift does, in a biome of the pack's own. Its bounds differ from the Overworld's, so
+ * the test can tell they came from the document.
  */
 const PACK_DIMENSION = 'client_e2e:pack_void';
+/** The pack's own biome, which the dimension names as its default and BDS numbers from 30000. */
+const PACK_BIOME = 'client_e2e:meadow';
+const FIRST_PACK_BIOME = 30000;
 const BEHAVIOR_PACK = {
     'pack/manifest.json': JSON.stringify({
         format_version: 2,
@@ -88,8 +91,16 @@ const BEHAVIOR_PACK = {
             description: { identifier: PACK_DIMENSION },
             components: {
                 'minecraft:generation': { generator_type: 'void' },
-                'minecraft:dimension_height': { min_y: 0, height_range: 128 }
+                'minecraft:dimension_height': { min_y: 0, height_range: 128 },
+                'minecraft:default_biome': { biome: PACK_BIOME }
             }
+        }
+    }),
+    'pack/biomes/meadow.biome.json': JSON.stringify({
+        format_version: '1.26.0',
+        'minecraft:biome': {
+            description: { identifier: PACK_BIOME },
+            components: { 'minecraft:climate': { temperature: 0.6, downfall: 0.5 } }
         }
     })
 };
@@ -197,7 +208,7 @@ describe('dimensions', { tags: ['real-data'] }, () => {
 });
 
 describe('pack-dimension', () => {
-    it("adds a behavior pack's dimensions/*.json as a void custom dimension a player can travel to", async () => {
+    it("adds a behavior pack's dimensions/*.json as a void custom dimension in its default biome", async () => {
         const level = jsp.server.getWorldManager().getLevel('world')!;
         const type = level.dimensionTypeOf(PACK_DIMENSION);
         // The config's custom dimension takes the first id, the pack's the next.
@@ -211,6 +222,13 @@ describe('pack-dimension', () => {
 
         const position = player.world.getPosition()!;
         expect(Math.hypot(position.x - 8, position.z - 8)).toBeLessThan(3);
+        // The client is told the pack's biome, and the chunks it is sent are in it.
+        expect(level.customDimensionDefinitions().find((each) => each.dimensionType === CUSTOM + 1)).toMatchObject({
+            defaultBiome: PACK_BIOME,
+            renderClouds: false
+        });
+        const world = player.session()!.getWorld();
+        expect(world.getLoadedChunk(0, 0)?.getBiome(8, 64, 8)).toBe(FIRST_PACK_BIOME);
         player.leave();
         await jsp.tick();
     });

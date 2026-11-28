@@ -13,7 +13,7 @@ const documentOf = (identifier: string, components: Record<string, unknown>) => 
 const VOID = { 'minecraft:generation': { generator_type: 'void' } };
 
 describe('packDimensionOf', () => {
-    it('reads the bounds and the cloud height of a void dimension', () => {
+    it('reads the bounds, the cloud height and the default biome of a void dimension', () => {
         const dimension = packDimensionOf(
             'the_sift:dimension',
             documentOf('the_sift:dimension', {
@@ -28,6 +28,7 @@ describe('packDimensionOf', () => {
         expect(dimension.typeId).toBe('the_sift:dimension');
         expect(dimension.definition).toMatchObject({ minY: -32, height: 256, logicalHeight: 256 });
         expect(dimension.definition.attributes.get(CLOUD_HEIGHT_ATTRIBUTE)).toBe(100);
+        expect(dimension.biome).toBe('the_sift:singer_meadow');
     });
 
     it('takes the schema’s defaults for the components a document leaves out', () => {
@@ -38,7 +39,9 @@ describe('packDimensionOf', () => {
 
         if (!('definition' in dimension)) throw new Error(dimension.problem);
         expect(dimension.definition).toMatchObject({ minY: -64, height: 384 });
-        expect(dimension.definition.attributes.get(CLOUD_HEIGHT_ATTRIBUTE)).toBe(128);
+        // BDS sends `Render Clouds` false for a document without `minecraft:clouds`.
+        expect(dimension.definition.attributes.has(CLOUD_HEIGHT_ATTRIBUTE)).toBe(false);
+        expect(dimension.biome).toBe('minecraft:ocean');
     });
 
     it('refuses a vanilla id, a missing or non-void generator and bounds the client cannot take', () => {

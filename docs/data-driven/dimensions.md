@@ -365,13 +365,25 @@ defaults Mojang's 1.26.50 schemas give. BDS adds no dimension for a document wit
 | --- | --- | --- | --- |
 | `minecraft:dimension_height` | `min_y` | -64 | The floor, a multiple of 16 from -512 to 512. |
 | `minecraft:dimension_height` | `height_range` | 384 | The height, a multiple of 16 from 16 to 1024. |
-| `minecraft:clouds` | `height` | 128 | Where the clouds render. |
+| `minecraft:clouds` | `height` | 128 | Where the clouds render. Without the component the client renders none, as BDS tells it. |
+| `minecraft:default_biome` | `biome` | `minecraft:ocean` | The biome the client is told and every chunk is filled with. |
 | `minecraft:generation` | `generator_type` | Required | The generator, and `void` is the only one. |
 
 The rest of the dimension type is the Overworld's. A document with a vanilla id, another generator
-or bounds out of range adds nothing, and the console names the file and the reason.
-`minecraft:default_biome` is not read: the client is told `minecraft:plains`, as for a script's
-dimension, since the join lists only vanilla biomes ([#3873](https://github.com/JSPrismarine/JSPrismarine/issues/3873)).
+or bounds out of range adds nothing, and the console names the file and the reason. A default
+biome that is neither vanilla nor in a pack leaves the chunks in the default biome, and the
+console says so.
+
+## Behavior pack biomes
+
+A biome a behavior pack defines outside the `minecraft` namespace, such as The Sift's
+`the_sift:singer_meadow`, joins the `BiomeDefinitionList` a player gets as they join, after the
+vanilla biomes, as BDS 1.26.60.6 sends it. Each pack biome takes a numeric id from 30000, in
+identifier order, which is what a chunk in that biome carries. It sends the temperature and
+downfall of `minecraft:climate` and the tags of `minecraft:tags`, and fills the fields BDS fills
+for a biome without them with the values BDS sent. BDS numbers pack biomes in an order of its own,
+which a capture of two biomes could not pin down. A client only needs the ids to match the list
+it was sent.
 
 A dimension the config or the save already has keeps that definition. A pack dimension wins over a
 script's registration of the same id, as on BDS, and a reload whose scripts no longer register it
