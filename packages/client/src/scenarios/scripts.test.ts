@@ -34,6 +34,7 @@ import type Client from '../Client';
 import type { DecodedPacket, PacketConstructor } from '../net/ClientPacketRegistry';
 import type { LoopbackPlayer, LoopbackServer } from '../testing/loopbackServer.test-utils';
 import { startLoopbackServer } from '../testing/loopbackServer.test-utils';
+import { shownCount, shownText } from './scenarioSupport.test-utils';
 
 /** The custom command the pack registers in `startup`. */
 const COMMAND = 'e2e:greet';
@@ -45,6 +46,11 @@ const TELEPORT_DISTANCE = 12;
 const LOOK_EVENT = 'e2e:look';
 /** Where the pack turns a player to look: `x` the pitch, `y` the yaw, in degrees. */
 const LOOK_ROTATION = { x: 30, y: 90 } as const;
+/** The `/scriptevent` id that makes the pack tell every player the sky light where they stand. */
+const SKY_EVENT = 'e2e:sky';
+/** What the pack says for {@link SKY_EVENT}, followed by the light level. */
+const SKY_MESSAGE = 'client-e2e sky light: ';
+
 /** The `/scriptevent` id that sends music, a property override and a camera spline; `end` stops them. */
 const FEEDBACK_EVENT = 'e2e:feedback';
 /** How long the pack's camera spline runs, in seconds. */
@@ -94,6 +100,14 @@ system.afterEvents.scriptEventReceive.subscribe((event) => {
     if (event.id !== '${LOOK_EVENT}') return;
     for (const player of world.getAllPlayers()) {
         player.setRotation({ x: ${LOOK_ROTATION.x}, y: ${LOOK_ROTATION.y} });
+    }
+});
+
+system.afterEvents.scriptEventReceive.subscribe((event) => {
+    if (event.id !== '${SKY_EVENT}') return;
+    for (const player of world.getAllPlayers()) {
+        const block = player.dimension.getBlock(player.location);
+        player.sendMessage(\`${SKY_MESSAGE}\${block?.getSkyLightLevel()}\`);
     }
 });
 
@@ -317,6 +331,33 @@ describe('script-rotation', () => {
         // Yaw wraps, so compare the shortest way around.
         expect(Math.abs(((((yaw - LOOK_ROTATION.y) % 360) + 540) % 360) - 180)).toBeLessThan(1);
         expect(pitch).toBeCloseTo(LOOK_ROTATION.x, 0);
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('script-sky-light', () => {
+    it('reads the sky light as it falls from noon to midnight, as BDS does', async (context) => {
+        requireScripts(context);
+        const player = await jsp.join('Stargazer');
+        const skyAt = async (time: string): Promise<string> => {
+            await jsp.command(`time set ${time}`);
+            const from = shownCount(player);
+            await jsp.command(`scriptevent ${SKY_EVENT}`);
+            await jsp.until(
+                () => shownText(player, from).some((line) => line.startsWith(SKY_MESSAGE)),
+                `the pack never reported the sky light at ${time}`
+            );
+            return shownText(player, from)
+                .find((line) => line.startsWith(SKY_MESSAGE))!
+                .slice(SKY_MESSAGE.length);
+        };
+
+        // The flat world's surface is open to the sky. A light addon that compares its light
+        // with this one placed nothing at night while the reading stayed 15.
+        expect(await skyAt('noon')).toBe('15');
+        expect(await skyAt('midnight')).toBe('4');
+        await jsp.command('time set noon');
         player.leave();
         await jsp.tick();
     });
