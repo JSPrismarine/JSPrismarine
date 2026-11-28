@@ -40,6 +40,15 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 import { describe, expect, it } from 'vitest';
 
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
+import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { SetHealthPacket } from '@jsprismarine/protocol';
+
 import { BedrockPresenter } from './BedrockPresenter';
 
 /** A presenter over a connection that keeps what it was asked to send. */
@@ -405,5 +414,71 @@ describe('BedrockPresenter', () => {
         const [book] = sent;
         if (!(book instanceof UnlockedRecipesPacket)) throw new Error('expected UnlockedRecipesPacket');
         expect(book.getPacketData()).toEqual({ type: UnlockedRecipesType.INITIALLY_UNLOCKED_RECIPES, recipes: [] });
+    });
+
+    describe("the player's own state", () => {
+        /** A presenter for player 7, whose client last sent input tick 42. */
+        const player7 = () => {
+            const sent: NetworkPacket[] = [];
+            const bedrock = new BedrockPresenter(
+                { sendDataPacket: async (packet) => void sent.push(packet) },
+                undefined,
+                {
+                    runtimeId: 7n,
+                    lastInputTick: () => 42n
+                }
+            );
+            return { sent, bedrock };
+        };
+        const health = () => new Attribute({ name: AttributeIds.Health, min: 0, max: 20, def: 20, value: 7 });
+
+        it("stamps the client's last input tick on the player's own attributes and motion, and zero on another's", async () => {
+            const { sent, bedrock } = player7();
+
+            await bedrock.showAttributes(7n, [health()]);
+            await bedrock.showAttributes(8n, [health()]);
+            await bedrock.showMotion({ x: 0, y: 0.4, z: 0 });
+
+            const ticks = sent.map((packet) =>
+                packet instanceof UpdateAttributesPacket || packet instanceof SetActorMotionPacket
+                    ? packet.tick
+                    : undefined
+            );
+            expect(ticks).toEqual([42n, 0n, 42n]);
+        });
+
+        it('opens the death screen with where the player will come back, then the cause', async () => {
+            const { sent, bedrock } = player7();
+
+            await bedrock.showDeath({
+                key: 'death.attack.drown',
+                parameters: ['Steve'],
+                respawnAt: { x: 1, y: 64, z: 2 }
+            });
+
+            const [respawn, info] = sent;
+            if (!(respawn instanceof RespawnPacket) || !(info instanceof DeathInfoPacket)) {
+                throw new Error('expected Respawn then DeathInfo');
+            }
+            expect(respawn.getPacketData()).toMatchObject({
+                state: PlayerRespawnState.SEARCHING_FOR_SPAWN,
+                position: { x: 1, y: 64, z: 2 },
+                runtimeEntityId: 0n
+            });
+            expect(info.getPacketData()).toEqual({ cause: 'death.attack.drown', messages: ['Steve'] });
+        });
+
+        it('shows the player alive again with its health', async () => {
+            const { sent, bedrock } = player7();
+
+            await bedrock.showRespawned(20);
+
+            const [event, health] = sent;
+            if (!(event instanceof ActorEventPacket) || !(health instanceof SetHealthPacket)) {
+                throw new Error('expected ActorEvent then SetHealth');
+            }
+            expect([event.runtimeEntityId, event.event]).toEqual([7n, ActorEvent.SPAWN_ALIVE]);
+            expect(health.getPacketData()).toEqual({ health: 20 });
+        });
     });
 });

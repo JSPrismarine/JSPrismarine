@@ -603,8 +603,15 @@ describe("PlayerSession's player", () => {
             await tick(session, MAX_AIR_TICKS + 20);
 
             expect(player.getHealth() > 0).toBe(false);
-            const chat = events.find(([name]) => name === 'chat');
-            expect(chat?.[1].getChat().getMessage()).toBe('%death.attack.drown');
+            // The message goes out after the death's sends, which nothing here awaits.
+            await expect
+                .poll(() =>
+                    events
+                        .find(([name]) => name === 'chat')?.[1]
+                        .getChat()
+                        .getMessage()
+                )
+                .toBe('%death.attack.drown');
         });
 
         it('stops taking damage once dead', async () => {

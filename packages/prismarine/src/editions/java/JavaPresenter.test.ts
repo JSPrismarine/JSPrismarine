@@ -177,7 +177,7 @@ describe('JavaPresenter', () => {
         const { sent, java } = presenter();
 
         await java.showVitals({ health: 7.5, food: 17.6, saturation: 2 });
-        await java.showDeath({ key: 'death.attack.generic', parameters: ['Steve'] });
+        await java.showDeath({ key: 'death.attack.generic', parameters: ['Steve'], respawnAt: { x: 0, y: 64, z: 0 } });
         await java.showRespawn({
             gamemode: Gametype.SURVIVAL,
             dimension: overworld,

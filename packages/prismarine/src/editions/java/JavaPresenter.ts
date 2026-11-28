@@ -815,6 +815,27 @@ export class JavaPresenter implements SessionPresenter {
         });
     }
 
+    /** Sends nothing: a Java client's own vitals and experience come through their own calls, and other entities' attributes with their replication. */
+    public async showAttributes(): Promise<void> {}
+
+    /**
+     * Sends nothing yet. Known gap: `Set Entity Velocity` is not defined, so a knockback moves a
+     * Java player only when its next position comes back from the server.
+     */
+    public async showMotion(): Promise<void> {}
+
+    /** Sends nothing: a Java client is shown an entity's state as plain values, through `showEntityState`. */
+    public async showActorData(): Promise<void> {}
+
+    /** Sends nothing: a Java client comes back alive with the `Respawn` that {@link showRespawn} sends. */
+    public async showRespawned(): Promise<void> {}
+
+    /**
+     * Sends nothing yet. Known gap: Java tells a client of the few rules it reads, such as
+     * `reducedDebugInfo`, through `Game Event` and `Entity Event`, which are not sent for a rule.
+     */
+    public async showGameRules(): Promise<void> {}
+
     /**
      * Sends `Respawn` into the player's dimension, keeping the player's data unless it died, and
      * the event that has the client wait for the chunks around where it comes back, as vanilla

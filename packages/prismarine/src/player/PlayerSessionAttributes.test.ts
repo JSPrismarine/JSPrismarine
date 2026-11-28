@@ -4,6 +4,7 @@ import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/bedr
 import type { ShownActor } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
 import type UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
+import { BedrockPresenter } from '../editions/bedrock/presenter/BedrockPresenter';
 import PlayerSession from './PlayerSession';
 import type { SessionPresenter, ShownVitals } from './presenter/SessionPresenter';
 import type { SessionPlayer } from './sessionPlayers';
@@ -21,13 +22,19 @@ const health = () => new Attribute({ name: AttributeIds.Health, min: 0, max: 20,
 /** A session with the connection replaced, so the packets that go out can be inspected. */
 const attributeSession = () => {
     const sent: UpdateAttributesPacket[] = [];
-    const player = stub<ShownActor>({ getRuntimeId: () => 1n });
+    const player = stub<ShownActor & SessionPlayer>({
+        getRuntimeId: () => 1n,
+        attributes: new Attributes(Attributes.getPlayerDefaults())
+    });
+    const connection = { sendDataPacket: async (packet: UpdateAttributesPacket) => void sent.push(packet) };
+    // The Bedrock presenter stamps the session's last input tick, as a session builds it with.
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
-        connection: {
-            sendDataPacket: async (packet: UpdateAttributesPacket) => void sent.push(packet)
-        },
+        connection,
         ...sessionPlayerFields(player, 1n),
-        presenter: stub<SessionPresenter>({ edition: 'bedrock' }),
+        presenter: new BedrockPresenter(connection, undefined, {
+            runtimeId: 1n,
+            lastInputTick: () => session.getLastInputTick()
+        }),
         lastInputTick: 0n
     });
 
@@ -95,6 +102,7 @@ describe('network', () => {
                 ...sessionPlayerFields(player, 1n),
                 presenter: stub<SessionPresenter>({
                     edition: 'java',
+                    showAttributes: async () => {},
                     showVitals: async (vitals) => void shown.push(vitals)
                 }),
                 lastInputTick: 0n

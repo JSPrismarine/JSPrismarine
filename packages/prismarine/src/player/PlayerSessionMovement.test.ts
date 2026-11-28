@@ -45,7 +45,10 @@ const movementSession = () => {
     };
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
-        presenter: new BedrockPresenter(connection),
+        presenter: new BedrockPresenter(connection, undefined, {
+            runtimeId: 1n,
+            lastInputTick: () => session.getLastInputTick()
+        }),
         ...sessionPlayerFields(stubPlayerPort({}), 1n),
         // A teleport notes the server tick it went out on.
         server: { getTick: () => 0 },

@@ -1,4 +1,17 @@
 import type { Weather } from '@jsprismarine/engine-systems';
+import { Vector3 } from '@jsprismarine/math';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import { SetHealthPacket } from '@jsprismarine/protocol';
+import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
+import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
+import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
+import SetActorDataPacket from '@jsprismarine/protocol/bedrock/packet/SetActorDataPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
+import type { Attribute } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { Difficulty } from '@jsprismarine/minecraft';
 import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode, SetTimePacket, TakeItemActorPacket, TextPacketType } from '@jsprismarine/protocol';
@@ -38,7 +51,9 @@ import type {
     RecipeBookChange,
     ReportedKill,
     SessionPresenter,
+    ShownActorData,
     ShownBossBar,
+    ShownDeath,
     ShownMessage,
     ShownMove,
     ShownObjective,
@@ -86,19 +101,110 @@ const UNLOCKED_RECIPES_TYPE = {
     locked: UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES
 } as const;
 
+/**
+ * The session state Bedrock's packets carry beside what the contract hands a presenter: who the
+ * player is, as a packet about the player names it, and the client's last input tick, which such
+ * a packet stamps so the client rewinds to it.
+ */
+export interface BedrockSessionState {
+    /** The player's runtime id. */
+    readonly runtimeId: bigint;
+    /** The tick of the last `PlayerAuthInput` the session handled; see `PlayerSession.recordInputTick`. */
+    lastInputTick(): bigint;
+}
+
+/** A session with no player yet, as a presenter built before one has an id. */
+const NO_SESSION: BedrockSessionState = { runtimeId: 0n, lastInputTick: () => 0n };
+
 /** The outbound contract in Bedrock packets, over one client's connection. */
 export class BedrockPresenter implements SessionPresenter {
     public readonly edition = 'bedrock';
     private readonly connection: PresenterConnection;
     private readonly bookEntries: RecipeBookEntries;
+    private readonly state: BedrockSessionState;
 
     /**
      * @param connection - The connection the session's client is on.
      * @param bookEntries - The book entries of each recipe; see {@link RecipeBookEntries}.
+     * @param state - The session state the packets about the player carry.
      */
-    public constructor(connection: PresenterConnection, bookEntries: RecipeBookEntries = (recipe) => [recipe]) {
+    public constructor(
+        connection: PresenterConnection,
+        bookEntries: RecipeBookEntries = (recipe) => [recipe],
+        state: BedrockSessionState = NO_SESSION
+    ) {
         this.connection = connection;
         this.bookEntries = bookEntries;
+        this.state = state;
+    }
+
+    /**
+     * The `PlayerInputTick` a packet about `runtimeId` carries: the client's last input tick for
+     * its own player, and zero for anything else, as the docs ask.
+     */
+    private inputTickFor(runtimeId: bigint): bigint {
+        return runtimeId === this.state.runtimeId ? this.state.lastInputTick() : 0n;
+    }
+
+    /** Sends `UpdateAttributes`, the player's vitals and experience among them. */
+    public async showAttributes(runtimeId: bigint, attributes: readonly Attribute[]): Promise<void> {
+        const packet = new UpdateAttributesPacket();
+        packet.runtimeEntityId = runtimeId;
+        packet.attributes = [...attributes];
+        packet.tick = this.inputTickFor(runtimeId);
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Sends `SetActorMotion` for the player. Its `Tick` is the client's last input tick: the
+     * client rewinds to that tick, applies the velocity and replays what it predicted since.
+     */
+    public async showMotion({
+        x,
+        y,
+        z
+    }: {
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+    }): Promise<void> {
+        const packet = new SetActorMotionPacket();
+        packet.runtimeEntityId = this.state.runtimeId;
+        packet.motion = new Vector3(x, y, z);
+        packet.tick = this.state.lastInputTick();
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /** Sends `SetActorData`. */
+    public async showActorData(entity: ShownActorData, metadata?: Metadata): Promise<void> {
+        const packet = new SetActorDataPacket();
+        packet.runtimeEntityId = entity.getRuntimeId();
+        packet.metadata = metadata ?? entity.metadata;
+        packet.syncedProperties = entity.getSyncedProperties();
+        packet.tick = this.inputTickFor(entity.getRuntimeId());
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Sends `ActorEvent(SPAWN_ALIVE)` for the player and its health, as a Bedrock Dedicated
+     * Server 1.26.52 does when the respawn button is pressed. No `MovePlayer`: the client has
+     * put itself at the `ReadyToSpawn` position already.
+     */
+    public async showRespawned(health: number): Promise<void> {
+        const event = new ActorEventPacket();
+        event.runtimeEntityId = this.state.runtimeId;
+        event.event = ActorEvent.SPAWN_ALIVE;
+        await Promise.all([
+            this.connection.sendDataPacket(event),
+            this.connection.sendDataPacket(new SetHealthPacket({ health }))
+        ]);
+    }
+
+    /** Sends `GameRulesChanged`. */
+    public async showGameRules(rules: readonly GameRule[]): Promise<void> {
+        const packet = new GameRulesChangedPacket();
+        packet.rulesList = [...rules];
+        await this.connection.sendDataPacket(packet);
     }
 
     /** Sends `SetTime`. */
@@ -182,10 +288,10 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends nothing: a Bedrock client's equipment goes in the replicator's shared batches. */
     public async showEquipment(): Promise<void> {}
 
-    /** Sends nothing: a Bedrock client's vitals are attributes, which the session sends. */
+    /** Sends nothing: a Bedrock client's vitals are attributes, which {@link showAttributes} sends. */
     public async showVitals(): Promise<void> {}
 
-    /** Sends nothing: a Bedrock client's experience is two attributes, which the session sends. */
+    /** Sends nothing: a Bedrock client's experience is two attributes, which {@link showAttributes} sends. */
     public async showExperience(): Promise<void> {}
 
     /** Sends nothing: the world's `UPDATE_STACK_SIZE` actor event tells a Bedrock client. */
@@ -199,8 +305,22 @@ export class BedrockPresenter implements SessionPresenter {
         await this.connection.sendDataPacket(take);
     }
 
-    /** Sends nothing: the session runs Bedrock's respawn exchange, whose first half opens the screen. */
-    public async showDeath(): Promise<void> {}
+    /** Sends `Respawn(SearchingForSpawn)`, the first half of Bedrock's respawn exchange, and `DeathInfo`. */
+    public async showDeath({ key, parameters, respawnAt }: ShownDeath): Promise<void> {
+        // `Respawn(SearchingForSpawn)` says where the player will come back, which the client waits
+        // for before it offers the button, then the screen's own copy of the cause, as
+        // PocketMine's `DeathPacketHandler` sends it after the `Respawn`. Its `Player Runtime Id`
+        // is 0, as in every `Respawn` a Bedrock Dedicated Server 1.26.52 sends.
+        const respawn = new RespawnPacket({
+            position: respawnAt,
+            state: PlayerRespawnState.SEARCHING_FOR_SPAWN,
+            runtimeEntityId: 0n
+        });
+        await Promise.all([
+            this.connection.sendDataPacket(respawn),
+            this.connection.sendDataPacket(new DeathInfoPacket({ cause: key, messages: [...parameters] }))
+        ]);
+    }
 
     /** Sends `LegacyTelemetryEvent` as BDS does; see {@link killTelemetryOf}. */
     public async reportKill(kill: ReportedKill): Promise<void> {

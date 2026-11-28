@@ -66,6 +66,11 @@ Progress:
   - The handlers that wrap Bedrock's protocol around an intent: `PlayerAuthInput`, `PlayerAction`,
     `InventoryTransaction`, `ModalFormResponse` and `CommandRequest`, and `ItemStackRequest`, which
     waits for its own slice beside Java's `Container Click`.
+- Slice 4.1, the player's own state: under review. `showAttributes`, `showMotion`,
+  `showActorData`, `showRespawned` and `showGameRules` are presenter calls, and `showDeath`
+  carries where the player comes back, so Bedrock's presenter sends the death screen's `Respawn`
+  and `DeathInfo` itself. Two of `PlayerSession`'s six edition checks are gone, the attributes' and
+  the death screen's.
 
 ## Problem
 
@@ -131,6 +136,15 @@ removed the `network/` aliases slices 1 and 2 had left.
    6. What remains in `handler/`.
 4. **Outbound.** `PlayerSession` still sends Bedrock packets itself in many places, which a Java
    connection drops. Each becomes a `SessionPresenter` call, so the session holds no edition.
+   `BedrockPresenter` is built with a small `BedrockSessionState`, the session state Bedrock's
+   packets carry beside what the contract hands it, so the shown types stay plain.
+   1. The player's own state: attributes, motion, actor data, the death screen, coming back
+      alive and game rules.
+   2. Inventory, containers, trades, the creative inventory and the crafting data. Bedrock names
+      every stack by a network id it assigns on the inventory, which `BedrockSessionState` grows
+      to reach.
+   3. The world change, the respawn exchange and Bedrock's chunk path, which becomes a
+      `ChunkWire` beside Java's.
 
 ## Where new code goes
 
