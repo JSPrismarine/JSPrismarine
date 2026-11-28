@@ -167,6 +167,19 @@ const standAt = async (player: LoopbackPlayer, at: WorldPosition): Promise<void>
  * @param at - The block, acted on from its top face.
  * @returns A sender of one input, with a block action or with none.
  */
+/**
+ * Removes every dropped item and waits until the client was told so. An earlier scenario's drop
+ * is shown to a player that joins in sight of it, and the removal reaches the client a tick after
+ * the command, so counting the client's items straight after the kill counted a stale one.
+ */
+const clearItems = async (player: LoopbackPlayer): Promise<void> => {
+    await jsp.command('kill @e[type=item]');
+    await jsp.until(
+        () => player.world.actorsOfType('minecraft:item').length === 0,
+        `${player.name} was still shown a dropped item`
+    );
+};
+
 const blockActions = (player: LoopbackPlayer, at: BlockAt): ((action?: PlayerActionType) => Promise<void>) => {
     const position = player.world.getPosition();
     if (position === undefined) throw new Error(`${player.name} has no position to act from`);
@@ -430,7 +443,7 @@ describe('creative-break-container', { tags: ['real-data'] }, () => {
         const player = await jsp.join('Collector');
         await jsp.command(`gamemode creative ${player.name}`);
         await standAt(player, STAND);
-        await jsp.command('kill @e[type=item]');
+        await clearItems(player);
 
         const chest = { x: 142, y: -60, z: 140 };
         await place(chest, 'minecraft:chest');
@@ -572,7 +585,7 @@ describe('bucket-pickup-place', { tags: ['real-data'] }, () => {
         const player = await jsp.join('Bucketeer');
         await jsp.command(`gamemode survival ${player.name}`);
         await standAt(player, STAND);
-        await jsp.command('kill @e[type=item]');
+        await clearItems(player);
         await jsp.command(`replaceitem entity ${player.name} slot.hotbar 0 minecraft:bucket 1`);
         const held = () => player.session()?.getInventory().equipment('mainhand')?.getName();
         await jsp.until(() => held() === 'minecraft:bucket', `${player.name} was never handed the bucket`);
