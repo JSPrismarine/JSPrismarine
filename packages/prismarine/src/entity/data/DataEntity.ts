@@ -51,6 +51,9 @@ const STUCK_TICKS = 100;
  */
 const MAX_UP_STEP = 0.6;
 
+/** How far apart two positions may be and still count as the same, in blocks. */
+const MOVEMENT_EPSILON = 1e-6;
+
 /** Below this many blocks per tick an impulse has spent itself, so the body stops. */
 const IMPULSE_FLOOR = 0.003;
 
@@ -701,6 +704,11 @@ export class MobBody {
     private hopDelay: (() => number) | undefined;
     /** Whether the body jumped this tick, which Java still travels as a tick on the ground. */
     private takingOff = false;
+    /**
+     * Whether an upward impulse other than a jump threw the body, a knockback or a push. Its walk
+     * waits until it lands. A body that walked off a ledge steers on through its fall instead.
+     */
+    private thrown = false;
     /** Ticks since the destination was set without the entity getting any closer. */
     private idleTicks = 0;
     /**
@@ -877,6 +885,7 @@ export class MobBody {
     /** Drops the impulse, which is what landing does. */
     public land(): void {
         this.velocity = { x: 0, y: 0, z: 0 };
+        this.thrown = false;
         this.conditions.delete('jumping');
         this.conditions.add('on_ground');
     }
@@ -1014,6 +1023,7 @@ export class MobBody {
      * does in the behavior pack.
      */
     public step(options?: MobBodyStepOptions): void {
+        const blocked = this.horizontalCollision;
         this.horizontalCollision = false;
         const destination = this.destination;
         this.swimDrift = undefined;
@@ -1021,39 +1031,48 @@ export class MobBody {
         const start = this.position;
 
         // A rise a step covers is walked up rather than jumped, as Java's `MoveControl` jumps only
-        // above the entity's step height.
+        // above the entity's step height, and only once the body is within a block, or its own
+        // width, of the waypoint across the ground, or once the rise stopped its last step.
         const floor = options?.floorAt?.(destination) ?? destination.y;
         const maxUpStep = options?.maxUpStep ?? MAX_UP_STEP;
+        const apart = horizontalDistance(this.position, destination);
         if (
             options !== undefined &&
             !options.allowVertical &&
             options.canJump &&
             floor > this.position.y + maxUpStep &&
             floor <= this.position.y + options.stepHeight + ARRIVAL_RADIUS &&
+            (blocked || apart * apart < Math.max(1, this.facts.box.width)) &&
             !this.airborne
         )
             this.jump();
 
-        // Vertical knockback carries a grounded walker until it lands. Horizontal entity
-        // pushes and knockback still combine with the navigation input, as they do in Java. A body
-        // in a fluid swims on while it sinks or rises, as `LivingEntity.travelInFluid` applies the
-        // input every tick.
+        // An upward knockback or push carries a walker until it lands. Horizontal entity pushes and
+        // knockback still combine with the navigation input, as they do in Java. A body in a fluid
+        // swims on while it sinks or rises, as `LivingEntity.travelInFluid` applies the input every
+        // tick, and a body falling off a ledge keeps steering, as Java's `travelInAir` does.
+        const fluid = this.conditions.has('in_water') || this.conditions.has('in_lava');
         if (
-            Math.abs(this.velocity.y) > IMPULSE_FLOOR &&
+            !fluid &&
             !this.conditions.has('jumping') &&
-            !this.conditions.has('in_water') &&
-            !this.conditions.has('in_lava') &&
-            options?.allowVertical !== true
+            options?.allowVertical !== true &&
+            this.velocity.y > IMPULSE_FLOOR
         )
-            return;
+            this.thrown = true;
+        if (this.thrown && !fluid && options?.allowVertical !== true && this.airborne) return;
+        if (!this.airborne) this.thrown = false;
 
         const target = options?.allowVertical === false ? { ...destination, y: this.position.y } : destination;
         const remaining =
             options?.allowVertical === false
                 ? horizontalDistance(this.position, target)
                 : distance(this.position, target);
-        if (remaining <= ARRIVAL_RADIUS) {
-            this.destination = undefined;
+        // A waypoint below the feet is not reached by standing over it: Java's `MoveControl` walks
+        // on to the waypoint itself, which takes a body wider than the gap past the ledge it
+        // would otherwise stand on.
+        const below = options?.allowVertical === false && floor < this.position.y - MOVEMENT_EPSILON;
+        if (remaining <= (below ? MOVEMENT_EPSILON : ARRIVAL_RADIUS)) {
+            if (!below) this.destination = undefined;
             return;
         }
 
