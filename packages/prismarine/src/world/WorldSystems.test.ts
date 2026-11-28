@@ -228,6 +228,27 @@ describe('world', () => {
                 expect(systems.lighting.getBlockLight(12, 40, 8)).toBe(11);
             });
 
+            it("keeps the sky out under a pack's block, whose light the mapping table does not know", () => {
+                // The Sift's stone: in no vanilla table, so only the content says it is opaque.
+                const PACK_STONE: SystemBlock = { name: 'the_sift:sift_stone', states: {} };
+                /** The sky light under a roof of pack stone over the chunk at y 80. */
+                const underRoof = (options: Partial<WorldSystemsOptions>): number => {
+                    const { blocks, systemsOf } = worldOf();
+                    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) blocks.set(key(x, 80, z), PACK_STONE);
+                    const systems = systemsOf(options);
+                    systems.onChunkLoaded(0, 0);
+                    systems.lighting.flush();
+                    return systems.lighting.getSkyLight(8, 70, 8);
+                };
+
+                const opaque = { lightEmission: 0, lightDampening: 15 };
+                expect(
+                    underRoof({ packBlockLight: (block) => (block.name === PACK_STONE.name ? opaque : undefined) })
+                ).toBe(0);
+                // Without the content's answer the block is air to light, as it was.
+                expect(underRoof({})).toBe(15);
+            });
+
             it('takes the light away again when the source goes', () => {
                 const { blocks, systemsOf } = worldOf();
                 const systems = systemsOf();
