@@ -18,6 +18,12 @@ import { BEDROCK_NAMESPACE, javaPath, withoutExtension } from './resourceLocatio
 import type { JavaSoundEvent } from './sounds';
 import { convertSoundDefinitions } from './sounds';
 
+/**
+ * The version of what the conversion writes. It goes up whenever the same stack would convert to
+ * other files, so a cache keyed by it never hands out a pack an older converter wrote.
+ */
+export const JAVA_PACK_CONVERTER_VERSION = 1;
+
 /** One Bedrock resource pack: its files by their path inside it. */
 export interface BedrockResourcePack {
     /** The pack's name, from its manifest, for the description and the report. */
