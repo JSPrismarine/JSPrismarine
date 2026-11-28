@@ -62,6 +62,11 @@ export class JavaBlockStates {
         this.ordered = [...rows].sort((a, b) => a[1] - b[1]);
     }
 
+    /** Every block, in the order of its states' ids. */
+    public get blocks(): readonly string[] {
+        return this.ordered.map(([name]) => name);
+    }
+
     /**
      * The block and property values of a state id, the inverse of {@link JavaBlockStates.idOf}.
      * @param id - The state's network id.

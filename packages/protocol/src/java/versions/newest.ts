@@ -8,7 +8,12 @@ import { BLOCK_STATES as RELEASE_BLOCK_STATES } from './26.3/blockStates';
 import { CONFIGURATION as RELEASE_CONFIGURATION } from './26.3/configuration';
 import { ENGLISH as RELEASE_ENGLISH } from './26.3/lang';
 import type { PACKETS } from './26.3/packets';
-import { ENTITY_TYPES as RELEASE_ENTITY_TYPES, ITEMS as RELEASE_ITEMS } from './26.3/registries';
+import {
+    ENTITY_TYPES as RELEASE_ENTITY_TYPES,
+    ITEMS as RELEASE_ITEMS,
+    CUSTOM_STATS as RELEASE_CUSTOM_STATS,
+    STAT_TYPES as RELEASE_STAT_TYPES
+} from './26.3/registries';
 
 /** Every block state's id, by block and property values. */
 export const BLOCK_STATES = RELEASE_BLOCK_STATES;
@@ -24,6 +29,12 @@ export const ENTITY_TYPES = RELEASE_ENTITY_TYPES;
 
 /** Items, which a slot names by id. */
 export const ITEMS = RELEASE_ITEMS;
+
+/** The `minecraft:custom` statistics, which a scoreboard criterion such as `minecraft.custom:minecraft.play_time` names. */
+export const CUSTOM_STATS = RELEASE_CUSTOM_STATS;
+
+/** The statistic types, the part of a statistic criterion before its colon. */
+export const STAT_TYPES = RELEASE_STAT_TYPES;
 
 /** The packet ids, by phase, direction and Mojang's name, which the packet paths are checked against. */
 export type NewestPackets = typeof PACKETS;
