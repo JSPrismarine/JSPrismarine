@@ -55,7 +55,7 @@ import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEff
 import { damageSourceOfScript } from './scriptEntityEvents';
 import { itemOfScriptItem, levelActors, presentActor } from './levelActors';
 import { scriptScoreboard } from './scriptScoreboard';
-import { levelCatalog } from './blocksItems/levelCatalog';
+import { levelCatalog, packBlockFacts } from './blocksItems/levelCatalog';
 import { scriptEffectTypes } from '@jsprismarine/bedrock-data/script-catalog';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
@@ -380,7 +380,8 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         resolveBlock: (typeId, states) => resolveBlock(server, typeId, states),
         catalog: levelCatalog({
             blockTypes: () => server.getContent().blocks.types.keys(),
-            itemTypes: () => server.getContent().items.types.keys()
+            itemTypes: () => server.getContent().items.types.keys(),
+            blockFacts: (typeId) => packBlockFacts(server.getContent(), typeId)
         }),
         blockLight: (dimension, { x, y, z }) => {
             const world = worldOf(dimension);

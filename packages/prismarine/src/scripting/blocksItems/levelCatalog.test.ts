@@ -1,6 +1,51 @@
+import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
-import { levelCatalog } from './levelCatalog';
+import { definitionOf, definitionsOf } from '../../content/ContentOptions';
+import { buildServerContent } from '../../content/ServerContent';
+import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
+import { levelCatalog, packBlockFacts } from './levelCatalog';
+
+/** A light block in the shape light addons write: no collision, and it takes a water source's place. */
+const LIGHT = {
+    format_version: '1.26.0',
+    'minecraft:block': {
+        description: { identifier: 'jsp:light' },
+        components: {
+            'minecraft:collision_box': false,
+            'minecraft:liquid_detection': {
+                detection_rules: [{ liquid_type: 'water', can_contain_liquid: true, on_liquid_touches: 'no_reaction' }]
+            }
+        }
+    }
+};
+
+/** A block that declares nothing about water or collision. */
+const PLAIN = {
+    format_version: '1.26.0',
+    'minecraft:block': { description: { identifier: 'jsp:plain' }, components: {} }
+};
+
+const content = buildServerContent(
+    fixtureContentOptions({
+        load: () => ({
+            definitions: definitionsOf({
+                ...fixtureDefinitions(),
+                blocks: new Map([
+                    ...fixtureDefinitions().blocks,
+                    ['jsp:light', definitionOf('blocks', 'jsp:light', LIGHT)],
+                    ['jsp:plain', definitionOf('blocks', 'jsp:plain', PLAIN)]
+                ])
+            }),
+            diagnostics: []
+        }),
+        blockPalette: new BlockPalette([
+            ...fixtureBlockPalette().entries.map((entry) => [entry.identifier, entry.model] as const),
+            ['jsp:light', new BlockStateModel([])],
+            ['jsp:plain', new BlockStateModel([])]
+        ])
+    })
+);
 
 const catalog = levelCatalog({
     blockTypes: () => ['minecraft:stone', 'jsp:custom_block'],
@@ -24,6 +69,24 @@ describe('levelCatalog', () => {
         expect(catalog.blockType('jsp:custom_block')?.item).toBe('jsp:custom_block');
         expect(catalog.itemType('jsp:custom_item')?.maxAmount).toBe(64);
         expect(catalog.blockType('jsp:no_such_block')).toBeUndefined();
+    });
+
+    it("answers a pack block's water rule and collision from its definition", () => {
+        const packCatalog = levelCatalog({
+            blockTypes: () => ['jsp:light', 'jsp:plain'],
+            itemTypes: () => [],
+            blockFacts: (typeId) => packBlockFacts(content, typeId)
+        });
+
+        // A script waterlogs the light, which BDS allows for a block that can contain water.
+        expect(packCatalog.blockType('jsp:light')).toMatchObject({
+            water: { contain: true, blocking: false, destroyed: false, spawns: false },
+            solid: false
+        });
+        expect(packCatalog.blockType('jsp:plain')).toMatchObject({
+            water: { contain: false, blocking: true },
+            solid: true
+        });
     });
 
     it('finds the item and data value of a potion, and reads a data value back to its potion', () => {
