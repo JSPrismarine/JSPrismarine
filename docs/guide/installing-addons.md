@@ -330,6 +330,44 @@ The packs stack in the order of the local names, and inside an addon in the orde
 folders, except that a pack goes above the packs it depends on. A player online when a resource
 pack installs gets it the next time they join.
 
+Set `disable-client-vibrant-visuals` to `true` to tell joining players to use the next best
+graphics setting instead of Vibrant Visuals, as the Bedrock Dedicated Server setting of the same
+name does.
+
+### Subpacks
+
+A resource pack can list `subpacks` in its manifest: folders under `subpacks/` that the game
+applies on top of the pack, such as a lower resolution for devices with less memory. To choose
+one, list the pack in `world_resource_packs.json` in the folder of the level players join first,
+as a Bedrock Dedicated Server reads it:
+
+```json
+[{ "pack_id": "aaaaaaaa-0000-4000-8000-000000000001", "version": [1, 0, 0], "subpack": "high" }]
+```
+
+`pack_id` is the pack's header UUID, `version` its version, and `subpack` the `folder_name` of the
+subpack. The server reads the file each time a player joins. It picks no subpack for an entry
+whose version is not the installed pack's, or whose `subpack` the manifest does not list, and the
+game then picks one by itself. Listing a pack here does not install it, and an installed pack the
+file does not list is still sent.
+
+### Encrypted packs
+
+A Marketplace-style encrypted resource pack holds a binary `contents.json` beside its
+`manifest.json`, and the game needs the pack's 32-byte content key to read it. The server sends
+the key from a file beside the pack:
+
+- For an `.mcpack`, or a folder you install by path, put the key in a file with the same name and
+  `.key` added, such as `lights.mcpack.key` beside `lights.mcpack`.
+- In an `.mcaddon`, put the key beside the pack it opens, at the top of the archive, such as
+  `resources.mcpack.key` beside `resources.mcpack`, or `RP.key` beside the folder `RP/`.
+
+The installer keeps the key beside the pack's folder under `addons/`, outside what players
+download, and removes it with the addon. An encrypted pack with no key, or with a key that is not
+32 bytes long, is still sent, and the console names the file to fix; players cannot read the pack
+until it has its key. A Bedrock Dedicated Server cannot serve such a pack, because it reads keys
+only from Marketplace purchases.
+
 ## When a restart is needed
 
 An install, an update or a removal reloads the behavior pack scripts with the new list of packs,

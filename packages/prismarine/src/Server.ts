@@ -1142,10 +1142,11 @@ export default class Server {
 
     /** The installed addons' resource packs, as the server sends them to Bedrock clients. */
     public getResourcePacks(): ServedResourcePacks {
-        this.resourcePacks ??= new ServedResourcePacks(
-            () => this.getAddons().resourcePacks(),
-            () => this.getAddons().hasAddonPacks()
-        );
+        this.resourcePacks ??= new ServedResourcePacks(() => this.getAddons().resourcePacks(), {
+            addonPacks: () => this.getAddons().hasAddonPacks(),
+            worldFolder: () => this.getWorldManager().getEntryLevelFolder(),
+            warn: (message) => this.logger.warn(message)
+        });
         return this.resourcePacks;
     }
 

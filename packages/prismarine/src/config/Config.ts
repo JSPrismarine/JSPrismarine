@@ -139,6 +139,8 @@ const COMMENTS = {
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
     'texturepack-required':
         "Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's texturepack-required. On, a player who declines them is disconnected. Off, a player may join without them.",
+    'disable-client-vibrant-visuals':
+        "Whether to tell joining Bedrock players to use the next best graphics setting instead of Vibrant Visuals, as Bedrock Dedicated Server's disable-client-vibrant-visuals.",
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
@@ -310,6 +312,7 @@ const DEFAULTS = {
     'enable-server-public-ip-lookup': true,
     'enable-lan-visibility': true,
     'texturepack-required': false,
+    'disable-client-vibrant-visuals': false,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
@@ -504,6 +507,7 @@ export class Config {
     private enableServerPublicIpLookup: boolean = DEFAULTS['enable-server-public-ip-lookup'];
     private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
     private texturepackRequired: boolean = DEFAULTS['texturepack-required'];
+    private disableClientVibrantVisuals: boolean = DEFAULTS['disable-client-vibrant-visuals'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
@@ -678,6 +682,10 @@ export class Config {
         );
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
         this.texturepackRequired = read('texturepack-required', DEFAULTS['texturepack-required']);
+        this.disableClientVibrantVisuals = read(
+            'disable-client-vibrant-visuals',
+            DEFAULTS['disable-client-vibrant-visuals']
+        );
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
@@ -1290,6 +1298,11 @@ export class Config {
     /** Whether a player must take the installed addons' resource packs to join. */
     public getTexturepackRequired(): boolean {
         return this.texturepackRequired;
+    }
+
+    /** Whether joining Bedrock players are told to use another graphics setting than Vibrant Visuals. */
+    public getDisableClientVibrantVisuals(): boolean {
+        return this.disableClientVibrantVisuals;
     }
 
     /**

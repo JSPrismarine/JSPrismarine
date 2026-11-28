@@ -57,6 +57,7 @@ export type ConnectionConfig = Pick<
     | 'getMaxPlayers'
     | 'getOnlineMode'
     | 'getTexturepackRequired'
+    | 'getDisableClientVibrantVisuals'
 >;
 
 /** What a login's edition sets on the player it builds, such as its skin, before anyone sees it. */
@@ -107,7 +108,7 @@ export interface LoginServices {
     /** Where a login's player is built. */
     readonly players: JoinPreparation;
     /** The resource packs the server offers, which the login lists for the client. */
-    readonly resourcePacks: Pick<ServedResourcePacks, 'packs' | 'hasAddonPacks'>;
+    readonly resourcePacks: Pick<ServedResourcePacks, 'packs' | 'hasAddonPacks' | 'subpacks'>;
     /**
      * Takes a replaced connection's player out as that connection's next input, behind every
      * input its client sent first, as a transport disconnect does. Kicked from the connection

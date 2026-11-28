@@ -616,7 +616,8 @@ describe('ResourcePackClientResponseHandler', () => {
                 find: (name: string) => {
                     named.push(name);
                     return pack;
-                }
+                },
+                chosenSubpack: () => ''
             }
         };
 
@@ -644,7 +645,10 @@ describe('ResourcePackClientResponseHandler', () => {
     it('stacks the packs the server offers, and requires them when texturepack-required is on', async () => {
         const { packets, parts, session } = harness();
         const pack = stub<ServedResourcePack>({ uuid: '01020304-0506-0708-090a-0b0c0d0e0f10', version: '1.2.3' });
-        const services = { ...parts.services, resourcePacks: { offered: () => [pack], find: () => pack } };
+        const services = {
+            ...parts.services,
+            resourcePacks: { offered: () => [pack], find: () => pack, chosenSubpack: () => '' }
+        };
 
         await respond(
             new ResourcePackClientResponseHandler(),
@@ -659,6 +663,30 @@ describe('ResourcePackClientResponseHandler', () => {
             texturePackRequired: true,
             texturePacks: [{ uuid: '01020304-0506-0708-090a-0b0c0d0e0f10', version: '1.2.3', subPackName: '' }]
         });
+    });
+
+    it("names the subpack each pack's login listed, as BDS names it in the stack too", async () => {
+        const { packets, parts, session } = harness();
+        const pack = stub<ServedResourcePack>({ uuid: 'a', version: '1.0.0', resourceName: 'a_1.0.0' });
+        const services = {
+            ...parts.services,
+            resourcePacks: {
+                offered: () => [pack],
+                find: () => pack,
+                chosenSubpack: (name: string) => (name === 'a_1.0.0' ? 'high' : '')
+            }
+        };
+
+        await respond(
+            new ResourcePackClientResponseHandler(),
+            response(ResourcePackStatus.HaveAllPacks),
+            { ...parts, services },
+            session
+        );
+
+        const [stack] = packets;
+        assert(stack instanceof ResourcePackStackPacket);
+        expect(stack.getPacketData()?.texturePacks).toEqual([{ uuid: 'a', version: '1.0.0', subPackName: 'high' }]);
     });
 
     it('kicks a player that asks for packs the server does not offer', async () => {

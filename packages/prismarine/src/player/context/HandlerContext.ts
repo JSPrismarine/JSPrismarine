@@ -110,7 +110,7 @@ export interface HandlerServices {
     /** The update checks, which tell a player who just spawned about a newer build. */
     readonly updates: Pick<Updates, 'welcome'>;
     /** The resource packs the server offers, which a client downloads before it joins. */
-    readonly resourcePacks: Pick<ServedResourcePacks, 'offered' | 'find'>;
+    readonly resourcePacks: Pick<ServedResourcePacks, 'offered' | 'find' | 'chosenSubpack'>;
 }
 
 /** The behavior pack scripts' side of a form a client answers. */

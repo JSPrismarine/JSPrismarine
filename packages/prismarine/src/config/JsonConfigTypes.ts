@@ -246,6 +246,8 @@ export interface ConfigFile {
     'crafting-recipe-limit'?: number;
     /** Whether a player must take the installed addons' resource packs to join, as Bedrock Dedicated Server's `texturepack-required`. */
     'texturepack-required'?: boolean;
+    /** Whether to tell joining Bedrock players to use another graphics setting than Vibrant Visuals, as Bedrock Dedicated Server's `disable-client-vibrant-visuals`. */
+    'disable-client-vibrant-visuals'?: boolean;
     /** The services the server reports pseudonymous usage statistics to. */
     stats?: StatsConfig;
     /** Whether and how the server checks for a newer JSPrismarine. */
@@ -356,6 +358,7 @@ export const CONFIG_KEY_ORDER = [
     'log-excluded-packets',
     'crafting-recipe-limit',
     'texturepack-required',
+    'disable-client-vibrant-visuals',
     'stats',
     'updates',
     'script-watchdog-enable-shutdown',

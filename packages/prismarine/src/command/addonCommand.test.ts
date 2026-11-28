@@ -141,7 +141,9 @@ describe('addon', () => {
             version: '1.0.0',
             needsRestart: [],
             dependencies: [],
-            addon: false
+            addon: false,
+            rayTracing: false,
+            subpacks: []
         });
         const { commands, server, logged } = await setUp([
             {

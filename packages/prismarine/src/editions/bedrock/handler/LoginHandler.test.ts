@@ -148,7 +148,8 @@ describe('network', () => {
                     getProximityBroadcast: () => true,
                     getEntityTrackingHysteresis: () => 2,
                     getEntityTrackingInterval: () => 4,
-                    getTexturepackRequired: () => false
+                    getTexturepackRequired: () => false,
+                    getDisableClientVibrantVisuals: () => false
                 });
 
             const permissionManager = (): PermissionManager =>
@@ -179,7 +180,11 @@ describe('network', () => {
                 getBanManager: banManager,
                 getAllowList: () => stub<AllowList>({ allows: () => true, ignoresPlayerLimit: () => false }),
                 getResourcePacks: () =>
-                    stub<ServedResourcePacks>({ packs: async () => [], hasAddonPacks: () => false }),
+                    stub<ServedResourcePacks>({
+                        packs: async () => [],
+                        hasAddonPacks: () => false,
+                        subpacks: async () => new Map()
+                    }),
                 getTick: () => 0,
                 // What a session posts `playerConnect` on.
                 getKernel: () => kernel,
@@ -556,8 +561,8 @@ describe('network', () => {
 
             it('sends the ResourcePacksInfo a server with no packs sends', async () => {
                 // The packet a Bedrock Dedicated Server sends for a world with no packs and no
-                // template: every flag off, an all-zero template uuid with an empty version, and
-                // a zero count.
+                // template: every flag off, an all-zero template uuid at version 0.0.0, and a
+                // zero count. Captured from 1.26.51.1 and 1.26.60.6 alike.
                 const pk = loginPacket();
 
                 const sent: NetworkPacket[] = [];
@@ -579,7 +584,7 @@ describe('network', () => {
                     hasAddonPacks: false,
                     hasScripts: false,
                     forceDisableVibrantVisuals: false,
-                    worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+                    worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '0.0.0' },
                     resourcePackEntries: []
                 });
             });
@@ -598,13 +603,21 @@ describe('network', () => {
                     uuid: '01020304-0506-0708-090a-0b0c0d0e0f10',
                     version: '1.2.3',
                     bytes: new Uint8Array(42),
-                    addon: false
+                    resourceName: '01020304-0506-0708-090a-0b0c0d0e0f10_1.2.3',
+                    addon: false,
+                    rayTracing: false,
+                    contentKey: '',
+                    contentIdentity: '01020304-0506-0708-090a-0b0c0d0e0f10'
                 });
                 const offering = stub<Server>({
                     ...server,
                     getConfig: () => stub<Config>({ ...config(), getTexturepackRequired: () => true }),
                     getResourcePacks: () =>
-                        stub<ServedResourcePacks>({ packs: async () => [pack], hasAddonPacks: () => false })
+                        stub<ServedResourcePacks>({
+                            packs: async () => [pack],
+                            hasAddonPacks: () => false,
+                            subpacks: async () => new Map()
+                        })
                 });
 
                 await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
@@ -645,13 +658,21 @@ describe('network', () => {
                 const pack = stub<ServedResourcePack>({
                     uuid,
                     version: '1.0.2',
+                    resourceName: `${uuid}_1.0.2`,
                     bytes: new Uint8Array(8),
-                    addon: true
+                    addon: true,
+                    rayTracing: false,
+                    contentKey: '',
+                    contentIdentity: uuid
                 });
                 const offering = stub<Server>({
                     ...server,
                     getResourcePacks: () =>
-                        stub<ServedResourcePacks>({ packs: async () => [pack], hasAddonPacks: () => true })
+                        stub<ServedResourcePacks>({
+                            packs: async () => [pack],
+                            hasAddonPacks: () => true,
+                            subpacks: async () => new Map()
+                        })
                 });
 
                 await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
@@ -661,6 +682,59 @@ describe('network', () => {
                 expect(info.getPacketData()).toMatchObject({
                     hasAddonPacks: true,
                     resourcePackEntries: [{ contentIdentity: uuid, isAddonPack: true }]
+                });
+            });
+
+            it("sends each pack's key, subpack and ray tracing, and the vibrant visuals switch", async () => {
+                const sent: NetworkPacket[] = [];
+                const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
+                    getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+                const uuid = 'aaaaaaaa-0000-4000-8000-000000000001';
+                const pack = stub<ServedResourcePack>({
+                    uuid,
+                    version: '1.0.0',
+                    resourceName: `${uuid}_1.0.0`,
+                    bytes: new Uint8Array(8),
+                    addon: false,
+                    rayTracing: true,
+                    contentKey: '0123456789abcdef0123456789abcdef',
+                    contentIdentity: uuid.toUpperCase()
+                });
+                const offering = stub<Server>({
+                    ...server,
+                    getConfig: () => stub<Config>({ ...config(), getDisableClientVibrantVisuals: () => true }),
+                    getResourcePacks: () =>
+                        stub<ServedResourcePacks>({
+                            packs: async () => [pack],
+                            hasAddonPacks: () => false,
+                            subpacks: async () => new Map([[pack.resourceName, 'high']])
+                        })
+                });
+
+                await new LoginHandler().handle(loginPacket(), contextOf(offering, quiet));
+
+                const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
+                assert(info instanceof ResourcePacksInfoPacket);
+                expect(info.getPacketData()).toMatchObject({
+                    hasScripts: false,
+                    forceDisableVibrantVisuals: true,
+                    worldTemplate: { version: '0.0.0' },
+                    resourcePackEntries: [
+                        {
+                            contentKey: '0123456789abcdef0123456789abcdef',
+                            subPackName: 'high',
+                            contentIdentity: uuid.toUpperCase(),
+                            hasScripts: false,
+                            isRayTracingCapable: true,
+                            cdnUrl: ''
+                        }
+                    ]
                 });
             });
 
@@ -682,7 +756,8 @@ describe('network', () => {
                     getResourcePacks: () =>
                         stub<ServedResourcePacks>({
                             packs: async () => Promise.reject(new TypeError('unreadable')),
-                            hasAddonPacks: () => false
+                            hasAddonPacks: () => false,
+                            subpacks: async () => new Map()
                         })
                 });
 

@@ -1,4 +1,4 @@
-import { lstat, mkdir, readdir, readFile, realpath, rm, stat, symlink } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { addonVersionsInRange, isAddonName, satisfiesAddonRange } from '@jsprismarine/addon-tools/addonIndex';
@@ -32,7 +32,9 @@ import {
     writePackFolder
 } from './addonPack';
 import { isPackFile, keyOfDroppedPack, parseAddonSpec } from './addonSpec';
+import { contentKeyFileOf } from '../resourcePacks/contentKey';
 import { SerialQueue } from '../utils/serialQueue';
+import { readFileIfPresent } from '../utils/readFileIfPresent';
 
 /** Where the installer writes what it does. */
 export interface AddonLog {
@@ -118,6 +120,11 @@ interface Resolved {
     readonly worlds?: readonly ArchiveWorld[];
     /** What the archive holds that does not install, such as a skin pack. */
     readonly skipped?: readonly SkippedMember[];
+    /**
+     * The content key of an addon whose folder is its one encrypted pack, which goes beside the
+     * addon's folder as `<key>.key`; a nested pack's key is among {@link files}.
+     */
+    readonly key?: Uint8Array;
 }
 
 /** The version an archive installs as: its first behavior pack's, else its first resource pack's. */
@@ -334,11 +341,14 @@ export class AddonManager {
             if (own(requested.addons, key) === undefined && locked === undefined)
                 throw new PrismarineAddonErrors.AddonNotInstalled({ key });
             const outgoing = needsRestartOf(await this.packsOf(key));
-            await removeAddonFolder(path.join(this.addonsDirectory, key));
+            await this.removeFolder(key);
             // A pack dropped into addons/ would install again on the next sync while its file stays.
             const request = own(requested.addons, key);
             const dropped = request === undefined ? undefined : this.droppedPackOf(request);
-            if (dropped !== undefined) await rm(dropped, { force: true });
+            if (dropped !== undefined) {
+                await rm(dropped, { force: true });
+                await rm(contentKeyFileOf(dropped), { force: true });
+            }
             await this.write(
                 { addons: without(requested.addons, key) },
                 { ...lock, addons: without(lock.addons, key) }
@@ -393,7 +403,7 @@ export class AddonManager {
             for (const key of [...locks.keys()]) {
                 if (own(requested.addons, key) !== undefined) continue;
                 try {
-                    await removeAddonFolder(path.join(this.addonsDirectory, key));
+                    await this.removeFolder(key);
                 } catch (error: unknown) {
                     failed.push(key);
                     this.options.log.error(`Could not remove ${key}: ${messageOf(error)}`);
@@ -727,10 +737,12 @@ export class AddonManager {
             // A lock with a hash was an .mcpack, which a folder in its place must not stand in for.
             if (expected !== undefined) throw new PrismarineAddonErrors.AddonPathNotPack({ key, path: stored });
             const summary = this.checked(key, await summarizeFolder(key, absolute));
+            const packKey = await readFileIfPresent(contentKeyFileOf(absolute));
             return {
                 locked: { path: stored, name: key, version: summary.version },
                 packs: [{ folder: '.', summary }],
-                folder: absolute
+                folder: absolute,
+                ...(packKey === undefined ? {} : { key: packKey })
             };
         }
         refuseEditorProject(key, absolute);
@@ -743,7 +755,11 @@ export class AddonManager {
                 expected,
                 recordedBy: ADDONS_LOCK_FILE
             });
-        return this.fromArchive(key, bytes, (version) => ({ path: stored, name: key, version, sha256 }));
+        const resolved = this.fromArchive(key, bytes, (version) => ({ path: stored, name: key, version, sha256 }));
+        // A lone pack's key sits beside the archive it came from, such as `lights.mcpack.key`.
+        const single = resolved.packs.length === 1 && resolved.packs[0]!.folder === '.';
+        const packKey = single ? await readFileIfPresent(contentKeyFileOf(absolute)) : undefined;
+        return packKey === undefined ? resolved : { ...resolved, key: packKey };
     }
 
     /**
@@ -758,8 +774,12 @@ export class AddonManager {
             summary: this.checked(key, summarizeFiles(key, files))
         }));
         const files = new Map<string, Uint8Array>();
-        for (const { folder, files: packFiles } of packs)
+        for (const { folder, files: packFiles, key: packKey } of packs) {
             for (const [name, data] of packFiles) files.set(folder === '.' ? name : `${folder}/${name}`, data);
+            // Beside the pack's folder, where the resource packs read it, and out of the zip a
+            // client downloads.
+            if (packKey !== undefined && folder !== '.') files.set(contentKeyFileOf(folder), packKey);
+        }
         const locked = lockOf(versionOf(resolvedPacks));
         return {
             locked: isSourceLock(locked) ? locked : { ...locked, packs: lockedPacksOf(resolvedPacks) },
@@ -789,9 +809,20 @@ export class AddonManager {
      * @param previous - What the key locked before, whose imported worlds stay as they are.
      * @returns What to lock, the levels its worlds became included.
      */
+    /** Takes an addon's folder away, and the content key beside it. */
+    private async removeFolder(key: string): Promise<void> {
+        const target = path.join(this.addonsDirectory, key);
+        await removeAddonFolder(target);
+        await rm(contentKeyFileOf(target), { force: true });
+    }
+
     private async place(key: string, resolved: Resolved, previous?: LockedAddon): Promise<LockedAddon> {
         await mkdir(this.addonsDirectory, { recursive: true });
         const target = path.join(this.addonsDirectory, key);
+        // The key of an addon that is one encrypted pack goes beside its folder, and one an
+        // earlier version left goes away.
+        if (resolved.key === undefined) await rm(contentKeyFileOf(target), { force: true });
+        else await writeFile(contentKeyFileOf(target), resolved.key);
         if (resolved.files !== undefined) {
             const leftover = await writePackFolder(target, resolved.files);
             if (leftover !== undefined)

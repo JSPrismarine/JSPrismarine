@@ -297,25 +297,33 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             }
             packs = [];
         }
+        const subpacks = await login.resourcePacks.subpacks(packs);
+        // Every field as a Bedrock Dedicated Server 1.26.60.6 fills it, but the content key, which
+        // BDS takes only from Marketplace entitlements and this server reads beside the pack.
         await connection.sendDataPacket(
             new ResourcePacksInfoPacket({
                 resourcePackRequired: packs.length > 0 && config.getTexturepackRequired(),
-                // As a Bedrock Dedicated Server 1.26.60.6 fills them. A resource pack that depends on
-                // an addon's behavior pack, which never reaches the client, is applied only when
-                // the client is told it is an addon pack; otherwise its textures were missing.
+                // A resource pack that depends on an addon's behavior pack, which never reaches the
+                // client, is applied only when the client is told it is an addon pack; otherwise
+                // its textures were missing.
                 hasAddonPacks: addonPacks,
+                // BDS sends false here and on every entry, for a resource pack with a `scripts`
+                // folder and for a world whose behavior packs run scripts.
                 hasScripts: false,
-                forceDisableVibrantVisuals: false,
-                worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+                forceDisableVibrantVisuals: config.getDisableClientVibrantVisuals(),
+                // No world template, which BDS sends as an all-zero UUID at version 0.0.0, with
+                // packs or without.
+                worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '0.0.0' },
                 resourcePackEntries: packs.map((pack) => ({
                     id: packIdVersionOf(pack.uuid, pack.version),
                     sizeBytes: BigInt(pack.bytes.byteLength),
-                    contentKey: '',
-                    subPackName: '',
-                    contentIdentity: pack.uuid,
+                    contentKey: pack.contentKey,
+                    subPackName: subpacks.get(pack.resourceName) ?? '',
+                    contentIdentity: pack.contentIdentity,
                     hasScripts: false,
                     isAddonPack: pack.addon,
-                    isRayTracingCapable: false,
+                    isRayTracingCapable: pack.rayTracing,
+                    // BDS reads it from a cdn_config.json; this server delivers every pack in chunks.
                     cdnUrl: ''
                 }))
             }),
