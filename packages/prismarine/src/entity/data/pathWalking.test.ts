@@ -110,3 +110,34 @@ describe("a brain's random walk target", () => {
         expect(to).toEqual({ x: -4.5, y: GROUND, z: 0.5 });
     });
 });
+
+describe('a walker that looks one way and walks another', () => {
+    it('walks where its path goes, with its head turned no more than 75 degrees from its body', () => {
+        const { runtime } = entityFixture(new TestEntityWorld(), {}, { 'minecraft:pig': walker(0.9) });
+        const pig = runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND, z: 0.5 });
+        if (pig === undefined) throw new Error('the fixture declares no pig');
+
+        for (let tick = 1; tick <= 40; tick += 1) {
+            // A look at something behind it, as a look goal runs beside a stroll.
+            pig.body.lookAt({ x: pig.position.x - 10, y: GROUND + 1, z: pig.position.z });
+            pig.body.moveTo({ x: 20.5, y: GROUND, z: 0.5 }, 1);
+            runtime.tick(tick);
+            const turn = Math.abs(((pig.body.headYaw - pig.body.yaw + 540) % 360) - 180);
+            expect(turn).toBeLessThanOrEqual(75 + 1e-9);
+        }
+
+        expect(pig.position.x).toBeGreaterThan(3);
+        expect(Math.abs(pig.position.z - 0.5)).toBeLessThan(1e-6);
+    });
+
+    it('turns its body after its head while it stands', () => {
+        const { runtime } = entityFixture(new TestEntityWorld(), {}, { 'minecraft:pig': walker(0.9) });
+        const pig = runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND, z: 0.5 });
+        if (pig === undefined) throw new Error('the fixture declares no pig');
+
+        pig.body.lookAt({ x: 0.5, y: GROUND + 1, z: 10.5 });
+        runtime.tick(1);
+
+        expect(pig.body.yaw).toBeCloseTo(pig.body.headYaw, 9);
+    });
+});

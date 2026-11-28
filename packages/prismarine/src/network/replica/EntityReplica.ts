@@ -314,6 +314,9 @@ export class EntityReplica {
                 y: position.y,
                 z: position.z,
                 yaw: bodyFieldValue('yaw', value('yaw')),
+                // A log written before bodies had a head of their own holds no head yaw; the head
+                // then faces where the body does.
+                headYaw: bodyFieldValue('headYaw', value('headYaw') ?? value('yaw')),
                 pitch: bodyFieldValue('pitch', value('pitch'))
             },
             velocity: bodyFieldValue('velocity', value('velocity')),

@@ -143,7 +143,7 @@ const actorSight = (sight: Extract<FirstSight, { kind: 'actor' }>, context: Prot
     packet.pitch = view.pose.pitch;
     packet.yaw = view.pose.yaw;
     // A store entity's head turns with its body.
-    packet.headYaw = view.pose.yaw;
+    packet.headYaw = view.pose.headYaw;
     packet.metadata = sight.metadata;
     packet.syncedProperties = view.properties;
     // Health, speed and reach arrive with the entity rather than in a packet of their own

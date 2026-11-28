@@ -58,6 +58,7 @@ const optionalPosition = (field: string) => (value: PlainData) => (value === nul
 const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) => LoggedBodyState[K] } = {
     position: position('position'),
     yaw: numberField('yaw'),
+    headYaw: numberField('headYaw'),
     pitch: numberField('pitch'),
     velocity: position('velocity'),
     nameTag: optionalString('nameTag'),

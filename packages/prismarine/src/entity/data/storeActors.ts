@@ -190,9 +190,9 @@ export class StoreActor implements ShownActor {
         return this.entity.body.yaw;
     }
 
-    /** A store entity's head turns with its body. */
+    /** Where the entity's head faces, which a look turns apart from its body. */
     public get headYaw(): number {
-        return this.entity.body.yaw;
+        return this.entity.body.headYaw;
     }
 
     /**
