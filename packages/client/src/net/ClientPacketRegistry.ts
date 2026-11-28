@@ -58,6 +58,16 @@ export default class ClientPacketRegistry {
     public constructor(public readonly protocolVersion: number = v2193.protocolVersion) {}
 
     /**
+     * Whether a registered class of this name decodes packets, so a packet of it reaches the
+     * client's listeners at all.
+     * @param name - The packet class's name, such as `DeathInfoPacket`.
+     */
+    public decodesNamed(name: string): boolean {
+        for (const constructor of this.packets.values()) if (constructor.name === name) return true;
+        return false;
+    }
+
+    /**
      * Registers a packet class under its default network id.
      * @param constructor - The packet class to register.
      */

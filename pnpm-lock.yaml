@@ -1657,6 +1657,9 @@ importers:
       '@jsprismarine/blocks':
         specifier: workspace:*
         version: link:../blocks
+      '@jsprismarine/client':
+        specifier: workspace:*
+        version: link:../client
       '@jsprismarine/commands':
         specifier: workspace:*
         version: link:../commands

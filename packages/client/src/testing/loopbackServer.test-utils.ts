@@ -117,7 +117,11 @@ export interface LoopbackServer {
     /** Runs a console command between ticks, as a console line lands, and settles. */
     command(line: string): Promise<CommandResult>;
     /** Joins a client under `displayName`, ticking until the server has spawned it. */
-    join(displayName: string): Promise<LoopbackPlayer>;
+    /**
+     * Joins a client and waits until the server has put its player in the world.
+     * @param protocolVersion - The protocol the client speaks; the client's own by default.
+     */
+    join(displayName: string, protocolVersion?: number): Promise<LoopbackPlayer>;
     /**
      * Joins a Java Edition client over TCP under `username`, ticking until it loaded the world and
      * the server put its player in it. The server needs `java-enabled`, and `java-port` 0 lets the
@@ -234,8 +238,9 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         return { ran, messages: console.messages };
     };
 
-    const player = (displayName: string): LoopbackPlayer => {
+    const player = (displayName: string, protocolVersion?: number): LoopbackPlayer => {
         const client = new Client({
+            ...(protocolVersion === undefined ? {} : { protocolVersion }),
             host: '127.0.0.1',
             transport: network.client(),
             auth: new OfflineAuthProvider({ displayName, identity: identityOf(displayName) }),
@@ -307,15 +312,15 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         };
     };
 
-    const connect = (displayName: string) => {
-        const joining = player(displayName);
+    const connect = (displayName: string, protocolVersion?: number) => {
+        const joining = player(displayName, protocolVersion);
         const joined = joining.client.connect();
         joined.catch(() => {});
         return { player: joining, joined };
     };
 
-    const join = async (displayName: string): Promise<LoopbackPlayer> => {
-        const { player: joining, joined } = connect(displayName);
+    const join = async (displayName: string, protocolVersion?: number): Promise<LoopbackPlayer> => {
+        const { player: joining, joined } = connect(displayName, protocolVersion);
         let done = false;
         void joined
             .finally(() => {

@@ -1,0 +1,71 @@
+{
+    "scenario": "open-chest",
+    "protocolVersion": 2259,
+    "server": "1.26.70.24",
+    "packets": [
+        {
+            "name": "ContainerOpenPacket",
+            "fields": {
+                "windowId": 2,
+                "containerType": 0,
+                "containerEntityId": "-1n"
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 2,
+                "containerId": 0,
+                "items.length": 27
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 0,
+                "containerId": 0,
+                "items.length": 36
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 120,
+                "containerId": 0,
+                "items.length": 5
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 124,
+                "containerId": 0,
+                "items.length": 57
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 119,
+                "containerId": 0,
+                "items.length": 1
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 2,
+                "containerId": 0,
+                "items.length": 27
+            }
+        },
+        {
+            "name": "InventoryContentPacket",
+            "fields": {
+                "windowId": 2,
+                "containerId": 0,
+                "items.length": 27
+            }
+        }
+    ]
+}

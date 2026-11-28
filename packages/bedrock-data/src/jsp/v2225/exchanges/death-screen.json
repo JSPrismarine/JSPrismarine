@@ -1,0 +1,20 @@
+{
+    "scenario": "death-screen",
+    "protocolVersion": 2225,
+    "server": "1.26.60.6",
+    "packets": [
+        {
+            "name": "DeathInfoPacket",
+            "fields": {
+                "cause": "death.attack.generic"
+            }
+        },
+        {
+            "name": "RespawnPacket",
+            "fields": {
+                "state": 0,
+                "runtimeEntityId": "0n"
+            }
+        }
+    ]
+}

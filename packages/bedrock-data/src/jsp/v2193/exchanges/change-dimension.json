@@ -1,0 +1,14 @@
+{
+    "scenario": "change-dimension",
+    "protocolVersion": 2193,
+    "server": "1.26.51.1",
+    "packets": [
+        {
+            "name": "ChangeDimensionPacket",
+            "fields": {
+                "dimension": 1,
+                "respawn": false
+            }
+        }
+    ]
+}

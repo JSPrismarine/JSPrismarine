@@ -85,6 +85,35 @@ Thrown as `ClientErrors.DuplicatePacketId`, which extends `Error`.
 
 Two packet classes were registered under the same id.
 
+## `CLIENT_EXCHANGE_NEVER_HAPPENED`
+
+`{what}, after {ticks} ticks`
+
+Thrown as `ClientErrors.ExchangeNeverHappened`, which extends `Error`.
+
+An exchange scenario waited for something the server never did, such as opening a screen.
+The server answered the scenario's steps differently, or not at all; capture with
+`JSP_EXCHANGE_TRACE=1` to see what it sent.
+
+## `CLIENT_EXCHANGE_SUBJECT_NOT_DECODED`
+
+`{scenario}: the client decodes no {packets}; register them in Client`
+
+Thrown as `ClientErrors.ExchangeSubjectNotDecoded`, which extends `Error`.
+
+An exchange scenario is about a packet the client registers no class for, so a server's
+packet of it would reach no listener and the capture and the replay would both miss it.
+Register the class in `Client`.
+
+## `CLIENT_EXCHANGE_WITHOUT_POSITION`
+
+`The client has no position to {action}`
+
+Thrown as `ClientErrors.ExchangeWithoutPosition`, which extends `Error`.
+
+An exchange scenario needs where the client stands, and the server has not placed it yet.
+Run the scenario once the client has spawned.
+
 ## `CLIENT_HANDSHAKE_TOKEN_HAS_NO_KEY`
 
 `` The handshake token carries no `x5u` public key ``

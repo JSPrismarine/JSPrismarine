@@ -34,6 +34,7 @@
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/block-behaviors": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",
+        "@jsprismarine/client": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/content": "workspace:*",
         "@jsprismarine/engine-systems": "workspace:*",

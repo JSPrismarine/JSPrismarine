@@ -148,6 +148,13 @@ export const FAMILIES = {
     protocolJavaClient: 'protocol.java-client',
 
     /**
+     * What JSPrismarine sends a Bedrock client in answer to what it does, against what each
+     * protocol's pinned Bedrock Dedicated Server sent the same client for the same steps: the
+     * captures `dump:bedrock --pass exchanges` writes under `src/jsp/v<protocol>/exchanges/`.
+     */
+    protocolBedrockExchanges: 'protocol.bedrock-exchanges',
+
+    /**
      * When behavior pack scripts run against the pinned Bedrock Dedicated Server: module top
      * level, promise jobs, `startup`, `worldInitialize`, `worldLoad` and system tasks, for each
      * `@minecraft/server` major version.
