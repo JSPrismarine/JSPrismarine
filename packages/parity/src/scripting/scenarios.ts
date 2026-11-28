@@ -1049,6 +1049,17 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'pack-structures',
+        family: 'scripting.blocks',
+        description:
+            'world.structureManager reads the structures a behavior pack ships in structures/, in format_version 1 ' +
+            'or 2, lists them with getPackStructureIds, places one by id, refuses to delete one, and keeps them out ' +
+            'of getWorldStructureIds.',
+        reference: 'issue #3315',
+        packs: ['structures'],
+        needs: 'server'
+    },
+    {
         id: 'entity-components',
         family: 'scripting.entities',
         description:

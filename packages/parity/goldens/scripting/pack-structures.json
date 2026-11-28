@@ -1,0 +1,194 @@
+{
+    "$comment": [
+        "What the scripts of scenario `pack-structures` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "pack-structures",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "structures",
+            "seq": 1,
+            "tick": 0,
+            "event": "getPackStructureIds",
+            "value": [
+                "jsp:pad",
+                "jsp:pad2",
+                "mystructure:top"
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 2,
+            "tick": 0,
+            "event": "getWorldStructureIds",
+            "value": []
+        },
+        {
+            "pack": "structures",
+            "seq": 3,
+            "tick": 0,
+            "event": "get the namespaced pack structure",
+            "value": {
+                "id": "jsp:pad",
+                "size": {
+                    "z": 1,
+                    "y": 2,
+                    "x": 2
+                },
+                "isValid": true
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 4,
+            "tick": 0,
+            "event": "get the pack structure in no namespace folder",
+            "value": "mystructure:top"
+        },
+        {
+            "pack": "structures",
+            "seq": 5,
+            "tick": 0,
+            "event": "get the same file under a namespace it is not in",
+            "value": null
+        },
+        {
+            "pack": "structures",
+            "seq": 6,
+            "tick": 0,
+            "event": "getBlockPermutation 0 0 0",
+            "value": {
+                "type": "minecraft:stone",
+                "states": {
+                    "stone_type": "stone"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 7,
+            "tick": 0,
+            "event": "getBlockPermutation 1 0 0",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "pillar_axis": "x",
+                    "old_log_type": "oak"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 8,
+            "tick": 0,
+            "event": "getBlockPermutation 0 1 0",
+            "value": {
+                "type": "minecraft:air",
+                "states": {}
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 9,
+            "tick": 0,
+            "event": "getBlockPermutation 1 1 0",
+            "value": null
+        },
+        {
+            "pack": "structures",
+            "seq": 10,
+            "tick": 0,
+            "event": "format 2 size",
+            "value": {
+                "z": 1,
+                "y": 2,
+                "x": 2
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 11,
+            "tick": 0,
+            "event": "format 2 blocks",
+            "value": [
+                {
+                    "type": "minecraft:stone",
+                    "states": {
+                        "stone_type": "stone"
+                    }
+                },
+                {
+                    "type": "minecraft:oak_log",
+                    "states": {
+                        "pillar_axis": "x",
+                        "old_log_type": "oak"
+                    }
+                },
+                {
+                    "type": "minecraft:air",
+                    "states": {}
+                },
+                null
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 12,
+            "tick": 0,
+            "event": "place by id",
+            "value": [
+                {
+                    "type": "minecraft:stone",
+                    "states": {
+                        "stone_type": "stone"
+                    }
+                },
+                {
+                    "type": "minecraft:oak_log",
+                    "states": {
+                        "pillar_axis": "x",
+                        "old_log_type": "oak"
+                    }
+                },
+                {
+                    "type": "minecraft:air",
+                    "states": {}
+                },
+                {
+                    "type": "minecraft:dirt",
+                    "states": {
+                        "dirt_type": "normal"
+                    }
+                }
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 13,
+            "tick": 0,
+            "event": "delete the pack structure",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Structure 'jsp:pad' cannot be deleted."
+        },
+        {
+            "pack": "structures",
+            "seq": 14,
+            "tick": 0,
+            "event": "get after the delete",
+            "value": "jsp:pad"
+        },
+        {
+            "pack": "structures",
+            "seq": 15,
+            "tick": 0,
+            "event": "getWorldStructureIds after the get",
+            "value": []
+        }
+    ]
+}
