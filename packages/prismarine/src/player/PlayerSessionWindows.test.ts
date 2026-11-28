@@ -33,22 +33,14 @@ const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } }
  */
 const sessionFor = () => {
     const sent: NetworkPacket[] = [];
-    const inventories: Array<{ windowId: number; after: number }> = [];
     // Each lid shown, with whether the session still had that container open, which is the count.
     const lids: Array<{ identifier: string; open: boolean }> = [];
     const connection = stub<ClientConnection>({
         codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
     });
-    // Ids as the player's own inventory hands them out: one per stack, none for air.
-    let nextStackId = 1;
-    const inventory = stub<HumanInventory>({
-        assignStackNetworkId: (item) => {
-            if (item.getName() === 'minecraft:air') return 0;
-            if (item.stackNetworkId === 0) item.stackNetworkId = nextStackId++;
-            return item.stackNetworkId;
-        }
-    });
+    // The player's own inventory, which hands out the stack ids: one per stack, none for air.
+    const inventory = new HumanInventory();
     const player = stub<SessionPlayer>({ getRuntimeId: () => 7n, getInventory: () => inventory });
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
@@ -58,7 +50,7 @@ const sessionFor = () => {
             runtimeId: 7n,
             lastInputTick: () => 0n,
             inventory: {
-                inventory: () => new HumanInventory(),
+                inventory: () => inventory,
                 codecContext: () => protocolCodec.context,
                 equipment: () => ({}),
                 openWindow: (containerType: number) => {
@@ -75,14 +67,12 @@ const sessionFor = () => {
         blockContainer: undefined,
         // A server whose bus no one listens on, so opening a screen raises nothing.
         server: stub<Server>({ getKernel: () => testKernel() }),
-        sendInventory: async (windowId: number = WindowIds.INVENTORY) =>
-            void inventories.push({ windowId, after: sent.length }),
         // The world the lid is counted in is not part of this double.
         showLid: (container: { identifier: string }) =>
             void lids.push({ identifier: container.identifier, open: session.getOpenBlockContainer() === container })
     });
 
-    return { session, sent, inventories, lids };
+    return { session, sent, lids };
 };
 
 describe('network', () => {
@@ -185,24 +175,26 @@ describe('network', () => {
         });
 
         it('opens a workstation without a contents packet, since it stores nothing', async () => {
-            const { session, sent, inventories } = sessionFor();
+            const { session, sent } = sessionFor();
 
             const opened = await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:enchanting_table');
 
             expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT, inputs: [null, null, null] });
+            // The open alone: not measured against BDS, unlike the crafting table, so nothing more
+            // is sent, the player's own inventory included.
             expect(sent).toHaveLength(1);
-            // Not measured against BDS, unlike the crafting table, so nothing more is sent.
-            expect(inventories).toEqual([]);
         });
 
         it("follows a crafting table's open with the player's inventory under window 0, as BDS did", async () => {
-            const { session, sent, inventories } = sessionFor();
+            const { session, sent } = sessionFor();
 
             await session.openBlockContainer(new Vector3(3, 64, 3), 'minecraft:crafting_table');
 
-            expect(sent).toHaveLength(1);
-            expect(sent[0]).toMatchObject({ containerType: WindowTypes.WORKBENCH, containerEntityId: -1n });
-            expect(inventories).toEqual([{ windowId: WindowIds.INVENTORY, after: 1 }]);
+            // The open, then the inventory's contents under window 0 rather than the table's.
+            const [open, contents] = sent;
+            expect(open).toMatchObject({ containerType: WindowTypes.WORKBENCH, containerEntityId: -1n });
+            expect(contents).toBeInstanceOf(InventoryContentPacket);
+            expect(contents).toMatchObject({ windowId: WindowIds.INVENTORY });
         });
 
         it.each(['minecraft:anvil', 'minecraft:chipped_anvil', 'minecraft:damaged_anvil'])(

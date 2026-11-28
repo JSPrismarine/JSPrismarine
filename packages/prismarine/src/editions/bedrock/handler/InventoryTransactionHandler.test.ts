@@ -36,6 +36,7 @@ import type {
 } from '../InventoryTransactionAdapter';
 import { InventoryAction, inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
 import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 import {
     HandSlot,
     InventorySourceType,
@@ -196,9 +197,16 @@ const fake = (
         getServer: () => stub<Server>({ getKernel: () => kernel }),
         getInventory: () => inventory,
         isConnected: () => true,
-        getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
-        sendContainerSlot: async (windowId, containerId, slot, item) =>
-            void inventorySyncs.push([windowId, containerId, slot, item])
+        // The slot the drop empties goes out as an `InventorySlot`, recorded by what it names.
+        getConnection: () =>
+            stub<ReturnType<PlayerSession['getConnection']>>({
+                codec: Codec2193,
+                sendDataPacket: async (packet) => {
+                    if (!(packet instanceof InventorySlotPacket)) return;
+                    const item = packet.item === null ? null : Item.fromStackDescriptor(Codec2193.context, packet.item);
+                    inventorySyncs.push([packet.windowId, packet.containerId, packet.inventorySlot, item]);
+                }
+            })
     });
 
     return {

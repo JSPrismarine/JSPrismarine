@@ -71,12 +71,18 @@ Progress:
   carries where the player comes back, so Bedrock's presenter sends the death screen's `Respawn`
   and `DeathInfo` itself. Two of `PlayerSession`'s six edition checks are gone, the attributes' and
   the death screen's.
-- Slice 4.2, the player's own inventory: under review. `showInventory` and `showOwnSlot` are
+- Slice 4.2, the player's own inventory: merged in [#3875](https://github.com/JSPrismarine/JSPrismarine/pull/3875). `showInventory` and `showOwnSlot` are
   `BedrockPresenter`'s to send now, read from the session's inventory with the stack ids Bedrock
   names stacks by, and `openOwnInventory` opens the player's inventory screen under a window the
   session records. `ShownContainer` names the cursor too, which Java does not show. Two more of
   `PlayerSession`'s edition checks are gone, the inventory's and the slot's, and its
   `sendHandItem` and `sendArmorFor` with them.
+- Slice 4.3, block containers and trades: under review. `openContainer`, `showTradeOffers`,
+  `showContainerData` and `showContainerSlots` are presenter calls. The session keeps the window
+  table, the open container and which of its properties the client already has, and the
+  presenter sends the packets. `sendContainerSlot`, which only Bedrock's handlers call, is
+  `editions/bedrock/containerSlot.ts` now. A Java client is opened no screen yet
+  ([#3769](https://github.com/JSPrismarine/JSPrismarine/issues/3769)).
 
 ## Problem
 
@@ -149,10 +155,11 @@ removed the `network/` aliases slices 1 and 2 had left.
    2. The player's own inventory: its contents, one of its slots, the held item and the armor,
       and the screen the player opens on it. Bedrock names every stack by a network id it
       assigns on the inventory, which `BedrockSessionState` grows to reach.
-   3. Block containers, trades, the creative inventory and the crafting data, which only
-      Bedrock's join sends.
+   3. Block containers and trades: the screen a block or a trader opens, its offers, its
+      properties and its slots.
    4. The world change, the respawn exchange and Bedrock's chunk path, which becomes a
-      `ChunkWire` beside Java's.
+      `ChunkWire` beside Java's, and the creative inventory and the crafting data, which only
+      Bedrock's join sends and which move with the join burst.
 
 ## Where new code goes
 

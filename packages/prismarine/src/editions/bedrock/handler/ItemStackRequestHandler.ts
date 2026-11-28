@@ -1,4 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
+import { sendContainerSlot } from '../containerSlot';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { CraftingData, ItemStackData } from '@jsprismarine/protocol';
 import type { RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
@@ -550,7 +551,13 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
 
             for (const slot of slots) {
                 const named = blockSlotName(theirs.screen, slot);
-                await other.sendContainerSlot(theirs.windowId, named.containerId, named.slotId, held.get(slot));
+                await sendContainerSlot(
+                    other.getConnection(),
+                    theirs.windowId,
+                    named.containerId,
+                    named.slotId,
+                    held.get(slot)
+                );
             }
         }
     }

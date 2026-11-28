@@ -1,4 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
+import { sendContainerSlot } from '../containerSlot';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import HumanInventory from '../../../inventory/HumanInventory';
 import { WindowIds } from '../../../inventory/WindowIds';
@@ -321,7 +322,8 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     const dropped = held.withCount(droppedCount);
                     dropped.stackNetworkId = 0;
                     step.output(
-                        session.sendContainerSlot(
+                        sendContainerSlot(
+                            session.getConnection(),
                             WindowIds.INVENTORY,
                             ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY,
                             container.targetSlot,

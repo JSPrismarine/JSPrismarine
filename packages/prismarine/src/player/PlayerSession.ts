@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { CraftingDataPacket, CreativeContentPacket, PlayerActionType } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Gametype } from '@jsprismarine/minecraft';
-import { CommandPermissionLevel, ContainerUiId, Dimension, DisconnectReason } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, Dimension, DisconnectReason } from '@jsprismarine/minecraft';
 import { advancementChangedDimension, advancementPlayerTick } from '../advancement/triggers';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
@@ -60,9 +60,6 @@ import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import { statusEffectPacket } from '../network/replica/firstSight';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
-import UpdateTradePacket from '@jsprismarine/protocol/bedrock/packet/UpdateTradePacket';
-import { tradeOffersPayload } from '../editions/bedrock/tradeOffers';
-import { wireStackOf } from '../editions/bedrock/wireStack';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { DeathMessage } from '../entity/DeathMessages';
@@ -70,7 +67,6 @@ import { eyePositionAt } from '../entity/playerEyes';
 import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { showContainerLid } from '../inventory/containerLid';
-import { blockSlotName } from '../inventory/containerSlots';
 import { openContainerSlots } from '../inventory/containerStore';
 import { WindowIds } from '../inventory/WindowIds';
 import { entityContainerNamed } from '../inventory/slotLog';
@@ -111,10 +107,6 @@ import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/Avail
 import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/bedrock/packet/ChunkRadiusUpdatedPacket';
-import ContainerOpenPacket from '@jsprismarine/protocol/bedrock/packet/ContainerOpenPacket';
-import ContainerSetDataPacket from '@jsprismarine/protocol/bedrock/packet/ContainerSetDataPacket';
-import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
-import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
 import ClientCacheMissResponsePacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheMissResponsePacket';
 import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/bedrock/packet/SubChunkPacket';
@@ -266,14 +258,6 @@ const MAX_DEATH_EXPERIENCE = 100;
 
 /** The curse that destroys a stack where a death would drop it, by its Java id. */
 const VANISHING_CURSE = 'minecraft:vanishing_curse';
-
-/** Screens whose primary content packet spans several named request containers. */
-const COMBINED_BLOCK_CONTENT_SCREENS = new Set([
-    WindowTypes.FURNACE,
-    WindowTypes.BLAST_FURNACE,
-    WindowTypes.SMOKER,
-    WindowTypes.BREWING_STAND
-]);
 
 /** A screen a block opened for one player, as the session remembers it. */
 export interface OpenBlockContainer {
@@ -1694,17 +1678,6 @@ export default class PlayerSession {
     }
 
     /**
-     * The id the client will name a block's stack by, or null for an empty slot.
-     *
-     * A stack sent without one cannot be picked up: the server authoritative inventory has
-     * nothing to name it by, so the click on a furnace's input never became a request.
-     */
-    private stackIdFor(item: Item): number | null {
-        const id = this.own().getInventory().assignStackNetworkId(item);
-        return id > 0 ? id : null;
-    }
-
-    /**
      * Tells the client what the player is carrying.
      *
      * The send was commented out, so the client was never told: it had no model of the
@@ -1714,36 +1687,6 @@ export default class PlayerSession {
      */
     public sendInventory(): Promise<void> {
         return this.presenter.showInventory(shownInventoryOf(this.own().getInventory()));
-    }
-
-    /**
-     * Tells this client that one slot of a container it has open now holds something else.
-     *
-     * An `ItemStackResponse` only ever reaches the client that sent the request, so this is the
-     * only way to tell the other players standing at the same chest that a stack has gone.
-     *
-     * @param windowId - The `Container Id` this client opened the block under, which is its own.
-     * @param containerId - The `Container Name` the client numbers the slot by.
-     * @param slot - The slot within that container.
-     * @param item - What is in it now, or `null` to empty it.
-     */
-    public async sendContainerSlot(
-        windowId: number,
-        containerId: number,
-        slot: number,
-        item: Item | null
-    ): Promise<void> {
-        const packet = new InventorySlotPacket();
-        packet.windowId = windowId;
-        packet.containerId = containerId;
-        packet.inventorySlot = slot;
-        packet.item =
-            item?.toStackDescriptor(
-                this.connection.codec.context,
-                item.stackNetworkId > 0 ? item.stackNetworkId : null
-            ) ?? null;
-
-        await this.connection.sendDataPacket(packet);
     }
 
     /**
@@ -1818,18 +1761,12 @@ export default class PlayerSession {
             return current;
         }
 
-        const packet = new ContainerOpenPacket();
-        packet.windowId = this.nextWindowId();
-        packet.containerType = container.screen;
-        packet.containerPos = at;
-        // -1 for a block's container, which is what the field means: the actor it belongs to,
-        // and a block is not an actor.
-        packet.containerEntityId = -1n;
-        this.openWindows.set(packet.windowId, packet.containerType);
+        const windowId = this.nextWindowId();
+        this.openWindows.set(windowId, container.screen);
         // A fresh screen has been told nothing yet, so the next tick sends it everything.
         this.containerData.clear();
         const opened: OpenBlockContainer = {
-            windowId: packet.windowId,
+            windowId,
             position: at,
             identifier,
             screen: container.screen,
@@ -1840,57 +1777,12 @@ export default class PlayerSession {
         this.reportContainer(opened, true);
 
         try {
-            await this.connection.sendDataPacket(packet);
-
             // What the caller read out of the block rather than what the block type says it holds:
             // a double chest is 54 entries from two block entities, which `blockContainerOf` does
             // not know about and the caller does.
-            if (contents.length > 0) {
-                const context = this.connection.codec.context;
-
-                // Furnaces and brewing stands expose named containers for requests, but their
-                // open packet is followed by one complete primary inventory. Sending one partial
-                // content packet per named slot leaves clients without the window's full storage
-                // model, so moves into those slots are rejected before a request is sent.
-                if (COMBINED_BLOCK_CONTENT_SCREENS.has(container.screen)) {
-                    const content = new InventoryContentPacket();
-                    content.windowId = packet.windowId;
-                    content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
-                    content.items = contents.map((held) => {
-                        const item = wireStackOf(held);
-                        return item.toStackDescriptor(context, this.stackIdFor(item));
-                    });
-                    await this.connection.sendDataPacket(content);
-                } else {
-                    // Screens with separate primary inventories name each complete slot list
-                    // under the container the client uses for requests to that part of the screen.
-                    const byContainer = new Map<number, (Item | null)[]>();
-                    contents.forEach((held, slot) => {
-                        const named = blockSlotName(container.screen, slot);
-                        const slots = byContainer.get(named.containerId) ?? [];
-                        slots[named.slotId] = held;
-                        byContainer.set(named.containerId, slots);
-                    });
-
-                    for (const [containerId, slots] of byContainer) {
-                        const content = new InventoryContentPacket();
-                        content.windowId = packet.windowId;
-                        content.containerId = containerId;
-                        content.items = slots.map((held) => {
-                            const item = wireStackOf(held);
-                            return item.toStackDescriptor(context, this.stackIdFor(item));
-                        });
-                        await this.connection.sendDataPacket(content);
-                    }
-                }
-            }
-
-            // What a Bedrock Dedicated Server 1.26.52 sent after a click on a crafting table: the
-            // open, then the player's inventory under window 0. The other workstations were not
-            // recorded, and send nothing more until they are.
-            if (container.screen === WindowTypes.WORKBENCH) await this.sendInventory();
+            await this.presenter.openContainer(opened, contents);
         } catch (error) {
-            this.openWindows.delete(packet.windowId);
+            this.openWindows.delete(windowId);
             if (this.blockContainer === opened) this.blockContainer = current;
             throw error;
         }
@@ -1917,15 +1809,11 @@ export default class PlayerSession {
         if (this.blockContainer?.trade?.trader === trade.trader) return undefined;
         this.releaseTrade();
 
-        const packet = new ContainerOpenPacket();
-        packet.windowId = this.nextWindowId();
-        packet.containerType = WindowTypes.TRADE;
-        packet.containerPos = trade.trader.getPosition();
-        packet.containerEntityId = trade.trader.getRuntimeId();
-        this.openWindows.set(packet.windowId, packet.containerType);
+        const windowId = this.nextWindowId();
+        this.openWindows.set(windowId, WindowTypes.TRADE);
         this.containerData.clear();
         const opened: OpenBlockContainer = {
-            windowId: packet.windowId,
+            windowId,
             position: trade.trader.getPosition(),
             identifier: trade.trader.getType(),
             screen: WindowTypes.TRADE,
@@ -1937,10 +1825,10 @@ export default class PlayerSession {
         this.reportContainer(opened, true);
 
         try {
-            await this.connection.sendDataPacket(packet);
+            await this.presenter.openContainer(opened, []);
             await this.sendTradeOffers(opened);
         } catch (error) {
-            this.openWindows.delete(packet.windowId);
+            this.openWindows.delete(windowId);
             if (this.blockContainer === opened) this.blockContainer = undefined;
             trade.release();
             throw error;
@@ -1951,24 +1839,8 @@ export default class PlayerSession {
 
     /** Sends the open trade screen the trader's offers as they stand, after a trade or a restock. */
     public async sendTradeOffers(window: OpenBlockContainer | undefined = this.blockContainer): Promise<void> {
-        const trade = window?.trade;
-        if (window === undefined || trade === undefined) return;
-
-        const context = trade.context();
-        const offers = trade.source.offers(context);
-        const packet = new UpdateTradePacket({
-            containerId: window.windowId,
-            type: WindowTypes.TRADE,
-            size: offers.length,
-            traderTier: trade.source.level - 1,
-            entityUniqueId: trade.trader.getRuntimeId(),
-            lastTradingPlayer: this.runtimeId,
-            displayName: trade.title ?? trade.trader.getName(),
-            useNewTradeScreen: true,
-            usingEconomyTrade: true,
-            data: tradeOffersPayload(offers, trade.source.tierRequirements())
-        });
-        await this.connection.sendDataPacket(packet);
+        if (window?.trade === undefined) return;
+        await this.presenter.showTradeOffers(window);
     }
 
     /** Tells the trader the player has stopped trading, if a trade screen is open. */
@@ -2013,18 +1885,13 @@ export default class PlayerSession {
             return allSent([]);
         }
 
-        const sends: Promise<void>[] = [];
+        const changed = new Map<number, number>();
         for (const [id, value] of properties) {
             if (this.containerData.get(id) === value) continue;
             this.containerData.set(id, value);
-
-            const packet = new ContainerSetDataPacket();
-            packet.containerId = open.windowId;
-            packet.id = id;
-            packet.value = value;
-            sends.push(this.send(packet));
+            changed.set(id, value);
         }
-        return allSent(sends);
+        return changed.size === 0 ? allSent([]) : this.presenter.showContainerData(open, changed);
     }
 
     /**
@@ -2052,18 +1919,10 @@ export default class PlayerSession {
         const held = openContainerSlots(this, { x: at.getX(), y: at.getY(), z: at.getZ() }, open.identifier);
         if (held === undefined) return allSent([]);
 
-        const context = this.connection.codec.context;
-        const sends = slots.map((slot) => {
-            const named = blockSlotName(open.screen, slot);
-            const item = wireStackOf(held.get(slot));
-            const packet = new InventorySlotPacket();
-            packet.windowId = open.windowId;
-            packet.containerId = named.containerId;
-            packet.inventorySlot = named.slotId;
-            packet.item = item.toStackDescriptor(context, this.stackIdFor(item));
-            return this.send(packet);
-        });
-        return allSent(sends);
+        return this.presenter.showContainerSlots(
+            open,
+            slots.map((slot) => ({ slot, item: held.get(slot) }))
+        );
     }
 
     /**
