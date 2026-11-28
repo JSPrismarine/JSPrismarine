@@ -140,11 +140,11 @@ A `.mcstructure` file's block list holds something other than numbers, so it is 
 
 ## `STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST`
 
-`mcstructure: block_indices layer is not a list`
+`mcstructure: block_indices layer is neither a list nor an int array`
 
 Thrown as `StructuresErrors.McstructureBlockLayerNotList`, which extends `StructureFormatError`.
 
-A `.mcstructure` file's block layer is not a list, so it is damaged.
+A `.mcstructure` file's block layer is neither a list nor an int array, so it is damaged.
 
 ## `STRUCTURES_MCSTRUCTURE_NO_BLOCK_INDICES`
 

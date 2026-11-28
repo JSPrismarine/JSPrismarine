@@ -22,8 +22,12 @@ import type {
 import { NO_BLOCK } from './types';
 import { StructuresErrors } from '@jsprismarine/errors/structures';
 
-/** The only `format_version` Mojang has published for `.mcstructure` files. */
-export const MCSTRUCTURE_FORMAT_VERSION = 1;
+/**
+ * The `.mcstructure` `format_version`s this reader takes. Version 2 keeps one block layer, as a
+ * TAG_Int_Array rather than a list of ints, with the same order and the same -1 for a position
+ * that changes nothing; the `pack-structures` parity scenario read one on BDS 1.26.60.6.
+ */
+export const MCSTRUCTURE_FORMAT_VERSIONS: readonly number[] = [1, 2];
 
 /**
  * The index a `.mcstructure` uses for a block, which walks x slowest and z
@@ -43,10 +47,20 @@ export const mcStructurePosition = (size: TemplatePosition, index: number): Temp
 const readLayer = (structure: NBTTagCompound, layer: number): number[] | undefined => {
     const entry = listAt(structure, 'block_indices')[layer];
     if (entry === undefined) return undefined;
-    if (!(entry instanceof Set)) throw new StructuresErrors.McstructureBlockLayerNotList();
-
-    const indices = numbersOf([...entry]);
-    if (indices.length !== entry.size) {
+    // Version 1 writes a layer as a list of ints, which read as value wrappers, and version 2 as an
+    // int array, which reads as plain numbers.
+    let indices: number[];
+    let length: number;
+    if (entry instanceof Set) {
+        indices = numbersOf([...entry]);
+        length = entry.size;
+    } else if (Array.isArray(entry)) {
+        indices = entry.filter((value): value is number => typeof value === 'number');
+        length = entry.length;
+    } else {
+        throw new StructuresErrors.McstructureBlockLayerNotList();
+    }
+    if (indices.length !== length) {
         throw new StructuresErrors.McstructureBlockIndexNotNumeric();
     }
     return indices;
@@ -123,7 +137,7 @@ export const readMcStructure = (bytes: Uint8Array): BedrockStructureTemplate => 
     }
 
     const formatVersion = numberAt(root, 'format_version');
-    if (formatVersion !== undefined && formatVersion !== MCSTRUCTURE_FORMAT_VERSION) {
+    if (formatVersion !== undefined && !MCSTRUCTURE_FORMAT_VERSIONS.includes(formatVersion)) {
         throw new StructuresErrors.McstructureUnsupportedFormatVersion({ formatVersion });
     }
 

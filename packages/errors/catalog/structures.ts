@@ -85,9 +85,9 @@ export const StructuresErrors = defineErrors('structures', {
         message: 'mcstructure: block_indices holds a non-numeric entry',
         base: StructureFormatError
     },
-    /** A `.mcstructure` file's block layer is not a list, so it is damaged. */
+    /** A `.mcstructure` file's block layer is neither a list nor an int array, so it is damaged. */
     McstructureBlockLayerNotList: {
-        message: 'mcstructure: block_indices layer is not a list',
+        message: 'mcstructure: block_indices layer is neither a list nor an int array',
         base: StructureFormatError
     },
     /** A `.mcstructure` file has no block list, so it is damaged. */

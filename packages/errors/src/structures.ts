@@ -526,7 +526,7 @@ class McstructureBlockIndexNotNumeric extends StructureFormatError {
     }
 }
 
-/** A `.mcstructure` file's block layer is not a list, so it is damaged. */
+/** A `.mcstructure` file's block layer is neither a list nor an int array, so it is damaged. */
 class McstructureBlockLayerNotList extends StructureFormatError {
     public static get code(): 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST' {
         return 'STRUCTURES_MCSTRUCTURE_BLOCK_LAYER_NOT_LIST';
@@ -534,8 +534,8 @@ class McstructureBlockLayerNotList extends StructureFormatError {
     public static get domain(): 'structures' {
         return 'structures';
     }
-    public static get template(): 'mcstructure: block_indices layer is not a list' {
-        return 'mcstructure: block_indices layer is not a list';
+    public static get template(): 'mcstructure: block_indices layer is neither a list nor an int array' {
+        return 'mcstructure: block_indices layer is neither a list nor an int array';
     }
     public static get docs(): 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-layer-not-list' {
         return 'https://jsprismarine.dev/errors/structures#structures-mcstructure-block-layer-not-list';
@@ -547,7 +547,7 @@ class McstructureBlockLayerNotList extends StructureFormatError {
     readonly #params: Readonly<Record<string, unknown>> = {};
 
     public constructor(options?: ErrorOptions) {
-        super('mcstructure: block_indices layer is not a list', options);
+        super('mcstructure: block_indices layer is neither a list nor an int array', options);
     }
 
     /** The placeholder values the message was built from. */
