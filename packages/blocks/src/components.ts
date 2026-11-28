@@ -116,13 +116,20 @@ const boundingBox = shape({
     size: field('size', vector3, [16, 16, 16] as const)
 });
 
+/**
+ * A material instance's `ambient_occlusion`: a number, or the older boolean form, which reads as 1
+ * or 0. Packs still write `false`, and a Bedrock Dedicated Server 1.26.60.6 takes it.
+ */
+const ambientOcclusion: Schema<number> = (value) =>
+    typeof value === 'boolean' ? accepted(Number(value)) : decimal(0, 10)(value);
+
 /** `Material Instance.json`: one face's texture and how the client draws it. */
 const materialInstance = either(
     text(),
     shape({
         texture: field('texture', text(), ''),
         renderMethod: field('render_method', oneOf(RENDER_METHODS), 'opaque'),
-        ambientOcclusion: field('ambient_occlusion', decimal(0, 10), 1),
+        ambientOcclusion: field('ambient_occlusion', ambientOcclusion, 1),
         faceDimming: field('face_dimming', boolean, true),
         isotropic: field('isotropic', boolean, false),
         alphaMaskedTint: field('alpha_masked_tint', boolean, false),

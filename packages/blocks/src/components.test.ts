@@ -134,6 +134,18 @@ describe('component parameter parsing', () => {
         });
     });
 
+    it('reads the boolean ambient occlusion older packs write as 1 or 0', () => {
+        const parsed = materialInstancesComponent.schema({
+            '*': { texture: 'glow', ambient_occlusion: false },
+            up: { texture: 'glow', ambient_occlusion: true }
+        });
+
+        expect(parsed.ok && parsed.value).toMatchObject({
+            '*': { ambientOcclusion: 0 },
+            up: { ambientOcclusion: 1 }
+        });
+    });
+
     it('takes exactly one liquid detection rule', () => {
         const parsed = liquidDetection.schema({
             detection_rules: [{ liquid_type: 'water', can_contain_liquid: true, on_liquid_touches: 'blocking' }]
