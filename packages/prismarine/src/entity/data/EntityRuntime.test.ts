@@ -130,6 +130,21 @@ describe('EntityRuntime', () => {
             runtime.tick(101);
             expect(cow.instance.noActionTime).toBe(1);
         });
+
+        it('keeps a named mob from idling with no player near, as Java keeps a mob that must persist', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = runtimeOf(world);
+            const named = runtime.spawn('minecraft:cow', GROUND);
+            const unnamed = runtime.spawn('minecraft:cow', { ...GROUND, x: 4 });
+            if (named === undefined || unnamed === undefined) throw new Error('the fixture declares no minecraft:cow');
+            named.body.nameTag = 'Daisy';
+
+            for (let tick = 0; tick < 150; tick += 1) runtime.tick(tick);
+
+            // Reset before the tick counts it, as near a player.
+            expect(named.instance.noActionTime).toBe(1);
+            expect(unnamed.instance.noActionTime).toBe(150);
+        });
     });
 
     describe('peaceful', () => {
