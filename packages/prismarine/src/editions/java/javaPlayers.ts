@@ -273,7 +273,14 @@ export const javaPlayersOf = (
                             (textures === undefined ? undefined : await fetchSkin(textures)) ?? javaPlayerSkin();
                     },
                     presenterOf: (player) =>
-                        (presenter = new JavaPresenter(send, player.getRuntimeId(), blocks, items, columns))
+                        (presenter = new JavaPresenter(
+                            send,
+                            player.getRuntimeId(),
+                            blocks,
+                            items,
+                            columns,
+                            server.getJavaCustomItems()
+                        ))
                 });
                 if (session === null) return undefined;
                 // The client hung up while its player was built, and `leave` found no player to

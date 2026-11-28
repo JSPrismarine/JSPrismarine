@@ -215,6 +215,39 @@ describe('JavaPresenter', () => {
         ]);
     });
 
+    it('sends a custom item as its base item naming its model, under what the stack itself sets', async () => {
+        const sent: { name: string; value: unknown }[] = [];
+        const custom = {
+            base: 'minecraft:paper',
+            components: {
+                'minecraft:item_model': 'loopback:lamp',
+                'minecraft:item_name': { translate: 'item.loopback:lamp.name' }
+            }
+        };
+        const java = new JavaPresenter(
+            (definition, value) => void sent.push({ name: definition.name, value }),
+            7n,
+            undefined,
+            undefined,
+            undefined,
+            { stackOf: (name) => (name === 'loopback:lamp' ? custom : undefined) }
+        );
+
+        await java.showOwnSlot('inventory', 0, { name: 'loopback:lamp', count: 3, customName: 'Desk Lamp' });
+        await java.showOwnSlot('inventory', 1, { name: 'loopback:unassigned', count: 1 });
+
+        expect(sent.map(({ value }) => value)).toMatchObject([
+            {
+                item: {
+                    item: ITEMS.idOf('minecraft:paper'),
+                    count: 3,
+                    components: { ...custom.components, 'minecraft:custom_name': 'Desk Lamp' }
+                }
+            },
+            { item: null }
+        ]);
+    });
+
     it('shows the vitals with a whole food level, a death on its own screen, and a respawn that waits for chunks', async () => {
         const { sent, java } = presenter();
 

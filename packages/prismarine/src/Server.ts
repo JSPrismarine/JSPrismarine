@@ -69,6 +69,9 @@ import { AddonManager } from './addons/AddonManager';
 import { PluginRegistry, addonPluginSource } from './plugins/PluginRegistry';
 import { ServedResourcePacks } from './resourcePacks/ServedResourcePacks';
 import { JavaResourcePacks } from './resourcePacks/JavaResourcePacks';
+import { JAVA_CONTENT_FILE_NAME, JavaContentAssignments } from './editions/java/JavaContentAssignments';
+import { JavaCustomItems } from './editions/java/JavaCustomItems';
+import { javaItemTranslation } from './editions/java/editionTranslation';
 import { JAVA_PACK_CACHE_DIRECTORY } from './resourcePacks/javaPackCache';
 import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
@@ -161,6 +164,9 @@ export default class Server {
     private plugins: PluginRegistry | undefined;
     private resourcePacks: ServedResourcePacks | undefined;
     private javaResourcePacks: JavaResourcePacks | undefined;
+    private javaCustomItems: JavaCustomItems | undefined;
+    /** The first read of `java-content.json`, which every update waits for. */
+    private javaContentLoaded: Promise<void> | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
     private contentSettings: ContentSettings | undefined;
 
@@ -506,14 +512,15 @@ export default class Server {
                     this.getResourcePacks()
                         .packs()
                         .catch((error: unknown) => this.logger.error(error));
-                    // Converted for Java clients now too, from the cache when it holds this stack.
-                    if (this.config.getJavaEnabled())
-                        this.getJavaResourcePacks()
-                            .current()
-                            .catch((error: unknown) => this.logger.error(error));
                     const startedAt = startStartupPhase();
                     this.enableContent();
                     finishStartupPhase('content-build', startedAt);
+                    // Converted for Java clients now too, from the cache when it holds this stack,
+                    // once the custom items it draws are known and assigned.
+                    if (this.config.getJavaEnabled())
+                        this.updateJavaCustomItems()
+                            .then(() => this.getJavaResourcePacks().current())
+                            .catch((error: unknown) => this.logger.error(error));
                     // Built before a player arrives, so the report of what the content
                     // build invented reads as a startup line and a build that cannot
                     // produce payloads says so here rather than on the first join.
@@ -1145,7 +1152,9 @@ export default class Server {
             reload: async (options) => {
                 await this.reloadScripts(options);
                 // A Java player takes a changed pack while they play; a Bedrock one when they next join.
-                await this.networking.updateJavaResourcePacks().catch((error: unknown) => this.logger.error(error));
+                await this.updateJavaCustomItems()
+                    .then(() => this.networking.updateJavaResourcePacks())
+                    .catch((error: unknown) => this.logger.error(error));
             },
             importWorld: ({ key, member, files }) =>
                 this.worldManager.importLevel({
@@ -1178,12 +1187,39 @@ export default class Server {
     }
 
     /**
+     * The custom items as Java clients see them, assigned their base items and model keys in
+     * `java-content.json`, which {@link updateJavaCustomItems} reads first.
+     */
+    public getJavaCustomItems(): JavaCustomItems {
+        if (this.javaCustomItems === undefined) {
+            const javaItems = javaItemTranslation();
+            this.javaCustomItems = new JavaCustomItems(
+                new JavaContentAssignments(path.join(cwd(), JAVA_CONTENT_FILE_NAME), this.logger),
+                (identifier) => javaItems.toJava(identifier) !== undefined
+            );
+        }
+        return this.javaCustomItems;
+    }
+
+    /**
+     * Assigns the content's custom items that have no assignment yet, reading `java-content.json`
+     * the first time, so the Java pack and the stacks both draw them.
+     */
+    public async updateJavaCustomItems(): Promise<void> {
+        const items = this.getJavaCustomItems();
+        this.javaContentLoaded ??= items.load();
+        await this.javaContentLoaded;
+        await items.update(this.getContent().items.types.values());
+    }
+
+    /**
      * The installed addons' resource packs converted for Java clients, built when they change and
      * kept under {@link JAVA_PACK_CACHE_DIRECTORY}.
      */
     public getJavaResourcePacks(): JavaResourcePacks {
         this.javaResourcePacks ??= new JavaResourcePacks({
             bedrock: () => this.getResourcePacks().packs(),
+            items: () => this.getJavaCustomItems().models(),
             target: {
                 release: NEWEST_JAVA_RELEASE.minecraftVersion,
                 format: NEWEST_JAVA_RELEASE.resourcePackFormat

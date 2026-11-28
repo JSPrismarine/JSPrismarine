@@ -369,12 +369,17 @@ export const startLoopbackServer = async (options: LoopbackServerOptions): Promi
         joined.catch(() => {});
         await untilJava(() => done, `${username} did not join over Java`);
         await joined;
+        // Entered once the world views the player, which is when a command can name them.
         await untilJava(
             () =>
                 server
                     .getSessionManager()
                     .getSessions()
-                    .some((session) => session.getName() === username),
+                    .some(
+                        (session) =>
+                            session.getName() === username &&
+                            session.getWorld().viewerOf(session.getRuntimeId()) !== undefined
+                    ),
             `${username} never entered the world`
         );
         return client;
