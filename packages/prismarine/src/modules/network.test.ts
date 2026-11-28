@@ -6,6 +6,8 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { JavaResourcePacks } from '../resourcePacks/JavaResourcePacks';
+import { JavaContentAssignments } from '../editions/java/JavaContentAssignments';
+import { JavaCustomItems } from '../editions/java/JavaCustomItems';
 import { TransportNames } from '../network/transport/Transport';
 import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
@@ -62,6 +64,13 @@ const noJavaResourcePacks = (): JavaResourcePacks =>
         cacheDirectory: path.join(os.tmpdir(), 'jsprismarine-no-java-packs'),
         log: { info: () => {}, debug: () => {} }
     });
+
+/** Java custom items with no assignments file and no content items. */
+const noJavaCustomItems = (): JavaCustomItems =>
+    new JavaCustomItems(
+        new JavaContentAssignments(path.join(os.tmpdir(), 'jsprismarine-no-java-content.json'), { info: () => {} }),
+        () => false
+    );
 
 describe('modules/network', () => {
     it('provides the networking the server constructed under the network token', async () => {
@@ -291,6 +300,7 @@ describe('modules/network', () => {
         const config = server.getConfig();
         return stub<Server>({
             ...server,
+            getJavaCustomItems: noJavaCustomItems,
             getJavaResourcePacks: noJavaResourcePacks,
             getConfig: () =>
                 Object.assign(Object.create(config), { getJavaEnabled: () => true, getJavaPort: () => javaPort })
@@ -576,6 +586,7 @@ describe('modules/network', () => {
     ) =>
         stub<Server>({
             getKernel: kernelDouble,
+            getJavaCustomItems: noJavaCustomItems,
             getJavaResourcePacks: noJavaResourcePacks,
             getConfig: () =>
                 stub<Config>({
