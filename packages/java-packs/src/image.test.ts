@@ -1,8 +1,8 @@
-import { inflateSync } from 'node:zlib';
+import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 import { describe, expect, it } from 'vitest';
 
-import { decodeTga, encodePng, isPng } from './image';
+import { decodePng, decodeTga, encodePng, isPng } from './image';
 import type { RgbaImage } from './image';
 
 /** A TGA header: no id, the given image type and color map, the size, depth and descriptor. */
@@ -104,5 +104,89 @@ describe('encodePng', () => {
 
     it('writes the same bytes for the same image', () => {
         expect(encodePng(image)).toEqual(encodePng({ ...image, pixels: Uint8Array.from(image.pixels) }));
+    });
+});
+
+/** A PNG from its header fields, extra chunks and raw scanlines, filter bytes included. */
+const pngOf = (
+    width: number,
+    height: number,
+    depth: number,
+    colorType: number,
+    raw: number[],
+    { interlace = 0, chunks = [] }: { interlace?: number; chunks?: [string, number[]][] } = {}
+): Uint8Array => {
+    const chunk = (type: string, data: Uint8Array) => {
+        const out = new Uint8Array(12 + data.byteLength);
+        const view = new DataView(out.buffer);
+        view.setUint32(0, data.byteLength);
+        out.set(
+            [...type].map((c) => c.charCodeAt(0)),
+            4
+        );
+        out.set(data, 8);
+        view.setUint32(8 + data.byteLength, crc32(out.subarray(4, 8 + data.byteLength)));
+        return out;
+    };
+    const header = new Uint8Array(13);
+    const view = new DataView(header.buffer);
+    view.setUint32(0, width);
+    view.setUint32(4, height);
+    header.set([depth, colorType, 0, 0, interlace], 8);
+    return concat(
+        [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+        chunk('IHDR', header),
+        ...chunks.map(([type, data]) => chunk(type, Uint8Array.from(data))),
+        chunk('IDAT', deflateSync(Uint8Array.from(raw))),
+        chunk('IEND', new Uint8Array())
+    );
+};
+
+/** The pixels of a decoded PNG, failing the test when it does not decode. */
+const pngPixels = (bytes: Uint8Array): number[] => {
+    const image = decodePng(bytes);
+    if (!image.ok) throw new TypeError(image.reason);
+    return [...image.pixels];
+};
+
+describe('decodePng', () => {
+    it('reads back what encodePng writes', () => {
+        const image: RgbaImage = { width: 3, height: 2, pixels: Uint8Array.from({ length: 24 }, (_, i) => i * 10) };
+        expect(pngPixels(encodePng(image))).toEqual([...image.pixels]);
+    });
+
+    it('reads a 2-bit palette with transparency', () => {
+        const palette = [255, 0, 0, 0, 255, 0, 0, 0, 255];
+        // Indices 0, 1, 2, 1 packed four to a byte: 00 01 10 01.
+        const bytes = pngOf(4, 1, 2, 3, [0, 0b00011001], {
+            chunks: [
+                ['PLTE', palette],
+                ['tRNS', [255, 128]]
+            ]
+        });
+        expect(pngPixels(bytes)).toEqual([255, 0, 0, 255, 0, 255, 0, 128, 0, 0, 255, 255, 0, 255, 0, 128]);
+    });
+
+    it('reads 16-bit grayscale by its high byte, and its transparent gray', () => {
+        const bytes = pngOf(2, 1, 16, 0, [0, 0x12, 0x34, 0xab, 0xcd], { chunks: [['tRNS', [0x12, 0x34]]] });
+        expect(pngPixels(bytes)).toEqual([0x12, 0x12, 0x12, 0, 0xab, 0xab, 0xab, 255]);
+    });
+
+    it('reads an Adam7 interlaced image, as some of Bedrock vanilla textures are', () => {
+        // A 2x2 image has three passes: the first pixel, the second of the top row, then the bottom row.
+        const [a, b, c, d] = [
+            [1, 2, 3, 255],
+            [4, 5, 6, 255],
+            [7, 8, 9, 255],
+            [10, 11, 12, 255]
+        ];
+        const bytes = pngOf(2, 2, 8, 6, [0, ...a!, 0, ...b!, 0, ...c!, ...d!], { interlace: 1 });
+        expect(pngPixels(bytes)).toEqual([...a!, ...b!, ...c!, ...d!]);
+    });
+
+    it('says why a file does not read', () => {
+        expect(decodePng(new Uint8Array(8))).toEqual({ ok: false, reason: 'it is not a PNG file' });
+        expect(decodePng(pngOf(1, 1, 8, 6, [9, 0, 0, 0, 0]))).toMatchObject({ ok: false });
+        expect(decodePng(pngOf(1, 1, 3, 2, [0, 0, 0, 0]))).toMatchObject({ ok: false });
     });
 });

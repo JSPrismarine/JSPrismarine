@@ -16,11 +16,11 @@ pack, as Bedrock resolves it.
 ```ts
 import { convertResourcePacks } from '@jsprismarine/java-packs/convert';
 import { writeZip } from '@jsprismarine/packs/zip';
-import { RELEASE } from '@jsprismarine/protocol/java/versions/26.3/release';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 
 const { files, textures, report } = convertResourcePacks([{ name: 'Furniture', files: packFiles }], {
-    release: RELEASE.minecraftVersion,
-    format: RELEASE.resourcePackFormat
+    release: NEWEST_JAVA_RELEASE.minecraftVersion,
+    format: NEWEST_JAVA_RELEASE.resourcePackFormat
 });
 const zip = writeZip(files);
 ```
@@ -31,10 +31,19 @@ What converts:
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | The manifest's name, `pack_icon.png`                     | `pack.mcmeta` with the release's `min_format` and `max_format`, `pack.png`                                   |
 | PNG and TGA textures under `textures/`                   | PNG under `assets/bedrock/textures/`, at the same path made a Java path, added to the block and item atlases |
+| A vanilla texture, such as `textures/blocks/stone.png`   | Also the Java texture it is, such as `assets/minecraft/textures/block/stone.png`, with its flipbook animation |
 | `textures/flipbook_textures.json`                        | Each animated texture's `.png.mcmeta`                                                                        |
 | `texts/<locale>.lang`                                    | `assets/bedrock/lang/<locale>.json`, with Bedrock's keys                                                     |
 | `sounds/sound_definitions.json` and its Ogg Vorbis files | `assets/bedrock/sounds.json` and `assets/bedrock/sounds/`                                                    |
 | `font/glyph_XX.png`                                      | Bitmap providers in the default font over code points `0xXX00` to `0xXXFF`                                   |
+
+Which Java textures a vanilla Bedrock texture is comes from `src/generated/vanillaTextures.json`,
+which `pnpm --filter @jsprismarine/bedrock-data run dump:java-textures` generates from the pinned
+Java client jar and the pinned `bedrock-samples` resource pack. A Bedrock texture is the Java
+texture of the same name and size, or else every Java texture with the same pixels that no other
+Bedrock texture is named for. A vanilla texture no Java texture is, such as a Bedrock-only block's
+or a chest's, whose layout differs between the editions, is reported rather than written over a
+Java texture it does not fit.
 
 `textures` maps each Bedrock texture path to the Java texture it became, so a model written later
 can name it. `report` lists, per Bedrock pack, how many assets of each kind converted and a note for
