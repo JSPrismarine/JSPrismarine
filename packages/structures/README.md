@@ -200,11 +200,15 @@ The expected positions in the tests come from Java itself: a program built the r
 `RandomSpreadStructurePlacement` with each vanilla set's fields and printed the chunks it chooses
 for one seed.
 
-`concentricRingChunks` produces the ring positions strongholds use. Java then moves each one to the
-nearest chunk whose biome is in `preferred_biomes`, which needs a biome source, so these are the
-unsnapped positions and the caller moves them. Exclusion zones are parsed but not applied, for the
+`concentricRingPositions` produces the ring positions strongholds use, each with the random source
+Java forks for it. Java then moves each one to a chunk whose biome is in `preferred_biomes`, which
+needs a biome source, so these are the drawn positions and the caller moves them.
+`concentricRingChunks` is the same positions without the sources. `isStructureChunk` leaves exclusion zones out for the
 same reason: they depend on another set's placement, so `StructurePlacement.exclusionZone` names the
 set and the radius and the caller resolves it.
+
+`structureAttemptOrder` is the order Java tries a set's structures in for one chunk. Java draws one
+by weight, and when it cannot start there, removes it and draws again from the rest.
 
 ## The corpus test
 

@@ -12,6 +12,7 @@ import {
     parseStructureSet,
     pickStructure,
     potentialStructureChunk,
+    structureAttemptOrder,
     structureSetCandidates
 } from './structureSets';
 import { StructureFormatError } from '@jsprismarine/errors/structures';
@@ -105,6 +106,55 @@ describe('isStructureChunk', () => {
 
     it('thins a set whose frequency is below one, matching Java', () => {
         expect(candidates(PILLAGER_OUTPOSTS)).toEqual(['-27,11', '-18,-31', '12,17']);
+    });
+
+    /**
+     * The chunks from -64 to 63 on both axes that pass each reducer, x then z, from Java 26.3's
+     * own `AbstractSpreadingStructurePlacement` reducers called by reflection for the same seed.
+     * A placement one chunk apart offers every chunk, so only the reducer decides.
+     */
+    describe.each([
+        {
+            method: 'default',
+            frequency: 0.2,
+            salt: 165745296,
+            total: 3112,
+            first: ['-64,-64', '-64,-63', '-64,-62', '-64,-61', '-64,-60', '-64,-59']
+        },
+        {
+            method: 'legacy_type_1',
+            frequency: 0.2,
+            salt: 165745296,
+            total: 3328,
+            first: ['-64,0', '-64,1', '-64,2', '-64,3', '-64,4', '-64,5']
+        },
+        {
+            method: 'legacy_type_2',
+            frequency: 0.01,
+            salt: 0,
+            total: 175,
+            first: ['-62,-55', '-61,-32', '-61,2', '-60,-25', '-60,47', '-56,-39']
+        },
+        {
+            method: 'legacy_type_3',
+            frequency: 0.004,
+            salt: 0,
+            total: 68,
+            first: ['-64,-40', '-61,-6', '-60,-56', '-53,-20', '-53,-3', '-49,-28']
+        }
+    ] as const)('the $method frequency reduction', ({ method, frequency, salt, total, first }) => {
+        it('passes the chunks Java passes', () => {
+            const placement = spread({ spacing: 1, separation: 0, salt, frequency, frequencyReductionMethod: method });
+            const passed = structureSetCandidates(placement, SEED, {
+                minChunkX: -64,
+                minChunkZ: -64,
+                maxChunkX: 63,
+                maxChunkZ: 63
+            }).map((chunk) => `${chunk.x},${chunk.z}`);
+
+            expect(passed.slice(0, first.length)).toEqual(first);
+            expect(passed).toHaveLength(total);
+        });
     });
 
     it('is deterministic for a seed and different for another', () => {
@@ -226,5 +276,61 @@ describe('pickStructure', () => {
         });
 
         expect(pickStructure(set, createLegacyRandom(1))).toBeUndefined();
+    });
+});
+
+describe('structureAttemptOrder', () => {
+    const setOf = (...structures: Array<[string, number]>) =>
+        parseStructureSet({
+            placement: { type: 'minecraft:dimension_origin', salt: 0 },
+            structures: structures.map(([structure, weight]) => ({ structure, weight }))
+        });
+
+    /** A source that answers each bound with the next scripted value, recording the bounds. */
+    const scripted = (values: number[]) => {
+        const bounds: number[] = [];
+        return {
+            bounds,
+            nextInt(bound: number): number {
+                bounds.push(bound);
+                return values.shift() ?? 0;
+            }
+        };
+    };
+
+    it('starts with the structure a single weighted draw picks', () => {
+        const set = setOf(['minecraft:a', 2], ['minecraft:b', 3], ['minecraft:c', 1]);
+        for (let seed = 0; seed < 50; seed++) {
+            expect(structureAttemptOrder(set, createLegacyRandom(seed))[0]).toBe(
+                pickStructure(set, createLegacyRandom(seed))
+            );
+        }
+    });
+
+    it('redraws over what is left once a structure is removed, as Java does', () => {
+        const set = setOf(['minecraft:a', 2], ['minecraft:b', 3], ['minecraft:c', 1]);
+        // 3 lands in b's share of 0..5; then a and c are left with weight 3, and 2 lands in c.
+        const random = scripted([3, 2, 0]);
+
+        expect(structureAttemptOrder(set, random)).toEqual(['minecraft:b', 'minecraft:c', 'minecraft:a']);
+        expect(random.bounds).toEqual([6, 3, 2]);
+    });
+
+    it('tries every structure once', () => {
+        const set = setOf(['minecraft:a', 1], ['minecraft:b', 1], ['minecraft:c', 5], ['minecraft:d', 2]);
+        const order = structureAttemptOrder(set, createLegacyRandom(7));
+
+        expect([...order].sort()).toEqual(['minecraft:a', 'minecraft:b', 'minecraft:c', 'minecraft:d']);
+    });
+
+    it('draws nothing for a set of one structure', () => {
+        const random = scripted([]);
+
+        expect(structureAttemptOrder(setOf(['minecraft:only', 1]), random)).toEqual(['minecraft:only']);
+        expect(random.bounds).toEqual([]);
+    });
+
+    it('tries nothing for a set with no weight', () => {
+        expect(structureAttemptOrder(setOf(), createLegacyRandom(1))).toEqual([]);
     });
 });
