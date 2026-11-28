@@ -69,7 +69,13 @@ if (jar.id !== release.version) throw new Error(`the cached jar is ${jar.id}, no
 
 const outDir = resolve(packageDir, '../protocol/src/java/versions', release.version);
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, 'release.ts'), releaseSource(release.version, jar.protocol_version));
+writeFileSync(
+    join(outDir, 'release.ts'),
+    releaseSource(release.version, jar.protocol_version, [
+        jar.pack_version.resource_major,
+        jar.pack_version.resource_minor
+    ])
+);
 writeFileSync(join(outDir, 'packets.ts'), packetTableSource(release.version, table));
 
 const blocksPath = join(worldgenCachePaths(release.version).reports, 'reports', 'blocks.json');

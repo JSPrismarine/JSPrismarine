@@ -13,14 +13,23 @@ const header = (release: string): string =>
  * The source of `release.ts`.
  * @param release - The release id.
  * @param protocolVersion - The jar's `protocol_version`.
+ * @param resourcePackFormat - The jar's `pack_version.resource_major` and `resource_minor`.
  * @returns The module text.
  */
-export const releaseSource = (release: string, protocolVersion: number): string =>
+export const releaseSource = (
+    release: string,
+    protocolVersion: number,
+    resourcePackFormat: readonly [number, number]
+): string =>
     `${header(release)}
 import type { JavaRelease } from '../javaRelease';
 
 /** Java Edition ${release}, as its server jar's \`version.json\` names it. */
-export const RELEASE: JavaRelease = { minecraftVersion: '${release}', protocolVersion: ${protocolVersion} };
+export const RELEASE: JavaRelease = {
+    minecraftVersion: '${release}',
+    protocolVersion: ${protocolVersion},
+    resourcePackFormat: [${resourcePackFormat[0]}, ${resourcePackFormat[1]}]
+};
 `;
 
 /**
