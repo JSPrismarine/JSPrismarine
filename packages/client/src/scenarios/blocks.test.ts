@@ -568,7 +568,7 @@ describe('bucket-pickup-place', { tags: ['real-data'] }, () => {
     /** A spot on the flat surface, clear of what the other scenarios build. */
     const STAND = { x: 160.5, y: -60, z: 160.5 };
 
-    it('fills the bucket in hand from a water source and empties it back out', async () => {
+    it('fills and empties the bucket in hand at a water source and a cauldron', async () => {
         const player = await jsp.join('Bucketeer');
         await jsp.command(`gamemode survival ${player.name}`);
         await standAt(player, STAND);
@@ -591,8 +591,21 @@ describe('bucket-pickup-place', { tags: ['real-data'] }, () => {
         await jsp.until(() => held() === 'minecraft:bucket', 'the water bucket never emptied');
         expect(serverBlockName({ x: 162, y: -60, z: 162 })).toBe('minecraft:water');
 
+        // Picked up again, then poured into a cauldron and drawn back out of it.
+        await useItemOn(player, { x: 162, y: -60, z: 162 });
+        await jsp.until(() => held() === 'minecraft:water_bucket', 'the bucket never filled again');
+        const cauldron = { x: 164, y: -60, z: 160 };
+        await place(cauldron, 'minecraft:cauldron');
+        await useItemOn(player, cauldron);
+        await jsp.until(() => held() === 'minecraft:bucket', 'the cauldron never took the water');
+        const level = () => overworld().loadedBlockAt(cauldron.x, cauldron.y, cauldron.z)?.states['fill_level'];
+        expect(level()).toBe(6);
+        await useItemOn(player, cauldron);
+        await jsp.until(() => held() === 'minecraft:water_bucket', 'the cauldron never gave the water back');
+        expect(level()).toBe(0);
+
         await jsp.tick(5);
-        // The filled bucket went into the hand, not onto the ground.
+        // Every filled and emptied bucket went into the hand, not onto the ground.
         expect(player.world.actorsOfType('minecraft:item')).toHaveLength(items);
 
         await jsp.command('fill 160 -60 158 166 -60 166 minecraft:air');

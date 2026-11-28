@@ -260,14 +260,19 @@ describe('cauldronFamily', () => {
         return harness;
     };
 
+    // The container comes back in the answer for the host to put in the hand. Dropped on the
+    // ground beside a held one the host never charged, every pour paid out a free bucket.
     it('takes a whole bucket and gives the empty one back', () => {
         const harness = emptyCauldron();
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:water_bucket') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:water_bucket') })).toEqual({
+            consumed: true,
+            heldItemBecomes: 'minecraft:bucket'
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_FULL);
         expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('water');
-        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:bucket']);
+        expect(harness.dimension.drops).toEqual([]);
     });
 
     it('fills a lava cauldron from a lava bucket and empties it back into one', () => {
@@ -277,10 +282,13 @@ describe('cauldronFamily', () => {
 
         expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('lava');
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toEqual({
+            consumed: true,
+            heldItemBecomes: 'minecraft:lava_bucket'
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
-        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:lava_bucket');
+        expect(harness.dimension.drops).toEqual([]);
     });
 
     it('refuses an empty bucket against a cauldron that is not full', () => {
@@ -294,15 +302,20 @@ describe('cauldronFamily', () => {
     it('moves two levels per bottle in each direction', () => {
         const harness = emptyCauldron();
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:potion') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:potion') })).toEqual({
+            consumed: true,
+            heldItemBecomes: 'minecraft:glass_bottle'
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_BOTTLE_LEVELS);
-        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:glass_bottle');
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toEqual({
+            consumed: true,
+            heldItemBecomes: 'minecraft:potion'
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
-        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:potion');
+        expect(harness.dimension.drops).toEqual([]);
     });
 
     it('refuses a brewed potion, which is not water', () => {

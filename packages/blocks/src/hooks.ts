@@ -254,20 +254,31 @@ export interface BlockStateChangeEvent extends BlockEvent {
 
 /**
  * The object form of an `onPlayerInteract` answer, for an interaction that
- * costs the player the held item.
+ * costs the player the held item or swaps it for another.
  *
- * It consumes the click exactly as returning `true` does, and adds the one
- * thing the boolean cannot say: that vanilla charges this click one of the
- * held item. The handler has no inventory to spend from, so the host that
- * dispatched the click takes the item out of the player's hand, outside
- * creative. The portal family answers with it when a held eye of ender fills
- * an end portal frame.
+ * It consumes the click exactly as returning `true` does, and adds what the
+ * boolean cannot say. The handler has no inventory to change, so the host that
+ * dispatched the click changes the player's. The portal family answers with
+ * `consumesHeldItem` when a held eye of ender fills an end portal frame, and
+ * the cauldron family with `heldItemBecomes` when a bucket fills or empties.
  */
 export interface BlockInteractResult {
     /** The handler consumed the interaction. */
     readonly consumed: true;
-    /** Whether the interaction spends one of the held item. */
+    /**
+     * Whether the interaction spends one of the held item. The host takes it out of the hand,
+     * outside creative.
+     */
     readonly consumesHeldItem?: boolean;
+    /**
+     * The item, as a Bedrock identifier, that one of the held item turns into, such as the empty
+     * bucket a water bucket leaves after filling a cauldron. The new item replaces the last one
+     * held, or goes into the inventory beside the rest of the stack and onto the ground when that
+     * is full. A creative
+     * player keeps the held item and gets the new one only when the inventory has none.
+     * It implies {@link consumesHeldItem}.
+     */
+    readonly heldItemBecomes?: string;
 }
 
 /**
