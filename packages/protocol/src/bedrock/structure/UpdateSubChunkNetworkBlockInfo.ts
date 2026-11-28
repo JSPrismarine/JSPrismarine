@@ -20,7 +20,9 @@ export default class UpdateSubChunkNetworkBlockInfo extends NetworkStructure {
      * @param position - `Pos`, the absolute block position.
      * @param runtimeId - `Runtime Id` of the block now at that position.
      * @param updateFlags - `Update Flags`, how the client applies the change.
-     * @param syncMessageEntityUniqueId - `Sync Message - Entity Unique ID`, 0 when the change is not synced with an actor.
+     * @param syncMessageEntityUniqueId - `Sync Message - Entity Unique ID`, an unsigned 64-bit
+     *   value. A change no actor syncs carries `0xffff_ffff_ffff_ffffn`, the -1 BDS writes, which
+     *   is also what decoding returns, so compare against that rather than `-1n`.
      * @param syncMessageType - `Sync Message - Message`, the transition type, 0 when none.
      */
     public constructor(
