@@ -481,6 +481,16 @@ Thrown as `PrismarineNetworkErrors.PlayerLocationNotDecoded`, which extends `Err
 A packet reached its handler without the decoded body the handler reads. This is a bug in the
 server; report it with the stack trace.
 
+## `PRISMARINE_PRESENTER_HAS_NO_SESSION`
+
+`A Bedrock presenter with no session cannot show the player's inventory`
+
+Thrown as `PrismarineNetworkErrors.PresenterHasNoSession`, which extends `Error`.
+
+A Bedrock presenter built without a session was asked to show the player's inventory, which
+it reads from the session. This is a bug in the server, or in a test that builds a
+presenter on its own; pass a `BedrockSessionState`.
+
 ## `PRISMARINE_PROVIDER_CANNOT_RESTORE_REPLAY`
 
 `Provider '{provider}' cannot restore replay snapshots`
