@@ -925,6 +925,21 @@ describe('AddonManager', () => {
         expect(reloads).toBe(1);
     });
 
+    it('says nothing waits for a restart when it installs a dropped pack as the server starts', async () => {
+        const extra = { 'blocks/light.json': '{}' };
+        await mkdir(path.join(directory, 'addons'));
+        await writeFile(path.join(directory, 'addons', 'lights.mcaddon'), mcaddon('1.0.0', { extra }));
+
+        // The startup sync runs before the content build, which loads the blocks with the rest.
+        await manager().sync({ reload: false });
+        expect(logged.some((line) => line.includes('load when the server restarts'))).toBe(false);
+
+        // Dropped while the server runs, the blocks wait for the next restart.
+        await writeFile(path.join(directory, 'addons', 'more-lights.mcaddon'), mcaddon('1.0.0', { extra }));
+        await manager().sync();
+        expect(logged).toContain('more-lights also has behavior/blocks, which load when the server restarts');
+    });
+
     it('installs a dropped pack again when its file is replaced, and removes it when the file is gone', async () => {
         const file = path.join(directory, 'addons', 'warps.mcaddon');
         await mkdir(path.dirname(file));

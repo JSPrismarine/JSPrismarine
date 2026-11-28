@@ -382,6 +382,8 @@ export class AddonManager {
             const failed: string[] = [];
             const active = this.installed;
             let changed = false;
+            // A startup sync runs before the content build, which loads what it installs.
+            const startup = options.reload === false;
 
             for (const key of [...locks.keys()]) {
                 if (own(requested.addons, key) !== undefined) continue;
@@ -412,12 +414,17 @@ export class AddonManager {
                         if (!migrating && (await this.isPresent(key, locked))) continue;
                         const resolved = await this.fromLock(key, locked);
                         locks.set(key, await this.place(key, resolved, locked));
-                        this.report(migrating ? 'Reinstalled' : 'Restored', key, resolved);
+                        this.report(migrating ? 'Reinstalled' : 'Restored', key, resolved, startup);
                     } else {
                         const outgoing = await this.packsOf(key);
                         const resolved = await this.resolve(key, request);
                         locks.set(key, await this.place(key, resolved, locked));
-                        this.report(locked === undefined ? 'Installed' : `Updated ${locked.version} to`, key, resolved);
+                        this.report(
+                            locked === undefined ? 'Installed' : `Updated ${locked.version} to`,
+                            key,
+                            resolved,
+                            startup
+                        );
                         this.reportOutgoing(key, outgoing);
                     }
                     changed = true;
@@ -551,8 +558,10 @@ export class AddonManager {
      * holds. What every install of its kind does, such as content that loads at the next restart,
      * is info whatever the archive was, so an `.mcaddon` and an addon from a source read alike; a
      * warning is something the owner should act on.
+     * @param beforeContent - Whether the install runs before the content build, as a startup sync
+     *   does. That build loads everything the addon holds, so nothing waits for a restart.
      */
-    private report(verb: string, key: string, { locked, packs, skipped }: Resolved): void {
+    private report(verb: string, key: string, { locked, packs, skipped }: Resolved, beforeContent = false): void {
         const { log } = this.options;
         log.info(`${verb} ${key} ${locked.version} from ${originOf(locked)}`);
         if (packs.length > 1 || packs.some(({ summary }) => summary.kind !== 'behavior'))
@@ -560,7 +569,7 @@ export class AddonManager {
         this.warnDeprecated(key, locked);
         for (const { member, reason } of skipped ?? [])
             log.warn(`${key} also holds ${member}, which the server does not install: ${reason}`);
-        const needsRestart = needsRestartOf(packs);
+        const needsRestart = beforeContent ? [] : needsRestartOf(packs);
         if (needsRestart.length > 0)
             log.info(`${key} also has ${needsRestart.join(', ')}, which load when the server restarts`);
         if (packs.some(({ summary }) => summary.kind === 'resource'))
