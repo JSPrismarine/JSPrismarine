@@ -19,6 +19,7 @@ describe('input/Intent', () => {
             'editBook',
             'editCommandBlock',
             'editCommandMinecart',
+            'editStructureBlock',
             'emote',
             'finishCredits',
             'holdButtons',
@@ -53,7 +54,8 @@ describe('input/Intent', () => {
             'turnLecternPage',
             'useItem',
             'useItemOnBlock',
-            'useLabTable'
+            'useLabTable',
+            'useStructureBlock'
         ]);
     });
 

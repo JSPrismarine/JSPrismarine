@@ -23,6 +23,7 @@ import {
     JavaCommandBlockMode,
     JavaHand,
     JavaRecipeBookType,
+    JavaStructureUpdateType,
     MOVE_ON_GROUND,
     MovePlayerPos,
     MovePlayerPosRot,
@@ -45,6 +46,7 @@ import {
     SetCarriedItem,
     SetCommandBlock,
     SetCommandMinecart,
+    SetStructureBlock,
     SetCreativeModeSlot,
     UseItem,
     UseItemOn
@@ -83,6 +85,13 @@ const HOTBAR_SLOTS = 9;
 
 /** The most pages vanilla's `Edit Book` codec takes. */
 const MAX_JAVA_BOOK_PAGES = 100;
+
+/** The action each of vanilla's structure block update types asks for, beside the settings every one carries. */
+const STRUCTURE_OPERATION_OF: ReadonlyMap<number, string> = new Map([
+    [JavaStructureUpdateType.SaveArea, 'save'],
+    [JavaStructureUpdateType.LoadArea, 'load'],
+    [JavaStructureUpdateType.ScanArea, 'scan']
+]);
 
 /** The player's session and world, which every packet of a player in the world needs. */
 const inWorld = (
@@ -318,6 +327,19 @@ export const PLAY_HANDLERS: readonly JavaPacketHandler[] = [
         command,
         trackOutput
     })),
+    // Every update stores the screen's settings, and a save, a load or a scan then acts on the
+    // area, as vanilla's `handleSetStructureBlock` does.
+    javaHandler(SetStructureBlock, ({ position, name, updateType }, context) => {
+        const { session, world } = inWorld(context, SetStructureBlock);
+        const { connection } = context;
+        connection.queue(world.players.intent(session, { kind: 'editStructureBlock', position, structure: name }));
+        const operation = STRUCTURE_OPERATION_OF.get(updateType);
+        if (operation !== undefined) {
+            connection.queue(
+                world.players.intent(session, { kind: 'useStructureBlock', position, structure: name, operation })
+            );
+        }
+    }),
     acknowledgedHandler(UseItemOn, (use) => ({ intent: javaUseItemOnIntentOf(use), sequence: use.sequence })),
     acknowledgedHandler(PlayerAction, (action, session) => ({
         intent:

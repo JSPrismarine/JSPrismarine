@@ -6,8 +6,8 @@ import type { SessionContext } from '@jsprismarine/prismarine/player/context/Han
 import UseLabTableHandler from '@jsprismarine/prismarine/input/handlers/UseLabTableHandler';
 import TurnLecternPageHandler from '@jsprismarine/prismarine/input/handlers/TurnLecternPageHandler';
 import ToggleCrafterSlotHandler from '@jsprismarine/prismarine/input/handlers/ToggleCrafterSlotHandler';
-import StructureBlockUpdateHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureBlockUpdateHandler';
-import StructureTemplateDataRequestHandler from '@jsprismarine/prismarine/editions/bedrock/handler/StructureTemplateDataRequestHandler';
+import EditStructureBlockHandler from '@jsprismarine/prismarine/input/handlers/EditStructureBlockHandler';
+import UseStructureBlockHandler from '@jsprismarine/prismarine/input/handlers/UseStructureBlockHandler';
 import type PlayerSession from '@jsprismarine/prismarine/player/PlayerSession';
 import type { Server } from '@jsprismarine/prismarine';
 import { inertEntityRuntime } from '@jsprismarine/prismarine/testing/entityServer';
@@ -22,15 +22,6 @@ import BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider'
 import BlockPosition from '@jsprismarine/prismarine/world/BlockPosition';
 import { Position } from '@jsprismarine/prismarine/world/Position';
 import { World } from '@jsprismarine/prismarine/world/World';
-import StructureBlockUpdatePacket, {
-    StructureBlockType,
-    StructureRedstoneSaveMode
-} from '@jsprismarine/protocol/bedrock/packet/StructureBlockUpdatePacket';
-import StructureTemplateDataRequestPacket, {
-    StructureTemplateRequestOperation
-} from '@jsprismarine/protocol/bedrock/packet/StructureTemplateDataRequestPacket';
-import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
-import { defaultStructureSettings } from '@jsprismarine/protocol/bedrock/structure/StructureSettings';
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
@@ -101,9 +92,6 @@ const UNLOADED_OUT_OF_REACH = new BlockPosition(70, 64, 0);
 /** A position as an intent carries it. */
 const plain = (position: BlockPosition) => ({ x: position.getX(), y: position.getY(), z: position.getZ() });
 
-/** A position as the packets carry it. */
-const blockPos = (position: BlockPosition) => new BlockPos(position.getX(), position.getY(), position.getZ());
-
 /** Each read-lane handler that names a block, the block it expects and where that block stands. */
 const HANDLERS: readonly {
     readonly packet: string;
@@ -158,22 +146,8 @@ const HANDLERS: readonly {
         block: 'minecraft:structure_block',
         at: new BlockPosition(3, 64, 0),
         handle: (position, context) =>
-            new StructureBlockUpdateHandler().handle(
-                new StructureBlockUpdatePacket({
-                    blockPosition: blockPos(position),
-                    structureData: {
-                        structureName: { unredacted: 'house', redacted: null },
-                        dataField: '',
-                        shouldIncludePlayers: false,
-                        shouldShowBoundingBox: false,
-                        structureBlockType: StructureBlockType.Data,
-                        structureSettings: defaultStructureSettings(),
-                        redstoneSaveMode: StructureRedstoneSaveMode.SavesToMemory
-                    },
-                    trigger: false,
-                    isWaterlogged: false,
-                    keepStructureVoid: false
-                }),
+            new EditStructureBlockHandler().handle(
+                { kind: 'editStructureBlock', position: plain(position), structure: 'house' },
                 context
             )
     },
@@ -182,13 +156,13 @@ const HANDLERS: readonly {
         block: 'minecraft:structure_block',
         at: new BlockPosition(3, 64, 0),
         handle: (position, context) =>
-            new StructureTemplateDataRequestHandler().handle(
-                new StructureTemplateDataRequestPacket({
-                    structureName: 'house',
-                    structurePosition: blockPos(position),
-                    structureSettings: defaultStructureSettings(),
-                    requestedOperation: StructureTemplateRequestOperation.QuerySavedStructure
-                }),
+            new UseStructureBlockHandler().handle(
+                {
+                    kind: 'useStructureBlock',
+                    position: plain(position),
+                    structure: 'house',
+                    operation: 'QuerySavedStructure'
+                },
                 context
             )
     }

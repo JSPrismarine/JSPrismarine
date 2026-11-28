@@ -39,6 +39,8 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    SetStructureBlock,
+    JavaStructureUpdateType,
     EditBook,
     SetCommandBlock,
     SetCommandMinecart,
@@ -423,9 +425,30 @@ describe('JavaConnections', () => {
             flags: JavaCommandBlockFlag.Conditional
         });
         java.send(SetCommandMinecart, { entityId: 9, command: 'say hi', trackOutput: true });
+        // A structure block saved: its settings, then the save.
+        java.send(SetStructureBlock, {
+            position: { x: 4, y: 64, z: 4 },
+            updateType: JavaStructureUpdateType.SaveArea,
+            mode: 0,
+            name: 'house',
+            offsetX: 0,
+            offsetY: 1,
+            offsetZ: 0,
+            sizeX: 5,
+            sizeY: 5,
+            sizeZ: 5,
+            mirror: 0,
+            rotation: 0,
+            data: '',
+            integrity: 1,
+            seed: 0n,
+            flags: 0
+        });
         await expect
             .poll(() => did.at(-1))
-            .toBe('intent {"kind":"editCommandMinecart","target":"9n","command":"say hi","trackOutput":true}');
+            .toBe(
+                'intent {"kind":"useStructureBlock","position":{"x":4,"y":64,"z":4},"structure":"house","operation":"save"}'
+            );
         java.destroy();
         await leaving;
 
@@ -454,6 +477,8 @@ describe('JavaConnections', () => {
             'intent {"kind":"editBook","slot":2,"edit":{"kind":"setPages","pages":["hi"],"title":"Diary"}}',
             'intent {"kind":"editCommandBlock","position":{"x":1,"y":64,"z":2},"mode":"repeat","conditional":true,"needsRedstone":true,"command":"say hi","trackOutput":false}',
             'intent {"kind":"editCommandMinecart","target":"9n","command":"say hi","trackOutput":true}',
+            'intent {"kind":"editStructureBlock","position":{"x":4,"y":64,"z":4},"structure":"house"}',
+            'intent {"kind":"useStructureBlock","position":{"x":4,"y":64,"z":4},"structure":"house","operation":"save"}',
             'leave'
         ]);
     });

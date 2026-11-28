@@ -38,8 +38,6 @@ import ServerboundPackSettingChangeHandler from './handler/ServerboundPackSettin
 import SetActorLinkHandler from './handler/SetActorLinkHandler';
 import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SimpleEventHandler from './handler/SimpleEventHandler';
-import StructureBlockUpdateHandler from './handler/StructureBlockUpdateHandler';
-import StructureTemplateDataRequestHandler from './handler/StructureTemplateDataRequestHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
@@ -86,8 +84,6 @@ export {
     SetActorLinkHandler,
     SetDifficultyHandler,
     SimpleEventHandler,
-    StructureBlockUpdateHandler,
-    StructureTemplateDataRequestHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
     TickingAreasLoadStatusHandler,

@@ -659,6 +659,7 @@
         "ServerboundSetCommandBlockPacket.write": "net/minecraft/network/protocol/game/ServerboundSetCommandBlockPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V",
         "ServerboundSetCommandMinecartPacket.write": "net/minecraft/network/protocol/game/ServerboundSetCommandMinecartPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V",
         "ServerboundSetCreativeModeSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundSetCreativeModeSlotPacket.STREAM_CODEC",
+        "ServerboundSetStructureBlockPacket.write": "net/minecraft/network/protocol/game/ServerboundSetStructureBlockPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V",
         "ServerboundStatusRequestPacket.STREAM_CODEC": "net/minecraft/network/protocol/status/ServerboundStatusRequestPacket.STREAM_CODEC",
         "ServerboundUseItemOnPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.STREAM_CODEC",
         "ServerboundUseItemPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundUseItemPacket.STREAM_CODEC",
@@ -1279,6 +1280,9 @@
         "net/minecraft/network/protocol/game/ServerboundSetCreativeModeSlotPacket.STREAM_CODEC": {
             "26.3": "sha256:6efaf8cdea8f4c0f6d13903799965b8a6d96937dbf4616e570ff40eee15857e6",
             "26.4-pre-1": "sha256:6efaf8cdea8f4c0f6d13903799965b8a6d96937dbf4616e570ff40eee15857e6"
+        },
+        "net/minecraft/network/protocol/game/ServerboundSetStructureBlockPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V": {
+            "26.3": "sha256:27dcf4a969ecfff64abdefbba0d35fa9276f637cd846ec68af31c416a2ee9b17"
         },
         "net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.STREAM_CODEC": {
             "26.3": "sha256:becd29ca40fb94b40285514d888d80f82cd5e768f5fabc011fc2f0926c32a4f9",
