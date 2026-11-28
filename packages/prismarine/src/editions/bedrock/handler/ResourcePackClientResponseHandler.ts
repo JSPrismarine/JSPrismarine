@@ -158,12 +158,18 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 }
 
                 const experiments = session.getWorld().getLevel().getExperiments();
-                const offered = context.services.resourcePacks.offered();
+                const { resourcePacks } = context.services;
+                const offered = resourcePacks.offered();
                 step.output(
                     session.getConnection().sendDataPacket(
                         new ResourcePackStackPacket({
                             texturePackRequired: offered.length > 0 && context.config.getTexturepackRequired(),
-                            texturePacks: offered.map(({ uuid, version }) => ({ uuid, version, subPackName: '' })),
+                            // The subpack the pack list named, as BDS names it in both.
+                            texturePacks: offered.map(({ uuid, version, resourceName }) => ({
+                                uuid,
+                                version,
+                                subPackName: resourcePacks.chosenSubpack(resourceName)
+                            })),
                             gameVersion: '*',
                             experiments: experimentToggles(experiments),
                             experimentsAlreadyEnabled: experiments.length > 0,

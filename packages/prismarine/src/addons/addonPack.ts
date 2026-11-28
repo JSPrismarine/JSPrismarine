@@ -148,6 +148,8 @@ export interface ArchivePack {
     /** Its folder inside the addon's, or `.` when the archive is this one pack. */
     readonly folder: string;
     readonly files: ReadonlyMap<string, Uint8Array>;
+    /** The content key of an encrypted pack, from the `.key` file beside it in the archive. */
+    readonly key?: Uint8Array;
 }
 
 /** One world an archive holds: an `.mcworld`, or an `.mctemplate`'s world. */
@@ -298,9 +300,9 @@ export const unpackArchive = (key: string, bytes: Uint8Array): UnpackedArchive =
     }
 
     const skipped: SkippedMember[] = archive.problems.map(({ name, message }) => ({ member: name, reason: message }));
-    const found: { member: string; files: Map<string, Uint8Array> }[] = [];
+    const found: { member: string; files: Map<string, Uint8Array>; key?: Uint8Array }[] = [];
     const worlds: ArchiveWorld[] = [];
-    for (const { name, kind, files } of archive.members) {
+    for (const { name, kind, files, key } of archive.members) {
         if (kind === 'world') {
             worlds.push({
                 member: name,
@@ -315,7 +317,7 @@ export const unpackArchive = (key: string, bytes: Uint8Array): UnpackedArchive =
             skipped.push({ member: name, reason: 'it is a skin pack, which players import themselves' });
             continue;
         }
-        found.push({ member: name, files });
+        found.push({ member: name, files, ...(key === undefined ? {} : { key }) });
     }
     if (found.length === 0 && worlds.length === 0)
         throw fail(
@@ -330,13 +332,13 @@ export const unpackArchive = (key: string, bytes: Uint8Array): UnpackedArchive =
     // more than one was; anything more gives each pack a folder of its own.
     const single = found.length === 1 && worlds.length === 0 && found[0]!.member === '';
     const taken = new Set<string>();
-    const packs = found.map(({ member, files }) => {
+    const packs = found.map(({ member, files, key }): ArchivePack => {
         if (single) return { member, folder: '.', files };
         const base = folderNameOf(member.split('/').filter(Boolean).at(-1) ?? member);
         let folder = base;
         for (let n = 2; taken.has(folder); n++) folder = `${base}-${n}`;
         taken.add(folder);
-        return { member: member || 'the archive', folder, files };
+        return { member: member || 'the archive', folder, files, ...(key === undefined ? {} : { key }) };
     });
     return { packs, worlds, skipped };
 };
@@ -389,6 +391,10 @@ export interface PackSummary {
      * pack the resource pack depends on stays on the server.
      */
     readonly addon: boolean;
+    /** Whether its manifest's `capabilities` list `raytraced`, which a client is told as BDS tells it. */
+    readonly rayTracing: boolean;
+    /** The `folder_name` of each of its manifest's `subpacks`, which a world can pick one of. */
+    readonly subpacks: readonly string[];
 }
 
 /**
@@ -463,7 +469,9 @@ const summarize = (
             uuid: dependency.uuid.toLowerCase(),
             version: dependency.version.join('.')
         })),
-        addon: manifest.productType === 'addon'
+        addon: manifest.productType === 'addon',
+        rayTracing: manifest.capabilities.includes('raytraced'),
+        subpacks: manifest.subpacks.map(({ folderName }) => folderName)
     };
 };
 

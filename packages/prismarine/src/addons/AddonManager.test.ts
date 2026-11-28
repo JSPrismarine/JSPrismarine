@@ -594,6 +594,42 @@ describe('AddonManager', () => {
         expect(addons.hasAddonPacks()).toBe(true);
     });
 
+    it("keeps an encrypted pack's content key beside the pack's folder, and removes it with the addon", async () => {
+        const key = '0123456789abcdef0123456789abcdef';
+        // In an .mcaddon, the key sits beside the nested pack it opens.
+        await writeFile(
+            path.join(directory, 'locked.mcaddon'),
+            writeZip(
+                new Map([
+                    ['behavior.mcpack', pack('1.0.0')],
+                    ['resources.mcpack', writeZip(resourcePackFiles())],
+                    ['resources.mcpack.key', encoder.encode(key)]
+                ])
+            )
+        );
+        // A lone pack's key sits beside the archive it is installed from.
+        await mkdir(path.join(directory, 'addons'));
+        await writeFile(path.join(directory, 'addons', 'lights.mcpack'), writeZip(resourcePackFiles()));
+        await writeFile(path.join(directory, 'addons', 'lights.mcpack.key'), key);
+        const addons = manager();
+
+        await addons.install('./locked.mcaddon');
+        expect(await addons.sync()).toEqual([]);
+
+        const read = (...parts: string[]) => readFile(path.join(directory, ...parts), 'utf8');
+        expect(await read('addons', 'locked', 'resources.key')).toBe(key);
+        expect(await read('addons', 'lights.key')).toBe(key);
+        // Beside each pack's folder, which is where the resource packs read it.
+        expect(addons.resourcePacks().map(({ directory: at }) => path.relative(directory, at))).toEqual([
+            path.join('addons', 'lights'),
+            path.join('addons', 'locked', 'resources')
+        ]);
+
+        await addons.remove('lights');
+        expect(await exists('addons', 'lights.key')).toBe(false);
+        expect(await exists('addons', 'lights.mcpack.key')).toBe(false);
+    });
+
     it('installs every pack of an .mcaddon, each in a folder of its own', async () => {
         await writeFile(path.join(directory, 'furniture.mcaddon'), mcaddon('1.2.0'));
         const addons = manager();

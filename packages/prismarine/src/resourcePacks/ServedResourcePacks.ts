@@ -10,6 +10,9 @@ import { writeZip } from '@jsprismarine/packs/zip';
 import type { PackIdVersion } from '@jsprismarine/protocol/bedrock/packet/ResourcePacksInfoPacket';
 
 import type { AddonResourcePack } from '../addons/AddonManager';
+import { CONTENTS_FILE, contentKeyFileOf, encryptedContentId, readContentKey } from './contentKey';
+import type { WorldResourcePack } from './worldResourcePacks';
+import { readWorldResourcePacks, subpackOf } from './worldResourcePacks';
 
 /**
  * How many bytes of a pack one `ResourcePackChunkDataPacket` carries. 256 KiB, as Geyser,
@@ -30,6 +33,19 @@ export interface ServedResourcePack {
     readonly resourceName: string;
     /** Whether its manifest calls it part of an addon, which the client is told it is. */
     readonly addon: boolean;
+    /** Whether its manifest lists the `raytraced` capability. */
+    readonly rayTracing: boolean;
+    /** The `folder_name` of each subpack its manifest lists. */
+    readonly subpacks: readonly string[];
+    /**
+     * The `Content Identity` the client is told: the content id an encrypted pack's
+     * `contents.json` names, otherwise the pack's UUID, as BDS sends it.
+     */
+    readonly contentIdentity: string;
+    /** The 32-byte key an encrypted pack is decrypted with, or an empty string for none. */
+    readonly contentKey: string;
+    /** Why an encrypted pack goes out without a key, which a client cannot then read. */
+    readonly keyProblem?: string;
     /** The pack as one zip, which the chunks are cut from. */
     readonly bytes: Uint8Array;
     /** The zip's SHA-256, which the client checks the download against. */
@@ -60,9 +76,25 @@ const filesOf = async (directory: string): Promise<Map<string, Uint8Array>> => {
     return files;
 };
 
-/** Zips one installed resource pack for sending. */
+/**
+ * Zips one installed resource pack for sending, with its key when it is encrypted.
+ *
+ * The zip is the pack's folder as it is on disk, ciphertext included, which the client checks
+ * against the SHA-256 it is sent. The key file sits beside the folder, so it never goes into the
+ * zip.
+ */
 export const servedPackOf = async ({ key, directory, summary }: AddonResourcePack): Promise<ServedResourcePack> => {
-    const bytes = writeZip(await filesOf(directory));
+    const files = await filesOf(directory);
+    const bytes = writeZip(files);
+    const encryptedAs = encryptedContentId(files.get(CONTENTS_FILE));
+    let contentKey = '';
+    let keyProblem: string | undefined;
+    if (encryptedAs !== undefined) {
+        const read = await readContentKey(directory);
+        if ('key' in read) contentKey = read.key;
+        else
+            keyProblem = `${contentKeyFileOf(directory)} ${'missing' in read ? 'is missing' : `does not hold its key: ${read.invalid}`}`;
+    }
     return {
         key,
         name: summary.name,
@@ -70,6 +102,11 @@ export const servedPackOf = async ({ key, directory, summary }: AddonResourcePac
         version: summary.version,
         resourceName: `${summary.uuid}_${summary.version}`,
         addon: summary.addon,
+        rayTracing: summary.rayTracing,
+        subpacks: summary.subpacks,
+        contentIdentity: encryptedAs ?? summary.uuid,
+        contentKey,
+        ...(keyProblem === undefined ? {} : { keyProblem }),
         bytes,
         sha256: createHash('sha256').update(bytes).digest(),
         chunkCount: Math.max(1, Math.ceil(bytes.byteLength / RESOURCE_PACK_CHUNK_SIZE))
@@ -101,6 +138,19 @@ export interface ResourcePackChunk {
     readonly data: Uint8Array;
 }
 
+/** What {@link ServedResourcePacks} reads besides the installed packs. */
+export interface ServedResourcePacksOptions {
+    /**
+     * Whether any installed pack, behavior or resource, calls itself part of an addon, which a
+     * login tells the client as BDS does; left out, none does.
+     */
+    readonly addonPacks?: () => boolean;
+    /** The folder of the world whose `world_resource_packs.json` picks each pack's subpack. */
+    readonly worldFolder?: () => string | undefined;
+    /** Says what the owner should fix, such as an encrypted pack with no key. */
+    readonly warn?: (message: string) => void;
+}
+
 /**
  * The packs the server offers, rebuilt whenever the installed list changes. Each build zips every
  * pack, so it runs once per change rather than once per join.
@@ -111,26 +161,53 @@ export interface ResourcePackChunk {
  */
 export class ServedResourcePacks {
     private readonly installed: () => readonly AddonResourcePack[];
-    private readonly addonPacks: () => boolean;
+    private readonly options: ServedResourcePacksOptions;
     private built?: { readonly from: readonly AddonResourcePack[]; readonly packs: Promise<ServedResourcePack[]> };
     /** The packs the last finished build offers, in stack order. */
     private latest: readonly ServedResourcePack[] = [];
     /** Every pack a build offered, by its resource name. */
     private readonly offeredByName = new Map<string, ServedResourcePack>();
+    /** The subpack the last {@link subpacks} read picked for each pack, by resource name. */
+    private chosen: ReadonlyMap<string, string> = new Map();
 
     /**
      * @param installed - The installed addons' resource packs; a new list means they changed.
-     * @param addonPacks - Whether any installed pack, behavior or resource, calls itself part of
-     *   an addon, which a login tells the client as BDS does; left out, none does.
+     * @param options - What else the offer reads.
      */
-    public constructor(installed: () => readonly AddonResourcePack[], addonPacks: () => boolean = () => false) {
+    public constructor(installed: () => readonly AddonResourcePack[], options: ServedResourcePacksOptions = {}) {
         this.installed = installed;
-        this.addonPacks = addonPacks;
+        this.options = options;
     }
 
     /** Whether the world holds an addon's packs, as a login's `Has Addon Packs` says. */
     public hasAddonPacks(): boolean {
-        return this.addonPacks();
+        return this.options.addonPacks?.() ?? false;
+    }
+
+    /**
+     * The subpack the world picks for each pack, by resource name, read from the world's
+     * `world_resource_packs.json` each time, so an edit applies at the next join. A pack the file
+     * picks no subpack for has none.
+     * @param packs - The packs a login offers.
+     */
+    public async subpacks(packs: readonly ServedResourcePack[]): Promise<ReadonlyMap<string, string>> {
+        const folder = this.options.worldFolder?.();
+        let world: ReadonlyMap<string, WorldResourcePack> = new Map();
+        if (folder !== undefined) {
+            const read = await readWorldResourcePacks(folder);
+            if (read.problem !== undefined) this.options.warn?.(read.problem);
+            world = read.packs;
+        }
+        this.chosen = new Map(packs.map((pack) => [pack.resourceName, subpackOf(world, pack)]));
+        return this.chosen;
+    }
+
+    /**
+     * The subpack the last {@link subpacks} read picked for a pack, for the pack stack a login
+     * sends after its pack list, which has to name the same one.
+     */
+    public chosenSubpack(resourceName: string): string {
+        return this.chosen.get(resourceName) ?? '';
     }
 
     /** The packs to offer, in stack order, top first. */
@@ -145,6 +222,11 @@ export class ServedResourcePacks {
                 }))
             );
             const packs = Promise.all(ordered.map(({ pack }) => servedPackOf(pack))).then((served) => {
+                for (const pack of served)
+                    if (pack.keyProblem !== undefined)
+                        this.options.warn?.(
+                            `${pack.key}'s resource pack ${pack.name} is encrypted and ${pack.keyProblem}, so players cannot read it`
+                        );
                 // A build the list moved on from while it ran stays to be downloaded, but is not
                 // what a login offers.
                 if (this.built?.from === from) this.latest = served;

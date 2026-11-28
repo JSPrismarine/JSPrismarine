@@ -57,7 +57,7 @@ describe('ResourcePackChunkRequestHandler', () => {
         const pack = stub<ServedResourcePack>({ bytes, chunkCount: 2, resourceName: 'pack_1.0.0' });
         const { context, settled } = inputContext(session, {
             log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
-            services: { resourcePacks: { offered: () => [pack], find: () => pack } }
+            services: { resourcePacks: { offered: () => [pack], find: () => pack, chosenSubpack: () => '' } }
         });
         const packet = Object.assign(new ResourcePackChunkRequestPacket(), { resourceName: 'pack_1.0.0', chunk: 1 });
 
@@ -79,7 +79,10 @@ describe('ResourcePackChunkRequestHandler', () => {
         const pack = stub<ServedResourcePack>({ bytes: new Uint8Array(10), chunkCount: 1 });
         const context = {
             ...plain,
-            services: { ...plain.services, resourcePacks: { offered: () => [pack], find: () => pack } }
+            services: {
+                ...plain.services,
+                resourcePacks: { offered: () => [pack], find: () => pack, chosenSubpack: () => '' }
+            }
         };
         const packet = Object.assign(new ResourcePackChunkRequestPacket(), { resourceName: 'pack_1.0.0', chunk: 1 });
 

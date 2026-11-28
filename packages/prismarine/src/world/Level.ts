@@ -193,6 +193,11 @@ export class Level {
     /** The folder name under `worlds/`, which is also the `worlds.<name>` key. */
     public readonly name: string;
 
+    /** The level's folder, such as `worlds/world`, which holds its save and its pack lists. */
+    public getFolder(): string {
+        return this.path;
+    }
+
     /** The seed every generated chunk, structure placement and carver in this level comes from. */
     public readonly seed: bigint;
     /** The Java release the level is opened and saved under; see {@link LevelOptions.javaTarget}. */

@@ -730,6 +730,11 @@ export default class WorldManager implements Service {
         return Array.from(this.levels.values());
     }
 
+    /** The entry level's folder, or undefined before it loads. */
+    public getEntryLevelFolder(): string | undefined {
+        return this.entry?.level.getFolder();
+    }
+
     /**
      * The entry level: the one `level-name` names, which a joining player enters first. It is the
      * level of the console, the datapack functions and a lookup that names no level, and no other
