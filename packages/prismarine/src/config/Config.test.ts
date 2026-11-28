@@ -40,16 +40,34 @@ describe('config', () => {
             expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).toContain('"server-portv6": 19133');
         });
 
-        it('writes server-port to a fresh file, and none of the keys that follow it, even when read again', async () => {
+        it('writes server-port and server-udp-ports to a fresh file, and leaves out query and the public address', async () => {
             const read = () => readFileSync(path.join(configDirectory, 'config.json'), 'utf8');
             const reread = new Config();
             await reread.enable();
 
             expect(read()).toContain('"server-port": 19132');
-            for (const key of ['port', 'server-udp-ports', 'query-port', 'server-public-ip']) {
+            expect(read()).toContain('"server-udp-ports": "19132"');
+            for (const key of ['port', 'query-port', 'server-public-ip']) {
                 expect(read()).not.toContain(`"${key}"`);
             }
-            expect([reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([25565, '']);
+            expect([reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([25565, '19132']);
+        });
+
+        it("writes a file's own server-port as server-udp-ports when the file has none", async () => {
+            const file = path.join(configDirectory, 'config.json');
+            writeFileSync(file, `{ "schemaVersion": ${CONFIG_SCHEMA_VERSION}, "server-port": 19200 }\n`);
+            const reread = new Config();
+            await reread.enable();
+
+            expect(readFileSync(file, 'utf8')).toContain('"server-udp-ports": "19200"');
+            expect(reread.getServerUdpPorts()).toBe('19200');
+        });
+
+        it('lets a server-udp-ports equal to server-port follow a server port given at runtime', async () => {
+            const overridden = new Config({ serverPort: 0 });
+            await overridden.enable();
+
+            expect(overridden.getServerUdpPorts()).toBe('');
         });
 
         it("renames an older file's port to server-port, keeping its value and comments", async () => {
@@ -243,8 +261,8 @@ describe('config', () => {
             expect(config.getEnableRakNet()).toBe(true);
             expect(config.getEnableNetherNet()).toBe(true);
             expect(config.getEnableLanVisibility()).toBe(true);
-            // Unset, as Bedrock Dedicated Server 1.26.70 ships it: NetherNet's UDP is the server port.
-            expect(config.getServerUdpPorts()).toBe('');
+            // Written as the server port, so NetherNet's UDP shares it with RakNet.
+            expect(config.getServerUdpPorts()).toBe('19132');
         });
 
         it('advertises no public address unless config.json names one, and writes none to a fresh file', async () => {

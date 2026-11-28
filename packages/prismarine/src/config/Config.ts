@@ -232,7 +232,6 @@ const BSTATS_COMMENT = [
  */
 export const OPTIONAL_SETTINGS = [
     'player-data-groups',
-    'server-udp-ports',
     'server-public-ip',
     'query-port',
     'script-watchdog-enable-shutdown',
@@ -676,9 +675,15 @@ export class Config {
         const fileJavaPort = read('java-port', DEFAULTS['java-port']);
         this.javaPort = javaPortFromEnv() ?? fileJavaPort;
         this.accountLinking = read('account-linking', DEFAULTS['account-linking']);
-        // Unset, NetherNet's UDP and query follow the server port, as Bedrock Dedicated Server's
-        // server-udp-ports does; reading them writes nothing.
-        this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
+        // Written with server-port's value, so the file shows where NetherNet's UDP goes and a file
+        // from before the key keeps it on its own server-port. A value equal to the file's
+        // server-port follows a server port given at runtime.
+        const fileUdpPorts = read('server-udp-ports', String(filePort));
+        this.serverUdpPorts =
+            this.serverPortOverride !== undefined && fileUdpPorts.trim() === String(filePort)
+                ? DEFAULTS['server-udp-ports']
+                : fileUdpPorts;
+        // A fresh config leaves server-public-ip out; reading it writes nothing.
         this.serverPublicIp = readUnwritten('server-public-ip', DEFAULTS['server-public-ip']);
         this.enableServerPublicIpLookup = read(
             'enable-server-public-ip-lookup',
