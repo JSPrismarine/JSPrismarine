@@ -5,7 +5,8 @@
  * joins, and the `StartGamePacket.blockProperties` entry the server sends for each of their
  * blocks becomes `goldens/pack-blocks.json`, as the plain NBT `nbtToPlain` reads. Where
  * `CreativeContentPacket` files their blocks and items, and the creative keys of the items'
- * `ItemRegistryPacket` entries, become `goldens/pack-creative.json`.
+ * `ItemRegistryPacket` entries, become `goldens/pack-creative.json`. The entries
+ * `AvailableActorIdentifiersPacket` gives their entities become `goldens/pack-actors.json`.
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
@@ -37,6 +38,8 @@ import {
     renderPackBlocksGolden
 } from '../src/packBlocks.ts';
 import type { PackBlocksGolden } from '../src/packBlocks.ts';
+import { PACK_ACTORS_GOLDEN, packActorEntriesOf, renderPackActorsGolden } from '../src/packActors.ts';
+import type { PackActorsGolden } from '../src/packActors.ts';
 import { PACK_CREATIVE_GOLDEN, creativeItemPropertiesOf, renderPackCreativeGolden } from '../src/packCreative.ts';
 import type {
     CompoundReader,
@@ -97,6 +100,7 @@ const server = startServer({
 
 let blocks: PackBlocksGolden['blocks'] = {};
 let creative: Omit<PackCreativeGolden, '$comment' | 'server'> | undefined;
+let actors: PackActorsGolden['actors'] = {};
 try {
     await server.waitForLine(
         (line) => line.includes(READY_LINE),
@@ -122,6 +126,12 @@ try {
         import.meta.url
     );
     client.getRegistry().register(CreativeContentPacket);
+    const { default: AvailableActorIdentifiersPacket } = await tsImport(
+        join(packages, 'protocol', 'src', 'bedrock', 'packet', 'AvailableActorIdentifiersPacket.ts'),
+        import.meta.url
+    );
+    if (!client.getRegistry().has(new AvailableActorIdentifiersPacket().getId()))
+        client.getRegistry().register(AvailableActorIdentifiersPacket);
 
     interface Stack {
         runtimeId: number;
@@ -131,11 +141,12 @@ try {
         groups: { category: number; name: string; icon: Stack }[];
         entries: { item: Stack; group: number }[];
     }
-    const received: { menu?: Menu } = {};
+    const received: { menu?: Menu; actors?: Buffer } = {};
     const names = new Map<number, string>();
     const items: Record<string, PackCreativeItemProperties> = {};
-    client.on('packet', ({ name, data }: { name: string; data: any }) => {
+    client.on('packet', ({ name, data, packet }: { name: string; data: any; packet: any }) => {
         if (name === 'CreativeContentPacket') received.menu = data;
+        if (name === 'AvailableActorIdentifiersPacket') received.actors = packet.identifiers;
         if (name !== 'ItemRegistryPacket') return;
         for (const item of data.items as { name: string; runtimeId: number; componentData: CompoundReader }[]) {
             names.set(item.runtimeId, item.name);
@@ -154,6 +165,8 @@ try {
     client.disconnect();
     const { menu } = received;
     if (menu === undefined) throw new Error('The server sent no CreativeContentPacket.');
+    if (received.actors === undefined) throw new Error('The server sent no AvailableActorIdentifiersPacket.');
+    actors = packActorEntriesOf(nbt.nbtToPlain(nbt.readNetworkNbt(received.actors)));
 
     const entries: Record<string, PackCreativeEntry> = {};
     for (const entry of menu.entries) {
@@ -215,3 +228,16 @@ await writeFile(
     })
 );
 console.log(`Wrote ${PACK_CREATIVE_GOLDEN}: ${Object.keys(creative.entries).length} entries.`);
+
+await writeFile(
+    PACK_ACTORS_GOLDEN,
+    renderPackActorsGolden({
+        $comment: [
+            'The entries the pinned Bedrock Dedicated Server writes into AvailableActorIdentifiersPacket for the',
+            'entities of scenarios/pack-blocks/, as nbtToPlain reads each, without its rid.',
+            'Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand.'
+        ],
+        server: { protocolVersion, serverVersion: pinnedServer.serverVersion },
+        actors
+    })
+);

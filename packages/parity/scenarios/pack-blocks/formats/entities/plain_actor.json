@@ -1,0 +1,13 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "parity:plain_actor",
+            "is_spawnable": false,
+            "is_summonable": true
+        },
+        "components": {
+            "minecraft:health": { "value": 1, "max": 1 }
+        }
+    }
+}
