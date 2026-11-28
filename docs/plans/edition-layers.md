@@ -83,16 +83,23 @@ Progress:
   presenter sends the packets. `sendContainerSlot`, which only Bedrock's handlers call, is
   `editions/bedrock/containerSlot.ts` now. A Java client is opened no screen yet
   ([#3769](https://github.com/JSPrismarine/JSPrismarine/issues/3769)).
-- Slice 4.4 lands in three parts. The first, the world change and the respawn exchange, is under
-  review. `showWorldChange` sends the change and returns the loading screen the session waits on,
-  which Java has none of, and `showRespawnPoint` sends Bedrock's `Respawn` states. The session's
-  last two edition checks are gone: it asks `placesItselfOnRespawn` instead. Against the
-  `change-dimension` captures, a Bedrock change no longer sends `StopSound` or `PlayStatus`
-  ([#3882](https://github.com/JSPrismarine/JSPrismarine/issues/3882)). The chunk path as a
-  `ChunkWire`, then the creative and crafting data with the join burst, follow. The second part,
-  the chunk path, is under review: `BedrockChunkWire` sends a Bedrock client's publisher updates,
-  chunks, radius, sub chunks and cache blobs, and the session sends both editions' chunks through
-  one path that settles each chunk the wire reports.
+- Slice 4.4, in three parts. The world change and the respawn exchange: merged in
+  [#3897](https://github.com/JSPrismarine/JSPrismarine/pull/3897). `showWorldChange` sends the
+  change and returns the loading screen the session waits on, which Java has none of, and
+  `showRespawnPoint` sends Bedrock's `Respawn` states. The session asks `placesItselfOnRespawn`
+  where it checked the edition. Against the `change-dimension` captures, a Bedrock change no
+  longer sends `StopSound` or `PlayStatus`
+  ([#3882](https://github.com/JSPrismarine/JSPrismarine/issues/3882)). The chunk path: merged in
+  [#3899](https://github.com/JSPrismarine/JSPrismarine/pull/3899). `BedrockChunkWire` sends a
+  Bedrock client's publisher updates, chunks, radius, sub chunks and cache blobs, and the session
+  sends both editions' chunks through one path. The creative menu and the recipes: under review.
+  `sendCreativeContents` and `sendCraftingData` are functions of `editions/bedrock/joinContent`,
+  which only the join burst calls.
+- Left in `PlayerSession` after slice 4: four Bedrock packets it still builds. `AvailableCommands`
+  goes out at the join and again when a player's permissions change, `ShowCredits` starts the End's
+  credits, `MoveActorAbsolute` is the movement the replicator batches, and `PlayStatus` closes the
+  login and the join's spawn. Each becomes a presenter call, or moves into the Bedrock join, in a
+  slice of its own.
 
 ## Problem
 

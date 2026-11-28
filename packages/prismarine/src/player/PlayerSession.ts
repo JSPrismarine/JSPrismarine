@@ -1,6 +1,5 @@
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
-import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Gametype } from '@jsprismarine/minecraft';
 import { CommandPermissionLevel, DisconnectReason } from '@jsprismarine/minecraft';
@@ -85,19 +84,12 @@ import type { PlayerSpawn } from '../world/SpawnPlacement';
 import type Chunk from '../world/chunk/Chunk';
 import type ClientConnection from '../network/ClientConnection';
 import { forgetAdvancements } from '../advancement/progress';
-import { forgetRecipeBook, loadRecipeBook, rewardedRecipesOf, showRecipeBook } from '../crafting/recipeBook';
+import { forgetRecipeBook, loadRecipeBook, rewardedRecipesOf } from '../crafting/recipeBook';
 import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
 import { BossBar } from './BossBar';
 import { EntityTracker } from './EntityTracker';
 import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from './sessionPlayers';
-import {
-    craftingRecipeCount,
-    joinContentPayloads,
-    limitCraftingData,
-    recipeBookEntriesOf
-} from '../editions/bedrock/contentPayloads';
-import { sendCachedJoinPacket } from '../editions/bedrock/joinPacketCache';
-import { creativeContentFrom } from '../editions/bedrock/payloadAdapters';
+import { recipeBookEntriesOf } from '../editions/bedrock/contentPayloads';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../editions/bedrock/spawnPosition';
 import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
@@ -1654,78 +1646,6 @@ export default class PlayerSession {
         this.windowId = ((this.windowId - WindowIds.FIRST + 1) % span) + WindowIds.FIRST;
 
         return this.windowId;
-    }
-
-    /**
-     * Tells the client which recipes exist.
-     *
-     * Until it has these the client proposes nothing and never sends a `CRAFTING_RECIPE`, so
-     * everything below this - the matcher, the stations, the grid - is invisible without it.
-     *
-     * The recipes come from the content build's recipe book, and a recipe's net id is its
-     * position in that book, which is what an `ItemStackRequest` names it by. A build that
-     * produced no payload sends nothing, so the client proposes nothing it cannot craft.
-     *
-     * How many go out is `crafting-recipe-limit` in the config: `0` sends nothing, `-1`
-     * sends everything, and it starts at one. See there for why.
-     */
-    public async sendCraftingData(): Promise<void> {
-        const limit = this.server.getConfig().getCraftingRecipeLimit();
-        if (limit === 0) return;
-
-        const content = this.server.getContent();
-        const payloads = joinContentPayloads(content, this.server.getLogger(), {
-            itemData: this.connection.codec.itemData
-        });
-        if (payloads === undefined || craftingRecipeCount(payloads.crafting) === 0) return;
-
-        const all = craftingRecipeCount(payloads.crafting);
-        const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
-
-        await sendCachedJoinPacket(
-            this.connection,
-            content,
-            limit,
-            this.server.getConfig().getPacketCompressionLevel(),
-            new CraftingDataPacket(crafting)
-        );
-
-        const sent = craftingRecipeCount(crafting);
-        this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.identity.name}`);
-
-        // After the recipes, so every entry the book names is one the client has.
-        await showRecipeBook(this.keyed());
-    }
-
-    public async sendCreativeContents(empty = false): Promise<void> {
-        if (empty) {
-            await this.connection.sendDataPacket(new CreativeContentPacket({ groups: [], entries: [] }));
-            return;
-        }
-
-        // The same list a creative pick is resolved through, so that the position the client
-        // sends back names the entry it was shown. `creativePick` reads the same two sources
-        // in the same order.
-        const { server } = this;
-        const content = server.getContent();
-        const payloads = joinContentPayloads(content, server.getLogger(), {
-            itemData: this.connection.codec.itemData
-        });
-        if (payloads === undefined) {
-            const creative = server.getCreativeInventory();
-            await this.connection.sendDataPacket(
-                new CreativeContentPacket(creativeContentFrom(creative.getGroups(), creative.getEntries()))
-            );
-            return;
-        }
-
-        await sendCachedJoinPacket(
-            this.connection,
-            content,
-            this.server.getConfig().getCraftingRecipeLimit(),
-            this.server.getConfig().getPacketCompressionLevel(),
-            new CreativeContentPacket(payloads.creative)
-        );
     }
 
     /**

@@ -65,8 +65,11 @@ export interface HandlerServices {
     readonly content: ServerContent;
     /** The item actors of each dimension, which the content interactions read. */
     readonly contentWorld: Pick<ServerWorldHandle, 'actorsAt'>;
-    /** The creative inventory, for a creative pick the content payloads do not answer. */
-    readonly creativeInventory: Pick<CreativeInventory, 'get'>;
+    /**
+     * The creative inventory, for a creative pick the content payloads do not answer and the
+     * join's menu when no payloads were built.
+     */
+    readonly creativeInventory: Pick<CreativeInventory, 'get' | 'getGroups' | 'getEntries'>;
     /** The other sessions on the server, and the player list. */
     readonly sessions: Pick<SessionManager, 'getSessions' | 'sessionOf' | 'getPlayerList'>;
     /**

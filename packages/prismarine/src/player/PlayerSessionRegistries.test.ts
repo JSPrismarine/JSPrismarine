@@ -30,6 +30,8 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import type { CraftingData, CreativeContent } from '@jsprismarine/protocol';
 import { testContent } from '../testing/entityServer';
+import type { JoinContent } from '../editions/bedrock/joinContent';
+import { sendCraftingData, sendCreativeContents } from '../editions/bedrock/joinContent';
 
 /** A session whose connection records what goes out, speaking for a server. */
 const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
@@ -53,6 +55,22 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
 };
 
 const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {} });
+
+/** What the join burst hands the two sends, read from the session's server as the handler reads it. */
+const joinOf = (session: PlayerSession): JoinContent => {
+    const server = session.getServer();
+    const config = server.getConfig();
+    return {
+        content: server.getContent(),
+        payloads: joinContentPayloads(server.getContent(), server.getLogger(), {
+            itemData: session.getConnection().codec.itemData
+        }),
+        recipeLimit: config.getCraftingRecipeLimit(),
+        compressionLevel: config.getPacketCompressionLevel(),
+        creativeInventory: () => server.getCreativeInventory(),
+        log: server.getLogger()
+    };
+};
 
 /** The config both paths read, with everything the server has set to go out. */
 const everyRecipe = () =>
@@ -120,7 +138,7 @@ describe('PlayerSession', () => {
         it('sends the captured catalog when no content was built', async () => {
             const { session, sent } = sessionFor(captureServer());
 
-            await session.sendCreativeContents();
+            await sendCreativeContents(session, joinOf(session));
 
             expect(creativeContent(sent).entries.length).toBeGreaterThan(0);
         });
@@ -129,7 +147,7 @@ describe('PlayerSession', () => {
             const { payloads, server } = contentServer();
             const { session, sent } = sessionFor(server);
 
-            await session.sendCreativeContents();
+            await sendCreativeContents(session, joinOf(session));
 
             expect(creativeContent(sent)).toBe(payloads.creative);
         });
@@ -149,17 +167,9 @@ describe('PlayerSession', () => {
             expect(at2225?.creative).not.toBe(payloads.creative);
 
             const { session, sent } = sessionFor(server, Codec2225);
-            await session.sendCreativeContents();
+            await sendCreativeContents(session, joinOf(session));
 
             expect(creativeContent(sent)).toBe(at2225?.creative);
-        });
-
-        it('sends an empty menu on request, whatever the content says', async () => {
-            const { session, sent } = sessionFor(contentServer().server);
-
-            await session.sendCreativeContents(true);
-
-            expect(creativeContent(sent)).toEqual({ groups: [], entries: [] });
         });
     });
 
@@ -168,7 +178,7 @@ describe('PlayerSession', () => {
             // The test content's palette is not the client's, so no payload can be built from it.
             const { session, sent } = sessionFor(captureServer());
 
-            await session.sendCraftingData();
+            await sendCraftingData(session, joinOf(session));
 
             expect(sent.some((packet) => packet instanceof CraftingDataPacket)).toBe(false);
         });
@@ -177,7 +187,7 @@ describe('PlayerSession', () => {
             const { payloads, server } = contentServer();
             const { session, sent } = sessionFor(server);
 
-            await session.sendCraftingData();
+            await sendCraftingData(session, joinOf(session));
 
             expect(craftingData(sent)).toBe(payloads.crafting);
         });
@@ -185,10 +195,14 @@ describe('PlayerSession', () => {
         it('sends nothing at all when the limit is zero', async () => {
             const { server } = contentServer();
             const { session, sent } = sessionFor(
-                stub<Server>({ ...server, getConfig: () => stub<Config>({ getCraftingRecipeLimit: () => 0 }) })
+                stub<Server>({
+                    ...server,
+                    getConfig: () =>
+                        stub<Config>({ getCraftingRecipeLimit: () => 0, getPacketCompressionLevel: () => 1 })
+                })
             );
 
-            await session.sendCraftingData();
+            await sendCraftingData(session, joinOf(session));
 
             expect(sent).toEqual([]);
         });

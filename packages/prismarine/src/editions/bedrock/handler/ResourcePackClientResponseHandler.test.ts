@@ -30,6 +30,7 @@ import { registeredCodecs } from '../../../network/codec/CodecRegistry';
 import Codec2225 from '../../../network/codec/Codec2225';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type PlayerSession from '../../../player/PlayerSession';
+import type { KeyedPlayer } from '../../../keyedPlayer';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
@@ -165,8 +166,6 @@ const harness = ({
         announceSettings: record('Settings'),
         kick,
         getConnection: () => connection,
-        sendCreativeContents: record('CreativeContent'),
-        sendCraftingData: record('CraftingData'),
         sendAvailableCommands: record('AvailableCommands'),
         addToPlayerList: record('PlayerList(broadcast add)'),
         sendPlayerList: record('PlayerList'),
@@ -174,7 +173,9 @@ const harness = ({
         sendAttributes: record('UpdateAttributes'),
         sendMetadata: record('SetActorData'),
         sendInventory: record('InventoryContent'),
-        announcedJoin: () => {}
+        announcedJoin: () => {},
+        // The recipe book the join shows after the recipes, which no test here has filled.
+        keyed: () => stub<KeyedPlayer>({ key: 'runner' })
     });
 
     const announce = vi.fn(async (_chat: Chat) => {});
@@ -303,8 +304,8 @@ describe('ResourcePackClientResponseHandler', () => {
             'CameraPresetsPacket',
             'CameraAimAssistPresetsPacket',
             'FeatureRegistryPacket',
-            'CreativeContent',
-            'CraftingData',
+            'CreativeContentPacket',
+            'CraftingDataPacket',
             'AvailableCommands',
             // World state, after the world exists on the client.
             'PlayerList(broadcast add)',
@@ -770,7 +771,8 @@ describe('ResourcePackClientResponseHandler', () => {
 
         await respond(handler, response(ResourcePackStatus.Completed), parts, session);
 
-        expect(debug).not.toHaveBeenCalled();
+        // The retry is not dropped as a second completion.
+        expect(debug).not.toHaveBeenCalledWith(expect.stringContaining('dropped'));
         expect(session.getConnection().phase).toBe('play');
         expect(sent.filter((name) => name === 'StartGamePacket')).toHaveLength(1);
         expect(announce).toHaveBeenCalledOnce();
