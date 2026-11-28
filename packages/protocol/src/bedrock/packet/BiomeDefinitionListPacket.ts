@@ -39,7 +39,7 @@ interface RawEntry {
 /**
  * A biome definition payload, both fields, with `entries` added after the ones it holds. Each
  * new entry's tag strings that the string list lacks join it, then the entry's name, which is
- * the order BDS 1.26.60.6 wrote them in for a behavior pack's biomes.
+ * the order protocol 2225's pinned BDS wrote them in for a behavior pack's biomes.
  *
  * @param payload - The payload to add to, as {@link BiomeDefinitionListPacket.definitions} holds it.
  * @throws {ProtocolCodecErrors.BiomeChunkGenerationDataUnsupported} When an entry of the payload

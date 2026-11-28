@@ -15,7 +15,7 @@ const origin = ({ host, port }: SignalingAddress): string =>
 /** What `GET /v1/join` said about a server that speaks NetherNet. */
 export interface JoinProbe {
     /**
-     * The server's status, when it sent one. Bedrock Dedicated Server 1.26.51 answers with an empty
+     * The server's status, when it sent one. Protocol 2193's pinned Bedrock Dedicated Server answers with an empty
      * body when LAN visibility is off, and go-nethernet does when it has no status to give.
      */
     readonly status?: NetherNetStatus;

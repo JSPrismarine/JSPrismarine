@@ -2,7 +2,7 @@
  * `StartGamePacket`: who the joining player is, where they are, and what world they are in.
  *
  * Field names and order follow the docs' packet page and `packet/StartGamePacket.ts`, whose
- * layout was proven by round-tripping the packet a Bedrock Dedicated Server 1.26.51 sends.
+ * layout was proven by round-tripping the packet protocol 2193's pinned Bedrock Dedicated Server sends.
  * Two things about the layout are worth naming because both are easy to get wrong from older
  * descriptions of it:
  *

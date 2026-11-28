@@ -1,6 +1,25 @@
 # Bedrock versions: each protocol checked against its own server
 
-Status: accepted direction, 2026-11-28.
+Status: accepted direction, 2026-11-28. Built in one pull request, which delivers every slice
+below; the trade exchange waits on [#3884](https://github.com/JSPrismarine/JSPrismarine/issues/3884).
+
+Progress:
+
+- The capture pass, `dump:bedrock --pass exchanges`, and the `protocol.bedrock-exchanges` family
+  are in. Five scenarios are captured at all three protocols: a chest's screen, a crafting table's,
+  a death, the respawn after it and a command's trip to the Nether. Every capture reproduces.
+- The first captures changed JSPrismarine in two places: it sends `DeathInfo` before `Respawn`, as
+  every pinned server does, and opens a client's first window as 2. Two differences stay open as
+  `deferred` rows: a `PlayStatus` after a dimension change
+  ([#3882](https://github.com/JSPrismarine/JSPrismarine/issues/3882)) and the container name in
+  `InventoryContent` ([#3883](https://github.com/JSPrismarine/JSPrismarine/issues/3883)). The
+  captures also show a protocol difference: window 124 holds 54 slots at 2193 and 57 at 2225 and
+  2259.
+- `lint:bds-sources` resolves every `@bdsSee` tag and refuses a BDS version in source prose. The
+  citations migrated: a pinned server is named by its protocol, the claims an exchange shows carry
+  its tag, and the ones measured against a server no pin holds call it unpinned.
+- The merge group replays at every protocol with `JSP_EXCHANGE_PROTOCOLS=all`, and the protocol
+  bring-up skill captures and replays the exchanges.
 
 ## Problem
 

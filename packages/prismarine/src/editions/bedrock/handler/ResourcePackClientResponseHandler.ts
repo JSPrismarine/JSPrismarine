@@ -249,7 +249,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
      *    `SetActorData`. The local player, which the client creates when it handles StartGame.
      * 7. `InventoryContent`. Needs the item registry from step 3 and a player from step 6.
      * 8. `Respawn`, three of them, for a player placed at the spawn: see {@link joinRespawns}.
-     *    BDS 1.26.52 sends them right after `AvailableCommands`, at the end of its own burst.
+     *    An unpinned BDS sends them right after `AvailableCommands`, at the end of its own burst.
      * 9. The join message, as the last thing so it lands on a client that can show it.
      *
      * Not sent here, on purpose:

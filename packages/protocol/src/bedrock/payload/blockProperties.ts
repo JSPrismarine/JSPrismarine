@@ -6,8 +6,7 @@
  * own into the vanilla behavior pack, and a client at that version or later
  * expects every one of them here. The reference this module is written
  * against is the capture of those 98 that `@jsprismarine/bedrock-data`
- * publishes as `block_definitions`, taken from a Bedrock Dedicated Server
- * 1.26.60.6.
+ * publishes as `block_definitions`, taken from protocol 2225's pinned Bedrock Dedicated Server.
  *
  * The component names in the NBT are not the component names in the JSON,
  * and the differences are not a pattern: `seconds_to_destroy` becomes
@@ -116,7 +115,7 @@ const booleanAt = (source: Record<string, unknown>, key: string, fallback: boole
  *
  * Verified against both captured boxes of `minecraft:shelf_mushroom`:
  * `origin [-5, 4, 1]` with `size [10, 7, 7]` is `min (3, 4, 9)` to
- * `max (13, 11, 16)`, and against The Sift's stairs, where BDS 1.26.60.6 writes
+ * `max (13, 11, 16)`, and against The Sift's stairs, where protocol 2225's pinned BDS writes
  * `origin [0, 8, -8]` with `size [8, 8, 8]` as x 0 to 8, not 8 to 16.
  */
 const boundingBox = (box: Record<string, unknown>): NBTTagCompound => {
@@ -147,8 +146,8 @@ const collisionBox = (value: unknown): NBTTagCompound => {
 
 /**
  * `minecraft:selection_box`, which keeps its origin and size rather than becoming two corners.
- * A disabled box still carries the full block's, as a Bedrock Dedicated Server 1.26.60.6 writes
- * it for `false`.
+ * A disabled box still carries the full block's, as protocol 2225's pinned Bedrock Dedicated Server
+ * writes it for `false`.
  */
 const selectionBox = (value: unknown): NBTTagCompound => {
     const box = isRecord(value) ? value : {};
@@ -165,7 +164,7 @@ const selectionBox = (value: unknown): NBTTagCompound => {
  *
  * Bit 0 is face dimming and bit 1 is the isotropic flag, which Allay calls
  * random UV rotation. Bit 2, which Allay names texture variation, follows the
- * file's `format_version`: a Bedrock Dedicated Server 1.26.60.6 set it on every
+ * file's `format_version`: protocol 2225's pinned Bedrock Dedicated Server set it on every
  * pack block at 1.21.110 or later and on none below, whatever the instance
  * declared; see {@link TEXTURE_VARIATION_FROM}.
  */
@@ -216,7 +215,7 @@ const materialInstances = (value: unknown, context: BlockTranslationContext): NB
         materials[face] = nbtCompound({
             // A byte here was accepted until 1.26.20 and is now rejected; the
             // capture writes a float and the schema's default is 1. The older
-            // boolean form travels as 1 or 0, as BDS 1.26.60.6 writes `false`.
+            // boolean form travels as 1 or 0, as protocol 2225's pinned BDS writes `false`.
             ambient_occlusion: nbtFloat(
                 typeof instance.ambient_occlusion === 'boolean'
                     ? Number(instance.ambient_occlusion)
@@ -253,8 +252,8 @@ const boneVisibilityValue = (value: unknown): string => {
 /**
  * `minecraft:geometry`, which is either the identifier on its own or the detailed form.
  *
- * Two of its engine-internal flags follow the file's `format_version`, as a Bedrock Dedicated
- * Server 1.26.60.6 writes them for a pack block: `ignoreGeometryForIsSolid` below
+ * Two of its engine-internal flags follow the file's `format_version`, as protocol 2225's pinned
+ * Bedrock Dedicated Server writes them for a pack block: `ignoreGeometryForIsSolid` below
  * {@link GEOMETRY_SOLIDITY_FROM}, and the full block's older `full_block_v1` form below
  * {@link FULL_BLOCK_V2_FROM}.
  */
@@ -424,7 +423,8 @@ export const BLOCK_NBT_TRANSLATIONS: Readonly<Record<string, BlockComponentTrans
         });
     },
     'minecraft:geometry': geometry,
-    // BDS 1.26.60.6 writes the inventory model as its own geometry and material instances.
+    // Protocol 2225's pinned BDS writes the inventory model as its own geometry and material
+    // instances.
     'minecraft:item_visual': (value, context) => {
         const source = isRecord(value) ? value : {};
         return nbtCompound({
@@ -481,8 +481,8 @@ export interface UntranslatedComponent {
 export interface BlockPropertiesOptions {
     /**
      * The Molang version declared on every definition. By default each block declares its own,
-     * the version its pack's `min_engine_version` gets, as a Bedrock Dedicated Server 1.26.60.6
-     * does: it wrote 12 for a pack at 1.21.0 and 13 for one at 1.21.100.
+     * the version its pack's `min_engine_version` gets, as protocol 2225's pinned Bedrock Dedicated
+     * Server does: it wrote 12 for a pack at 1.21.0 and 13 for one at 1.21.100.
      */
     molangVersion?: number;
     /** Where allocation starts for a block with no `block_id`; {@link FIRST_CUSTOM_BLOCK_ID} by default. */
@@ -497,8 +497,8 @@ export interface BlockPropertiesOptions {
     /**
      * The blocks come from packs, not from Mojang's vanilla behavior pack.
      *
-     * A Bedrock Dedicated Server 1.26.60.6 reads `internal_vanilla_data` only from its own
-     * pack. Given a pack block that declared `block_id` 40000, it allocated 10001 and wrote
+     * Protocol 2225's pinned Bedrock Dedicated Server reads `internal_vanilla_data` only from its
+     * own pack. Given a pack block that declared `block_id` 40000, it allocated 10001 and wrote
      * `vanilla_block_data` as `{ block_id, material: "dirt" }`, as it does for every pack
      * block. With this set, every block is numbered from
      * {@link BlockPropertiesOptions.firstCustomBlockId} and gets that compound, so a pack
@@ -549,8 +549,8 @@ const propertyEntry = (state: BlockStateDefinition): NBTTagCompound => {
 };
 
 /**
- * The `traits` list, each trait in the shape BDS 1.26.60.6 sent for The Sift's slabs, stairs,
- * fences and portal:
+ * The `traits` list, each trait in the shape protocol 2225's pinned BDS sent for The Sift's slabs,
+ * stairs, fences and portal:
  *
  * - `minecraft:placement_position` and `minecraft:placement_direction` name every state the trait
  *   has in `enabled_states`, as a byte that says whether the file enabled it.
@@ -717,9 +717,11 @@ export const buildBlockProperties = (
         blockIds.set(name, blockId);
 
         const definition = nbtCompound({
-            // In name order, as BDS 1.26.60.6 sent The Sift's stairs' and fences' tags.
+            // In name order, as protocol 2225's pinned BDS sent The Sift's stairs' and fences'
+            // tags.
             blockTags: tags.length > 0 ? nbtList(tags.toSorted().map(nbtString)) : undefined,
-            // A block with no client-side component has no compound at all, as BDS 1.26.60.6 sends it.
+            // A block with no client-side component has no compound at all, as protocol 2225's
+            // pinned BDS sends it.
             components: base.count > 0 ? base.compound : undefined,
             menu_category: nbtCompound({
                 category: nbtString(menu?.category ?? DEFAULT_MENU_CATEGORY),

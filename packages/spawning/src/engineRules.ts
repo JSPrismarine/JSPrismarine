@@ -12,7 +12,7 @@ import type { SpawnPosition, SpawnWorld } from './world';
  * the clearest case: it carries no brightness filter, no height filter and a
  * weight of 100, which on its own lets a slime spawn in any `monster` biome in
  * daylight and fill the monster pool to its cap. The real rule is the function
- * at virtual address `0xbb80040` of BDS 1.26.51.1's `bedrock_server`, which
+ * at virtual address `0xbb80040` of protocol 2193's pinned BDS's `bedrock_server`, which
  * this module reimplements.
  *
  * A rule here runs after the JSON conditions pass and before the weighted

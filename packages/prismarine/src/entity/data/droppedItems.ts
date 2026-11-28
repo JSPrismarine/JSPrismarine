@@ -14,7 +14,7 @@
  * taken earlier in the tick has left the store and the index, so nothing later in the tick finds it
  * (ADR 0007).
  *
- * How an item moves is what a Bedrock Dedicated Server 1.26.52 sent for dropped and thrown items,
+ * How an item moves is what an unpinned Bedrock Dedicated Server sent for dropped and thrown items,
  * tick by tick: gravity, then the move, then drag, sideways and on the ground stronger than in the
  * air. A fall from rest covers 0.04, 0.0792, 0.1176 blocks. The numbers are the definition's.
  */

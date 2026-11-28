@@ -23,7 +23,7 @@ export interface MolangVersionEntry {
 /**
  * Every Molang version, oldest first.
  *
- * A pinned Bedrock Dedicated Server 1.26.60.6 writes this number as `molangVersion` on each pack
+ * Protocol 2225's pinned Bedrock Dedicated Server writes this number as `molangVersion` on each pack
  * block it defines for a client: given packs at `min_engine_version` 1.13.0, 1.17.0, 1.18.20,
  * 1.20.60, 1.20.70, 1.21.90 and 1.21.100, it wrote 0, 1, 6, 11, 12, 12 and 13.
  */

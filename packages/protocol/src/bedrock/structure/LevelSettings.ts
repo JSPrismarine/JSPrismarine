@@ -282,7 +282,7 @@ export default class LevelSettings extends NetworkStructure {
         this.experiments.serialize(stream);
         stream.writeBoolean(this.bonusChestEnabled);
         stream.writeBoolean(this.startWithMapEnabled);
-        // The docs mark Player Permissions as a varint int8, but BDS 1.26.51 sends Member as
+        // The docs mark Player Permissions as a varint int8, but protocol 2193's pinned BDS sends Member as
         // the single byte 0x01, so this stays one plain byte.
         stream.writeByte(this.playerPermissions);
         stream.writeIntLE(this.serverChunkTickRange);

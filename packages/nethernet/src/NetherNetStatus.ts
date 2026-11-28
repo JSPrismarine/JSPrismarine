@@ -18,7 +18,7 @@ export interface NetherNetStatus {
 }
 
 /**
- * The `GET /v1/join` body: the status under the field names Bedrock Dedicated Server 1.26.51
+ * The `GET /v1/join` body: the status under the field names protocol 2193's pinned Bedrock Dedicated Server
  * answers with, in its order.
  */
 export const joinStatusJson = (status: NetherNetStatus): string =>

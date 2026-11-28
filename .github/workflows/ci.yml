@@ -38,6 +38,10 @@ env:
     GIT_CONFIG_KEY_0: init.defaultBranch
     GIT_CONFIG_VALUE_0: master
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    # The merge group replays every Bedrock exchange at every protocol with a capture; a pull
+    # request and a push replay at the primary protocol only. See
+    # packages/parity/src/protocol.bedrock-exchanges.test.ts.
+    JSP_EXCHANGE_PROTOCOLS: ${{ github.event_name == 'merge_group' && 'all' || 'primary' }}
 
 # A newer pull request push supersedes the old run, and so does the pull request closing. A push to
 # master lets its running run finish: its caches are the ones pull requests restore, its artifacts

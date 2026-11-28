@@ -6,8 +6,8 @@
  * Bedrock's `minecraft:durability.max_durability`, Java's `food.saturation`
  * is an absolute value where Bedrock's `saturation_modifier` is a ratio, and
  * Bedrock keeps a flat `item_properties` compound beside the named
- * components. Every shape below is read off a Bedrock Dedicated Server
- * 1.26.51.1 capture, the `item_components.nbt` golden in
+ * components. Every shape below is read off a capture of protocol 2193's pinned Bedrock
+ * Dedicated Server, the `item_components.nbt` golden in
  * `@jsprismarine/bedrock-data`, rather than written from the documentation.
  *
  * This module builds the compound. It does not send it: `ItemRegistryPacket`

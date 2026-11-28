@@ -74,7 +74,7 @@ const ipLiteral = (text: string): string | undefined => {
 };
 
 /**
- * Reads `server-public-ip` as Bedrock Dedicated Server 1.26.70.24 does: empty, a raw IPv4, or a
+ * Reads `server-public-ip` as protocol 2259's pinned Bedrock Dedicated Server does: empty, a raw IPv4, or a
  * raw or bracketed IPv6. A hostname or a port is an error.
  * @param setting - The setting.
  * @returns The address, or undefined when it is empty.
@@ -108,7 +108,7 @@ const splitPrefix = (entry: string): { prefix?: string; ports: string } => {
 };
 
 /**
- * Reads `server-udp-ports` with `server-public-ip` as Bedrock Dedicated Server 1.26.70.24 does
+ * Reads `server-udp-ports` with `server-public-ip` as protocol 2259's pinned Bedrock Dedicated Server does
  * (docs/research/bds-server-udp-ports.md):
  *
  * - Entries are separated by commas; spaces around them and empty entries are ignored, and a
@@ -242,7 +242,7 @@ const mappedPort = (mappings: readonly PortMapping[], port: number): number | un
 
 /**
  * The answer with a server-reflexive candidate after each host candidate that clients outside
- * the network reach another way, as Bedrock Dedicated Server 1.26.70.24 answers: for a host on a
+ * the network reach another way, as protocol 2259's pinned Bedrock Dedicated Server answers: for a host on a
  * mapped local port, the public port it maps to; at the public address when there is one and the
  * host is of its family, else at the host's own address. With a public address and no mapping for
  * the port, the public port is the local one. A host of the other family than the public address

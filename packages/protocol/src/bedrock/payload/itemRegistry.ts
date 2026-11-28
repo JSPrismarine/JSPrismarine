@@ -11,8 +11,8 @@
  * with a numeric id.
  *
  * Every tag type below is read off the `item_components` capture that
- * `@jsprismarine/bedrock-data` publishes, taken from a Bedrock Dedicated
- * Server 1.26.60.6. The two that look like mistakes are not:
+ * `@jsprismarine/bedrock-data` publishes, taken from protocol 2225's pinned Bedrock Dedicated
+ * Server. The two that look like mistakes are not:
  * `minecraft:max_stack_size.value` is a byte while `item_properties
  * .max_stack_size` is an int, and `hidden_in_commands` is a byte holding 2 on
  * every one of the 78 items the server sends components for.
@@ -57,8 +57,8 @@ export const FIRST_CUSTOM_ITEM_ID = 10000;
  * travels as.
  *
  * Every vanilla block item in the captured table follows it, `minecraft:black_concrete_slab`'s
- * -1218 for `block_id` 1473 among them, and a Bedrock Dedicated Server 1.26.60.6 numbers a
- * pack's blocks the same way: the two it was given, with `block_id` 10000 and 10001, went out
+ * -1218 for `block_id` 1473 among them, and protocol 2225's pinned Bedrock Dedicated Server numbers
+ * a pack's blocks the same way: the two it was given, with `block_id` 10000 and 10001, went out
  * as -9745 and -9746. Past `block_id` 33023 the difference no longer fits, and that server
  * wraps it as two's complement does, without a warning: given 23100 blocks, it sent
  * `block_id` 33024 as 32767 and 33099 as 32692, and the client joined.

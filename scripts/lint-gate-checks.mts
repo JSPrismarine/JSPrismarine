@@ -69,6 +69,13 @@ export const CHECK_INPUTS: Readonly<Record<string, (change: ChangedPath) => bool
             'scripts/java-sources-baseline.json',
             'packages/bedrock-data/utils/java-sources/'
         )(path),
+    'lint:bds-sources': ({ path }) =>
+        CODE.test(path) ||
+        under(
+            'scripts/check-bds-sources.mts',
+            'packages/bedrock-data/src/jsp/',
+            'packages/bedrock-data/sources.json'
+        )(path),
     'lint:encoding': () => true,
     // Facts also read code all over the repository; a code change that moves a fact is left to CI,
     // and the docs build refills the value on the site either way.

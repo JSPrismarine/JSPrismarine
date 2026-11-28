@@ -10,7 +10,7 @@ export default class HumanInventory extends EntityInventory<PlayerInventoryConta
     /**
      * The next stack network id this player's client will be given.
      *
-     * One count per player, as a Bedrock Dedicated Server 1.26.52 keeps it: a fresh player's
+     * One count per player, as an unpinned Bedrock Dedicated Server keeps it: a fresh player's
      * first creative pick was stack 1 and the next 2. The ids only have to be positive and never
      * reused for this client, and counting per player keeps one player's ids out of another's.
      */

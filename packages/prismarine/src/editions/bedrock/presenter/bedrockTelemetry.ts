@@ -3,7 +3,7 @@
  *
  * A client unlocks most Xbox achievements from what it sees itself, but it cannot see that its
  * player's blow killed a mob, what killed its player, or that a command it sent succeeded. BDS
- * tells it with these packets. Each one built here follows a packet the pinned BDS 1.26.60 sent
+ * tells it with these packets. Each one built here follows a packet protocol 2225's pinned BDS sent
  * with cheats off, captured as its player ran `/me`, punched a pig to death and was killed by a
  * zombie; `LegacyTelemetryEventPacket.test.ts` in `@jsprismarine/protocol` keeps those bytes.
  * BDS sent none for a kill made from its console, and none for `/gamemode`, which it refused.

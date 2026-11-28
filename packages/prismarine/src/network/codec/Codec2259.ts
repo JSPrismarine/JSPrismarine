@@ -5,7 +5,7 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 
 import { itemData2259 } from './itemData';
 
-/** Server-configured codec for the Minecraft Preview protocol 2259, with the tables captured for BDS 1.26.70.24. */
+/** Server-configured codec for the Minecraft Preview protocol 2259, with the tables captured for protocol 2259's pinned BDS. */
 const Codec2259 = createProtocolCodec({
     definition: ProtocolVersions.v2259,
     context: {

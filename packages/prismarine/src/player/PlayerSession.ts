@@ -916,9 +916,10 @@ export default class PlayerSession {
      * Responds to requested blob misses and applies the client's acknowledgements.
      *
      * Every status is answered, with an empty `ClientCacheMissResponse` when the client missed
-     * nothing. Bedrock Dedicated Server 1.26.60 does the same, 105 answers to 105 statuses in the
-     * capture docs/research/sub-chunk-requests-and-blob-cache.md describes. Do not skip the empty
-     * one to save a packet: the answer is what closes the client's cache transaction.
+     * nothing. Protocol 2225's pinned Bedrock Dedicated Server does the same, 105 answers to 105
+     * statuses in the capture docs/research/sub-chunk-requests-and-blob-cache.md describes. Do not
+     * skip the empty one to save a packet: the answer is what closes the client's cache
+     * transaction.
      * @returns How many blobs went out.
      */
     public async handleClientCacheBlobStatus(packet: ClientCacheBlobStatusPacket): Promise<number> {
@@ -935,9 +936,9 @@ export default class PlayerSession {
     /**
      * Answers requested sections with their bytes, block entities, heightmaps, and cache ids.
      *
-     * The shape of each entry follows a capture of Bedrock Dedicated Server 1.26.60 answering a
-     * retail client, recorded in docs/research/sub-chunk-requests-and-blob-cache.md. With the
-     * client's blob cache on:
+     * The shape of each entry follows a capture of protocol 2225's pinned Bedrock Dedicated Server
+     * answering a retail client, recorded in docs/research/sub-chunk-requests-and-blob-cache.md.
+     * With the client's blob cache on:
      *
      * - A section with blocks carries the hash of its terrain and a payload that is present even
      *   when empty. The payload holds the section's block entities only.
@@ -1296,10 +1297,10 @@ export default class PlayerSession {
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
             const requestMode = this.usesSubChunkRequests();
             // With the client's blob cache on, a request-mode chunk names its biomes by hash and
-            // carries only the border block count, as Bedrock Dedicated Server 1.26.60 sends it.
-            // Sending the biomes inline with the cache off would be simpler and one round trip
-            // shorter, but the sub chunk answers that follow use the cache, and the server this
-            // was captured from never mixes the two for one client.
+            // carries only the border block count, as protocol 2225's pinned Bedrock Dedicated
+            // Server sends it. Sending the biomes inline with the cache off would be simpler and
+            // one round trip shorter, but the sub chunk answers that follow use the cache, and the
+            // server this was captured from never mixes the two for one client.
             const cached = requestMode && this.clientCacheEnabled;
             for (const { chunk, payload, revision, subChunkCount: queuedSubChunkCount } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
@@ -1739,9 +1740,10 @@ export default class PlayerSession {
      * never arrive is one the client has no reason to keep. Each packet uses the container name
      * that screen assigns to its slots, so a furnace's fuel list arrives under its fuel name.
      * A workstation stores nothing of its own, so no contents follow its open. A crafting table
-     * is followed by the player's own inventory under window 0 instead, which is what a Bedrock
-     * Dedicated Server 1.26.52 sent after a click on one. Repeated requests for the same open
-     * block return the current window without sending another open packet.
+     * is followed by the player's own inventory under window 0 instead. The pinned servers send
+     * more of the player's windows after every screen
+     * ([#3890](https://github.com/JSPrismarine/JSPrismarine/issues/3890)). Repeated requests for
+     * the same open block return the current window without sending another open packet.
      *
      * @param at - The block position, which is what `ContainerOpen` carries for a block.
      * @param identifier - The block standing there, which decides the screen.
@@ -2369,12 +2371,13 @@ export default class PlayerSession {
     /**
      * Tells the client it has spawned, once the terrain it spawns into is actually on the wire.
      *
-     * The order is taken from a Bedrock Dedicated Server 1.26.51: it answers `RequestChunkRadius`
-     * with `ChunkRadiusUpdated`, streams every spawn chunk, and only then sends
-     * `PlayStatus(PlayerSpawn)` - with the entity spawns after that again. This server sent the
-     * status first and the entities before any terrain, which tells a real client it has spawned
-     * into a world it has no ground for: it waits, never sends `SetLocalPlayerAsInitialized`, and
-     * drops the connection. The server's own client did not care about any of it.
+     * The order is taken from protocol 2193's pinned Bedrock Dedicated Server: it answers
+     * `RequestChunkRadius` with `ChunkRadiusUpdated`, streams every spawn chunk, and only then
+     * sends `PlayStatus(PlayerSpawn)` - with the entity spawns after that again. This server sent
+     * the status first and the entities before any terrain, which tells a real client it has
+     * spawned into a world it has no ground for: it waits, never sends
+     * `SetLocalPlayerAsInitialized`, and drops the connection. The server's own client did not care
+     * about any of it.
      */
     private async announceSpawnIfReady(): Promise<void> {
         if (!this.spawnChunksPending) return;
@@ -3017,7 +3020,7 @@ export default class PlayerSession {
     }
 
     /**
-     * Tells the client its player is alive again, as a Bedrock Dedicated Server 1.26.52 does
+     * Tells the client its player is alive again, as an unpinned Bedrock Dedicated Server does
      * when the respawn button is pressed: `ActorEvent(SPAWN_ALIVE)` for the player, its
      * health, then its attributes and actor data.
      *
@@ -3042,8 +3045,9 @@ export default class PlayerSession {
      * Sending the second in place of the first leaves the client on "Respawning" for ever:
      * it is waiting to be told where it will come back before it will even offer the button.
      *
-     * `Player Runtime Id` is always 0, as in every `Respawn` a Bedrock Dedicated Server 1.26.52
-     * sends, at the join and after a death.
+     * `Player Runtime Id` is always 0, as in every `Respawn` the pinned servers send, at the join,
+     * after a death and through the respawn, at every protocol.
+     * @bdsSee respawn
      * @param {Vector3} position - Where the player will reappear.
      * @param {PlayerRespawnState} state - Which half of the exchange this is.
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php

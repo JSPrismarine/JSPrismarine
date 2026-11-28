@@ -3,7 +3,7 @@
  *
  * Definitions tell a client which client-synced properties exist for each actor type. Values
  * then travel with actor spawns and metadata updates, indexed in that same definition order,
- * which is the properties' names sorted, as BDS 1.26.60.6 sends them, whatever order the entity's
+ * which is the properties' names sorted, as protocol 2225's pinned BDS sends them, whatever order the entity's
  * file declares them in.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
@@ -129,7 +129,7 @@ export type PropertyOverride =
     | { readonly action: 'clear' };
 
 /**
- * The packet that changes a client's override of an entity's properties, as BDS 1.26.60.6 sends
+ * The packet that changes a client's override of an entity's properties, as protocol 2225's pinned BDS sends
  * it for `Player.setPropertyOverrideForEntity` and its siblings: a bool or an enum travels as an
  * int override, and a clear names the property at index 0.
  *

@@ -1,5 +1,5 @@
 /**
- * What a Bedrock Dedicated Server 1.26.51.1 sends a joining client, for a session speaking
+ * What protocol 2193's pinned Bedrock Dedicated Server sends a joining client, for a session speaking
  * protocol 2193.
  *
  * The unversioned exports carry the version `sources.json` names as the default, which is the
@@ -47,7 +47,7 @@ export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.da
 export const jigsaw_structure_data: Buffer = Buffer.from(jigsaw_structure_data_data.data, 'base64');
 
 /**
- * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * The camera presets protocol 2225's pinned Bedrock Dedicated Server sends a joining client, as the payload
  * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
  * in this list.
  */

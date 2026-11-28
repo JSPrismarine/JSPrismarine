@@ -37,7 +37,7 @@ export interface GoalUse {
 
 /** What `utils/build-inventory.ts` measures from one vanilla behavior pack. */
 export interface GoalInventory {
-    /** The pack the measurement came from, such as `Bedrock Dedicated Server 1.26.51.1`. */
+    /** The pack the measurement came from, such as `protocol 2193's pinned Bedrock Dedicated Server`. */
     readonly source: string;
     readonly entityCount: number;
     readonly goalCount: number;

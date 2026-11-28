@@ -8,8 +8,8 @@ import { GameRuleValueType, writeGameRule } from '@jsprismarine/protocol/bedrock
 /**
  * The rules every world registers, spelled the way the client spells them.
  *
- * The client matches a rule by exact string, so these are the camelCase names a Bedrock
- * Dedicated Server 1.26.51 sends in `StartGamePacket` (`doDayLightCycle` with a capital L,
+ * The client matches a rule by exact string, so these are the camelCase names protocol 2193's
+ * pinned Bedrock Dedicated Server sends in `StartGamePacket` (`doDayLightCycle` with a capital L,
  * `pvp` all lowercase). They used to be all lowercase, and a client given `showcoordinates`
  * had no rule by that name to turn on.
  *

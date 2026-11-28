@@ -173,6 +173,15 @@ commit messages and comments.
   When `java.transcriptions` reports a changed member, read its new bytecode
   (`java:sources --list <spelling>`) against the copy, fix the copy if Java's behavior changed,
   and restamp with `--reviewed <spelling>`.
+- Check a Bedrock behavior against each protocol's own pinned Bedrock Dedicated Server, never a
+  version from memory ([the verification plan](docs/plans/bedrock-version-verification.md)). A
+  comment that rests on what BDS sends tags the exchange with `@bdsSee <scenario>`; prose never
+  names a BDS version, and names a pin by its protocol instead. `pnpm run lint:bds-sources`
+  checks both. To add an exchange, write its scenario in `packages/client/src/exchanges/scenarios.ts`,
+  capture it with `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass exchanges
+  --protocol <n>` for each pinned protocol, and run
+  `JSP_EXCHANGE_PROTOCOLS=all pnpm exec vitest run packages/parity/src/protocol.bedrock-exchanges.test.ts`.
+  A difference between protocols goes in the wire, as a gate or a per-protocol table entry.
 - When you find a Java parity gap, fixed or not, add a parity test that exercises it: a scenario
   under the matching family in `packages/parity` whose row fails while the gap exists. Record a gap
   you leave open in `packages/parity/goldens/behavior-gaps.json` (run the family with

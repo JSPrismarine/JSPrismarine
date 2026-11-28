@@ -6,7 +6,7 @@ import type CommandParameter from './CommandParameter';
  * Bits of the `CommandData.Flags` word.
  *
  * Mojang documents the word as a `uint16` and does not list its bits. The ones here are read off
- * what a Bedrock Dedicated Server 1.26.60 sends (`bedrock-data/src/jsp/v2225/wire/0x4c.bin`).
+ * what protocol 2225's pinned Bedrock Dedicated Server sends (`bedrock-data/src/jsp/v2225/wire/0x4c.bin`).
  */
 export enum CommandDataFlags {
     NONE = 0,

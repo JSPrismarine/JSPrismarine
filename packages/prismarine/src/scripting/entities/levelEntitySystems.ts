@@ -95,7 +95,7 @@ const easingOf = (type: string): EasingFunction => {
     return isEasingFunction(name) ? name : 'linear';
 };
 
-/** The `type` byte of a camera spline instruction, as BDS 1.26.60.6 sends each spline class. */
+/** The `type` byte of a camera spline instruction, as protocol 2225's pinned BDS sends each spline class. */
 const SPLINE_TYPES = { catmullRom: 0, linear: 1 } as const;
 
 /** The spline instruction BDS sends for `Camera.playAnimation`: linear easing where the script names none. */

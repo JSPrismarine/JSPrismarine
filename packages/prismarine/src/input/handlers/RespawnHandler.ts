@@ -8,8 +8,8 @@ import type { IntentHandler } from '../IntentHandler';
  * The player pressed the respawn button.
  *
  * Three states across two sides. The docs number them `SearchingForSpawn` (0) and
- * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client. A Bedrock
- * Dedicated Server 1.26.52 runs a death like this, recorded through the proxy:
+ * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client. An unpinned
+ * Bedrock Dedicated Server runs a death like this, recorded through the proxy:
  *
  * 1. the player dies, and the server sends `SearchingForSpawn` with where they will
  *    reappear - the client will not offer the respawn button until it has this;

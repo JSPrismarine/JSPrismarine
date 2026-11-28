@@ -134,11 +134,14 @@ export const runExchange = async (scenario: ExchangeScenario, driver: ExchangeDr
     };
     driver.client.on('packet', listener);
     try {
+        // Each operation forwarded, so a driver whose methods live on a prototype keeps them.
         await scenario.run({
-            ...driver,
             client: driver.client,
             world: driver.world,
             name: driver.name,
+            command: (line) => driver.command(line),
+            wait: (ticks) => driver.wait(ticks),
+            until: (condition, what) => driver.until(condition, what),
             record: () => {
                 recording = true;
             }
@@ -151,31 +154,57 @@ export const runExchange = async (scenario: ExchangeScenario, driver: ExchangeDr
 };
 
 /**
- * How a replay differs from a capture, or undefined when it sent the same packets with the same
+ * Every way a replay differs from a capture, empty when it sent the same packets with the same
  * fields in the same order.
+ *
+ * The two lists are aligned by packet name first, on their longest common run, so one extra or
+ * missing packet reads as that one difference rather than as every packet after it being
+ * another. Each aligned pair then compares field by field.
  * @param capture - What the pinned server sent.
  * @param replay - What JSPrismarine sent.
- * @returns One line naming the first difference, fit for a parity row.
+ * @returns One line for each difference, in the order the packets were sent, fit for a parity row.
  */
-export const exchangeDifference = (
+export const exchangeDifferences = (
     capture: readonly ExchangedPacket[],
     replay: readonly ExchangedPacket[]
-): string | undefined => {
-    const length = Math.max(capture.length, replay.length);
-    for (let index = 0; index < length; index++) {
-        const expected = capture[index];
-        const actual = replay[index];
-        if (expected === undefined) return `packet ${index + 1} is an extra ${actual?.name}`;
-        if (actual === undefined) return `packet ${index + 1}, ${expected.name}, is never sent`;
-        if (expected.name !== actual.name) {
-            return `packet ${index + 1} is ${actual.name} where BDS sends ${expected.name}`;
-        }
-        for (const [field, value] of Object.entries(expected.fields)) {
-            const got = actual.fields[field];
-            if (JSON.stringify(got) !== JSON.stringify(value)) {
-                return `${expected.name}'s ${field} is ${JSON.stringify(got)} where BDS sends ${JSON.stringify(value)}`;
-            }
+): string[] => {
+    // shared(i, j): how many packets capture[i..] and replay[j..] have in common, in order, by
+    // name.
+    const common = Array.from({ length: capture.length + 1 }, () => new Array<number>(replay.length + 1).fill(0));
+    const shared = (i: number, j: number): number => common[i]?.[j] ?? 0;
+    for (let i = capture.length - 1; i >= 0; i--) {
+        const row = common[i] ?? [];
+        for (let j = replay.length - 1; j >= 0; j--) {
+            row[j] =
+                capture[i]?.name === replay[j]?.name
+                    ? shared(i + 1, j + 1) + 1
+                    : Math.max(shared(i + 1, j), shared(i, j + 1));
         }
     }
-    return undefined;
+    const differences: string[] = [];
+    let i = 0;
+    let j = 0;
+    while (i < capture.length || j < replay.length) {
+        const expected = capture[i];
+        const actual = replay[j];
+        if (expected !== undefined && actual !== undefined && expected.name === actual.name) {
+            for (const [field, value] of Object.entries(expected.fields)) {
+                const got = actual.fields[field];
+                if (JSON.stringify(got) !== JSON.stringify(value)) {
+                    differences.push(
+                        `${expected.name}'s ${field} is ${JSON.stringify(got)} where BDS sends ${JSON.stringify(value)}`
+                    );
+                }
+            }
+            i++;
+            j++;
+        } else if (actual !== undefined && (expected === undefined || shared(i, j + 1) >= shared(i + 1, j))) {
+            differences.push(`packet ${j + 1} is an extra ${actual.name}`);
+            j++;
+        } else if (expected !== undefined) {
+            differences.push(`BDS's packet ${i + 1}, ${expected.name}, is never sent`);
+            i++;
+        }
+    }
+    return differences;
 };

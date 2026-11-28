@@ -548,8 +548,8 @@ interface DropStart {
 }
 
 /**
- * Where a stack leaving a block appears and how fast it leaves, as a Bedrock Dedicated Server
- * 1.26.52 drops one.
+ * Where a stack leaving a block appears and how fast it leaves, as an unpinned Bedrock Dedicated
+ * Server drops one.
  *
  * Measured over 18 drops: each appeared somewhere in the middle 70% of the block on every axis
  * and left with a push of up to 0.1 a tick sideways and 0.2 upward. Where it appeared is the
@@ -2479,7 +2479,7 @@ export class World implements Service {
      * client looks the block up and plays whatever that block is made of.
      *
      * The sound goes to everyone near but the one striking, whose client plays its own hits in
-     * either breaking mode. A Bedrock Dedicated Server 1.26.52 sends the striker none. This one
+     * either breaking mode. An unpinned Bedrock Dedicated Server sends the striker none. This one
      * reached them too, and with their client's own hits it sounded like digging at several
      * times the speed.
      * @param {Vector3} position - The block being struck.
@@ -3168,7 +3168,7 @@ export class World implements Service {
         this.setBlockByName(x, y, z, 'minecraft:air');
 
         // One event at the block's center for the particles and the sound together, which the
-        // client resolves from the runtime id. This is what a Bedrock Dedicated Server 1.26.52
+        // client resolves from the runtime id. This is what an unpinned Bedrock Dedicated Server
         // sends for a break. It used to be a `LevelSoundEvent` plus the silent variant of this
         // event, which the client renders the same way and a packet comparison with BDS does not.
         this.sendWorldEvent(
@@ -4021,7 +4021,7 @@ export class World implements Service {
     /**
      * Puts what a block yielded on the ground, each stack popping out of the block.
      *
-     * Where a Bedrock Dedicated Server 1.26.52 puts a block's drop: at a random spot inside the
+     * Where an unpinned Bedrock Dedicated Server puts a block's drop: at a random spot inside the
      * block, pushed a little sideways and upward; see `popOut`. The push is what brings
      * stacks from neighboring blocks within the half block they merge at, and merging is what
      * keeps a burst of breaks under {@link World.ITEM_ENTITY_LIMIT}.

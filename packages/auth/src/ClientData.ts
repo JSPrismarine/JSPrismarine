@@ -112,7 +112,7 @@ export const createClientData = (options: ClientDataOptions): ClientDataPayload 
         // build, and 1.26.50 removed that member from `BuildPlatform` along with the other
         // retired ones - a Bedrock Dedicated Server now validates the platform and answers a
         // login naming a value outside the enum with a `PacketViolationWarning` that says only
-        // "Connection Request invalid". Verified against BDS 1.26.51.1: 7, 5, 10, 14 and 99 are
+        // "Connection Request invalid". Verified against protocol 2193's pinned BDS: 7, 5, 10, 14 and 99 are
         // refused, every member the 2193 documentation lists is admitted.
         DeviceOS: options.deviceOS ?? BuildPlatform.WIN32,
         // The release the vanilla data was captured from, which is the newest one the packages

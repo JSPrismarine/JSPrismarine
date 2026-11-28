@@ -8,7 +8,7 @@ export abstract class NetherNetUnavailableError extends JSPrismarineError {
     public override name = 'NetherNetUnavailableError';
 }
 
-/** Thrown for a setting Bedrock Dedicated Server 1.26.70.24 refuses, with its message. */
+/** Thrown for a setting protocol 2259's pinned Bedrock Dedicated Server refuses, with its message. */
 export abstract class UdpPortsError extends JSPrismarineError {
     public override name = 'UdpPortsError';
 }

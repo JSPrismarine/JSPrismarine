@@ -270,8 +270,8 @@ export const creativeGroupName = (group: string): string =>
     group.startsWith(VANILLA_GROUP_NAMESPACE) ? group.slice(VANILLA_GROUP_NAMESPACE.length) : group;
 
 /**
- * Files pack blocks and items into a creative catalog, as a Bedrock Dedicated Server
- * 1.26.60.6 does.
+ * Files pack blocks and items into a creative catalog, as protocol 2225's pinned Bedrock Dedicated
+ * Server does.
  *
  * Every rule here was read off `CreativeContentPacket` from that server with the
  * `scenarios/pack-blocks/creative_menu` pack of `@jsprismarine/parity` loaded:

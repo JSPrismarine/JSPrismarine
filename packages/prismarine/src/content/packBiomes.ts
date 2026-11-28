@@ -2,10 +2,10 @@
  * The biomes behavior packs add, outside the `minecraft` namespace, and the numeric id each one
  * takes.
  *
- * BDS 1.26.60.6 adds a pack's biomes to the join's `BiomeDefinitionList` after the vanilla
- * ones, numbered from 30000, and fills a chunk of a pack dimension whose default biome is one of
- * them with that number. Fields a biome's components leave out take the values BDS sent for a
- * biome with none; `BiomeDefinitionListPacket.test.ts` holds that capture.
+ * Protocol 2225's pinned BDS adds a pack's biomes to the join's `BiomeDefinitionList` after the
+ * vanilla ones, numbered from 30000, and fills a chunk of a pack dimension whose default biome is
+ * one of them with that number. Fields a biome's components leave out take the values BDS sent for
+ * a biome with none; `BiomeDefinitionListPacket.test.ts` holds that capture.
  */
 import type { Registry } from '@jsprismarine/content';
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';

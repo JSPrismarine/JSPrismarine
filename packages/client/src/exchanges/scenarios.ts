@@ -137,6 +137,14 @@ const openChest: ExchangeScenario = {
         await clickBlock(driver, at);
         await driver.until(() => driver.world.getOpenContainer() !== undefined, 'the chest never opened');
         await driver.wait(5);
+        // A chest that opened without its sticks would make a capture of some other exchange.
+        const open = driver.world.getOpenContainer();
+        if (open === undefined || driver.world.inventory(open.windowId)[0]?.stackSize !== 3) {
+            throw new ClientErrors.ExchangeNeverHappened({
+                what: 'the chest never showed its three sticks',
+                ticks: '5'
+            });
+        }
         await closeScreen(driver);
         await driver.command(`setblock ${at.x} ${at.y} ${at.z} minecraft:air`);
     }

@@ -118,7 +118,7 @@ const boundingBox = shape({
 
 /**
  * A material instance's `ambient_occlusion`: a number, or the older boolean form, which reads as 1
- * or 0. Packs still write `false`, and a Bedrock Dedicated Server 1.26.60.6 takes it.
+ * or 0. Packs still write `false`, and protocol 2225's pinned Bedrock Dedicated Server takes it.
  */
 const ambientOcclusion: Schema<number> = (value) =>
     typeof value === 'boolean' ? accepted(Number(value)) : decimal(0, 10)(value);

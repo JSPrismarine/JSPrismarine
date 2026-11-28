@@ -293,7 +293,7 @@ const experimentalActorEntries = (): readonly AllowListEntry[] =>
         [
             [
                 'minecraft:ice_ball',
-                "The frostbite's projectile, defined only in BDS 1.26.60.6's experimental_y_2026_drop_4 pack."
+                "The frostbite's projectile, defined only in the experimental_y_2026_drop_4 pack of the pinned BDS of protocol 2225."
             ]
         ] as const
     ).map(([id, reason]) => ({
@@ -301,7 +301,8 @@ const experimentalActorEntries = (): readonly AllowListEntry[] =>
         id: `no-definition:${id}`,
         kind: 'intentional' as const,
         reason,
-        reference: 'BDS 1.26.60.6 behavior_packs; the advertised list names it whether or not the experiment is on'
+        reference:
+            'behavior_packs of the pinned BDS of protocol 2225; the advertised list names it whether or not the experiment is on'
     }));
 
 /**

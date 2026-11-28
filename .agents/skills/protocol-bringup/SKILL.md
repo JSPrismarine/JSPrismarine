@@ -129,7 +129,21 @@ stability table in the pipeline note is the precedent — `crafting_data.bin` ca
 ids and never reproduces). Goldens land under `packages/bedrock-data/src/jsp/v<N>/`. The `palette` pass is
 blocked until its producer reproduces (pipeline note, section 10).
 
-Done when: the stable goldens for N are committed and a re-capture is an empty diff.
+Then capture the exchanges, what the server sends a client in answer to each scenario in
+`packages/client/src/exchanges/scenarios.ts`, and replay JSPrismarine against them:
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass exchanges --protocol <N>
+JSP_EXCHANGE_PROTOCOLS=all pnpm exec vitest run packages/parity/src/protocol.bedrock-exchanges.test.ts
+```
+
+A difference only the new protocol shows is a version difference: put it in the wire, as a gate or
+a per-protocol table entry beside the codec, never a branch in game logic. Commit the captures
+under `src/jsp/v<N>/exchanges/`. [The verification plan](../../../docs/plans/bedrock-version-verification.md)
+explains the system.
+
+Done when: the stable goldens and the exchanges for N are committed, a re-capture is an empty
+diff, and every exchange row for N passes or is recorded.
 
 ## 8. Wire the per-version data
 
