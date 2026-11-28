@@ -94,7 +94,9 @@ The server installs what a Bedrock client would import from the same file:
 
 The console lists the packs an archive installed. It warns about a skin pack, which players
 import themselves, and about a nested archive it cannot read, and installs the rest. It also
-warns when a pack's manifest depends on a pack that no installed addon holds.
+warns when a pack's manifest depends on a pack that no installed addon holds once every addon
+has installed, so a behavior pack and the resource pack it needs can be dropped into `addons/`
+together.
 
 An `.mcproject` is a Minecraft Editor project, which the server does not open. The install fails
 and says so; export the project from the Editor as an `.mcworld` and install that.
@@ -302,7 +304,8 @@ server starts without it. The check compares the version in each folder's `manif
 the lock; it does not hash the unpacked files. An edit to an installed addon's files stays until
 its version changes, so delete its folder to get the published files back.
 
-Installed addons load after the packs in `content-world-packs`, in the order of their local names.
+Installed addons load after the packs in `content-world-packs`, in the order of their local names,
+except that a behavior pack loads after the behavior packs it depends on.
 
 ## Move a server
 
