@@ -106,10 +106,34 @@ describe('readMcStructure', () => {
         expect(() => readMcStructure(bytes)).toThrow(/1 entries for a 2x2x2 template/);
     });
 
-    it('reports an unsupported format version and bytes that are not NBT', () => {
-        const bytes = encodeLittleEndian(compound({ format_version: int(2), size: intTriple(1, 1, 1) }));
+    it('reads a format 2 file, whose one block layer is an int array', () => {
+        // The Sift's portal is written this way, and BDS 1.26.60.6 read the same box from either
+        // version alike in the `pack-structures` parity scenario.
+        const template = readMcStructure(
+            encodeLittleEndian(
+                compound({
+                    format_version: int(2),
+                    size: intTriple(2, 1, 1),
+                    structure: compound({
+                        block_indices: list([0, -1]),
+                        entities: list(),
+                        palette: compound({
+                            default: compound({
+                                block_palette: list(compound({ name: str('minecraft:tuff'), states: compound({}) }))
+                            })
+                        })
+                    })
+                })
+            )
+        );
 
-        expect(() => readMcStructure(bytes)).toThrow(/unsupported format_version 2/);
+        expect(template.blocks).toEqual([{ pos: [0, 0, 0], state: 0, extraState: NO_BLOCK }]);
+    });
+
+    it('reports an unsupported format version and bytes that are not NBT', () => {
+        const bytes = encodeLittleEndian(compound({ format_version: int(3), size: intTriple(1, 1, 1) }));
+
+        expect(() => readMcStructure(bytes)).toThrow(/unsupported format_version 3/);
         expect(() => readMcStructure(Uint8Array.from([9, 9, 9]))).toThrow(StructureFormatError);
     });
 });
