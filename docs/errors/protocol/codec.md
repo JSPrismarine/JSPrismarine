@@ -78,6 +78,16 @@ A packet in a batch declares more bytes than the batch has left, so the batch is
 The connection is dropped; a modified client, or one that writes the protocol differently
 than this server reads it, is the usual cause.
 
+## `PROTOCOL_BIOME_CHUNK_GENERATION_DATA_UNSUPPORTED`
+
+`Biome definition {index} carries chunk generation data, which cannot be read to add pack biomes`
+
+Thrown as `ProtocolCodecErrors.BiomeChunkGenerationDataUnsupported`, which extends `Error`.
+
+A biome definition list to add pack biomes to holds an entry with chunk generation data,
+which the server cannot read past. The captured vanilla lists carry none, so a capture of a
+newer server that adds it needs the reader extended before pack biomes can be sent.
+
 ## `PROTOCOL_BLOCK_PALETTE_MISMATCH`
 
 `the block registry disagrees with the captured palette in {count} place(s), first: {block} {detail}`

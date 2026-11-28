@@ -20,6 +20,13 @@ export const ProtocolCodecErrors = defineErrors('protocol/codec', {
     MissingBiomeDefinitions:
         'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context',
     /**
+     * A biome definition list to add pack biomes to holds an entry with chunk generation data,
+     * which the server cannot read past. The captured vanilla lists carry none, so a capture of a
+     * newer server that adds it needs the reader extended before pack biomes can be sent.
+     */
+    BiomeChunkGenerationDataUnsupported:
+        'Biome definition {index} carries chunk generation data, which cannot be read to add pack biomes',
+    /**
      * A packet was decoded before it was given bytes to read. This is a bug in the protocol codecs;
      * report it with the stack trace.
      */

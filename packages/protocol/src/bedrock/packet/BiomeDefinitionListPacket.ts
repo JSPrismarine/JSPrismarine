@@ -4,6 +4,121 @@ import FieldNetworkPacket from '../../FieldNetworkPacket';
 
 import type { ProtocolContext } from '../ProtocolContext';
 import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
+import BinaryStream from '@jsprismarine/binaryutils';
+
+/**
+ * A biome the server adds to the captured vanilla list, such as one a behavior pack defines: a
+ * `BiomeDefinitionData` with its name and tags as strings rather than string-list indices.
+ */
+export interface BiomeDefinitionEntry {
+    readonly name: string;
+    /** The numeric id chunks carry for the biome. BDS gives pack biomes 30000 and up. */
+    readonly id: number;
+    readonly temperature: number;
+    readonly downfall: number;
+    readonly foliageSnow: number;
+    readonly depth: number;
+    readonly scale: number;
+    /** The map water color, ARGB, as a signed 32-bit integer. */
+    readonly mapWaterColor: number;
+    readonly rain: boolean;
+    /** The tags, or undefined to send none. */
+    readonly tags?: readonly string[];
+}
+
+/** One map entry as the wire holds it, with string-list indices. */
+interface RawEntry {
+    readonly key: number;
+    readonly id: number;
+    readonly floats: readonly [number, number, number, number, number];
+    readonly mapWaterColor: number;
+    readonly rain: boolean;
+    readonly tags: readonly number[] | undefined;
+}
+
+/**
+ * A biome definition payload, both fields, with `entries` added after the ones it holds. Each
+ * new entry's tag strings that the string list lacks join it, then the entry's name, which is
+ * the order BDS 1.26.60.6 wrote them in for a behavior pack's biomes.
+ *
+ * @param payload - The payload to add to, as {@link BiomeDefinitionListPacket.definitions} holds it.
+ * @throws {ProtocolCodecErrors.BiomeChunkGenerationDataUnsupported} When an entry of the payload
+ *   carries chunk generation data, which this reader does not model.
+ */
+export const appendBiomeDefinitions = (payload: Buffer, entries: readonly BiomeDefinitionEntry[]): Buffer => {
+    const reader = new BinaryStream(payload);
+    const raw: RawEntry[] = [];
+    const count = reader.readUnsignedVarInt();
+    for (let index = 0; index < count; index++) {
+        const key = reader.readUnsignedShortLE();
+        const id = reader.readUnsignedShortLE();
+        const floats = [
+            reader.readFloatLE(),
+            reader.readFloatLE(),
+            reader.readFloatLE(),
+            reader.readFloatLE(),
+            reader.readFloatLE()
+        ] as const;
+        const mapWaterColor = reader.readIntLE();
+        const rain = reader.readBoolean();
+        let tags: number[] | undefined;
+        if (reader.readBoolean()) {
+            const tagCount = reader.readUnsignedVarInt();
+            tags = Array.from({ length: tagCount }, () => reader.readUnsignedShortLE());
+        }
+        if (reader.readBoolean()) throw new ProtocolCodecErrors.BiomeChunkGenerationDataUnsupported({ index });
+        raw.push({ key, id, floats, mapWaterColor, rain, tags });
+    }
+    const strings: string[] = [];
+    const stringCount = reader.readUnsignedVarInt();
+    for (let index = 0; index < stringCount; index++) {
+        strings.push(reader.read(reader.readUnsignedVarInt()).toString('utf8'));
+    }
+
+    const indexOf = new Map(strings.map((each, index) => [each, index]));
+    const intern = (value: string): number => {
+        const known = indexOf.get(value);
+        if (known !== undefined) return known;
+        indexOf.set(value, strings.length);
+        strings.push(value);
+        return strings.length - 1;
+    };
+    for (const entry of entries) {
+        const tags = entry.tags?.map(intern);
+        raw.push({
+            key: intern(entry.name),
+            id: entry.id,
+            floats: [entry.temperature, entry.downfall, entry.foliageSnow, entry.depth, entry.scale],
+            mapWaterColor: entry.mapWaterColor,
+            rain: entry.rain,
+            tags
+        });
+    }
+
+    const writer = new BinaryStream();
+    writer.writeUnsignedVarInt(raw.length);
+    for (const { key, id, floats, mapWaterColor, rain, tags } of raw) {
+        writer.writeUnsignedShortLE(key);
+        writer.writeUnsignedShortLE(id);
+        for (const value of floats) writer.writeFloatLE(value);
+        writer.writeIntLE(mapWaterColor);
+        writer.writeBoolean(rain);
+        writer.writeBoolean(tags !== undefined);
+        if (tags !== undefined) {
+            writer.writeUnsignedVarInt(tags.length);
+            for (const tag of tags) writer.writeUnsignedShortLE(tag);
+        }
+        // No chunk generation data: the client generates nothing for a server's dimension.
+        writer.writeBoolean(false);
+    }
+    writer.writeUnsignedVarInt(strings.length);
+    for (const each of strings) {
+        const bytes = Buffer.from(each, 'utf8');
+        writer.writeUnsignedVarInt(bytes.length);
+        writer.write(bytes);
+    }
+    return writer.getBuffer();
+};
 
 /**
  * Every biome the client can render, and the data each one carries.
