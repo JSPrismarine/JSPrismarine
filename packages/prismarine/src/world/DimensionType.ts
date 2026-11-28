@@ -56,6 +56,9 @@ export interface DimensionType {
  */
 export const FIRST_CUSTOM_DIMENSION_ID = 1000;
 
+/** The `dimension_type` attribute that says where the clouds render. */
+export const CLOUD_HEIGHT_ATTRIBUTE = 'minecraft:visual/cloud_height';
+
 /** The floor and ceiling the Bedrock client accepts for a dimension it was told about. */
 const BEDROCK_MIN_Y = -512;
 const BEDROCK_MAX_Y = 512;

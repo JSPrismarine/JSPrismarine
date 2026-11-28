@@ -65,15 +65,45 @@ const DATAPACK = {
     })
 };
 
+/**
+ * A behavior pack whose `dimensions/` folder defines a void dimension, as a Bedrock 1.26.50 pack
+ * such as The Sift does. Its bounds differ from the Overworld's, so the test can tell they came
+ * from the document.
+ */
+const PACK_DIMENSION = 'client_e2e:pack_void';
+const BEHAVIOR_PACK = {
+    'pack/manifest.json': JSON.stringify({
+        format_version: 2,
+        header: {
+            name: 'Loopback pack dimension',
+            uuid: '5e1d3c2b-7a64-4b8e-9c1f-0d2e3f405160',
+            version: [1, 0, 0],
+            min_engine_version: [1, 26, 50]
+        },
+        modules: [{ type: 'data', uuid: '5e1d3c2b-7a64-4b8e-9c1f-0d2e3f405161', version: [1, 0, 0] }]
+    }),
+    'pack/dimensions/pack_void.json': JSON.stringify({
+        format_version: '1.26.50',
+        'minecraft:dimension': {
+            description: { identifier: PACK_DIMENSION },
+            components: {
+                'minecraft:generation': { generator_type: 'void' },
+                'minecraft:dimension_height': { min_y: 0, height_range: 128 }
+            }
+        }
+    })
+};
+
 let jsp: LoopbackServer;
 
 // Booting the server builds its content, the slow part, so it happens once for the file.
 beforeAll(async () => {
     jsp = await startLoopbackServer({
         name: 'dimension-scenarios',
-        files: DATAPACK,
+        files: { ...DATAPACK, ...BEHAVIOR_PACK },
         config: (stateRoot) => ({
             'content-datapacks': [`${stateRoot}/datapack`],
+            'content-world-packs': [`${stateRoot}/pack`],
             worlds: {
                 world: {
                     preset: 'minecraft:flat',
@@ -161,6 +191,26 @@ describe('dimensions', { tags: ['real-data'] }, () => {
             await jsp.tick(40);
             expect(player.world.health(), `hurt arriving in ${destination.id}`).toBeGreaterThanOrEqual(before);
         }
+        player.leave();
+        await jsp.tick();
+    });
+});
+
+describe('pack-dimension', () => {
+    it("adds a behavior pack's dimensions/*.json as a void custom dimension a player can travel to", async () => {
+        const level = jsp.server.getWorldManager().getLevel('world')!;
+        const type = level.dimensionTypeOf(PACK_DIMENSION);
+        // The config's custom dimension takes the first id, the pack's the next.
+        expect(type).toMatchObject({ bedrockId: CUSTOM + 1, minY: 0, height: 128, custom: true });
+
+        const player = await jsp.join('PackTraveler');
+        await jsp.until(() => player.world.health() !== undefined, 'the client never learned its health');
+        await jsp.command(`execute in ${PACK_DIMENSION} run fill 6 63 6 10 63 10 minecraft:stone`);
+        await jsp.command(`execute in ${PACK_DIMENSION} run teleport ${player.name} 8 64 8`);
+        await settleIn(player, CUSTOM + 1, `the client never arrived in ${PACK_DIMENSION}`);
+
+        const position = player.world.getPosition()!;
+        expect(Math.hypot(position.x - 8, position.z - 8)).toBeLessThan(3);
         player.leave();
         await jsp.tick();
     });

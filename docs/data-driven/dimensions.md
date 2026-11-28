@@ -285,7 +285,7 @@ generator for one dimension. The four built-in kinds:
 | --- | --- | --- |
 | `minecraft:noise` | Yes | Java's terrain, surface, carvers, features and structures for the stem's `settings` and `biome_source`. `settings` must name a registered `worldgen/noise_settings` document or carry one inline. Every noise stem shares one generator and one worker pool. Without the cache, building the stem fails with the message that names the fetch commands. |
 | `minecraft:flat` | No | The stem's layers stacked from the dimension's floor, every block in the stem's biome, with the sea level fixed at Java's -63. Layers past the dimension's ceiling are dropped, as Java drops them. `lakes`, `features` and `structure_overrides` are read and kept but not honored: nothing runs over a flat chunk yet. |
-| `jsprismarine:void` | No | Empty chunks with the dimension's bounds. A Bedrock add-on dimension whose only generator is `void` would become one of these; no pack input produces it yet, so it is reached from a config entry. |
+| `jsprismarine:void` | No | Empty chunks with the dimension's bounds. A behavior pack's `dimensions/*.json` dimension becomes one of these, as [Behavior pack dimensions](#behavior-pack-dimensions) describes, and a config entry can name it too. |
 | `minecraft:debug` | No | Java's debug world: every block state of the content palette laid out one every two blocks at y 70 over a barrier floor at y 60, in plains, so grid index `i` shows palette runtime id `i`. A dimension whose bounds miss y 60 to 70 refuses to build. |
 
 A plugin adds a kind through `GeneratorFactories.register({ kind, build(context) })`; the context
@@ -351,6 +351,32 @@ above and one below the natural surface. On each side it checks one column on th
 and that its top solid block sits within a small tolerance of the plateau's top. For a chunk out
 of reach it checks that the top solid block of every column matches the same chunk generated
 without the old chunk. It compares no other blocks.
+
+## Behavior pack dimensions
+
+A Bedrock behavior pack can define a custom dimension in `dimensions/<name>.json`, a
+`minecraft:dimension` document whose `description.identifier` names it. `@jsprismarine/packs`
+loads these into its `customDimensions` registry, and every level adds each one as a void
+dimension, after the stems its config and its save give it. The components it reads, with the
+defaults Mojang's 1.26.50 schemas give. BDS adds no dimension for a document without
+`minecraft:generation`, and neither does the server:
+
+| Component | Field | Default | What it sets |
+| --- | --- | --- | --- |
+| `minecraft:dimension_height` | `min_y` | -64 | The floor, a multiple of 16 from -512 to 512. |
+| `minecraft:dimension_height` | `height_range` | 384 | The height, a multiple of 16 from 16 to 1024. |
+| `minecraft:clouds` | `height` | 128 | Where the clouds render. |
+| `minecraft:generation` | `generator_type` | Required | The generator, and `void` is the only one. |
+
+The rest of the dimension type is the Overworld's. A document with a vanilla id, another generator
+or bounds out of range adds nothing, and the console names the file and the reason.
+`minecraft:default_biome` is not read: the client is told `minecraft:plains`, as for a script's
+dimension, since the join lists only vanilla biomes ([#3873](https://github.com/JSPrismarine/JSPrismarine/issues/3873)).
+
+A dimension the config or the save already has keeps that definition. A pack dimension wins over a
+script's registration of the same id, as on BDS, and a reload whose scripts no longer register it
+keeps it. The save leaves pack dimensions out, as it does script dimensions, so removing the pack
+removes the dimension at the next start, while its number stays reserved.
 
 ## Custom dimension types
 

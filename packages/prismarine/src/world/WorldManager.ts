@@ -22,6 +22,7 @@ import { LevelProviders } from './LevelProviders';
 import type BaseProvider from './providers/BaseProvider';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
+import { packDimensionOf } from './packDimensions';
 import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import type { World } from './World';
 import { WorldgenCatalog } from './WorldgenCatalog';
@@ -568,6 +569,12 @@ export default class WorldManager implements Service {
             }),
             onWorldBuilt: (world) => this.registerWorld(world)
         });
+        for (const [identifier, { pack, path, data }] of content.definitions.customDimensions) {
+            const dimension = packDimensionOf(identifier, data);
+            if ('problem' in dimension)
+                logger.warn(`World '${folderName}': ${pack}'s ${path} adds no dimension: ${dimension.problem}`);
+            else level.registerPackDimension(dimension.typeId, dimension.definition);
+        }
         this.levels.set(level.id, level);
         this.states.set(level.id, 'attaching');
         this.origins.set(level.id, origin);

@@ -17,7 +17,7 @@ import { testEntityServer } from '../testing/entityServer';
 import { testLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
+import { CLOUD_HEIGHT_ATTRIBUTE, Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
 import type { Level } from './Level';
 import LevelDB from './providers/leveldb/LevelDB';
 
@@ -165,6 +165,54 @@ describe('a dimension a script registers', () => {
             expect([...second.getStems().keys()]).not.toContain('jsp:void');
             expect(second.registerScriptDimension('jsp:void')).toBe('registered');
             expect(second.dimensionTypeOf('jsp:void').bedrockId).toBe(FIRST_CUSTOM_DIMENSION_ID);
+        } finally {
+            await second.disable();
+        }
+    });
+});
+
+describe('a dimension a pack defines', () => {
+    const definition = {
+        ...Dimensions.Overworld.java,
+        minY: 0,
+        height: 256,
+        logicalHeight: 256,
+        attributes: new Map([[CLOUD_HEIGHT_ATTRIBUTE, 100]])
+    };
+
+    it('is a void dimension with the document’s bounds, which a script registration does not replace', async () => {
+        const level = await openLevel();
+        try {
+            level.registerPackDimension('the_sift:dimension', definition);
+            expect(level.registerScriptDimension('the_sift:dimension')).toBe('registered');
+            // A reload whose scripts do not register it keeps it: the pack defines it.
+            expect(level.settleScriptDimensions([]).removed).toEqual([]);
+
+            const type = level.dimensionTypeOf('the_sift:dimension');
+            expect(type).toMatchObject({ bedrockId: FIRST_CUSTOM_DIMENSION_ID, minY: 0, height: 256, custom: true });
+            expect(level.getStems().get('the_sift:dimension')?.generator.type).toBe('jsprismarine:void');
+            expect(level.customDimensionDefinitions()).toMatchObject([
+                { dimensionType: FIRST_CUSTOM_DIMENSION_ID, minimumY: 0, heightRange: 256, cloudHeight: 100 }
+            ]);
+        } finally {
+            await level.disable();
+        }
+    });
+
+    it('stays out of the save, and keeps its id when the pack defines it again', async () => {
+        const first = await openLevel();
+        try {
+            first.registerPackDimension('the_sift:dimension', definition);
+            await first.saveLevelData();
+        } finally {
+            await first.disable();
+        }
+
+        const second = await openLevel();
+        try {
+            expect([...second.getStems().keys()]).not.toContain('the_sift:dimension');
+            second.registerPackDimension('the_sift:dimension', definition);
+            expect(second.dimensionTypeOf('the_sift:dimension').bedrockId).toBe(FIRST_CUSTOM_DIMENSION_ID);
         } finally {
             await second.disable();
         }
