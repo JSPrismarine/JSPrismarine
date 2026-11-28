@@ -188,7 +188,7 @@ and in both the written and the mirrored arrangement.
 
 `CraftingDataPacket` is written from the registry. `compileRecipeBook` translates the whole book
 through `javaItemToBedrock`, `buildCraftingData` in `@jsprismarine/protocol/bedrock/payload` turns it into the packet's
-lists, and `PlayerSession.sendCraftingData` sends it on join. Recipe network ids come from registry
+lists, and `sendCraftingData` in `editions/bedrock/joinContent` sends it in the join burst. Recipe network ids come from registry
 order: `orderRecipes` sorts by namespace and then path, comparing UTF-16 code units, and
 `assignNetIds` numbers the sorted list from 1 because Bedrock reserves 0 for "no recipe". Adding one
 recipe renumbers everything that sorts after it, so a reload has to resend the whole list rather

@@ -587,7 +587,6 @@
     "packages/prismarine/src/player/PlayerSession.ts public method `PlayerSession.getConnection`",
     "packages/prismarine/src/player/PlayerSession.ts public method `PlayerSession.needNewChunks`",
     "packages/prismarine/src/player/PlayerSession.ts public method `PlayerSession.requestChunk`",
-    "packages/prismarine/src/player/PlayerSession.ts public method `PlayerSession.sendCreativeContents`",
     "packages/prismarine/src/player/PlayerSession.ts public method `PlayerSession.sendMetadata`",
     "packages/prismarine/src/utils/BinaryHeap.ts public method `BinaryHeap.push`",
     "packages/prismarine/src/utils/BinaryHeap.ts public method `BinaryHeap.size`",
