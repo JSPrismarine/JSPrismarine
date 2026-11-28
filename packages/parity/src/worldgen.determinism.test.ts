@@ -99,42 +99,42 @@ const SHARD_POOL_SUBJECTS = [
         why: 'east side of an ancient city crossing shard regions'
     },
     {
-        id: '1234/12,128/full',
+        id: '1234/-8,1/full',
         seed: 1234,
-        chunkX: 12,
-        chunkZ: 128,
+        chunkX: -8,
+        chunkZ: 1,
         tier: 'full',
         why: 'west end of a mineshaft crossing shard regions'
     },
     {
-        id: '1234/16,128/full',
+        id: '1234/-5,1/full',
         seed: 1234,
-        chunkX: 16,
-        chunkZ: 128,
+        chunkX: -5,
+        chunkZ: 1,
         tier: 'full',
         why: 'a mineshaft chunk holding its cave spider spawner'
     },
     {
-        id: '1234/20,128/full',
+        id: '1234/-1,1/full',
         seed: 1234,
-        chunkX: 20,
-        chunkZ: 128,
+        chunkX: -1,
+        chunkZ: 1,
         tier: 'full',
         why: 'east end of the same mineshaft'
     },
     {
-        id: '1234/16,124/full',
+        id: '1234/-5,-4/full',
         seed: 1234,
-        chunkX: 16,
-        chunkZ: 124,
+        chunkX: -5,
+        chunkZ: -4,
         tier: 'full',
         why: 'north edge of the same mineshaft'
     },
     {
-        id: '1234/16,133/full',
+        id: '1234/-5,6/full',
         seed: 1234,
-        chunkX: 16,
-        chunkZ: 133,
+        chunkX: -5,
+        chunkZ: 6,
         tier: 'full',
         why: 'south edge of the same mineshaft'
     }

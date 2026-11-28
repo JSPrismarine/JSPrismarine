@@ -8,6 +8,7 @@ import { diffCensus, diffChunks, diffStructures } from './generation/diff.ts';
 import type { GenerationCorpusGolden } from './generation/golden.ts';
 import { CORPUS_CHUNKS, STRUCTURE_SCAN_CHUNKS, WHOLE_CHUNKS } from './generation/plan.ts';
 import { loadGenerationCorpus } from './goldens.ts';
+import { JAVA_STRUCTURE_SCENARIOS } from './javaStructureStarts.ts';
 import { javaOperations, pinnedJavaClass } from './javaClassFile.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
@@ -254,9 +255,10 @@ describeFamily(
         });
 
         it('carries no stale allow-list entry', () => {
-            expect(checkAllowList(FAMILIES.worldgenStructures, diffStructures(golden, captured).gaps).stale).toEqual(
-                []
-            );
+            // `worldgen.structureStarts` files its Java comparison's gaps under this family too.
+            const theirs = new Set<string>(Object.values(JAVA_STRUCTURE_SCENARIOS));
+            const stale = checkAllowList(FAMILIES.worldgenStructures, diffStructures(golden, captured).gaps).stale;
+            expect(stale.filter((id) => !theirs.has(id.slice(0, id.indexOf(':'))))).toEqual([]);
         });
 
         it('scans the chunks the plan declares and builds every structure type it finds', () => {
