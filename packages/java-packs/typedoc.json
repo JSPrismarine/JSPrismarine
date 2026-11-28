@@ -1,0 +1,4 @@
+{
+    "entryPoints": ["src/convert.ts", "src/image.ts", "src/lang.ts", "src/sounds.ts", "src/resourceLocation.ts"],
+    "readme": "README.md"
+}
