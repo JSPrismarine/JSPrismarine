@@ -38,6 +38,8 @@ import type {
 } from '@jsprismarine/script-host/host/world';
 import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entities/world';
 import { shapeVisibleTo } from '@jsprismarine/script-host/host/world';
+import type { PackStructures } from './packStructures';
+import { packStructuresOf } from './packStructures';
 
 import type { ChatManager } from '../chat/ChatManager';
 import type { DataDrivenScreens } from './DataDrivenScreens';
@@ -186,14 +188,21 @@ export interface ScriptWorldSources {
     readonly chat: Pick<ChatManager, 'addGuard'> & Partial<Pick<ChatManager, 'onSent'>>;
     /** The wall clock the input step admitted for the current tick, in milliseconds since the epoch. */
     clock(): number;
-    /** The level's entities, blocks, items and commands. {@link NO_LEVEL_ACCESS} when absent. */
-    readonly access?: ScriptLevelAccess;
     /**
      * How long a tick should take and how long the last one took, as the input step admitted
      * them, which size the time the scripts' jobs get this tick. Without it, jobs get a fixed
      * number of steps.
      */
     jobSlice?(): { readonly periodMs: number; readonly lastTickMs: number };
+    /** The level's entities, blocks, items and commands. {@link NO_LEVEL_ACCESS} when absent. */
+    readonly access?: ScriptLevelAccess;
+    /**
+     * The level's behavior packs, whose `structures/` the structure manager reads. The level has
+     * no pack structures when absent.
+     */
+    readonly packDirectories?: readonly string[];
+    /** Where the level reports a pack file it cannot read, such as a broken structure. */
+    readonly warn?: (message: string) => void;
     /** The channel the scripts' HTTP requests travel over. Without one, each request fails. */
     readonly http?: ScriptHttpChannel;
     /** The level's entity and player systems, which the entity members reach. */
@@ -243,14 +252,18 @@ const inEntityEventOrder = (events: readonly ScriptWorldEvent[]): ScriptWorldEve
     return events.map((event) => (isEntityEvent(event) ? (entity.shift() ?? event) : event));
 };
 
-/** A structure store in memory, which keeps its structures in the order they were first set. */
-const levelStructures = (): ScriptStructureStore => {
+/**
+ * A structure store in memory, which keeps its structures in the order they were first set, and
+ * finds an id no kept structure has among the packs' structures.
+ */
+const levelStructures = (packs: PackStructures | undefined): ScriptStructureStore => {
     const kept = new Map<string, ScriptStructure>();
     return {
-        get: (id) => kept.get(id),
+        get: (id) => kept.get(id) ?? packs?.get(id),
         set: (id, structure) => void kept.set(id, structure),
         delete: (id) => kept.delete(id),
-        ids: () => [...kept.keys()]
+        ids: () => [...kept.keys()],
+        packIds: () => packs?.ids() ?? []
     };
 };
 
@@ -338,7 +351,7 @@ export class LevelScriptWorld implements ScriptWorld {
      * The level's structures. They last as long as the level is loaded: a save does not keep them
      * yet, as BDS keeps a structure saved to the world.
      */
-    public readonly structures: ScriptStructureStore = levelStructures();
+    public readonly structures: ScriptStructureStore;
 
     /** The channel the level's scripts' HTTP requests travel over, when the server gives one. */
     public readonly http: ScriptWorld['http'];
@@ -362,9 +375,24 @@ export class LevelScriptWorld implements ScriptWorld {
     };
 
     /** Starts recording the level's weather changes for the scripts' after-events. */
+    /**
+     * The steps this tick's jobs may take, when the level sizes them from its tick time; see
+     * {@link ScriptWorldSources.jobSlice}. Left unset, jobs take the script host's fixed budget.
+     */
+    public jobSteps?: () => number;
+
     public constructor(sources: ScriptWorldSources) {
         this.sources = sources;
         this.access = sources.access ?? NO_LEVEL_ACCESS;
+        this.structures = levelStructures(
+            sources.packDirectories === undefined
+                ? undefined
+                : packStructuresOf(
+                      sources.packDirectories,
+                      (typeId, states) => this.access.resolveBlock(typeId, states),
+                      (message) => sources.warn?.(message)
+                  )
+        );
         this.simulatedPlayers = this.access.simulatedPlayers;
         this.placeStructure = this.access.placeStructure;
         this.setGameMode = this.access.setGameMode;
@@ -375,12 +403,6 @@ export class LevelScriptWorld implements ScriptWorld {
         this.playSound = this.access.playSound;
         this.spawnParticle = this.access.spawnParticle;
         this.isEffectType = this.access.isEffectType;
-    /**
-     * The steps this tick's jobs may take, when the level sizes them from its tick time; see
-     * {@link ScriptWorldSources.jobSlice}. Left unset, jobs take the script host's fixed budget.
-     */
-    public jobSteps?: () => number;
-
         this.effects = this.access.effects;
         this.addEffect = this.access.addEffect;
         this.removeEffect = this.access.removeEffect;

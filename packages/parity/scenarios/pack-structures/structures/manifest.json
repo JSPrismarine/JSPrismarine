@@ -1,0 +1,21 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario pack-structures structures",
+        "description": "Records the structures a behavior pack ships in structures/, as world.structureManager reads and places them. Written for packages/parity.",
+        "uuid": "7c1e5a3b-2d4f-4b6a-8e9c-0a1b2c3d4e51",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        { "type": "data", "uuid": "7c1e5a3b-2d4f-4b6a-8e9c-0a1b2c3d4e52", "version": [1, 0, 0] },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "7c1e5a3b-2d4f-4b6a-8e9c-0a1b2c3d4e53",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.0.0" }]
+}
