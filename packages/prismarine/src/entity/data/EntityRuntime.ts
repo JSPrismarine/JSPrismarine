@@ -3193,17 +3193,7 @@ export class EntityRuntime implements EntityScene {
         if (entity !== undefined) return goalMobOf(entity, this);
 
         const player = this.host.playerById(id);
-        return player === undefined
-            ? undefined
-            : playerGoalMob(
-                  player.id,
-                  player.identifier,
-                  player.position,
-                  player.tags,
-                  this.host.playerView?.(player.id),
-                  this.combatOf(player.id),
-                  () => this.host.heldItemOf?.(player.id)
-              );
+        return player === undefined ? undefined : playerGoalMob(player, this);
     }
 
     /** The nearest point of interest of a kind, for the eleven goals that ask. */

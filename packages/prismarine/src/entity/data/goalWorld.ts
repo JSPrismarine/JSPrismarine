@@ -21,6 +21,7 @@ import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/ent
 import { itemOfDrop } from '../../inventory/persistence';
 import { isDay } from '../../world/DayCycle';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
+import type { ContentEntity } from '../../content/world/adapter';
 import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
 import { PLAYER_BOX } from './facts';
@@ -534,15 +535,7 @@ const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, sc
         const away = squaredDistance(here, player.position);
         if (away <= within)
             found.push({
-                mob: playerGoalMob(
-                    player.id,
-                    player.identifier,
-                    player.position,
-                    player.tags,
-                    scene.host.playerView?.(player.id),
-                    scene.combatOf(player.id),
-                    () => scene.host.heldItemOf?.(player.id)
-                ),
+                mob: playerGoalMob(player, scene),
                 away
             });
     }
@@ -583,31 +576,38 @@ const PLAYER_FAMILIES = ['player', 'mob'] as const;
  * host's full filter view when it has one; otherwise answer identity, family,
  * and dynamic-tag facts and leave the rest unanswered.
  *
- * @param filterView - The host's live filter facts for this player, when available.
- * @param heldItem - What the player holds in its main hand, which the tempt goals read.
+ * The position is read from the host on every call rather than taken from
+ * `player`. A goal keeps the view it found for as long as it runs, as a tempt
+ * goal keeps the player it started following, and the host's record is a copy
+ * of where the player stood when the list was read. Java's goals hold the
+ * `Player` itself, so they follow the player as it moves.
+ *
+ * @param player - The host's record of the player, whose position stands in once the player has left.
+ * @param scene - The scene whose host answers where the player is now and what it holds.
  */
-export const playerGoalMob = (
-    id: number,
-    identifier: string,
-    position: EntityPosition,
-    tags: readonly string[] = [],
-    filterView?: FilterEntityView,
-    combat?: Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>,
-    heldItem?: () => string | undefined
-): GoalMob => ({
-    ...combat,
-    ...(heldItem === undefined ? {} : { heldItem }),
-    id,
-    position: () => position,
-    lookPosition: () => ({ x: position.x, y: position.y + EYE_HEIGHT, z: position.z }),
-    view: (): FilterEntityView =>
-        filterView ?? {
-            id: () => id,
-            names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : name === 'has_tag' ? tags : undefined)
+export const playerGoalMob = (player: ContentEntity, scene: EntityScene): GoalMob => {
+    const { id, identifier } = player;
+    const filterView = scene.host.playerView?.(id);
+    const position = (): EntityPosition => playerById(scene, id)?.position ?? player.position;
+    return {
+        ...scene.combatOf(id),
+        heldItem: () => scene.host.heldItemOf?.(id),
+        id,
+        position,
+        lookPosition: () => {
+            const at = position();
+            return { x: at.x, y: at.y + EYE_HEIGHT, z: at.z };
         },
-    identifier: () => identifier,
-    size: () => PLAYER_BOX
-});
+        view: (): FilterEntityView =>
+            filterView ?? {
+                id: () => id,
+                names: (name) =>
+                    name === 'is_family' ? PLAYER_FAMILIES : name === 'has_tag' ? (player.tags ?? []) : undefined
+            },
+        identifier: () => identifier,
+        size: () => PLAYER_BOX
+    };
+};
 
 /** One item stack lying in the world, as the pickup goals read it. */
 export type { GoalItem };

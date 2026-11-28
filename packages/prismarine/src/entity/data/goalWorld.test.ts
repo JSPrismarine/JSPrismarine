@@ -208,7 +208,8 @@ describe('the goal world over the entity runtime', () => {
             const [other] = goalWorldOf(mob.body, fixture.runtime).mobs(8);
 
             expect(other?.size?.()).toEqual(mobBase['minecraft:collision_box']);
-            expect(playerGoalMob(7, 'minecraft:player', groundAt(0, 0)).size?.()).toEqual(PLAYER_BOX);
+            const player = { id: 7, identifier: 'minecraft:player', position: groundAt(0, 0) };
+            expect(playerGoalMob(player, fixture.runtime).size?.()).toEqual(PLAYER_BOX);
         });
     });
 
@@ -891,6 +892,23 @@ describe('the goal world over the entity runtime', () => {
             world.held.set(900, 'minecraft:wheat');
             run(fixture, 2);
             expect(tempted.instance.goals.runningGoals()).toContain('minecraft:behavior.tempt');
+        });
+
+        it('walks a tempted mob after the player as the player moves', () => {
+            const player = { id: 900, identifier: 'minecraft:player', position: groundAt(5, 0) };
+            const world = new TestEntityWorld({ players: [player] });
+            world.held.set(900, 'minecraft:wheat');
+            const fixture = fixtureOf(world);
+            const tempted = spawned(fixture, 'jsprismarine:tempted', groundAt(0, 0));
+            run(fixture, 60);
+            expect(tempted.instance.goals.runningGoals()).toContain('minecraft:behavior.tempt');
+
+            // A host hands out a fresh record each time the player moves, as the server's does.
+            world.players = [{ ...player, position: groundAt(-4, 0) }];
+            run(fixture, 200);
+
+            expect(tempted.instance.goals.runningGoals()).toContain('minecraft:behavior.tempt');
+            expect(tempted.position.x).toBeLessThan(0);
         });
     });
 
