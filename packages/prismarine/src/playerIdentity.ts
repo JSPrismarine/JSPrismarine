@@ -17,6 +17,8 @@
  * two live players share any of the three. The {@link Subject} beside them is what permissions,
  * operator entries and bans are filed by: the verified XUID, or the name on an offline-mode server.
  */
+import { offlineUuid } from '@jsprismarine/protocol/java/javaIdentity';
+
 import type { Subject } from './identity/Subject';
 import { sameSubject } from './identity/Subject';
 
@@ -48,8 +50,9 @@ export interface PlayerIdentity {
  * filed under this key since before services existed, and keeping one key for both means a
  * service and the record can never disagree about whose state they hold.
  *
- * A Java Edition account Mojang vouched for has no XUID, and its name may be a Bedrock player's
- * too, so it is keyed by its profile UUID, under a `java:` prefix no XUID or name can carry.
+ * A Java Edition account has no XUID, and its name may be a Bedrock player's too, so it is keyed
+ * by its profile UUID, under a `java:` prefix no name can carry. On an offline-mode server that
+ * UUID is the one vanilla derives from the name, so a returning Java player finds their record.
  *
  * Unique among live players because {@link sameAccount} matches on the key as well as the name and
  * the XUID.
@@ -60,8 +63,16 @@ export const playerKeyOf = ({
     name,
     xuid,
     subject
-}: Pick<PlayerIdentity, 'name' | 'xuid'> & Partial<Pick<PlayerIdentity, 'subject'>>): string =>
-    xuid || (subject?.kind === 'java' ? `java:${subject.uuid}` : name);
+}: Pick<PlayerIdentity, 'name' | 'xuid'> & Partial<Pick<PlayerIdentity, 'subject'>>): string => {
+    if (xuid) return xuid;
+    if (subject?.kind === 'java') return `java:${subject.uuid}`;
+    if (subject?.kind === 'offline' && subject.edition === 'java') return `java:${offlineUuid(subject.name)}`;
+    return name;
+};
+
+/** Whether the login came from a Java Edition client, as its subject records. */
+const isJavaLogin = ({ subject }: PlayerIdentity): boolean =>
+    subject.kind === 'java' || (subject.kind === 'offline' && subject.edition === 'java');
 
 /**
  * Whether two identities belong to the same account, for the purpose of letting only one of them
@@ -72,6 +83,9 @@ export const playerKeyOf = ({
  * player whose XUID is `123`, and the two would read and write one saved record. The UUID is what
  * the player list and the operator list are keyed by, so two live players sharing one would
  * collide there. An empty XUID matches nothing: every player on an offline-mode server has one.
+ *
+ * A Java login and a Bedrock login are different accounts even when they share a name, unless a
+ * link made them one, so the name and XUID are compared only within one edition.
  * @param a - One identity.
  * @param b - The other.
  * @returns True when the two share a name, a non-empty XUID, a UUID or a {@link playerKeyOf} key.
@@ -81,6 +95,11 @@ export const sameAccount = (a: PlayerIdentity, b: PlayerIdentity): boolean => {
     // Bedrock player may share a name and both play. A link makes both logins the primary's subject.
     if (a.subject.kind !== 'offline' && b.subject.kind !== 'offline') {
         return sameSubject(a.subject, b.subject) || a.uuid === b.uuid;
+    }
+    // A Java player and a Bedrock player of one name on an offline-mode server have their own
+    // records, so only what the player list and the record are keyed by can collide.
+    if (isJavaLogin(a) !== isJavaLogin(b)) {
+        return a.uuid === b.uuid || playerKeyOf(a) === playerKeyOf(b);
     }
     return (
         a.name === b.name ||
