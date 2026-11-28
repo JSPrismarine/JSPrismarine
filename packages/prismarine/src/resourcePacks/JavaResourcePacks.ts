@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { JavaPackTarget } from '@jsprismarine/java-packs/convert';
+import type { JavaCustomItem, JavaPackTarget } from '@jsprismarine/java-packs/convert';
 import { convertResourcePacks, JAVA_PACK_CONVERTER_VERSION } from '@jsprismarine/java-packs/convert';
 import { readZip, writeZip } from '@jsprismarine/packs/zip';
 
@@ -29,6 +29,8 @@ export interface JavaResourcePack {
 export interface JavaResourcePacksOptions {
     /** The Bedrock packs the server offers, top first; a new list means they changed. */
     readonly bedrock: () => Promise<readonly ServedResourcePack[]>;
+    /** The custom items the pack draws; none when absent. */
+    readonly items?: () => readonly JavaCustomItem[];
     /** The Java release the pack is for. */
     readonly target: JavaPackTarget;
     /** The folder converted packs are kept in. */
@@ -40,17 +42,27 @@ export interface JavaResourcePacksOptions {
 const uuidOf = (hex: string): string =>
     `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 
+/** The custom items in a fixed order, as the key and the build read them. */
+const sortedItems = (items: readonly JavaCustomItem[]): JavaCustomItem[] =>
+    [...items].sort((a, b) => (a.model < b.model ? -1 : a.model > b.model ? 1 : 0));
+
 /**
  * The key of a conversion: what the converted bytes follow from, which is the converter's
- * version, the target pack format and each Bedrock pack's own hash, in stack order.
+ * version, the target pack format, each Bedrock pack's own hash, in stack order, and the custom
+ * items the pack draws, by model.
  */
-export const javaPackKey = (target: JavaPackTarget, bedrock: readonly ServedResourcePack[]): string =>
+export const javaPackKey = (
+    target: JavaPackTarget,
+    bedrock: readonly ServedResourcePack[],
+    items: readonly JavaCustomItem[] = []
+): string =>
     createHash('sha256')
         .update(
             JSON.stringify([
                 JAVA_PACK_CONVERTER_VERSION,
                 target.format,
-                bedrock.map(({ sha256 }) => sha256.toString('hex'))
+                bedrock.map(({ sha256 }) => sha256.toString('hex')),
+                ...(items.length === 0 ? [] : [sortedItems(items).map(({ model, icon }) => [model, icon])])
             ])
         )
         .digest('hex');
@@ -67,6 +79,8 @@ export class JavaResourcePacks {
     private readonly options: JavaResourcePacksOptions;
     private built?: {
         readonly from: readonly ServedResourcePack[];
+        /** The custom items, as the key spells them. */
+        readonly items: string;
         readonly pack: Promise<JavaResourcePack | undefined>;
     };
     /** Every pack a build gave, by SHA-1. */
@@ -90,10 +104,12 @@ export class JavaResourcePacks {
      */
     public async current(): Promise<JavaResourcePack | undefined> {
         const from = await this.options.bedrock();
-        if (this.built?.from !== from) {
+        const items = sortedItems(this.options.items?.() ?? []);
+        const itemsKey = JSON.stringify(items);
+        if (this.built?.from !== from || this.built.items !== itemsKey) {
             // One build at a time, so one build's pruning never deletes the file another is writing.
-            const pack = this.builds.run(() => this.build(from));
-            const built = { from, pack };
+            const pack = this.builds.run(() => this.build(from, items));
+            const built = { from, items: itemsKey, pack };
             this.built = built;
             pack.catch(() => {
                 if (this.built === built) this.built = undefined;
@@ -107,7 +123,10 @@ export class JavaResourcePacks {
         return this.bySha1.get(sha1.toLowerCase());
     }
 
-    private async build(served: readonly ServedResourcePack[]): Promise<JavaResourcePack | undefined> {
+    private async build(
+        served: readonly ServedResourcePack[],
+        items: readonly JavaCustomItem[]
+    ): Promise<JavaResourcePack | undefined> {
         const { cacheDirectory, target, log } = this.options;
         // An encrypted pack's files are ciphertext, which only a Bedrock client holding its key reads.
         for (const { name, contentKey } of served)
@@ -117,7 +136,7 @@ export class JavaResourcePacks {
             await this.prune();
             return undefined;
         }
-        const key = javaPackKey(target, bedrock);
+        const key = javaPackKey(target, bedrock, items);
         const file = path.join(cacheDirectory, `${key}.zip`);
         let bytes: Uint8Array | undefined = await readFile(file).then(
             (read) => new Uint8Array(read),
@@ -126,11 +145,12 @@ export class JavaResourcePacks {
         if (bytes === undefined) {
             const converted = convertResourcePacks(
                 bedrock.map(({ name, bytes: zip }) => ({ name, files: readZip(zip) })),
-                target
+                target,
+                { items }
             );
             for (const { pack, converted: counts, notes } of converted.report) {
                 log.info(
-                    `Converted ${pack} for Java ${target.release}: ${counts.textures} textures, ${counts.vanillaOverrides} of Java's retextured, ${counts.languages} languages, ${counts.sounds} sounds; ${notes.length} things left out or changed`
+                    `Converted ${pack} for Java ${target.release}: ${counts.textures} textures, ${counts.vanillaOverrides} of Java's retextured, ${counts.languages} languages, ${counts.sounds} sounds, ${counts.items} custom items; ${notes.length} things left out or changed`
                 );
                 for (const { path: where, outcome, reason } of notes)
                     log.debug(`${pack}: ${outcome} ${where}: ${reason}`);

@@ -77,7 +77,7 @@ import {
     SystemChat,
     TeleportEntity
 } from '@jsprismarine/protocol/java/packet/play';
-import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/newest';
+import { CONFIGURATION, ITEMS } from '@jsprismarine/protocol/java/versions/newest';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
@@ -118,6 +118,7 @@ import type { ChunkWire } from '../../player/ChunkView';
 import type { EditionTranslation } from './editionTranslation';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';
+import type { JavaCustomItems } from './JavaCustomItems';
 import { javaItemComponentsOf } from './javaItemComponents';
 import {
     javaBlockTranslation,
@@ -461,7 +462,8 @@ export class JavaPresenter implements SessionPresenter {
         private readonly ownRuntimeId: bigint,
         private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation(),
         private readonly items: EditionTranslation<string, number | undefined> = javaItemTranslation(),
-        private readonly columns: JavaChunkTranslator = new JavaChunkTranslator(blocks)
+        private readonly columns: JavaChunkTranslator = new JavaChunkTranslator(blocks),
+        private readonly customItems?: Pick<JavaCustomItems, 'stackOf'>
     ) {}
 
     /** The chunk the client's view was last centered on, which a center only moves. */
@@ -513,9 +515,12 @@ export class JavaPresenter implements SessionPresenter {
 
     /** A stack in Java's terms; an item Java has nothing for shows as an empty slot. */
     private javaStackOf(stack: ShownStack | null): JavaItemStack | null {
-        const item = stack === null ? undefined : this.items.toJava(stack.name);
-        if (stack === null || item === undefined) return null;
-        const components = javaItemComponentsOf(stack);
+        if (stack === null) return null;
+        // A custom item is its base item naming its own model, under what the stack itself sets.
+        const custom = this.items.toJava(stack.name) === undefined ? this.customItems?.stackOf(stack.name) : undefined;
+        const item = custom === undefined ? this.items.toJava(stack.name) : ITEMS.idOf(custom.base);
+        if (item === undefined) return null;
+        const components = { ...custom?.components, ...javaItemComponentsOf(stack) };
         return Object.keys(components).length === 0
             ? { item, count: stack.count }
             : { item, count: stack.count, components };

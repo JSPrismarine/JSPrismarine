@@ -342,6 +342,14 @@ Java's own, their animations, the translations, the sounds that ship as Ogg Vorb
 fonts. [`@jsprismarine/java-packs`](../../packages/java-packs/README.md) lists what converts and
 what it leaves out, and the console names what each pack lost.
 
+An addon's custom items reach Java players too. Each one is sent as paper, or as a bow or a
+snowball when it shoots or is thrown, which draws with the item's own icon and shows its name. Its
+stack size, durability, food, cooldown and the slot it is worn in work as they do on Bedrock,
+though a worn item draws no armor on the player. The server records which model each item draws
+with in <!-- fact:javaContent.file -->`java-content.json`<!-- /fact --> beside `config.json`, the first time it sees the
+item, and keeps that record for good, so an item a player holds keeps its look when the server
+restarts or an addon is removed and installed again. Keep the file with the server's worlds.
+
 The server converts the packs once each time they change and keeps the result in
 <!-- fact:javaPacks.cacheDirectory -->`cache/java-packs/`<!-- /fact --> in the server's folder, so a
 restart with the same addons converts nothing and a returning player's game skips the download.

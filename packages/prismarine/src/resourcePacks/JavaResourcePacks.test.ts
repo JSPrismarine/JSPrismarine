@@ -72,6 +72,29 @@ describe('JavaResourcePacks', () => {
         expect(again).toMatchObject({ id: pack!.id, sha1: pack!.sha1 });
     });
 
+    it('builds again when the custom items it draws change, and keys the build by them', async () => {
+        const directory = cache();
+        const stack = [served('furniture', 'item.furniture:lamp.name=Lamp')];
+        let items = [{ model: 'furniture:lamp', icon: 'lamp' }];
+        const packs = new JavaResourcePacks({
+            bedrock: async () => stack,
+            items: () => items,
+            target,
+            cacheDirectory: directory,
+            log: { info: () => {}, debug: () => {} }
+        });
+
+        const first = await packs.current();
+        expect(await packs.current()).toBe(first);
+        items = [...items, { model: 'furniture:chair', icon: 'chair' }];
+        const second = await packs.current();
+        expect(packs.conversions).toBe(2);
+        expect(second!.key).toBe(javaPackKey(target, stack, items));
+        expect(second!.key).not.toBe(first!.key);
+        expect(javaPackKey(target, stack, [...items].reverse())).toBe(second!.key);
+        expect(javaPackKey(target, stack, [])).toBe(javaPackKey(target, stack));
+    });
+
     it('keeps every pack this run gave and deletes the cache files no run of it gave', async () => {
         const directory = cache();
         await writeFile(path.join(directory, 'stale.zip'), 'old');
