@@ -1850,6 +1850,10 @@
             "jsprismarine:dist": "./dist/player/context/connectionContexts.js",
             "default": "./src/player/context/connectionContexts.ts"
         },
+        "./editions/bedrock/actorIdentifiers": {
+            "jsprismarine:dist": "./dist/editions/bedrock/actorIdentifiers.js",
+            "default": "./src/editions/bedrock/actorIdentifiers.ts"
+        },
         "./editions/bedrock/contentPayloads": {
             "jsprismarine:dist": "./dist/editions/bedrock/contentPayloads.js",
             "default": "./src/editions/bedrock/contentPayloads.ts"

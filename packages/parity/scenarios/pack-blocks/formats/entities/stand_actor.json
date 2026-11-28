@@ -1,0 +1,14 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "parity:stand_actor",
+            "runtime_identifier": "minecraft:armor_stand",
+            "is_spawnable": false,
+            "is_summonable": false
+        },
+        "components": {
+            "minecraft:health": { "value": 1, "max": 1 }
+        }
+    }
+}

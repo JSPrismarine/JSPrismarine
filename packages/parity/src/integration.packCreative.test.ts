@@ -1,10 +1,14 @@
 import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
+import { actorIdentifiersFor } from '@jsprismarine/prismarine/editions/bedrock/actorIdentifiers';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/editions/bedrock/contentPayloads';
+import { codecForProtocol } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
+import { nbtToPlain, readNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
 import { isDeepStrictEqual } from 'node:util';
 import { beforeAll, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
+import { packActorEntriesOf, readPackActorsGolden } from './packActors.ts';
 import { PACK_BLOCK_NAMESPACE, packBlockFixtures } from './packBlocks.ts';
 import { creativeItemPropertiesOf, readPackCreativeGolden } from './packCreative.ts';
 import { reportParityProgress } from './progress.ts';
@@ -19,6 +23,7 @@ describeFamily(
     FAMILIES.integrationClientPackets,
     [REFERENCES.bedrockBehaviorPack],
     () => {
+        let content: ReturnType<typeof buildServerContent>;
         let payloads: ReturnType<typeof buildNetworkContentPayloads>;
 
         // Composing the vanilla behavior pack with the fixtures takes minutes.
@@ -26,7 +31,7 @@ describeFamily(
             // The capture lists the packs in `world_behavior_packs.json` in fixture order, and the
             // server's first entry is the top of its stack. A stack here applies the last pack on
             // top, so the same priority is the reverse order.
-            const content = buildServerContent({
+            content = buildServerContent({
                 packs: {
                     worldPacks: packBlockFixtures()
                         .packs.toReversed()
@@ -96,6 +101,26 @@ describeFamily(
             expect(groups).toEqual(golden.groups);
             expect(entries).toEqual(golden.entries);
             expect(registry).toEqual(golden.items);
+        });
+
+        it("lists each pack entity's type in the join's actor list as the pinned BDS does", () => {
+            const golden = readPackActorsGolden();
+            const vanilla = codecForProtocol(golden.server.protocolVersion)?.context.entityIdentifiers;
+            const list = actorIdentifiersFor(vanilla, content).identifiers ?? vanilla;
+            if (list === undefined) throw new Error(`No actor list for protocol ${golden.server.protocolVersion}`);
+            const ours = packActorEntriesOf(nbtToPlain(readNetworkNbt(list)));
+
+            const context = `AvailableActorIdentifiersPacket against BDS ${golden.server.serverVersion}`;
+            const names = [...new Set([...Object.keys(golden.actors), ...Object.keys(ours)])].sort();
+            const cases = names.map((name) =>
+                parityCase(`pack-actor:${name}`, name, context, isDeepStrictEqual(ours[name], golden.actors[name]))
+            );
+            reportParityCases(FAMILIES.integrationClientPackets, import.meta.filename, cases);
+            reportParityProgress(FAMILIES.integrationClientPackets, {
+                'pack actor types matching BDS': cases.filter((record) => record.status === 'passed').length
+            });
+
+            expect(ours).toEqual(golden.actors);
         });
     },
     { tags: ['real-data'] }

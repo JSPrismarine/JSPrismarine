@@ -1,0 +1,25 @@
+{
+    "$comment": [
+        "The entries the pinned Bedrock Dedicated Server writes into AvailableActorIdentifiersPacket for the",
+        "entities of scenarios/pack-blocks/, as nbtToPlain reads each, without its rid.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:pack-blocks`; never edit by hand."
+    ],
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "actors": {
+        "parity:plain_actor": {
+            "bid": "string:minecraft:",
+            "hasspawnegg": "byte:0",
+            "id": "string:parity:plain_actor",
+            "summonable": "byte:1"
+        },
+        "parity:stand_actor": {
+            "bid": "string:minecraft:armor_stand",
+            "hasspawnegg": "byte:0",
+            "id": "string:parity:stand_actor",
+            "summonable": "byte:0"
+        }
+    }
+}
