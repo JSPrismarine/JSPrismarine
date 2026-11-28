@@ -6,10 +6,10 @@ import type { HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { offset, opposite } from '../geometry';
-import { AIR, isLava, isLiquidSource } from '../identifiers';
+import { AIR, isLava } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
-import { bucketOf, heldName, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
+import { heldName } from '../rules/heldItem';
 import { placementFacing } from '../rules/placement';
 import {
     activateEndPortal,
@@ -64,32 +64,8 @@ const updateBubbleColumn = (world: WorldActions, block: HookBlock): void => {
 /** Water and lava, source and flowing, and the bubble column water holds above soul sand or magma. */
 export const liquidFamily = defineFamily(
     'jsprismarine:liquid',
-    'Recomputes flowing depth, follows the nearest downward opening, forms source blocks when enabled, reacts where water meets lava, gives sources up to buckets or bottles, and points a bubble column the way the magma or soul sand below it pulls, or turns it back into water.',
+    'Recomputes flowing depth, follows the nearest downward opening, forms source blocks when enabled, reacts where water meets lava, and points a bubble column the way the magma or soul sand below it pulls, or turns it back into water.',
     {
-        onPlayerInteract: (event, world) => {
-            // Only a source fills a bucket. A flowing block has no liquid of
-            // its own to give, which is why an infinite water source is two
-            // sources and not two flows.
-            if (!isLiquidSource(event.block.identifier)) return undefined;
-            const liquid = isLava(event.block.identifier) ? 'lava' : 'water';
-
-            if (isEmptyBucket(event.itemStack)) {
-                world.setBlock(event.block.position, AIR);
-                world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
-                world.playSound(event.block.position, `bucket.fill_${liquid}`);
-                world.notifyNeighbors(event.block.position);
-                return { consumed: true, consumesHeldItem: true };
-            }
-
-            if (liquid === 'water' && isGlassBottle(event.itemStack)) {
-                // A bottle scoops water without taking the source with it.
-                world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
-                world.playSound(event.block.position, 'bucket.fill_water');
-                return { consumed: true, consumesHeldItem: true };
-            }
-
-            return undefined;
-        },
         onPlace: (event, world) => {
             if (isBubbleColumn(event.block.identifier)) {
                 world.scheduleTick(event.block.position, BUBBLE_COLUMN_CHECK_TICKS);

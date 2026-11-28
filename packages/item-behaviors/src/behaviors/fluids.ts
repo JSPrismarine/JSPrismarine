@@ -44,6 +44,14 @@ const MOB_BUCKET_FLUIDS: Readonly<Record<string, string>> = {
     'minecraft:powder_snow_bucket': 'minecraft:powder_snow'
 };
 
+/**
+ * Whether a block holds a whole source to pick up: a liquid at depth 0, or a block with no depth,
+ * as powder snow has. A flow has no liquid of its own to give.
+ *
+ * @javaSee LiquidBlock.pickupBlock
+ */
+const isSource = (block: BlockReference): boolean => (block.states['liquid_depth'] ?? 0) === 0;
+
 /** Where a placement goes: into the block when it is replaceable, otherwise against the face. */
 const placementPosition = (block: BlockReference, face: string): BlockPosition => {
     const offsets: Readonly<Record<string, readonly [number, number, number]>> = {
@@ -95,7 +103,7 @@ export const bucketBehavior: ItemBehaviorSpec = {
         const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
             if (contents === undefined) {
                 const filled = BUCKET_PICKUPS[block.identifier];
-                if (filled === undefined) return undefined;
+                if (filled === undefined || !isSource(block)) return undefined;
 
                 context.world.perform({ kind: 'break-block', position: block.position });
                 context.world.perform({ kind: 'play-sound', sound: filled.sound, position: block.position });

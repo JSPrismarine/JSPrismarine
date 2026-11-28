@@ -496,6 +496,13 @@ describe('buckets', () => {
         expect(result?.stack?.identifier).toBe('minecraft:water_bucket');
     });
 
+    it('leaves a flow alone, which has no source to give', () => {
+        const recording = withWorld();
+        const flow = testBlock('minecraft:flowing_water', undefined, { liquid_depth: 3 });
+        expect(useOn(stackOf('minecraft:bucket'), flow)).toBeUndefined();
+        expect(recording.did('break-block')).toBe(false);
+    });
+
     it('declines a block that holds no fluid', () => {
         withWorld();
         expect(useOn(stackOf('minecraft:bucket'), testBlock('minecraft:stone'))).toBeUndefined();

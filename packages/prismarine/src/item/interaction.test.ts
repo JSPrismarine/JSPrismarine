@@ -23,7 +23,7 @@ import type { ContentPosition } from '../content/world/adapter';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { ServerWorldHandle } from '../content/world/serverSource';
 import { Item } from './Item';
-import { useItemInAir, useItemOnBlock } from './interaction';
+import { consumeHeldItem, useItemInAir, useItemOnBlock } from './interaction';
 import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
@@ -94,6 +94,7 @@ const ITEMS = [
     'minecraft:glass_bottle',
     'minecraft:water_bucket',
     'minecraft:lava_bucket',
+    'minecraft:milk_bucket',
     'minecraft:potion',
     'minecraft:bone_meal',
     'minecraft:wheat_seeds',
@@ -181,6 +182,9 @@ const overlayBlock = (identifier: string) => {
     return definitionOf('blocks', identifier, JSON.parse(readFileSync(file, 'utf8')));
 };
 
+/** The sessions each {@link liveWorld} answers `viewerOf` with. */
+const viewersOf = new WeakMap<World, Map<bigint, PlayerSession>>();
+
 /** A `World` holding one chunk, for the interaction path to act on, with real systems. */
 const liveWorld = (
     content: () => ServerContent
@@ -200,6 +204,7 @@ const liveWorld = (
     const redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[] = [];
 
     const kernel = testKernel();
+    const viewers = new Map<bigint, PlayerSession>();
     const world: World = Object.assign(
         testWorld({
             level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
@@ -217,8 +222,15 @@ const liveWorld = (
                 getKernel: () => kernel
             })
         }),
-        { chunks: new Map([[Chunk.packXZ(0, 0), chunk]]) }
+        {
+            chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+            // The players {@link playerHolding} built, which is how the actor port finds a
+            // source's session and reads whether it is creative.
+            viewerOf: (runtimeId: bigint) => viewers.get(runtimeId)
+        }
     );
+
+    viewersOf.set(world, viewers);
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
@@ -394,6 +406,7 @@ const playerHolding = (
         }
     );
     sends.set(player, session);
+    viewersOf.get(world)?.set(runtimeId, player);
     return player;
 };
 
@@ -513,6 +526,59 @@ describe('useItemOnBlock', () => {
                 container === 'minecraft:bucket' ? 'minecraft:air' : liquid
             );
         });
+    });
+
+    // A bucket that fills or empties becomes a different item, which the hand has to take in
+    // place of the one it held, or the click picked up or poured out the liquid for free.
+    it.each([
+        ['minecraft:water', 'minecraft:water_bucket'],
+        ['minecraft:lava', 'minecraft:lava_bucket']
+    ])('turns the one bucket held into a bucket of %s', (liquid, filled) => {
+        const at = { x: 3, y: 64, z: 3 };
+        place(chunk, at, liquid, { liquid_depth: 0 });
+        const player = playerHolding(world, new Item({ name: 'minecraft:bucket', count: 1, content }));
+
+        expect(click(player, at)).toBe('handled');
+
+        const inventory = player.getInventory().container('inventory');
+        expect(inventory.get(0)?.getName()).toBe(filled);
+        expect(inventory.get(0)?.getAmount()).toBe(1);
+        expect(inventory.stacks().filter((stack) => stack.getName() !== 'minecraft:air')).toHaveLength(1);
+        expect(sessionOf(player).inventoriesSent).toBe(1);
+        expect(world.loadedBlockAt(at.x, at.y, at.z)?.name).toBe('minecraft:air');
+    });
+
+    it.each([
+        ['minecraft:water_bucket', 'minecraft:water'],
+        ['minecraft:lava_bucket', 'minecraft:lava']
+    ])('empties %s into an empty bucket', (filled, liquid) => {
+        const below = { x: 4, y: 63, z: 4 };
+        place(chunk, below, 'minecraft:stone');
+        const player = playerHolding(world, new Item({ name: filled, count: 1, content }));
+
+        expect(click(player, below)).toBe('handled');
+
+        const inventory = player.getInventory().container('inventory');
+        expect(inventory.get(0)?.getName()).toBe('minecraft:bucket');
+        expect(inventory.get(0)?.getAmount()).toBe(1);
+        expect(sessionOf(player).inventoriesSent).toBe(1);
+        expect(world.loadedBlockAt(4, 64, 4)?.name).toBe(liquid);
+    });
+
+    it('keeps the filled bucket a creative player pours out', () => {
+        const below = { x: 4, y: 63, z: 4 };
+        place(chunk, below, 'minecraft:stone');
+        const player = playerHolding(
+            world,
+            new Item({ name: 'minecraft:water_bucket', count: 1, content }),
+            false,
+            Gametype.CREATIVE
+        );
+
+        expect(click(player, below)).toBe('handled');
+
+        expect(player.getInventory().container('inventory').get(0)?.getName()).toBe('minecraft:water_bucket');
+        expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:water');
     });
 
     it('runs the block family, so a door opens for a player', () => {
@@ -777,6 +843,14 @@ describe('useItemOnBlock', () => {
 
         expect(click(playerHolding(world, 'minecraft:air', true), { x: 2, y: 64, z: 2 })).toBe('handled');
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
+    });
+
+    it('leaves the bucket that milk was drunk from in the hand', () => {
+        const player = playerHolding(world, new Item({ name: 'minecraft:milk_bucket', count: 1, content }));
+
+        expect(consumeHeldItem({ content, actors: handle.actorsAt(DIMENSION), player })).toBe(true);
+
+        expect(player.getInventory().equipment('mainhand')?.getName()).toBe('minecraft:bucket');
     });
 
     describe('useItemInAir', () => {
