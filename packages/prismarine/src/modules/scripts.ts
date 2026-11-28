@@ -169,6 +169,7 @@ export const startLevelScripts = async (
             weather: level.getWeather(),
             chat: server.getChatManager(),
             clock: () => server.getAdmittedClock(),
+            jobSlice: () => server.getAdmittedJobSlice(),
             http: server.getScriptHttp(),
             entitySystems: levelEntitySystems(server, level),
             access: {

@@ -188,6 +188,12 @@ export interface ScriptWorldSources {
     clock(): number;
     /** The level's entities, blocks, items and commands. {@link NO_LEVEL_ACCESS} when absent. */
     readonly access?: ScriptLevelAccess;
+    /**
+     * How long a tick should take and how long the last one took, as the input step admitted
+     * them, which size the time the scripts' jobs get this tick. Without it, jobs get a fixed
+     * number of steps.
+     */
+    jobSlice?(): { readonly periodMs: number; readonly lastTickMs: number };
     /** The channel the scripts' HTTP requests travel over. Without one, each request fails. */
     readonly http?: ScriptHttpChannel;
     /** The level's entity and player systems, which the entity members reach. */
@@ -369,6 +375,12 @@ export class LevelScriptWorld implements ScriptWorld {
         this.playSound = this.access.playSound;
         this.spawnParticle = this.access.spawnParticle;
         this.isEffectType = this.access.isEffectType;
+    /**
+     * The steps this tick's jobs may take, when the level sizes them from its tick time; see
+     * {@link ScriptWorldSources.jobSlice}. Left unset, jobs take the script host's fixed budget.
+     */
+    public jobSteps?: () => number;
+
         this.effects = this.access.effects;
         this.addEffect = this.access.addEffect;
         this.removeEffect = this.access.removeEffect;

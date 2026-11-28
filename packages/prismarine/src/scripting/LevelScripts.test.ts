@@ -103,6 +103,50 @@ describe('LevelScripts', () => {
         expect(lines[0]).toContain(`${LIBRARY_ENV} names ${missing}, which does not exist`);
     });
 
+    it.skipIf(!scriptHostAvailable())(
+        "sizes the jobs' steps from the tick time the level admits, as BDS slices a tick for them",
+        async () => {
+            /** How far a job that spins between yields gets in two ticks, with or without a slice. */
+            const progress = async (jobSlice?: () => { periodMs: number; lastTickMs: number }): Promise<string> => {
+                const lines: string[] = [];
+                const base = options(
+                    [
+                        writePack(`import { system } from '@minecraft/server';
+                            let done = 0;
+                            system.runJob((function* () { for (;;) { for (let i = 0; i < 20000; i++); done++; yield; } })());
+                            system.runTimeout(() => console.warn('done ' + done), 2);`)
+                    ],
+                    lines
+                );
+                // BDS's default hang threshold, since each step of the job spins a while.
+                const watchdog = { ...base.watchdog, hangThreshold: 10_000 };
+                const scripts = await LevelScripts.load(
+                    jobSlice === undefined
+                        ? { ...base, watchdog }
+                        : { ...base, watchdog, sources: { ...base.sources, jobSlice } }
+                );
+                if (scripts === undefined) throw new Error('the pack has a script module');
+                try {
+                    scripts.start({ setScriptPhase: () => {} });
+                    for (let tick = 0; tick < 3; tick++) scripts.flush();
+                    return lines.find((line) => line.includes('done ')) ?? '';
+                } finally {
+                    scripts.close();
+                }
+            };
+            const count = (line: string): number => Number(line.split('done ')[1]);
+
+            const fixed = count(await progress());
+            // An idle tick leaves the jobs its whole 50 ms, five times the fixed budget.
+            const idle = count(await progress(() => ({ periodMs: 50, lastTickMs: 0 })));
+            // A tick that ran over its period leaves them the fixed budget.
+            const late = count(await progress(() => ({ periodMs: 50, lastTickMs: 80 })));
+
+            expect(idle).toBeGreaterThan(3 * fixed);
+            expect(late).toBe(fixed);
+        }
+    );
+
     it.skipIf(!scriptHostAvailable())('leaves the world a phase other scripts set when it closes', async () => {
         const scripts = await LevelScripts.load(options([writePack('')], []));
         if (scripts === undefined) throw new Error('the pack has a script module');
