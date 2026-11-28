@@ -4,6 +4,9 @@
     "tasks": {
         "build": {
             "outputs": ["$TURBO_EXTENDS$", "scripts/**"]
+        },
+        "typecheck": {
+            "dependsOn": ["^typecheck"]
         }
     }
 }

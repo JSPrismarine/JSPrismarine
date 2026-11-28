@@ -22,6 +22,9 @@ const write = (file: string, contents: string): void => {
     fs.writeFileSync(path.join(root, file), contents);
 };
 
+const turboConfig = (outputs: string[]): string =>
+    JSON.stringify({ extends: ['//'], tasks: { build: { outputs }, typecheck: { dependsOn: ['^typecheck'] } } });
+
 const addon = (name: string, turbo?: string, outDir = 'scripts'): void => {
     write(`addons/${name}/package.json`, JSON.stringify({ scripts: { build: 'tsc-ts -p tsconfig.json' } }));
     write(`addons/${name}/tsconfig.json`, JSON.stringify({ compilerOptions: { outDir } }));
@@ -29,7 +32,10 @@ const addon = (name: string, turbo?: string, outDir = 'scripts'): void => {
 };
 
 describe('cachesAddonScripts', () => {
-    const config = (outputs: string[]) => ({ extends: ['//'], tasks: { build: { outputs } } });
+    const config = (outputs: string[], dependsOn = ['^typecheck']) => ({
+        extends: ['//'],
+        tasks: { build: { outputs }, typecheck: { dependsOn } }
+    });
 
     it('accepts a package config that extends the root and lists the compiled scripts', () => {
         expect(cachesAddonScripts(config(['$TURBO_EXTENDS$', 'scripts/**']), 'scripts')).toBe(true);
@@ -45,6 +51,13 @@ describe('cachesAddonScripts', () => {
         expect(cachesAddonScripts(undefined, 'scripts')).toBe(false);
     });
 
+    it('rejects a config whose typecheck does not wait for its dependencies', () => {
+        expect(cachesAddonScripts(config(['scripts/**'], []), 'scripts')).toBe(false);
+        expect(cachesAddonScripts({ extends: ['//'], tasks: { build: { outputs: ['scripts/**'] } } }, 'scripts')).toBe(
+            false
+        );
+    });
+
     it('keeps the generator template in step', () => {
         const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
         const template: unknown = JSON.parse(
@@ -57,10 +70,10 @@ describe('cachesAddonScripts', () => {
 
 describe('findUncachedAddons', () => {
     it('names only addons with a build whose outputs Turbo does not cache', () => {
-        addon('good', JSON.stringify({ extends: ['//'], tasks: { build: { outputs: ['scripts/**'] } } }));
-        addon('custom', JSON.stringify({ extends: ['//'], tasks: { build: { outputs: ['build/**'] } } }), 'build');
+        addon('good', turboConfig(['scripts/**']));
+        addon('custom', turboConfig(['build/**']), 'build');
         addon('missing');
-        addon('wrong', JSON.stringify({ extends: ['//'], tasks: { build: { outputs: ['dist/**'] } } }));
+        addon('wrong', turboConfig(['dist/**']));
         write('addons/not-a-package/README.md', 'Not a workspace.');
 
         expect(findUncachedAddons(root)).toEqual(['addons/missing', 'addons/wrong']);

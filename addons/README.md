@@ -13,7 +13,9 @@ The scripts are TypeScript. Each addon is a workspace package whose `src/` `tsc-
 `scripts/`, which git ignores, with the settings in [`tsconfig.base.json`](tsconfig.base.json).
 Its `package.json` pins `@minecraft/server`'s typings to the version its manifest depends on.
 Each addon also has a `turbo.json` that extends the root config and lists its compiled scripts in
-`tasks.build.outputs`, so Turbo restores them on a cache hit. The generator writes that file, and
+`tasks.build.outputs`, so Turbo restores them on a cache hit. Its `tasks.typecheck` depends on
+`^typecheck`, because `@jsprismarine/script-types` writes the declarations the addon imports during
+its own typecheck. The generator writes that file, and
 `pnpm run lint` checks that every addon has one.
 `pnpm --filter ./addons/<name> run build` compiles one addon, and the addon build, the docs build
 and the tests compile them on their own. The [Addons workflow](../.github/workflows/addons.yml) builds every
