@@ -229,6 +229,8 @@ export class Level {
     private experiments: readonly WorldExperiment[];
     private readonly handlers: WorldHandlersFactory | undefined;
     private readonly onWorldBuilt: ((world: World) => void) | undefined;
+    /** What {@link Level.eachWorld} calls with each world the level builds from now on. */
+    private readonly worldBuiltListeners = new Set<(world: World) => void>();
 
     /**
      * The level's game rules, built before anything can ask for them: a level that exists has
@@ -791,7 +793,24 @@ export class Level {
         });
         built = world;
         this.onWorldBuilt?.(world);
+        for (const listener of this.worldBuiltListeners) listener(world);
         return world;
+    }
+
+    /**
+     * Calls `listener` with every world the level has built, enabled or still enabling, and then
+     * with each world it builds later, before that one is enabled. A dimension other than the
+     * Overworld is usually built on its first visit, long after anything that binds to the
+     * level's worlds at startup, so a binding that only walks {@link Level.worlds} misses it.
+     * @param listener - Called once per world.
+     * @returns A function that stops the calls for worlds built after it.
+     */
+    public eachWorld(listener: (world: World) => void): () => void {
+        for (const entry of this.built.values()) listener(entry.world);
+        this.worldBuiltListeners.add(listener);
+        return () => {
+            this.worldBuiltListeners.delete(listener);
+        };
     }
 
     /**

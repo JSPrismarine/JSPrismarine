@@ -276,6 +276,24 @@ describe('Level', () => {
             await level.disable();
         });
 
+        it('tells an eachWorld listener of the worlds built so far and of each built later', async () => {
+            const { level } = buildLevel('each-world', { load: new Map([[OVERWORLD_STEM_ID, 'eager']]) });
+            await level.enable();
+            const heard: string[] = [];
+            const stop = level.eachWorld((world) => heard.push(world.getDimension().id));
+            expect(heard).toEqual([Dimensions.Overworld.id]);
+
+            // The Nether is built on its first visit, after the listener started.
+            await level.world(NETHER_STEM_ID);
+            expect(heard).toEqual([Dimensions.Overworld.id, Dimensions.Nether.id]);
+
+            stop();
+            await level.world(SKY_STEM_ID);
+            expect(heard).toEqual([Dimensions.Overworld.id, Dimensions.Nether.id]);
+
+            await level.disable();
+        });
+
         it('builds an eager stem as it opens, before anything awaits', async () => {
             const { level, builds } = buildLevel('eager', { load: new Map([[OVERWORLD_STEM_ID, 'eager']]) });
 
