@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { performPush } from '@jsprismarine/block-behaviors/rules/piston';
 import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { collisionBox, statRuling } from '@jsprismarine/entities';
+import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
@@ -314,6 +315,33 @@ const javaBounce = (height: number, speed: number, gravity: number, airDrag: num
     const share = height / speed;
     const restituted = (share * gravity + speed) * (1 + share * (airDrag - 1)) * bounciness;
     return (restituted - gravity) * airDrag;
+};
+
+/** The walkers the path-following scenarios run: a narrow one, two wide ones and a wider one. */
+const PATH_WALKERS = ['minecraft:zombie', 'minecraft:pig', 'minecraft:cow', 'minecraft:spider'];
+
+/** The path walkers that cannot climb a wall, which the spider can. */
+const GROUND_WALKERS = PATH_WALKERS.filter((javaId) => javaId !== 'minecraft:spider');
+
+/**
+ * Walks an entity along a path to a destination, with its own goals taken off so nothing else
+ * steers it, and reports where it ended up.
+ */
+const walkPath = (
+    entity: DataEntity,
+    to: { readonly x: number; readonly y: number; readonly z: number },
+    ticks: number
+): { readonly started: boolean; readonly navigator: Navigator } => {
+    const { runtime } = realStack();
+    for (const name of entity.instance.goals.names()) entity.instance.goals.remove(name);
+    const navigator = new Navigator({
+        actuator: runtime.actuatorFor(entity.instance),
+        navigation: () => runtime.navigation(),
+        profile: () => navigationProfile(entity.instance)
+    });
+    const started = navigator.moveTo(to, 1, 0);
+    for (let index = 0; index < ticks && started && navigator.tick(); index += 1) tick();
+    return { started, navigator };
 };
 
 /** The scenarios for how bodies move. */
@@ -643,6 +671,89 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         : `it jumped onto a one-block ledge, where Java's step height of ${format(javaStep)} walks it up`;
                 }
             );
+        }
+    },
+    {
+        name: 'walks-down-a-step',
+        java: 'A walker following a path walks off a one-block ledge onto the ground below, however wide it is.',
+        reference:
+            'Java MoveControl.tick, which walks to the wanted position itself, and PathNavigation.followThePath, which moves on to the next node across the ground',
+        subjects: () => PATH_WALKERS.flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:navigation.walk'],
+        run: (subject) => {
+            const { world } = realStack();
+            const at = lane();
+            // A raised floor one block high, with the open ground beyond it to the east.
+            for (let dx = -3; dx <= 3; dx += 1)
+                for (let dz = -3; dz <= 3; dz += 1)
+                    world.setBlock({ x: at.x + dx, y: GROUND, z: at.z + dz }, 'minecraft:stone');
+            return withEntity(subject.bedrock, { x: at.x + 0.5, y: GROUND + 1, z: at.z + 0.5 }, (entity) => {
+                const { started } = walkPath(entity, { x: at.x + 9.5, y: GROUND, z: at.z + 0.5 }, 300);
+                if (!started) return 'it found no path down a one-block step';
+                if (entity.position.y > GROUND + EPSILON)
+                    return `it stood at ${format(entity.position.x - at.x)} on the ledge where Java walks it down`;
+                return undefined;
+            });
+        }
+    },
+    {
+        name: 'stays-in-a-fenced-pen',
+        java: 'A walker plans no path over a fence, which stands half a block taller than a jump, though it steps over a stone ring as tall.',
+        reference: 'Java WalkNodeEvaluator and PathType.FENCE, which no walker enters',
+        subjects: () => PATH_WALKERS.flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:navigation.walk'],
+        run: (subject) => {
+            const { runtime, world } = realStack();
+            const at = lane();
+            const ring = (block: string): void => {
+                for (let dx = -4; dx <= 4; dx += 1)
+                    for (let dz = -4; dz <= 4; dz += 1)
+                        if (Math.abs(dx) === 4 || Math.abs(dz) === 4)
+                            world.setBlock({ x: at.x + dx, y: GROUND, z: at.z + dz }, block);
+            };
+            ring('minecraft:oak_fence');
+            return withEntity(subject.bedrock, { x: at.x + 0.5, y: GROUND, z: at.z + 0.5 }, (entity) => {
+                const navigator = new Navigator({
+                    actuator: runtime.actuatorFor(entity.instance),
+                    navigation: () => runtime.navigation(),
+                    profile: () => navigationProfile(entity.instance)
+                });
+                const outside = { x: at.x + 8.5, y: GROUND, z: at.z + 0.5 };
+                if (navigator.canReach(outside, 0)) return 'it planned a path out over the fence of its pen';
+                ring('minecraft:stone');
+                runtime.invalidateBlockCaches();
+                if (!navigator.canReach(outside, 0)) return 'it found no path over a one-block stone ring';
+                return undefined;
+            });
+        }
+    },
+    {
+        name: 'closes-in-on-an-unreachable-target',
+        java: 'A walker told to walk somewhere no path reaches walks the closest route there instead of standing still.',
+        reference:
+            'Java PathFinder.findPath, which returns the path to the node closest to the target, and PathNavigation.moveTo, which follows a path that does not reach it',
+        subjects: () => GROUND_WALKERS.flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:navigation.walk'],
+        run: (subject) => {
+            const { world } = realStack();
+            const at = lane();
+            // A ring of stone three blocks high around the target, which a walker cannot climb.
+            for (let dx = -1; dx <= 1; dx += 1)
+                for (let dz = -1; dz <= 1; dz += 1)
+                    for (let dy = 0; dy <= 2; dy += 1)
+                        if (dx !== 0 || dz !== 0)
+                            world.setBlock({ x: at.x + 9 + dx, y: GROUND + dy, z: at.z + dz }, 'minecraft:stone');
+            return withEntity(subject.bedrock, { x: at.x + 0.5, y: GROUND, z: at.z + 0.5 }, (entity) => {
+                const { started, navigator } = walkPath(entity, { x: at.x + 9.5, y: GROUND, z: at.z + 0.5 }, 200);
+                if (!started) return 'it stood still before a target no path reaches';
+                if (navigator.complete) return 'it found a complete path into a walled-in cell';
+                if (entity.position.x - at.x < 6)
+                    return `it got ${format(entity.position.x - at.x)} blocks toward a target 9 blocks away`;
+                return undefined;
+            });
         }
     },
     {
