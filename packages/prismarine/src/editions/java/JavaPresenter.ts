@@ -903,6 +903,22 @@ export class JavaPresenter implements SessionPresenter {
         this.weather = undefined;
     }
 
+    /** Sends nothing: a Java client is told it spawned by its own join. */
+    public async showSpawned(): Promise<void> {}
+
+    /**
+     * Sends nothing yet. Known gap: vanilla rolls a Java client's credits with `Game Event` 4 and
+     * hears their end as `Client Command` 0, which is not decoded into the finish
+     * ([#3903](https://github.com/JSPrismarine/JSPrismarine/issues/3903)).
+     */
+    public async showCredits(): Promise<void> {}
+
+    /**
+     * Sends nothing yet. Known gap: a Java client is offered commands with `Commands`, which is not
+     * sent ([#3773](https://github.com/JSPrismarine/JSPrismarine/issues/3773)).
+     */
+    public async showCommands(): Promise<void> {}
+
     /** False: the respawn spawns a Java client again, with {@link showRespawn}. */
     public readonly placesItselfOnRespawn = false;
 

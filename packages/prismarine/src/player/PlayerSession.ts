@@ -51,9 +51,6 @@ import { tickCarriedMaps } from './carriedMaps';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { consoleFirstNodeOf, namesNode } from '../command/updateCommands';
-import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
-import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
-import { commandDataOf, commandNameEnumOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import { statusEffectPacket } from '../network/replica/firstSight';
@@ -91,9 +88,6 @@ import { EntityTracker } from './EntityTracker';
 import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from './sessionPlayers';
 import { recipeBookEntriesOf } from '../editions/bedrock/contentPayloads';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../editions/bedrock/spawnPosition';
-import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
-import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
-import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import { playerListAddOf, playerListRemoveOf } from '../editions/bedrock/presenter/bedrockPlayerList';
 import { listedPlayerOf, setPlayerListName } from '../network/playerListEntry';
 import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
@@ -1752,17 +1746,11 @@ export default class PlayerSession {
      * therefore the chained `/execute` tree.
      */
     public async sendAvailableCommands(): Promise<void> {
-        const pk = new AvailableCommandsPacket();
-        // The names `/ban` and `/pardon` complete from. The packet keeps the first soft enum of a
-        // name it meets, so this one, with values, wins over the empty one a parameter names.
-        const players = new CommandEnum();
-        players.soft = true;
-        players.name = PLAYER_SOFT_ENUM;
-        players.values = this.server
+        // The names `/ban` and `/pardon` complete from.
+        const players = this.server
             .getSessionManager()
             .getSessions()
             .map(({ identity }) => identity.name);
-        pk.softEnums = [players];
 
         const commandManager = this.server.getCommandManager();
         const own = this.getCommandLevel();
@@ -1781,11 +1769,10 @@ export default class PlayerSession {
         // client hides a command whose level is above its own even though
         // the server would run it, which is what a player granted one
         // operator command by name would otherwise see.
-        pk.commandData = sent.map((command) => commandDataOf(command, Math.min(command.permissionLevel, own)));
-        // Without it the client offers no namespaced command, such as a script's `jsp:tpsbar`.
-        pk.hardcodedEnums = [commandNameEnumOf(sent)];
-
-        await this.getConnection().sendDataPacket(pk);
+        await this.presenter.showCommands({
+            commands: sent.map((command) => ({ command, level: Math.min(command.permissionLevel, own) })),
+            players
+        });
     }
 
     /**
@@ -1971,7 +1958,7 @@ export default class PlayerSession {
         if (this.chunks.isLoading() || this.chunkSendQueue.length > 0) return;
 
         this.spawnChunksPending = false;
-        await this.sendPlayStatus(PlayStatus.PlayerSpawn);
+        await this.presenter.showSpawned();
         await this.reconcileTrackedEntities();
     }
 
@@ -2316,10 +2303,7 @@ export default class PlayerSession {
         }
 
         this.pendingCredits = arrival;
-        const packet = new ShowCreditsPacket();
-        packet.playerRuntimeId = this.runtimeId;
-        packet.creditsState = CreditsState.Start;
-        return this.send(packet);
+        return this.presenter.showCredits();
     }
 
     /**
@@ -2779,10 +2763,6 @@ export default class PlayerSession {
     }
 
     /** Sends a `PlayStatus` to this player's client. */
-    public async sendPlayStatus(status: PlayStatus): Promise<void> {
-        await this.connection.sendDataPacket(new PlayStatusPacket({ status }), true);
-    }
-
     public getConnection(): ClientConnection {
         return this.connection;
     }

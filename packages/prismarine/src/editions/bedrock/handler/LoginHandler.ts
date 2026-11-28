@@ -277,7 +277,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
         // connection from here.
         connection.phase = 'resourcePacks';
 
-        await session.sendPlayStatus(PlayStatus.LoginSuccess);
+        await connection.sendDataPacket(new PlayStatusPacket({ status: PlayStatus.LoginSuccess }), true);
 
         // The installed addons' resource packs, which the client downloads now unless it has
         // them. A build that fails offers none, so the player still joins, unless the packs are

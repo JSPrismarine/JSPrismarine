@@ -92,14 +92,18 @@ Progress:
   ([#3882](https://github.com/JSPrismarine/JSPrismarine/issues/3882)). The chunk path: merged in
   [#3899](https://github.com/JSPrismarine/JSPrismarine/pull/3899). `BedrockChunkWire` sends a
   Bedrock client's publisher updates, chunks, radius, sub chunks and cache blobs, and the session
-  sends both editions' chunks through one path. The creative menu and the recipes: under review.
+  sends both editions' chunks through one path. The creative menu and the recipes: merged in
+  [#3902](https://github.com/JSPrismarine/JSPrismarine/pull/3902).
   `sendCreativeContents` and `sendCraftingData` are functions of `editions/bedrock/joinContent`,
   which only the join burst calls.
-- Left in `PlayerSession` after slice 4: four Bedrock packets it still builds. `AvailableCommands`
-  goes out at the join and again when a player's permissions change, `ShowCredits` starts the End's
-  credits, `MoveActorAbsolute` is the movement the replicator batches, and `PlayStatus` closes the
-  login and the join's spawn. Each becomes a presenter call, or moves into the Bedrock join, in a
-  slice of its own.
+- The last of slice 4, the packets `PlayerSession` still built itself: under review. The join's
+  spawn status, the End's credits and `AvailableCommands` are `showSpawned`, `showCredits` and
+  `showCommands`, and the session still decides which commands a player is offered. The login
+  handler writes its own `PlayStatus`. The session's move batching had no caller left, since the
+  replicator batches every actor's moves, and is gone. The session builds no Bedrock packet now.
+  A Java client is sent no credits
+  ([#3903](https://github.com/JSPrismarine/JSPrismarine/issues/3903)) and no command tree
+  ([#3773](https://github.com/JSPrismarine/JSPrismarine/issues/3773)) yet.
 
 ## Problem
 

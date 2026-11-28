@@ -29,6 +29,7 @@ import type { ShownActor, ShownEntity } from '../../world/ShownActor';
 import type { Attribute } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type { FlattenedCommand } from '@jsprismarine/commands';
 
 /**
  * How a message is shown.
@@ -154,6 +155,20 @@ export interface ShownRespawnPoint {
     readonly block?: { readonly x: number; readonly y: number; readonly z: number };
     /** Where the player's eyes are once it is back. */
     readonly eyes: { readonly x: number; readonly y: number; readonly z: number };
+}
+
+/** One command a player may run, as its client is offered it. */
+export interface ShownCommand {
+    readonly command: FlattenedCommand;
+    /** The level to show: the lower of what the command needs and what the player has. */
+    readonly level: number;
+}
+
+/** The commands a player may run, and the names a player argument completes from. */
+export interface ShownCommands {
+    readonly commands: readonly ShownCommand[];
+    /** Every connected player's name, which `/ban` and `/pardon` complete from. */
+    readonly players: readonly string[];
 }
 
 /**
@@ -596,6 +611,24 @@ export interface SessionPresenter {
      * @returns What was sent, and the loading screen the session waits on, if any.
      */
     showWorldChange(change: ShownWorldChange): WorldChangeShown;
+
+    /**
+     * Tells the client the player has spawned, once the terrain it spawns into is on the wire.
+     */
+    showSpawned(): Promise<void>;
+
+    /**
+     * Rolls the end credits on the client, whose finish the session waits for before the player
+     * leaves the End.
+     */
+    showCredits(): Promise<void>;
+
+    /**
+     * Offers the client the commands the player may run, again whenever they change.
+     *
+     * @param commands - The commands, each at the level to show, and the players' names.
+     */
+    showCommands(commands: ShownCommands): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.
