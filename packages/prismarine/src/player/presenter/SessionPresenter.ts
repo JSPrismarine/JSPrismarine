@@ -16,6 +16,7 @@ import type { TitleInstruction } from '@jsprismarine/commands';
 import type { Vector3 } from '@jsprismarine/math';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import type { StackComponents } from '../../item/stackComponents';
 import type { DamageCause } from '../../entity/DamageCause';
 
 import type { ListedPlayer } from '../../network/playerListEntry';
@@ -123,10 +124,22 @@ export interface ShownRespawn {
     readonly replacesWorld: boolean;
 }
 
-/** A stack as plain data: the item's Bedrock identifier and how many. */
+/**
+ * A stack as plain data: the item's Bedrock identifier and how many, and what it changes from the
+ * item's defaults. A field left out is the item's own.
+ */
 export interface ShownStack {
     readonly name: string;
     readonly count: number;
+    /** The name an anvil or a command gave it. */
+    readonly customName?: string;
+    readonly lore?: readonly string[];
+    /** How much durability it has spent, for an item that wears. */
+    readonly damage?: number;
+    /** Its enchantments' levels, by Java enchantment id; an enchanted book's are the ones it applies. */
+    readonly enchantments?: ReadonlyMap<string, number>;
+    /** Its other Java data components, in Java's JSON form. */
+    readonly components?: StackComponents;
 }
 
 /** What an entity holds and wears, by slot; a slot left out is empty. */

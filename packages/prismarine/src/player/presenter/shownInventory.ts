@@ -2,6 +2,7 @@
 import type HumanInventory from '../../inventory/HumanInventory';
 import type { ItemContainer } from '../../inventory/ItemContainer';
 import type { Item } from '../../item/Item';
+import { hasStackComponents } from '../../item/stackComponents';
 import type { ViewableEquipment } from '../../entity/predicateView';
 import type { ShownEquipment, ShownInventory, ShownStack } from './SessionPresenter';
 
@@ -9,10 +10,23 @@ import type { ShownEquipment, ShownInventory, ShownStack } from './SessionPresen
  * A stack as plain data, or null for an empty slot.
  * @param item - The slot's item with its count, or null.
  */
-export const shownStackOf = (item: Item | null): ShownStack | null =>
-    item === null || item.getName() === 'minecraft:air' || item.getAmount() <= 0
-        ? null
-        : { name: item.getName(), count: item.getAmount() };
+export const shownStackOf = (item: Item | null): ShownStack | null => {
+    if (item === null || item.getName() === 'minecraft:air' || item.getAmount() <= 0) return null;
+    const customName = item.getCustomName();
+    const lore = item.getLore();
+    const damage = item.getMaxDurability() > 0 ? item.getMaxDurability() - item.getDurability() : 0;
+    const enchantments = item.getEnchantments();
+    const components = item.getComponents();
+    return {
+        name: item.getName(),
+        count: item.getAmount(),
+        ...(customName === undefined ? {} : { customName }),
+        ...(lore.length === 0 ? {} : { lore }),
+        ...(damage > 0 ? { damage } : {}),
+        ...(enchantments.size === 0 ? {} : { enchantments }),
+        ...(hasStackComponents(components) ? { components } : {})
+    };
+};
 
 /** Every slot of a container, in order. */
 const slotsOf = (container: ItemContainer): (ShownStack | null)[] => container.items().map(shownStackOf);
