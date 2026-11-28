@@ -1400,7 +1400,7 @@ export class Config {
      * How many recipes to send: `-1` for every one, `0` for none, a positive number to cap.
      *
      * The `crafting-recipe-limit` config key, truncated to a whole number. This is how
-     * `PlayerSession.sendCraftingData` reads it; the field above says why the two escape
+     * `sendCraftingData` in `editions/bedrock/joinContent` reads it; the field above says why the two escape
      * hatches exist.
      * @returns {number} the limit.
      */

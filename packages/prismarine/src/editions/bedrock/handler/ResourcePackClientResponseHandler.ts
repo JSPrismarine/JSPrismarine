@@ -37,6 +37,7 @@ import { showScoreboard } from '../../../command/host/scoreboard';
 import { packBiomesOf } from '../../../content/packBiomes';
 import type { ServerContent } from '../../../content/ServerContent';
 import { actorIdentifiersFor } from '../actorIdentifiers';
+import { sendCraftingData, sendCreativeContents } from '../joinContent';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
 /**
@@ -399,8 +400,16 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 new FeatureRegistryPacket({ features: [] })
             )
         );
-        sends.push(session.sendCreativeContents());
-        sends.push(session.sendCraftingData());
+        const join = {
+            content,
+            payloads,
+            recipeLimit,
+            compressionLevel,
+            creativeInventory: () => services.creativeInventory,
+            log
+        };
+        sends.push(sendCreativeContents(session, join));
+        sends.push(sendCraftingData(session, join));
         sends.push(session.sendAvailableCommands());
 
         sends.push(session.addToPlayerList());
