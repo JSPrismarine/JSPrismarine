@@ -1,4 +1,3 @@
-import AnvilDamageHandler from './handler/AnvilDamageHandler';
 import BookEditHandler from './handler/BookEditHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
@@ -11,7 +10,6 @@ import DisconnectHandler from './handler/DisconnectHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
-import LabTableHandler from './handler/LabTableHandler';
 import LoginHandler from './handler/LoginHandler';
 import MapCreateLockedCopyHandler from './handler/MapCreateLockedCopyHandler';
 import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
@@ -27,7 +25,6 @@ import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
 import PlayerLocationHandler from './handler/PlayerLocationHandler';
 import PlayerSkinHandler from './handler/PlayerSkinHandler';
-import PlayerToggleCrafterSlotRequestHandler from './handler/PlayerToggleCrafterSlotRequestHandler';
 import PositionTrackingDBClientRequestHandler from './handler/PositionTrackingDBClientRequestHandler';
 import PurchaseReceiptHandler from './handler/PurchaseReceiptHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
@@ -42,8 +39,6 @@ import ServerboundLoadingScreenHandler from './handler/ServerboundLoadingScreenH
 import ServerboundPackSettingChangeHandler from './handler/ServerboundPackSettingChangeHandler';
 import SetActorLinkHandler from './handler/SetActorLinkHandler';
 import SetDifficultyHandler from './handler/SetDifficultyHandler';
-import SetPlayerFurnaceOptionsHandler from './handler/SetPlayerFurnaceOptionsHandler';
-import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import SimpleEventHandler from './handler/SimpleEventHandler';
 import StructureBlockUpdateHandler from './handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from './handler/StructureTemplateDataRequestHandler';
@@ -53,7 +48,6 @@ import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandl
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 
 export {
-    AnvilDamageHandler,
     BookEditHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
@@ -66,7 +60,6 @@ export {
     EmoteListHandler,
     InventoryTransactionHandler,
     ItemStackRequestHandler,
-    LabTableHandler,
     LoginHandler,
     MapCreateLockedCopyHandler,
     MapInfoRequestHandler,
@@ -82,7 +75,6 @@ export {
     PlayerAuthInputHandler,
     PlayerLocationHandler,
     PlayerSkinHandler,
-    PlayerToggleCrafterSlotRequestHandler,
     PositionTrackingDBClientRequestHandler,
     PurchaseReceiptHandler,
     RequestNetworkSettingsHandler,
@@ -97,8 +89,6 @@ export {
     ServerboundPackSettingChangeHandler,
     SetActorLinkHandler,
     SetDifficultyHandler,
-    SetPlayerFurnaceOptionsHandler,
-    SetPlayerInventoryOptionsHandler,
     SimpleEventHandler,
     StructureBlockUpdateHandler,
     StructureTemplateDataRequestHandler,

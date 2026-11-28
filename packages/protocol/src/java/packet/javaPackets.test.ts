@@ -86,6 +86,8 @@ import {
     Attack,
     Interact,
     UseItem,
+    RecipeBookChangeSettings,
+    JavaRecipeBookType,
     PickItemFromBlock,
     PickItemFromEntity,
     PlayerInputFlag,
@@ -384,6 +386,7 @@ const SAMPLES: readonly Sample[] = [
     }),
     sample(UseItem, { hand: JavaHand.Main, sequence: 6, yaw: 90, pitch: -45 }),
     sample(Attack, { entityId: 12 }),
+    sample(RecipeBookChangeSettings, { bookType: JavaRecipeBookType.Smoker, isOpen: true, isFiltering: false }),
     // A location whose coordinates quantize exactly: one in each of the scale's units.
     sample(Interact, { entityId: 12, hand: JavaHand.Off, location: { x: 1, y: 0, z: -1 }, sneaking: true }),
     sample(SetHealth, { health: 20, food: 20, saturation: 5 }),

@@ -39,6 +39,8 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    RecipeBookChangeSettings,
+    JavaRecipeBookType,
     PlayerActionStatus,
     PlayerLoaded,
     PlayClientInformation,
@@ -402,7 +404,12 @@ describe('JavaConnections', () => {
             face: 0,
             sequence: 0
         });
-        await expect.poll(() => did.at(-1)).toBe('intent {"kind":"releaseItem","action":"release"}');
+        // A recipe book the player filtered, and a book type past the four, which names none.
+        java.send(RecipeBookChangeSettings, { bookType: JavaRecipeBookType.Smoker, isOpen: true, isFiltering: true });
+        java.send(RecipeBookChangeSettings, { bookType: 9, isOpen: true, isFiltering: true });
+        await expect
+            .poll(() => did.at(-1))
+            .toBe('intent {"kind":"setRecipeBook","book":"smoker","open":true,"filtering":true}');
         java.destroy();
         await leaving;
 
@@ -427,6 +434,7 @@ describe('JavaConnections', () => {
             'intent {"kind":"interactEntity","target":"12n"}',
             'intent {"kind":"useItem","held":false}',
             'intent {"kind":"releaseItem","action":"release"}',
+            'intent {"kind":"setRecipeBook","book":"smoker","open":true,"filtering":true}',
             'leave'
         ]);
     });

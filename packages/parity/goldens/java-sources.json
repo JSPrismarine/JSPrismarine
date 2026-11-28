@@ -636,6 +636,7 @@
         "ServerboundPlayerCommandPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerCommandPacket.STREAM_CODEC",
         "ServerboundPlayerInputPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerInputPacket.STREAM_CODEC",
         "ServerboundPlayerLoadedPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundPlayerLoadedPacket.STREAM_CODEC",
+        "ServerboundRecipeBookChangeSettingsPacket.write": "net/minecraft/network/protocol/game/ServerboundRecipeBookChangeSettingsPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V",
         "ServerboundSelectKnownPacks.STREAM_CODEC": "net/minecraft/network/protocol/configuration/ServerboundSelectKnownPacks.STREAM_CODEC",
         "ServerboundSetCarriedItemPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundSetCarriedItemPacket.STREAM_CODEC",
         "ServerboundSetCreativeModeSlotPacket.STREAM_CODEC": "net/minecraft/network/protocol/game/ServerboundSetCreativeModeSlotPacket.STREAM_CODEC",
@@ -1237,6 +1238,9 @@
         "net/minecraft/network/protocol/game/ServerboundPlayerLoadedPacket.STREAM_CODEC": {
             "26.3": "sha256:38ee3222337303127688cc84721fea49eaddbc21a673fb555c9583952a43a2e8",
             "26.4-pre-1": "sha256:38ee3222337303127688cc84721fea49eaddbc21a673fb555c9583952a43a2e8"
+        },
+        "net/minecraft/network/protocol/game/ServerboundRecipeBookChangeSettingsPacket.write(Lnet/minecraft/network/FriendlyByteBuf;)V": {
+            "26.3": "sha256:5a15b472bdf3b281698ca4c93a27cfb98c908efd51a0403674be85e1f70f16b5"
         },
         "net/minecraft/network/protocol/game/ServerboundSetCarriedItemPacket.STREAM_CODEC": {
             "26.3": "sha256:0365f3e62e6a8dc4940723d31f5fd7fc3f37f85571ff41682f814c16ac6895b5",

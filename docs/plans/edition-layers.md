@@ -31,6 +31,14 @@ Progress:
   slice: Java moves them with `Container Click`, by slot and button, so the two need a shared
   model of a stack move before either decodes into it, and that is a slice of its own after the
   screens.
+- Slice 3.4, screens: under review. An anvil's wear, a crafter's slot toggle, a lab table action
+  and a recipe book's settings are intents. Bedrock's `AnvilDamage`, `PlayerToggleCrafterSlotRequest`,
+  `LabTable`, `SetPlayerFurnaceOptions` and `SetPlayerInventoryOptions` decode into them, and Java's
+  `Change Recipe Book Settings` into the recipe book's. Java toggles a crafter's slot, turns a
+  lectern's page and picks a villager's trade by container id, inside a screen the server has
+  opened. The server opens no screen for a Java client yet, so those wait until one does, with
+  `Container Click`. The trade and workstation rules, `tradeScreen` and `workstation`, are game
+  logic that only `ItemStackRequest` uses, so they move with it.
 
 ## Problem
 
@@ -74,9 +82,10 @@ compression, encryption and packet traces.
 | `network/java/`                                                                                                                            | `editions/java/`                    |
 | Game logic inside a Bedrock handler                                                                                                        | an intent and its handler, `input/` |
 
-A moved module's old public subpath, such as `@jsprismarine/prismarine/network/PlayerSession`,
-stays in `package.json` as an alias of its new file, so the move breaks no consumer. The aliases
-are marked deprecated in the changeset and removed in a later breaking release.
+A moved or replaced module's old public subpath is removed, not kept as a deprecated alias or a
+shim, and its changeset names the replacement. Removing a subpath that a release published is a
+breaking change, with the bump [the versioning policy](../guide/versioning.md) gives it. The
+`network/` aliases slices 1 and 2 left are the exception this rule came too late for.
 
 ## Slices
 

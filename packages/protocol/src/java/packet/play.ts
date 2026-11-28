@@ -742,6 +742,26 @@ export const Interact = defineJavaPacket('Interact', 'play/serverbound/interact'
     sneaking: bool
 });
 
+/** A recipe book's type, by its ordinal in vanilla's `RecipeBookType`. */
+export enum JavaRecipeBookType {
+    Crafting = 0,
+    Furnace = 1,
+    BlastFurnace = 2,
+    Smoker = 3
+}
+
+/**
+ * `Change Recipe Book Settings` (serverbound): the player opened or closed a recipe book, or
+ * turned its filter for the recipes it can make on or off. `bookType` is a
+ * {@link JavaRecipeBookType}.
+ * @javaSource ServerboundRecipeBookChangeSettingsPacket.write
+ */
+export const RecipeBookChangeSettings = defineJavaPacket(
+    'Change Recipe Book Settings',
+    'play/serverbound/recipe_book_change_settings',
+    { bookType: varInt, isOpen: bool, isFiltering: bool }
+);
+
 /**
  * `Set Health` (clientbound): the player's own health, food level and saturation.
  * @javaSource ClientboundSetHealthPacket.STREAM_CODEC

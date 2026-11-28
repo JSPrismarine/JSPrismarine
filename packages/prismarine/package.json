@@ -45,11 +45,6 @@
                 "import": "./dist/content/settings.js",
                 "module": "./dist/content/settings.js"
             },
-            "./editions/bedrock/handler/AnvilDamageHandler": {
-                "types": "./dist/editions/bedrock/handler/AnvilDamageHandler.d.ts",
-                "import": "./dist/editions/bedrock/handler/AnvilDamageHandler.js",
-                "module": "./dist/editions/bedrock/handler/AnvilDamageHandler.js"
-            },
             "./entity/playerAbilities": {
                 "types": "./dist/entity/playerAbilities.d.ts",
                 "import": "./dist/entity/playerAbilities.js",
@@ -1907,17 +1902,21 @@
             "jsprismarine:dist": "./dist/editions/bedrock/contentPayloads.js",
             "default": "./src/editions/bedrock/contentPayloads.ts"
         },
-        "./editions/bedrock/handler/AnvilDamageHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/AnvilDamageHandler.js",
-            "default": "./src/editions/bedrock/handler/AnvilDamageHandler.ts"
-        },
-        "./network/handler/AnvilDamageHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/AnvilDamageHandler.js",
-            "default": "./src/editions/bedrock/handler/AnvilDamageHandler.ts"
-        },
         "./input/handlers/TurnLecternPageHandler": {
             "jsprismarine:dist": "./dist/input/handlers/TurnLecternPageHandler.js",
             "default": "./src/input/handlers/TurnLecternPageHandler.ts"
+        },
+        "./input/handlers/DamageAnvilHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/DamageAnvilHandler.js",
+            "default": "./src/input/handlers/DamageAnvilHandler.ts"
+        },
+        "./input/handlers/ToggleCrafterSlotHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/ToggleCrafterSlotHandler.js",
+            "default": "./src/input/handlers/ToggleCrafterSlotHandler.ts"
+        },
+        "./input/handlers/UseLabTableHandler": {
+            "jsprismarine:dist": "./dist/input/handlers/UseLabTableHandler.js",
+            "default": "./src/input/handlers/UseLabTableHandler.ts"
         },
         "./input/handlers/BlockTarget": {
             "jsprismarine:dist": "./dist/input/handlers/BlockTarget.js",
@@ -1934,22 +1933,6 @@
         "./network/handler/HandlerContext": {
             "jsprismarine:dist": "./dist/player/context/HandlerContext.js",
             "default": "./src/player/context/HandlerContext.ts"
-        },
-        "./editions/bedrock/handler/LabTableHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/LabTableHandler.js",
-            "default": "./src/editions/bedrock/handler/LabTableHandler.ts"
-        },
-        "./network/handler/LabTableHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/LabTableHandler.js",
-            "default": "./src/editions/bedrock/handler/LabTableHandler.ts"
-        },
-        "./editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler.js",
-            "default": "./src/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler.ts"
-        },
-        "./network/handler/PlayerToggleCrafterSlotRequestHandler": {
-            "jsprismarine:dist": "./dist/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler.js",
-            "default": "./src/editions/bedrock/handler/PlayerToggleCrafterSlotRequestHandler.ts"
         },
         "./editions/bedrock/handler/RequestNetworkSettingsHandler": {
             "jsprismarine:dist": "./dist/editions/bedrock/handler/RequestNetworkSettingsHandler.js",

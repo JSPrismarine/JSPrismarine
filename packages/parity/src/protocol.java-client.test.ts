@@ -34,6 +34,8 @@ import {
     Interact,
     JavaHand,
     UseItem,
+    RecipeBookChangeSettings,
+    JavaRecipeBookType,
     PickItemFromEntity,
     RAIN_LEVEL_CHANGE,
     START_RAINING,
@@ -1088,7 +1090,12 @@ const BEHAVIORS: readonly Behavior[] = [
             sent('play/clientbound/recipe_book_settings'),
             read('play/serverbound/place_recipe'),
             sent('play/clientbound/place_ghost_recipe'),
-            read('play/serverbound/recipe_book_change_settings'),
+            decoded(
+                RecipeBookChangeSettings,
+                'filter a recipe book',
+                { bookType: JavaRecipeBookType.Furnace, isOpen: true, isFiltering: true },
+                { kind: 'setRecipeBook', book: 'furnace' }
+            ),
             read('play/serverbound/recipe_book_seen_recipe')
         ]
     },
