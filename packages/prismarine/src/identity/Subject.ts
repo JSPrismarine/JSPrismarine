@@ -15,8 +15,13 @@ export type Subject =
     | { readonly kind: 'xbox'; readonly xuid: string }
     /** A Java Edition account, by its Mojang profile UUID. No login produces one yet. */
     | { readonly kind: 'java'; readonly uuid: string }
-    /** A player on an offline-mode server, by the name the client typed. */
-    | { readonly kind: 'offline'; readonly name: string };
+    /**
+     * A player on an offline-mode server, by the name the client typed. `edition` marks a Java
+     * Edition login, whose player is not the Bedrock player of the same name: the two keep their
+     * own records and can play at once. Permission files ignore it, so an entry for an offline
+     * name covers both editions.
+     */
+    | { readonly kind: 'offline'; readonly name: string; readonly edition?: 'java' };
 
 /** The platforms a subject can come from. */
 export type SubjectKind = Subject['kind'];

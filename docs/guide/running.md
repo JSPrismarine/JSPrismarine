@@ -633,7 +633,10 @@ player: a fresh file has them, and an existing one gains them when it is upgrade
 [Permissions](#permissions) describes.
 
 Players of both editions may share a name without linking: a Java Edition player and a Bedrock
-player called Steve can both play, and each keeps a record of their own.
+player called Steve can both play, and each keeps a record of their own. This holds with
+`online-mode` off too, where a Java player's record is filed under the UUID vanilla derives from
+the name. An `offline` entry in `permissions.json`, `ops.json` or `banned-players.json` still
+names the player by name alone, so it covers the Steve of either edition.
 
 ### Query
 

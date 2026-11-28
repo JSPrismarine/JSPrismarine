@@ -233,4 +233,29 @@ describe('a Java Edition client', () => {
         java.send(Attack, { entityId: steveId });
         await loopback.untilJava(() => steve.getPlayer().getHealth() < before, "Alex's blow never landed on Steve");
     });
+
+    it('plays beside a Bedrock player of the same name, neither replacing the other', async () => {
+        const named = () =>
+            loopback.server
+                .getSessionManager()
+                .getSessions()
+                .filter((entry) => entry.getName() === 'Alex');
+        let disconnected = false;
+        const hungUp = (): void => {
+            disconnected = true;
+        };
+        java.once('disconnect', hungUp);
+        java.once('close', hungUp);
+
+        const bedrockAlex = await loopback.join('Alex');
+        await loopback.tick(5);
+
+        expect(disconnected).toBe(false);
+        expect(java.getPhase()).toBe('play');
+        expect(bedrockAlex.session()?.isConnected()).toBe(true);
+        expect(named()).toHaveLength(2);
+        java.off('disconnect', hungUp);
+        java.off('close', hungUp);
+        bedrockAlex.leave();
+    });
 });

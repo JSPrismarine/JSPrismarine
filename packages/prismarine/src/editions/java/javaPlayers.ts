@@ -182,7 +182,7 @@ const accountOf = (profile: JavaProfile, verified: boolean): PlayerIdentity => (
     name: profile.name,
     xuid: '',
     uuid: profile.id,
-    subject: verified ? { kind: 'java', uuid: profile.id } : { kind: 'offline', name: profile.name }
+    subject: verified ? { kind: 'java', uuid: profile.id } : { kind: 'offline', name: profile.name, edition: 'java' }
 });
 
 /**
