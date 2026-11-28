@@ -74,7 +74,7 @@ import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
 import { ScriptSlot } from './scripting/ScriptSlot';
 import { worldsModule } from './modules/worlds';
-import { ServerTicker, tickerModule } from './modules/ticker';
+import { DEFAULT_TICK_RATE, ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
 import { allowListToken, bansToken, chatToken, permissionsToken } from './modules/tokens';
@@ -144,6 +144,9 @@ export default class Server {
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
+    /** How long the last tick took, read once per input step; see {@link Server.getAdmittedJobSlice}. */
+    private readonly tickTime: () => number;
+    private admittedJobSlice = { periodMs: 1000 / DEFAULT_TICK_RATE, lastTickMs: 0 };
     /** The wall clock an input step reads once, for script `Date`s; see {@link Server.getAdmittedClock}. */
     private readonly wallClock: () => number;
     private admittedClock: number;
@@ -322,6 +325,9 @@ export default class Server {
      *   which every version surface lists after them.
      * @param [options.wallClock] - The wall clock each input step admits once for behavior pack
      *   scripts, `Date.now` by default. A replay harness gives one that returns the recorded values.
+     * @param [options.tickTime] - How long the last tick took, which each input step admits once to
+     *   size the scripts' job slice, the ticker's measurement by default. A replay harness gives one
+     *   that returns the recorded values, as it does for `wallClock`.
      * @param [options.replay] - Whether the server replays a recorded session. A replay never opens
      *   the script debugger's socket, whatever the config says.
      * @param [options.scriptHttpTransport] - What sends the scripts' `@minecraft/server-net`
@@ -342,6 +348,7 @@ export default class Server {
         statsProviders = [],
         protocolProviders = [],
         wallClock = Date.now,
+        tickTime,
         replay = false,
         scriptHttpTransport
     }: {
@@ -358,6 +365,7 @@ export default class Server {
         statsProviders?: readonly StatsProvider[];
         protocolProviders?: readonly ProtocolProvider[];
         wallClock?: () => number;
+        tickTime?: () => number;
         replay?: boolean;
         scriptHttpTransport?: ScriptHttpTransport;
     }) {
@@ -368,6 +376,7 @@ export default class Server {
         });
         this.wallClock = wallClock;
         this.admittedClock = wallClock();
+        this.tickTime = tickTime ?? (() => this.ticker.getLastTickMs());
         this.scriptHttp = new ScriptHttpInputs(scriptHttpTransport);
 
         this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
@@ -414,6 +423,11 @@ export default class Server {
                 admitInputs: () => {
                     // The one wall clock reading a tick admits, which script `Date`s read (ADR 0021).
                     this.admittedClock = this.wallClock();
+                    // And how long the last tick took, which sizes the scripts' job slice.
+                    this.admittedJobSlice = {
+                        periodMs: 1000 / this.ticker.getTickRate(),
+                        lastTickMs: this.tickTime()
+                    };
                     return (
                         this.networking.admitInputs() +
                         this.chunkCompletionQueue.admissions.admit(this.getTick()) +
@@ -1036,6 +1050,15 @@ export default class Server {
      */
     public getAdmittedClock(): number {
         return this.admittedClock;
+    }
+
+    /**
+     * A tick's period at the current tick rate and how long the last tick took, in milliseconds,
+     * as the last input step admitted them. The behavior pack scripts' jobs get what the rest of
+     * that tick leaves of the period, as BDS gives them a time slice from its frame-time estimates.
+     */
+    public getAdmittedJobSlice(): { readonly periodMs: number; readonly lastTickMs: number } {
+        return this.admittedJobSlice;
     }
 
     /**

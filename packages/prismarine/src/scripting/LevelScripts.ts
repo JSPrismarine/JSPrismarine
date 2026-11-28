@@ -176,6 +176,11 @@ export class LevelScripts {
             return undefined;
         }
         const world = new LevelScriptWorld(options.sources);
+        const { jobSlice } = options.sources;
+        // BDS's job time slice, from the tick time the input step admitted; see `jobStepsForTick`.
+        if (jobSlice !== undefined)
+            world.jobSteps = () =>
+                host.jobStepsForTick({ ...jobSlice(), lastJobSteps: scripts?.runtime.jobStepsLastTick() ?? 0 });
         let scripts: LevelScripts | undefined;
         const scriptDebugger = new ScriptDebugger({
             settings: options.debugger?.settings ?? DEBUGGER_OFF,
@@ -383,7 +388,7 @@ const printScriptLine = (scriptDebugger: ScriptDebugger, message: string, level:
 const importScriptHost = async () => {
     const [
         { ScriptHostLibrary },
-        { WorldScripts, watchdogSettings },
+        { WorldScripts, jobStepsForTick, watchdogSettings },
         { readScriptConfig, readScriptPack, readPackFile },
         { ScriptDebugSession },
         { PortDebuggerChannel },
@@ -406,7 +411,15 @@ const importScriptHost = async () => {
         DEFAULT_DEBUGGER_PORT,
         readPackFile
     };
-    return { ScriptHostLibrary, WorldScripts, watchdogSettings, readScriptConfig, readScriptPack, debuggerHost };
+    return {
+        ScriptHostLibrary,
+        WorldScripts,
+        jobStepsForTick,
+        watchdogSettings,
+        readScriptConfig,
+        readScriptPack,
+        debuggerHost
+    };
 };
 
 /** The parts of the script host a level uses. */
