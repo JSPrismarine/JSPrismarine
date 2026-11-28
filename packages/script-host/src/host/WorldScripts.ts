@@ -228,12 +228,40 @@ export interface ScriptDebugTarget {
 }
 
 /**
- * The interpreter steps the jobs of one tick may take together. A step is a fixed amount of
- * interpreter work, so a replay advances every job as far
+ * The interpreter steps the jobs of one tick may take together when the world admits no budget
+ * of its own ({@link ScriptWorld.jobSteps}). A step is a fixed amount of interpreter work, so a
+ * replay advances every job as far
  * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)), and a job that
  * never ends leaves the rest of the tick to everything else.
  */
 export const JOB_STEPS_PER_TICK = 100;
+
+/** How long the last tick ran, and how long a tick should take, for {@link jobStepsForTick}. */
+export interface JobSliceInputs {
+    /** The time a tick has at the current tick rate, 50 ms at 20 ticks a second. */
+    readonly periodMs: number;
+    /** How long the last tick took, as the input step admitted it. */
+    readonly lastTickMs: number;
+    /** The steps the last tick's jobs took; see {@link WorldScripts.jobStepsLastTick}. */
+    readonly lastJobSteps: number;
+}
+
+/**
+ * The steps this tick's jobs may take. BDS gives `system.runJob` jobs a time slice from its
+ * frame-time estimates, which is what the rest of the tick leaves of its period, so an idle
+ * server advances a job through most of each tick. Here the rest of the last tick is its time
+ * less its jobs' steps at {@link STEPS_PER_MILLISECOND}, and what that leaves of the period
+ * turns back into steps at the same ratio. The host admits the last tick's time once, at the
+ * input step, so a replay that admits the same times advances every job as far.
+ *
+ * Never fewer than {@link JOB_STEPS_PER_TICK}, so a slow tick still advances its jobs, and never
+ * more than a whole period's steps.
+ */
+export const jobStepsForTick = ({ periodMs, lastTickMs, lastJobSteps }: JobSliceInputs): number => {
+    const otherWorkMs = Math.max(0, lastTickMs - lastJobSteps / STEPS_PER_MILLISECOND);
+    const steps = Math.floor((periodMs - otherWorkMs) * STEPS_PER_MILLISECOND);
+    return Math.min(Math.max(steps, JOB_STEPS_PER_TICK), Math.floor(periodMs * STEPS_PER_MILLISECOND));
+};
 
 /**
  * The first tag an event object gets. Event tags count up from here, past every fixed tag in
@@ -378,6 +406,8 @@ export class WorldScripts {
      */
     private nextShapeId = 1;
     private clock: number | undefined;
+    /** The steps the jobs took in the last tick; see {@link WorldScripts.jobStepsLastTick}. */
+    private lastJobSteps = 0;
     private releaseGuards: (() => void)[] = [];
     /** Set once scripts may no longer run: after a teardown, or a critical exception that shuts down. */
     private stopped = false;
@@ -2571,17 +2601,28 @@ export class WorldScripts {
     }
 
     /**
-     * Advances the `system.runJob` jobs one tick, within {@link JOB_STEPS_PER_TICK}, each step
-     * followed by the promise jobs of version 2 packs.
+     * Advances the `system.runJob` jobs one tick, within the steps the world admitted for them or
+     * {@link JOB_STEPS_PER_TICK}, each step followed by the promise jobs of version 2 packs.
      */
     private runJobsOfTick(): void {
+        this.lastJobSteps = 0;
         if (this.jobs.size === 0) return;
+        const budget = this.options.world.jobSteps?.() ?? JOB_STEPS_PER_TICK;
         const start = this.engine.stats().tickSteps;
         this.jobs.run(
             (job) => this.stepJob(job),
-            () => !this.stopped && this.engine.stats().tickSteps - start < JOB_STEPS_PER_TICK,
+            () => !this.stopped && this.engine.stats().tickSteps - start < budget,
             (job) => this.engine.free(job.callback)
         );
+        this.lastJobSteps = this.engine.stats().tickSteps - start;
+    }
+
+    /**
+     * The interpreter steps the jobs took in the last tick, which a host weighs against how long
+     * that tick ran to size the next tick's {@link ScriptWorld.jobSteps}.
+     */
+    public jobStepsLastTick(): number {
+        return this.lastJobSteps;
     }
 
     /** Calls a job's `next()` once, in its pack's context. A job that throws is logged and over. */

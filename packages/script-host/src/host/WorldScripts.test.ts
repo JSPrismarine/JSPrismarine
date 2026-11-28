@@ -8,7 +8,7 @@ import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/librar
 import type { ScriptPack } from './pack';
 import { readScriptConfig } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
-import { WorldScripts } from './WorldScripts';
+import { JOB_STEPS_PER_TICK, jobStepsForTick, STEPS_PER_MILLISECOND, WorldScripts } from './WorldScripts';
 import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { writeInlinePack } from '../testing/inlinePack.test-utils';
@@ -109,6 +109,33 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         const { log } = start([pack]);
         expect(log.lines.filter((line) => line.startsWith('error'))).toEqual([]);
         expect(log.printed()).toEqual(['helper helper']);
+    });
+
+    it('gives a job the steps its world admits for the tick, and the fixed budget when it admits none', () => {
+        /** How far a job that spins between yields gets in two ticks of a world that admits `steps`. */
+        const progress = (steps: number | undefined): number => {
+            const world = new MemoryWorld();
+            if (steps !== undefined) Object.assign(world, { jobSteps: () => steps });
+            const { scripts, log } = start(
+                [
+                    writePack(`import { system } from '@minecraft/server';
+                        let done = 0;
+                        system.runJob((function* () { for (;;) { for (let i = 0; i < 20000; i++); done++; yield; } })());
+                        system.runTimeout(() => console.warn(done), 2);`)
+                ],
+                { world }
+            );
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+            return Number(log.printed()[0]);
+        };
+
+        const fixed = progress(undefined);
+        expect(progress(JOB_STEPS_PER_TICK)).toBe(fixed);
+        // Four times the steps take a job about four times as far, and the same steps as far.
+        expect(progress(4 * JOB_STEPS_PER_TICK)).toBeGreaterThan(3 * fixed);
+        expect(progress(4 * JOB_STEPS_PER_TICK)).toBe(progress(4 * JOB_STEPS_PER_TICK));
     });
 
     it("walks a volume's locations in BDS's order at a cost that does not grow with the volume", () => {
@@ -2105,5 +2132,26 @@ system.run(() => {
             scripts.flush();
             expect(scripts.stats().handles).toBe(before);
         });
+    });
+});
+
+describe('jobStepsForTick', () => {
+    const period = 50;
+
+    it("gives an idle tick's jobs the whole period", () => {
+        expect(jobStepsForTick({ periodMs: period, lastTickMs: 0, lastJobSteps: 0 })).toBe(
+            period * STEPS_PER_MILLISECOND
+        );
+    });
+
+    it('gives the jobs what the rest of the last tick left of the period, counting their own steps out', () => {
+        // 40 ms, 10 of them the jobs' 100 steps: the rest took 30, which leaves 20 ms.
+        expect(jobStepsForTick({ periodMs: period, lastTickMs: 40, lastJobSteps: 100 })).toBe(
+            20 * STEPS_PER_MILLISECOND
+        );
+    });
+
+    it('keeps the fixed budget for a tick that ran over its period', () => {
+        expect(jobStepsForTick({ periodMs: period, lastTickMs: 80, lastJobSteps: 0 })).toBe(JOB_STEPS_PER_TICK);
     });
 });
