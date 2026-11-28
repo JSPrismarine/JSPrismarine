@@ -15,6 +15,8 @@ import CraftingDataPacket from '@jsprismarine/protocol/bedrock/packet/CraftingDa
 import CreativeContentPacket from '@jsprismarine/protocol/bedrock/packet/CreativeContentPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import { nbtToPlain, readNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
+import { BlockUpdate } from '@jsprismarine/protocol/java/packet/play';
+import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/newest';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -23,6 +25,7 @@ import type { ItemRegistryEntry } from '@jsprismarine/protocol/bedrock/packet/It
 import type { DecodedPacket } from '../net/ClientPacketRegistry';
 import type { LoopbackServer } from '../testing/loopbackServer.test-utils';
 import { startLoopbackServer } from '../testing/loopbackServer.test-utils';
+import { isRecord } from './scenarioSupport.test-utils';
 
 const MANIFEST = {
     format_version: 2,
@@ -36,7 +39,10 @@ const MANIFEST = {
     modules: [{ type: 'data', uuid: '0b5f2c1e-8a4d-4c7e-9f3b-2d6a1e8c4b71', version: [1, 0, 0] }]
 };
 
-/** A block in the shape a light block addon writes: no collision, no selection, not in the creative menu. */
+/**
+ * A block in the shape a light block addon writes: no collision, no selection, not in the creative
+ * menu, and a see-through texture whose `ambient_occlusion` is the older boolean form.
+ */
 const LIGHT = {
     format_version: '1.21.80',
     'minecraft:block': {
@@ -44,7 +50,11 @@ const LIGHT = {
         components: {
             'minecraft:light_emission': 15,
             'minecraft:collision_box': false,
-            'minecraft:selection_box': false
+            'minecraft:selection_box': false,
+            'minecraft:geometry': 'minecraft:geometry.cross',
+            'minecraft:material_instances': {
+                '*': { texture: 'loopback_light', render_method: 'alpha_test', ambient_occlusion: false }
+            }
         }
     }
 };
@@ -123,13 +133,20 @@ beforeAll(async () => {
             'pack/recipes/awkward_from_dirt.json': JSON.stringify(BREW),
             'pack/recipes/reduce_andesite_slab.json': JSON.stringify(REDUCTION)
         },
-        config: (stateRoot) => ({ 'content-world-packs': [path.join(stateRoot, 'pack')] })
+        config: (stateRoot) => ({
+            'content-world-packs': [path.join(stateRoot, 'pack')],
+            'java-enabled': true,
+            'java-port': 0
+        })
     });
 }, 1_200_000);
 
 afterAll(async () => {
     await jsp?.close();
 }, 60_000);
+
+/** A value as a record, or undefined when it is not one. */
+const recordOf = (value: unknown): Record<string, unknown> | undefined => (isRecord(value) ? value : undefined);
 
 /** The `block_id` a `Block Properties` definition declares, from its `vanilla_block_data`. */
 const blockIdOf = (definition: Buffer): number => {
@@ -170,6 +187,49 @@ describe('pack blocks', () => {
             });
         }
         player.leave();
+        await jsp.tick();
+    });
+
+    it("sends the client the light block's texture, whose ambient occlusion is a boolean", async () => {
+        const player = await jsp.join('Looker');
+        const light = (player.client.getStartGame()?.blockProperties ?? []).find(
+            (block) => block.name === 'loopback:light'
+        );
+        expect(light).toBeDefined();
+
+        const components = recordOf(recordOf(nbtToPlain(readNetworkNbt(light!.definition)))?.components);
+        const instances = recordOf(components?.['minecraft:material_instances']);
+        const all = recordOf(recordOf(instances?.materials)?.['*']);
+        // Without the component the client draws its missing-texture block where the light is.
+        expect(all?.texture).toBe('string:loopback_light');
+        expect(all?.render_method).toBe('string:alpha_test');
+        player.leave();
+        await jsp.tick();
+    });
+
+    it('shows a Java client the light block as a Java light block, and the solid block as stone', async () => {
+        const java = await jsp.joinJava('Steve');
+        const pose = java.getPose()!;
+        const [x, y, z] = [Math.floor(pose.x) + 2, Math.floor(pose.y), Math.floor(pose.z)];
+        const stateAt = (block: string) => {
+            const update = java.next(BlockUpdate, ({ position }) => position.x === x && position.z === z);
+            return jsp.command(`setblock ${x} ${y} ${z} ${block}`).then(async () => {
+                let state: number | undefined;
+                void update.then((payload) => {
+                    state = payload.state;
+                });
+                await jsp.untilJava(() => state !== undefined, `Steve never saw ${block}`);
+                return BLOCK_STATES.stateOf(state!);
+            });
+        };
+
+        // A stone block where nothing collides would push the Java player into a crawl.
+        expect(await stateAt('loopback:light')).toEqual({
+            name: 'minecraft:light',
+            properties: { level: '15', waterlogged: 'false' }
+        });
+        expect((await stateAt('loopback:stone'))?.name).toBe('minecraft:stone');
+        java.disconnect();
         await jsp.tick();
     });
 

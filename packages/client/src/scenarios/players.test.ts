@@ -19,7 +19,7 @@ import type { TestContext } from 'vitest';
 
 import type { LoopbackPlayer, LoopbackServer } from '../testing/loopbackServer.test-utils';
 import { startLoopbackServer } from '../testing/loopbackServer.test-utils';
-import { leaveAndWait, shownCount, wasShown } from './scenarioSupport.test-utils';
+import { isRecord, leaveAndWait, shownCount, wasShown } from './scenarioSupport.test-utils';
 
 /** What the script tells a player at each first spawn of a login, followed by the count and the name. */
 const VISITS_MESSAGE = 'client-e2e script: visit ';
@@ -219,10 +219,6 @@ describe('permissions-reload', () => {
     /** The node `/tell` needs, which a fresh file grants no player. */
     const NODE = 'minecraft.command.tell';
     const marker = 'loopback-perms';
-
-    /** Whether a value parsed from JSON is an object with string keys. */
-    const isRecord = (value: unknown): value is Record<string, unknown> =>
-        typeof value === 'object' && value !== null && !Array.isArray(value);
 
     /**
      * The JSON in a JSON-with-comments file: its comments and trailing commas taken out, strings
