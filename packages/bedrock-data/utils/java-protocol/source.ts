@@ -130,7 +130,12 @@ export const STATIC_REGISTRIES = [
     'minecraft:entity_type',
     'minecraft:item',
     'minecraft:custom_stat',
-    'minecraft:stat_type'
+    'minecraft:stat_type',
+    'minecraft:data_component_type',
+    'minecraft:block',
+    'minecraft:sound_event',
+    'minecraft:mob_effect',
+    'minecraft:consume_effect_type'
 ] as const;
 
 /**
@@ -195,6 +200,20 @@ export const STATIC_REGISTRY_CONSTANTS: Readonly<
     'minecraft:stat_type': {
         constant: 'STAT_TYPES',
         doc: 'The statistic types, the part of a statistic criterion before its colon.'
+    },
+    'minecraft:data_component_type': {
+        constant: 'DATA_COMPONENT_TYPES',
+        doc: "Data component types, which a slot's component patch names by id."
+    },
+    'minecraft:block': { constant: 'BLOCKS', doc: "Blocks, which a tool's rules name by id." },
+    'minecraft:sound_event': {
+        constant: 'SOUND_EVENTS',
+        doc: 'Sound events, which a sound holder names by its id plus one.'
+    },
+    'minecraft:mob_effect': { constant: 'MOB_EFFECTS', doc: 'Status effects, which an effect instance names by id.' },
+    'minecraft:consume_effect_type': {
+        constant: 'CONSUME_EFFECT_TYPES',
+        doc: "Consume effect types, which a consumable's effects name by id."
     }
 };
 
